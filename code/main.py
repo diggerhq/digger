@@ -107,7 +107,7 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
             print(comment)
             return
 
-    lock_acquired = acquire_lock(dynamodb, "test_github_actions", 60 * 24, pr_number)
+    lock_acquired = acquire_lock(dynamodb, repo_name, 60 * 24, pr_number)
     if lock_acquired:
         comment = f"Project has been locked by PR# {pr_number}"
         pull_request.publish_comment(comment)
@@ -117,14 +117,14 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
         #    # if we are going to run terraform we don't need to fail job
         #    return
     else:
-        lock = get_lock(dynamodb, "test_github_actions")
+        lock = get_lock(dynamodb, repo_name)
         comment = f"Project locked by another PR# {lock['transaction_id']}"
         pull_request.publish_comment(comment)
         print(comment)
 
 
 def unlock_project(dynamodb, repo_name, pr_number, token):
-    lock = get_lock(dynamodb, "test_github_actions")
+    lock = get_lock(dynamodb, repo_name)
     if lock:
         print(f"lock: {lock}")
         print(f"pr_number: {pr_number}")
