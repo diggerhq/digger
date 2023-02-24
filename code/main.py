@@ -144,12 +144,16 @@ if __name__ == "__main__":
 
 
 """
+
+
 if ref_name and not head_ref and not base_ref:
     print(f"PR merged to {ref_name}")
 elif ref_name and head_ref and base_ref:
     print(f"PR open from {head_ref} to {base_ref}")
+
 print(f"GITHUB_REF_NAME: {os.getenv('GITHUB_REF_NAME')}")
 print(f"GITHUB_BASE_REF: {os.getenv('GITHUB_BASE_REF')}")
 print(f"GITHUB_HEAD_REF: {os.getenv('GITHUB_HEAD_REF')}")
 print(f"GITHUB_REF_TYPE: {os.getenv('GITHUB_REF_TYPE')}")
+
 """

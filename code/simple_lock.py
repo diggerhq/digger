@@ -36,11 +36,11 @@ def acquire_lock(
                 conditions.Attr("timeout").lt(now),  # Old lock is timed out
             ),
         )
-        #print(f"update_item: {result}")
+        # print(f"update_item: {result}")
         return True
 
     except ex.ConditionalCheckFailedException as e:
-        #print(e)
+        # print(e)
         # It's already locked
         return False
 
@@ -52,7 +52,7 @@ def release_lock(dynamodb_client, resource_name: str, transaction_id: str) -> bo
     try:
         table.delete_item(
             Key={"PK": "LOCK", "SK": f"RES#{resource_name}"},
-#            ConditionExpression=conditions.Attr("transaction_id").eq(transaction_id),
+            #            ConditionExpression=conditions.Attr("transaction_id").eq(transaction_id),
         )
         return True
 
@@ -61,18 +61,16 @@ def release_lock(dynamodb_client, resource_name: str, transaction_id: str) -> bo
         return False
 
 
-def get_lock(dynamodb_client, resource_name: str, transaction_id: str) -> bool:
+def get_lock(dynamodb_client, resource_name: str):
     table = dynamodb_client.Table(TABLE_NAME)
 
     item = table.get_item(
         Key={"PK": "LOCK", "SK": f"RES#{resource_name}"},
     )
-    if 'Item' in item:
+    if "Item" in item:
         return item["Item"]
     else:
         return None
-
-
 
 
 def create_table_if_not_exists():
