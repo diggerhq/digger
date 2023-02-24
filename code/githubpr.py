@@ -94,4 +94,7 @@ class GitHubPR:
 
     def publish_comment(self, comment: str):
         """Add the given text as a comment in the pull request."""
-        self.pull_request.create_issue_comment(comment)
+        try:
+            self.pull_request.create_issue_comment(comment)
+        except Exception:
+            print(f"ERROR: Failed to publish comment {comment}")
