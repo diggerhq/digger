@@ -16,7 +16,8 @@ This is demo flow with a sample repo using local state - for real world scenario
 1. fork the [demo repository](https://github.com/diggerhq/tfrun_demo) (or use your own repo with terraform)(https://developer.hashicorp.com/terraform/language/settings/backends/s3) is most commonly used and easy to configure.
 2. enable Actions (by default Github disables workflows in forks)
 
-<img width="910" alt="Screenshot 2023-02-24 at 20 19 07" src="https://user-images.githubusercontent.com/1280498/221282920-8e1af3b0-7bb1-42f8-b2d5-d2d26299b24c.png">
+<img width="1469" alt="Screenshot 2023-02-24 at 20 22 09" src="https://user-images.githubusercontent.com/1280498/221284008-64b35994-54c0-451d-9480-0d8f332250f0.png">
+
 
 4. Add environment variables into your Github Action Secrets
 - AWS_ACCESS_KEY_ID
