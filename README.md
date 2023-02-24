@@ -16,16 +16,15 @@ This is demo flow with a sample repo using local state - for real world scenario
 1. fork the [demo repository](https://github.com/diggerhq/tfrun_demo) (or use your own repo with terraform)(https://developer.hashicorp.com/terraform/language/settings/backends/s3) is most commonly used and easy to configure.
 2. enable Actions (by default Github disables workflows in forks)
 
-<img width="1469" alt="Screenshot 2023-02-24 at 20 22 09" src="https://user-images.githubusercontent.com/1280498/221284008-64b35994-54c0-451d-9480-0d8f332250f0.png">
+<img width="1441" alt="Screenshot 2023-02-24 at 20 24 08" src="https://user-images.githubusercontent.com/1280498/221284413-45f59ef3-7a31-41ae-af53-45c1b52b682d.png">
 
-
-4. Add environment variables into your Github Action Secrets
+3. Add environment variables into your Github Action Secrets
 - AWS_ACCESS_KEY_ID
 - AWS_SECRET_ACCESS_KEY
-5. make a change and create a PR - this will create a lock
-6. comment `digger plan` - terraform plan output will be added as comment
-7. create another PR - plan or apply won’t work in this PR until the first lock is released
-8. you should see `Locked by PR #1` comment
+4. make a change and create a PR - this will create a lock
+5. comment `digger plan` - terraform plan output will be added as comment
+6. create another PR - plan or apply won’t work in this PR until the first lock is released
+7. you should see `Locked by PR #1` comment
 
 ## Remote backend and state-level locks
 
