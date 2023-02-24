@@ -14,20 +14,20 @@ def create_locks_table_if_not_exists():
             AttributeDefinitions=[
                 {"AttributeName": "PK", "AttributeType": "S"},
                 {"AttributeName": "SK", "AttributeType": "S"},            
-                {
-                    'AttributeName': 'timeout',
-                    'AttributeType': 'S',
-                },
-                {
-                    'AttributeName': 'transaction_id',
-                    'AttributeType': 'N',
-                },
+                # {
+                #     'AttributeName': 'timeout',
+                #     'AttributeType': 'S',
+                # },
+                # {
+                #     'AttributeName': 'transaction_id',
+                #     'AttributeType': 'N',
+                # },
             ],
             KeySchema=[
                 {"AttributeName": "PK", "KeyType": "HASH"},
                 {"AttributeName": "SK", "KeyType": "RANGE"},
-                {"AttributeName": "timeout", "KeyType": "HASH"},
-                {"AttributeName": "transaction_id", "KeyType": "HASH"},
+                # {"AttributeName": "timeout", "KeyType": "HASH"},
+                # {"AttributeName": "transaction_id", "KeyType": "HASH"},
             ],
             ProvisionedThroughput={
                 'ReadCapacityUnits': 5,
