@@ -22,9 +22,9 @@ This is demo flow with a sample repo using local state - for real world scenario
 - AWS_ACCESS_KEY_ID
 - AWS_SECRET_ACCESS_KEY
 3. make a change and create a PR - this will create a lock
-4. comment `digger plan` - terraform plan output will be added as comment
+4. comment `digger plan` - terraform plan output will be added as comment. If you don't see a comment (bug) - check out job output
 5. create another PR - plan or apply won’t work in this PR until the first lock is released
-6. you should see `Locked by PR #1` comment
+6. you should see `Locked by PR #1` comment. The action logs will display "Project locked" error message.
 
 ## Remote backend and state-level locks
 
