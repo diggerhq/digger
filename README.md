@@ -1,7 +1,7 @@
 # tfrun
 A Github Action that runs Terraform `plan` and `apply` with PR-level locks
 
-Just like Atlantis - but without a self-hosted backend, and terraform runs in GH actions
+Just like Atlantis - but without a self-hosted backend, and terraform binary runs in GH actions compute environment
 
 ## Features
 - code-level locks - only 1 open PR can run plan / apply. This avoids conflicts
