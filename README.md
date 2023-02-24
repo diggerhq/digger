@@ -14,7 +14,6 @@ Just like Atlantis - but without a self-hosted backend, and terraform runs in GH
 3. Add environment variables into your Github Action Secrets
 - AWS_ACCESS_KEY_ID
 - AWS_SECRET_ACCESS_KEY
-- DYNAMODB_LOCKS_TABLE (from step 2)
 4. if you are using your own repo: add a [workflow file](https://github.com/diggerhq/tfrun_demo/blob/main/.github/workflows/plan.yml) to the root of the repo
 5. make a change and create a PR - this will create a lock
 6. comment `digger plan` - terraform plan output will be added as comment
