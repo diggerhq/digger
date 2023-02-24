@@ -1,7 +1,7 @@
 # tfrun
 A Github Action that runs Terraform `plan` and `apply` with PR-level locks
 
-Just like Atlantis - but without a self-hosted backend, and terraform runs in GH actions
+Just like Atlantis - but without a self-hosted backend, and terraform binary runs in GH actions compute environment
 
 ## Features
 - code-level locks - only 1 open PR can run plan / apply. This avoids conflicts
@@ -19,6 +19,15 @@ Just like Atlantis - but without a self-hosted backend, and terraform runs in GH
 6. comment `digger plan` - terraform plan output will be added as comment
 7. create another PR - plan or apply won’t work in this PR until the first lock is released
 8. you should see `Locked by PR #1` comment
+
+## Remote backend and state-level locks
+
+tfrun does not interfere with your remote backend setup. You could be using [S3 backend](https://developer.hashicorp.com/terraform/language/settings/backends/s3) or TF cloud's [remote backend](https://developer.hashicorp.com/terraform/language/settings/backends/remote) or [some other way](https://developer.hashicorp.com/terraform/language/settings/backends/configuration)
+
+tfrun also does differentiate locks based on statefiles - if a PR is locked, it's locked for all "instances" of state (aka [Terraform CLI Workspaces](https://developer.hashicorp.com/terraform/cloud-docs/workspaces#terraform-cloud-vs-terraform-cli-workspaces))
+
+state-level locks will keep working normally because are handled by terraform itself ([same as in Atlantis](https://www.runatlantis.io/docs/locking.html#relationship-to-terraform-state-locking))
+
 
 ## Limitations
 - AWS only, for now. Not hard to add AWS / GCP support though, we just haven't yet.
