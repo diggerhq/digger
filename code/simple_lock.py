@@ -7,7 +7,8 @@ from boto3.dynamodb import conditions
 TABLE_NAME = "DiggerDynamoDBLockTable"
 
 
-def create_locks_table_if_not_exists(dynamodb_client):
+def create_locks_table_if_not_exists():
+    dynamodb_client = boto3.client("dynamodb")
     try:
         response = dynamodb_client.create_table(
             AttributeDefinitions=[
