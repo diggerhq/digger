@@ -1,0 +1,36 @@
+#! /usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+VERSION="$1"
+
+if [[ "$VERSION" == "latest" ]]; then
+    VERSION="${DEFAULT_TERRAFORM_VERSION}"
+fi
+
+if [[ -e "/usr/local/tf/versions/${VERSION}/terraform" ]]; then
+    # If the file is already there, just move on
+    exit 0
+fi
+
+WORKSPACE="$(mktemp -d)"
+
+trap "rm -rf $WORKSPACE" EXIT
+
+cd "$WORKSPACE"
+
+curl -LOs https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_linux_amd64.zip
+curl -LOs https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_SHA256SUMS
+grep -F "terraform_${VERSION}_linux_amd64.zip" terraform_${VERSION}_SHA256SUMS | sha256sum -c
+mkdir -p /usr/local/tf/versions/${VERSION}
+unzip -q terraform_${VERSION}_linux_amd64.zip
+chmod +x terraform
+mv terraform /usr/local/tf/versions/${VERSION}/
+rm terraform_${VERSION}_linux_amd64.zip
+rm terraform_${VERSION}_SHA256SUMS
+
+if [[ "$VERSION" == "$DEFAULT_TERRAFORM_VERSION" ]]; then
+    ln -sf /usr/local/tf/versions/"$VERSION" /usr/local/tf/versions/latest
+fi

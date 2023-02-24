@@ -1,0 +1,4 @@
+boto3
+PyGithub
+python-terraform
+github-action-utils
