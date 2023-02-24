@@ -35,6 +35,7 @@ def create_locks_table_if_not_exists():
             },
             TableName=TABLE_NAME,
         )
+        boto3.resource("dynamodb").Table(TABLE_NAME).wait_until_exists()
     except dynamodb_client.exceptions.ResourceInUseException:
         # do something here as you require
         pass    
