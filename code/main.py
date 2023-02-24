@@ -31,7 +31,7 @@ def main(argv):
 
     if event_name not in ['issue_comment'] and ref_name and not head_ref and not base_ref:
         print(f"commit merged to {ref_name}")
-        #lock_released = release_lock(dynamodb, "test_github_actions", "tx-1")
+        #lock_released = release_lock(dynamodb, "tfrun_demo", "tx-1")
         #if lock_released:
         #    print("Project unlocked")
 
@@ -69,14 +69,14 @@ def main(argv):
 
 def terraform_plan(dynamodb, pr_number, token):
     lock_project(dynamodb, pr_number, token, for_terraform_run=True)
-    pull_request = GitHubPR('diggerhq/test_github_actions', pr_number, token)
+    pull_request = GitHubPR('diggerhq/tfrun_demo', pr_number, token)
     comment = get_terraform_plan()
     pull_request.publish_comment(comment)
 
 
 def terraform_apply(dynamodb, pr_number, token):
     lock_project(dynamodb, pr_number, token, for_terraform_run=True)
-    pull_request = GitHubPR('diggerhq/test_github_actions', pr_number, token)
+    pull_request = GitHubPR('diggerhq/tfrun_demo', pr_number, token)
     ret_code, comment = get_terraform_apply()
     pull_request.publish_comment(comment)
     if ret_code == 0 or ret_code == 2:
@@ -84,8 +84,8 @@ def terraform_apply(dynamodb, pr_number, token):
 
 
 def lock_project(dynamodb, pr_number, token, for_terraform_run=False):
-    lock = get_lock(dynamodb, "test_github_actions", "tx-1")
-    pull_request = GitHubPR('diggerhq/test_github_actions', pr_number, token)
+    lock = get_lock(dynamodb, "tfrun_demo", "tx-1")
+    pull_request = GitHubPR('diggerhq/tfrun_demo', pr_number, token)
 
     if lock:
         transaction_id = lock['transaction_id']
@@ -100,7 +100,7 @@ def lock_project(dynamodb, pr_number, token, for_terraform_run=False):
             print(comment)
             return
 
-    lock_acquired = acquire_lock(dynamodb, "test_github_actions", 60 * 24, pr_number)
+    lock_acquired = acquire_lock(dynamodb, "tfrun_demo", 60 * 24, pr_number)
     if lock_acquired:
         comment = f"Project has been locked by PR# {pr_number}"
         pull_request.publish_comment(comment)
@@ -110,23 +110,23 @@ def lock_project(dynamodb, pr_number, token, for_terraform_run=False):
         #    # if we are going to run terraform we don't need to fail job
         #    return
     else:
-        lock = get_lock(dynamodb, "test_github_actions", "tx-1")
+        lock = get_lock(dynamodb, "tfrun_demo", "tx-1")
         comment = f"Project locked by another PR# {lock['transaction_id']}"
         pull_request.publish_comment(comment)
         print(comment)
 
 
 def unlock_project(dynamodb, pr_number, token):
-    lock = get_lock(dynamodb, "test_github_actions", "tx-1")
+    lock = get_lock(dynamodb, "tfrun_demo", "tx-1")
     if lock:
         print(f'lock: {lock}')
         print(f'pr_number: {pr_number}')
         transaction_id = lock['transaction_id']
         if int(pr_number) == int(transaction_id):
-            lock_released = release_lock(dynamodb, "test_github_actions", "tx-1")
+            lock_released = release_lock(dynamodb, "tfrun_demo", "tx-1")
             print(f'lock_released: {lock_released}')
             if lock_released:
-                pull_request = GitHubPR('diggerhq/test_github_actions', pr_number, token)
+                pull_request = GitHubPR('diggerhq/tfrun_demo', pr_number, token)
                 comment = f"Project unlocked."
                 pull_request.publish_comment(comment)
                 print("Project unlocked")
