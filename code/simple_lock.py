@@ -26,6 +26,8 @@ def create_locks_table_if_not_exists():
             KeySchema=[
                 {"AttributeName": "PK", "KeyType": "HASH"},
                 {"AttributeName": "SK", "KeyType": "RANGE"},
+                {"AttributeName": "timeout", "KeyType": "HASH"},
+                {"AttributeName": "transaction_id", "KeyType": "HASH"},
             ],
             ProvisionedThroughput={
                 'ReadCapacityUnits': 5,
