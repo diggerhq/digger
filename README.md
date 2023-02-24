@@ -13,9 +13,10 @@ Just like Atlantis - but without a self-hosted backend, and terraform binary run
 
 This is demo flow with a sample repo using local state - for real world scenario you'll need to configure remote backend (S3 + DynamoDB) and add a [workflow file](https://github.com/diggerhq/tfrun_demo/blob/main/.github/workflows/plan.yml) to the root of the repo.
 
-1. clone the [demo repository](https://github.com/diggerhq/tfrun_demo) and push to your Github
+1. Fork the [demo repository](https://github.com/diggerhq/tfrun_demo)
+2. Enable Actions (by default workflows won't trigger in a fork)
 
-DO NOT FORK - Github Actions auto-comments will not work in a fork, even if you enable actions manually
+<img width="1441" alt="Screenshot 2023-02-24 at 20 24 08" src="https://user-images.githubusercontent.com/1280498/221291130-6831d45a-008f-452f-91d3-37ba133d7cbb.png">
 
 2. Add environment variables into your Github Action Secrets
 - AWS_ACCESS_KEY_ID
