@@ -1,5 +1,6 @@
 # tfrun
 A Github Action that runs Terraform `plan` and `apply` with PR-level locks
+
 Just like Atlantis - but without a self-hosted backend, and terraform runs in GH actions
 
 ## Features
