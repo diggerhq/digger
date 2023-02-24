@@ -11,7 +11,7 @@ import github_action_utils as gha_utils
 
 def main(argv):
     dynamodb = boto3.resource("dynamodb")
-    create_locks_table_if_not_exists(dynamodb)
+    create_locks_table_if_not_exists()
 
     base_ref = os.getenv("GITHUB_BASE_REF")
     head_ref = os.getenv("GITHUB_HEAD_REF")
