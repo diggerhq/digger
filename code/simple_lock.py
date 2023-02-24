@@ -4,8 +4,32 @@ from datetime import datetime, timedelta
 import boto3
 from boto3.dynamodb import conditions
 
-TABLE_NAME = "DynamoDBLockTable"
+TABLE_NAME = "DiggerDynamoDBLockTable"
 
+
+def create_table_if_not_exists(dynamodb_client, table_name):
+    try:
+        response = dynamodb_client.create_table(
+            AttributeDefinitions=[
+                {
+                    'AttributeName': 'timeout',
+                    'AttributeType': 'S',
+                },
+                {
+                    'AttributeName': 'transaction_id',
+                    'AttributeType': 'N',
+                },
+            ],
+            KeySchema=[],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5,
+            },
+            TableName='test',
+        )
+    except dynamodb_client.exceptions.ResourceInUseException:
+        # do something here as you require
+        pass    
 
 def acquire_lock(
     dynamodb_client, resource_name: str, timeout_in_seconds: int, transaction_id: str
