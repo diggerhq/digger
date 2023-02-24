@@ -12,6 +12,8 @@ def create_locks_table_if_not_exists():
     try:
         response = dynamodb_client.create_table(
             AttributeDefinitions=[
+                {"AttributeName": "PK", "AttributeType": "S"},
+                {"AttributeName": "SK", "AttributeType": "S"},            
                 {
                     'AttributeName': 'timeout',
                     'AttributeType': 'S',
@@ -21,7 +23,10 @@ def create_locks_table_if_not_exists():
                     'AttributeType': 'N',
                 },
             ],
-            KeySchema=[],
+            KeySchema=[
+                {"AttributeName": "PK", "KeyType": "HASH"},
+                {"AttributeName": "SK", "KeyType": "RANGE"},
+            ],
             ProvisionedThroughput={
                 'ReadCapacityUnits': 5,
                 'WriteCapacityUnits': 5,
