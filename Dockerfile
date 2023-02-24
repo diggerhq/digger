@@ -27,9 +27,10 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 RUN unzip -qq awscliv2.zip
 RUN ./aws/install
 
-ENV DEFAULT_TERRAFORM_VERSION 1.3.8
-COPY ./install-terraform /install-terraform
-RUN /install-terraform latest
+# ENV DEFAULT_TERRAFORM_VERSION 1.3.8
+# COPY ./install-terraform /install-terraform
+# RUN /install-terraform latest
+COPY bin/* /bin/
 
 RUN pip3 install -q -r requirements.txt
 COPY entrypoint.sh /entrypoint.sh
