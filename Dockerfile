@@ -32,8 +32,8 @@ RUN ./aws/install
 # RUN /install-terraform latest
 COPY bin/* /bin/
 
-RUN pip3 install -q -r requirements.txt
 COPY entrypoint.sh /entrypoint.sh
 COPY code /code
+RUN pip install -q -r /code/requirements.txt
 
 ENTRYPOINT ["/entrypoint.sh"]
