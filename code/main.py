@@ -4,14 +4,14 @@ import sys
 import boto3
 
 from githubpr import GitHubPR
-from simple_lock import acquire_lock, release_lock, get_lock, create_table_if_not_exists
+from simple_lock import acquire_lock, release_lock, get_lock, create_locks_table_if_not_exists
 from terraform_plan_test import get_terraform_plan, get_terraform_apply
 import github_action_utils as gha_utils
 
 
 def main(argv):
     dynamodb = boto3.resource("dynamodb")
-    create_table_if_not_exists(dynamodb)
+    create_locks_table_if_not_exists(dynamodb)
 
     base_ref = os.getenv("GITHUB_BASE_REF")
     head_ref = os.getenv("GITHUB_HEAD_REF")
