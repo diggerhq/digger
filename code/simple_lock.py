@@ -7,7 +7,7 @@ from boto3.dynamodb import conditions
 TABLE_NAME = "DiggerDynamoDBLockTable"
 
 
-def create_table_if_not_exists(dynamodb_client, table_name):
+def create_table_if_not_exists(dynamodb_client):
     try:
         response = dynamodb_client.create_table(
             AttributeDefinitions=[
@@ -25,7 +25,7 @@ def create_table_if_not_exists(dynamodb_client, table_name):
                 'ReadCapacityUnits': 5,
                 'WriteCapacityUnits': 5,
             },
-            TableName='test',
+            TableName=TABLE_NAME,
         )
     except dynamodb_client.exceptions.ResourceInUseException:
         # do something here as you require
