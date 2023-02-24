@@ -10,7 +10,7 @@ Just like Atlantis - but without a self-hosted backend, and terraform binary run
 ## How to use
 
 1. clone the [demo repository](https://github.com/diggerhq/tfrun_demo) (or use your own repo with terraform)
-2. (configure S3 backend + dynamo) (script?) (should get table)
+2. make sure your terraform project is not using a local backend (otherwise it won't persist state). [S3 backend](https://developer.hashicorp.com/terraform/language/settings/backends/s3) is most commonly used and easy to configure.
 3. Add environment variables into your Github Action Secrets
 - AWS_ACCESS_KEY_ID
 - AWS_SECRET_ACCESS_KEY
