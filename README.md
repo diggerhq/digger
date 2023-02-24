@@ -13,18 +13,17 @@ Just like Atlantis - but without a self-hosted backend, and terraform binary run
 
 This is demo flow with a sample repo using local state - for real world scenario you'll need to configure remote backend (S3 + DynamoDB) and add a [workflow file](https://github.com/diggerhq/tfrun_demo/blob/main/.github/workflows/plan.yml) to the root of the repo.
 
-1. fork the [demo repository](https://github.com/diggerhq/tfrun_demo) (or use your own repo with terraform)(https://developer.hashicorp.com/terraform/language/settings/backends/s3) is most commonly used and easy to configure.
-2. enable Actions (by default Github disables workflows in forks)
+1. clone the [demo repository](https://github.com/diggerhq/tfrun_demo) and push to your Github
 
-<img width="1441" alt="Screenshot 2023-02-24 at 20 24 08" src="https://user-images.githubusercontent.com/1280498/221284413-45f59ef3-7a31-41ae-af53-45c1b52b682d.png">
+DO NOT FORK - Github Actions auto-comments will not work in a fork, even if you enable actions manually
 
-3. Add environment variables into your Github Action Secrets
+2. Add environment variables into your Github Action Secrets
 - AWS_ACCESS_KEY_ID
 - AWS_SECRET_ACCESS_KEY
-4. make a change and create a PR - this will create a lock
-5. comment `digger plan` - terraform plan output will be added as comment
-6. create another PR - plan or apply won’t work in this PR until the first lock is released
-7. you should see `Locked by PR #1` comment
+3. make a change and create a PR - this will create a lock
+4. comment `digger plan` - terraform plan output will be added as comment
+5. create another PR - plan or apply won’t work in this PR until the first lock is released
+6. you should see `Locked by PR #1` comment
 
 ## Remote backend and state-level locks
 
