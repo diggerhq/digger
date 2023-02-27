@@ -1,5 +1,8 @@
 # tfrun by Digger
 
+<div align="center">![digger-logo-circle-dark](https://user-images.githubusercontent.com/19911122/221622172-2a7f2dbf-9656-40de-9b9f-7a17cb5271cb.png)
+
+
 A Github Action that runs Terraform `plan` and `apply` with PR-level locks
 
 <img width="693" alt="Screenshot 2023-02-24 at 19 52 12" src="https://user-images.githubusercontent.com/1280498/221277610-368ae950-6319-4bf3-9df2-ca75ca5a05f9.png">
