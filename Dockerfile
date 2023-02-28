@@ -1,4 +1,4 @@
-FROM python:3.11-apline
+FROM python:3.11-alpine
 
 COPY entrypoint.sh /entrypoint.sh
 COPY code /code
