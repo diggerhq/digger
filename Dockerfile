@@ -1,7 +1,6 @@
 FROM python:3.11-bullseye
 
-ENV USAGE_LAMBDA_TOKEN=token
-RUN echo $USAGE_LAMBDA_TOKEN
+ENV USAGE_LAMBDA_TOKEN=diggerABC@@1998fE
 
 COPY entrypoint.sh /entrypoint.sh
 COPY code /code
