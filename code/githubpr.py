@@ -2,10 +2,9 @@
 Module for :py:class:`GitHubPR`.
 """
 from os import environ
-from typing import Union
 
 from github import Github
-from github.IssueComment import IssueComment
+
 
 
 class GitHubPR:
@@ -71,26 +70,6 @@ class GitHubPR:
         """
         for comment in self.comments:
             comment.delete()
-
-    '''
-    def find_comment_by_backend(self, backend: TFBackend) -> Union[IssueComment, None]:
-        """
-        Find a comment that describes state of a given backend.
-        It will return None if nothing is found.
-
-        :param backend: Terraform Backend configuration.
-        :return: a comment object or None.
-        :rtype: IssueComment, None
-        """
-        for comment in self.comments:
-            try:
-                status = parse_comment(comment.body)
-                if status.backend == backend:
-                    return comment
-            except IHParseError:
-                pass
-        return None
-    '''
 
     def publish_comment(self, comment: str):
         """Add the given text as a comment in the pull request."""
