@@ -3,5 +3,5 @@ name: 'tfrun'
 description: 'tfrun action'
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  main: '/entrypoint.sh'
+  using: node16
