@@ -29,6 +29,7 @@ def main(argv):
     repo_name = None
     repo_owner = None
     
+    print("j is:", j, "repository_owner" in j)
 
     if "repository" in j:
         repo_name = j["repository"]
