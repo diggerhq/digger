@@ -10,7 +10,7 @@ def send_usage_record(repo_owner, event_name):
     }
     url = "https://i2smwjphd4.execute-api.us-east-1.amazonaws.com/prod"
     try:
-        response = requests.post(url, data=payload)
+        response = requests.post(url, json=payload)
         response.raise_for_status()    
     except Exception:
-        print("WARN: unable to send anonymous metric")
+        print(f"WARN: unable to send anonymous metric {response.text}")
