@@ -1,6 +1,6 @@
 FROM python:3.11-bullseye
 
-ENV USAGE_LAMBDA_TOKEN
+ENV USAGE_LAMBDA_TOKEN=token
 RUN echo $USAGE_LAMBDA_TOKEN
 
 COPY entrypoint.sh /entrypoint.sh
