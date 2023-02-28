@@ -1,0 +1,7 @@
+# action.yml
+name: 'tfrun'
+description: 'tfrun action'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
