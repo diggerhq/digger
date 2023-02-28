@@ -1,8 +1,17 @@
 # tfrun by Digger
 
-<img width="733" alt="Screenshot 2023-02-28 at 11 25 48" src="https://user-images.githubusercontent.com/1280498/221849642-ae6cb056-5b5b-478f-8cfb-42790e1739e7.png">
+<h1 align="center">
+  <img width="733" alt="Screenshot 2023-02-28 at 11 25 48" src="https://user-images.githubusercontent.com/1280498/221849642-ae6cb056-5b5b-478f-8cfb-42790e1739e7.png">
+</h1>
+<p align="center">
+  <p align="center">Digger is an open-source Terraform Cloud Alternative</p>
+</p>
+<h2 align="center">
+  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA">Slack</a> |
+  <a href="https://www.digger.dev">Website</a>
+</h2>
 
-TFrun is Github Action that runs Terraform `plan` and `apply` with PR-level locks
+TFrun by Digger is Github Action that runs Terraform `plan` and `apply` with PR-level locks
 
 Unlike Terraform Cloud or Spacelift, terraform jobs run natively in your Github Actions - no need to share sensitive data with another CI system
 
