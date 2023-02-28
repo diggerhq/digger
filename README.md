@@ -38,7 +38,7 @@ state-level locks will keep working normally because are handled by terraform it
 
 
 ## Limitations
-- AWS only, for now. Not hard to add AWS / GCP support though, we just haven't yet.
+- AWS only, for now. Not hard to add Azure / GCP support though, we just haven't yet.
 
 ## Links
 - [Why are people using Terraform Cloud?](https://www.reddit.com/r/Terraform/comments/1132qf3/why_are_people_using_terraform_cloud_i_may_be/)
