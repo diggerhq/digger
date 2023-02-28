@@ -3,10 +3,10 @@
 <img width="733" alt="Screenshot 2023-02-28 at 11 25 48" src="https://user-images.githubusercontent.com/1280498/221849642-ae6cb056-5b5b-478f-8cfb-42790e1739e7.png">
 
 TFrun is Github Action that runs Terraform `plan` and `apply` with PR-level locks
+Unlike TF Cloud / Spacelift, terraform jobs run natively in your Github Actions - no need to share sensitive data with another CI system
+Unlike Atlantis, there's no need to deploy and maintain a backend service.
 
 <img width="693" alt="Screenshot 2023-02-24 at 19 52 12" src="https://user-images.githubusercontent.com/1280498/221277610-368ae950-6319-4bf3-9df2-ca75ca5a05f9.png">
-
-Just like Atlantis - but without a self-hosted backend, and terraform binary runs in GH actions compute environment
 
 ## Features
 - code-level locks - only 1 open PR can run plan / apply. This avoids conflicts
