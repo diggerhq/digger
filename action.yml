@@ -1,7 +1,0 @@
-# action.yml
-name: 'tfrun'
-description: 'tfrun action'
-
-runs:
-  main: '/entrypoint.sh'
-  using: node16
