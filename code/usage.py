@@ -8,7 +8,7 @@ def send_usage_record(repo_owner, event_name):
         "action": event_name,
         "token": "diggerABC@@1998fE"
     }
-    url = "https://r63hdtqawh.execute-api.us-east-1.amazonaws.com/dev"
+    url = "https://i2smwjphd4.execute-api.us-east-1.amazonaws.com/prod"
     try:
         requests.post(url, data=payload)
     except Exception:
