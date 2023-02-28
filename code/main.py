@@ -7,6 +7,7 @@ import boto3
 from githubpr import GitHubPR
 from simple_lock import acquire_lock, release_lock, get_lock
 from tf_utils import get_terraform_plan, get_terraform_apply, cleanup_terraform_plan, cleanup_terraform_apply
+from usage import send_usage_record
 import github_action_utils as gha_utils
 
 logger = logging.getLogger("python_terraform")
@@ -26,11 +27,19 @@ def main(argv):
     pr_number = None
     event_name = None
     repo_name = None
+    repo_owner = None
+    
+
     if "repository" in j:
         repo_name = j["repository"]
-
+        
     if "event_name" in j:
         event_name = j["event_name"]
+
+    if "repository_owner" in j:
+        repo_owner = j["repository_owner"]
+        send_usage_record(repo_owner, event_name)
+
 
     print(f"event_name: {event_name}")
 
