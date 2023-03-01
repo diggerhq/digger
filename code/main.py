@@ -58,9 +58,10 @@ def main(argv):
             comment = j["event"]["comment"]["body"]
             if comment.strip() == "digger plan":
                 terraform_plan(dynamodb, repo_name, pr_number, token)
-
             if comment.strip() == "digger apply":
                 terraform_apply(dynamodb, repo_name, pr_number, token)
+            if comment.strip() == "digger unlock":
+                unlock_project(dynamodb, repo_name, pr_number, token)
 
     if "action" in j["event"] and event_name == "pull_request":
         if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
