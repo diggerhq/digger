@@ -1,11 +1,23 @@
 # tfrun by Digger
 
+<h1 align="center">
+  <img width="733" alt="Screenshot 2023-02-28 at 11 25 48" src="https://user-images.githubusercontent.com/1280498/221849642-ae6cb056-5b5b-478f-8cfb-42790e1739e7.png">
+</h1>
+<p align="center">
+  <p align="center">Digger is an open-source Terraform Cloud Alternative</p>
+</p>
+<h2 align="center">
+  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA">Slack</a> |
+  <a href="https://digger.dev">Website</a>
+</h2>
 
-A Github Action that runs Terraform `plan` and `apply` with PR-level locks
+TFrun by Digger is Github Action that runs Terraform `plan` and `apply` with PR-level locks
+
+Unlike Terraform Cloud or Spacelift, terraform jobs run natively in your Github Actions - no need to share sensitive data with another CI system
+
+Unlike Atlantis, there's no need to deploy and maintain a backend service.
 
 <img width="693" alt="Screenshot 2023-02-24 at 19 52 12" src="https://user-images.githubusercontent.com/1280498/221277610-368ae950-6319-4bf3-9df2-ca75ca5a05f9.png">
-
-Just like Atlantis - but without a self-hosted backend, and terraform binary runs in GH actions compute environment
 
 ## Features
 - code-level locks - only 1 open PR can run plan / apply. This avoids conflicts
@@ -39,6 +51,9 @@ state-level locks will keep working normally because are handled by terraform it
 
 ## Limitations
 - AWS only, for now. Not hard to add AWS / GCP support though, we just haven't yet.
+
+## Notes
+- we perform anonymous tracking to measure usage, no data is logged during the process, you can see what is tracked in [`code/usage.py`](https://github.com/diggerhq/tfrun/blob/main/code/usage.py)
 
 ## Links
 - [Why are people using Terraform Cloud?](https://www.reddit.com/r/Terraform/comments/1132qf3/why_are_people_using_terraform_cloud_i_may_be/)
