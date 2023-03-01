@@ -6,11 +6,17 @@ import boto3
 
 from githubpr import GitHubPR
 from simple_lock import acquire_lock, release_lock, get_lock
-from tf_utils import get_terraform_plan, get_terraform_apply, cleanup_terraform_plan, cleanup_terraform_apply
+from tf_utils import (
+    get_terraform_plan,
+    get_terraform_apply,
+    cleanup_terraform_plan,
+    cleanup_terraform_apply,
+)
 import github_action_utils as gha_utils
 
 logger = logging.getLogger("python_terraform")
 logger.setLevel(logging.CRITICAL)
+
 
 def main(argv):
     dynamodb = boto3.resource("dynamodb")

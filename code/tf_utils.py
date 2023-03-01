@@ -55,7 +55,9 @@ def cleanup_terraform_apply(return_code: int, stdout: str, stderr: str):
     except ValueError:
         start_pos = 0
 
-    regex = r"(Apply complete! Resources: [0-9]+ added, [0-9]+ changed, [0-9]+ destroyed.)"
+    regex = (
+        r"(Apply complete! Resources: [0-9]+ added, [0-9]+ changed, [0-9]+ destroyed.)"
+    )
     matches = re.search(regex, stdout, re.MULTILINE)
     if matches:
         end_pos = matches.end()
