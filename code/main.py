@@ -12,6 +12,8 @@ from tf_utils import (
     cleanup_terraform_plan,
     cleanup_terraform_apply,
 )
+from usage import send_usage_record
+
 import github_action_utils as gha_utils
 
 logger = logging.getLogger("python_terraform")
@@ -32,11 +34,16 @@ def main(argv):
     pr_number = None
     event_name = None
     repo_name = None
+    repo_owner = None
+    
     if "repository" in j:
         repo_name = j["repository"]
-
+        
     if "event_name" in j:
         event_name = j["event_name"]
+
+    if "repository_owner" in j:
+        repo_owner = j["repository_owner"]
 
     print(f"event_name: {event_name}")
 
@@ -57,18 +64,24 @@ def main(argv):
         if "event" in j and "comment" in j["event"] and "body" in j["event"]["comment"]:
             comment = j["event"]["comment"]["body"]
             if comment.strip() == "digger plan":
+                send_usage_record(repo_owner, event_name, "plan")
                 terraform_plan(dynamodb, repo_name, pr_number, token)
-
             if comment.strip() == "digger apply":
+                send_usage_record(repo_owner, event_name, "apply")
                 terraform_apply(dynamodb, repo_name, pr_number, token)
+            if comment.strip() == "digger unlock":
+                send_usage_record(repo_owner, event_name, "unlock")
+                unlock_project(dynamodb, repo_name, pr_number, token)
 
     if "action" in j["event"] and event_name == "pull_request":
         if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
             print("Pull request opened.")
+            send_usage_record(repo_owner, event_name, "lock")
             lock_project(dynamodb, repo_name, pr_number, token)
 
         if j["event"]["action"] in ["closed"]:
             print("Pull request closed.")
+            send_usage_record(repo_owner, event_name, "unlock")
             unlock_project(dynamodb, repo_name, pr_number, token)
 
 
