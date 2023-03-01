@@ -110,7 +110,7 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
     if lock:
         transaction_id = lock["transaction_id"]
         if int(pr_number) != int(transaction_id):
-            comment = f"Project locked by another PR #{pr_number}, id: {lock['transaction_id']}"
+            comment = f"Project locked by another PR #{lock['transaction_id']} (failed to acquire lock). The locking plan must be applied or discarded before future plans can execute"
             pull_request.publish_comment(comment)
             print(comment)
             exit(1)
@@ -131,7 +131,7 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
         #    return
     else:
         lock = get_lock(dynamodb, repo_name)
-        comment = f"Project locked by another PR #{pr_number}, id: {lock['transaction_id']} (failed to acquire lock). The locking plan must be applied or discarded before future plans can execute"
+        comment = f"Project locked by another PR #{lock['transaction_id']} (failed to acquire lock). The locking plan must be applied or discarded before future plans can execute"
         pull_request.publish_comment(comment)
         print(comment)
 
