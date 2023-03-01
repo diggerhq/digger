@@ -6,12 +6,19 @@ import boto3
 
 from githubpr import GitHubPR
 from simple_lock import acquire_lock, release_lock, get_lock
-from tf_utils import get_terraform_plan, get_terraform_apply, cleanup_terraform_plan, cleanup_terraform_apply
+from tf_utils import (
+    get_terraform_plan,
+    get_terraform_apply,
+    cleanup_terraform_plan,
+    cleanup_terraform_apply,
+)
 from usage import send_usage_record
+
 import github_action_utils as gha_utils
 
 logger = logging.getLogger("python_terraform")
 logger.setLevel(logging.CRITICAL)
+
 
 def main(argv):
     dynamodb = boto3.resource("dynamodb")
@@ -39,17 +46,6 @@ def main(argv):
         repo_owner = j["repository_owner"]
 
     print(f"event_name: {event_name}")
-
-    if (
-        event_name not in ["issue_comment"]
-        and ref_name
-        and not head_ref
-        and not base_ref
-    ):
-        print(f"commit merged to {ref_name}")
-        # lock_released = release_lock(dynamodb, repo_name)
-        # if lock_released:
-        #    print("Project unlocked")
 
     if "pull_request" in j["event"]:
         if "merged" in j["event"]["pull_request"]:
