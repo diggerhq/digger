@@ -34,17 +34,6 @@ def main(argv):
 
     print(f"event_name: {event_name}")
 
-    if (
-        event_name not in ["issue_comment"]
-        and ref_name
-        and not head_ref
-        and not base_ref
-    ):
-        print(f"commit merged to {ref_name}")
-        # lock_released = release_lock(dynamodb, repo_name)
-        # if lock_released:
-        #    print("Project unlocked")
-
     if "pull_request" in j["event"]:
         if "merged" in j["event"]["pull_request"]:
             print(f"pull_request merged: {j['event']['pull_request']['merged']}")
