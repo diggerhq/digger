@@ -35,10 +35,10 @@ def main(argv):
     event_name = None
     repo_name = None
     repo_owner = None
-    
+
     if "repository" in j:
         repo_name = j["repository"]
-        
+
     if "event_name" in j:
         event_name = j["event_name"]
 
@@ -52,12 +52,12 @@ def main(argv):
             print(f"pull_request merged: {j['event']['pull_request']['merged']}")
         if "number" in j["event"]["pull_request"]:
             pr_number = j["event"]["pull_request"]["number"]
-            print(f"pull_request pr# {pr_number}")
+            print(f"pull_request PR #{pr_number}")
 
     if "issue" in j["event"] and not pr_number:
         if "number" in j["event"]["issue"]:
             pr_number = j["event"]["issue"]["number"]
-            print(f"issue pr# {pr_number}")
+            print(f"issue PR #{pr_number}")
 
     if event_name in ["issue_comment"]:
         print(f"issue comment, pr#: {pr_number}")
@@ -110,28 +110,28 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
     if lock:
         transaction_id = lock["transaction_id"]
         if int(pr_number) != int(transaction_id):
-            comment = f"Project locked by another PR# {pr_number}, id: {lock['transaction_id']}"
+            comment = f"Project locked by another PR #{pr_number}, id: {lock['transaction_id']}"
             pull_request.publish_comment(comment)
             print(comment)
             exit(1)
         else:
-            comment = f"Project locked by this PR# {lock['transaction_id']}"
+            comment = f"Project locked by this PR #{lock['transaction_id']}"
             pull_request.publish_comment(comment)
             print(comment)
             return
 
     lock_acquired = acquire_lock(dynamodb, repo_name, 60 * 24, pr_number)
     if lock_acquired:
-        comment = f"Project has been locked by PR# {pr_number}"
+        comment = f"Project has been locked by PR #{pr_number}"
         pull_request.publish_comment(comment)
-        print(f"project locked successfully. pr#: {pr_number}")
+        print(f"project locked successfully. PR #{pr_number}")
         gha_utils.error("Run 'digger apply' to unlock the project.")
         # if for_terraform_run:
         #    # if we are going to run terraform we don't need to fail job
         #    return
     else:
         lock = get_lock(dynamodb, repo_name)
-        comment = f"Project locked by another PR# {pr_number}, id: {lock['transaction_id']} (failed to acquire lock)"
+        comment = f"Project locked by another PR #{pr_number}, id: {lock['transaction_id']} (failed to acquire lock). The locking plan must be applied or discarded before future plans can execute"
         pull_request.publish_comment(comment)
         print(comment)
 
@@ -151,6 +151,7 @@ def unlock_project(dynamodb, repo_name, pr_number, token):
                 pull_request.publish_comment(comment)
                 print("Project unlocked")
 
+
 def force_unlock_project(dynamodb, repo_name, pr_number, token):
     lock = get_lock(dynamodb, repo_name)
     if lock:
@@ -162,6 +163,7 @@ def force_unlock_project(dynamodb, repo_name, pr_number, token):
             comment = f"Project unlocked."
             pull_request.publish_comment(comment)
             print("Project unlocked")
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
