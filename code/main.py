@@ -71,7 +71,7 @@ def main(argv):
                 terraform_apply(dynamodb, repo_name, pr_number, token)
             if comment.strip() == "digger unlock":
                 send_usage_record(repo_owner, event_name, "unlock")
-                unlock_project(dynamodb, repo_name, pr_number, token)
+                force_unlock_project(dynamodb, repo_name, pr_number, token)
 
     if "action" in j["event"] and event_name == "pull_request":
         if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
@@ -143,7 +143,7 @@ def unlock_project(dynamodb, repo_name, pr_number, token):
         print(f"pr_number: {pr_number}")
         transaction_id = lock["transaction_id"]
         if int(pr_number) == int(transaction_id):
-            lock_released = release_lock(dynamodb, repo_name, "tx-1")
+            lock_released = release_lock(dynamodb, repo_name)
             print(f"lock_released: {lock_released}")
             if lock_released:
                 pull_request = GitHubPR(repo_name, pr_number, token)
@@ -151,6 +151,17 @@ def unlock_project(dynamodb, repo_name, pr_number, token):
                 pull_request.publish_comment(comment)
                 print("Project unlocked")
 
+def force_unlock_project(dynamodb, repo_name, pr_number, token):
+    lock = get_lock(dynamodb, repo_name)
+    if lock:
+        print(f"lock: {lock}")
+        lock_released = release_lock(dynamodb, repo_name)
+        print(f"lock_released: {lock_released}")
+        if lock_released:
+            pull_request = GitHubPR(repo_name, pr_number, token)
+            comment = f"Project unlocked."
+            pull_request.publish_comment(comment)
+            print("Project unlocked")
 
 if __name__ == "__main__":
     main(sys.argv[1:])

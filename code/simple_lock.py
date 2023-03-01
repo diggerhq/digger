@@ -78,7 +78,7 @@ def acquire_lock(
         return False
 
 
-def release_lock(dynamodb_client, resource_name: str, transaction_id: str) -> bool:
+def release_lock(dynamodb_client, resource_name: str) -> bool:
     table = dynamodb_client.Table(TABLE_NAME)
     ex = dynamodb_client.meta.client.exceptions
 
