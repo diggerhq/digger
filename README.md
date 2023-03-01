@@ -53,7 +53,7 @@ state-level locks will keep working normally because are handled by terraform it
 - AWS only, for now. Not hard to add AWS / GCP support though, we just haven't yet.
 
 ## Notes
-- we perform anonymous tracking to measure usage, no data is logged during the process
+- we perform anonymous tracking to measure usage, no data is logged during the process, you can see what is tracked in [`code/usage.py`](https://github.com/diggerhq/tfrun/blob/main/code/usage.py)
 
 ## Links
 - [Why are people using Terraform Cloud?](https://www.reddit.com/r/Terraform/comments/1132qf3/why_are_people_using_terraform_cloud_i_may_be/)
