@@ -32,13 +32,17 @@ This is demo flow with a sample repo using local state - for real world scenario
 
 <img width="1441" alt="Screenshot 2023-02-24 at 20 24 08" src="https://user-images.githubusercontent.com/1280498/221291130-6831d45a-008f-452f-91d3-37ba133d7cbb.png">
 
-2. Add environment variables into your Github Action Secrets
+
+2. In your repository settings > Actions ensure that the Workflow Read and Write permissions are assigned - This will allow the workflow  to post comments on your PRs
+<img width="1017" alt="Screen Shot 2023-03-01 at 12 02 59 PM" src="https://user-images.githubusercontent.com/1627972/222136385-c7cb8f2c-1731-475d-b3a4-78b0d79a3874.png">
+
+3. Add environment variables into your Github Action Secrets (NOTE: This step is optional if you just want to test out the Action with `null_resource`)
 - AWS_ACCESS_KEY_ID
-- AWS_SECRET_ACCESS_KEY
-3. make a change and create a PR - this will create a lock
-4. comment `digger plan` - terraform plan output will be added as comment. If you don't see a comment (bug) - check out job output
-5. create another PR - plan or apply won’t work in this PR until the first lock is released
-6. you should see `Locked by PR #1` comment. The action logs will display "Project locked" error message.
+- AWS_SECRET_ACCESS_KEY 
+4. make a change and create a PR - this will create a lock
+5. comment `digger plan` - terraform plan output will be added as comment. If you don't see a comment (bug) - check out job output
+6. create another PR - plan or apply won’t work in this PR until the first lock is released
+7. you should see `Locked by PR #1` comment. The action logs will display "Project locked" error message.
 
 ## Remote backend and state-level locks
 
