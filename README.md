@@ -53,8 +53,15 @@ tfrun also doesn't differentiate locks based on statefiles - if a PR is locked, 
 state-level locks will keep working normally because are handled by terraform itself ([same as in Atlantis](https://www.runatlantis.io/docs/locking.html#relationship-to-terraform-state-locking))
 
 
-## Limitations
-- AWS only, for now. Not hard to add Azure / GCP support though, we just haven't yet.
+## Roadmap
+
+- 🔍 GCP Support
+    - Supporting of GCP Spanner for PR locks
+- 🔍 Azure Support 
+    - Supporting of Azure Cosmos DB for PR Locks
+- 🔍 Gitlab Support
+- 🔍 Jenkins Support
+
 
 ## Notes
 - we perform anonymous tracking to measure usage, no data is logged during the process, you can see what is tracked in [`code/usage.py`](https://github.com/diggerhq/tfrun/blob/main/code/usage.py)
