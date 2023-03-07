@@ -1,4 +1,4 @@
-name: terraform-plan
+name: tfrun
 description: Create a terraform plan
 author: Daniel Flook
 
