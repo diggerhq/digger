@@ -1,0 +1,22 @@
+name: terraform-plan
+description: Create a terraform plan
+author: Daniel Flook
+
+inputs:
+  workspace:
+    description: Name of the terraform workspace
+    required: false
+    default: default
+
+outputs:
+  output:
+    description: The terraform output
+
+runs:
+  using: docker
+  image: ./Dockerfile
+  entrypoint: ./entrypoints.sh
+
+branding:
+  icon: globe
+  color: purple
