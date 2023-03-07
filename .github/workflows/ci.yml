@@ -1,0 +1,32 @@
+name: ci
+on:
+  push:
+    branches:
+      - 'dev*'
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v3
+        env:
+          USAGE_TOKEN: ${{ secrets.USAGE_TOKEN }}
+          USAGE_URL: ${{ secrets.USAGE_URL }}
+        with:
+          push: true
+          file: Dockerfile.base
+          tags: ghcr.io/diggerhq/tfrun-base:latest
