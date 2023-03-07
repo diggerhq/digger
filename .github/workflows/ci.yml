@@ -27,6 +27,6 @@ jobs:
           push: true
           file: Dockerfile.base
           tags: ghcr.io/diggerhq/tfrun-base:latest
-          build-args:
-            - "USAGE_TOKEN=${{ secrets.USAGE_TOKEN }}"
-            - "USAGE_URL=${{ secrets.USAGE_URL }}"
+          build-args: |
+            USAGE_TOKEN=${{ secrets.USAGE_TOKEN }}
+            USAGE_URL=${{ secrets.USAGE_URL }}
