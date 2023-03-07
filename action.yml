@@ -1,6 +1,6 @@
 name: tfrun
-description: Create a terraform plan
-author: Daniel Flook
+description: Manage terraform collaboration
+author: Digger
 
 inputs:
   workspace:
