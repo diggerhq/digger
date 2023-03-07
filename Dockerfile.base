@@ -31,7 +31,7 @@ RUN apt-get update  \
 
 RUN mkdir -p $TF_PLUGIN_CACHE_DIR
 
-COPY code /code
-RUN pip install -q -r /code/requirements.txt
+COPY code/requirements.txt /requirements.txt
+RUN pip install -q -r requirements.txt
 
 ENTRYPOINT ["/usr/local/bin/terraform"]
