@@ -23,10 +23,10 @@ jobs:
       -
         name: Build and push
         uses: docker/build-push-action@v3
-        env:
-          USAGE_TOKEN: ${{ secrets.USAGE_TOKEN }}
-          USAGE_URL: ${{ secrets.USAGE_URL }}
         with:
           push: true
           file: Dockerfile.base
           tags: ghcr.io/diggerhq/tfrun-base:latest
+          build-args:
+            - "USAGE_TOKEN=${{ secrets.USAGE_TOKEN }}"
+            - "USAGE_URL=${{ secrets.USAGE_URL }}"
