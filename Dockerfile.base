@@ -1,0 +1,37 @@
+FROM debian:bullseye-slim as base
+
+# Terraform environment variables
+ARG USAGE_TOKEN
+ARG USAGE_URL
+ENV CHECKPOINT_DISABLE=true
+ENV TF_IN_AUTOMATION=true
+ENV TF_INPUT=false
+ENV TF_PLUGIN_CACHE_DIR=/usr/local/share/terraform/plugin-cache
+ENV USAGE_TOKEN=$USAGE_TOKEN
+ENV USAGE_URL=$USAGE_URL
+
+RUN apt-get update  \
+ && apt-get install --no-install-recommends -y \
+    git \
+    ssh \
+    tar \
+    gzip \
+    ca-certificates \
+    curl \
+    unzip \
+    jq \
+    python3 \
+    python3-requests \
+    python3-pip \
+    wget \
+    gpg \
+    gpg-agent \
+    dirmngr \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p $TF_PLUGIN_CACHE_DIR
+
+COPY code /code
+RUN pip install -q -r /code/requirements.txt
+
+ENTRYPOINT ["/usr/local/bin/terraform"]
