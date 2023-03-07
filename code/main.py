@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import boto3
+from diggerconfig import digger_config
 
 from githubpr import GitHubPR
 from simple_lock import acquire_lock, release_lock, get_lock
@@ -21,6 +22,7 @@ logger.setLevel(logging.CRITICAL)
 
 
 def main(argv):
+    print(digger_config)
     dynamodb = boto3.resource("dynamodb")
 
     base_ref = os.getenv("GITHUB_BASE_REF")
