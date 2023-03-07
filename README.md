@@ -19,6 +19,8 @@ Unlike Atlantis, there's no need to deploy and maintain a backend service.
 
 <img width="693" alt="Screenshot 2023-02-24 at 19 52 12" src="https://user-images.githubusercontent.com/1280498/221277610-368ae950-6319-4bf3-9df2-ca75ca5a05f9.png">
 
+Demo video: https://www.loom.com/share/e201e639a73941e0b5508710377a6106
+
 ## Features
 - code-level locks - only 1 open PR can run plan / apply. This avoids conflicts
 - no need to install any backend into your infra - locks are stored in DynamoDB
