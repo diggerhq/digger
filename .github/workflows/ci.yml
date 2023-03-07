@@ -2,7 +2,7 @@ name: ci
 on:
   push:
     branches:
-      - 'dev*'
+      - 'main'
 jobs:
   docker:
     runs-on: ubuntu-latest
