@@ -21,7 +21,10 @@ class DiggerConfig():
             return []
 
     def get_directory(self, project_name):
-        return self.config["projects"][project_name]["dir"]
+        for project in  self.config["projects"]:
+            if project_name == project["name"]:
+                return project["dir"]
+        return None
 
 digger_config = DiggerConfig()
 
