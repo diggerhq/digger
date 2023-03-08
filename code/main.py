@@ -74,6 +74,7 @@ def main(argv):
                 send_usage_record(repo_owner, event_name, f"plan")
                 if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
                     terraform_plan(dynamodb, lockid, pr_number, token, directory=directory)
+                    exit(1)
                 else:
                     exit(1)
             if comment.strip().startswith("digger apply"):
@@ -147,7 +148,7 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
         gha_utils.error("Run 'digger apply' to unlock the project.")
         # if for_terraform_run:
         #    # if we are going to run terraform we don't need to fail job
-        return False
+        return True
     else:
         lock = get_lock(dynamodb, repo_name)
         comment = f"Project locked by another PR #{lock['transaction_id']} (failed to acquire lock). The locking plan must be applied or discarded before future plans can execute"
