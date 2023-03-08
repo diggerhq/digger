@@ -68,15 +68,23 @@ def main(argv):
         if "event" in j and "comment" in j["event"] and "body" in j["event"]["comment"]:
             comment = j["event"]["comment"]["body"]
             requested_project = parse_project_name(comment)
-            lockid = f"{repo_name}#{requested_project}"
-            directory = digger_config.get_directory(requested_project)
             if comment.strip().startswith("digger plan"):
                 send_usage_record(repo_owner, event_name, f"plan")
-                if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
-                    terraform_plan(dynamodb, lockid, pr_number, token, directory=directory)
+                if requested_project is None:
+                    for project in digger_config.get_projects():
+                        project_name = project["name"]
+                        lockid = f"{repo_name}#{project_name}"
+                        directory = digger_config.get_directory(project_name)
+                        terraform_plan(dynamodb, lockid, pr_number, token, directory=directory)
                     exit(1)
                 else:
-                    exit(1)
+                    lockid = f"{repo_name}#{requested_project}"
+                    directory = digger_config.get_directory(requested_project)
+                    if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
+                        terraform_plan(dynamodb, lockid, pr_number, token, directory=directory)
+                        exit(1)
+                    else:
+                        exit(1)
             if comment.strip().startswith("digger apply"):
                 send_usage_record(repo_owner, event_name, "apply")
                 if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
@@ -89,7 +97,7 @@ def main(argv):
 
     if "action" in j["event"] and event_name == "pull_request":
         lock_aquisition_success = True
-        for project in digger_config.config["projects"]:
+        for project in digger_config.get_projects():
             project_name = project["name"]
             lockid = f"{repo_name}#{project_name}"
             if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
