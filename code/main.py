@@ -86,7 +86,7 @@ def main(argv):
                     directory = digger_config.get_directory(project_name)
                     if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
                         terraform_apply(dynamodb, lockid, pr_number, token, directory=directory)
-                exit(1)
+                exit(0)
             if comment.strip().startswith("digger unlock"):
                 send_usage_record(repo_owner, event_name, "unlock")
                 for project in impacted_projects:
@@ -124,13 +124,13 @@ def terraform_plan(dynamodb, lock_id, pr_number, token, directory="."):
     pull_request.publish_comment(f"Plan for **{lock_id}**\n{comment}")
 
 
-def terraform_apply(dynamodb, repo_name, pr_number, token, directory="."):
-    pull_request = GitHubPR(repo_name, pr_number, token)
+def terraform_apply(dynamodb, lock_id, pr_number, token, directory="."):
+    pull_request = GitHubPR(lock_id, pr_number, token)
     ret_code, stdout, stderr = get_terraform_apply(directory)
     comment = cleanup_terraform_apply(ret_code, stdout, stderr)
-    pull_request.publish_comment(comment)
+    pull_request.publish_comment(f"Apply for **{lock_id}**\n{comment}")
     if ret_code == 0 or ret_code == 2:
-        unlock_project(dynamodb, repo_name, pr_number, token)
+        unlock_project(dynamodb, lock_id, pr_number, token)
 
 
 def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False):

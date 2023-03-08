@@ -7,7 +7,6 @@ except ImportError:
 
 class DiggerConfig():
     def __init__(self):
-        print("loading digger config !!!!")
         if os.path.exists("digger.yml"):
             with open("digger.yml", "r") as f:
                 self.config = yaml.load(f, Loader=Loader)
