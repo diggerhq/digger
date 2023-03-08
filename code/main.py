@@ -147,7 +147,7 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
         gha_utils.error("Run 'digger apply' to unlock the project.")
         # if for_terraform_run:
         #    # if we are going to run terraform we don't need to fail job
-        return True
+        return False
     else:
         lock = get_lock(dynamodb, repo_name)
         comment = f"Project locked by another PR #{lock['transaction_id']} (failed to acquire lock). The locking plan must be applied or discarded before future plans can execute"
