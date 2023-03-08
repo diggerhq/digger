@@ -80,6 +80,7 @@ def main(argv):
                 exit(1)
             if comment.strip().startswith("digger apply"):
                 send_usage_record(repo_owner, event_name, "apply")
+                print(impacted_projects)
                 for project in impacted_projects:
                     project_name = project["name"]
                     lockid = f"{repo_name}#{project_name}"
