@@ -14,13 +14,13 @@ class DiggerConfig():
         else:
             self.config = {}
 
-    def get_projects():
+    def get_projects(self):
         if self.config and self.config.get("projects"):
-            return self.config["projects"]:
+            return self.config["projects"]
         else:
             return []
 
-    def get_directory(project_name):
+    def get_directory(self, project_name):
         return self.config["projects"][project_name]["dir"]
 
 digger_config = DiggerConfig()
