@@ -68,58 +68,60 @@ def main(argv):
         if "event" in j and "comment" in j["event"] and "body" in j["event"]["comment"]:
             comment = j["event"]["comment"]["body"]
             requested_project = parse_project_name(comment)
+            impacted_projects = digger_config.get_projects(requested_project)
             if comment.strip().startswith("digger plan"):
                 send_usage_record(repo_owner, event_name, f"plan")
-                if requested_project is None:
-                    for project in digger_config.get_projects():
-                        project_name = project["name"]
-                        lockid = f"{repo_name}#{project_name}"
-                        directory = digger_config.get_directory(project_name)
-                        terraform_plan(dynamodb, lockid, pr_number, token, directory=directory)
-                    exit(1)
-                else:
-                    lockid = f"{repo_name}#{requested_project}"
-                    directory = digger_config.get_directory(requested_project)
+                for project in impacted_projects:
+                    project_name = project["name"]
+                    lockid = f"{repo_name}#{project_name}"
+                    directory = digger_config.get_directory(project_name)
                     if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
                         terraform_plan(dynamodb, lockid, pr_number, token, directory=directory)
-                        exit(1)
-                    else:
-                        exit(1)
+                exit(1)
             if comment.strip().startswith("digger apply"):
                 send_usage_record(repo_owner, event_name, "apply")
-                if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
-                    terraform_apply(dynamodb, lockid, pr_number, token, directory=directory)
-                else:
-                    exit(1)
+                for project in impacted_projects:
+                    project_name = project["name"]
+                    lockid = f"{repo_name}#{project_name}"
+                    directory = digger_config.get_directory(project_name)
+                    if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
+                        terraform_apply(dynamodb, lockid, pr_number, token, directory=directory)
+                exit(1)
             if comment.strip().startswith("digger unlock"):
                 send_usage_record(repo_owner, event_name, "unlock")
+                for project in impacted_projects:
+                    project_name = project["name"]
+                    lockid = f"{repo_name}#{project_name}"
+                    force_unlock_project(dynamodb, lockid, pr_number, token)
+
                 force_unlock_project(dynamodb, lockid, pr_number, token)
 
     if "action" in j["event"] and event_name == "pull_request":
-        lock_aquisition_success = True
-        for project in digger_config.get_projects():
-            project_name = project["name"]
-            lockid = f"{repo_name}#{project_name}"
-            if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
-                
-                send_usage_record(repo_owner, event_name, "lock")
+        if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
+            send_usage_record(repo_owner, event_name, "lock")
+            lock_aquisition_success = True
+            for project in digger_config.get_projects():
+                project_name = project["name"]
+                lockid = f"{repo_name}#{project_name}"
                 if not lock_project(dynamodb, lockid, pr_number, token):
                     lock_aquisition_success = False
+            if lock_aquisition_success is False:
+                exit(1)
 
-            if j["event"]["action"] in ["closed"]:
-                
-                send_usage_record(repo_owner, event_name, "unlock")
+        if j["event"]["action"] in ["closed"]:
+            send_usage_record(repo_owner, event_name, "unlock")
+            for project in digger_config.get_projects():
+                project_name = project["name"]
+                lockid = f"{repo_name}#{project_name}"
                 unlock_project(dynamodb, lockid, pr_number, token)
 
-        if lock_aquisition_success is False:
-            exit(1)
 
 
-def terraform_plan(dynamodb, repo_name, pr_number, token, directory="."):
-    pull_request = GitHubPR(repo_name, pr_number, token)
+def terraform_plan(dynamodb, lock_id, pr_number, token, directory="."):
+    pull_request = GitHubPR(lock_id, pr_number, token)
     return_code, stdout, stderr = get_terraform_plan(directory)
     comment = cleanup_terraform_plan(return_code, stdout, stderr)
-    pull_request.publish_comment(comment)
+    pull_request.publish_comment(f"Plan for **{lock_id}**\n{comment}")
 
 
 def terraform_apply(dynamodb, repo_name, pr_number, token, directory="."):
@@ -138,7 +140,7 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
     if lock:
         transaction_id = lock["transaction_id"]
         if int(pr_number) != int(transaction_id):
-            comment = f"Project locked by another PR #{lock['transaction_id']} (failed to acquire lock). The locking plan must be applied or discarded before future plans can execute"
+            comment = f"Project locked by another PR #{lock['transaction_id']} (failed to acquire lock {repo_name}). The locking plan must be applied or discarded before future plans can execute"
             pull_request.publish_comment(comment)
             print(comment)
             return False
@@ -159,7 +161,7 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
         return True
     else:
         lock = get_lock(dynamodb, repo_name)
-        comment = f"Project locked by another PR #{lock['transaction_id']} (failed to acquire lock). The locking plan must be applied or discarded before future plans can execute"
+        comment = f"Project locked by another PR #{lock['transaction_id']} (failed to acquire lock {repo_name}). The locking plan must be applied or discarded before future plans can execute"
         pull_request.publish_comment(comment)
         print(comment)
         return False
@@ -176,7 +178,7 @@ def unlock_project(dynamodb, repo_name, pr_number, token):
             print(f"lock_released: {lock_released}")
             if lock_released:
                 pull_request = GitHubPR(repo_name, pr_number, token)
-                comment = f"Project unlocked."
+                comment = f"Project unlocked ({repo_name})."
                 pull_request.publish_comment(comment)
                 print("Project unlocked")
 

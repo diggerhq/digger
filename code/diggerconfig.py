@@ -14,8 +14,8 @@ class DiggerConfig():
         else:
             self.config = {}
 
-    def get_projects(self):
-        if self.config and self.config.get("projects"):
+    def get_projects(self, project_name=None):
+        if self.config and self.config.get("projects") and project_name is None:
             return self.config["projects"]
         else:
             return []
