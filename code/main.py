@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import boto3
-from io import parse_project_name
+from .io import parse_project_name
 from diggerconfig import digger_config
 
 from githubpr import GitHubPR
