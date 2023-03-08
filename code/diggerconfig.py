@@ -24,7 +24,7 @@ class DiggerConfig():
         elif project_name:
             project = self.get_project(project_name)
             if project:
-                return project
+                return [project]
         return []
 
     def get_directory(self, project_name):
