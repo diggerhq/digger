@@ -85,6 +85,7 @@ def main(argv):
                     lockid = f"{repo_name}#{project_name}"
                     directory = digger_config.get_directory(project_name)
                     if lock_project(dynamodb, lockid, pr_number, token, for_terraform_run=True):
+                        print("performing apply")
                         terraform_apply(dynamodb, lockid, pr_number, token, directory=directory)
                 exit(0)
             if comment.strip().startswith("digger unlock"):
