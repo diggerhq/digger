@@ -35,6 +35,7 @@ class DiggerConfig:
         result = []
 
         for p in all_projects:
+            print(f'p: {p}')
             for f in changed_files:
                 if "dir" in p and f.filename.startswith(p["dir"]):
                     result.append(p)
