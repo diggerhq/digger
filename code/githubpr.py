@@ -79,6 +79,6 @@ class GitHubPR:
         commits = self.pull_request.get_commits()
         for commit in commits:
             print(commit)
-        checkruns = commits[0].get_check_runs()
+        checkruns = commits[-1].get_check_runs()
         for checkrun in checkruns:
             print(checkrun, checkrun.name, checkrun.url)
