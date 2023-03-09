@@ -4,16 +4,12 @@ import os
 import sys
 import boto3
 from digger_commands import (
-    digger_apply,
-    digger_plan,
-    digger_unlock,
-    lock_project,
-    unlock_project,
+    process_new_pull_request,
+    process_closed_pull_request,
+    process_pull_request_comment,
 )
-from utils.io import parse_project_name
 from diggerconfig import digger_config
 from githubpr import GitHubPR
-from usage import send_usage_record
 
 
 logger = logging.getLogger("python_terraform")
@@ -67,59 +63,36 @@ def main(argv):
         print(f"issue comment, pr#: {pr_number}")
         if "event" in j and "comment" in j["event"] and "body" in j["event"]["comment"]:
             comment = j["event"]["comment"]["body"]
-            requested_project = parse_project_name(comment)
-            impacted_projects = digger_config.get_projects(requested_project)
-            if comment.strip().startswith("digger plan"):
-                digger_plan(
-                    repo_owner,
-                    repo_name,
-                    event_name,
-                    impacted_projects,
-                    digger_config,
-                    dynamodb,
-                    pr_number,
-                    token,
-                )
-            if comment.strip().startswith("digger apply"):
-                digger_apply(
-                    repo_owner,
-                    repo_name,
-                    event_name,
-                    impacted_projects,
-                    digger_config,
-                    dynamodb,
-                    pr_number,
-                    token,
-                )
-            if comment.strip().startswith("digger unlock"):
-                digger_unlock(
-                    repo_owner,
-                    repo_name,
-                    event_name,
-                    impacted_projects,
-                    dynamodb,
-                    pr_number,
-                    token,
-                )
+            process_pull_request_comment(
+                repo_owner,
+                repo_name,
+                event_name,
+                dynamodb,
+                pr_number,
+                token,
+                comment,
+            )
 
     if "action" in j["event"] and event_name == "pull_request":
         if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
-            send_usage_record(repo_owner, event_name, "lock")
-            lock_acquisition_success = True
-            for project in digger_config.get_projects():
-                project_name = project["name"]
-                lock_id = f"{repo_name}#{project_name}"
-                if not lock_project(dynamodb, lock_id, pr_number, token):
-                    lock_acquisition_success = False
-            if lock_acquisition_success is False:
-                exit(1)
+            process_new_pull_request(
+                repo_owner,
+                repo_name,
+                event_name,
+                dynamodb,
+                pr_number,
+                token,
+            )
 
         if j["event"]["action"] in ["closed"]:
-            send_usage_record(repo_owner, event_name, "unlock")
-            for project in digger_config.get_projects():
-                project_name = project["name"]
-                lock_id = f"{repo_name}#{project_name}"
-                unlock_project(dynamodb, lock_id, pr_number, token)
+            process_closed_pull_request(
+                repo_owner,
+                repo_name,
+                event_name,
+                dynamodb,
+                pr_number,
+                token,
+            )
 
 
 if __name__ == "__main__":
