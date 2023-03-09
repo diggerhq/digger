@@ -77,6 +77,8 @@ class GitHubPR:
         
     def update_action_state(self):
         commits = self.pull_request.get_commits()
-        print(commits)
+        for commit in commits:
+            print(commit)
         checkruns = commits[0].get_check_runs()
-        print(checkruns)
+        for checkrun in checkruns:
+            print(checkrun)
