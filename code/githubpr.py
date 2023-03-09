@@ -81,4 +81,4 @@ class GitHubPR:
             print(commit)
         checkruns = commits[0].get_check_runs()
         for checkrun in checkruns:
-            print(checkrun)
+            print(checkrun, checkrun.name, checkrun.url)
