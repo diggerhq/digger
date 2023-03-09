@@ -74,5 +74,5 @@ class GitHubPR:
         """Add the given text as a comment in the pull request."""
         self.pull_request.create_issue_comment(comment)
 
-    def changed_files(self):
-        return self.pull_request.changed_files
+    def get_files(self):
+        return self.pull_request.get_files()
