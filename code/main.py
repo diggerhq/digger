@@ -4,7 +4,7 @@ import os
 import sys
 import boto3
 
-from code.digger_commands import digger_apply, digger_plan, digger_unlock
+from digger_commands import digger_apply, digger_plan, digger_unlock
 from utils.io import parse_project_name
 from diggerconfig import digger_config
 
@@ -18,7 +18,6 @@ from tf_utils import (
 )
 from usage import send_usage_record
 
-import github_action_utils as gha_utils
 
 logger = logging.getLogger("python_terraform")
 logger.setLevel(logging.CRITICAL)
@@ -168,7 +167,7 @@ def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False)
         comment = f"Project has been locked by PR #{pr_number}"
         pull_request.publish_comment(comment)
         print(f"project locked successfully. PR #{pr_number}")
-        gha_utils.error("Run 'digger apply' to unlock the project.")
+        #gha_utils.error("Run 'digger apply' to unlock the project.")
         # if for_terraform_run:
         #    # if we are going to run terraform we don't need to fail job
         return True

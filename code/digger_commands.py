@@ -1,10 +1,10 @@
-from code.main import (
+from main import (
     lock_project,
     terraform_apply,
     terraform_plan,
     force_unlock_project,
 )
-from code.usage import send_usage_record
+from usage import send_usage_record
 
 
 def digger_apply(
