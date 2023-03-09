@@ -43,7 +43,7 @@ def lock_project(dynamodb, repo_name, pr_number, token):
             print(comment)
             return False
         else:
-            comment = f"Project locked by this PR #{lock['transaction_id']}"
+            comment = f"Project locked by this PR #{lock['transaction_id']} already."
             pull_request.publish_comment(comment)
             print(comment)
             return True
