@@ -51,9 +51,6 @@ def main(argv):
 
     print(f"event_name: {event_name}")
 
-    pull_request = GitHubPR(repo_name, pr_number, token)
-    pull_request.update_action_state()
-
     if "pull_request" in j["event"]:
         if "merged" in j["event"]["pull_request"]:
             print(f"pull_request merged: {j['event']['pull_request']['merged']}")
@@ -65,6 +62,11 @@ def main(argv):
         if "number" in j["event"]["issue"]:
             pr_number = j["event"]["issue"]["number"]
             print(f"issue PR #{pr_number}")
+
+
+    pull_request = GitHubPR(repo_name, pr_number, token)
+    pull_request.update_action_state()
+
 
     if event_name in ["issue_comment"]:
         print(f"issue comment, pr#: {pr_number}")
