@@ -67,8 +67,8 @@ def cleanup_terraform_apply(return_code: int, stdout: str, stderr: str):
     return "```terraform\n" + result + "\n```"
 
 
-def get_terraform_plan():
-    t = Terraform()
+def get_terraform_plan(directory):
+    t = Terraform(working_dir=directory)
     r = t.version()
     print(r)
     return_code, stdout, stderr = t.init()
@@ -76,8 +76,8 @@ def get_terraform_plan():
     return return_code, stdout, stderr
 
 
-def get_terraform_apply():
-    t = Terraform()
+def get_terraform_apply(directory):
+    t = Terraform(working_dir=directory)
     return_code, stdout, stderr = t.init()
     return_code, stdout, stderr = t.apply(skip_plan=True)
     return return_code, stdout, stderr
