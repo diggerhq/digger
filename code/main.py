@@ -47,6 +47,9 @@ def main(argv):
 
     print(f"event_name: {event_name}")
 
+    pull_request = GitHubPR(repo_name, pr_number, token)
+    pull_request.update_action_state()
+
     if "pull_request" in j["event"]:
         if "merged" in j["event"]["pull_request"]:
             print(f"pull_request merged: {j['event']['pull_request']['merged']}")
