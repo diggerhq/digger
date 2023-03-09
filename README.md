@@ -1,4 +1,4 @@
-# TFrun by Digger
+# Digger
 
 <h1 align="center">
   <img width="733" alt="Screenshot 2023-02-28 at 11 25 48" src="https://user-images.githubusercontent.com/1280498/221849642-ae6cb056-5b5b-478f-8cfb-42790e1739e7.png">
@@ -11,7 +11,7 @@
   <a href="https://digger.dev">Website</a>
 </h2>
 
-TFrun by Digger is Github Action that runs Terraform `plan` and `apply` with PR-level locks
+Digger is Github Action that runs Terraform `plan` and `apply` with PR-level locks
 
 Unlike Terraform Cloud or Spacelift, terraform jobs run natively in your Github Actions - no need to share sensitive data with another CI system
 
@@ -27,9 +27,9 @@ Demo video: https://www.loom.com/share/e201e639a73941e0b5508710377a6106
 
 ## How to use
 
-This is demo flow with a sample repo using local state - for real world scenario you'll need to configure remote backend (S3 + DynamoDB) and add a [workflow file](https://github.com/diggerhq/tfrun_demo/blob/main/.github/workflows/plan.yml) to the root of the repo.
+This is demo flow with a sample repo using local state - for real world scenario you'll need to configure remote backend (S3 + DynamoDB) and add a [workflow file](https://github.com/diggerhq/digger_demo/blob/main/.github/workflows/plan.yml) to the root of the repo.
 
-1. Fork the [demo repository](https://github.com/diggerhq/tfrun_demo)
+1. Fork the [demo repository](https://github.com/diggerhq/digger_demo)
 2. Enable Actions (by default workflows won't trigger in a fork)
 
 <img width="1441" alt="Screenshot 2023-02-24 at 20 24 08" src="https://user-images.githubusercontent.com/1280498/221291130-6831d45a-008f-452f-91d3-37ba133d7cbb.png">
@@ -48,9 +48,9 @@ This is demo flow with a sample repo using local state - for real world scenario
 
 ## Remote backend and state-level locks
 
-tfrun does not interfere with your remote backend setup. You could be using [S3 backend](https://developer.hashicorp.com/terraform/language/settings/backends/s3) or TF cloud's [remote backend](https://developer.hashicorp.com/terraform/language/settings/backends/remote) or [some other way](https://developer.hashicorp.com/terraform/language/settings/backends/configuration)
+Digger does not interfere with your remote backend setup. You could be using [S3 backend](https://developer.hashicorp.com/terraform/language/settings/backends/s3) or TF cloud's [remote backend](https://developer.hashicorp.com/terraform/language/settings/backends/remote) or [some other way](https://developer.hashicorp.com/terraform/language/settings/backends/configuration)
 
-tfrun also doesn't differentiate locks based on statefiles - if a PR is locked, it's locked for all "instances" of state (aka [Terraform CLI Workspaces](https://developer.hashicorp.com/terraform/cloud-docs/workspaces#terraform-cloud-vs-terraform-cli-workspaces))
+Digger also doesn't differentiate locks based on statefiles - if a PR is locked, it's locked for all "instances" of state (aka [Terraform CLI Workspaces](https://developer.hashicorp.com/terraform/cloud-docs/workspaces#terraform-cloud-vs-terraform-cli-workspaces))
 
 state-level locks will keep working normally because are handled by terraform itself ([same as in Atlantis](https://www.runatlantis.io/docs/locking.html#relationship-to-terraform-state-locking))
 
@@ -66,7 +66,7 @@ state-level locks will keep working normally because are handled by terraform it
 
 
 ## Notes
-- we perform anonymous tracking to measure usage, no data is logged during the process, you can see what is tracked in [`code/usage.py`](https://github.com/diggerhq/tfrun/blob/main/code/usage.py)
+- we perform anonymous tracking to measure usage, no data is logged during the process, you can see what is tracked in [`code/usage.py`](https://github.com/diggerhq/digger/blob/main/code/usage.py)
 
 ## Links
 - [Why are people using Terraform Cloud?](https://www.reddit.com/r/Terraform/comments/1132qf3/why_are_people_using_terraform_cloud_i_may_be/)
