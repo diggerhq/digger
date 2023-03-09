@@ -6,7 +6,6 @@ from os import environ
 from github import Github
 
 
-
 class GitHubPR:
     """
     :py:class:`GitHubPR` represents a pull request on GitHub.

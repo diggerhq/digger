@@ -54,8 +54,10 @@ def main(argv):
         if "number" in j["event"]["pull_request"]:
             pr_number = j["event"]["pull_request"]["number"]
             print(f"pull_request PR #{pr_number}")
-            pull_request = GitHubPR(repo_name=repo_name, pull_request=pr_number, github_token=token)
-            changed_files =pull_request.changed_files()
+            pull_request = GitHubPR(
+                repo_name=repo_name, pull_request=pr_number, github_token=token
+            )
+            changed_files = pull_request.changed_files()
             print("changed files:")
             for cf in changed_files:
                 print(cf)
@@ -72,11 +74,37 @@ def main(argv):
             requested_project = parse_project_name(comment)
             impacted_projects = digger_config.get_projects(requested_project)
             if comment.strip().startswith("digger plan"):
-                digger_plan(repo_owner, repo_name, event_name, impacted_projects, digger_config, dynamodb, pr_number, token)
+                digger_plan(
+                    repo_owner,
+                    repo_name,
+                    event_name,
+                    impacted_projects,
+                    digger_config,
+                    dynamodb,
+                    pr_number,
+                    token,
+                )
             if comment.strip().startswith("digger apply"):
-                digger_apply(repo_owner, repo_name, event_name, impacted_projects, digger_config, dynamodb, pr_number, token)
+                digger_apply(
+                    repo_owner,
+                    repo_name,
+                    event_name,
+                    impacted_projects,
+                    digger_config,
+                    dynamodb,
+                    pr_number,
+                    token,
+                )
             if comment.strip().startswith("digger unlock"):
-                digger_unlock(repo_owner, repo_name, event_name, impacted_projects, dynamodb, pr_number, token)
+                digger_unlock(
+                    repo_owner,
+                    repo_name,
+                    event_name,
+                    impacted_projects,
+                    dynamodb,
+                    pr_number,
+                    token,
+                )
 
     if "action" in j["event"] and event_name == "pull_request":
         if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
@@ -98,16 +126,19 @@ def main(argv):
                 unlock_project(dynamodb, lock_id, pr_number, token)
 
 
-
 def terraform_plan(lock_id, pr_number, token, directory="."):
-    pull_request = GitHubPR(repo_name=lock_id, pull_request=pr_number, github_token=token)
+    pull_request = GitHubPR(
+        repo_name=lock_id, pull_request=pr_number, github_token=token
+    )
     return_code, stdout, stderr = get_terraform_plan(directory)
     comment = cleanup_terraform_plan(return_code, stdout, stderr)
     pull_request.publish_comment(f"Plan for **{lock_id}**\n{comment}")
 
 
 def terraform_apply(dynamodb, lock_id, pr_number, token, directory="."):
-    pull_request = GitHubPR(repo_name=lock_id, pull_request=pr_number, github_token=token)
+    pull_request = GitHubPR(
+        repo_name=lock_id, pull_request=pr_number, github_token=token
+    )
     ret_code, stdout, stderr = get_terraform_apply(directory)
     comment = cleanup_terraform_apply(ret_code, stdout, stderr)
     pull_request.publish_comment(f"Apply for **{lock_id}**\n{comment}")
