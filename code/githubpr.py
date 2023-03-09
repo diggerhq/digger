@@ -75,3 +75,8 @@ class GitHubPR:
         """Add the given text as a comment in the pull request."""
         self.pull_request.create_issue_comment(comment)
         
+    def update_action_state(self):
+        commits = self.pull_request.get_commits()
+        print(commits)
+        checkruns = commits[0].get_check_runs()
+        print(checkruns)
