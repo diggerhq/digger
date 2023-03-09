@@ -74,4 +74,6 @@ class GitHubPR:
     def publish_comment(self, comment: str):
         """Add the given text as a comment in the pull request."""
         self.pull_request.create_issue_comment(comment)
-        
+
+    def changed_files(self):
+        self.pull_request.changed_files()
