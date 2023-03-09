@@ -1,3 +1,5 @@
+from diggerconfig import digger_config
+from utils.io import parse_project_name
 from simple_lock import get_lock, acquire_lock, release_lock
 from tf_utils import (
     cleanup_terraform_plan,
@@ -29,7 +31,7 @@ def terraform_apply(dynamodb, lock_id, pr_number, token, directory="."):
         unlock_project(dynamodb, lock_id, pr_number, token)
 
 
-def lock_project(dynamodb, repo_name, pr_number, token, for_terraform_run=False):
+def lock_project(dynamodb, repo_name, pr_number, token):
     lock = get_lock(dynamodb, repo_name)
     pull_request = GitHubPR(repo_name, pr_number, token)
     print(f"lock_project, lock:{lock}")
@@ -108,7 +110,7 @@ def digger_apply(
         project_name = project["name"]
         lock_id = f"{repo_name}#{project_name}"
         directory = digger_config.get_directory(project_name)
-        if lock_project(dynamodb, lock_id, pr_number, token, for_terraform_run=True):
+        if lock_project(dynamodb, lock_id, pr_number, token):
             print("performing apply")
             terraform_apply(dynamodb, lock_id, pr_number, token, directory=directory)
     exit(0)
@@ -129,7 +131,7 @@ def digger_plan(
         project_name = project["name"]
         lock_id = f"{repo_name}#{project_name}"
         directory = digger_config.get_directory(project_name)
-        if lock_project(dynamodb, lock_id, pr_number, token, for_terraform_run=True):
+        if lock_project(dynamodb, lock_id, pr_number, token):
             terraform_plan(lock_id, pr_number, token, directory=directory)
     exit(1)
 
@@ -144,3 +146,60 @@ def digger_unlock(
         force_unlock_project(dynamodb, lockid, pr_number, token)
 
     # force_unlock_project(dynamodb, lockid, pr_number, token)
+
+
+def process_new_pull_request(repo_owner, repo_name, event_name, dynamodb, pr_number, token):
+    send_usage_record(repo_owner, event_name, "lock")
+    lock_acquisition_success = True
+    for project in digger_config.get_projects():
+        project_name = project["name"]
+        lock_id = f"{repo_name}#{project_name}"
+        if not lock_project(dynamodb, lock_id, pr_number, token):
+            lock_acquisition_success = False
+    if lock_acquisition_success is False:
+        exit(1)
+
+
+def process_closed_pull_request(repo_owner, repo_name, event_name, dynamodb, pr_number, token):
+    send_usage_record(repo_owner, event_name, "unlock")
+    for project in digger_config.get_projects():
+        project_name = project["name"]
+        lock_id = f"{repo_name}#{project_name}"
+        unlock_project(dynamodb, lock_id, pr_number, token)
+
+
+def process_pull_request_comment(repo_owner, repo_name, event_name, dynamodb, pr_number, token, comment):
+    requested_project = parse_project_name(comment)
+    impacted_projects = digger_config.get_projects(requested_project)
+    if comment.strip().startswith("digger plan"):
+        digger_plan(
+            repo_owner,
+            repo_name,
+            event_name,
+            impacted_projects,
+            digger_config,
+            dynamodb,
+            pr_number,
+            token,
+        )
+    if comment.strip().startswith("digger apply"):
+        digger_apply(
+            repo_owner,
+            repo_name,
+            event_name,
+            impacted_projects,
+            digger_config,
+            dynamodb,
+            pr_number,
+            token,
+        )
+    if comment.strip().startswith("digger unlock"):
+        digger_unlock(
+            repo_owner,
+            repo_name,
+            event_name,
+            impacted_projects,
+            dynamodb,
+            pr_number,
+            token,
+        )
