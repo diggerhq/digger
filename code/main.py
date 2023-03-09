@@ -64,6 +64,7 @@ def main(argv):
         if "event" in j and "comment" in j["event"] and "body" in j["event"]["comment"]:
             comment = j["event"]["comment"]["body"]
             process_pull_request_comment(
+                digger_config,
                 repo_owner,
                 repo_name,
                 event_name,
@@ -76,6 +77,7 @@ def main(argv):
     if "action" in j["event"] and event_name == "pull_request":
         if j["event"]["action"] in ["reopened", "opened", "synchronize"]:
             process_new_pull_request(
+                digger_config,
                 repo_owner,
                 repo_name,
                 event_name,
@@ -86,6 +88,7 @@ def main(argv):
 
         if j["event"]["action"] in ["closed"]:
             process_closed_pull_request(
+                digger_config,
                 repo_owner,
                 repo_name,
                 event_name,

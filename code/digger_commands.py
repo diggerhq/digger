@@ -1,4 +1,3 @@
-from diggerconfig import digger_config
 from utils.io import parse_project_name
 from simple_lock import get_lock, acquire_lock, release_lock
 from tf_utils import (
@@ -34,6 +33,7 @@ def terraform_apply(dynamodb, lock_id, pr_number, token, directory="."):
 def lock_project(dynamodb, repo_name, pr_number, token):
     lock = get_lock(dynamodb, repo_name)
     pull_request = GitHubPR(repo_name, pr_number, token)
+
     print(f"lock_project, lock:{lock}")
     if lock:
         transaction_id = lock["transaction_id"]
@@ -148,10 +148,16 @@ def digger_unlock(
     # force_unlock_project(dynamodb, lockid, pr_number, token)
 
 
-def process_new_pull_request(repo_owner, repo_name, event_name, dynamodb, pr_number, token):
+def process_new_pull_request(digger_config, repo_owner, repo_name, event_name, dynamodb, pr_number, token):
     send_usage_record(repo_owner, event_name, "lock")
     lock_acquisition_success = True
-    for project in digger_config.get_projects():
+
+    pull_request = GitHubPR(
+        repo_name=repo_name, pull_request=pr_number, github_token=token
+    )
+    changed_files = pull_request.get_files()
+
+    for project in digger_config.get_modified_projects(changed_files):
         project_name = project["name"]
         lock_id = f"{repo_name}#{project_name}"
         if not lock_project(dynamodb, lock_id, pr_number, token):
@@ -160,17 +166,32 @@ def process_new_pull_request(repo_owner, repo_name, event_name, dynamodb, pr_num
         exit(1)
 
 
-def process_closed_pull_request(repo_owner, repo_name, event_name, dynamodb, pr_number, token):
+def process_closed_pull_request(digger_config, repo_owner, repo_name, event_name, dynamodb, pr_number, token):
     send_usage_record(repo_owner, event_name, "unlock")
-    for project in digger_config.get_projects():
+
+    pull_request = GitHubPR(
+        repo_name=repo_name, pull_request=pr_number, github_token=token
+    )
+    changed_files = pull_request.get_files()
+
+    for project in digger_config.get_modified_projects(changed_files):
         project_name = project["name"]
         lock_id = f"{repo_name}#{project_name}"
         unlock_project(dynamodb, lock_id, pr_number, token)
 
 
-def process_pull_request_comment(repo_owner, repo_name, event_name, dynamodb, pr_number, token, comment):
+def process_pull_request_comment(digger_config, repo_owner, repo_name, event_name, dynamodb, pr_number, token, comment):
     requested_project = parse_project_name(comment)
-    impacted_projects = digger_config.get_projects(requested_project)
+
+    if requested_project:
+        impacted_projects = digger_config.get_projects(requested_project)
+    else:
+        pull_request = GitHubPR(
+            repo_name=repo_name, pull_request=pr_number, github_token=token
+        )
+        changed_files = pull_request.get_files()
+        impacted_projects = digger_config.get_modified_projects(changed_files)
+
     if comment.strip().startswith("digger plan"):
         digger_plan(
             repo_owner,
