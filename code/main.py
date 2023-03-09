@@ -53,7 +53,7 @@ def main(argv):
             pull_request = GitHubPR(
                 repo_name=repo_name, pull_request=pr_number, github_token=token
             )
-            changed_files = pull_request.changed_files()
+            changed_files = pull_request.get_files()
             print("changed files:")
             for cf in changed_files:
                 print(cf)
