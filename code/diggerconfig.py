@@ -13,7 +13,7 @@ class DiggerConfig:
             with open("digger.yml", "r") as f:
                 self.config = yaml.load(f, Loader=Loader)
         else:
-            self.config = {}
+            self.config = {"projects": {"name": "default", "dir": ""}}
 
     def get_project(self, project_name):
         for project in self.config["projects"]:
@@ -29,6 +29,16 @@ class DiggerConfig:
             if project:
                 return [project]
         return []
+
+    def get_modified_projects(self, changed_files):
+        all_projects = self.get_projects()
+        result = []
+
+        for p in all_projects:
+            for f in changed_files:
+                if "dir" in p and f.filename.startswith(p["dir"]):
+                    result.append(p)
+        return result
 
     def get_directory(self, project_name):
         project = self.get_project(project_name)
