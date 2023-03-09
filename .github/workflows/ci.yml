@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'feat/config-file'
 jobs:
   docker:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-.DS_Store
 .idea/
-**/__pycache__
-venv
+.DS_Store
+venv/
+**/__pycache__/
