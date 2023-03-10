@@ -81,17 +81,20 @@ def unlock_project(dynamodb, repo_name, pr_number, token):
                 print("Project unlocked")
 
 
-def force_unlock_project(dynamodb, repo_name, pr_number, token):
+def force_unlock_project(dynamodb, repo_name, pr_number, token, project):
     lock = get_lock(dynamodb, repo_name)
+    project_name = ""
+    if project and 'name' in project:
+        project_name = project['name']
     if lock:
         print(f"lock: {lock}")
         lock_released = release_lock(dynamodb, repo_name)
         print(f"lock_released: {lock_released}")
         if lock_released:
             pull_request = GitHubPR(repo_name, pr_number, token)
-            comment = f"Project unlocked."
+            comment = f"Project {project_name} unlocked."
             pull_request.publish_comment(comment)
-            print("Project unlocked")
+            print(f"Project {project_name} unlocked")
 
 
 def digger_apply(
@@ -143,7 +146,7 @@ def digger_unlock(
     for project in impacted_projects:
         project_name = project["name"]
         lockid = f"{repo_name}#{project_name}"
-        force_unlock_project(dynamodb, lockid, pr_number, token)
+        force_unlock_project(dynamodb, lockid, pr_number, token, project)
 
     # force_unlock_project(dynamodb, lockid, pr_number, token)
 
