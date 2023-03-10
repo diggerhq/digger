@@ -10,12 +10,19 @@ inputs:
 
 outputs:
   output:
+    value: ${{ steps.tfrun.outputs.output }}
     description: The terraform output
 
 runs:
-  using: docker
-  image: ./Dockerfile
-  entrypoint: /entrypoint.sh
+  using: composite
+  steps:
+    - name: run tfrun
+      id: tfrun
+      shell: bash
+      run: |
+        curl -sL https://github.com/diggerhq/tfrun/releases/${{ github.action_ref }}/download/tfrun-${{ runner.os  }}-${{ runner.arch }} -o tfrun
+        chmod +x tfrun
+        ./tfrun ${{ inputs.workspace }}
 
 branding:
   icon: globe
