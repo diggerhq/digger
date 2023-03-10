@@ -134,7 +134,7 @@ def digger_plan(
         project_name = project["name"]
         lock_id = f"{repo_name}#{project_name}"
         directory = digger_config.get_directory(project_name)
-        if lock_project(dynamodb, lock_id, pr_number, token):
+        if lock_project(dynamodb, lock_id, pr_number, token, project_name):
             terraform_plan(lock_id, pr_number, token, directory=directory)
     exit(1)
 
@@ -163,7 +163,7 @@ def process_new_pull_request(digger_config, repo_owner, repo_name, event_name, d
     for project in digger_config.get_modified_projects(changed_files):
         project_name = project["name"]
         lock_id = f"{repo_name}#{project_name}"
-        if not lock_project(dynamodb, lock_id, pr_number, token):
+        if not lock_project(dynamodb, lock_id, pr_number, token, project_name):
             lock_acquisition_success = False
     if lock_acquisition_success is False:
         exit(1)
