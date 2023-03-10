@@ -1,4 +1,4 @@
-name: tfrun
+name: digger
 description: Manage terraform collaboration
 author: Digger
 
@@ -10,19 +10,22 @@ inputs:
 
 outputs:
   output:
-    value: ${{ steps.tfrun.outputs.output }}
+    value: ${{ steps.digger.outputs.output }}
     description: The terraform output
 
 runs:
   using: composite
   steps:
-    - name: run tfrun
-      id: tfrun
+    - name: run digger
+      env:
+        actionref: ${{ github.action_ref }}
+      id: digger
       shell: bash
       run: |
-        curl -sL https://github.com/diggerhq/tfrun/releases/${{ github.action_ref }}/download/tfrun-${{ runner.os  }}-${{ runner.arch }} -o tfrun
-        chmod +x tfrun
-        ./tfrun ${{ inputs.workspace }}
+        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-${{ runner.os  }}-${{ runner.arch }} -o digger
+        chmod +x digger
+        mv digger /usr/local/bin/digger
+        digger ${{ inputs.workspace }}
 
 branding:
   icon: globe
