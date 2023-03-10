@@ -25,7 +25,7 @@ runs:
         curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-${{ runner.os  }}-${{ runner.arch }} -o digger
         chmod +x digger
         mv digger /usr/local/bin/digger
-        digger ${{ inputs.workspace }}
+        digger ${{ GITHUB_WORKSPACE }} plan
 
 branding:
   icon: globe
