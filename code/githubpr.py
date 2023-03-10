@@ -79,6 +79,13 @@ class GitHubPR:
         commits = self.pull_request.get_commits()
         for commit in commits:
             print(commit)
-        checkruns = commits[-1].get_check_runs()
+        latest_commit = commits[-1]
+        checkruns = latest_commit.get_check_runs()
         for checkrun in checkruns:
             print(checkrun, checkrun.name, checkrun.url)
+        latest_commit.create_status(
+            state="pending",
+            target_url="https://FooCI.com",
+            description="FooCI is building",
+            context="ci/FooCI"
+        )
