@@ -83,7 +83,8 @@ class GitHubPR:
         checkruns = latest_commit.get_check_runs()
         for checkrun in checkruns:
             print(checkrun, checkrun.name, checkrun.url)
-        latest_commit.create_check_run(
+        cr = latest_commit.create_check_run(
             name="digger plan run",
             head_sha=latest_commit.sha,
         )
+        print(cr)
