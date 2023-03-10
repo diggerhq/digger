@@ -75,3 +75,16 @@ class GitHubPR:
         """Add the given text as a comment in the pull request."""
         self.pull_request.create_issue_comment(comment)
         
+    def update_action_state(self):
+        commits = self.pull_request.get_commits()
+        for commit in commits:
+            print(commit)
+        latest_commit = commits[-1]
+        checkruns = latest_commit.get_check_runs()
+        for checkrun in checkruns:
+            print(checkrun, checkrun.name, checkrun.url)
+        cr = latest_commit.create_check_run(
+            name="digger plan run",
+            head_sha=latest_commit.sha,
+        )
+        print(cr)

@@ -63,6 +63,11 @@ def main(argv):
             pr_number = j["event"]["issue"]["number"]
             print(f"issue PR #{pr_number}")
 
+
+    pull_request = GitHubPR(repo_name, pr_number, token)
+    pull_request.update_action_state()
+
+
     if event_name in ["issue_comment"]:
         print(f"issue comment, pr#: {pr_number}")
         if "event" in j and "comment" in j["event"] and "body" in j["event"]["comment"]:
