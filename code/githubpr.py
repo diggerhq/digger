@@ -6,7 +6,6 @@ from os import environ
 from github import Github
 
 
-
 class GitHubPR:
     """
     :py:class:`GitHubPR` represents a pull request on GitHub.
@@ -74,4 +73,6 @@ class GitHubPR:
     def publish_comment(self, comment: str):
         """Add the given text as a comment in the pull request."""
         self.pull_request.create_issue_comment(comment)
-        
+
+    def get_files(self):
+        return self.pull_request.get_files()
