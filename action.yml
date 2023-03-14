@@ -22,10 +22,12 @@ runs:
       id: digger
       shell: bash
       run: |
-        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-${{ runner.os  }}-${{ runner.arch }} -o digger
-        chmod +x digger
-        mv digger /usr/local/bin/digger
-        digger ${{ github.workspace }} plan
+        go build && ./digger
+#      run: |
+#        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-${{ runner.os  }}-${{ runner.arch }} -o digger
+#        chmod +x digger
+#        mv digger /usr/local/bin/digger
+#        digger ${{ github.workspace }} plan
 
 branding:
   icon: globe
