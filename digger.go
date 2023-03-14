@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"log"
 	"os"
 )
 
@@ -19,10 +20,14 @@ func main() {
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 
 	var parsedGhContext Github
+	if ghContext == "" {
+		log.Fatal("GITHUB_CONTEXT is not defined")
+		os.Exit(1)
+	}
 	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
 	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
-		return
+		log.Fatal("Error parsing JSON:", err)
+		os.Exit(1)
 	}
 
 	ghEvent := parsedGhContext.Event
