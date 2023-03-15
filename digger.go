@@ -40,7 +40,10 @@ func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}
 	if parsedGhContext.EventName == "pull_request" {
 
 		var parsedGhEvent PullRequestEvent
-		mapstructure.Decode(ghEvent, &parsedGhEvent)
+		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
+		if err != nil {
+			return fmt.Errorf("error parsing PullRequestEvent: %v", err)
+		}
 
 		if parsedGhEvent.PullRequest.Merged {
 			print("PR was merged")
@@ -56,7 +59,10 @@ func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}
 
 	} else if parsedGhContext.EventName == "issue_comment" {
 		var parsedGhEvent IssueCommentEvent
-		mapstructure.Decode(ghEvent, &parsedGhEvent)
+		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
+		if err != nil {
+			return fmt.Errorf("error parsing IssueCommentEvent: %v", err)
+		}
 		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
 		processPullRequestComment(diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, parsedGhEvent.Comment.Issue.Number, ghToken, parsedGhEvent.Comment.Body)
 	}
