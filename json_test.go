@@ -867,7 +867,9 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	eventName := context.EventName
 
 	diggerConfig := DiggerConfig{}
-	err = processGitHubContext(context, ghEvent, &diggerConfig, nil, eventName, nil)
+	tf := Terraform{}
+
+	err = processGitHubContext(context, ghEvent, &diggerConfig, nil, eventName, &dynamodb.DynamoDB{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -885,7 +887,8 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 	diggerConfig := DiggerConfig{}
-	err = processGitHubContext(context, ghEvent, &diggerConfig, nil, eventName, &dynamodb.DynamoDB{})
+	tf := Terraform{}
+	err = processGitHubContext(context, ghEvent, &diggerConfig, nil, eventName, &dynamodb.DynamoDB{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
