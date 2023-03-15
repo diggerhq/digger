@@ -9,7 +9,7 @@ import (
 )
 
 // write code to print something to the console
-func main2() {
+func old() {
 	argsWithoutProg := os.Args[1:]
 	workingDir := argsWithoutProg[0]
 	tfCommand := argsWithoutProg[1]
