@@ -73,7 +73,7 @@ func getGitHubContext(ghContext string) (Github, error) {
 	var parsedGhContext Github
 	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
 	if err != nil {
-		return Github{}, fmt.Errorf("error parsing JSON: %v", err)
+		return Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
 	}
 	return parsedGhContext, nil
 }
