@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
@@ -844,9 +846,19 @@ var githubContextCommentJson = `{
     "output": "/home/runner/work/_temp/_runner_file_commands/set_output_3bccb717-fa6a-4679-92eb-1ed2fc0b89b9"
   }`
 
+var githubInvalidContextJson = `{
+    "token": "***",
+    "job": "build",
+    "ref": "refs/pull/11/merge",
+    "sha": "b8d885f7be8c742eccf037029b580dba7ab3d239",
+    "repository": "diggerhq/tfrun_demo_multienv",
+    "repository_owner": "diggerhq",
+`
+
 func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	context, err := getGitHubContext(githubContextNewPullRequestJson)
+	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -860,6 +872,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	dynamoDb := 1
 
 	err = processGitHubContext(context, ghEvent, &diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, ghToken)
+	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -869,6 +882,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 func TestGitHubNewCommentContext(t *testing.T) {
 
 	context, err := getGitHubContext(githubContextCommentJson)
+	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -882,8 +896,17 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	dynamoDb := 1
 
 	err = processGitHubContext(context, ghEvent, &diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, ghToken)
+	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
 	}
 	//spew.Dump(context)
+}
+
+func TestInvalidGitHubContext(t *testing.T) {
+	_, err := getGitHubContext(githubInvalidContextJson)
+	require.Error(t, err)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
