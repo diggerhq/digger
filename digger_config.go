@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"os"
 )
 
 type DiggerConfig struct {
@@ -17,12 +17,14 @@ type Project struct {
 
 func NewDiggerConfig() (*DiggerConfig, error) {
 	config := &DiggerConfig{}
-	if data, err := ioutil.ReadFile("digger.yml"); err == nil {
+	if data, err := os.ReadFile("digger.yml"); err == nil {
 		if err := yaml.Unmarshal(data, config); err != nil {
 			return nil, fmt.Errorf("error parsing digger.yml: %v", err)
 		}
 	} else {
-		return nil, fmt.Errorf("error reading digger.yml: %v", err)
+		config.Projects = make([]Project, 1)
+		config.Projects[0] = Project{Name: "default", Dir: "."}
+		return config, nil
 	}
 	return config, nil
 }
