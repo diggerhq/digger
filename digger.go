@@ -6,15 +6,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/mitchellh/mapstructure"
-	"log"
 	"os"
 )
 
 func main() {
-
 	diggerConfig, err := NewDiggerConfig()
 	if err != nil {
-		log.Fatal("Failed to read digger config.")
+		print("Failed to read digger config.")
 		os.Exit(1)
 	}
 	sess := session.Must(session.NewSession())
@@ -26,7 +24,7 @@ func main() {
 
 	parsedGhContext, err := getGitHubContext(ghContext)
 	if ghContext == "" {
-		log.Fatal("GITHUB_CONTEXT is not defined")
+		print("GITHUB_CONTEXT is not defined")
 		os.Exit(1)
 	}
 
@@ -36,7 +34,6 @@ func main() {
 	repositoryName := parsedGhContext.Repository
 
 	err = processGitHubContext(parsedGhContext, ghEvent, diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, ghToken)
-
 }
 
 func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, repoOwner string, repositoryName string, eventName string, dynamoDb interface{}, ghToken string) error {
@@ -44,10 +41,6 @@ func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}
 
 		var parsedGhEvent PullRequestEvent
 		mapstructure.Decode(ghEvent, &parsedGhEvent)
-		//err := json.Unmarshal(ghEvent, &parsedGhEvent)
-		//if err != nil {
-		//	return fmt.Errorf("Error parsing JSON: %v", err)
-		//}
 
 		if parsedGhEvent.PullRequest.Merged {
 			print("PR was merged")
@@ -64,11 +57,6 @@ func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}
 	} else if parsedGhContext.EventName == "issue_comment" {
 		var parsedGhEvent IssueCommentEvent
 		mapstructure.Decode(ghEvent, &parsedGhEvent)
-
-		//err := json.Unmarshal(ghEvent, &parsedGhEvent)
-		//if err != nil {
-		//	return fmt.Errorf("Error parsing JSON: %v", err)
-		//}
 		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
 		processPullRequestComment(diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, parsedGhEvent.Comment.Issue.Number, ghToken, parsedGhEvent.Comment.Body)
 	}
@@ -79,7 +67,7 @@ func getGitHubContext(ghContext string) (Github, error) {
 	var parsedGhContext Github
 	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
 	if err != nil {
-		return Github{}, fmt.Errorf("Error parsing JSON: %v", err)
+		return Github{}, fmt.Errorf("error parsing JSON: %v", err)
 	}
 	return parsedGhContext, nil
 }
