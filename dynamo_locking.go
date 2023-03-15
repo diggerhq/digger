@@ -10,7 +10,7 @@ import (
 const TABLE_NAME = "DiggerDynamoDBLockTable"
 
 type DynamoDbLock struct {
-	DynamoDb dynamodb.DynamoDB
+	DynamoDb *dynamodb.DynamoDB
 }
 
 type Lock interface {
