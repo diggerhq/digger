@@ -6,12 +6,17 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/mitchellh/mapstructure"
+	"log"
 	"os"
 )
 
 func main() {
 
 	diggerConfig, err := NewDiggerConfig()
+	if err != nil {
+		log.Fatal("Failed to read digger config.")
+		os.Exit(1)
+	}
 	sess := session.Must(session.NewSession())
 	dynamoDb := dynamodb.New(sess)
 
@@ -20,14 +25,9 @@ func main() {
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 
 	parsedGhContext, err := getGitHubContext(ghContext)
-	var parsedGhContext Github
 	if ghContext == "" {
 		log.Fatal("GITHUB_CONTEXT is not defined")
 		os.Exit(1)
-	}
-	parsedGhContext, err := getGitHubContext(ghContext)
-	if err != nil {
-		return
 	}
 
 	ghEvent := parsedGhContext.Event
