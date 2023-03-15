@@ -20,6 +20,12 @@ func main() {
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 
 	parsedGhContext, err := getGitHubContext(ghContext)
+	var parsedGhContext Github
+	if ghContext == "" {
+		log.Fatal("GITHUB_CONTEXT is not defined")
+		os.Exit(1)
+	}
+	parsedGhContext, err := getGitHubContext(ghContext)
 	if err != nil {
 		return
 	}
