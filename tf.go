@@ -1,12 +1,11 @@
 package main
 
 type Terraform struct {
-	tf TerraformExecutor
 }
 
 type TerraformExecutor interface {
-	Apply()
-	Plan()
+	Apply() error
+	Plan() error
 }
 
 func (tf *Terraform) Apply() error {

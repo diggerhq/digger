@@ -37,10 +37,10 @@ func main() {
 	repositoryName := parsedGhContext.Repository
 	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	err = processGitHubContext(parsedGhContext, ghEvent, diggerConfig, &githubPrService, eventName, dynamoDb, &tf)
+	err = processGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, dynamoDb, &tf)
 }
 
-func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, tf *Terraform) error {
+func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, tf TerraformExecutor) error {
 
 	if parsedGhContext.EventName == "pull_request" {
 
@@ -101,17 +101,17 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int) error {
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int) error {
 	print("Processing new PR")
 	return nil
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int) error {
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int) error {
 	print("Processing closed PR")
 	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, tf *Terraform, prNumber int, commentBody string) error {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, tf TerraformExecutor, prNumber int, commentBody string) error {
 	print("Processing PR comment")
 	trimmedComment := strings.TrimSpace(commentBody)
 	if trimmedComment == "digger plan" {
