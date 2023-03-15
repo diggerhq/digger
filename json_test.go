@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -864,14 +865,9 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	}
 	ghEvent := context.Event
 	eventName := context.EventName
-	repoOwner := context.RepositoryOwner
-	repositoryName := context.Repository
 
 	diggerConfig := DiggerConfig{}
-	ghToken := "token"
-	dynamoDb := 1
-
-	err = processGitHubContext(context, ghEvent, &diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, ghToken)
+	err = processGitHubContext(context, ghEvent, &diggerConfig, nil, eventName, nil)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -888,14 +884,8 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	}
 	ghEvent := context.Event
 	eventName := context.EventName
-	repoOwner := context.RepositoryOwner
-	repositoryName := context.Repository
-
 	diggerConfig := DiggerConfig{}
-	ghToken := "token"
-	dynamoDb := 1
-
-	err = processGitHubContext(context, ghEvent, &diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, ghToken)
+	err = processGitHubContext(context, ghEvent, &diggerConfig, nil, eventName, &dynamodb.DynamoDB{})
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
