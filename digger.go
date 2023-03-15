@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/mitchellh/mapstructure"
 	"os"
 )
 
 func main() {
 
-	diggerConfig := NewDiggerConfig()
+	diggerConfig, err := NewDiggerConfig()
 	sess := session.Must(session.NewSession())
 	dynamoDb := dynamodb.New(sess)
 
@@ -18,10 +19,8 @@ func main() {
 
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 
-	var parsedGhContext Github
-	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
+	parsedGhContext, err := getGitHubContext(ghContext)
 	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
 		return
 	}
 
@@ -30,13 +29,19 @@ func main() {
 	repoOwner := parsedGhContext.RepositoryOwner
 	repositoryName := parsedGhContext.Repository
 
+	err = processGitHubContext(parsedGhContext, ghEvent, diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, ghToken)
+
+}
+
+func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, repoOwner string, repositoryName string, eventName string, dynamoDb interface{}, ghToken string) error {
 	if parsedGhContext.EventName == "pull_request" {
+
 		var parsedGhEvent PullRequestEvent
-		err := json.Unmarshal(ghEvent, &parsedGhEvent)
-		if err != nil {
-			fmt.Println("Error parsing JSON:", err)
-			return
-		}
+		mapstructure.Decode(ghEvent, &parsedGhEvent)
+		//err := json.Unmarshal(ghEvent, &parsedGhEvent)
+		//if err != nil {
+		//	return fmt.Errorf("Error parsing JSON: %v", err)
+		//}
 
 		if parsedGhEvent.PullRequest.Merged {
 			print("PR was merged")
@@ -52,15 +57,25 @@ func main() {
 
 	} else if parsedGhContext.EventName == "issue_comment" {
 		var parsedGhEvent IssueCommentEvent
-		err := json.Unmarshal(ghEvent, &parsedGhEvent)
-		if err != nil {
-			fmt.Println("Error parsing JSON:", err)
-			return
-		}
+		mapstructure.Decode(ghEvent, &parsedGhEvent)
+
+		//err := json.Unmarshal(ghEvent, &parsedGhEvent)
+		//if err != nil {
+		//	return fmt.Errorf("Error parsing JSON: %v", err)
+		//}
 		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
 		processPullRequestComment(diggerConfig, repoOwner, repositoryName, eventName, dynamoDb, parsedGhEvent.Comment.Issue.Number, ghToken, parsedGhEvent.Comment.Body)
 	}
+	return nil
+}
 
+func getGitHubContext(ghContext string) (Github, error) {
+	var parsedGhContext Github
+	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
+	if err != nil {
+		return Github{}, fmt.Errorf("Error parsing JSON: %v", err)
+	}
+	return parsedGhContext, nil
 }
 
 func contains(slice []string, item string) bool {
@@ -72,14 +87,14 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, repoOwner string, repoName string, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int, ghToken string) {
+func processNewPullRequest(diggerConfig *DiggerConfig, repoOwner string, repoName string, eventName string, dynamoDb interface{}, prNumber int, ghToken string) {
 	print("Processing new PR")
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, repoOwner string, repoName string, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int, ghToken string) {
+func processClosedPullRequest(diggerConfig *DiggerConfig, repoOwner string, repoName string, eventName string, dynamoDb interface{}, prNumber int, ghToken string) {
 	print("Processing closed PR")
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, repoOwner string, repoName string, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int, ghToken string, commentBody string) {
+func processPullRequestComment(diggerConfig *DiggerConfig, repoOwner string, repoName string, eventName string, dynamoDb interface{}, prNumber int, ghToken string, commentBody string) {
 	print("Processing PR comment")
 }

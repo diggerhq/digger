@@ -1,21 +1,21 @@
 package main
 
 type Github struct {
-	Action           string `json:"action"`
-	ActionPath       string `json:"action_path"`
-	ActionRef        string `json:"action_ref"`
-	ActionRepository string `json:"action_repository"`
-	ActionStatus     string `json:"action_status"`
-	Actor            string `json:"actor"`
-	BaseRef          string `json:"base_ref"`
-	Env              string `json:"env"`
-	Event            []byte `json:"event"`
-	EventName        string `json:"event_name"`
-	EventPath        string `json:"event_path"`
-	Path             string `json:"path"`
-	RefType          string `json:"ref_type"`
-	Repository       string `json:"repository"`
-	RepositoryOwner  string `json:"repository_owner"`
+	Action           string                 `json:"action"`
+	ActionPath       string                 `json:"action_path"`
+	ActionRef        string                 `json:"action_ref"`
+	ActionRepository string                 `json:"action_repository"`
+	ActionStatus     string                 `json:"action_status"`
+	Actor            string                 `json:"actor"`
+	BaseRef          string                 `json:"base_ref"`
+	Env              string                 `json:"env"`
+	Event            map[string]interface{} `json:"event"`
+	EventName        string                 `json:"event_name"`
+	EventPath        string                 `json:"event_path"`
+	Path             string                 `json:"path"`
+	RefType          string                 `json:"ref_type"`
+	Repository       string                 `json:"repository"`
+	RepositoryOwner  string                 `json:"repository_owner"`
 }
 
 type PullRequestEvent struct {

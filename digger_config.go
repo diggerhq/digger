@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 )
 
 type DiggerConfig struct {
@@ -15,16 +15,16 @@ type Project struct {
 	Dir  string `yaml:"dir"`
 }
 
-func NewDiggerConfig() *DiggerConfig {
+func NewDiggerConfig() (*DiggerConfig, error) {
 	config := &DiggerConfig{}
 	if data, err := ioutil.ReadFile("digger.yml"); err == nil {
 		if err := yaml.Unmarshal(data, config); err != nil {
-			log.Fatalf("error parsing digger.yml: %v", err)
+			return nil, fmt.Errorf("error parsing digger.yml: %v", err)
 		}
 	} else {
-		log.Fatalf("error reading digger.yml: %v", err)
+		return nil, fmt.Errorf("error reading digger.yml: %v", err)
 	}
-	return config
+	return config, nil
 }
 
 func (c *DiggerConfig) GetProject(projectName string) *Project {
