@@ -12,7 +12,7 @@ type ProjectLockImpl struct {
 type ProjectLock interface {
 	Lock(lockId string, prNumber int) (bool, error)
 	Unlock(lockId string, prNumber int) (bool, error)
-	ForceUnlock(lockId string, prNumber int) (bool, error)
+	ForceUnlock(lockId string, prNumber int)
 }
 
 func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, error) {
