@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/mitchellh/mapstructure"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -29,16 +30,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	tf := Terraform{}
+
 	ghEvent := parsedGhContext.Event
 	eventName := parsedGhContext.EventName
 	repoOwner := parsedGhContext.RepositoryOwner
 	repositoryName := parsedGhContext.Repository
 	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	err = processGitHubContext(parsedGhContext, ghEvent, diggerConfig, &githubPrService, eventName, &dynamoDbLock)
+	err = processGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	if err != nil {
+		print(err)
+		os.Exit(1)
+	}
 }
 
-func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock) error {
+func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
 
 	if parsedGhContext.EventName == "pull_request" {
 
@@ -55,9 +62,15 @@ func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}
 		prStatesToUnlock := []string{"closed"}
 
 		if contains(prStatesToLock, parsedGhEvent.Action) {
-			processNewPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
+			err := processNewPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
+			if err != nil {
+				return err
+			}
 		} else if contains(prStatesToUnlock, parsedGhEvent.Action) {
-			processClosedPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
+			err := processClosedPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
+			if err != nil {
+				return err
+			}
 		}
 
 	} else if parsedGhContext.EventName == "issue_comment" {
@@ -67,7 +80,11 @@ func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}
 			return fmt.Errorf("error parsing IssueCommentEvent: %v", err)
 		}
 		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
-		processPullRequestComment(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
+
+		err = processPullRequestComment(diggerConfig, prManager, eventName, dynamoDbLock, tf, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -90,14 +107,33 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) {
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
 	print("Processing new PR")
+	return nil
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) {
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
 	print("Processing closed PR")
+	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int, commentBody string) {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor, prNumber int, commentBody string) error {
 	print("Processing PR comment")
+	trimmedComment := strings.TrimSpace(commentBody)
+	if trimmedComment == "digger plan" {
+		err := tf.Plan()
+		if err != nil {
+			return err
+		}
+
+	} else if trimmedComment == "digger apply" {
+		err := tf.Apply()
+		if err != nil {
+			return err
+		}
+
+	} else if trimmedComment == "digger unlock" {
+
+	}
+	return nil
 }
