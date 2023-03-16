@@ -18,6 +18,7 @@ func main() {
 	}
 	sess := session.Must(session.NewSession())
 	dynamoDb := dynamodb.New(sess)
+	dynamoDbLock := DynamoDbLock{DynamoDb: dynamoDb}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 
@@ -38,6 +39,9 @@ func main() {
 	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
 	err = processGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, dynamoDb, &tf)
+  if err != nil {
+    return fmt.Errorf("error parsing PullRequestEvent: %v", err)
+  }
 }
 
 func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, tf TerraformExecutor) error {
@@ -75,6 +79,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 			return fmt.Errorf("error parsing IssueCommentEvent: %v", err)
 		}
 		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
+
 		err = processPullRequestComment(diggerConfig, prManager, eventName, dynamoDb, tf, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
 		if err != nil {
 			return err
@@ -101,17 +106,19 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int) error {
+
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
 	print("Processing new PR")
 	return nil
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int) error {
+
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
 	print("Processing closed PR")
 	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, tf TerraformExecutor, prNumber int, commentBody string) error {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock,  tf TerraformExecutor, prNumber int, commentBody string) {
 	print("Processing PR comment")
 	trimmedComment := strings.TrimSpace(commentBody)
 	if trimmedComment == "digger plan" {
