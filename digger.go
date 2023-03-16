@@ -17,6 +17,7 @@ func main() {
 	}
 	sess := session.Must(session.NewSession())
 	dynamoDb := dynamodb.New(sess)
+	dynamoDbLock := DynamoDbLock{DynamoDb: dynamoDb}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 
@@ -34,10 +35,10 @@ func main() {
 	repositoryName := parsedGhContext.Repository
 	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	err = processGitHubContext(parsedGhContext, ghEvent, diggerConfig, &githubPrService, eventName, dynamoDb)
+	err = processGitHubContext(parsedGhContext, ghEvent, diggerConfig, &githubPrService, eventName, &dynamoDbLock)
 }
 
-func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB) error {
+func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock) error {
 
 	if parsedGhContext.EventName == "pull_request" {
 
@@ -54,9 +55,9 @@ func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}
 		prStatesToUnlock := []string{"closed"}
 
 		if contains(prStatesToLock, parsedGhEvent.Action) {
-			processNewPullRequest(diggerConfig, prManager, eventName, dynamoDb, parsedGhEvent.Number)
+			processNewPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
 		} else if contains(prStatesToUnlock, parsedGhEvent.Action) {
-			processClosedPullRequest(diggerConfig, prManager, eventName, dynamoDb, parsedGhEvent.Number)
+			processClosedPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
 		}
 
 	} else if parsedGhContext.EventName == "issue_comment" {
@@ -66,7 +67,7 @@ func processGitHubContext(parsedGhContext Github, ghEvent map[string]interface{}
 			return fmt.Errorf("error parsing IssueCommentEvent: %v", err)
 		}
 		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
-		processPullRequestComment(diggerConfig, prManager, eventName, dynamoDb, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
+		processPullRequestComment(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
 	}
 	return nil
 }
@@ -89,14 +90,14 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int) {
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) {
 	print("Processing new PR")
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int) {
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) {
 	print("Processing closed PR")
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, prNumber int, commentBody string) {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int, commentBody string) {
 	print("Processing PR comment")
 }
