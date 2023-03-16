@@ -6,6 +6,7 @@ type TerraformExecutor interface {
 }
 
 type Terraform struct {
+	Directory string
 }
 
 func (tf *Terraform) Apply() error {

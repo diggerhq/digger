@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/mitchellh/mapstructure"
+	"google.golang.org/appengine/log"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -136,4 +142,84 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 
 	}
 	return nil
+}
+
+type UsageRecord struct {
+	UserId    interface{} `json:"userid"`
+	EventName string      `json:"event_name"`
+	Action    string      `json:"action"`
+	Token     string      `json:"token"`
+}
+
+func sendUsageRecord(repoOwner string, eventName string, action string) {
+	h := sha256.New()
+	h.Write([]byte(repoOwner))
+	sha := h.Sum(nil)
+	shaStr := hex.EncodeToString(sha)
+	payload := UsageRecord{
+		UserId:    shaStr,
+		EventName: eventName,
+		Action:    action,
+		Token:     os.Getenv("USAGE_TOKEN"),
+	}
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		log.Errorf(context.Background(), "Error marshalling usage record: %v", err)
+		return
+	}
+	req, _ := http.NewRequest("POST", os.Getenv("USAGE_URL"), bytes.NewBuffer(jsonData))
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Errorf(context.Background(), "Error sending usage record: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+}
+
+type DiggerExecutor struct {
+	repoOwner        string
+	repoName         string
+	impactedProjects []Project
+	prManager        PullRequestManager
+	lock             ProjectLock
+	configDigger     DiggerConfig
+}
+
+func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
+	sendUsageRecord(d.repoOwner, triggerEvent, "plan")
+
+	for _, project := range d.impactedProjects {
+		projectName := project.Name
+		lockId := d.repoName + "#" + projectName
+		directory := project.Dir
+		terraformExecutor := Terraform{directory}
+		if res, _ := d.lock.Lock(lockId, prNumber); res {
+			terraformExecutor.Plan()
+		}
+	}
+}
+
+func (d DiggerExecutor) Apply(triggerEvent string) {
+	sendUsageRecord(d.repoOwner, triggerEvent, "apply")
+	for _, project := range d.impactedProjects {
+		projectName := project.Name
+		lockId := d.repoName + "#" + projectName
+		directory := project.Dir
+		terraformExecutor := Terraform{directory}
+		if res, _ := d.lock.Lock(lockId, 0); res {
+			terraformExecutor.Apply()
+		}
+	}
+}
+
+func (d DiggerExecutor) Unlock(triggerEvent string, prNumber int) {
+	sendUsageRecord(d.repoOwner, triggerEvent, "unlock")
+	for _, project := range d.impactedProjects {
+		projectName := project.Name
+		lockId := d.repoName + "#" + projectName
+		d.lock.ForceUnlock(lockId, prNumber)
+	}
 }
