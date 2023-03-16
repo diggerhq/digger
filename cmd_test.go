@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/exp/slices"
 	"testing"
@@ -13,7 +12,7 @@ func TestProcessPullRequestCommentPlan(t *testing.T) {
 	eventName := "test"
 	commentBody := "digger plan"
 	tf := MockTerraform{}
-	err := processPullRequestComment(diggerConfig, nil, eventName, &dynamodb.DynamoDB{}, &tf, 1, commentBody)
+	err := processPullRequestComment(diggerConfig, nil, eventName, &DynamoDbLock{}, &tf, 1, commentBody)
 	if err != nil {
 		return
 	}
@@ -26,7 +25,7 @@ func TestProcessPullRequestCommentApply(t *testing.T) {
 	eventName := "test"
 	commentBody := "digger apply"
 	tf := MockTerraform{}
-	err := processPullRequestComment(diggerConfig, nil, eventName, &dynamodb.DynamoDB{}, &tf, 1, commentBody)
+	err := processPullRequestComment(diggerConfig, nil, eventName, &DynamoDbLock{}, &tf, 1, commentBody)
 	if err != nil {
 		return
 	}
@@ -39,7 +38,7 @@ func TestProcessPullRequestCommentInvalidCmd(t *testing.T) {
 	eventName := "test"
 	commentBody := "digger digger"
 	tf := MockTerraform{}
-	err := processPullRequestComment(diggerConfig, nil, eventName, &dynamodb.DynamoDB{}, &tf, 1, commentBody)
+	err := processPullRequestComment(diggerConfig, nil, eventName, &DynamoDbLock{}, &tf, 1, commentBody)
 	if err != nil {
 		return
 	}

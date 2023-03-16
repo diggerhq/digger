@@ -38,13 +38,14 @@ func main() {
 	repositoryName := parsedGhContext.Repository
 	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	err = processGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, dynamoDb, &tf)
-  if err != nil {
-    return fmt.Errorf("error parsing PullRequestEvent: %v", err)
-  }
+	err = processGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	if err != nil {
+		print(err)
+		os.Exit(1)
+	}
 }
 
-func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDb *dynamodb.DynamoDB, tf TerraformExecutor) error {
+func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
 
 	if parsedGhContext.EventName == "pull_request" {
 
@@ -61,12 +62,12 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		prStatesToUnlock := []string{"closed"}
 
 		if contains(prStatesToLock, parsedGhEvent.Action) {
-			err := processNewPullRequest(diggerConfig, prManager, eventName, dynamoDb, parsedGhEvent.Number)
+			err := processNewPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
 			if err != nil {
 				return err
 			}
 		} else if contains(prStatesToUnlock, parsedGhEvent.Action) {
-			err := processClosedPullRequest(diggerConfig, prManager, eventName, dynamoDb, parsedGhEvent.Number)
+			err := processClosedPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
 			if err != nil {
 				return err
 			}
@@ -80,7 +81,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		}
 		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
 
-		err = processPullRequestComment(diggerConfig, prManager, eventName, dynamoDb, tf, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
+		err = processPullRequestComment(diggerConfig, prManager, eventName, dynamoDbLock, tf, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
 		if err != nil {
 			return err
 		}
@@ -106,19 +107,17 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
 	print("Processing new PR")
 	return nil
 }
 
-
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
 	print("Processing closed PR")
 	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager *PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock,  tf TerraformExecutor, prNumber int, commentBody string) {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor, prNumber int, commentBody string) error {
 	print("Processing PR comment")
 	trimmedComment := strings.TrimSpace(commentBody)
 	if trimmedComment == "digger plan" {
