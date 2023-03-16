@@ -1,6 +1,9 @@
 package main
 
-import "strconv"
+import (
+	"errors"
+	"strconv"
+)
 
 type ProjectLockImpl struct {
 	InternalLock Lock
@@ -17,26 +20,25 @@ type ProjectLock interface {
 
 func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, error) {
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
-	transactionIdStr := strconv.Itoa(*transactionId)
+	var transactionIdStr string
+
 	if err != nil {
 		return false, err
 	}
 
-	print("lock_project " + projectLock.ProjectName + "lock:" + transactionIdStr)
-
 	if transactionId != nil {
+		transactionIdStr := strconv.Itoa(*transactionId)
 		if *transactionId != prNumber {
 			comment := "Project " + projectLock.ProjectName + "locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
 			projectLock.PrManager.PublishComment(prNumber, comment)
-			return false, nil
+			return false, errors.New("Project locked by another PR# " + transactionIdStr)
 		}
 		comment := "Project " + projectLock.ProjectName + " locked by this PR #" + transactionIdStr + " already."
 		projectLock.PrManager.PublishComment(prNumber, comment)
 		return true, nil
 	}
 
-	lockAcquired, err := projectLock.InternalLock.Lock(60*24, *transactionId, lockId)
-
+	lockAcquired, err := projectLock.InternalLock.Lock(60*24, prNumber, lockId)
 	if err != nil {
 		return false, err
 	}
