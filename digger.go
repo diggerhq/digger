@@ -127,13 +127,13 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 	print("Processing PR comment")
 	trimmedComment := strings.TrimSpace(commentBody)
 	if trimmedComment == "digger plan" {
-		err := tf.Plan()
+		_, _, err := tf.Plan()
 		if err != nil {
 			return err
 		}
 
 	} else if trimmedComment == "digger apply" {
-		err := tf.Apply()
+		_, _, err := tf.Apply()
 		if err != nil {
 			return err
 		}
