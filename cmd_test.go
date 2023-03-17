@@ -12,7 +12,7 @@ func TestProcessPullRequestCommentPlan(t *testing.T) {
 	eventName := "test"
 	commentBody := "digger plan"
 	tf := MockTerraform{}
-	err := processPullRequestComment(diggerConfig, nil, eventName, &DynamoDbLock{}, &tf, 1, commentBody)
+	err := processPullRequestComment(diggerConfig, nil, eventName, "", "", 1, "", &DynamoDbLock{})
 	if err != nil {
 		return
 	}

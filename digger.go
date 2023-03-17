@@ -86,7 +86,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		if err != nil {
 			return fmt.Errorf("error parsing IssueCommentEvent: %v", err)
 		}
-		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
+		print("Issue PR #" + string(rune(parsedGhEvent.Issue.Number)) + " was commented on")
 
 		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
 		if err != nil {

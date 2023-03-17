@@ -32,11 +32,11 @@ type PullRequest struct {
 type IssueCommentEvent struct {
 	Action  string  `json:"action"`
 	Comment Comment `json:"comment"`
+	Issue   Issue   `json:"issue"`
 }
 
 type Comment struct {
-	Body  string `json:"body"`
-	Issue Issue  `json:"issue"`
+	Body string `json:"body"`
 }
 
 type Issue struct {
