@@ -64,7 +64,7 @@ func TestExecuteTerraformPlan(t *testing.T) {
 	createValidTerraformTestFile(dir)
 
 	tf := Terraform{workingDir: dir}
-	_, _, err := tf.Plan()
+	_, _, _, err := tf.Plan()
 	if err != nil {
 		print(err.Error())
 	}
