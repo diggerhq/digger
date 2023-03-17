@@ -91,7 +91,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 			log.Fatalf("error processing pull request comment: %v", err)
 		}
 
-		print("Issue PR #" + string(rune(parsedGhEvent.Issue.Number)) + " was commented on")
+		log.Printf("Issue PR #%v was commented on", parsedGhEvent.Issue.Number)
 	}
 	return nil
 }
