@@ -1,4 +1,4 @@
-module tfrun
+module digger
 
 go 1.18
 
