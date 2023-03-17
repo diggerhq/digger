@@ -83,12 +83,12 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		var parsedGhEvent IssueCommentEvent
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
 		if err != nil {
-			return fmt.Errorf("error parsing IssueCommentEvent: %v", err)
+			log.Fatalf("error parsing IssueCommentEvent: %v", err)
 		}
 
 		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
 		if err != nil {
-			return err
+			log.Fatalf("error processing pull request comment: %v", err)
 		}
 
 		print("Issue PR #" + string(rune(parsedGhEvent.Issue.Number)) + " was commented on")
@@ -172,7 +172,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 	} else {
 		changedFiles, err := prManager.GetChangedFiles(prNumber)
 		if err != nil {
-			return err
+			log.Fatalf("Could not get changed files")
 		}
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 	}
