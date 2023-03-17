@@ -320,7 +320,7 @@ func (d DiggerExecutor) Apply(triggerEvent string, prNumber int) {
 		lockId := d.repoName + "#" + projectName
 		directory := project.Dir
 		terraformExecutor := Terraform{directory}
-		if res, _ := d.lock.Lock(lockId, 0); res {
+		if res, _ := d.lock.Lock(lockId, prNumber); res {
 			stdout, stderr, err := terraformExecutor.Apply()
 			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 			comment := "Apply for **" + lockId + "**\n" + applyOutput
