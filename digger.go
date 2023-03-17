@@ -84,8 +84,6 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 			log.Fatalf("error parsing IssueCommentEvent: %v", err)
 		}
 
-		println("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
-
 		fmt.Printf("comment: %s\n", parsedGhEvent.Comment.Body)
 		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
 
@@ -132,7 +130,8 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 		projectLock := ProjectLockImpl{dynamoDbLock, prManager, projectName, repoName}
 		isLocked, err := projectLock.Lock(lockID, prNumber)
 		if err != nil {
-			log.Fatalf("Failed to aquire lock: " + lockID)
+			log.Fatalf("Failed to aquire lock: %s, err: %s", lockID, err)
+			return err
 		}
 
 		if !isLocked {

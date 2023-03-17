@@ -42,7 +42,7 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
 	if err != nil {
 		print("failed to initialise terraform")
-		return "", "", err
+		return true, "", "", err
 	}
 
 	if err != nil {

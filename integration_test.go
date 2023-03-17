@@ -28,7 +28,7 @@ var githubContextDiggerPlanCommentMinJson = `{
   "job": "build",
   "ref": "refs/heads/main",
   "sha": "3eb61a47a873fc574c7c57d00cf47343b9ef3892",
-  "repository": "diggerhq/tfrun_demo_multienv",
+  "repository": "digger_demo",
   "repository_owner": "diggerhq",
   "repository_owner_id": "71334590",
   "workflow": "CI",
@@ -41,9 +41,9 @@ var githubContextDiggerPlanCommentMinJson = `{
       "author_association": "CONTRIBUTOR",
       "body": "digger plan",
       "created_at": "2023-03-13T15:14:08Z",
-      "html_url": "https://github.com/diggerhq/tfrun_demo_multienv/pull/11#issuecomment-1466341992",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
       "id": 1466341992,
-      "issue_url": "https://api.github.com/repos/diggerhq/tfrun_demo_multienv/issues/11",
+      "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
       "node_id": "IC_kwDOJG5hVM5XZppo"
     }
   }
@@ -53,7 +53,7 @@ var githubContextDiggerApplyCommentMinJson = `{
   "job": "build",
   "ref": "refs/heads/main",
   "sha": "3eb61a47a873fc574c7c57d00cf47343b9ef3892",
-  "repository": "diggerhq/tfrun_demo_multienv",
+  "repository": "digger_demo",
   "repository_owner": "diggerhq",
   "repository_owner_id": "71334590",
   "workflow": "CI",
@@ -66,9 +66,9 @@ var githubContextDiggerApplyCommentMinJson = `{
       "author_association": "CONTRIBUTOR",
       "body": "digger apply",
       "created_at": "2023-03-13T15:14:08Z",
-      "html_url": "https://github.com/diggerhq/tfrun_demo_multienv/pull/11#issuecomment-1466341992",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
       "id": 1466341992,
-      "issue_url": "https://api.github.com/repos/diggerhq/tfrun_demo_multienv/issues/11",
+      "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
       "node_id": "IC_kwDOJG5hVM5XZppo"
     }
   }
@@ -78,10 +78,10 @@ var githubContextNewPullRequestMinJson = `{
     "job": "build",
     "ref": "refs/pull/11/merge",
     "sha": "b8d885f7be8c742eccf037029b580dba7ab3d239",
-    "repository": "diggerhq/tfrun_demo_multienv",
+    "repository": "digger_demo",
     "repository_owner": "diggerhq",
     "repository_owner_id": "71334590",
-    "repositoryUrl": "git://github.com/diggerhq/tfrun_demo_multienv.git",
+    "repositoryUrl": "git://github.com/diggerhq/digger_demo.git",
     "run_id": "4385306738",
     "run_number": "63",
     "retention_days": "90",
@@ -110,12 +110,12 @@ var githubContextNewPullRequestMinJson = `{
         "changed_files": 1,
         "closed_at": null,
         "comments": 0,
-        "comments_url": "https://api.github.com/repos/diggerhq/tfrun_demo_multienv/issues/11/comments",
+        "comments_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/comments",
         "commits": 1,
-        "commits_url": "https://api.github.com/repos/diggerhq/tfrun_demo_multienv/pulls/11/commits",
+        "commits_url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11/commits",
         "created_at": "2023-03-10T14:09:35Z",
         "deletions": 3,
-        "diff_url": "https://github.com/diggerhq/tfrun_demo_multienv/pull/11.diff",
+        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
         "draft": false,
         "head": {
           "label": "diggerhq:test-prod",
@@ -133,13 +133,13 @@ var githubContextNewPullRequestMinJson = `{
             "following_url": "https://api.github.com/users/diggerhq/following{/other_user}"
           }
         },
-        "html_url": "https://github.com/diggerhq/tfrun_demo_multienv/pull/11",
+        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
         "id": 1271219596,
-        "issue_url": "https://api.github.com/repos/diggerhq/tfrun_demo_multienv/issues/11",
+        "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
         "labels": [],
         "locked": false,
         "maintainer_can_modify": false,
-        "url": "https://api.github.com/repos/diggerhq/tfrun_demo_multienv/pulls/11"
+        "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
       }
     }
   }`
