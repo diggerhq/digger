@@ -41,8 +41,8 @@ func main() {
 
 	ghEvent := parsedGhContext.Event
 	eventName := parsedGhContext.EventName
-	repoOwner := parsedGhContext.RepositoryOwner
-	repositoryName := parsedGhContext.Repository
+	splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
+	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
 	err = processGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
