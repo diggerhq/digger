@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/mitchellh/mapstructure"
-	"google.golang.org/appengine/log"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -86,12 +85,13 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		if err != nil {
 			return fmt.Errorf("error parsing IssueCommentEvent: %v", err)
 		}
-		print("Issue PR #" + string(rune(parsedGhEvent.Issue.Number)) + " was commented on")
 
 		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
 		if err != nil {
 			return err
 		}
+
+		print("Issue PR #" + string(rune(parsedGhEvent.Issue.Number)) + " was commented on")
 	}
 	return nil
 }
@@ -120,8 +120,7 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 
 	changedFiles, err := prManager.GetChangedFiles(prNumber)
 	if err != nil {
-		log.Errorf(context.Background(), "Could not get changed files")
-		os.Exit(1)
+		log.Fatalf("Could not get changed files")
 	}
 
 	modifiedProjects := diggerConfig.GetModifiedProjects(changedFiles)
@@ -131,7 +130,7 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 		projectLock := ProjectLockImpl{dynamoDbLock, prManager, projectName, repoName}
 		isLocked, err := projectLock.Lock(lockID, prNumber)
 		if err != nil {
-			log.Errorf(context.Background(), "Failed to aquire lock: "+lockID)
+			log.Fatalf("Failed to aquire lock: " + lockID)
 		}
 
 		if !isLocked {
@@ -265,8 +264,7 @@ func sendUsageRecord(repoOwner string, eventName string, action string) {
 	}
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		log.Errorf(context.Background(), "Error marshalling usage record: %v", err)
-		return
+		log.Fatalf("Error marshalling usage record: %v", err)
 	}
 	req, _ := http.NewRequest("POST", os.Getenv("USAGE_URL"), bytes.NewBuffer(jsonData))
 
@@ -274,8 +272,7 @@ func sendUsageRecord(repoOwner string, eventName string, action string) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Errorf(context.Background(), "Error sending usage record: %v", err)
-		return
+		log.Fatalf("Error sending usage record: %v", err)
 	}
 	defer resp.Body.Close()
 }
@@ -297,8 +294,16 @@ func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
 		lockId := d.repoName + "#" + projectName
 		directory := project.Dir
 		terraformExecutor := Terraform{directory}
-		if res, _ := d.lock.Lock(lockId, prNumber); res {
+
+		res, err := d.lock.Lock(lockId, prNumber)
+		if err != nil {
+			log.Fatalf("Error locking project: %v", err)
+		}
+		if res {
 			isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan()
+			if err != nil {
+				log.Fatalf("Error executing plan: %v", err)
+			}
 			plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 			comment := "Plan for **" + lockId + "**\n" + plan
 			d.prManager.PublishComment(prNumber, comment)
