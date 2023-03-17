@@ -23,7 +23,6 @@ type GithubPullRequestService struct {
 
 type PullRequestManager interface {
 	GetChangedFiles(prNumber int) ([]string, error)
-
 	PublishComment(prNumber int, comment string)
 }
 
