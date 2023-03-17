@@ -13,6 +13,7 @@ import (
 	"google.golang.org/appengine/log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -197,12 +198,15 @@ func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
 		directory := project.Dir
 		terraformExecutor := Terraform{directory}
 		if res, _ := d.lock.Lock(lockId, prNumber); res {
-			terraformExecutor.Plan()
+			isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan()
+			plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
+			comment := "Plan for **" + lockId + "**\n" + plan
+			d.prManager.PublishComment(prNumber, comment)
 		}
 	}
 }
 
-func (d DiggerExecutor) Apply(triggerEvent string) {
+func (d DiggerExecutor) Apply(triggerEvent string, prNumber int) {
 	sendUsageRecord(d.repoOwner, triggerEvent, "apply")
 	for _, project := range d.impactedProjects {
 		projectName := project.Name
@@ -210,7 +214,10 @@ func (d DiggerExecutor) Apply(triggerEvent string) {
 		directory := project.Dir
 		terraformExecutor := Terraform{directory}
 		if res, _ := d.lock.Lock(lockId, 0); res {
-			terraformExecutor.Apply()
+			stdout, stderr, err := terraformExecutor.Apply()
+			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
+			comment := "Apply for **" + lockId + "**\n" + applyOutput
+			d.prManager.PublishComment(prNumber, comment)
 		}
 	}
 }
@@ -222,4 +229,47 @@ func (d DiggerExecutor) Unlock(triggerEvent string, prNumber int) {
 		lockId := d.repoName + "#" + projectName
 		d.lock.ForceUnlock(lockId, prNumber)
 	}
+}
+
+func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr string) string {
+	var errorStr, result, start string
+	endPos := len(stdout)
+
+	if planError != nil {
+		if stdout != "" {
+			errorStr = stdout
+		} else if stderr != "" {
+			errorStr = stderr
+		}
+		return "```terraform\n" + errorStr + "\n```"
+	} else if nonEmptyOutput {
+		start = "Terraform will perform the following actions:"
+	} else {
+		start = "No changes. Your infrastructure matches the configuration."
+	}
+
+	startPos := strings.Index(stdout, start)
+	if startPos == -1 {
+		startPos = 0
+	}
+
+	regex := regexp.MustCompile(regexStr)
+	matches := regex.FindStringSubmatch(stdout)
+	if len(matches) > 0 {
+		endPos = strings.Index(stdout, matches[0]) + len(matches[0])
+	}
+
+	result = stdout[startPos:endPos]
+
+	return "```terraform\n" + result + "\n```"
+}
+
+func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
+	regex := `(Apply complete! Resources: [0-9]+ added, [0-9]+ changed, [0-9]+ destroyed.)`
+	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
+}
+
+func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
+	regex := `(Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy.)`
+	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
 }
