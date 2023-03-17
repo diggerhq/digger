@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"os"
+	"strings"
 )
 
 type DiggerConfig struct {
@@ -49,11 +50,14 @@ func (c *DiggerConfig) GetProjects(projectName string) []Project {
 	return []Project{*project}
 }
 
-func (c *DiggerConfig) GetModifiedProjects(changedFiles []File) []Project {
+func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	var result []Project
 	for _, project := range c.Projects {
 		for _, file := range changedFiles {
-			if project.Dir != "" && file.Filename[:len(project.Dir)] == project.Dir {
+			if project.Dir != "" && file[:len(project.Dir)] == project.Dir {
+				result = append(result, project)
+				break
+			} else if project.Dir == "." && !strings.Contains(file, "/") {
 				result = append(result, project)
 				break
 			}

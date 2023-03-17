@@ -30,7 +30,6 @@ func (svc *GithubPullRequestService) GetChangedFiles(prNumber int) ([]string, er
 	files, _, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
-		return nil, err
 	}
 
 	fileNames := make([]string, len(files))
