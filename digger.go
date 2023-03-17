@@ -212,6 +212,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 				projectLock,
 				diggerConfig}
 			diggerExecutor.Apply(eventName, prNumber)
+
 		}
 
 	} else if trimmedComment == "digger unlock" {
@@ -325,6 +326,7 @@ func (d DiggerExecutor) Apply(triggerEvent string, prNumber int) {
 			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 			comment := "Apply for **" + lockId + "**\n" + applyOutput
 			d.prManager.PublishComment(prNumber, comment)
+			d.lock.Unlock(lockId, prNumber)
 		}
 	}
 }
