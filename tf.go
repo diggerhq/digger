@@ -46,7 +46,7 @@ type StdWriter struct {
 	print bool
 }
 
-func (sw *StdWriter) Write(data []byte) (n int, err error) {
+func (sw StdWriter) Write(data []byte) (n int, err error) {
 	s := string(data)
 	if sw.print {
 		print(s)
@@ -56,7 +56,7 @@ func (sw *StdWriter) Write(data []byte) (n int, err error) {
 	return 0, nil
 }
 
-func (sw *StdWriter) GetString() string {
+func (sw StdWriter) GetString() string {
 	s := string(sw.data)
 	return s
 }
@@ -65,8 +65,8 @@ func (terraform *Terraform) Plan() (string, string, error) {
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
 
-	stdout := &StdWriter{[]byte{}, true}
-	stderr := &StdWriter{[]byte{}, true}
+	stdout := StdWriter{[]byte{}, true}
+	stderr := StdWriter{[]byte{}, true}
 	tf.SetStdout(stdout)
 	tf.SetStderr(stderr)
 
