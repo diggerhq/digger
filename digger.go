@@ -260,14 +260,14 @@ func sendUsageRecord(repoOwner string, eventName string, action string) {
 		UserId:    shaStr,
 		EventName: eventName,
 		Action:    action,
-		Token:     os.Getenv("USAGE_TOKEN"),
+		Token:     "diggerABC@@1998fE",
 	}
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Error marshalling usage record: %v", err)
 		return
 	}
-	req, _ := http.NewRequest("POST", os.Getenv("USAGE_URL"), bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", "https://i2smwjphd4.execute-api.us-east-1.amazonaws.com/prod/", bytes.NewBuffer(jsonData))
 
 	req.Header.Set("Content-Type", "application/json")
 
