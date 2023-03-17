@@ -1,4 +1,4 @@
-module tfrun
+module digger
 
 go 1.18
 
@@ -8,6 +8,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
+	google.golang.org/appengine v1.6.7
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -22,7 +23,6 @@ require (
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be // indirect
 	golang.org/x/text v0.6.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

@@ -867,8 +867,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	diggerConfig := DiggerConfig{}
 	tf := Terraform{}
-
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, nil, eventName, &DynamoDbLock{}, &tf)
+	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &DynamoDbLock{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -887,7 +886,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	eventName := context.EventName
 	diggerConfig := DiggerConfig{}
 	tf := Terraform{}
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, nil, eventName, &DynamoDbLock{}, &tf)
+	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &DynamoDbLock{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -901,4 +900,14 @@ func TestInvalidGitHubContext(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+type MockPullRequestManager struct {
+}
+
+func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
+	return nil, nil
+}
+func (t MockPullRequestManager) PublishComment(prNumber int, comment string) {
+
 }
