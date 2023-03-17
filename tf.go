@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-exec/tfexec"
+	"log"
 	"os"
 )
 
@@ -65,6 +66,10 @@ func (terraform *Terraform) Plan() (string, string, error) {
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
 
+	if err != nil {
+		log.Fatal("Error while initializing terraform: " + err.Error())
+		os.Exit(1)
+	}
 	stdout := StdWriter{[]byte{}, true}
 	stderr := StdWriter{[]byte{}, true}
 	tf.SetStdout(stdout)
