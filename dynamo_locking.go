@@ -4,6 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"strconv"
 	"time"
 )
 
@@ -14,12 +15,12 @@ type DynamoDbLock struct {
 }
 
 type Lock interface {
-	Lock(timeout int, transactionId string, resource string) (bool, error)
+	Lock(timeout int, transactionId int, resource string) (bool, error)
 	Unlock(resource string) (bool, error)
-	GetLock(resource string) (*string, error)
+	GetLock(resource string) (*int, error)
 }
 
-func (dynamoDbLock *DynamoDbLock) Lock(timeout int, transactionId string, resource string) (bool, error) {
+func (dynamoDbLock *DynamoDbLock) Lock(timeout int, transactionId int, resource string) (bool, error) {
 	now := time.Now().Format(time.RFC3339)
 	newTimeout := time.Now().Add(time.Duration(timeout) * time.Second).Format(time.RFC3339)
 
@@ -74,10 +75,10 @@ func (dynamoDbLock *DynamoDbLock) Unlock(resource string) (bool, error) {
 	return true, nil
 }
 
-func (dynamoDbLock *DynamoDbLock) GetLock(resource string) (*string, error) {
+func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
 	input := &dynamodb.GetItemInput{
 		TableName: aws.String(TABLE_NAME),
-		Key:       map[string]*dynamodb.AttributeValue{"PK": {S: aws.String("LOCK")}, "SK": {S: aws.String("RES#" + resource)}},
+		Key:       map[string]*dynamodb.AttributeValue{"PK": {S: aws.String("LOCK")}, "SK": {S: aws.String("RES#" + lockId)}},
 	}
 
 	result, err := dynamoDbLock.DynamoDb.GetItem(input)
@@ -86,7 +87,8 @@ func (dynamoDbLock *DynamoDbLock) GetLock(resource string) (*string, error) {
 	}
 
 	if result.Item != nil {
-		return result.Item["transaction_id"].S, nil
+		res, err := strconv.Atoi(*result.Item["transaction_id"].S)
+		return &res, err
 	} else {
 		return nil, nil
 	}
