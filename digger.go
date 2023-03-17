@@ -46,9 +46,7 @@ func main() {
 }
 
 func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
-
 	if parsedGhContext.EventName == "pull_request" {
-
 		var parsedGhEvent PullRequestEvent
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
 		if err != nil {
@@ -79,8 +77,9 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		if err != nil {
 			return fmt.Errorf("error parsing IssueCommentEvent: %v", err)
 		}
-		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
+		println("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
 
+		fmt.Printf("comment: %s\n", parsedGhEvent.Comment.Body)
 		err = processPullRequestComment(diggerConfig, prManager, eventName, dynamoDbLock, tf, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
 		if err != nil {
 			return err
@@ -118,8 +117,9 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestM
 }
 
 func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor, prNumber int, commentBody string) error {
-	print("Processing PR comment")
+	println("Processing PR comment")
 	trimmedComment := strings.TrimSpace(commentBody)
+	fmt.Printf("trimmedComment: %s\n", trimmedComment)
 	if trimmedComment == "digger plan" {
 		_, _, err := tf.Plan()
 		if err != nil {
