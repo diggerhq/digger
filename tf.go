@@ -9,7 +9,7 @@ import (
 
 type TerraformExecutor interface {
 	Apply() (string, string, error)
-	Plan() (string, string, error)
+	Plan() (bool, string, string, error)
 }
 
 type Terraform struct {
