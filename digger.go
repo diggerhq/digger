@@ -265,6 +265,7 @@ func sendUsageRecord(repoOwner string, eventName string, action string) {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Error marshalling usage record: %v", err)
+		return
 	}
 	req, _ := http.NewRequest("POST", os.Getenv("USAGE_URL"), bytes.NewBuffer(jsonData))
 
@@ -273,6 +274,7 @@ func sendUsageRecord(repoOwner string, eventName string, action string) {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("Error sending usage record: %v", err)
+		return
 	}
 	defer resp.Body.Close()
 }
