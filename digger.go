@@ -69,12 +69,12 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		prStatesToUnlock := []string{"closed"}
 
 		if contains(prStatesToLock, parsedGhEvent.Action) {
-			err := processNewPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
+			err := processNewPullRequest(diggerConfig, prManager, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, eventName, parsedGhEvent.Number, dynamoDbLock)
 			if err != nil {
 				return err
 			}
 		} else if contains(prStatesToUnlock, parsedGhEvent.Action) {
-			err := processClosedPullRequest(diggerConfig, prManager, eventName, dynamoDbLock, parsedGhEvent.Number)
+			err := processClosedPullRequest(diggerConfig, prManager, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, eventName, parsedGhEvent.Number, dynamoDbLock)
 			if err != nil {
 				return err
 			}
@@ -88,7 +88,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		}
 		print("Issue PR #" + string(rune(parsedGhEvent.Comment.Issue.Number)) + " was commented on")
 
-		err = processPullRequestComment(diggerConfig, prManager, eventName, dynamoDbLock, tf, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body)
+		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Comment.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
 		if err != nil {
 			return err
 		}
@@ -145,30 +145,104 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 	return nil
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
-	print("Processing closed PR")
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *DynamoDbLock) error {
+	sendUsageRecord(repoOwner, eventName, "lock")
+
+	files, err := prManager.GetChangedFiles(prNumber)
+	if err != nil {
+		return err
+	}
+	for _, project := range diggerConfig.GetModifiedProjects(files) {
+		lockID := fmt.Sprintf("%s#%s", repoName, project)
+		projectLock := ProjectLockImpl{dynamoDbLock, prManager, project.Name, repoName}
+		_, err := projectLock.Unlock(lockID, prNumber)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor, prNumber int, commentBody string) error {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock *DynamoDbLock) error {
 	print("Processing PR comment")
-	trimmedComment := strings.TrimSpace(commentBody)
-	if trimmedComment == "digger plan" {
-		_, _, _, err := tf.Plan()
+	requestedProject := parseProjectName(commentBody)
+	var impactedProjects []Project
+	if requestedProject != "" {
+		impactedProjects = diggerConfig.GetProjects(requestedProject)
+	} else {
+		changedFiles, err := prManager.GetChangedFiles(prNumber)
 		if err != nil {
 			return err
+		}
+		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	}
+
+	trimmedComment := strings.TrimSpace(commentBody)
+	if trimmedComment == "digger plan" {
+		for _, p := range impactedProjects {
+			projectLock := &ProjectLockImpl{
+				InternalLock: dynamoDbLock,
+				PrManager:    prManager,
+				ProjectName:  p.Name,
+				RepoName:     repoName,
+			}
+			diggerExecutor := DiggerExecutor{
+				repoOwner,
+				repoName,
+				impactedProjects,
+				prManager,
+				projectLock,
+				diggerConfig}
+			diggerExecutor.Plan(eventName, prNumber)
 		}
 
 	} else if trimmedComment == "digger apply" {
-		_, _, err := tf.Apply()
-		if err != nil {
-			return err
+		for _, p := range impactedProjects {
+			projectLock := &ProjectLockImpl{
+				InternalLock: dynamoDbLock,
+				PrManager:    prManager,
+				ProjectName:  p.Name,
+				RepoName:     repoName,
+			}
+			diggerExecutor := DiggerExecutor{
+				repoOwner,
+				repoName,
+				impactedProjects,
+				prManager,
+				projectLock,
+				diggerConfig}
+			diggerExecutor.Apply(eventName, prNumber)
 		}
 
 	} else if trimmedComment == "digger unlock" {
-
+		for _, p := range impactedProjects {
+			projectLock := &ProjectLockImpl{
+				InternalLock: dynamoDbLock,
+				PrManager:    prManager,
+				ProjectName:  p.Name,
+				RepoName:     repoName,
+			}
+			diggerExecutor := DiggerExecutor{
+				repoOwner,
+				repoName,
+				impactedProjects,
+				prManager,
+				projectLock,
+				diggerConfig}
+			diggerExecutor.Unlock(eventName, prNumber)
+		}
 	}
 	return nil
+}
+
+func parseProjectName(comment string) string {
+	re := regexp.MustCompile(`-p ([a-zA-Z\-]+)`)
+	match := re.FindStringSubmatch(comment)
+	if len(match) > 1 {
+		return match[1]
+	}
+	return ""
 }
 
 type UsageRecord struct {
@@ -212,7 +286,7 @@ type DiggerExecutor struct {
 	impactedProjects []Project
 	prManager        PullRequestManager
 	lock             ProjectLock
-	configDigger     DiggerConfig
+	configDigger     *DiggerConfig
 }
 
 func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
