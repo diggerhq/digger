@@ -114,7 +114,33 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, prNumber int) error {
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *DynamoDbLock) error {
+	sendUsageRecord(repoOwner, eventName, "lock")
+	lockAcquisitionSuccess := true
+
+	changedFiles, err := prManager.GetChangedFiles(prNumber)
+	if err != nil {
+		log.Errorf(context.Background(), "Could not get changed files")
+		os.Exit(1)
+	}
+
+	modifiedProjects := diggerConfig.GetModifiedProjects(changedFiles)
+	for _, project := range modifiedProjects {
+		projectName := project.Name
+		lockID := fmt.Sprintf("%s#%s", repoName, projectName)
+		projectLock := ProjectLockImpl{dynamoDbLock, prManager, projectName, repoName}
+		isLocked, err := projectLock.Lock(lockID, prNumber)
+		if err != nil {
+			log.Errorf(context.Background(), "Failed to aquire lock: "+lockID)
+		}
+
+		if !isLocked {
+			lockAcquisitionSuccess = false
+		}
+	}
+	if !lockAcquisitionSuccess {
+		os.Exit(1)
+	}
 	print("Processing new PR")
 	return nil
 }
