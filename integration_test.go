@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
@@ -45,6 +46,28 @@ var githubContextDiggerPlanCommentMinJson = `{
       "id": 1466341992,
       "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
       "node_id": "IC_kwDOJG5hVM5XZppo"
+    },
+    "issue": {
+      "assignees": [],
+      "author_association": "CONTRIBUTOR",
+      "comments": 5,
+      "comments_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/comments",
+      "created_at": "2023-03-10T14:09:35Z",
+      "draft": false,
+      "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "id": 1619042081,
+      "labels": [],
+      "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
+      "locked": false,
+      "node_id": "PR_kwDOJG5hVM5LxUWM",
+      "number": 11,
+      "pull_request": {
+        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
+        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
+      }
     }
   }
 }`
@@ -70,6 +93,28 @@ var githubContextDiggerApplyCommentMinJson = `{
       "id": 1466341992,
       "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
       "node_id": "IC_kwDOJG5hVM5XZppo"
+    },
+    "issue": {
+      "assignees": [],
+      "author_association": "CONTRIBUTOR",
+      "comments": 5,
+      "comments_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/comments",
+      "created_at": "2023-03-10T14:09:35Z",
+      "draft": false,
+      "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "id": 1619042081,
+      "labels": [],
+      "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
+      "locked": false,
+      "node_id": "PR_kwDOJG5hVM5LxUWM",
+      "number": 11,
+      "pull_request": {
+        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
+        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
+      }
     }
   }
 }`
@@ -162,21 +207,33 @@ func TestHappyPath(t *testing.T) {
 	diggerConfig, err := NewDiggerConfig()
 	assert.NoError(t, err)
 
-	sess := session.Must(session.NewSession())
+	sess, err := session.NewSessionWithOptions(session.Options{
+		// Specify profile to load for the session's config
+		Profile: "digger-test",
+		// Provide SDK Config options, such as Region.
+		Config: aws.Config{
+			Region: aws.String("us-east-1"),
+		},
+	})
+
+	assert.NoError(t, err)
 	dynamoDb := dynamodb.New(sess)
 	dynamoDbLock := DynamoDbLock{DynamoDb: dynamoDb}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	assert.NotEmpty(t, ghToken)
 
+	println("--- new pull request ---")
 	newPullRequestContext := githubContextNewPullRequestMinJson
 	parsedNewPullRequestContext, err := getGitHubContext(newPullRequestContext)
 	assert.NoError(t, err)
 
+	println("--- digger plan comment ---")
 	diggerPlanCommentContext := githubContextDiggerPlanCommentMinJson
 	parsedDiggerPlanCommentContext, err := getGitHubContext(diggerPlanCommentContext)
 	assert.NoError(t, err)
 
+	println("--- digger plan apply ---")
 	diggerApplyCommentContext := githubContextDiggerApplyCommentMinJson
 	parsedDiggerApplyCommentContext, err := getGitHubContext(diggerApplyCommentContext)
 	assert.NoError(t, err)

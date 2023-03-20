@@ -84,7 +84,11 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 			log.Fatalf("error parsing IssueCommentEvent: %v", err)
 		}
 
+		//spew.Dump(parsedGhEvent)
+
 		fmt.Printf("comment: %s\n", parsedGhEvent.Comment.Body)
+		fmt.Printf("issue number: %d\n", parsedGhEvent.Issue.Number)
+
 		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
 
 		if err != nil {
