@@ -52,6 +52,37 @@ func createValidTerraformTestFile(dir string) {
 	}
 }
 
+func createMultiEnvDiggerYmlFile(dir string) {
+	f, err := os.Create(dir + "/digger.yml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+
+		}
+	}(f)
+
+	digger_yml := `
+projects:
+- name: dev
+  branch: /main/
+  dir: dev
+  workspace: default
+- name: prod
+  branch: /main/
+  dir: prod
+  workspace: default
+`
+
+	_, err2 := f.WriteString(digger_yml)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+}
+
 func TestExecuteTerraformPlan(t *testing.T) {
 	dir := createTestTerraformProject()
 	defer func(name string) {
