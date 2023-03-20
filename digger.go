@@ -19,7 +19,7 @@ import (
 func main() {
 	diggerConfig, err := NewDiggerConfig()
 	if err != nil {
-		print("Failed to read digger config.")
+		println("Failed to read digger config.")
 		os.Exit(1)
 	}
 	sess := session.Must(session.NewSession())
@@ -32,7 +32,7 @@ func main() {
 
 	parsedGhContext, err := getGitHubContext(ghContext)
 	if ghContext == "" {
-		print("GITHUB_CONTEXT is not defined")
+		println("GITHUB_CONTEXT is not defined")
 		os.Exit(1)
 	}
 
@@ -52,9 +52,7 @@ func main() {
 }
 
 func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
-
 	if parsedGhContext.EventName == "pull_request" {
-
 		var parsedGhEvent PullRequestEvent
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
 		if err != nil {
@@ -62,7 +60,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		}
 
 		if parsedGhEvent.PullRequest.Merged {
-			print("PR was merged")
+			println("PR was merged")
 		}
 		prStatesToLock := []string{"reopened", "opened", "synchronize"}
 		prStatesToUnlock := []string{"closed"}
@@ -86,7 +84,13 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 			log.Fatalf("error parsing IssueCommentEvent: %v", err)
 		}
 
+		//spew.Dump(parsedGhEvent)
+
+		fmt.Printf("comment: %s\n", parsedGhEvent.Comment.Body)
+		fmt.Printf("issue number: %d\n", parsedGhEvent.Issue.Number)
+
 		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
+
 		if err != nil {
 			log.Fatalf("error processing pull request comment: %v", err)
 		}
@@ -130,7 +134,8 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 		projectLock := ProjectLockImpl{dynamoDbLock, prManager, projectName, repoName}
 		isLocked, err := projectLock.Lock(lockID, prNumber)
 		if err != nil {
-			log.Fatalf("Failed to aquire lock: " + lockID)
+			log.Fatalf("Failed to aquire lock: %s, err: %s", lockID, err)
+			return err
 		}
 
 		if !isLocked {
@@ -140,7 +145,7 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 	if !lockAcquisitionSuccess {
 		os.Exit(1)
 	}
-	print("Processing new PR")
+	println("Processing new PR")
 	return nil
 }
 
@@ -164,7 +169,7 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestM
 }
 
 func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock *DynamoDbLock) error {
-	print("Processing PR comment")
+	println("Processing PR comment")
 	requestedProject := parseProjectName(commentBody)
 	var impactedProjects []Project
 	if requestedProject != "" {
@@ -178,6 +183,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 	}
 
 	trimmedComment := strings.TrimSpace(commentBody)
+	fmt.Printf("trimmedComment: %s\n", trimmedComment)
 	if trimmedComment == "digger plan" {
 		for _, p := range impactedProjects {
 			projectLock := &ProjectLockImpl{
@@ -343,6 +349,11 @@ func (d DiggerExecutor) Unlock(triggerEvent string, prNumber int) {
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr string) string {
 	var errorStr, result, start string
+
+	i := strings.Index(stdout, "Initializing the backend...")
+	if i != -1 {
+		stdout = stdout[i:]
+	}
 	endPos := len(stdout)
 
 	if planError != nil {
@@ -370,7 +381,6 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 	}
 
 	result = stdout[startPos:endPos]
-
 	return "```terraform\n" + result + "\n```"
 }
 
