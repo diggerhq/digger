@@ -19,6 +19,7 @@ jobs:
         with:
           files:
             - digger
+          fail_on_unmatched_files: true
           tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
