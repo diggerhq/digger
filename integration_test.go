@@ -143,6 +143,53 @@ var githubContextDiggerApplyCommentMinJson = `{
   }
 }`
 
+var githubContextDiggerUnlockCommentMinJson = `{
+  "job": "build",
+  "ref": "refs/heads/main",
+  "sha": "3eb61a47a873fc574c7c57d00cf47343b9ef3892",
+  "repository": "digger_demo",
+  "repository_owner": "diggerhq",
+  "repository_owner_id": "71334590",
+  "workflow": "CI",
+  "head_ref": "",
+  "base_ref": "",
+  "event_name": "issue_comment",
+  "event": {
+    "action": "created",
+    "comment": {
+      "author_association": "CONTRIBUTOR",
+      "body": "digger unlock",
+      "created_at": "2023-03-13T15:14:08Z",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
+      "id": 1466341992,
+      "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
+      "node_id": "IC_kwDOJG5hVM5XZppo"
+    },
+    "issue": {
+      "assignees": [],
+      "author_association": "CONTRIBUTOR",
+      "comments": 5,
+      "comments_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/comments",
+      "created_at": "2023-03-10T14:09:35Z",
+      "draft": false,
+      "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "id": 1619042081,
+      "labels": [],
+      "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
+      "locked": false,
+      "node_id": "PR_kwDOJG5hVM5LxUWM",
+      "number": 11,
+      "pull_request": {
+        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
+        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
+      }
+    }
+  }
+}`
+
 var githubContextNewPullRequestMinJson = `{
     "job": "build",
     "ref": "refs/pull/11/merge",
@@ -254,9 +301,12 @@ func TestHappyPath(t *testing.T) {
 	parsedDiggerPlanCommentContext, err := getGitHubContext(diggerPlanCommentContext)
 	assert.NoError(t, err)
 
-	println("--- digger plan apply ---")
 	diggerApplyCommentContext := githubContextDiggerApplyCommentMinJson
 	parsedDiggerApplyCommentContext, err := getGitHubContext(diggerApplyCommentContext)
+	assert.NoError(t, err)
+
+	diggerUnlockCommentContext := githubContextDiggerUnlockCommentMinJson
+	parsedDiggerUnlockCommentContext, err := getGitHubContext(diggerUnlockCommentContext)
 	assert.NoError(t, err)
 
 	ghEvent := parsedNewPullRequestContext.Event
@@ -277,7 +327,8 @@ func TestHappyPath(t *testing.T) {
 		ProjectName:  "digger_demo",
 		RepoName:     repositoryName,
 	}
-	transactionId, err := projectLock.InternalLock.GetLock("digger_demo#default")
+	resource := "digger_demo#default"
+	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.Equal(t, 11, *transactionId, "TransactionId")
 
@@ -297,7 +348,7 @@ func TestHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerApplyCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
-	// 'digger apply' comment should trigger terraform execution
+	// 'digger apply' comment should trigger terraform execution and unlock the project
 	err = processGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
@@ -307,17 +358,36 @@ func TestHappyPath(t *testing.T) {
 		ProjectName:  "digger_demo",
 		RepoName:     repositoryName,
 	}
-	transactionId, err = projectLock.InternalLock.GetLock("digger_demo#default")
+	transactionId, err = projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
-	assert.Equal(t, 11, *transactionId, "TransactionId")
+	assert.Nil(t, transactionId)
 
+	println("--- digger unlock comment ---")
+	ghEvent = parsedDiggerUnlockCommentContext.Event
+	eventName = parsedDiggerUnlockCommentContext.EventName
+	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
+	repositoryName = parsedDiggerUnlockCommentContext.Repository
+
+	err = processGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	assert.NoError(t, err)
+
+	projectLock = &ProjectLockImpl{
+		InternalLock: &dynamoDbLock,
+		PrManager:    githubPrService,
+		ProjectName:  "digger_demo",
+		RepoName:     repositoryName,
+	}
+	transactionId, err = projectLock.InternalLock.GetLock(resource)
+	assert.NoError(t, err)
+	assert.Nil(t, transactionId)
 }
 
 func TestGetNonExistingLock(t *testing.T) {
 	skipCI(t)
 
 	err, projectLock := getProjetLockForTests()
-	transactionId, err := projectLock.InternalLock.GetLock("test_dynamodb_lock#default")
+	resource := "test_dynamodb_non_existing_lock#default"
+	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.Nil(t, transactionId)
 }
@@ -326,10 +396,11 @@ func TestGetExistingLock(t *testing.T) {
 	skipCI(t)
 
 	err, projectLock := getProjetLockForTests()
-	locked, err := projectLock.InternalLock.Lock(2, 100, "test_dynamodb_lock#default")
+	resource := "test_dynamodb_existing_lock#default"
+	locked, err := projectLock.InternalLock.Lock(2, 100, resource)
 	assert.True(t, locked)
 
-	transactionId, err := projectLock.InternalLock.GetLock("test_dynamodb_lock#default")
+	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.NotNil(t, transactionId)
 	assert.Equal(t, 100, *transactionId, "TransactionId")
@@ -339,18 +410,19 @@ func TestUnLock(t *testing.T) {
 	skipCI(t)
 
 	err, projectLock := getProjetLockForTests()
-	locked, err := projectLock.InternalLock.Lock(2, 100, "test_dynamodb_lock#default")
+	resource := "test_dynamodb_unlock#default"
+	locked, err := projectLock.InternalLock.Lock(2, 100, resource)
 	assert.True(t, locked)
 
-	transactionId, err := projectLock.InternalLock.GetLock("test_dynamodb_lock#default")
+	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.NotNil(t, transactionId)
 	assert.Equal(t, 100, *transactionId, "TransactionId")
 
-	unlocked, err := projectLock.InternalLock.Unlock("test_dynamodb_lock#default")
+	unlocked, err := projectLock.InternalLock.Unlock(resource)
 	assert.True(t, unlocked)
 
-	transactionId, err = projectLock.InternalLock.GetLock("test_dynamodb_lock#default")
+	transactionId, err = projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.Nil(t, transactionId)
 }
