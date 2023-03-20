@@ -17,31 +17,6 @@ type Terraform struct {
 	workingDir string
 }
 
-func (terraform *Terraform) Apply() (string, string, error) {
-	execDir := "terraform"
-	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
-
-	stdout := &StdWriter{[]byte{}, true}
-	//stderr := &StdWriter{[]byte{}, true}
-	tf.SetStdout(stdout)
-	//tf.SetStderr(stderr)
-	tf.SetStderr(os.Stderr)
-
-	err = tf.Init(context.Background(), tfexec.Upgrade(true))
-	if err != nil {
-		print("terraform init failed.")
-		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
-	}
-
-	err = tf.Apply(context.Background())
-	if err != nil {
-		print("terraform plan failed.")
-		return stdout.GetString(), "", fmt.Errorf("terraform plan failed. %s", err)
-	}
-
-	return stdout.GetString(), "", nil
-}
-
 type StdWriter struct {
 	data  []byte
 	print bool
@@ -65,6 +40,10 @@ func (sw *StdWriter) GetString() string {
 func (terraform *Terraform) Plan() (bool, string, string, error) {
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
+	if err != nil {
+		println("failed to initialise terraform")
+		return true, "", "", err
+	}
 
 	if err != nil {
 		log.Fatal("Error while initializing terraform: " + err.Error())
@@ -77,15 +56,41 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 
 	err = tf.Init(context.Background(), tfexec.Upgrade(true))
 	if err != nil {
-		print("terraform init failed.")
+		println("terraform init failed.")
 		return false, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform init failed. %s", err)
 	}
 
 	nonEmptyPlan, err := tf.Plan(context.Background())
 	if err != nil {
-		print("terraform plan failed.")
+		println("terraform plan failed.")
 		return nonEmptyPlan, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform plan failed. %s", err)
 	}
 
 	return nonEmptyPlan, stdout.GetString(), stderr.GetString(), nil
+}
+
+func (terraform *Terraform) Apply() (string, string, error) {
+	println("digger apply")
+	execDir := "terraform"
+	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
+
+	stdout := &StdWriter{[]byte{}, true}
+	//stderr := &StdWriter{[]byte{}, true}
+	tf.SetStdout(stdout)
+	//tf.SetStderr(stderr)
+	tf.SetStderr(os.Stderr)
+
+	err = tf.Init(context.Background(), tfexec.Upgrade(false))
+	if err != nil {
+		println("terraform init failed.")
+		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
+	}
+
+	err = tf.Apply(context.Background())
+	if err != nil {
+		println("terraform plan failed.")
+		return stdout.GetString(), "", fmt.Errorf("terraform plan failed. %s", err)
+	}
+
+	return stdout.GetString(), "", nil
 }
