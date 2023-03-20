@@ -17,6 +17,8 @@ jobs:
         id: upload-release-asset-linux-x64
         uses: softprops/action-gh-release@v1
         with:
+          files:
+            - digger
           tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
