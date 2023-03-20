@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -18,6 +19,7 @@ type ProjectLock interface {
 }
 
 func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, error) {
+	fmt.Printf("Lock %s\n", lockId)
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 	var transactionIdStr string
 
@@ -59,6 +61,7 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 }
 
 func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, error) {
+	fmt.Printf("Unlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
 		return false, err
@@ -83,6 +86,7 @@ func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, e
 }
 
 func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) {
+	fmt.Printf("ForceUnlock %s\n", lockId)
 	lock, _ := projectLock.InternalLock.GetLock(lockId)
 	if lock != nil {
 		lockReleased, _ := projectLock.InternalLock.Unlock(lockId)

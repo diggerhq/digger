@@ -25,6 +25,30 @@ func NewPullRequestTestEvent(parsedGhContext *Github, ghEvent map[string]interfa
 	return nil
 }
 
+func getProjetLockForTests() (error, *ProjectLockImpl) {
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Profile: "digger-test",
+		Config: aws.Config{
+			Region: aws.String("us-east-1"),
+		},
+	})
+	dynamoDb := dynamodb.New(sess)
+	dynamoDbLock := DynamoDbLock{DynamoDb: dynamoDb}
+
+	repoOwner := "diggerhq"
+	repositoryName := "test_dynamodb_lock"
+	ghToken := "token"
+	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+
+	projectLock := &ProjectLockImpl{
+		InternalLock: &dynamoDbLock,
+		PrManager:    githubPrService,
+		ProjectName:  "test_dynamodb_lock",
+		RepoName:     repositoryName,
+	}
+	return err, projectLock
+}
+
 var githubContextDiggerPlanCommentMinJson = `{
   "job": "build",
   "ref": "refs/heads/main",
@@ -208,9 +232,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
-		// Specify profile to load for the session's config
 		Profile: "digger-test",
-		// Provide SDK Config options, such as Region.
 		Config: aws.Config{
 			Region: aws.String("us-east-1"),
 		},
@@ -228,7 +250,6 @@ func TestHappyPath(t *testing.T) {
 	parsedNewPullRequestContext, err := getGitHubContext(newPullRequestContext)
 	assert.NoError(t, err)
 
-	println("--- digger plan comment ---")
 	diggerPlanCommentContext := githubContextDiggerPlanCommentMinJson
 	parsedDiggerPlanCommentContext, err := getGitHubContext(diggerPlanCommentContext)
 	assert.NoError(t, err)
@@ -250,6 +271,17 @@ func TestHappyPath(t *testing.T) {
 	err = processGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
+	projectLock := &ProjectLockImpl{
+		InternalLock: &dynamoDbLock,
+		PrManager:    githubPrService,
+		ProjectName:  "digger_demo",
+		RepoName:     repositoryName,
+	}
+	transactionId, err := projectLock.InternalLock.GetLock("digger_demo#default")
+	assert.NoError(t, err)
+	assert.Equal(t, 11, *transactionId, "TransactionId")
+
+	println("--- digger plan comment ---")
 	ghEvent = parsedDiggerPlanCommentContext.Event
 	eventName = parsedDiggerPlanCommentContext.EventName
 	repoOwner = parsedDiggerPlanCommentContext.RepositoryOwner
@@ -259,6 +291,7 @@ func TestHappyPath(t *testing.T) {
 	err = processGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
+	println("--- digger apply comment ---")
 	ghEvent = parsedDiggerApplyCommentContext.Event
 	eventName = parsedDiggerApplyCommentContext.EventName
 	repoOwner = parsedDiggerApplyCommentContext.RepositoryOwner
@@ -267,4 +300,57 @@ func TestHappyPath(t *testing.T) {
 	// 'digger apply' comment should trigger terraform execution
 	err = processGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
+
+	projectLock = &ProjectLockImpl{
+		InternalLock: &dynamoDbLock,
+		PrManager:    githubPrService,
+		ProjectName:  "digger_demo",
+		RepoName:     repositoryName,
+	}
+	transactionId, err = projectLock.InternalLock.GetLock("digger_demo#default")
+	assert.NoError(t, err)
+	assert.Equal(t, 11, *transactionId, "TransactionId")
+
+}
+
+func TestGetNonExistingLock(t *testing.T) {
+	skipCI(t)
+
+	err, projectLock := getProjetLockForTests()
+	transactionId, err := projectLock.InternalLock.GetLock("test_dynamodb_lock#default")
+	assert.NoError(t, err)
+	assert.Nil(t, transactionId)
+}
+
+func TestGetExistingLock(t *testing.T) {
+	skipCI(t)
+
+	err, projectLock := getProjetLockForTests()
+	locked, err := projectLock.InternalLock.Lock(2, 100, "test_dynamodb_lock#default")
+	assert.True(t, locked)
+
+	transactionId, err := projectLock.InternalLock.GetLock("test_dynamodb_lock#default")
+	assert.NoError(t, err)
+	assert.NotNil(t, transactionId)
+	assert.Equal(t, 100, *transactionId, "TransactionId")
+}
+
+func TestUnLock(t *testing.T) {
+	skipCI(t)
+
+	err, projectLock := getProjetLockForTests()
+	locked, err := projectLock.InternalLock.Lock(2, 100, "test_dynamodb_lock#default")
+	assert.True(t, locked)
+
+	transactionId, err := projectLock.InternalLock.GetLock("test_dynamodb_lock#default")
+	assert.NoError(t, err)
+	assert.NotNil(t, transactionId)
+	assert.Equal(t, 100, *transactionId, "TransactionId")
+
+	unlocked, err := projectLock.InternalLock.Unlock("test_dynamodb_lock#default")
+	assert.True(t, unlocked)
+
+	transactionId, err = projectLock.InternalLock.GetLock("test_dynamodb_lock#default")
+	assert.NoError(t, err)
+	assert.Nil(t, transactionId)
 }
