@@ -89,7 +89,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		fmt.Printf("comment: %s\n", parsedGhEvent.Comment.Body)
 		fmt.Printf("issue number: %d\n", parsedGhEvent.Issue.Number)
 
-		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
+		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock, tf)
 
 		if err != nil {
 			log.Fatalf("error processing pull request comment: %v", err)
@@ -168,7 +168,7 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestM
 	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock *DynamoDbLock) error {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
 	println("Processing PR comment")
 	requestedProject := parseProjectName(commentBody)
 	var impactedProjects []Project
@@ -198,7 +198,8 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 				impactedProjects,
 				prManager,
 				projectLock,
-				diggerConfig}
+				diggerConfig,
+				tf}
 			diggerExecutor.Plan(eventName, prNumber)
 		}
 
@@ -216,7 +217,8 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 				impactedProjects,
 				prManager,
 				projectLock,
-				diggerConfig}
+				diggerConfig,
+				tf}
 			diggerExecutor.Apply(eventName, prNumber)
 
 		}
@@ -235,7 +237,8 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 				impactedProjects,
 				prManager,
 				projectLock,
-				diggerConfig}
+				diggerConfig,
+				tf}
 			diggerExecutor.Unlock(eventName, prNumber)
 		}
 	}
@@ -294,6 +297,7 @@ type DiggerExecutor struct {
 	prManager        PullRequestManager
 	lock             ProjectLock
 	configDigger     *DiggerConfig
+	tf               TerraformExecutor
 }
 
 func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
@@ -302,8 +306,8 @@ func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
 	for _, project := range d.impactedProjects {
 		projectName := project.Name
 		lockId := d.repoName + "#" + projectName
-		directory := project.Dir
-		terraformExecutor := Terraform{directory}
+
+		terraformExecutor := d.tf
 
 		res, err := d.lock.Lock(lockId, prNumber)
 		if err != nil {
@@ -326,8 +330,8 @@ func (d DiggerExecutor) Apply(triggerEvent string, prNumber int) {
 	for _, project := range d.impactedProjects {
 		projectName := project.Name
 		lockId := d.repoName + "#" + projectName
-		directory := project.Dir
-		terraformExecutor := Terraform{directory}
+
+		terraformExecutor := d.tf
 		if res, _ := d.lock.Lock(lockId, prNumber); res {
 			stdout, stderr, err := terraformExecutor.Apply()
 			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)

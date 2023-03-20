@@ -62,7 +62,7 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 
 	nonEmptyPlan, err := tf.Plan(context.Background())
 	if err != nil {
-		println("terraform plan failed.")
+		println("terraform plan failed. dir: " + terraform.workingDir)
 		return nonEmptyPlan, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform plan failed. %s", err)
 	}
 
