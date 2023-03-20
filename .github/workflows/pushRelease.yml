@@ -1,0 +1,23 @@
+name: release
+on:
+  push:
+    branches:
+      - 'go'
+      - 'main'
+jobs:
+  binary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Build
+        run: |
+          env GOOS=linux GOARCH=amd64 go build -o digger
+      - name: Publish linux-x64 exec to github
+        id: upload-release-asset-linux-x64
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
