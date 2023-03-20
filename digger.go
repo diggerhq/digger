@@ -252,7 +252,7 @@ type UsageRecord struct {
 	Token     string      `json:"token"`
 }
 
-func sendUsageRecord(repoOwner string, eventName string, action string) {
+func sendUsageRecord(repoOwner string, eventName string, action string) error {
 	h := sha256.New()
 	h.Write([]byte(repoOwner))
 	sha := h.Sum(nil)
@@ -266,7 +266,7 @@ func sendUsageRecord(repoOwner string, eventName string, action string) {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Error marshalling usage record: %v", err)
-		return
+		return err
 	}
 	req, _ := http.NewRequest("POST", "https://i2smwjphd4.execute-api.us-east-1.amazonaws.com/prod/", bytes.NewBuffer(jsonData))
 
@@ -275,9 +275,10 @@ func sendUsageRecord(repoOwner string, eventName string, action string) {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("Error sending usage record: %v", err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
+	return nil
 }
 
 type DiggerExecutor struct {
