@@ -17,8 +17,7 @@ jobs:
         id: upload-release-asset-linux-x64
         uses: softprops/action-gh-release@v1
         with:
-          files:
-            - digger
+          files: digger
           fail_on_unmatched_files: true
           tag_name: ${{ github.ref_name }}
         env:
