@@ -16,15 +16,6 @@ func skipCI(t *testing.T) {
 	}
 }
 
-func NewPullRequestTestEvent(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
-	err := processGitHubContext(parsedGhContext, ghEvent, diggerConfig, prManager, eventName, dynamoDbLock, tf)
-	if err != nil {
-		print(err)
-		os.Exit(1)
-	}
-	return nil
-}
-
 func getProjetLockForTests() (error, *ProjectLockImpl) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: "digger-test",
@@ -272,6 +263,8 @@ func TestHappyPath(t *testing.T) {
 	}(dir)
 
 	createValidTerraformTestFile(dir)
+
+	println("Terraform project dir:" + dir)
 
 	tf := Terraform{workingDir: dir}
 
