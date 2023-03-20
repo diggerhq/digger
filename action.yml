@@ -1,0 +1,33 @@
+name: digger
+description: Manage terraform collaboration
+author: Digger
+
+inputs:
+  workspace:
+    description: Name of the terraform workspace
+    required: false
+    default: default
+
+outputs:
+  output:
+    value: ${{ steps.digger.outputs.output }}
+    description: The terraform output
+
+runs:
+  using: composite
+  steps:
+    - name: run digger
+      env:
+        actionref: ${{ github.action_ref }}
+      id: digger
+      shell: bash
+      run: |
+        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-${{ runner.os  }}-${{ runner.arch }} -o digger
+        chmod +x digger
+        mv digger /usr/local/bin/digger
+        cd ${{ github.workspace }}
+        digger
+
+branding:
+  icon: globe
+  color: purple
