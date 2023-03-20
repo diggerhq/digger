@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -11,6 +11,6 @@ func TestSendingUsageRecord(t *testing.T) {
 	if os.Getenv("MANUAL_TEST") == "" {
 		t.Skip("Skipping manual test")
 	}
-	err := sendUsageRecord("repoOwner", "testEvent", "testing")
+	err := SendUsageRecord("repoOwner", "testEvent", "testing")
 	assert.Nil(t, err)
 }

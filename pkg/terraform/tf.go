@@ -1,4 +1,4 @@
-package main
+package terraform
 
 import (
 	"context"
@@ -14,12 +14,12 @@ type TerraformExecutor interface {
 }
 
 type Terraform struct {
-	workingDir string
+	WorkingDir string
 }
 
 func (terraform *Terraform) Apply() (string, string, error) {
 	execDir := "terraform"
-	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
+	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
 
 	stdout := &StdWriter{[]byte{}, true}
 	//stderr := &StdWriter{[]byte{}, true}
@@ -64,7 +64,7 @@ func (sw *StdWriter) GetString() string {
 
 func (terraform *Terraform) Plan() (bool, string, string, error) {
 	execDir := "terraform"
-	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
+	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
 
 	if err != nil {
 		log.Fatal("Error while initializing terraform: " + err.Error())

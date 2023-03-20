@@ -1,12 +1,14 @@
-package main
+package utils
 
 import (
+	"digger/pkg/aws"
+	"digger/pkg/github"
 	"strconv"
 )
 
 type ProjectLockImpl struct {
-	InternalLock Lock
-	PrManager    PullRequestManager
+	InternalLock aws.Lock
+	PrManager    github.PullRequestManager
 	ProjectName  string
 	RepoName     string
 }
