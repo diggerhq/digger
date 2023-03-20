@@ -77,7 +77,7 @@ func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, e
 			if lockReleased {
 				comment := "Project unlocked (" + projectLock.ProjectName + ")."
 				projectLock.PrManager.PublishComment(prNumber, comment)
-				print("Project unlocked")
+				println("Project unlocked")
 				return true, nil
 			}
 		}
@@ -94,7 +94,7 @@ func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) {
 		if lockReleased {
 			comment := "Project unlocked (" + projectLock.ProjectName + ")."
 			projectLock.PrManager.PublishComment(prNumber, comment)
-			print("Project unlocked")
+			println("Project unlocked")
 		}
 	}
 }

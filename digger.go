@@ -19,7 +19,7 @@ import (
 func main() {
 	diggerConfig, err := NewDiggerConfig()
 	if err != nil {
-		print("Failed to read digger config.")
+		println("Failed to read digger config.")
 		os.Exit(1)
 	}
 	sess := session.Must(session.NewSession())
@@ -32,7 +32,7 @@ func main() {
 
 	parsedGhContext, err := getGitHubContext(ghContext)
 	if ghContext == "" {
-		print("GITHUB_CONTEXT is not defined")
+		println("GITHUB_CONTEXT is not defined")
 		os.Exit(1)
 	}
 
@@ -60,7 +60,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		}
 
 		if parsedGhEvent.PullRequest.Merged {
-			print("PR was merged")
+			println("PR was merged")
 		}
 		prStatesToLock := []string{"reopened", "opened", "synchronize"}
 		prStatesToUnlock := []string{"closed"}
@@ -145,7 +145,7 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 	if !lockAcquisitionSuccess {
 		os.Exit(1)
 	}
-	print("Processing new PR")
+	println("Processing new PR")
 	return nil
 }
 
@@ -169,7 +169,7 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestM
 }
 
 func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock *DynamoDbLock) error {
-	print("Processing PR comment")
+	println("Processing PR comment")
 	requestedProject := parseProjectName(commentBody)
 	var impactedProjects []Project
 	if requestedProject != "" {
@@ -348,6 +348,11 @@ func (d DiggerExecutor) Unlock(triggerEvent string, prNumber int) {
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr string) string {
 	var errorStr, result, start string
+
+	i := strings.Index(stdout, "Initializing the backend...")
+	if i != -1 {
+		stdout = stdout[i:]
+	}
 	endPos := len(stdout)
 
 	if planError != nil {
@@ -375,7 +380,6 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 	}
 
 	result = stdout[startPos:endPos]
-
 	return "```terraform\n" + result + "\n```"
 }
 

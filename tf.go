@@ -41,7 +41,7 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
 	if err != nil {
-		print("failed to initialise terraform")
+		println("failed to initialise terraform")
 		return true, "", "", err
 	}
 
@@ -56,13 +56,13 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 
 	err = tf.Init(context.Background(), tfexec.Upgrade(true))
 	if err != nil {
-		print("terraform init failed.")
+		println("terraform init failed.")
 		return false, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform init failed. %s", err)
 	}
 
 	nonEmptyPlan, err := tf.Plan(context.Background())
 	if err != nil {
-		print("terraform plan failed.")
+		println("terraform plan failed.")
 		return nonEmptyPlan, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform plan failed. %s", err)
 	}
 
@@ -80,15 +80,15 @@ func (terraform *Terraform) Apply() (string, string, error) {
 	//tf.SetStderr(stderr)
 	tf.SetStderr(os.Stderr)
 
-	err = tf.Init(context.Background(), tfexec.Upgrade(true))
+	err = tf.Init(context.Background(), tfexec.Upgrade(false))
 	if err != nil {
-		print("terraform init failed.")
+		println("terraform init failed.")
 		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
 	}
 
 	err = tf.Apply(context.Background())
 	if err != nil {
-		print("terraform plan failed.")
+		println("terraform plan failed.")
 		return stdout.GetString(), "", fmt.Errorf("terraform plan failed. %s", err)
 	}
 
