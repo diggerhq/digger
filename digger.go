@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	diggerConfig, err := NewDiggerConfig()
+	diggerConfig, err := NewDiggerConfig("")
 	if err != nil {
 		println("Failed to read digger config.")
 		os.Exit(1)

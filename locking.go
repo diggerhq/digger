@@ -47,7 +47,7 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 	if lockAcquired {
 		comment := "Project " + projectLock.ProjectName + " has been locked by PR #" + strconv.Itoa(prNumber)
 		projectLock.PrManager.PublishComment(prNumber, comment)
-		print("project " + projectLock.ProjectName + "locked successfully. PR # " + strconv.Itoa(prNumber))
+		println("project " + projectLock.ProjectName + "locked successfully. PR # " + strconv.Itoa(prNumber))
 		return true, nil
 	}
 
@@ -56,7 +56,7 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 
 	comment := "Project " + projectLock.ProjectName + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.RepoName + "). The locking plan must be applied or discarded before future plans can execute"
 	projectLock.PrManager.PublishComment(prNumber, comment)
-	print(comment)
+	println(comment)
 	return false, nil
 }
 
