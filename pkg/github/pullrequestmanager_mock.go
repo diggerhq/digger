@@ -1,4 +1,4 @@
-package main
+package github
 
 type MockGithubPullrequestManager struct {
 	commands []string

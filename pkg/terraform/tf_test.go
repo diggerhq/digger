@@ -1,4 +1,4 @@
-package main
+package terraform
 
 import (
 	"log"
@@ -63,7 +63,7 @@ func TestExecuteTerraformPlan(t *testing.T) {
 
 	createValidTerraformTestFile(dir)
 
-	tf := Terraform{workingDir: dir}
+	tf := Terraform{WorkingDir: dir}
 	_, _, _, err := tf.Plan()
 	if err != nil {
 		print(err.Error())
@@ -81,7 +81,7 @@ func TestExecuteTerraformApply(t *testing.T) {
 
 	createValidTerraformTestFile(dir)
 
-	tf := Terraform{workingDir: dir}
+	tf := Terraform{WorkingDir: dir}
 	_, _, err := tf.Apply()
 	if err != nil {
 		print(err.Error())

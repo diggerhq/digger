@@ -1,16 +1,16 @@
 package main
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
+	"digger/pkg/aws"
+	"digger/pkg/github"
+	"digger/pkg/models"
+	"digger/pkg/terraform"
+	"digger/pkg/utils"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/mitchellh/mapstructure"
 	"log"
-	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -24,25 +24,25 @@ func main() {
 	}
 	sess := session.Must(session.NewSession())
 	dynamoDb := dynamodb.New(sess)
-	dynamoDbLock := DynamoDbLock{DynamoDb: dynamoDb}
+	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 
-	parsedGhContext, err := getGitHubContext(ghContext)
+	parsedGhContext, err := models.GetGitHubContext(ghContext)
 	if ghContext == "" {
 		print("GITHUB_CONTEXT is not defined")
 		os.Exit(1)
 	}
 
-	tf := Terraform{}
+	tf := terraform.Terraform{}
 
 	ghEvent := parsedGhContext.Event
 	eventName := parsedGhContext.EventName
 	splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
-	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
 	err = processGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	if err != nil {
@@ -51,11 +51,11 @@ func main() {
 	}
 }
 
-func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
+func processGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock *aws.DynamoDbLock, tf terraform.TerraformExecutor) error {
 
 	if parsedGhContext.EventName == "pull_request" {
 
-		var parsedGhEvent PullRequestEvent
+		var parsedGhEvent models.PullRequestEvent
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
 		if err != nil {
 			return fmt.Errorf("error parsing PullRequestEvent: %v", err)
@@ -80,7 +80,7 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 		}
 
 	} else if parsedGhContext.EventName == "issue_comment" {
-		var parsedGhEvent IssueCommentEvent
+		var parsedGhEvent models.IssueCommentEvent
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
 		if err != nil {
 			log.Fatalf("error parsing IssueCommentEvent: %v", err)
@@ -96,15 +96,6 @@ func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{
 	return nil
 }
 
-func getGitHubContext(ghContext string) (Github, error) {
-	var parsedGhContext Github
-	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
-	if err != nil {
-		return Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
-	}
-	return parsedGhContext, nil
-}
-
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
@@ -114,8 +105,8 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *DynamoDbLock) error {
-	sendUsageRecord(repoOwner, eventName, "lock")
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *aws.DynamoDbLock) error {
+	utils.SendUsageRecord(repoOwner, eventName, "lock")
 	lockAcquisitionSuccess := true
 
 	changedFiles, err := prManager.GetChangedFiles(prNumber)
@@ -127,7 +118,7 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 	for _, project := range modifiedProjects {
 		projectName := project.Name
 		lockID := fmt.Sprintf("%s#%s", repoName, projectName)
-		projectLock := ProjectLockImpl{dynamoDbLock, prManager, projectName, repoName}
+		projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectName, RepoName: repoName}
 		isLocked, err := projectLock.Lock(lockID, prNumber)
 		if err != nil {
 			log.Fatalf("Failed to aquire lock: " + lockID)
@@ -144,8 +135,8 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 	return nil
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *DynamoDbLock) error {
-	sendUsageRecord(repoOwner, eventName, "lock")
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *aws.DynamoDbLock) error {
+	utils.SendUsageRecord(repoOwner, eventName, "lock")
 
 	files, err := prManager.GetChangedFiles(prNumber)
 	if err != nil {
@@ -153,7 +144,7 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestM
 	}
 	for _, project := range diggerConfig.GetModifiedProjects(files) {
 		lockID := fmt.Sprintf("%s#%s", repoName, project)
-		projectLock := ProjectLockImpl{dynamoDbLock, prManager, project.Name, repoName}
+		projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: project.Name, RepoName: repoName}
 		_, err := projectLock.Unlock(lockID, prNumber)
 		if err != nil {
 			return err
@@ -163,7 +154,7 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestM
 	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock *DynamoDbLock) error {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock *aws.DynamoDbLock) error {
 	print("Processing PR comment")
 	requestedProject := parseProjectName(commentBody)
 	var impactedProjects []Project
@@ -180,7 +171,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 	trimmedComment := strings.TrimSpace(commentBody)
 	if trimmedComment == "digger plan" {
 		for _, p := range impactedProjects {
-			projectLock := &ProjectLockImpl{
+			projectLock := &utils.ProjectLockImpl{
 				InternalLock: dynamoDbLock,
 				PrManager:    prManager,
 				ProjectName:  p.Name,
@@ -198,7 +189,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 
 	} else if trimmedComment == "digger apply" {
 		for _, p := range impactedProjects {
-			projectLock := &ProjectLockImpl{
+			projectLock := &utils.ProjectLockImpl{
 				InternalLock: dynamoDbLock,
 				PrManager:    prManager,
 				ProjectName:  p.Name,
@@ -217,7 +208,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequest
 
 	} else if trimmedComment == "digger unlock" {
 		for _, p := range impactedProjects {
-			projectLock := &ProjectLockImpl{
+			projectLock := &utils.ProjectLockImpl{
 				InternalLock: dynamoDbLock,
 				PrManager:    prManager,
 				ProjectName:  p.Name,
@@ -245,59 +236,23 @@ func parseProjectName(comment string) string {
 	return ""
 }
 
-type UsageRecord struct {
-	UserId    interface{} `json:"userid"`
-	EventName string      `json:"event_name"`
-	Action    string      `json:"action"`
-	Token     string      `json:"token"`
-}
-
-func sendUsageRecord(repoOwner string, eventName string, action string) error {
-	h := sha256.New()
-	h.Write([]byte(repoOwner))
-	sha := h.Sum(nil)
-	shaStr := hex.EncodeToString(sha)
-	payload := UsageRecord{
-		UserId:    shaStr,
-		EventName: eventName,
-		Action:    action,
-		Token:     "diggerABC@@1998fE",
-	}
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		log.Printf("Error marshalling usage record: %v", err)
-		return err
-	}
-	req, _ := http.NewRequest("POST", "https://i2smwjphd4.execute-api.us-east-1.amazonaws.com/prod/", bytes.NewBuffer(jsonData))
-
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Printf("Error sending usage record: %v", err)
-		return err
-	}
-	defer resp.Body.Close()
-	return nil
-}
-
 type DiggerExecutor struct {
 	repoOwner        string
 	repoName         string
 	impactedProjects []Project
-	prManager        PullRequestManager
-	lock             ProjectLock
+	prManager        github.PullRequestManager
+	lock             utils.ProjectLock
 	configDigger     *DiggerConfig
 }
 
 func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
-	sendUsageRecord(d.repoOwner, triggerEvent, "plan")
+	utils.SendUsageRecord(d.repoOwner, triggerEvent, "plan")
 
 	for _, project := range d.impactedProjects {
 		projectName := project.Name
 		lockId := d.repoName + "#" + projectName
 		directory := project.Dir
-		terraformExecutor := Terraform{directory}
+		terraformExecutor := terraform.Terraform{WorkingDir: directory}
 
 		res, err := d.lock.Lock(lockId, prNumber)
 		if err != nil {
@@ -316,12 +271,12 @@ func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
 }
 
 func (d DiggerExecutor) Apply(triggerEvent string, prNumber int) {
-	sendUsageRecord(d.repoOwner, triggerEvent, "apply")
+	utils.SendUsageRecord(d.repoOwner, triggerEvent, "apply")
 	for _, project := range d.impactedProjects {
 		projectName := project.Name
 		lockId := d.repoName + "#" + projectName
 		directory := project.Dir
-		terraformExecutor := Terraform{directory}
+		terraformExecutor := terraform.Terraform{WorkingDir: directory}
 		if res, _ := d.lock.Lock(lockId, prNumber); res {
 			stdout, stderr, err := terraformExecutor.Apply()
 			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
@@ -333,7 +288,7 @@ func (d DiggerExecutor) Apply(triggerEvent string, prNumber int) {
 }
 
 func (d DiggerExecutor) Unlock(triggerEvent string, prNumber int) {
-	sendUsageRecord(d.repoOwner, triggerEvent, "unlock")
+	utils.SendUsageRecord(d.repoOwner, triggerEvent, "unlock")
 	for _, project := range d.impactedProjects {
 		projectName := project.Name
 		lockId := d.repoName + "#" + projectName
