@@ -8,8 +8,8 @@ import (
 
 // util function for testing of send usage record
 func TestSendingUsageRecord(t *testing.T) {
-	if os.Getenv("MANUAL_TEST") != "" {
-		t.Skip("Skipping not finished test")
+	if os.Getenv("MANUAL_TEST") == "" {
+		t.Skip("Skipping manual test")
 	}
 	err := sendUsageRecord("repoOwner", "testEvent", "testing")
 	assert.Nil(t, err)
