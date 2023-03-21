@@ -51,7 +51,7 @@ func main() {
 	}
 }
 
-func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
+func processGitHubContext(parsedGhContext *Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, dynamoDbLock Lock, tf TerraformExecutor) error {
 	if parsedGhContext.EventName == "pull_request" {
 		var parsedGhEvent PullRequestEvent
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
@@ -118,7 +118,7 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *DynamoDbLock) error {
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock Lock) error {
 	sendUsageRecord(repoOwner, eventName, "lock")
 	lockAcquisitionSuccess := true
 
@@ -149,7 +149,7 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager PullRequestMana
 	return nil
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *DynamoDbLock) error {
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock Lock) error {
 	sendUsageRecord(repoOwner, eventName, "lock")
 
 	files, err := prManager.GetChangedFiles(prNumber)
@@ -168,7 +168,7 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager PullRequestM
 	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock *DynamoDbLock, tf TerraformExecutor) error {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock Lock, tf TerraformExecutor) error {
 	println("Processing PR comment")
 	requestedProject := parseProjectName(commentBody)
 	var impactedProjects []Project

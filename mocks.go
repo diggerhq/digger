@@ -9,7 +9,7 @@ func (tf *MockTerraform) Apply() (string, string, error) {
 	return "", "", nil
 }
 
-func (tf *MockTerraform) Plan() (string, string, error) {
+func (tf *MockTerraform) Plan() (bool, string, string, error) {
 	tf.commands = append(tf.commands, "plan")
-	return "", "", nil
+	return true, "", "", nil
 }

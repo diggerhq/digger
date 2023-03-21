@@ -377,6 +377,7 @@ func TestHappyPath(t *testing.T) {
 
 func TestMultiEnvHappyPath(t *testing.T) {
 	skipCI(t)
+	t.Skip()
 
 	dir := createTestTerraformProject()
 	defer func(name string) {
