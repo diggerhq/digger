@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"log"
 	"os"
 )
 
@@ -18,6 +17,7 @@ type Terraform struct {
 }
 
 func (terraform *Terraform) Apply() (string, string, error) {
+	println("digger apply")
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
 
@@ -27,15 +27,15 @@ func (terraform *Terraform) Apply() (string, string, error) {
 	//tf.SetStderr(stderr)
 	tf.SetStderr(os.Stderr)
 
-	err = tf.Init(context.Background(), tfexec.Upgrade(true))
+	err = tf.Init(context.Background(), tfexec.Upgrade(false))
 	if err != nil {
-		print("terraform init failed.")
+		println("terraform init failed.")
 		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
 	}
 
 	err = tf.Apply(context.Background())
 	if err != nil {
-		print("terraform plan failed.")
+		println("terraform plan failed.")
 		return stdout.GetString(), "", fmt.Errorf("terraform plan failed. %s", err)
 	}
 
@@ -67,7 +67,7 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
 
 	if err != nil {
-		log.Fatal("Error while initializing terraform: " + err.Error())
+		println("Error while initializing terraform: " + err.Error())
 		os.Exit(1)
 	}
 	stdout := &StdWriter{[]byte{}, true}
@@ -77,13 +77,13 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 
 	err = tf.Init(context.Background(), tfexec.Upgrade(true))
 	if err != nil {
-		print("terraform init failed.")
+		println("terraform init failed.")
 		return false, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform init failed. %s", err)
 	}
 
 	nonEmptyPlan, err := tf.Plan(context.Background())
 	if err != nil {
-		print("terraform plan failed.")
+		println("terraform plan failed. dir: " + terraform.WorkingDir)
 		return nonEmptyPlan, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform plan failed. %s", err)
 	}
 

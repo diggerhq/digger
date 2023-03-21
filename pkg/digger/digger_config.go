@@ -1,4 +1,4 @@
-package main
+package digger
 
 import (
 	"fmt"
@@ -16,9 +16,15 @@ type Project struct {
 	Dir  string `yaml:"dir"`
 }
 
-func NewDiggerConfig() (*DiggerConfig, error) {
+func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	config := &DiggerConfig{}
-	if data, err := os.ReadFile("digger.yml"); err == nil {
+	var fileName string
+	if workingDir == "" {
+		fileName = "digger.yml"
+	} else {
+		fileName = workingDir + "/digger.yml"
+	}
+	if data, err := os.ReadFile(fileName); err == nil {
 		if err := yaml.Unmarshal(data, config); err != nil {
 			return nil, fmt.Errorf("error parsing digger.yml: %v", err)
 		}
