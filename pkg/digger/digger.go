@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock *aws.DynamoDbLock, tf terraform.TerraformExecutor) error {
+func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock aws.Lock, tf terraform.TerraformExecutor) error {
 	if parsedGhContext.EventName == "pull_request" {
 		var parsedGhEvent models.PullRequestEvent
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
@@ -80,7 +80,7 @@ func GetGitHubContext(ghContext string) (models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *aws.DynamoDbLock) error {
+func processNewPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock aws.Lock) error {
 	utils.SendUsageRecord(repoOwner, eventName, "lock")
 	lockAcquisitionSuccess := true
 
@@ -110,7 +110,7 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequ
 	return nil
 }
 
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *aws.DynamoDbLock) error {
+func processClosedPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock aws.Lock) error {
 	utils.SendUsageRecord(repoOwner, eventName, "lock")
 
 	files, err := prManager.GetChangedFiles(prNumber)

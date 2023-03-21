@@ -7,6 +7,7 @@ import (
 	"digger/pkg/terraform"
 	"digger/pkg/utils"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -902,4 +903,35 @@ func TestInvalidGitHubContext(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
+	context, err := digger.GetGitHubContext(githubContextNewPullRequestJson)
+	assert.NoError(t, err)
+	ghEvent := context.Event
+	eventName := context.EventName
+	resource := "diggerhq/tfrun_demo_multienv"
+	envName := "dev"
+	lockId := resource + "#" + envName
+	pullRequestNumber := 11
+
+	// digger config
+	dev := digger.Project{Name: "dev", Dir: "dev"}
+	prod := digger.Project{Name: "prod", Dir: "prod"}
+	projects := []digger.Project{dev, prod}
+	diggerConfig := digger.DiggerConfig{Projects: projects}
+
+	// PullRequestManager Mock
+	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
+
+	// mock lock
+	lock := &utils.MockLock{}
+
+	tf := utils.MockTerraform{}
+
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock, &tf)
+	spew.Dump(lock.MapLock)
+	assert.Equal(t, pullRequestNumber, lock.MapLock[lockId])
+	assert.Equal(t, 1, len(lock.MapLock))
+	assert.NoError(t, err)
 }
