@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Build
         run: |
-          env GOOS=linux GOARCH=amd64 go build -o digger-Linux-X64
+          env GOOS=linux GOARCH=amd64 go build ./cmd/digger -o digger-Linux-X64
       - name: Publish linux-x64 exec to github
         id: upload-release-asset-linux-x64
         uses: softprops/action-gh-release@v1
