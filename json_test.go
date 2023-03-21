@@ -856,7 +856,6 @@ var githubInvalidContextJson = `{
 `
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
-
 	context, err := getGitHubContext(githubContextNewPullRequestJson)
 	assert.NoError(t, err)
 	if err != nil {
@@ -872,11 +871,54 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	//spew.Dump(context)
+}
+
+type MockLock struct {
+}
+
+func (lock *MockLock) Lock(timeout int, transactionId int, resource string) (bool, error) {
+	return true, nil
+}
+
+func (lock *MockLock) Unlock(resource string) (bool, error) {
+	return true, nil
+}
+func (lock *MockLock) GetLock(resource string) (*int, error) {
+	i := 1
+	return &i, nil
+}
+
+func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
+	context, err := getGitHubContext(githubContextNewPullRequestJson)
+	assert.NoError(t, err)
+	if err != nil {
+		fmt.Println(err)
+	}
+	ghEvent := context.Event
+	eventName := context.EventName
+
+	// digger config
+	dev := Project{"dev", "dev"}
+	prod := Project{"prod", "prod"}
+	projects := []Project{dev, prod}
+	diggerConfig := DiggerConfig{projects}
+
+	// PullRequestManager Mock
+	prManager := &MockPullRequestManager{[]string{"/dev/test.tf"}}
+
+	// mock lock
+	lock := &MockLock{}
+
+	tf := MockTerraform{}
+
+	err = processGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock, &tf)
+	assert.NoError(t, err)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func TestGitHubNewCommentContext(t *testing.T) {
-
 	context, err := getGitHubContext(githubContextCommentJson)
 	assert.NoError(t, err)
 	if err != nil {
@@ -891,7 +933,6 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	//spew.Dump(context)
 }
 
 func TestInvalidGitHubContext(t *testing.T) {
@@ -903,10 +944,11 @@ func TestInvalidGitHubContext(t *testing.T) {
 }
 
 type MockPullRequestManager struct {
+	ChangedFiles []string
 }
 
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
-	return nil, nil
+	return t.ChangedFiles, nil
 }
 func (t MockPullRequestManager) PublishComment(prNumber int, comment string) {
 
