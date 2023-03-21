@@ -1,6 +1,9 @@
 package main
 
 import (
+	"digger/pkg/aws"
+	"digger/pkg/models"
+	"digger/pkg/terraform"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -857,7 +860,7 @@ var githubInvalidContextJson = `{
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
 
-	context, err := getGitHubContext(githubContextNewPullRequestJson)
+	context, err := models.GetGitHubContext(githubContextNewPullRequestJson)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -866,8 +869,8 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	eventName := context.EventName
 
 	diggerConfig := DiggerConfig{}
-	tf := Terraform{}
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &DynamoDbLock{}, &tf)
+	tf := terraform.Terraform{}
+	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -877,7 +880,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 func TestGitHubNewCommentContext(t *testing.T) {
 
-	context, err := getGitHubContext(githubContextCommentJson)
+	context, err := models.GetGitHubContext(githubContextCommentJson)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -885,8 +888,8 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 	diggerConfig := DiggerConfig{}
-	tf := Terraform{}
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &DynamoDbLock{}, &tf)
+	tf := terraform.Terraform{}
+	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -895,7 +898,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 }
 
 func TestInvalidGitHubContext(t *testing.T) {
-	_, err := getGitHubContext(githubInvalidContextJson)
+	_, err := models.GetGitHubContext(githubInvalidContextJson)
 	require.Error(t, err)
 	if err != nil {
 		fmt.Println(err)

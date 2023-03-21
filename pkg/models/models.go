@@ -1,4 +1,9 @@
-package main
+package models
+
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type Github struct {
 	Action           string                 `json:"action"`
@@ -41,4 +46,13 @@ type Comment struct {
 
 type Issue struct {
 	Number int `json:"number"`
+}
+
+func GetGitHubContext(ghContext string) (Github, error) {
+	var parsedGhContext Github
+	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
+	if err != nil {
+		return Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
+	}
+	return parsedGhContext, nil
 }
