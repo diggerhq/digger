@@ -20,6 +20,7 @@ runs:
       if: ${{ github.action_ref == 'feat/test' }}
       shell: bash
       run: |
+          cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
           chmod +x digger
           mv digger /usr/local/bin/digger
