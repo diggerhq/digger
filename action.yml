@@ -17,7 +17,7 @@ runs:
   using: composite
   steps:
     - name: build and run digger
-      if: ${{ github.action_ref' == 'feat/test' }}
+      if: ${{ github.action_ref == 'feat/test' }}
       shell: bash
       run: |
           go build -o digger ./cmd/digger
@@ -26,7 +26,7 @@ runs:
           cd ${{ github.workspace }}
           digger
     - name: run digger
-      if: ${{ github.action_ref' != 'feat/test' }}
+      if: ${{ github.action_ref != 'feat/test' }}
       env:
         actionref: ${{ github.action_ref }}
       id: digger
