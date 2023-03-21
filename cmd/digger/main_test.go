@@ -1,6 +1,11 @@
 package main
 
 import (
+	"digger/pkg/aws"
+	"digger/pkg/digger"
+	"digger/pkg/models"
+	"digger/pkg/terraform"
+	"digger/pkg/utils"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -856,7 +861,8 @@ var githubInvalidContextJson = `{
 `
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
-	context, err := getGitHubContext(githubContextNewPullRequestJson)
+
+	context, err := digger.GetGitHubContext(githubContextNewPullRequestJson)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -864,54 +870,9 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 
-	diggerConfig := DiggerConfig{}
-	tf := Terraform{}
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &DynamoDbLock{}, &tf)
-	assert.NoError(t, err)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-type MockLock struct {
-}
-
-func (lock *MockLock) Lock(timeout int, transactionId int, resource string) (bool, error) {
-	return true, nil
-}
-
-func (lock *MockLock) Unlock(resource string) (bool, error) {
-	return true, nil
-}
-func (lock *MockLock) GetLock(resource string) (*int, error) {
-	i := 1
-	return &i, nil
-}
-
-func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
-	context, err := getGitHubContext(githubContextNewPullRequestJson)
-	assert.NoError(t, err)
-	if err != nil {
-		fmt.Println(err)
-	}
-	ghEvent := context.Event
-	eventName := context.EventName
-
-	// digger config
-	dev := Project{"dev", "dev"}
-	prod := Project{"prod", "prod"}
-	projects := []Project{dev, prod}
-	diggerConfig := DiggerConfig{projects}
-
-	// PullRequestManager Mock
-	prManager := &MockPullRequestManager{[]string{"/dev/test.tf"}}
-
-	// mock lock
-	lock := &MockLock{}
-
-	tf := MockTerraform{}
-
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock, &tf)
+	diggerConfig := digger.DiggerConfig{}
+	tf := terraform.Terraform{}
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -919,16 +880,16 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 }
 
 func TestGitHubNewCommentContext(t *testing.T) {
-	context, err := getGitHubContext(githubContextCommentJson)
+	context, err := models.GetGitHubContext(githubContextCommentJson)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
 	}
 	ghEvent := context.Event
 	eventName := context.EventName
-	diggerConfig := DiggerConfig{}
-	tf := Terraform{}
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &DynamoDbLock{}, &tf)
+	diggerConfig := digger.DiggerConfig{}
+	tf := terraform.Terraform{}
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -936,20 +897,9 @@ func TestGitHubNewCommentContext(t *testing.T) {
 }
 
 func TestInvalidGitHubContext(t *testing.T) {
-	_, err := getGitHubContext(githubInvalidContextJson)
+	_, err := models.GetGitHubContext(githubInvalidContextJson)
 	require.Error(t, err)
 	if err != nil {
 		fmt.Println(err)
 	}
-}
-
-type MockPullRequestManager struct {
-	ChangedFiles []string
-}
-
-func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
-	return t.ChangedFiles, nil
-}
-func (t MockPullRequestManager) PublishComment(prNumber int, comment string) {
-
 }
