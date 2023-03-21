@@ -16,7 +16,18 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: build and run digger
+      if: ${{ github.action_ref == 'main' }}
+      shell: bash
+      run: |
+          cd ${{ github.action_path }}
+          go build -o digger ./cmd/digger
+          chmod +x digger
+          mv digger /usr/local/bin/digger
+          cd ${{ github.workspace }}
+          digger
     - name: run digger
+      if: ${{ github.action_ref != 'main' }}
       env:
         actionref: ${{ github.action_ref }}
       id: digger
