@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
 	"testing"
@@ -19,9 +20,7 @@ func TestExecuteTerraformPlan(t *testing.T) {
 
 	tf := Terraform{WorkingDir: dir}
 	_, _, _, err := tf.Plan()
-	if err != nil {
-		print(err.Error())
-	}
+	assert.NoError(t, err)
 }
 
 func TestExecuteTerraformApply(t *testing.T) {
@@ -37,7 +36,5 @@ func TestExecuteTerraformApply(t *testing.T) {
 
 	tf := Terraform{WorkingDir: dir}
 	_, _, err := tf.Apply()
-	if err != nil {
-		print(err.Error())
-	}
+	assert.NoError(t, err)
 }
