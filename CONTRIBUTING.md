@@ -1,6 +1,11 @@
 # Contributing to Digger
 Welcome to the contributing guide for Digger! We appreciate your interest in contributing to our open source project.
 
+**FEEDBACK:** The best way to contribute to Digger today is by using
+it within your organisation and providing feedback. If you are considering
+using Digger please [drop us a line](https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA), 
+and we would be happy to set you up.
+
 ## Table of Contents
 - [Introduction](#introduction)
 - [How to contribute](#how-to-contribute)
@@ -15,7 +20,8 @@ This document is intended to be a guide for people who want to contribute to Dig
 
 ## How to contribute
 **If you are considering using digger within your organisation 
-please reach out to us we would be happy to help onboard you to use it**. 
+please [reach out to us](https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA) 
+we would be happy to help onboard you to use it**. 
 There are many ways to contribute to Digger, including:
 - Providing feedback
 - Reporting bugs and issues
