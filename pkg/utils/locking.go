@@ -3,6 +3,7 @@ package utils
 import (
 	"digger/pkg/aws"
 	"digger/pkg/github"
+	"fmt"
 	"strconv"
 )
 
@@ -20,6 +21,7 @@ type ProjectLock interface {
 }
 
 func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, error) {
+	fmt.Printf("Lock %s\n", lockId)
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 	var transactionIdStr string
 
@@ -47,7 +49,7 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 	if lockAcquired {
 		comment := "Project " + projectLock.ProjectName + " has been locked by PR #" + strconv.Itoa(prNumber)
 		projectLock.PrManager.PublishComment(prNumber, comment)
-		print("project " + projectLock.ProjectName + "locked successfully. PR # " + strconv.Itoa(prNumber))
+		println("project " + projectLock.ProjectName + "locked successfully. PR # " + strconv.Itoa(prNumber))
 		return true, nil
 	}
 
@@ -56,11 +58,12 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 
 	comment := "Project " + projectLock.ProjectName + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.RepoName + "). The locking plan must be applied or discarded before future plans can execute"
 	projectLock.PrManager.PublishComment(prNumber, comment)
-	print(comment)
+	println(comment)
 	return false, nil
 }
 
 func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, error) {
+	fmt.Printf("Unlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
 		return false, err
@@ -76,7 +79,7 @@ func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, e
 			if lockReleased {
 				comment := "Project unlocked (" + projectLock.ProjectName + ")."
 				projectLock.PrManager.PublishComment(prNumber, comment)
-				print("Project unlocked")
+				println("Project unlocked")
 				return true, nil
 			}
 		}
@@ -85,6 +88,7 @@ func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, e
 }
 
 func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) {
+	fmt.Printf("ForceUnlock %s\n", lockId)
 	lock, _ := projectLock.InternalLock.GetLock(lockId)
 	if lock != nil {
 		lockReleased, _ := projectLock.InternalLock.Unlock(lockId)
@@ -92,7 +96,7 @@ func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) {
 		if lockReleased {
 			comment := "Project unlocked (" + projectLock.ProjectName + ")."
 			projectLock.PrManager.PublishComment(prNumber, comment)
-			print("Project unlocked")
+			println("Project unlocked")
 		}
 	}
 }

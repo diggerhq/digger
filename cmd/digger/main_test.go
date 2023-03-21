@@ -2,8 +2,10 @@ package main
 
 import (
 	"digger/pkg/aws"
+	"digger/pkg/digger"
 	"digger/pkg/models"
 	"digger/pkg/terraform"
+	"digger/pkg/utils"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -860,7 +862,7 @@ var githubInvalidContextJson = `{
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
 
-	context, err := models.GetGitHubContext(githubContextNewPullRequestJson)
+	context, err := digger.GetGitHubContext(githubContextNewPullRequestJson)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -868,18 +870,16 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 
-	diggerConfig := DiggerConfig{}
+	diggerConfig := digger.DiggerConfig{}
 	tf := terraform.Terraform{}
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
 	}
-	//spew.Dump(context)
 }
 
 func TestGitHubNewCommentContext(t *testing.T) {
-
 	context, err := models.GetGitHubContext(githubContextCommentJson)
 	assert.NoError(t, err)
 	if err != nil {
@@ -887,14 +887,13 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	}
 	ghEvent := context.Event
 	eventName := context.EventName
-	diggerConfig := DiggerConfig{}
+	diggerConfig := digger.DiggerConfig{}
 	tf := terraform.Terraform{}
-	err = processGitHubContext(&context, ghEvent, &diggerConfig, MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
 	}
-	//spew.Dump(context)
 }
 
 func TestInvalidGitHubContext(t *testing.T) {
@@ -903,14 +902,4 @@ func TestInvalidGitHubContext(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-}
-
-type MockPullRequestManager struct {
-}
-
-func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
-	return nil, nil
-}
-func (t MockPullRequestManager) PublishComment(prNumber int, comment string) {
-
 }
