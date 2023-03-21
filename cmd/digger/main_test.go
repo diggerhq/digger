@@ -903,3 +903,33 @@ func TestInvalidGitHubContext(t *testing.T) {
 		fmt.Println(err)
 	}
 }
+
+func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
+	context, err := digger.GetGitHubContext(githubContextNewPullRequestJson)
+	assert.NoError(t, err)
+	if err != nil {
+		fmt.Println(err)
+	}
+	ghEvent := context.Event
+	eventName := context.EventName
+
+	// digger config
+	dev := digger.Project{Name: "dev", Dir: "dev"}
+	prod := digger.Project{Name: "prod", Dir: "prod"}
+	projects := []digger.Project{dev, prod}
+	diggerConfig := digger.DiggerConfig{Projects: projects}
+
+	// PullRequestManager Mock
+	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"/dev/test.tf"}}
+
+	// mock lock
+	lock := &utils.MockLock{}
+
+	tf := utils.MockTerraform{}
+
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock, &tf)
+	assert.NoError(t, err)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
