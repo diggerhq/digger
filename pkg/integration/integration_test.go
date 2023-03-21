@@ -1,7 +1,12 @@
-package main
+package integration
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
+	"digger/pkg/aws"
+	"digger/pkg/digger"
+	"digger/pkg/github"
+	"digger/pkg/terraform"
+	"digger/pkg/utils"
+	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
@@ -16,22 +21,22 @@ func skipCI(t *testing.T) {
 	}
 }
 
-func getProjetLockForTests() (error, *ProjectLockImpl) {
+func getProjetLockForTests() (error, *utils.ProjectLockImpl) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: "digger-test",
-		Config: aws.Config{
-			Region: aws.String("us-east-1"),
+		Config: awssdk.Config{
+			Region: awssdk.String("us-east-1"),
 		},
 	})
 	dynamoDb := dynamodb.New(sess)
-	dynamoDbLock := DynamoDbLock{DynamoDb: dynamoDb}
+	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 
 	repoOwner := "diggerhq"
 	repositoryName := "test_dynamodb_lock"
 	ghToken := "token"
-	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	projectLock := &ProjectLockImpl{
+	projectLock := &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
 		ProjectName:  "test_dynamodb_lock",
@@ -254,7 +259,7 @@ var githubContextNewPullRequestMinJson = `{
 func TestHappyPath(t *testing.T) {
 	skipCI(t)
 
-	dir := createTestTerraformProject()
+	dir := terraform.CreateTestTerraformProject()
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
@@ -262,59 +267,59 @@ func TestHappyPath(t *testing.T) {
 		}
 	}(dir)
 
-	createValidTerraformTestFile(dir)
+	terraform.CreateValidTerraformTestFile(dir)
 
 	println("Terraform project dir:" + dir)
 
-	tf := Terraform{workingDir: dir}
+	tf := terraform.Terraform{WorkingDir: dir}
 
-	diggerConfig, err := NewDiggerConfig(dir)
+	diggerConfig, err := digger.NewDiggerConfig(dir)
 	assert.NoError(t, err)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: "digger-test",
-		Config: aws.Config{
-			Region: aws.String("us-east-1"),
+		Config: awssdk.Config{
+			Region: awssdk.String("us-east-1"),
 		},
 	})
 
 	assert.NoError(t, err)
 	dynamoDb := dynamodb.New(sess)
-	dynamoDbLock := DynamoDbLock{DynamoDb: dynamoDb}
+	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	assert.NotEmpty(t, ghToken)
 
 	println("--- new pull request ---")
 	newPullRequestContext := githubContextNewPullRequestMinJson
-	parsedNewPullRequestContext, err := getGitHubContext(newPullRequestContext)
+	parsedNewPullRequestContext, err := digger.GetGitHubContext(newPullRequestContext)
 	assert.NoError(t, err)
 
 	diggerPlanCommentContext := githubContextDiggerPlanCommentMinJson
-	parsedDiggerPlanCommentContext, err := getGitHubContext(diggerPlanCommentContext)
+	parsedDiggerPlanCommentContext, err := digger.GetGitHubContext(diggerPlanCommentContext)
 	assert.NoError(t, err)
 
 	diggerApplyCommentContext := githubContextDiggerApplyCommentMinJson
-	parsedDiggerApplyCommentContext, err := getGitHubContext(diggerApplyCommentContext)
+	parsedDiggerApplyCommentContext, err := digger.GetGitHubContext(diggerApplyCommentContext)
 	assert.NoError(t, err)
 
 	diggerUnlockCommentContext := githubContextDiggerUnlockCommentMinJson
-	parsedDiggerUnlockCommentContext, err := getGitHubContext(diggerUnlockCommentContext)
+	parsedDiggerUnlockCommentContext, err := digger.GetGitHubContext(diggerUnlockCommentContext)
 	assert.NoError(t, err)
 
 	ghEvent := parsedNewPullRequestContext.Event
 	eventName := parsedNewPullRequestContext.EventName
 	repoOwner := parsedNewPullRequestContext.RepositoryOwner
 	repositoryName := parsedNewPullRequestContext.Repository
-	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	// new pr should lock the project
-	err = processGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
-	projectLock := &ProjectLockImpl{
+	projectLock := &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",
@@ -332,7 +337,7 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	err = processGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -342,10 +347,10 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	err = processGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
-	projectLock = &ProjectLockImpl{
+	projectLock = &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",
@@ -361,10 +366,10 @@ func TestHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	err = processGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
-	projectLock = &ProjectLockImpl{
+	projectLock = &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",
@@ -379,7 +384,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	skipCI(t)
 	t.Skip()
 
-	dir := createTestTerraformProject()
+	dir := terraform.CreateTestTerraformProject()
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
@@ -387,60 +392,60 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		}
 	}(dir)
 
-	createValidTerraformTestFile(dir)
-	createMultiEnvDiggerYmlFile(dir)
+	terraform.CreateValidTerraformTestFile(dir)
+	terraform.CreateMultiEnvDiggerYmlFile(dir)
 
 	println("Terraform project dir:" + dir)
 
-	tf := Terraform{workingDir: dir}
+	tf := terraform.Terraform{WorkingDir: dir}
 
-	diggerConfig, err := NewDiggerConfig(dir)
+	diggerConfig, err := digger.NewDiggerConfig(dir)
 	assert.NoError(t, err)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: "digger-test",
-		Config: aws.Config{
-			Region: aws.String("us-east-1"),
+		Config: awssdk.Config{
+			Region: awssdk.String("us-east-1"),
 		},
 	})
 
 	assert.NoError(t, err)
 	dynamoDb := dynamodb.New(sess)
-	dynamoDbLock := DynamoDbLock{DynamoDb: dynamoDb}
+	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	assert.NotEmpty(t, ghToken)
 
 	println("--- new pull request ---")
 	newPullRequestContext := githubContextNewPullRequestMinJson
-	parsedNewPullRequestContext, err := getGitHubContext(newPullRequestContext)
+	parsedNewPullRequestContext, err := digger.GetGitHubContext(newPullRequestContext)
 	assert.NoError(t, err)
 
 	diggerPlanCommentContext := githubContextDiggerPlanCommentMinJson
-	parsedDiggerPlanCommentContext, err := getGitHubContext(diggerPlanCommentContext)
+	parsedDiggerPlanCommentContext, err := digger.GetGitHubContext(diggerPlanCommentContext)
 	assert.NoError(t, err)
 
 	diggerApplyCommentContext := githubContextDiggerApplyCommentMinJson
-	parsedDiggerApplyCommentContext, err := getGitHubContext(diggerApplyCommentContext)
+	parsedDiggerApplyCommentContext, err := digger.GetGitHubContext(diggerApplyCommentContext)
 	assert.NoError(t, err)
 
 	diggerUnlockCommentContext := githubContextDiggerUnlockCommentMinJson
-	parsedDiggerUnlockCommentContext, err := getGitHubContext(diggerUnlockCommentContext)
+	parsedDiggerUnlockCommentContext, err := digger.GetGitHubContext(diggerUnlockCommentContext)
 	assert.NoError(t, err)
 
 	ghEvent := parsedNewPullRequestContext.Event
 	eventName := parsedNewPullRequestContext.EventName
 	repoOwner := parsedNewPullRequestContext.RepositoryOwner
 	repositoryName := parsedNewPullRequestContext.Repository
-	githubPrService := NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	// no files changed, no locks
-	err = processGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
-	projectLock := &ProjectLockImpl{
+	projectLock := &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",
@@ -458,7 +463,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	err = processGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -468,10 +473,10 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	err = processGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
-	projectLock = &ProjectLockImpl{
+	projectLock = &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",
@@ -487,10 +492,10 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	err = processGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
 	assert.NoError(t, err)
 
-	projectLock = &ProjectLockImpl{
+	projectLock = &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",

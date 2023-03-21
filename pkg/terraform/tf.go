@@ -1,10 +1,9 @@
-package main
+package terraform
 
 import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"log"
 	"os"
 )
 
@@ -14,7 +13,33 @@ type TerraformExecutor interface {
 }
 
 type Terraform struct {
-	workingDir string
+	WorkingDir string
+}
+
+func (terraform *Terraform) Apply() (string, string, error) {
+	println("digger apply")
+	execDir := "terraform"
+	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
+
+	stdout := &StdWriter{[]byte{}, true}
+	//stderr := &StdWriter{[]byte{}, true}
+	tf.SetStdout(stdout)
+	//tf.SetStderr(stderr)
+	tf.SetStderr(os.Stderr)
+
+	err = tf.Init(context.Background(), tfexec.Upgrade(false))
+	if err != nil {
+		println("terraform init failed.")
+		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
+	}
+
+	err = tf.Apply(context.Background())
+	if err != nil {
+		println("terraform plan failed.")
+		return stdout.GetString(), "", fmt.Errorf("terraform plan failed. %s", err)
+	}
+
+	return stdout.GetString(), "", nil
 }
 
 type StdWriter struct {
@@ -39,14 +64,10 @@ func (sw *StdWriter) GetString() string {
 
 func (terraform *Terraform) Plan() (bool, string, string, error) {
 	execDir := "terraform"
-	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
-	if err != nil {
-		println("failed to initialise terraform")
-		return true, "", "", err
-	}
+	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
 
 	if err != nil {
-		log.Fatal("Error while initializing terraform: " + err.Error())
+		println("Error while initializing terraform: " + err.Error())
 		os.Exit(1)
 	}
 	stdout := &StdWriter{[]byte{}, true}
@@ -62,35 +83,9 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 
 	nonEmptyPlan, err := tf.Plan(context.Background())
 	if err != nil {
-		println("terraform plan failed. dir: " + terraform.workingDir)
+		println("terraform plan failed. dir: " + terraform.WorkingDir)
 		return nonEmptyPlan, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform plan failed. %s", err)
 	}
 
 	return nonEmptyPlan, stdout.GetString(), stderr.GetString(), nil
-}
-
-func (terraform *Terraform) Apply() (string, string, error) {
-	println("digger apply")
-	execDir := "terraform"
-	tf, err := tfexec.NewTerraform(terraform.workingDir, execDir)
-
-	stdout := &StdWriter{[]byte{}, true}
-	//stderr := &StdWriter{[]byte{}, true}
-	tf.SetStdout(stdout)
-	//tf.SetStderr(stderr)
-	tf.SetStderr(os.Stderr)
-
-	err = tf.Init(context.Background(), tfexec.Upgrade(false))
-	if err != nil {
-		println("terraform init failed.")
-		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
-	}
-
-	err = tf.Apply(context.Background())
-	if err != nil {
-		println("terraform plan failed.")
-		return stdout.GetString(), "", fmt.Errorf("terraform plan failed. %s", err)
-	}
-
-	return stdout.GetString(), "", nil
 }

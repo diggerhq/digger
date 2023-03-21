@@ -1,12 +1,11 @@
-package main
+package terraform
 
 import (
 	"log"
 	"os"
-	"testing"
 )
 
-func createTestTerraformProject() string {
+func CreateTestTerraformProject() string {
 	file, err := os.MkdirTemp("", "digger-test")
 	if err != nil {
 		log.Fatal(err)
@@ -14,7 +13,7 @@ func createTestTerraformProject() string {
 	return file
 }
 
-func createInvalidTerraformTestFile(dir string) {
+func CreateInvalidTerraformTestFile(dir string) {
 	f, err := os.Create(dir + "/main.tf")
 	if err != nil {
 		log.Fatal(err)
@@ -33,7 +32,7 @@ func createInvalidTerraformTestFile(dir string) {
 	}
 }
 
-func createValidTerraformTestFile(dir string) {
+func CreateValidTerraformTestFile(dir string) {
 	f, err := os.Create(dir + "/main.tf")
 	if err != nil {
 		log.Fatal(err)
@@ -52,7 +51,7 @@ func createValidTerraformTestFile(dir string) {
 	}
 }
 
-func createMultiEnvDiggerYmlFile(dir string) {
+func CreateMultiEnvDiggerYmlFile(dir string) {
 	f, err := os.Create(dir + "/digger.yml")
 	if err != nil {
 		log.Fatal(err)
@@ -80,41 +79,5 @@ projects:
 	_, err2 := f.WriteString(digger_yml)
 	if err2 != nil {
 		log.Fatal(err2)
-	}
-}
-
-func TestExecuteTerraformPlan(t *testing.T) {
-	dir := createTestTerraformProject()
-	defer func(name string) {
-		err := os.RemoveAll(name)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(dir)
-
-	createValidTerraformTestFile(dir)
-
-	tf := Terraform{workingDir: dir}
-	_, _, _, err := tf.Plan()
-	if err != nil {
-		print(err.Error())
-	}
-}
-
-func TestExecuteTerraformApply(t *testing.T) {
-	dir := createTestTerraformProject()
-	defer func(name string) {
-		err := os.RemoveAll(name)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(dir)
-
-	createValidTerraformTestFile(dir)
-
-	tf := Terraform{workingDir: dir}
-	_, _, err := tf.Apply()
-	if err != nil {
-		print(err.Error())
 	}
 }
