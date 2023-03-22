@@ -15,7 +15,7 @@ and we would be happy to set you up.
 - [License](#license)
 
 ## Introduction
-Digger is a [brief description of your tool]. We believe that open source software is important, and we welcome contributions from anyone who is interested in making our tool better.
+Digger is an open source terraform cloud alternative. We believe that open source software is important, and we welcome contributions from anyone who is interested in making our tool better.
 This document is intended to be a guide for people who want to contribute to Digger. We appreciate all contributions, no matter how big or small.
 
 ## How to contribute
