@@ -49,7 +49,7 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 	if lockAcquired {
 		comment := "Project " + projectLock.ProjectName + " has been locked by PR #" + strconv.Itoa(prNumber)
 		projectLock.PrManager.PublishComment(prNumber, comment)
-		println("project " + projectLock.ProjectName + "locked successfully. PR # " + strconv.Itoa(prNumber))
+		println("project " + projectLock.ProjectName + " locked successfully. PR # " + strconv.Itoa(prNumber))
 		return true, nil
 	}
 
