@@ -67,7 +67,7 @@ state-level locks will keep working normally because are handled by terraform it
 
 
 ## Notes
-- we perform anonymous tracking to measure usage, no data is logged during the process, you can see what is tracked in [`code/usage.py`](https://github.com/diggerhq/digger/blob/main/code/usage.py)
+- We perform anonymous usage tracking. No sensitive or personal / identifyable data is logged. You can see what is tracked in [`pkg/utils/usage.go`](https://github.com/diggerhq/digger/blob/main/pkg/utils/usage.go)
 
 ## Contributing
 **If you are considering using digger within your organisation
