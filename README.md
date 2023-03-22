@@ -65,7 +65,6 @@ state-level locks will keep working normally because are handled by terraform it
 - 🔍 Gitlab Support
 - 🔍 Jenkins Support
 
-
 ## Notes
 - We perform anonymous usage tracking. No sensitive or personal / identifyable data is logged. You can see what is tracked in [`pkg/utils/usage.go`](https://github.com/diggerhq/digger/blob/main/pkg/utils/usage.go)
 
@@ -74,6 +73,12 @@ state-level locks will keep working normally because are handled by terraform it
 please [reach out to us](https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA).**
 
 To contribute to Digger please follow our [Contributing guide](CONTRIBUTING.md)
+
+## FAQ
+
+Q) **Since you're FOSS I assume you plan to monetize by selling support? Or...?**
+
+A) We are a vc-backed startup fully focused on this tool; in terms of monetization not planning to reinvent the wheel - we're just going to introduce an "enterprise tier" later on with things like OPA integration, drift detection, cost control, multi-team dashboards etc etc. And yes - support. Similarly to what Signoz does for monitoring, or Posthog for product metrics.
 
 ## Links
 - [Why are people using Terraform Cloud?](https://www.reddit.com/r/Terraform/comments/1132qf3/why_are_people_using_terraform_cloud_i_may_be/)
