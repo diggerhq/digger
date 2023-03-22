@@ -8,7 +8,8 @@
 </p>
 <h2 align="center">
   <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA">Slack</a> |
-  <a href="https://digger.dev">Website</a>
+  <a href="https://digger.dev">Website</a> |
+  <a href="https://diggerhq.gitbook.io/digger-docs/">Docs</a>
 </h2>
 
 Digger is Github Action that runs Terraform `plan` and `apply` with PR-level locks
