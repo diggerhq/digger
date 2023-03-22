@@ -96,7 +96,6 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectCommands.ProjectName, RepoName: repoName}
 				projectLock.ForceUnlock(lockID, prNumber)
 			case "digger lock":
-				fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 				utils.SendUsageRecord(repoOwner, eventName, "lock")
 				lockID := fmt.Sprintf("%s#%s", repoName, projectCommands.ProjectName)
 				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectCommands.ProjectName, RepoName: repoName}
