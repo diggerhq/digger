@@ -40,9 +40,9 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	} else {
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = Project{Name: "default", Dir: ".", WorkflowConfiguration: WorkflowConfiguration{
-			OnPullRequestPushed: []string{"digger lock", "digger plan"},
+			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},
-			OnCommitToDefault:   []string{"digger apply", "digger unlock"},
+			OnCommitToDefault:   []string{"digger apply"},
 		}}
 		return config, nil
 	}
