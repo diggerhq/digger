@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-func skipCI(t *testing.T) {
+func SkipCI(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping testing in CI environment")
 	}
@@ -257,7 +257,7 @@ var githubContextNewPullRequestMinJson = `{
   }`
 
 func TestHappyPath(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 
 	dir := terraform.CreateTestTerraformProject()
 	defer func(name string) {
@@ -381,7 +381,7 @@ func TestHappyPath(t *testing.T) {
 }
 
 func TestMultiEnvHappyPath(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 	t.Skip()
 
 	dir := terraform.CreateTestTerraformProject()
@@ -507,7 +507,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 }
 
 func TestGetNonExistingLock(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 
 	err, projectLock := getProjetLockForTests()
 	resource := "test_dynamodb_non_existing_lock#default"
@@ -517,7 +517,7 @@ func TestGetNonExistingLock(t *testing.T) {
 }
 
 func TestGetExistingLock(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 
 	err, projectLock := getProjetLockForTests()
 	resource := "test_dynamodb_existing_lock#default"
@@ -531,7 +531,7 @@ func TestGetExistingLock(t *testing.T) {
 }
 
 func TestUnLock(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 
 	err, projectLock := getProjetLockForTests()
 	resource := "test_dynamodb_unlock#default"
