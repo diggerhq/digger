@@ -64,8 +64,6 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 		for _, file := range changedFiles {
 			absoluteFile, _ := filepath.Abs(path.Join("/", file))
 			absoluteDir, _ := filepath.Abs(path.Join("/", project.Dir))
-			println(absoluteDir)
-			println(absoluteFile)
 			if strings.HasPrefix(absoluteFile, absoluteDir) {
 				result = append(result, project)
 				break

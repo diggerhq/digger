@@ -260,17 +260,14 @@ func TestHappyPath(t *testing.T) {
 	skipCI(t)
 
 	dir := terraform.CreateTestTerraformProject()
-	cwd, _ := os.Getwd()
 
-	defer func(name string, cwd string) {
+	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
 			log.Fatal(err)
 		}
-		//os.Chdir(cwd)
-	}(dir, cwd)
+	}(dir)
 
-	//os.Chdir(dir)
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateSingleEnvDiggerYmlFile(dir)
 
@@ -386,17 +383,14 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	t.Skip()
 
 	dir := terraform.CreateTestTerraformProject()
-	cwd, _ := os.Getwd()
 
-	defer func(name string, cwd string) {
+	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
 			log.Fatal(err)
 		}
-		//os.Chdir(cwd)
-	}(dir, cwd)
+	}(dir)
 
-	//os.Chdir(dir)
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateMultiEnvDiggerYmlFile(dir)
 
