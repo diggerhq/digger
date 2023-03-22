@@ -27,11 +27,13 @@ type PullRequestEvent struct {
 	Action      string      `json:"action"`
 	Number      int         `json:"number"`
 	PullRequest PullRequest `json:"pull_request"`
+	Repository  Repository  `json:"repository"`
 }
 
 type PullRequest struct {
 	Number int  `json:"number"`
 	Merged bool `json:"merged"`
+	Base   Base `json:"base"`
 }
 
 type IssueCommentEvent struct {
@@ -40,12 +42,20 @@ type IssueCommentEvent struct {
 	Issue   Issue   `json:"issue"`
 }
 
+type Base struct {
+	Ref string `json:"ref"`
+}
+
 type Comment struct {
 	Body string `json:"body"`
 }
 
 type Issue struct {
 	Number int `json:"number"`
+}
+
+type Repository struct {
+	DefaultBranch string `json:"default_branch"`
 }
 
 func GetGitHubContext(ghContext string) (Github, error) {

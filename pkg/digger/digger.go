@@ -16,59 +16,113 @@ import (
 )
 
 func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock *aws.DynamoDbLock, tf terraform.TerraformExecutor) error {
-	if parsedGhContext.EventName == "pull_request" {
-		var parsedGhEvent models.PullRequestEvent
+	var parsedGhEvent interface{}
+	var impactedProjects []Project
+	var prNumber int
+	if eventName == "pull_request" {
+		parsedGhEvent := models.PullRequestEvent{}
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
 		if err != nil {
 			return fmt.Errorf("error parsing PullRequestEvent: %v", err)
 		}
+		prNumber = parsedGhEvent.Number
+		changedFiles, err := prManager.GetChangedFiles(prNumber)
 
-		if parsedGhEvent.PullRequest.Merged {
-			println("PR was merged")
-		}
-		prStatesToLock := []string{"reopened", "opened", "synchronize"}
-		prStatesToUnlock := []string{"closed"}
-
-		if contains(prStatesToLock, parsedGhEvent.Action) {
-			err := processNewPullRequest(diggerConfig, prManager, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, eventName, parsedGhEvent.Number, dynamoDbLock)
-			if err != nil {
-				return err
-			}
-		} else if contains(prStatesToUnlock, parsedGhEvent.Action) {
-			err := processClosedPullRequest(diggerConfig, prManager, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, eventName, parsedGhEvent.Number, dynamoDbLock)
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return fmt.Errorf("could not get changed files")
 		}
 
-	} else if parsedGhContext.EventName == "issue_comment" {
-		var parsedGhEvent models.IssueCommentEvent
+		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	} else if eventName == "issue_comment" {
+		parsedGhEvent := models.IssueCommentEvent{}
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
 		if err != nil {
 			log.Fatalf("error parsing IssueCommentEvent: %v", err)
 		}
-
-		//fmt.Printf("comment: %s\n", parsedGhEvent.Comment.Body)
-		//fmt.Printf("issue number: %d\n", parsedGhEvent.Issue.Number)
-
-		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock, tf)
-
-		if err != nil {
-			log.Fatalf("error processing pull request comment: %v", err)
+		prNumber = parsedGhEvent.Issue.Number
+		requestedProject := parseProjectName(parsedGhEvent.Comment.Body)
+		if requestedProject != "" {
+			impactedProjects = diggerConfig.GetProjects(requestedProject)
+		} else {
+			changedFiles, err := prManager.GetChangedFiles(prNumber)
+			if err != nil {
+				log.Fatalf("Could not get changed files")
+			}
+			impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 		}
+	}
 
-		log.Printf("Issue PR #%v was commented on", parsedGhEvent.Issue.Number)
+	commandsToRunPerProject, err := ConvertGithubEventToCommands(parsedGhEvent, diggerConfig, impactedProjects)
+
+	if err != nil {
+		return fmt.Errorf("error converting github event to commands: %v", err)
+	}
+
+	lockAcquisitionSuccess := true
+	for project, commands := range commandsToRunPerProject {
+		for _, command := range commands {
+			switch command {
+			case "digger plan":
+				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "plan")
+				projectLock := &utils.ProjectLockImpl{
+					InternalLock: dynamoDbLock,
+					PrManager:    prManager,
+					ProjectName:  project,
+					RepoName:     parsedGhContext.Repository,
+				}
+				diggerExecutor := DiggerExecutor{
+					parsedGhContext.RepositoryOwner,
+					parsedGhContext.Repository,
+					project,
+					prManager,
+					projectLock,
+					diggerConfig,
+					tf}
+				diggerExecutor.Apply(prNumber)
+			case "digger apply":
+				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "apply")
+				projectLock := &utils.ProjectLockImpl{
+					InternalLock: dynamoDbLock,
+					PrManager:    prManager,
+					ProjectName:  project,
+					RepoName:     parsedGhContext.Repository,
+				}
+				diggerExecutor := DiggerExecutor{
+					parsedGhContext.RepositoryOwner,
+					parsedGhContext.Repository,
+					project,
+					prManager,
+					projectLock,
+					diggerConfig,
+					tf}
+				diggerExecutor.Plan(prNumber)
+			case "digger unlock":
+				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "unlock")
+				lockID := fmt.Sprintf("%s#%s", parsedGhContext.Repository, project)
+				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: project, RepoName: parsedGhContext.Repository}
+				_, err := projectLock.Unlock(lockID, prNumber)
+				if err != nil {
+					return err
+				}
+			case "digger lock":
+				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "lock")
+				lockID := fmt.Sprintf("%s#%s", parsedGhContext.Repository, project)
+				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: project, RepoName: parsedGhContext.Repository}
+				isLocked, err := projectLock.Lock(lockID, prNumber)
+				if err != nil {
+					log.Fatalf("Failed to aquire lock: " + lockID)
+				}
+				if !isLocked {
+					lockAcquisitionSuccess = false
+				}
+			}
+		}
+	}
+
+	if !lockAcquisitionSuccess {
+		os.Exit(1)
 	}
 	return nil
-}
-
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
 
 func GetGitHubContext(ghContext string) (models.Github, error) {
@@ -80,129 +134,38 @@ func GetGitHubContext(ghContext string) (models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func processNewPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *aws.DynamoDbLock) error {
-	utils.SendUsageRecord(repoOwner, eventName, "lock")
-	lockAcquisitionSuccess := true
+func ConvertGithubEventToCommands(event interface{}, diggerConfig *DiggerConfig, impactedProjects []Project) (map[string][]string, error) {
+	commandsPerProject := make(map[string][]string)
 
-	changedFiles, err := prManager.GetChangedFiles(prNumber)
-	if err != nil {
-		log.Fatalf("Could not get changed files")
-	}
-
-	modifiedProjects := diggerConfig.GetModifiedProjects(changedFiles)
-	for _, project := range modifiedProjects {
-		projectName := project.Name
-		lockID := fmt.Sprintf("%s#%s", repoName, projectName)
-		projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectName, RepoName: repoName}
-		isLocked, err := projectLock.Lock(lockID, prNumber)
-		if err != nil {
-			log.Fatalf("Failed to aquire lock: " + lockID)
-		}
-
-		if !isLocked {
-			lockAcquisitionSuccess = false
-		}
-	}
-	if !lockAcquisitionSuccess {
-		os.Exit(1)
-	}
-	println("Processing new PR")
-	return nil
-}
-
-func processClosedPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequestManager, repoOwner string, repoName string, eventName string, prNumber int, dynamoDbLock *aws.DynamoDbLock) error {
-	utils.SendUsageRecord(repoOwner, eventName, "lock")
-
-	files, err := prManager.GetChangedFiles(prNumber)
-	if err != nil {
-		return err
-	}
-	for _, project := range diggerConfig.GetModifiedProjects(files) {
-		lockID := fmt.Sprintf("%s#%s", repoName, project)
-		projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: project.Name, RepoName: repoName}
-		_, err := projectLock.Unlock(lockID, prNumber)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock aws.Lock, tf terraform.TerraformExecutor) error {
-	print("Processing PR comment")
-	requestedProject := parseProjectName(commentBody)
-	var impactedProjects []Project
-	if requestedProject != "" {
-		impactedProjects = diggerConfig.GetProjects(requestedProject)
-	} else {
-		changedFiles, err := prManager.GetChangedFiles(prNumber)
-		if err != nil {
-			log.Fatalf("Could not get changed files")
-		}
-		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-	}
-
-	trimmedComment := strings.TrimSpace(commentBody)
-	if trimmedComment == "digger plan" {
-		for _, p := range impactedProjects {
-			projectLock := &utils.ProjectLockImpl{
-				InternalLock: dynamoDbLock,
-				PrManager:    prManager,
-				ProjectName:  p.Name,
-				RepoName:     repoName,
+	switch event.(type) {
+	default:
+		return map[string][]string{}, fmt.Errorf("unsupported event type: %T", event)
+	case models.PullRequestEvent:
+		event := event.(models.PullRequestEvent)
+		for _, project := range impactedProjects {
+			workflowConfiguration := diggerConfig.GetWorkflowConfiguration(project.Name)
+			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
+				commandsPerProject[project.Name] = workflowConfiguration.OnPullRequestPushed
+			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
+				commandsPerProject[project.Name] = workflowConfiguration.OnPullRequestPushed
+			} else if event.Action == "closed" {
+				commandsPerProject[project.Name] = workflowConfiguration.OnPullRequestClosed
 			}
-			diggerExecutor := DiggerExecutor{
-				repoOwner,
-				repoName,
-				impactedProjects,
-				prManager,
-				projectLock,
-				diggerConfig,
-				tf}
-			diggerExecutor.Plan(eventName, prNumber)
 		}
+		return commandsPerProject, nil
+	case models.IssueCommentEvent:
+		event := event.(models.IssueCommentEvent)
+		supportedCommands := []string{"digger plan", "digger apply", "digger unlock"}
 
-	} else if trimmedComment == "digger apply" {
-		for _, p := range impactedProjects {
-			projectLock := &utils.ProjectLockImpl{
-				InternalLock: dynamoDbLock,
-				PrManager:    prManager,
-				ProjectName:  p.Name,
-				RepoName:     repoName,
+		for _, command := range supportedCommands {
+			if strings.Contains(event.Comment.Body, command) {
+				for _, project := range impactedProjects {
+					commandsPerProject[project.Name] = []string{command}
+				}
 			}
-			diggerExecutor := DiggerExecutor{
-				repoOwner,
-				repoName,
-				impactedProjects,
-				prManager,
-				projectLock,
-				diggerConfig,
-				tf}
-			diggerExecutor.Apply(eventName, prNumber)
-
 		}
-
-	} else if trimmedComment == "digger unlock" {
-		for _, p := range impactedProjects {
-			projectLock := &utils.ProjectLockImpl{
-				InternalLock: dynamoDbLock,
-				PrManager:    prManager,
-				ProjectName:  p.Name,
-				RepoName:     repoName,
-			}
-			diggerExecutor := DiggerExecutor{
-				repoOwner,
-				repoName,
-				impactedProjects,
-				prManager,
-				projectLock,
-				diggerConfig,
-				tf}
-			diggerExecutor.Unlock(eventName, prNumber)
-		}
+		return commandsPerProject, nil
 	}
-	return nil
 }
 
 func parseProjectName(comment string) string {
@@ -215,69 +178,60 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
-	repoOwner        string
-	repoName         string
-	impactedProjects []Project
-	prManager        github.PullRequestManager
-	lock             utils.ProjectLock
-	configDigger     *DiggerConfig
-	tf               terraform.TerraformExecutor
+	repoOwner    string
+	repoName     string
+	projectName  string
+	prManager    github.PullRequestManager
+	lock         utils.ProjectLock
+	configDigger *DiggerConfig
+	tf           terraform.TerraformExecutor
 }
 
-func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
-	utils.SendUsageRecord(d.repoOwner, triggerEvent, "plan")
+func (d DiggerExecutor) Plan(prNumber int) {
+	lockId := d.repoName + "#" + d.projectName
 
-	for _, project := range d.impactedProjects {
-		projectName := project.Name
-		lockId := d.repoName + "#" + projectName
+	//directory := project.Dir
+	//terraformExecutor := terraform.Terraform{WorkingDir: directory}
 
-		//directory := project.Dir
-		//terraformExecutor := terraform.Terraform{WorkingDir: directory}
+	terraformExecutor := d.tf
 
-		terraformExecutor := d.tf
-
-		res, err := d.lock.Lock(lockId, prNumber)
+	res, err := d.lock.Lock(lockId, prNumber)
+	if err != nil {
+		log.Fatalf("Error locking project: %v", err)
+	}
+	if res {
+		isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan()
 		if err != nil {
-			log.Fatalf("Error locking project: %v", err)
+			log.Fatalf("Error executing plan: %v", err)
 		}
-		if res {
-			isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan()
-			if err != nil {
-				log.Fatalf("Error executing plan: %v", err)
-			}
-			plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
-			comment := "Plan for **" + lockId + "**\n" + plan
-			d.prManager.PublishComment(prNumber, comment)
-		}
+		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
+		comment := "Plan for **" + lockId + "**\n" + plan
+		d.prManager.PublishComment(prNumber, comment)
 	}
+
 }
 
-func (d DiggerExecutor) Apply(triggerEvent string, prNumber int) {
-	utils.SendUsageRecord(d.repoOwner, triggerEvent, "apply")
-	for _, project := range d.impactedProjects {
-		projectName := project.Name
-		lockId := d.repoName + "#" + projectName
-		//directory := project.Dir
-		//terraformExecutor := terraform.Terraform{WorkingDir: directory}
+func (d DiggerExecutor) Apply(prNumber int) {
+	projectName := d.projectName
+	lockId := d.repoName + "#" + projectName
+	//directory := project.Dir
+	//terraformExecutor := terraform.Terraform{WorkingDir: directory}
 
-		terraformExecutor := d.tf
-		if res, _ := d.lock.Lock(lockId, prNumber); res {
-			stdout, stderr, err := terraformExecutor.Apply()
-			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-			comment := "Apply for **" + lockId + "**\n" + applyOutput
-			d.prManager.PublishComment(prNumber, comment)
-			d.lock.Unlock(lockId, prNumber)
-		}
+	terraformExecutor := d.tf
+	if res, _ := d.lock.Lock(lockId, prNumber); res {
+		stdout, stderr, err := terraformExecutor.Apply()
+		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
+		comment := "Apply for **" + lockId + "**\n" + applyOutput
+		d.prManager.PublishComment(prNumber, comment)
+		d.lock.Unlock(lockId, prNumber)
 	}
+
 }
 
-func (d DiggerExecutor) Unlock(triggerEvent string, prNumber int) {
-	utils.SendUsageRecord(d.repoOwner, triggerEvent, "unlock")
-	for _, project := range d.impactedProjects {
-		projectName := project.Name
-		lockId := d.repoName + "#" + projectName
-		d.lock.ForceUnlock(lockId, prNumber)
-	}
+func (d DiggerExecutor) Unlock(prNumber int) {
+	lockId := d.repoName + "#" + d.projectName
+	d.lock.ForceUnlock(lockId, prNumber)
+
 }
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr string) string {
