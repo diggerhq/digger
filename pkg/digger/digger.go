@@ -8,7 +8,6 @@ import (
 	"digger/pkg/utils"
 	"encoding/json"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
 	"path"
@@ -16,33 +15,23 @@ import (
 	"strings"
 )
 
-func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock *aws.DynamoDbLock, workingDir string) error {
-	var parsedGhEvent interface{}
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prManager github.PullRequestManager) ([]Project, int, error) {
 	var impactedProjects []Project
 	var prNumber int
-	if eventName == "pull_request" {
-		parsedGhEvent := models.PullRequestEvent{}
 
-		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
-		if err != nil {
-			return fmt.Errorf("error parsing PullRequestEvent: %v", err)
-		}
-		prNumber = parsedGhEvent.Number
+	switch ghEvent.(type) {
+	case models.PullRequestEvent:
+		prNumber = ghEvent.(models.PullRequestEvent).PullRequest.Number
 		changedFiles, err := prManager.GetChangedFiles(prNumber)
 
 		if err != nil {
-			return fmt.Errorf("could not get changed files")
+			return nil, 0, fmt.Errorf("could not get changed files")
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-	} else if eventName == "issue_comment" {
-		parsedGhEvent := models.IssueCommentEvent{}
-		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
-		if err != nil {
-			log.Fatalf("error parsing IssueCommentEvent: %v", err)
-		}
-		prNumber = parsedGhEvent.Issue.Number
-		requestedProject := parseProjectName(parsedGhEvent.Comment.Body)
+	case models.IssueCommentEvent:
+		prNumber = ghEvent.(models.IssueCommentEvent).Issue.Number
+		requestedProject := parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
 		if requestedProject != "" {
 			impactedProjects = diggerConfig.GetProjects(requestedProject)
 		} else {
@@ -52,68 +41,65 @@ func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]int
 			}
 			impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 		}
+	default:
+		return nil, 0, fmt.Errorf("unsupported event type")
 	}
+	return impactedProjects, prNumber, nil
+}
 
-	commandsToRunPerProject, err := ConvertGithubEventToCommands(parsedGhEvent, diggerConfig, impactedProjects)
-
-	if err != nil {
-		return fmt.Errorf("error converting github event to commands: %v", err)
-	}
-
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, dynamoDbLock aws.Lock, workingDir string) error {
 	lockAcquisitionSuccess := true
-	for project, commands := range commandsToRunPerProject {
-		for _, command := range commands {
+	for _, projectCommands := range commandsPerProject {
+		for _, command := range projectCommands.Commands {
 			switch command {
 			case "digger plan":
-				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "plan")
+				utils.SendUsageRecord(repoOwner, eventName, "plan")
 				projectLock := &utils.ProjectLockImpl{
 					InternalLock: dynamoDbLock,
 					PrManager:    prManager,
-					ProjectName:  project,
-					RepoName:     parsedGhContext.Repository,
+					ProjectName:  projectCommands.ProjectName,
+					RepoName:     repoName,
 				}
 				diggerExecutor := DiggerExecutor{
 					workingDir,
-					parsedGhContext.RepositoryOwner,
-					parsedGhContext.Repository,
-					project,
-					parsedGhContext.Repository,
-					prManager,
-					projectLock,
-					diggerConfig,
-				}
-				diggerExecutor.Apply(prNumber)
-			case "digger apply":
-				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "apply")
-				projectLock := &utils.ProjectLockImpl{
-					InternalLock: dynamoDbLock,
-					PrManager:    prManager,
-					ProjectName:  project,
-					RepoName:     parsedGhContext.Repository,
-				}
-				diggerExecutor := DiggerExecutor{
-					workingDir,
-					parsedGhContext.RepositoryOwner,
-					parsedGhContext.Repository,
-					project,
-					parsedGhContext.Repository,
+					repoOwner,
+					projectCommands.ProjectName,
+					projectCommands.ProjectDir,
+					repoName,
 					prManager,
 					projectLock,
 					diggerConfig,
 				}
 				diggerExecutor.Plan(prNumber)
-			case "digger unlock":
-				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "unlock")
-				lockID := fmt.Sprintf("%s#%s", parsedGhContext.Repository, project)
-				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: project, RepoName: parsedGhContext.Repository}
-				_, err := projectLock.Unlock(lockID, prNumber)
-				if err != nil {
-					return err
+			case "digger apply":
+				utils.SendUsageRecord(repoName, eventName, "apply")
+				projectLock := &utils.ProjectLockImpl{
+					InternalLock: dynamoDbLock,
+					PrManager:    prManager,
+					ProjectName:  projectCommands.ProjectName,
+					RepoName:     repoName,
 				}
+				diggerExecutor := DiggerExecutor{
+					workingDir,
+					repoOwner,
+					projectCommands.ProjectName,
+					projectCommands.ProjectDir,
+					repoName,
+					prManager,
+					projectLock,
+					diggerConfig,
+				}
+				diggerExecutor.Apply(prNumber)
+			case "digger unlock":
+				utils.SendUsageRecord(repoOwner, eventName, "unlock")
+				lockID := fmt.Sprintf("%s#%s", repoName, projectCommands.ProjectName)
+				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectCommands.ProjectName, RepoName: repoName}
+				projectLock.ForceUnlock(lockID, prNumber)
 			case "digger lock":
-				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "lock")
-				lockID := fmt.Sprintf("%s#%s", parsedGhContext.Repository, project)
-				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: project, RepoName: parsedGhContext.Repository}
+				fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+				utils.SendUsageRecord(repoOwner, eventName, "lock")
+				lockID := fmt.Sprintf("%s#%s", repoName, projectCommands.ProjectName)
+				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectCommands.ProjectName, RepoName: repoName}
 				isLocked, err := projectLock.Lock(lockID, prNumber)
 				if err != nil {
 					log.Fatalf("Failed to aquire lock: " + lockID)
@@ -131,31 +117,46 @@ func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]int
 	return nil
 }
 
-func GetGitHubContext(ghContext string) (models.Github, error) {
-	var parsedGhContext models.Github
+func GetGitHubContext(ghContext string) (*models.Github, error) {
+	parsedGhContext := new(models.Github)
 	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
 	if err != nil {
-		return models.Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
+		return &models.Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
 	}
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToCommands(event interface{}, diggerConfig *DiggerConfig, impactedProjects []Project) (map[string][]string, error) {
-	commandsPerProject := make(map[string][]string)
+type ProjectCommand struct {
+	ProjectName string
+	ProjectDir  string
+	Commands    []string
+}
+
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project) ([]ProjectCommand, error) {
+	commandsPerProject := make([]ProjectCommand, 0)
 
 	switch event.(type) {
-	default:
-		return map[string][]string{}, fmt.Errorf("unsupported event type: %T", event)
 	case models.PullRequestEvent:
 		event := event.(models.PullRequestEvent)
 		for _, project := range impactedProjects {
-			workflowConfiguration := diggerConfig.GetWorkflowConfiguration(project.Name)
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
-				commandsPerProject[project.Name] = workflowConfiguration.OnPullRequestPushed
+				commandsPerProject = append(commandsPerProject, ProjectCommand{
+					ProjectName: project.Name,
+					ProjectDir:  project.Dir,
+					Commands:    project.WorkflowConfiguration.OnCommitToDefault,
+				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
-				commandsPerProject[project.Name] = workflowConfiguration.OnPullRequestPushed
+				commandsPerProject = append(commandsPerProject, ProjectCommand{
+					ProjectName: project.Name,
+					ProjectDir:  project.Dir,
+					Commands:    project.WorkflowConfiguration.OnPullRequestPushed,
+				})
 			} else if event.Action == "closed" {
-				commandsPerProject[project.Name] = workflowConfiguration.OnPullRequestClosed
+				commandsPerProject = append(commandsPerProject, ProjectCommand{
+					ProjectName: project.Name,
+					ProjectDir:  project.Dir,
+					Commands:    project.WorkflowConfiguration.OnPullRequestPushed,
+				})
 			}
 		}
 		return commandsPerProject, nil
@@ -166,11 +167,17 @@ func ConvertGithubEventToCommands(event interface{}, diggerConfig *DiggerConfig,
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
 				for _, project := range impactedProjects {
-					commandsPerProject[project.Name] = []string{command}
+					commandsPerProject = append(commandsPerProject, ProjectCommand{
+						ProjectName: project.Name,
+						ProjectDir:  project.Dir,
+						Commands:    []string{command},
+					})
 				}
 			}
 		}
 		return commandsPerProject, nil
+	default:
+		return []ProjectCommand{}, fmt.Errorf("unsupported event type: %T", event)
 	}
 }
 
