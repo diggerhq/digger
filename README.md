@@ -57,8 +57,9 @@ state-level locks will keep working normally because are handled by terraform it
 
 ## Roadmap
 
+- Support for multiple modes of locking (apply-only, no-lock + queing)
 - 🔍 GCP Support
-    - Supporting of GCP Spanner for PR locks
+    - Supporting of GCP storage buckets for PR locks
 - 🔍 Azure Support 
     - Supporting of Azure Cosmos DB for PR Locks
 - 🔍 Gitlab Support
