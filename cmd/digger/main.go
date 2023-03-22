@@ -5,7 +5,6 @@ import (
 	"digger/pkg/digger"
 	"digger/pkg/github"
 	"digger/pkg/models"
-	"digger/pkg/terraform"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"os"
@@ -32,15 +31,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	tf := terraform.Terraform{}
-
 	ghEvent := parsedGhContext.Event
 	eventName := parsedGhContext.EventName
 	splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	err = digger.ProcessGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
 	if err != nil {
 		print(err)
 		os.Exit(1)

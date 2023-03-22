@@ -6,7 +6,7 @@ import (
 )
 
 func CreateTestTerraformProject() string {
-	file, err := os.MkdirTemp("", "digger-test")
+	file, err := os.MkdirTemp("/private/tmp", "digger-test")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,6 +76,32 @@ projects:
   workspace: default
 `
 
+	_, err2 := f.WriteString(digger_yml)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+}
+
+func CreateSingleEnvDiggerYmlFile(dir string) {
+	f, err := os.Create(dir + "/digger.yml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+
+		}
+	}(f)
+
+	digger_yml := `
+projects:
+- name: dev
+  branch: /main/
+  dir: ` + dir + `
+  workspace: default
+`
 	_, err2 := f.WriteString(digger_yml)
 	if err2 != nil {
 		log.Fatal(err2)
