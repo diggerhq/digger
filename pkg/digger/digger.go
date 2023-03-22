@@ -89,13 +89,10 @@ func processNewPullRequest(diggerConfig *DiggerConfig, prManager github.PullRequ
 		log.Fatalf("Could not get changed files")
 	}
 
-	fmt.Printf("CHANGEDFILES %v", changedFiles)
 	modifiedProjects := diggerConfig.GetModifiedProjects(changedFiles)
-	fmt.Printf("MODIFIED FILES %v", modifiedProjects)
 	for _, project := range modifiedProjects {
 		projectName := project.Name
 		lockID := fmt.Sprintf("%s#%s", repoName, projectName)
-		println(lockID)
 		projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectName, RepoName: repoName}
 		isLocked, err := projectLock.Lock(lockID, prNumber)
 		if err != nil {
@@ -122,7 +119,6 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager github.PullR
 	}
 	for _, project := range diggerConfig.GetModifiedProjects(files) {
 		lockID := fmt.Sprintf("%s#%s", repoName, project.Name)
-		println(lockID)
 		projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: project.Name, RepoName: repoName}
 		_, err := projectLock.Unlock(lockID, prNumber)
 		if err != nil {
@@ -276,8 +272,6 @@ func (d DiggerExecutor) Unlock(triggerEvent string, prNumber int) {
 	for _, project := range d.impactedProjects {
 		projectName := project.Name
 		lockId := d.repoName + "#" + projectName
-
-		println(lockId)
 		d.lock.ForceUnlock(lockId, prNumber)
 	}
 }
