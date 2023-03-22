@@ -4,7 +4,6 @@ import (
 	"digger/pkg/aws"
 	"digger/pkg/digger"
 	"digger/pkg/models"
-	"digger/pkg/terraform"
 	"digger/pkg/utils"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
@@ -872,8 +871,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	eventName := context.EventName
 
 	diggerConfig := digger.DiggerConfig{}
-	tf := terraform.Terraform{}
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -889,8 +887,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 	diggerConfig := digger.DiggerConfig{}
-	tf := terraform.Terraform{}
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, &tf)
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -927,9 +924,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	// mock lock
 	lock := &utils.MockLock{}
 
-	tf := utils.MockTerraform{}
-
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock, &tf)
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock, "")
 	spew.Dump(lock.MapLock)
 	assert.Equal(t, pullRequestNumber, lock.MapLock[lockId])
 	assert.Equal(t, 1, len(lock.MapLock))
