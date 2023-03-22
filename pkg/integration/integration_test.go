@@ -260,6 +260,7 @@ func TestHappyPath(t *testing.T) {
 	skipCI(t)
 
 	dir := terraform.CreateTestTerraformProject()
+
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
@@ -268,10 +269,7 @@ func TestHappyPath(t *testing.T) {
 	}(dir)
 
 	terraform.CreateValidTerraformTestFile(dir)
-
-	println("Terraform project dir:" + dir)
-
-	tf := terraform.Terraform{WorkingDir: dir}
+	terraform.CreateSingleEnvDiggerYmlFile(dir)
 
 	diggerConfig, err := digger.NewDiggerConfig(dir)
 	assert.NoError(t, err)
@@ -316,16 +314,16 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	// new pr should lock the project
-	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock := &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
-		ProjectName:  "digger_demo",
+		ProjectName:  "dev",
 		RepoName:     repositoryName,
 	}
-	resource := "digger_demo#default"
+	resource := repositoryName + "#dev"
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.Equal(t, 11, *transactionId, "TransactionId")
@@ -337,7 +335,7 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -347,13 +345,13 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
-		ProjectName:  "digger_demo",
+		ProjectName:  "dev",
 		RepoName:     repositoryName,
 	}
 	transactionId, err = projectLock.InternalLock.GetLock(resource)
@@ -366,13 +364,13 @@ func TestHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		PrManager:    githubPrService,
-		ProjectName:  "digger_demo",
+		ProjectName:  "dev",
 		RepoName:     repositoryName,
 	}
 	transactionId, err = projectLock.InternalLock.GetLock(resource)
@@ -385,6 +383,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	t.Skip()
 
 	dir := terraform.CreateTestTerraformProject()
+
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
@@ -394,10 +393,6 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateMultiEnvDiggerYmlFile(dir)
-
-	println("Terraform project dir:" + dir)
-
-	tf := terraform.Terraform{WorkingDir: dir}
 
 	diggerConfig, err := digger.NewDiggerConfig(dir)
 	assert.NoError(t, err)
@@ -442,7 +437,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	// no files changed, no locks
-	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock := &utils.ProjectLockImpl{
@@ -463,7 +458,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -473,7 +468,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
@@ -492,7 +487,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, &tf)
+	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{

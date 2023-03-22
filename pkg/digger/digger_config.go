@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -71,10 +73,9 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	var result []Project
 	for _, project := range c.Projects {
 		for _, file := range changedFiles {
-			if project.Dir != "" && strings.HasPrefix(file, project.Dir) {
-				result = append(result, project)
-				break
-			} else if project.Dir == "." && !strings.Contains(file, "/") {
+			absoluteFile, _ := filepath.Abs(path.Join("/", file))
+			absoluteDir, _ := filepath.Abs(path.Join("/", project.Dir))
+			if strings.HasPrefix(absoluteFile, absoluteDir) {
 				result = append(result, project)
 				break
 			}

@@ -11,16 +11,18 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 )
 
-func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock *aws.DynamoDbLock, tf terraform.TerraformExecutor) error {
+func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock *aws.DynamoDbLock, workingDir string) error {
 	var parsedGhEvent interface{}
 	var impactedProjects []Project
 	var prNumber int
 	if eventName == "pull_request" {
 		parsedGhEvent := models.PullRequestEvent{}
+
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
 		if err != nil {
 			return fmt.Errorf("error parsing PullRequestEvent: %v", err)
@@ -71,13 +73,15 @@ func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]int
 					RepoName:     parsedGhContext.Repository,
 				}
 				diggerExecutor := DiggerExecutor{
+					workingDir,
 					parsedGhContext.RepositoryOwner,
 					parsedGhContext.Repository,
 					project,
+					parsedGhContext.Repository,
 					prManager,
 					projectLock,
 					diggerConfig,
-					tf}
+				}
 				diggerExecutor.Apply(prNumber)
 			case "digger apply":
 				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "apply")
@@ -88,13 +92,15 @@ func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]int
 					RepoName:     parsedGhContext.Repository,
 				}
 				diggerExecutor := DiggerExecutor{
+					workingDir,
 					parsedGhContext.RepositoryOwner,
 					parsedGhContext.Repository,
 					project,
+					parsedGhContext.Repository,
 					prManager,
 					projectLock,
 					diggerConfig,
-					tf}
+				}
 				diggerExecutor.Plan(prNumber)
 			case "digger unlock":
 				utils.SendUsageRecord(parsedGhContext.RepositoryOwner, eventName, "unlock")
@@ -178,22 +184,20 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
+	workingDir   string
 	repoOwner    string
-	repoName     string
 	projectName  string
+	projectDir   string
+	repoName     string
 	prManager    github.PullRequestManager
 	lock         utils.ProjectLock
 	configDigger *DiggerConfig
-	tf           terraform.TerraformExecutor
 }
 
 func (d DiggerExecutor) Plan(prNumber int) {
 	lockId := d.repoName + "#" + d.projectName
 
-	//directory := project.Dir
-	//terraformExecutor := terraform.Terraform{WorkingDir: directory}
-
-	terraformExecutor := d.tf
+	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir)}
 
 	res, err := d.lock.Lock(lockId, prNumber)
 	if err != nil {
@@ -201,6 +205,7 @@ func (d DiggerExecutor) Plan(prNumber int) {
 	}
 	if res {
 		isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan()
+
 		if err != nil {
 			log.Fatalf("Error executing plan: %v", err)
 		}
@@ -214,10 +219,7 @@ func (d DiggerExecutor) Plan(prNumber int) {
 func (d DiggerExecutor) Apply(prNumber int) {
 	projectName := d.projectName
 	lockId := d.repoName + "#" + projectName
-	//directory := project.Dir
-	//terraformExecutor := terraform.Terraform{WorkingDir: directory}
-
-	terraformExecutor := d.tf
+	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir)}
 	if res, _ := d.lock.Lock(lockId, prNumber); res {
 		stdout, stderr, err := terraformExecutor.Apply()
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
