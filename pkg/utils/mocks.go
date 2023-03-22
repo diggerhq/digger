@@ -15,18 +15,28 @@ func (tf *MockTerraform) Plan() (bool, string, string, error) {
 }
 
 type MockLock struct {
+	MapLock map[string]int
 }
 
 func (lock *MockLock) Lock(timeout int, transactionId int, resource string) (bool, error) {
+	if lock.MapLock == nil {
+		lock.MapLock = make(map[string]int)
+	}
+	lock.MapLock[resource] = transactionId
 	return true, nil
 }
 
 func (lock *MockLock) Unlock(resource string) (bool, error) {
+	delete(lock.MapLock, resource)
 	return true, nil
 }
+
 func (lock *MockLock) GetLock(resource string) (*int, error) {
-	i := 1
-	return &i, nil
+	result, ok := lock.MapLock[resource]
+	if ok {
+		return &result, nil
+	}
+	return nil, nil
 }
 
 type MockPullRequestManager struct {
