@@ -267,10 +267,10 @@ func TestHappyPath(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		os.Chdir(cwd)
+		//os.Chdir(cwd)
 	}(dir, cwd)
 
-	os.Chdir(dir)
+	//os.Chdir(dir)
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateSingleEnvDiggerYmlFile(dir)
 
@@ -317,7 +317,7 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	// new pr should lock the project
-	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock := &utils.ProjectLockImpl{
@@ -338,7 +338,7 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -348,7 +348,7 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
@@ -367,7 +367,7 @@ func TestHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
@@ -393,10 +393,10 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		os.Chdir(cwd)
+		//os.Chdir(cwd)
 	}(dir, cwd)
 
-	os.Chdir(dir)
+	//os.Chdir(dir)
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateMultiEnvDiggerYmlFile(dir)
 
@@ -443,7 +443,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	// no files changed, no locks
-	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedNewPullRequestContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock := &utils.ProjectLockImpl{
@@ -464,7 +464,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedDiggerPlanCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -474,7 +474,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedDiggerApplyCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
@@ -493,7 +493,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedDiggerUnlockCommentContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{

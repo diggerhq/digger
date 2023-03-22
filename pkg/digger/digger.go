@@ -11,11 +11,12 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 )
 
-func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock aws.Lock) error {
+func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]interface{}, diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, dynamoDbLock aws.Lock, workingDir string) error {
 	if parsedGhContext.EventName == "pull_request" {
 		var parsedGhEvent models.PullRequestEvent
 		err := mapstructure.Decode(ghEvent, &parsedGhEvent)
@@ -51,7 +52,7 @@ func ProcessGitHubContext(parsedGhContext *models.Github, ghEvent map[string]int
 		//fmt.Printf("comment: %s\n", parsedGhEvent.Comment.Body)
 		//fmt.Printf("issue number: %d\n", parsedGhEvent.Issue.Number)
 
-		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock)
+		err = processPullRequestComment(diggerConfig, prManager, eventName, parsedGhContext.RepositoryOwner, parsedGhContext.Repository, parsedGhEvent.Issue.Number, parsedGhEvent.Comment.Body, dynamoDbLock, workingDir)
 
 		if err != nil {
 			log.Fatalf("error processing pull request comment: %v", err)
@@ -129,7 +130,7 @@ func processClosedPullRequest(diggerConfig *DiggerConfig, prManager github.PullR
 	return nil
 }
 
-func processPullRequestComment(diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock aws.Lock) error {
+func processPullRequestComment(diggerConfig *DiggerConfig, prManager github.PullRequestManager, eventName string, repoOwner string, repoName string, prNumber int, commentBody string, dynamoDbLock aws.Lock, workingDir string) error {
 	print("Processing PR comment")
 	requestedProject := parseProjectName(commentBody)
 	var impactedProjects []Project
@@ -153,6 +154,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager github.Pull
 				RepoName:     repoName,
 			}
 			diggerExecutor := DiggerExecutor{
+				workingDir,
 				repoOwner,
 				repoName,
 				impactedProjects,
@@ -172,6 +174,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager github.Pull
 				RepoName:     repoName,
 			}
 			diggerExecutor := DiggerExecutor{
+				workingDir,
 				repoOwner,
 				repoName,
 				impactedProjects,
@@ -192,6 +195,7 @@ func processPullRequestComment(diggerConfig *DiggerConfig, prManager github.Pull
 				RepoName:     repoName,
 			}
 			diggerExecutor := DiggerExecutor{
+				workingDir,
 				repoOwner,
 				repoName,
 				impactedProjects,
@@ -215,6 +219,7 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
+	workingDir       string
 	repoOwner        string
 	repoName         string
 	impactedProjects []Project
@@ -231,7 +236,7 @@ func (d DiggerExecutor) Plan(triggerEvent string, prNumber int) {
 		lockId := d.repoName + "#" + projectName
 
 		directory := project.Dir
-		terraformExecutor := terraform.Terraform{WorkingDir: directory}
+		terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, directory)}
 
 		res, err := d.lock.Lock(lockId, prNumber)
 		if err != nil {
