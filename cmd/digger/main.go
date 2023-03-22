@@ -37,7 +37,7 @@ func main() {
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	err = digger.ProcessGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock)
+	err = digger.ProcessGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, "")
 	if err != nil {
 		print(err)
 		os.Exit(1)

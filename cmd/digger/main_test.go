@@ -871,7 +871,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	eventName := context.EventName
 
 	diggerConfig := digger.DiggerConfig{}
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{})
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -887,7 +887,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 	diggerConfig := digger.DiggerConfig{}
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{})
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -924,7 +924,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	// mock lock
 	lock := &utils.MockLock{}
 
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock)
+	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock, "")
 	spew.Dump(lock.MapLock)
 	assert.Equal(t, pullRequestNumber, lock.MapLock[lockId])
 	assert.Equal(t, 1, len(lock.MapLock))
