@@ -69,6 +69,12 @@ state-level locks will keep working normally because are handled by terraform it
 ## Notes
 - we perform anonymous tracking to measure usage, no data is logged during the process, you can see what is tracked in [`code/usage.py`](https://github.com/diggerhq/digger/blob/main/code/usage.py)
 
+## Contributing
+**If you are considering using digger within your organisation
+please [reach out to us](https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA).**
+
+To contribute to Digger please follow our [Contributing guide](CONTRIBUTING.md)
+
 ## Links
 - [Why are people using Terraform Cloud?](https://www.reddit.com/r/Terraform/comments/1132qf3/why_are_people_using_terraform_cloud_i_may_be/)
 - [The Pains of Terraform Collaboration](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e)
