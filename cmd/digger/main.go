@@ -37,7 +37,19 @@ func main() {
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	err = digger.ProcessGitHubContext(&parsedGhContext, ghEvent, diggerConfig, githubPrService, eventName, &dynamoDbLock, "")
+	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	if err != nil {
+		print(err)
+		os.Exit(1)
+	}
+
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+	if err != nil {
+		print(err)
+		os.Exit(1)
+	}
+
+	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, "")
 	if err != nil {
 		print(err)
 		os.Exit(1)
