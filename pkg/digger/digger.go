@@ -161,7 +161,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 		return commandsPerProject, nil
 	case models.IssueCommentEvent:
 		event := event.(models.IssueCommentEvent)
-		supportedCommands := []string{"digger plan", "digger apply", "digger unlock"}
+		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
