@@ -27,7 +27,7 @@ runs:
           cd ${{ github.workspace }}
           digger
     - name: run digger
-      if: ${{ !startsWith(github.action_ref, 'v') }}
+      if: ${{ startsWith(github.action_ref, 'v') }}
       env:
         actionref: ${{ github.action_ref }}
       id: digger
