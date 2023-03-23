@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
@@ -86,7 +85,6 @@ func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Item: %v", result.Item)
 	if result.Item != nil {
 		transactionId := result.Item["transaction_id"].N
 		res, err := strconv.Atoi(*transactionId)
