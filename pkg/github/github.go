@@ -53,6 +53,6 @@ func (svc *GithubPullRequestService) CreateCheckStatus(branch string, commitSHA 
 		HeadBranch: &branch,
 		HeadSHA:    commitSHA,
 	})
-	println(res, err)
+	println(res.Body, err)
 	return err
 }
