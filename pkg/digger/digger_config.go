@@ -9,13 +9,20 @@ import (
 	"strings"
 )
 
+type WorkflowConfiguration struct {
+	OnPullRequestPushed []string `yaml:"on_pull_request_pushed"`
+	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
+	OnCommitToDefault   []string `yaml:"on_commit_to_default"`
+}
+
 type DiggerConfig struct {
 	Projects []Project `yaml:"projects"`
 }
 
 type Project struct {
-	Name string `yaml:"name"`
-	Dir  string `yaml:"dir"`
+	Name                  string                `yaml:"name"`
+	Dir                   string                `yaml:"dir"`
+	WorkflowConfiguration WorkflowConfiguration `yaml:"workflow_configuration"`
 }
 
 func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
@@ -32,7 +39,11 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 		}
 	} else {
 		config.Projects = make([]Project, 1)
-		config.Projects[0] = Project{Name: "default", Dir: "."}
+		config.Projects[0] = Project{Name: "default", Dir: ".", WorkflowConfiguration: WorkflowConfiguration{
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+			OnCommitToDefault:   []string{"digger apply"},
+		}}
 		return config, nil
 	}
 	return config, nil
@@ -79,6 +90,14 @@ func (c *DiggerConfig) GetDirectory(projectName string) string {
 		return ""
 	}
 	return project.Dir
+}
+
+func (c *DiggerConfig) GetWorkflowConfiguration(projectName string) WorkflowConfiguration {
+	project := c.GetProject(projectName)
+	if project == nil {
+		return WorkflowConfiguration{}
+	}
+	return project.WorkflowConfiguration
 }
 
 type File struct {

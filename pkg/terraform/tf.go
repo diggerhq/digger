@@ -20,6 +20,9 @@ func (terraform *Terraform) Apply() (string, string, error) {
 	println("digger apply")
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
+	if err != nil {
+		return "", "", fmt.Errorf("error while initializing terraform: %s", err)
+	}
 
 	stdout := &StdWriter{[]byte{}, true}
 	//stderr := &StdWriter{[]byte{}, true}
