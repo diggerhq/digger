@@ -193,7 +193,7 @@ func (d DiggerExecutor) Plan(prNumber int) {
 			log.Fatalf("Error executing plan: %v", err)
 		}
 		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
-		comment := "Plan for **" + lockId + "**\n" + plan
+		comment := "Plan for **" + d.LockId() + "**\n" + plan
 		d.prManager.PublishComment(prNumber, comment)
 	}
 
@@ -219,7 +219,7 @@ func (d DiggerExecutor) Unlock(prNumber int) {
 func (d DiggerExecutor) Lock(prNumber int) bool {
 	isLocked, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
-		log.Fatalf("Failed to aquire lock: " + lockId)
+		log.Fatalf("Failed to aquire lock: " + d.LockId())
 	}
 	return isLocked
 }
