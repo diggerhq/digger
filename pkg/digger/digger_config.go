@@ -25,6 +25,23 @@ type Project struct {
 	WorkflowConfiguration WorkflowConfiguration `yaml:"workflow_configuration"`
 }
 
+func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type rawProject Project
+	raw := rawProject{
+		WorkflowConfiguration: WorkflowConfiguration{
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+			OnCommitToDefault:   []string{"digger apply"},
+		},
+	}
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+	*p = Project(raw)
+	return nil
+
+}
+
 func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	config := &DiggerConfig{}
 	var fileName string
