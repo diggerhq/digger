@@ -51,61 +51,35 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 	lockAcquisitionSuccess := true
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
+			projectLock := &utils.ProjectLockImpl{
+				InternalLock: dynamoDbLock,
+				PrManager:    prManager,
+				ProjectName:  projectCommands.ProjectName,
+				RepoName:     repoName,
+			}
+			diggerExecutor := DiggerExecutor{
+				workingDir,
+				repoOwner,
+				projectCommands.ProjectName,
+				projectCommands.ProjectDir,
+				repoName,
+				prManager,
+				projectLock,
+				diggerConfig,
+			}
 			switch command {
 			case "digger plan":
 				utils.SendUsageRecord(repoOwner, eventName, "plan")
-				projectLock := &utils.ProjectLockImpl{
-					InternalLock: dynamoDbLock,
-					PrManager:    prManager,
-					ProjectName:  projectCommands.ProjectName,
-					RepoName:     repoName,
-				}
-				diggerExecutor := DiggerExecutor{
-					workingDir,
-					repoOwner,
-					projectCommands.ProjectName,
-					projectCommands.ProjectDir,
-					repoName,
-					prManager,
-					projectLock,
-					diggerConfig,
-				}
 				diggerExecutor.Plan(prNumber)
 			case "digger apply":
 				utils.SendUsageRecord(repoName, eventName, "apply")
-				projectLock := &utils.ProjectLockImpl{
-					InternalLock: dynamoDbLock,
-					PrManager:    prManager,
-					ProjectName:  projectCommands.ProjectName,
-					RepoName:     repoName,
-				}
-				diggerExecutor := DiggerExecutor{
-					workingDir,
-					repoOwner,
-					projectCommands.ProjectName,
-					projectCommands.ProjectDir,
-					repoName,
-					prManager,
-					projectLock,
-					diggerConfig,
-				}
 				diggerExecutor.Apply(prNumber)
 			case "digger unlock":
 				utils.SendUsageRecord(repoOwner, eventName, "unlock")
-				lockID := fmt.Sprintf("%s#%s", repoName, projectCommands.ProjectName)
-				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectCommands.ProjectName, RepoName: repoName}
-				projectLock.ForceUnlock(lockID, prNumber)
+				diggerExecutor.Unlock(prNumber)
 			case "digger lock":
 				utils.SendUsageRecord(repoOwner, eventName, "lock")
-				lockID := fmt.Sprintf("%s#%s", repoName, projectCommands.ProjectName)
-				projectLock := utils.ProjectLockImpl{InternalLock: dynamoDbLock, PrManager: prManager, ProjectName: projectCommands.ProjectName, RepoName: repoName}
-				isLocked, err := projectLock.Lock(lockID, prNumber)
-				if err != nil {
-					log.Fatalf("Failed to aquire lock: " + lockID)
-				}
-				if !isLocked {
-					lockAcquisitionSuccess = false
-				}
+				lockAcquisitionSuccess = diggerExecutor.Lock(prNumber)
 			}
 		}
 	}
@@ -240,6 +214,15 @@ func (d DiggerExecutor) Unlock(prNumber int) {
 	lockId := d.repoName + "#" + d.projectName
 	d.lock.ForceUnlock(lockId, prNumber)
 
+}
+
+func (d DiggerExecutor) Lock(prNumber int) bool {
+	lockId := d.repoName + "#" + d.projectName
+	isLocked, err := d.lock.Lock(lockId, prNumber)
+	if err != nil {
+		log.Fatalf("Failed to aquire lock: " + lockId)
+	}
+	return isLocked
 }
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr string) string {
