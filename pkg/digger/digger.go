@@ -128,7 +128,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
 					ProjectName: project.Name,
 					ProjectDir:  project.Dir,
-					Commands:    project.WorkflowConfiguration.OnPullRequestPushed,
+					Commands:    project.WorkflowConfiguration.OnPullRequestClosed,
 				})
 			}
 		}
