@@ -39,19 +39,19 @@ func main() {
 
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
-		print(err)
+		println(err)
 		os.Exit(1)
 	}
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	if err != nil {
-		print(err)
+		println(err)
 		os.Exit(1)
 	}
 
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, "")
 	if err != nil {
-		print(err)
+		println(err)
 		os.Exit(1)
 	}
 }
