@@ -1,7 +1,6 @@
 package main
 
 import (
-	"digger/pkg/aws"
 	"digger/pkg/digger"
 	"digger/pkg/models"
 	"digger/pkg/utils"
@@ -871,7 +870,11 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	eventName := context.EventName
 
 	diggerConfig := digger.DiggerConfig{}
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, "")
+	lock := &utils.MockLock{}
+	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
+	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+	digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, &diggerConfig, prManager, lock, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -887,7 +890,11 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 	diggerConfig := digger.DiggerConfig{}
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, utils.MockPullRequestManager{}, eventName, &aws.DynamoDbLock{}, "")
+	lock := &utils.MockLock{}
+	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
+	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+	digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, &diggerConfig, prManager, lock, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -906,27 +913,29 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	context, err := digger.GetGitHubContext(githubContextNewPullRequestJson)
 	assert.NoError(t, err)
 	ghEvent := context.Event
-	eventName := context.EventName
-	resource := "diggerhq/tfrun_demo_multienv"
-	envName := "dev"
-	lockId := resource + "#" + envName
 	pullRequestNumber := 11
-
 	// digger config
-	dev := digger.Project{Name: "dev", Dir: "dev"}
-	prod := digger.Project{Name: "prod", Dir: "prod"}
+	dev := digger.Project{Name: "dev", Dir: "dev", WorkflowConfiguration: digger.WorkflowConfiguration{
+		OnPullRequestPushed: []string{"digger plan"},
+		OnPullRequestClosed: []string{"digger unlock"},
+		OnCommitToDefault:   []string{"digger apply"},
+	}}
+	prod := digger.Project{Name: "prod", Dir: "prod", WorkflowConfiguration: digger.WorkflowConfiguration{
+		OnPullRequestPushed: []string{"digger plan"},
+		OnPullRequestClosed: []string{"digger unlock"},
+		OnCommitToDefault:   []string{"digger apply"},
+	}}
 	projects := []digger.Project{dev, prod}
 	diggerConfig := digger.DiggerConfig{Projects: projects}
 
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
-
-	// mock lock
 	lock := &utils.MockLock{}
-
-	err = digger.ProcessGitHubContext(&context, ghEvent, &diggerConfig, prManager, eventName, lock, "")
+	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	assert.NoError(t, err)
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	spew.Dump(lock.MapLock)
-	assert.Equal(t, pullRequestNumber, lock.MapLock[lockId])
-	assert.Equal(t, 1, len(lock.MapLock))
+	assert.Equal(t, pullRequestNumber, prNumber)
+	assert.Equal(t, 1, len(commandsToRunPerProject))
 	assert.NoError(t, err)
 }
