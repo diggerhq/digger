@@ -49,9 +49,10 @@ func (svc *GithubPullRequestService) PublishComment(prNumber int, comment string
 }
 
 func (svc *GithubPullRequestService) CreateCheckStatus(branch string, commitSHA string) error {
-	_, _, err := svc.Client.Checks.CreateCheckSuite(context.Background(), svc.Owner, svc.RepoName, github.CreateCheckSuiteOptions{
+	_, res, err := svc.Client.Checks.CreateCheckSuite(context.Background(), svc.Owner, svc.RepoName, github.CreateCheckSuiteOptions{
 		HeadBranch: &branch,
 		HeadSHA:    commitSHA,
 	})
+	println(res, err)
 	return err
 }
