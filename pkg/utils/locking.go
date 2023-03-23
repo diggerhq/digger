@@ -30,6 +30,7 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 	}
 
 	if transactionId != nil {
+		println("transactionId: " + strconv.Itoa(*transactionId))
 		transactionIdStr := strconv.Itoa(*transactionId)
 		if *transactionId != prNumber {
 			comment := "Project " + projectLock.ProjectName + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
