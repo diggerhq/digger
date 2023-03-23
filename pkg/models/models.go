@@ -13,6 +13,7 @@ type Github struct {
 	ActionStatus     string `json:"action_status"`
 	Actor            string `json:"actor"`
 	BaseRef          string `json:"base_ref"`
+	HeadRef          string `json:"head_ref"`
 	Env              string `json:"env"`
 	Event            Event  `json:"event"`
 	EventName        string `json:"event_name"`
@@ -21,6 +22,7 @@ type Github struct {
 	RefType          string `json:"ref_type"`
 	Repository       string `json:"repository"`
 	RepositoryOwner  string `json:"repository_owner"`
+	SHA              string `json:"sha""`
 }
 
 type Event interface{}

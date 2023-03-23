@@ -49,6 +49,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	githubPrService.CreateCheckStatus(parsedGhContext.HeadRef, parsedGhContext.SHA)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, "")
 	if err != nil {
 		println(err)

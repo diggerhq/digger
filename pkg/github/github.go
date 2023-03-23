@@ -24,6 +24,7 @@ type GithubPullRequestService struct {
 type PullRequestManager interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string)
+	CreateCheckStatus(branch string, commitSHA string) error
 }
 
 func (svc *GithubPullRequestService) GetChangedFiles(prNumber int) ([]string, error) {
@@ -45,4 +46,12 @@ func (svc *GithubPullRequestService) PublishComment(prNumber int, comment string
 	if err != nil {
 		log.Fatalf("error publishing comment: %v", err)
 	}
+}
+
+func (svc *GithubPullRequestService) CreateCheckStatus(branch string, commitSHA string) error {
+	_, _, err := svc.Client.Checks.CreateCheckSuite(context.Background(), svc.Owner, svc.RepoName, github.CreateCheckSuiteOptions{
+		HeadBranch: &branch,
+		HeadSHA:    commitSHA,
+	})
+	return err
 }
