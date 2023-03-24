@@ -67,7 +67,9 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				projectLock,
 				diggerConfig,
 			}
+			prManager.CreateCheckStatus(parsedGhContext.HeadRef, parsedGhContext.SHA)
 			switch command {
+
 			case "digger plan":
 				utils.SendUsageRecord(repoOwner, eventName, "plan")
 				diggerExecutor.Plan(prNumber)
