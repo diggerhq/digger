@@ -85,7 +85,6 @@ func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if result.Item != nil {
 		transactionId := result.Item["transaction_id"].N
 		res, err := strconv.Atoi(*transactionId)

@@ -174,12 +174,15 @@ type DiggerExecutor struct {
 	configDigger *DiggerConfig
 }
 
+func (d DiggerExecutor) LockId() string {
+	return d.repoName + "#" + d.projectName
+}
+
 func (d DiggerExecutor) Plan(prNumber int) {
-	lockId := d.repoName + "#" + d.projectName
 
 	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir)}
 
-	res, err := d.lock.Lock(lockId, prNumber)
+	res, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
 		log.Fatalf("Error locking project: %v", err)
 	}
@@ -190,37 +193,33 @@ func (d DiggerExecutor) Plan(prNumber int) {
 			log.Fatalf("Error executing plan: %v", err)
 		}
 		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
-		comment := "Plan for **" + lockId + "**\n" + plan
+		comment := "Plan for **" + d.LockId() + "**\n" + plan
 		d.prManager.PublishComment(prNumber, comment)
 	}
 
 }
 
 func (d DiggerExecutor) Apply(prNumber int) {
-	projectName := d.projectName
-	lockId := d.repoName + "#" + projectName
 	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir)}
-	if res, _ := d.lock.Lock(lockId, prNumber); res {
+	if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
 		stdout, stderr, err := terraformExecutor.Apply()
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-		comment := "Apply for **" + lockId + "**\n" + applyOutput
+		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
 		d.prManager.PublishComment(prNumber, comment)
-		d.lock.Unlock(lockId, prNumber)
+		d.lock.Unlock(d.LockId(), prNumber)
 	}
 
 }
 
 func (d DiggerExecutor) Unlock(prNumber int) {
-	lockId := d.repoName + "#" + d.projectName
-	d.lock.ForceUnlock(lockId, prNumber)
+	d.lock.ForceUnlock(d.LockId(), prNumber)
 
 }
 
 func (d DiggerExecutor) Lock(prNumber int) bool {
-	lockId := d.repoName + "#" + d.projectName
-	isLocked, err := d.lock.Lock(lockId, prNumber)
+	isLocked, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
-		log.Fatalf("Failed to aquire lock: " + lockId)
+		log.Fatalf("Failed to aquire lock: " + d.LockId())
 	}
 	return isLocked
 }
