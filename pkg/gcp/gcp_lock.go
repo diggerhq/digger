@@ -14,12 +14,6 @@ type GoogleStorageLock struct {
 	ctx    context.Context
 }
 
-type Lock interface {
-	Lock(transactionId int, resource string) (bool, error)
-	Unlock(transactionId int, resource string) (bool, error)
-	GetLock(resource string) (*int, error)
-}
-
 func (googleLock *GoogleStorageLock) Lock(transactionId int, resource string) (bool, error) {
 	existingLockTransactionId, err := googleLock.GetLock(resource)
 	if err != nil {

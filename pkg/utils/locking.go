@@ -1,17 +1,22 @@
 package utils
 
 import (
-	"digger/pkg/aws"
 	"digger/pkg/github"
 	"fmt"
 	"strconv"
 )
 
 type ProjectLockImpl struct {
-	InternalLock aws.Lock
+	InternalLock Lock
 	PrManager    github.PullRequestManager
 	ProjectName  string
 	RepoName     string
+}
+
+type Lock interface {
+	Lock(timeout int, transactionId int, resource string) (bool, error)
+	Unlock(resource string) (bool, error)
+	GetLock(resource string) (*int, error)
 }
 
 type ProjectLock interface {

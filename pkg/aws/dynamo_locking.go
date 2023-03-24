@@ -14,12 +14,6 @@ type DynamoDbLock struct {
 	DynamoDb *dynamodb.DynamoDB
 }
 
-type Lock interface {
-	Lock(timeout int, transactionId int, resource string) (bool, error)
-	Unlock(resource string) (bool, error)
-	GetLock(resource string) (*int, error)
-}
-
 func (dynamoDbLock *DynamoDbLock) Lock(timeout int, transactionId int, resource string) (bool, error) {
 	now := time.Now().Format(time.RFC3339)
 	newTimeout := time.Now().Add(time.Duration(timeout) * time.Second).Format(time.RFC3339)
