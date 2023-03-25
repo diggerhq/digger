@@ -2,11 +2,12 @@ package digger
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type WorkflowConfiguration struct {
@@ -45,11 +46,26 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	config := &DiggerConfig{}
 	var fileName string
-	if workingDir == "" {
-		fileName = "digger.yml"
-	} else {
-		fileName = workingDir + "/digger.yml"
+	var cfgExt string
+	var cfgCount int
+	for _, ext := range []string{".yml", ".yaml"} {
+		fileName = "digger"
+		if workingDir != "" {
+			fileName = path.Join(workingDir, fileName)
+		}
+		_, err := os.Stat(fileName + ext)
+		if err == nil {
+			cfgExt = ext
+			cfgCount++
+		}
 	}
+
+	if cfgCount == 2 {
+		return nil, fmt.Errorf("multiple config file exists")
+	}
+
+	fileName = fileName + cfgExt
+
 	if data, err := os.ReadFile(fileName); err == nil {
 		if err := yaml.Unmarshal(data, config); err != nil {
 			return nil, fmt.Errorf("error parsing digger.yml: %v", err)

@@ -3,9 +3,36 @@ package digger
 import (
 	"log"
 	"os"
+	"path"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
-import "github.com/stretchr/testify/assert"
+
+func TestYmlAndYamlDiggerConfigFileExist(t *testing.T) {
+	tempDir := CreateTempDir()
+	defer func(name string) {
+		err := os.RemoveAll(name)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(tempDir)
+
+	_, err := os.Create(path.Join(tempDir, "digger.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Create(path.Join(tempDir, "digger.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = NewDiggerConfig(tempDir)
+
+	if err == nil {
+		t.Errorf("expected error to be not nil")
+	}
+}
 
 func TestDiggerConfigFileDoesNotExist(t *testing.T) {
 	dg, err := NewDiggerConfig("")
