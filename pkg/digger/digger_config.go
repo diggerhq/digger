@@ -42,17 +42,41 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 }
 
+func checkFile(workingDir string, fileName string) (string, error) {
+	if workingDir != "" {
+		fileName = workingDir + "/" + fileName
+	}
+	_, err := os.Stat(fileName)
+	if err == nil {
+		return fileName, nil
+	}
+	if os.IsNotExist(err) {
+		return "", nil
+	}
+	return fileName, err
+}
+
 func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	config := &DiggerConfig{}
-	var fileName string
-	if workingDir == "" {
-		fileName = "digger.yml"
-	} else {
-		fileName = workingDir + "/digger.yml"
+	fileName, err := checkFile(workingDir, "digger.yml")
+	if err != nil {
+		return nil, err
 	}
+	if fileName == "" {
+		fileName, err = checkFile(workingDir, "digger.yaml")
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		newFileName, _ := checkFile(workingDir, "digger.yaml")
+		if newFileName != "" {
+			return nil, fmt.Errorf("both digger.yml and digger.yaml in workingDir, delete any one please")
+		}
+	}
+
 	if data, err := os.ReadFile(fileName); err == nil {
 		if err := yaml.Unmarshal(data, config); err != nil {
-			return nil, fmt.Errorf("error parsing digger.yml: %v", err)
+			return nil, fmt.Errorf("error parsing %s: %v", fileName, err)
 		}
 	} else {
 		config.Projects = make([]Project, 1)
