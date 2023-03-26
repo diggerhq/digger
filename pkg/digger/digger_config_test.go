@@ -17,28 +17,27 @@ func TestDiggerConfigFileDoesNotExist(t *testing.T) {
 
 func TestMultipleDiggerConfigFileExist(t *testing.T) {
 	tempDir := CreateTempDir()
-	defer func(name string) {
-		err := os.RemoveAll(name)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(tempDir)
-	os.Create(tempDir + "digger.yaml")
-	os.Create(tempDir + "digger.yml")
+	defer DeleteTempDir(tempDir)
+
+	_, err := os.Create(tempDir + "digger.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Create(tempDir + "digger.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dg, err := NewDiggerConfig(tempDir)
 	assert.Error(t, err, "expected error to be returned")
+	assert.ErrorContains(t, err, ErrDiggerConfigConflict.Error(), "expected error to match target error")
 	assert.Nil(t, dg, "expected diggerConfig to be nil")
 }
 
 func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
 	tempDir := CreateTempDir()
-	defer func(name string) {
-		err := os.RemoveAll(name)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(tempDir)
+	defer DeleteTempDir(tempDir)
 
 	f, err := os.Create(tempDir + "/digger.yml")
 	if err != nil {
@@ -77,4 +76,11 @@ func CreateTempDir() string {
 		log.Fatal(err)
 	}
 	return dir
+}
+
+func DeleteTempDir(name string) {
+	err := os.RemoveAll(name)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
