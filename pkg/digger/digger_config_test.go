@@ -15,7 +15,7 @@ func TestDiggerConfigFileDoesNotExist(t *testing.T) {
 	assert.Equal(t, dg.Projects[0].Dir, ".", "expected default project dir to be '.'")
 }
 
-func TestMultipleDiggerConfigFileExist(t *testing.T) {
+func TestDiggerConfigWhenMultipleConfigExist(t *testing.T) {
 	tempDir := CreateTempDir()
 	defer DeleteTempDir(tempDir)
 
@@ -33,6 +33,34 @@ func TestMultipleDiggerConfigFileExist(t *testing.T) {
 	assert.Error(t, err, "expected error to be returned")
 	assert.ErrorContains(t, err, ErrDiggerConfigConflict.Error(), "expected error to match target error")
 	assert.Nil(t, dg, "expected diggerConfig to be nil")
+}
+
+func TestDiggerConfigWhenOnlyYamlExists(t *testing.T) {
+	tempDir := CreateTempDir()
+	defer DeleteTempDir(tempDir)
+
+	_, err := os.Create(tempDir + "digger.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dg, err := NewDiggerConfig(tempDir)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+}
+
+func TestDiggerConfigWhenOnlyYmlExists(t *testing.T) {
+	tempDir := CreateTempDir()
+	defer DeleteTempDir(tempDir)
+
+	_, err := os.Create(tempDir + "digger.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dg, err := NewDiggerConfig(tempDir)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
 }
 
 func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
