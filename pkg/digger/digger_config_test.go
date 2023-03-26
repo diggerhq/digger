@@ -92,7 +92,7 @@ projects:
 	}
 
 	dg, err := NewDiggerConfig(tempDir)
-	assert.NoError(t, err, "expected error to be not nil")
+	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, dg.Projects[0].WorkflowConfiguration.OnPullRequestPushed[0], "digger plan")
 	assert.Equal(t, dg.Projects[0].WorkflowConfiguration.OnPullRequestClosed[0], "digger unlock")
 	assert.Equal(t, dg.Projects[0].WorkflowConfiguration.OnCommitToDefault[0], "digger apply")
