@@ -140,7 +140,7 @@ func isFileExists(path string) bool {
 func retrieveConfigFile(workingDir string) (string, error) {
 	fileName := "digger"
 	if workingDir != "" {
-		fileName = workingDir + fileName
+		fileName = path.Join(workingDir, fileName)
 	}
 
 	// Make sure we don't have more than one digger config file

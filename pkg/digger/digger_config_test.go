@@ -3,10 +3,18 @@ package digger
 import (
 	"log"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func setUp() (string, func()) {
+	tempDir := createTempDir()
+	return tempDir, func() {
+		deleteTempDir(tempDir)
+	}
+}
 
 func TestDiggerConfigFileDoesNotExist(t *testing.T) {
 	dg, err := NewDiggerConfig("")
@@ -16,15 +24,15 @@ func TestDiggerConfigFileDoesNotExist(t *testing.T) {
 }
 
 func TestDiggerConfigWhenMultipleConfigExist(t *testing.T) {
-	tempDir := CreateTempDir()
-	defer DeleteTempDir(tempDir)
+	tempDir, teardown := setUp()
+	defer teardown()
 
-	_, err := os.Create(tempDir + "digger.yaml")
+	_, err := os.Create(path.Join(tempDir, "digger.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = os.Create(tempDir + "digger.yml")
+	_, err = os.Create(path.Join(tempDir, "digger.yml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,10 +44,10 @@ func TestDiggerConfigWhenMultipleConfigExist(t *testing.T) {
 }
 
 func TestDiggerConfigWhenOnlyYamlExists(t *testing.T) {
-	tempDir := CreateTempDir()
-	defer DeleteTempDir(tempDir)
+	tempDir, teardown := setUp()
+	defer teardown()
 
-	_, err := os.Create(tempDir + "digger.yaml")
+	_, err := os.Create(path.Join(tempDir, "digger.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,10 +58,10 @@ func TestDiggerConfigWhenOnlyYamlExists(t *testing.T) {
 }
 
 func TestDiggerConfigWhenOnlyYmlExists(t *testing.T) {
-	tempDir := CreateTempDir()
-	defer DeleteTempDir(tempDir)
+	tempDir, teardown := setUp()
+	defer teardown()
 
-	_, err := os.Create(tempDir + "digger.yml")
+	_, err := os.Create(path.Join(tempDir, "digger.yml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,10 +72,10 @@ func TestDiggerConfigWhenOnlyYmlExists(t *testing.T) {
 }
 
 func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
-	tempDir := CreateTempDir()
-	defer DeleteTempDir(tempDir)
+	tempDir, teardown := setUp()
+	defer teardown()
 
-	f, err := os.Create(tempDir + "/digger.yml")
+	f, err := os.Create(path.Join(tempDir, "digger.yaml"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -98,7 +106,7 @@ projects:
 	assert.Equal(t, dg.Projects[0].WorkflowConfiguration.OnCommitToDefault[0], "digger apply")
 }
 
-func CreateTempDir() string {
+func createTempDir() string {
 	dir, err := os.MkdirTemp("", "tmp")
 	if err != nil {
 		log.Fatal(err)
@@ -106,7 +114,7 @@ func CreateTempDir() string {
 	return dir
 }
 
-func DeleteTempDir(name string) {
+func deleteTempDir(name string) {
 	err := os.RemoveAll(name)
 	if err != nil {
 		log.Fatal(err)
