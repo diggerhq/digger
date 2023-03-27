@@ -102,9 +102,9 @@ projects:
   dir: .
   workspace: default
   workflow_configuration:
-    on_pull_request_pushed: [digger plan]
-    on_pull_request_closed: [digger unlock]
-    on_commit_to_default: [digger apply]
+    on_pull_request_pushed: [plan]
+    on_pull_request_closed: [unlock]
+    on_commit_to_default: [apply]
 `
 	_, err2 := f.WriteString(digger_yml)
 	if err2 != nil {
