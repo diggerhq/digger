@@ -9,6 +9,7 @@ import (
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
@@ -289,6 +290,12 @@ func TestHappyPath(t *testing.T) {
 		},
 	})
 
+	svc := sts.New(sess)
+	input := &sts.GetCallerIdentityInput{}
+
+	result, err := svc.GetCallerIdentity(input)
+	assert.NotEmpty(t, *result.Account)
+
 	assert.NoError(t, err)
 	dynamoDb := dynamodb.New(sess)
 	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
@@ -335,7 +342,7 @@ func TestHappyPath(t *testing.T) {
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 	}
-	resource := repositoryName + "#dev"
+	resource := repositoryName + "#default"
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.Equal(t, 11, *transactionId, "TransactionId")
