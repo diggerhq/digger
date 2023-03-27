@@ -23,13 +23,18 @@ func main() {
 	}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
-	ghContext := os.Getenv("GITHUB_CONTEXT")
+	if ghToken == "" {
+		println("GITHUB_TOKEN is not defined")
+		os.Exit(1)
+	}
 
-	parsedGhContext, err := models.GetGitHubContext(ghContext)
+	ghContext := os.Getenv("GITHUB_CONTEXT")
 	if ghContext == "" {
 		println("GITHUB_CONTEXT is not defined")
 		os.Exit(1)
 	}
+
+	parsedGhContext, err := models.GetGitHubContext(ghContext)
 
 	ghEvent := parsedGhContext.Event
 	eventName := parsedGhContext.EventName
