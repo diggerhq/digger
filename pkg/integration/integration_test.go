@@ -11,8 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"log"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 )
 
 func SkipCI(t *testing.T) {
@@ -43,6 +45,18 @@ func getProjectLockForTests() (error, *utils.ProjectLockImpl) {
 		RepoName:     repositoryName,
 	}
 	return err, projectLock
+}
+
+func randomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
 }
 
 var githubContextDiggerPlanCommentMinJson = `{
@@ -566,7 +580,8 @@ func TestGetExistingLock(t *testing.T) {
 	SkipCI(t)
 
 	err, projectLock := getProjectLockForTests()
-	resource := "test_dynamodb_existing_lock#default"
+	randString := randomString(8)
+	resource := "test_dynamodb_existing_lock_" + randString + "#default"
 	locked, err := projectLock.InternalLock.Lock(100, resource)
 	assert.True(t, locked)
 
