@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-exec/tfexec"
+	"log"
 	"os"
 )
 
@@ -14,6 +15,7 @@ type TerraformExecutor interface {
 
 type Terraform struct {
 	WorkingDir string
+	Workspace  string
 }
 
 func (terraform *Terraform) Apply() (string, string, error) {
@@ -34,6 +36,13 @@ func (terraform *Terraform) Apply() (string, string, error) {
 	if err != nil {
 		println("terraform init failed.")
 		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
+	}
+
+	err = tf.WorkspaceSelect(context.Background(), terraform.Workspace)
+
+	if err != nil {
+		log.Printf("terraform workspace select failed. workspace: %v. dir: %v", terraform.Workspace, terraform.WorkingDir)
+		return stdout.GetString(), "", fmt.Errorf("terraform select failed. %s", err)
 	}
 
 	err = tf.Apply(context.Background())
@@ -83,12 +92,17 @@ func (terraform *Terraform) Plan() (bool, string, string, error) {
 		println("terraform init failed.")
 		return false, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform init failed. %s", err)
 	}
+	err = tf.WorkspaceSelect(context.Background(), terraform.Workspace)
 
-	nonEmptyPlan, err := tf.Plan(context.Background())
+	if err != nil {
+		log.Printf("terraform workspace select failed. workspace: %v. dir: %v", terraform.Workspace, terraform.WorkingDir)
+		return false, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform select failed. %s", err)
+	}
+	isNonEmptyPlan, err := tf.Plan(context.Background())
 	if err != nil {
 		println("terraform plan failed. dir: " + terraform.WorkingDir)
-		return nonEmptyPlan, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform plan failed. %s", err)
+		return isNonEmptyPlan, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform plan failed. %s", err)
 	}
 
-	return nonEmptyPlan, stdout.GetString(), stderr.GetString(), nil
+	return isNonEmptyPlan, stdout.GetString(), stderr.GetString(), nil
 }
