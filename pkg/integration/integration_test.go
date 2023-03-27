@@ -278,6 +278,53 @@ var githubContextNewPullRequestMinJson = `{
     }
   }`
 
+var githubContextUnknownEventJson = `{
+  "job": "build",
+  "ref": "refs/heads/main",
+  "sha": "3eb61a47a873fc574c7c57d00cf47343b9ef3892",
+  "repository": "digger_demo",
+  "repository_owner": "diggerhq",
+  "repository_owner_id": "71334590",
+  "workflow": "CI",
+  "head_ref": "",
+  "base_ref": "",
+  "event_name": "non_existent_event",
+  "event": {
+    "action": "created",
+    "comment": {
+      "author_association": "CONTRIBUTOR",
+      "body": "digger plan",
+      "created_at": "2023-03-13T15:14:08Z",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
+      "id": 1466341992,
+      "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
+      "node_id": "IC_kwDOJG5hVM5XZppo"
+    },
+    "issue": {
+      "assignees": [],
+      "author_association": "CONTRIBUTOR",
+      "comments": 5,
+      "comments_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/comments",
+      "created_at": "2023-03-10T14:09:35Z",
+      "draft": false,
+      "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "id": 1619042081,
+      "labels": [],
+      "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
+      "locked": false,
+      "node_id": "PR_kwDOJG5hVM5LxUWM",
+      "number": 11,
+      "pull_request": {
+        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
+        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
+      }
+    }
+  }
+}`
+
 func TestHappyPath(t *testing.T) {
 	SkipCI(t)
 
@@ -610,4 +657,13 @@ func TestUnLock(t *testing.T) {
 	transactionId, err = projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.Nil(t, transactionId)
+}
+
+func TestNonExistentGitHubEvent(t *testing.T) {
+
+	unknownEventContext := githubContextUnknownEventJson
+	_, err := digger.GetGitHubContext(unknownEventContext)
+	println(err.Error())
+	assert.Error(t, err)
+	assert.Equal(t, "error parsing GitHub context JSON: unknown GitHub event: non_existent_event", err.Error())
 }
