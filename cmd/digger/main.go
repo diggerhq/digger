@@ -1,13 +1,10 @@
 package main
 
 import (
-	"digger/pkg/aws"
 	"digger/pkg/digger"
 	"digger/pkg/github"
 	"digger/pkg/models"
 	"digger/pkg/utils"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"os"
 	"strings"
 )
@@ -19,7 +16,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	lock := GetLock()
+	lock, err := utils.GetLock()
+	if err != nil {
+		println("Failed to create lock.")
+		os.Exit(1)
+	}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	ghContext := os.Getenv("GITHUB_CONTEXT")
@@ -53,11 +54,4 @@ func main() {
 		println(err)
 		os.Exit(1)
 	}
-}
-
-func GetLock() utils.Lock {
-	sess := session.Must(session.NewSession())
-	dynamoDb := dynamodb.New(sess)
-	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
-	return &dynamoDbLock
 }
