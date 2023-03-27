@@ -144,10 +144,8 @@ func GetLock() (Lock, error) {
 
 		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
 		bucket := client.Bucket(bucketName)
-		lock := gcp.GoogleStorageLock{client, bucket, ctx}
-
+		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}
 		return &lock, nil
-
 	}
 	return nil, errors.New("failed to find lock provider")
 }
