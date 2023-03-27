@@ -2,7 +2,6 @@ package gcp
 
 import (
 	"cloud.google.com/go/storage"
-	"context"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"
@@ -27,16 +26,6 @@ func randomString(length int) string {
 		b[i] = charset[seededRand.Intn(len(charset))]
 	}
 	return string(b)
-}
-
-func GetGoogleStorageClient() (context.Context, *storage.Client) {
-	ctx := context.Background()
-
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		log.Fatalf("Failed to create Google Storage client: %v", err)
-	}
-	return ctx, client
 }
 
 func TestGoogleStorageLock_NewLock(t *testing.T) {
@@ -106,9 +95,9 @@ func TestGoogleStorageLock_UnlockLocked(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, locked)
 
-	locked, err = lock.Unlock(transactionId, fileName)
+	unlocked, err := lock.Unlock(fileName)
 	assert.NoError(t, err)
-	assert.True(t, locked)
+	assert.True(t, unlocked)
 
 	lockTransactionId, err := lock.GetLock(fileName)
 	assert.NoError(t, err)
@@ -128,7 +117,7 @@ func TestGoogleStorageLock_UnlockLockedWithDifferentId(t *testing.T) {
 	bucketName := "digger-lock-test"
 	fileName := "digger-lock-" + randomString(16)
 	transactionId := 100
-	anotherTransactionId := 200
+	//anotherTransactionId := 200
 
 	bucket := client.Bucket(bucketName)
 	lock := GoogleStorageLock{client, bucket, ctx}
@@ -137,9 +126,9 @@ func TestGoogleStorageLock_UnlockLockedWithDifferentId(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, locked)
 
-	locked, err = lock.Unlock(anotherTransactionId, fileName)
+	unlocked, err := lock.Unlock(fileName)
 	assert.NoError(t, err)
-	assert.False(t, locked)
+	assert.True(t, unlocked)
 }
 
 func TestGoogleStorageLock_GetExistingLock(t *testing.T) {
