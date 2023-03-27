@@ -7,6 +7,7 @@ import (
 	"digger/pkg/models"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"log"
 	"os"
 	"strings"
 )
@@ -39,19 +40,16 @@ func main() {
 
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
-		println(err)
-		os.Exit(1)
+		log.Fatal("Error processing github event", err)
 	}
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	if err != nil {
-		println(err)
-		os.Exit(1)
+		log.Fatal("Error mapping github event to commands", err)
 	}
 
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, "")
 	if err != nil {
-		println(err)
-		os.Exit(1)
+		log.Fatal("Error running commands per project", err)
 	}
 }
