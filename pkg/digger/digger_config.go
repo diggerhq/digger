@@ -1,12 +1,14 @@
 package digger
 
 import (
+	"errors"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type WorkflowConfiguration struct {
@@ -24,6 +26,8 @@ type Project struct {
 	Dir                   string                `yaml:"dir"`
 	WorkflowConfiguration WorkflowConfiguration `yaml:"workflow_configuration"`
 }
+
+var ErrDiggerConfigConflict error = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
 func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawProject Project
@@ -44,17 +48,15 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	config := &DiggerConfig{}
-	var fileName string
-	if workingDir == "" {
-		fileName = "digger.yml"
-	} else {
-		fileName = workingDir + "/digger.yml"
-	}
-	if data, err := os.ReadFile(fileName); err == nil {
-		if err := yaml.Unmarshal(data, config); err != nil {
-			return nil, fmt.Errorf("error parsing digger.yml: %v", err)
+	fileName, err := retrieveConfigFile(workingDir)
+	if err != nil {
+		if errors.Is(err, ErrDiggerConfigConflict) {
+			return nil, fmt.Errorf("error while retrieving config file: %v", err)
 		}
-	} else {
+	}
+
+	data, err := os.ReadFile(fileName)
+	if err != nil {
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = Project{Name: "default", Dir: ".", WorkflowConfiguration: WorkflowConfiguration{
 			OnPullRequestPushed: []string{"digger plan"},
@@ -63,6 +65,11 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 		}}
 		return config, nil
 	}
+
+	if err := yaml.Unmarshal(data, config); err != nil {
+		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+	}
+
 	return config, nil
 }
 
@@ -119,4 +126,40 @@ func (c *DiggerConfig) GetWorkflowConfiguration(projectName string) WorkflowConf
 
 type File struct {
 	Filename string
+}
+
+func isFileExists(path string) bool {
+	fi, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	// file exists make sure it's not a directory
+	return !fi.IsDir()
+}
+
+func retrieveConfigFile(workingDir string) (string, error) {
+	fileName := "digger"
+	if workingDir != "" {
+		fileName = path.Join(workingDir, fileName)
+	}
+
+	// Make sure we don't have more than one digger config file
+	ymlCfg := isFileExists(fileName + ".yml")
+	yamlCfg := isFileExists(fileName + ".yaml")
+	if ymlCfg && yamlCfg {
+		return "", ErrDiggerConfigConflict
+	}
+
+	// At this point we know there are no duplicates
+	// Return the first one that exists
+	if ymlCfg {
+		return "digger.yml", nil
+	}
+	if yamlCfg {
+		return "digger.yaml", nil
+	}
+
+	// Passing this point means digger config file is
+	// missing which is a non-error
+	return "", nil
 }
