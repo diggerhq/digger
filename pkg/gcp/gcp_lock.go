@@ -70,8 +70,6 @@ func (googleLock *GoogleStorageLock) Unlock(resource string) (bool, error) {
 		fmt.Printf("failed to get bucket attributes: %v\n", err)
 	}
 	bucketName := bucketAttrs.Name
-	print("bucketname: ")
-	println(bucketName)
 
 	fileObject := googleLock.Bucket.Object(fileName)
 	err = fileObject.Delete(googleLock.Context)
@@ -90,8 +88,6 @@ func (googleLock *GoogleStorageLock) GetLock(resource string) (*int, error) {
 		fmt.Printf("failed to get bucket attributes: %v\n", err)
 	}
 	bucketName := bucketAttrs.Name
-	print("bucketname: ")
-	println(bucketName)
 
 	fileObject := googleLock.Bucket.Object(fileName)
 	fileAttrs, err := fileObject.Attrs(googleLock.Context)
