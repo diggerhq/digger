@@ -143,6 +143,9 @@ func GetLock() (Lock, error) {
 		}(client)
 
 		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
+		if bucketName == "" {
+			bucketName = "digger-lock-test"
+		}
 		bucket := client.Bucket(bucketName)
 		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}
 		return &lock, nil
