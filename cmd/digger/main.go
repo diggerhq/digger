@@ -5,6 +5,7 @@ import (
 	"digger/pkg/digger"
 	"digger/pkg/github"
 	"digger/pkg/models"
+	"digger/pkg/utils"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"os"
@@ -17,12 +18,10 @@ func main() {
 		println("Failed to read digger config.")
 		os.Exit(1)
 	}
-	sess := session.Must(session.NewSession())
-	dynamoDb := dynamodb.New(sess)
-	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
+
+	lock := GetLock()
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
-
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 
 	parsedGhContext, err := models.GetGitHubContext(ghContext)
@@ -49,9 +48,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, "")
+	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, "")
 	if err != nil {
 		println(err)
 		os.Exit(1)
 	}
+}
+
+func GetLock() utils.Lock {
+	sess := session.Must(session.NewSession())
+	dynamoDb := dynamodb.New(sess)
+	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
+	return &dynamoDbLock
 }
