@@ -28,8 +28,7 @@ func main() {
 
 	parsedGhContext, err := models.GetGitHubContext(ghContext)
 	if ghContext == "" {
-		println("GITHUB_CONTEXT is not defined")
-		os.Exit(1)
+		log.Fatal("GITHUB_CONTEXT is not defined")
 	}
 
 	ghEvent := parsedGhContext.Event
@@ -40,16 +39,16 @@ func main() {
 
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
-		log.Fatal("Error processing github event", err)
+		log.Fatalf("Error processing github event: %v", err)
 	}
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	if err != nil {
-		log.Fatal("Error mapping github event to commands", err)
+		log.Fatalf("Error mapping github event to commands: %v", err)
 	}
 
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, "")
 	if err != nil {
-		log.Fatal("Error running commands per project", err)
+		log.Fatalf("Error running commands per project: %v", err)
 	}
 }
