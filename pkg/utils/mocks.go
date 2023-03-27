@@ -18,7 +18,7 @@ type MockLock struct {
 	MapLock map[string]int
 }
 
-func (lock *MockLock) Lock(timeout int, transactionId int, resource string) (bool, error) {
+func (lock *MockLock) Lock(transactionId int, resource string) (bool, error) {
 	if lock.MapLock == nil {
 		lock.MapLock = make(map[string]int)
 	}
