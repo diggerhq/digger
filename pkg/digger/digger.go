@@ -41,7 +41,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 			impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 		}
 	default:
-		return nil, 0, fmt.Errorf("unsupported event type")
+		return nil, 0, fmt.Errorf("unsupported event type, event: %T", ghEvent)
 	}
 	return impactedProjects, prNumber, nil
 }
