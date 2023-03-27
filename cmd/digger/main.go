@@ -13,14 +13,14 @@ import (
 func main() {
 	diggerConfig, err := digger.NewDiggerConfig("")
 	if err != nil {
-		println("Failed to read digger config.")
+		fmt.Printf("Failed to read digger config. %s\n", err)
 		os.Exit(1)
 	}
 	println("Digger config read successfully")
 
 	lock, err := utils.GetLock()
 	if err != nil {
-		println("Failed to create lock.")
+		fmt.Printf("Failed to create lock. %s\n", err)
 		os.Exit(2)
 	}
 	println("Lock has been created successfully")
@@ -33,13 +33,13 @@ func main() {
 
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 	if ghContext == "" {
-		println("GITHUB_CONTEXT is not defined")
+		fmt.Printf("GITHUB_CONTEXT is not defined. %s\n", err)
 		os.Exit(4)
 	}
 
 	parsedGhContext, err := models.GetGitHubContext(ghContext)
 	if err != nil {
-		println("Failed to parse GitHub context.")
+		fmt.Printf("failed to parse GitHub context. %s\n", err.Error())
 		os.Exit(5)
 	}
 	println("GitHub context parsed successfully")
