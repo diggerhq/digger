@@ -21,7 +21,7 @@ func SkipCI(t *testing.T) {
 	}
 }
 
-func getProjetLockForTests() (error, *utils.ProjectLockImpl) {
+func getProjectLockForTests() (error, *utils.ProjectLockImpl) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: "digger-test",
 		Config: awssdk.Config{
@@ -555,7 +555,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 func TestGetNonExistingLock(t *testing.T) {
 	SkipCI(t)
 
-	err, projectLock := getProjetLockForTests()
+	err, projectLock := getProjectLockForTests()
 	resource := "test_dynamodb_non_existing_lock#default"
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
@@ -565,7 +565,7 @@ func TestGetNonExistingLock(t *testing.T) {
 func TestGetExistingLock(t *testing.T) {
 	SkipCI(t)
 
-	err, projectLock := getProjetLockForTests()
+	err, projectLock := getProjectLockForTests()
 	resource := "test_dynamodb_existing_lock#default"
 	locked, err := projectLock.InternalLock.Lock(100, resource)
 	assert.True(t, locked)
@@ -579,7 +579,7 @@ func TestGetExistingLock(t *testing.T) {
 func TestUnLock(t *testing.T) {
 	SkipCI(t)
 
-	err, projectLock := getProjetLockForTests()
+	err, projectLock := getProjectLockForTests()
 	resource := "test_dynamodb_unlock#default"
 	locked, err := projectLock.InternalLock.Lock(100, resource)
 	assert.True(t, locked)
