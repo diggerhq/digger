@@ -14,7 +14,9 @@ type DynamoDbLock struct {
 	DynamoDb *dynamodb.DynamoDB
 }
 
-func (dynamoDbLock *DynamoDbLock) Lock(timeout int, transactionId int, resource string) (bool, error) {
+func (dynamoDbLock *DynamoDbLock) Lock(transactionId int, resource string) (bool, error) {
+	// TODO: remove timeout completely
+	timeout := 60 * 60 * 24 * 90
 	now := time.Now().Format(time.RFC3339)
 	newTimeout := time.Now().Add(time.Duration(timeout) * time.Second).Format(time.RFC3339)
 
