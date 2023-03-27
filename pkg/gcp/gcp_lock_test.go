@@ -10,12 +10,6 @@ import (
 	"time"
 )
 
-func SkipCI(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
-}
-
 func randomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -26,6 +20,12 @@ func randomString(length int) string {
 		b[i] = charset[seededRand.Intn(len(charset))]
 	}
 	return string(b)
+}
+
+func SkipCI(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
 }
 
 func TestGoogleStorageLock_NewLock(t *testing.T) {
