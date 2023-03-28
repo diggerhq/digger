@@ -375,7 +375,7 @@ func TestHappyPath(t *testing.T) {
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
-	// new pr doesn't lock the project by default
+	//  new pr should lock the project
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
@@ -389,10 +389,11 @@ func TestHappyPath(t *testing.T) {
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 	}
-	resource := repositoryName + "#default"
+	resource := repositoryName + "#" + projectLock.ProjectName
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
-	assert.Nil(t, transactionId)
+	assert.NotNil(t, transactionId)
+	assert.Equal(t, 11, *transactionId, "TransactionId")
 
 	println("--- digger plan comment ---")
 	ghEvent = parsedDiggerPlanCommentContext.Event
