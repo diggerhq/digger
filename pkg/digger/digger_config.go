@@ -153,10 +153,10 @@ func retrieveConfigFile(workingDir string) (string, error) {
 	// At this point we know there are no duplicates
 	// Return the first one that exists
 	if ymlCfg {
-		return "digger.yml", nil
+		return path.Join(workingDir, "digger.yml"), nil
 	}
 	if yamlCfg {
-		return "digger.yaml", nil
+		return path.Join(workingDir, "digger.yaml"), nil
 	}
 
 	// Passing this point means digger config file is
