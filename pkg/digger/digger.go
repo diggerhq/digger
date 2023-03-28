@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"digger/pkg/bitbucket"
 	"digger/pkg/github"
 	"digger/pkg/models"
 	"digger/pkg/terraform"
@@ -42,6 +43,47 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 		}
 	default:
 		return nil, 0, fmt.Errorf("unsupported event type")
+	}
+	return impactedProjects, prNumber, nil
+}
+
+func ProcessBitbucketEvent(event bitbucket.Event, diggerConfig *DiggerConfig, prManager github.PullRequestManager) ([]Project, int, error) {
+	var impactedProjects []Project
+	var prNumber int
+
+	switch event.Type {
+	case PullRequestCreated:
+		prNumber = ghEvent.(models.PullRequestEvent).PullRequest.Number
+		changedFiles, err := prManager.GetChangedFiles(prNumber)
+
+		if err != nil {
+			return nil, 0, fmt.Errorf("could not get changed files")
+		}
+
+		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	case PullRequestUpdated:
+		prNumber = ghEvent.(models.PullRequestEvent).PullRequest.Number
+		changedFiles, err := prManager.GetChangedFiles(prNumber)
+
+		if err != nil {
+			return nil, 0, fmt.Errorf("could not get changed files")
+		}
+
+		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	case PullRequestClosed:
+		prNumber = ghEvent.(models.PullRequestEvent).PullRequest.Number
+		changedFiles, err := prManager.GetChangedFiles(prNumber)
+
+		if err != nil {
+			return nil, 0, fmt.Errorf("could not get changed files")
+		}
+
+		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	case PullRequestApproved:
+	case CommentCreated:
+
+	default:
+		return nil, 0, fmt.Errorf("unsupported bitbucket event type")
 	}
 	return impactedProjects, prNumber, nil
 }
@@ -105,6 +147,55 @@ type ProjectCommand struct {
 }
 
 func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project) ([]ProjectCommand, error) {
+	commandsPerProject := make([]ProjectCommand, 0)
+
+	switch event.(type) {
+	case models.PullRequestEvent:
+		event := event.(models.PullRequestEvent)
+		for _, project := range impactedProjects {
+			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
+				commandsPerProject = append(commandsPerProject, ProjectCommand{
+					ProjectName: project.Name,
+					ProjectDir:  project.Dir,
+					Commands:    project.WorkflowConfiguration.OnCommitToDefault,
+				})
+			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
+				commandsPerProject = append(commandsPerProject, ProjectCommand{
+					ProjectName: project.Name,
+					ProjectDir:  project.Dir,
+					Commands:    project.WorkflowConfiguration.OnPullRequestPushed,
+				})
+			} else if event.Action == "closed" {
+				commandsPerProject = append(commandsPerProject, ProjectCommand{
+					ProjectName: project.Name,
+					ProjectDir:  project.Dir,
+					Commands:    project.WorkflowConfiguration.OnPullRequestClosed,
+				})
+			}
+		}
+		return commandsPerProject, nil
+	case models.IssueCommentEvent:
+		event := event.(models.IssueCommentEvent)
+		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
+
+		for _, command := range supportedCommands {
+			if strings.Contains(event.Comment.Body, command) {
+				for _, project := range impactedProjects {
+					commandsPerProject = append(commandsPerProject, ProjectCommand{
+						ProjectName: project.Name,
+						ProjectDir:  project.Dir,
+						Commands:    []string{command},
+					})
+				}
+			}
+		}
+		return commandsPerProject, nil
+	default:
+		return []ProjectCommand{}, fmt.Errorf("unsupported event type: %T", event)
+	}
+}
+
+func ConvertBitBucketEventToCommands(event models.Event, impactedProjects []Project) ([]ProjectCommand, error) {
 	commandsPerProject := make([]ProjectCommand, 0)
 
 	switch event.(type) {

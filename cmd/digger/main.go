@@ -31,43 +31,52 @@ func main() {
 		os.Exit(3)
 	}
 
-	ghContext := os.Getenv("GITHUB_CONTEXT")
-	if ghContext == "" {
+	bitbucketContext := os.Getenv("BITBUCKET_CONTEXT")
+	if bitbucketContext != "" {
+		fmt.Println("BITBUCKET_CONTEXT found")
+	}
+
+	githubContext := os.Getenv("GITHUB_CONTEXT")
+	if githubContext == "" && bitbucketContext == "" {
 		fmt.Printf("GITHUB_CONTEXT is not defined. %s\n", err)
 		os.Exit(4)
 	}
 
-	parsedGhContext, err := models.GetGitHubContext(ghContext)
-	if err != nil {
-		fmt.Printf("failed to parse GitHub context. %s\n", err.Error())
-		os.Exit(5)
-	}
-	println("GitHub context parsed successfully")
+	if githubContext != "" {
+		parsedGhContext, err := models.GetGitHubContext(githubContext)
+		if err != nil {
+			fmt.Printf("failed to parse GitHub context. %s\n", err.Error())
+			os.Exit(5)
+		}
+		println("GitHub context parsed successfully")
 
-	ghEvent := parsedGhContext.Event
-	eventName := parsedGhContext.EventName
-	splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
-	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
-	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+		ghEvent := parsedGhContext.Event
+		eventName := parsedGhContext.EventName
+		splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
 
-	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
-	if err != nil {
-		fmt.Printf("failed to process GitHub event, %v", err)
-		os.Exit(6)
-	}
-	println("GitHub event processed successfully")
+		repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
+		githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
-	if err != nil {
-		fmt.Printf("failed to convert event to command, %v", err)
-		os.Exit(7)
-	}
-	println("GitHub event converted to commands successfully")
+		impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+		if err != nil {
+			fmt.Printf("failed to process GitHub event, %v", err)
+			os.Exit(6)
+		}
+		println("GitHub event processed successfully")
 
-	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, "")
-	if err != nil {
-		fmt.Printf("failed to execute command, %v", err)
-		os.Exit(8)
+		commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+		if err != nil {
+			fmt.Printf("failed to convert event to command, %v", err)
+			os.Exit(7)
+		}
+		println("GitHub event converted to commands successfully")
+
+		err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, "")
+		if err != nil {
+			fmt.Printf("failed to execute command, %v", err)
+			os.Exit(8)
+		}
 	}
+
 	println("Commands executed successfully")
 }

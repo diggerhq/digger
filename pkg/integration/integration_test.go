@@ -410,6 +410,7 @@ func TestHappyPath(t *testing.T) {
 	resource := repositoryName + "#default"
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
+	assert.NotNil(t, transactionId)
 	assert.Equal(t, 11, *transactionId, "TransactionId")
 
 	println("--- digger plan comment ---")
