@@ -24,14 +24,16 @@ type DiggerConfig struct {
 type Project struct {
 	Name                  string                `yaml:"name"`
 	Dir                   string                `yaml:"dir"`
+	Workspace             string                `yaml:"workspace"`
 	WorkflowConfiguration WorkflowConfiguration `yaml:"workflow_configuration"`
 }
 
-var ErrDiggerConfigConflict error = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
+var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
 func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawProject Project
 	raw := rawProject{
+		Workspace: "default",
 		WorkflowConfiguration: WorkflowConfiguration{
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},
@@ -58,11 +60,7 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		config.Projects = make([]Project, 1)
-		config.Projects[0] = Project{Name: "default", Dir: ".", WorkflowConfiguration: WorkflowConfiguration{
-			OnPullRequestPushed: []string{"digger plan"},
-			OnPullRequestClosed: []string{"digger unlock"},
-			OnCommitToDefault:   []string{"digger apply"},
-		}}
+		config.Projects[0] = defaultProject()
 		return config, nil
 	}
 
@@ -71,6 +69,18 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	}
 
 	return config, nil
+}
+
+func defaultProject() Project {
+	return Project{
+		Name:      "default",
+		Dir:       ".",
+		Workspace: "default",
+		WorkflowConfiguration: WorkflowConfiguration{
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+			OnCommitToDefault:   []string{"digger apply"},
+		}}
 }
 
 func (c *DiggerConfig) GetProject(projectName string) *Project {

@@ -6,6 +6,7 @@ import (
 	"digger/pkg/terraform"
 	"digger/pkg/utils"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -58,6 +59,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			}
 			diggerExecutor := DiggerExecutor{
 				workingDir,
+				projectCommands.ProjectWorkspace,
 				repoOwner,
 				projectCommands.ProjectName,
 				projectCommands.ProjectDir,
@@ -99,9 +101,10 @@ func GetGitHubContext(ghContext string) (*models.Github, error) {
 }
 
 type ProjectCommand struct {
-	ProjectName string
-	ProjectDir  string
-	Commands    []string
+	ProjectName      string
+	ProjectDir       string
+	ProjectWorkspace string
+	Commands         []string
 }
 
 func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project) ([]ProjectCommand, error) {
@@ -113,21 +116,24 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 		for _, project := range impactedProjects {
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
-					ProjectName: project.Name,
-					ProjectDir:  project.Dir,
-					Commands:    project.WorkflowConfiguration.OnCommitToDefault,
+					ProjectName:      project.Name,
+					ProjectDir:       project.Dir,
+					ProjectWorkspace: project.Workspace,
+					Commands:         project.WorkflowConfiguration.OnCommitToDefault,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
-					ProjectName: project.Name,
-					ProjectDir:  project.Dir,
-					Commands:    project.WorkflowConfiguration.OnPullRequestPushed,
+					ProjectName:      project.Name,
+					ProjectDir:       project.Dir,
+					ProjectWorkspace: project.Workspace,
+					Commands:         project.WorkflowConfiguration.OnPullRequestPushed,
 				})
 			} else if event.Action == "closed" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
-					ProjectName: project.Name,
-					ProjectDir:  project.Dir,
-					Commands:    project.WorkflowConfiguration.OnPullRequestClosed,
+					ProjectName:      project.Name,
+					ProjectDir:       project.Dir,
+					ProjectWorkspace: project.Workspace,
+					Commands:         project.WorkflowConfiguration.OnPullRequestClosed,
 				})
 			}
 		}
@@ -139,10 +145,19 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
 				for _, project := range impactedProjects {
+					workspace := project.Workspace
+					workspaceOverride, err := parseWorkspace(event.Comment.Body)
+					if err != nil {
+						return []ProjectCommand{}, err
+					}
+					if workspaceOverride != "" {
+						workspace = workspaceOverride
+					}
 					commandsPerProject = append(commandsPerProject, ProjectCommand{
-						ProjectName: project.Name,
-						ProjectDir:  project.Dir,
-						Commands:    []string{command},
+						ProjectName:      project.Name,
+						ProjectDir:       project.Dir,
+						ProjectWorkspace: workspace,
+						Commands:         []string{command},
 					})
 				}
 			}
@@ -151,6 +166,25 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 	default:
 		return []ProjectCommand{}, fmt.Errorf("unsupported event type: %T", event)
 	}
+}
+
+func parseWorkspace(comment string) (string, error) {
+	re := regexp.MustCompile(`-w(?:\s+(\S+)|$)`)
+	matches := re.FindAllStringSubmatch(comment, -1)
+
+	if len(matches) == 0 {
+		return "", nil
+	}
+
+	if len(matches) > 1 {
+		return "", errors.New("more than one -w flag found")
+	}
+
+	if len(matches[0]) < 2 || matches[0][1] == "" {
+		return "", errors.New("no value found after -w flag")
+	}
+
+	return matches[0][1], nil
 }
 
 func parseProjectName(comment string) string {
@@ -164,6 +198,7 @@ func parseProjectName(comment string) string {
 
 type DiggerExecutor struct {
 	workingDir   string
+	workspace    string
 	repoOwner    string
 	projectName  string
 	projectDir   string
@@ -179,7 +214,7 @@ func (d DiggerExecutor) LockId() string {
 
 func (d DiggerExecutor) Plan(prNumber int) {
 
-	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir)}
+	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
 
 	res, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
@@ -199,7 +234,7 @@ func (d DiggerExecutor) Plan(prNumber int) {
 }
 
 func (d DiggerExecutor) Apply(prNumber int) {
-	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir)}
+	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
 	if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
 		stdout, stderr, err := terraformExecutor.Apply()
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
