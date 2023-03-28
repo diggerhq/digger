@@ -57,20 +57,6 @@ func (googleLock *GoogleStorageLock) Unlock(resource string) (bool, error) {
 		return false, nil
 	}
 
-	// temporarily removed transactionId check
-	//if transactionId != *existingLockTransactionId {
-	//	fmt.Printf("failed to Unlock, transactionId doesn't match: %d != %d\n", transactionId, *existingLockTransactionId)
-	//	return false, nil
-	//}
-
-	// lock exist, transactionId matches, we can delete the lock
-
-	bucketAttrs, err := googleLock.Bucket.Attrs(googleLock.Context)
-	if err != nil {
-		fmt.Printf("failed to get bucket attributes: %v\n", err)
-	}
-	bucketName := bucketAttrs.Name
-
 	fileObject := googleLock.Bucket.Object(fileName)
 	err = fileObject.Delete(googleLock.Context)
 	if err != nil {
@@ -82,13 +68,6 @@ func (googleLock *GoogleStorageLock) Unlock(resource string) (bool, error) {
 
 func (googleLock *GoogleStorageLock) GetLock(resource string) (*int, error) {
 	fileName := resource
-
-	bucketAttrs, err := googleLock.Bucket.Attrs(googleLock.Context)
-	if err != nil {
-		fmt.Printf("failed to get bucket attributes: %v\n", err)
-	}
-	bucketName := bucketAttrs.Name
-
 	fileObject := googleLock.Bucket.Object(fileName)
 	fileAttrs, err := fileObject.Attrs(googleLock.Context)
 	if err != nil {
