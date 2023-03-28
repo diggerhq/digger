@@ -11,17 +11,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"log"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 )
 
-func skipCI(t *testing.T) {
+func SkipCI(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping testing in CI environment")
 	}
 }
 
-func getProjetLockForTests() (error, *utils.ProjectLockImpl) {
+func getProjectLockForTests() (error, *utils.ProjectLockImpl) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: "digger-test",
 		Config: awssdk.Config{
@@ -43,6 +45,18 @@ func getProjetLockForTests() (error, *utils.ProjectLockImpl) {
 		RepoName:     repositoryName,
 	}
 	return err, projectLock
+}
+
+func randomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
 }
 
 var githubContextDiggerPlanCommentMinJson = `{
@@ -264,8 +278,55 @@ var githubContextNewPullRequestMinJson = `{
     }
   }`
 
+var githubContextUnknownEventJson = `{
+  "job": "build",
+  "ref": "refs/heads/main",
+  "sha": "3eb61a47a873fc574c7c57d00cf47343b9ef3892",
+  "repository": "digger_demo",
+  "repository_owner": "diggerhq",
+  "repository_owner_id": "71334590",
+  "workflow": "CI",
+  "head_ref": "",
+  "base_ref": "",
+  "event_name": "non_existent_event",
+  "event": {
+    "action": "created",
+    "comment": {
+      "author_association": "CONTRIBUTOR",
+      "body": "digger plan",
+      "created_at": "2023-03-13T15:14:08Z",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
+      "id": 1466341992,
+      "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
+      "node_id": "IC_kwDOJG5hVM5XZppo"
+    },
+    "issue": {
+      "assignees": [],
+      "author_association": "CONTRIBUTOR",
+      "comments": 5,
+      "comments_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/comments",
+      "created_at": "2023-03-10T14:09:35Z",
+      "draft": false,
+      "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
+      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "id": 1619042081,
+      "labels": [],
+      "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
+      "locked": false,
+      "node_id": "PR_kwDOJG5hVM5LxUWM",
+      "number": 11,
+      "pull_request": {
+        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
+        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
+      }
+    }
+  }
+}`
+
 func TestHappyPath(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 
 	dir := terraform.CreateTestTerraformProject()
 
@@ -282,16 +343,27 @@ func TestHappyPath(t *testing.T) {
 	diggerConfig, err := digger.NewDiggerConfig(dir)
 	assert.NoError(t, err)
 
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Profile: "digger-test",
-		Config: awssdk.Config{
-			Region: awssdk.String("us-east-1"),
-		},
-	})
-
+	lock, err := utils.GetLock()
 	assert.NoError(t, err)
-	dynamoDb := dynamodb.New(sess)
-	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
+	assert.NotNil(t, lock, "failed to create lock")
+	/*
+		sess, err := session.NewSessionWithOptions(session.Options{
+			Profile: "digger-test",
+			Config: awssdk.Config{
+				Region: awssdk.String("us-east-1"),
+			},
+		})
+
+		svc := sts.New(sess)
+		input := &sts.GetCallerIdentityInput{}
+
+		result, err := svc.GetCallerIdentity(input)
+		assert.NotEmpty(t, *result.Account)
+
+		assert.NoError(t, err)
+		dynamoDb := dynamodb.New(sess)
+		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
+	*/
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	assert.NotEmpty(t, ghToken)
@@ -326,16 +398,16 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	assert.NoError(t, err)
-	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
+	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
 	assert.NoError(t, err)
 
 	projectLock := &utils.ProjectLockImpl{
-		InternalLock: &dynamoDbLock,
+		InternalLock: lock,
 		PrManager:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 	}
-	resource := repositoryName + "#dev"
+	resource := repositoryName + "#default"
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.Equal(t, 11, *transactionId, "TransactionId")
@@ -351,7 +423,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	assert.NoError(t, err)
-	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
+	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -365,11 +437,11 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	assert.NoError(t, err)
-	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
+	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
-		InternalLock: &dynamoDbLock,
+		InternalLock: lock,
 		PrManager:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
@@ -388,11 +460,11 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	assert.NoError(t, err)
-	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
+	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
-		InternalLock: &dynamoDbLock,
+		InternalLock: lock,
 		PrManager:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
@@ -403,7 +475,7 @@ func TestHappyPath(t *testing.T) {
 }
 
 func TestMultiEnvHappyPath(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 	t.Skip()
 
 	dir := terraform.CreateTestTerraformProject()
@@ -542,9 +614,9 @@ func TestMultiEnvHappyPath(t *testing.T) {
 }
 
 func TestGetNonExistingLock(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 
-	err, projectLock := getProjetLockForTests()
+	err, projectLock := getProjectLockForTests()
 	resource := "test_dynamodb_non_existing_lock#default"
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
@@ -552,11 +624,12 @@ func TestGetNonExistingLock(t *testing.T) {
 }
 
 func TestGetExistingLock(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 
-	err, projectLock := getProjetLockForTests()
-	resource := "test_dynamodb_existing_lock#default"
-	locked, err := projectLock.InternalLock.Lock(2, 100, resource)
+	err, projectLock := getProjectLockForTests()
+	randString := randomString(8)
+	resource := "test_dynamodb_existing_lock_" + randString + "#default"
+	locked, err := projectLock.InternalLock.Lock(100, resource)
 	assert.True(t, locked)
 
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
@@ -566,11 +639,11 @@ func TestGetExistingLock(t *testing.T) {
 }
 
 func TestUnLock(t *testing.T) {
-	skipCI(t)
+	SkipCI(t)
 
-	err, projectLock := getProjetLockForTests()
+	err, projectLock := getProjectLockForTests()
 	resource := "test_dynamodb_unlock#default"
-	locked, err := projectLock.InternalLock.Lock(2, 100, resource)
+	locked, err := projectLock.InternalLock.Lock(100, resource)
 	assert.True(t, locked)
 
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
@@ -584,4 +657,13 @@ func TestUnLock(t *testing.T) {
 	transactionId, err = projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
 	assert.Nil(t, transactionId)
+}
+
+func TestNonExistentGitHubEvent(t *testing.T) {
+
+	unknownEventContext := githubContextUnknownEventJson
+	_, err := digger.GetGitHubContext(unknownEventContext)
+	println(err.Error())
+	assert.Error(t, err)
+	assert.Equal(t, "error parsing GitHub context JSON: unknown GitHub event: non_existent_event", err.Error())
 }
