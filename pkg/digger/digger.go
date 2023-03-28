@@ -7,6 +7,7 @@ import (
 	"digger/pkg/terraform"
 	"digger/pkg/utils"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -145,11 +146,13 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
 				for _, project := range impactedProjects {
-					workspaceRegex := regexp.MustCompile(`-w(?:\s+(\S+))?`)
 					workspace := project.Workspace
-					workspaceOverride := workspaceRegex.FindStringSubmatch(command)
-					if len(workspaceOverride) > 1 {
-						workspace = workspaceOverride[1]
+					workspaceOverride, err := parseWorkspace(event.Comment.Body)
+					if err != nil {
+						return []ProjectCommand{}, err
+					}
+					if workspaceOverride != "" {
+						workspace = workspaceOverride
 					}
 					commandsPerProject = append(commandsPerProject, ProjectCommand{
 						ProjectName:      project.Name,
@@ -164,6 +167,25 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 	default:
 		return []ProjectCommand{}, fmt.Errorf("unsupported event type: %T", event)
 	}
+}
+
+func parseWorkspace(comment string) (string, error) {
+	re := regexp.MustCompile(`-w(?:\s+(\S+)|$)`)
+	matches := re.FindAllStringSubmatch(comment, -1)
+
+	if len(matches) == 0 {
+		return "", nil
+	}
+
+	if len(matches) > 1 {
+		return "", errors.New("more than one -w flag found")
+	}
+
+	if len(matches[0]) < 2 || matches[0][1] == "" {
+		return "", errors.New("no value found after -w flag")
+	}
+
+	return matches[0][1], nil
 }
 
 func parseProjectName(comment string) string {
