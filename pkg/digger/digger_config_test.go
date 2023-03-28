@@ -47,57 +47,55 @@ func TestDiggerConfigWhenOnlyYamlExists(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
 
-	_, err := os.Create(path.Join(tempDir, "digger.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	diggerCfg := `
+projects:
+- name: prod
+  branch: /main/
+  dir: path/to/module/test
+  workspace: default
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
 
 	dg, err := NewDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
 }
 
 func TestDiggerConfigWhenOnlyYmlExists(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
 
-	_, err := os.Create(path.Join(tempDir, "digger.yml"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	diggerCfg := `
+projects:
+- name: dev
+  branch: /main/
+  dir: path/to/module
+  workspace: default
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
 
 	dg, err := NewDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "path/to/module", dg.GetDirectory("dev"))
 }
 
 func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
 
-	f, err := os.Create(path.Join(tempDir, "digger.yaml"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-
-		}
-	}(f)
-
-	digger_yml := `
+	diggerCfg := `
 projects:
 - name: dev
   branch: /main/
   dir: .
   workspace: default
 `
-	_, err2 := f.WriteString(digger_yml)
-	if err2 != nil {
-		log.Fatal(err2)
-	}
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
 
 	dg, err := NewDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
@@ -118,5 +116,24 @@ func deleteTempDir(name string) {
 	err := os.RemoveAll(name)
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func createFile(filepath string, content string) func() {
+	f, err := os.Create(filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = f.WriteString(content)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return func() {
+		err := f.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }

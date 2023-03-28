@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -59,6 +60,8 @@ func (g *Github) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		g.Event = event
+	default:
+		return errors.New("unknown GitHub event: " + g.EventName)
 	}
 
 	return nil

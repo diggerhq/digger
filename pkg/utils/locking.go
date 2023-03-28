@@ -1,17 +1,32 @@
 package utils
 
 import (
+	"cloud.google.com/go/storage"
 	"digger/pkg/aws"
+	"digger/pkg/gcp"
 	"digger/pkg/github"
+	"errors"
 	"fmt"
+	awssdk "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"log"
+	"os"
 	"strconv"
+	"strings"
 )
 
 type ProjectLockImpl struct {
-	InternalLock aws.Lock
+	InternalLock Lock
 	PrManager    github.PullRequestManager
 	ProjectName  string
 	RepoName     string
+}
+
+type Lock interface {
+	Lock(transactionId int, resource string) (bool, error)
+	Unlock(resource string) (bool, error)
+	GetLock(resource string) (*int, error)
 }
 
 type ProjectLock interface {
@@ -41,7 +56,7 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 		return true, nil
 	}
 
-	lockAcquired, err := projectLock.InternalLock.Lock(60*24, prNumber, lockId)
+	lockAcquired, err := projectLock.InternalLock.Lock(prNumber, lockId)
 	if err != nil {
 		return false, err
 	}
@@ -99,4 +114,41 @@ func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) {
 			println("Project unlocked")
 		}
 	}
+}
+
+func GetLock() (Lock, error) {
+	awsRegion := strings.ToLower(os.Getenv("AWS_REGION"))
+	awsProfile := strings.ToLower(os.Getenv("AWS_PROFILE"))
+	lockProvider := strings.ToLower(os.Getenv("LOCK_PROVIDER"))
+	if lockProvider == "" || lockProvider == "aws" {
+		sess, err := session.NewSessionWithOptions(session.Options{
+			Profile: awsProfile,
+			Config: awssdk.Config{
+				Region: awssdk.String(awsRegion),
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		dynamoDb := dynamodb.New(sess)
+		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
+		return &dynamoDbLock, nil
+	} else if lockProvider == "gcp" {
+		ctx, client := gcp.GetGoogleStorageClient()
+		defer func(client *storage.Client) {
+			err := client.Close()
+			if err != nil {
+				log.Fatalf("Failed to close Google Storage client: %v", err)
+			}
+		}(client)
+
+		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
+		if bucketName == "" {
+			bucketName = "digger-lock"
+		}
+		bucket := client.Bucket(bucketName)
+		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}
+		return &lock, nil
+	}
+	return nil, errors.New("failed to find lock provider")
 }
