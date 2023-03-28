@@ -47,7 +47,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, dynamoDbLock aws.Lock, workingDir string) error {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, prBranch string, SHA string, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, dynamoDbLock aws.Lock, workingDir string) error {
 	lockAcquisitionSuccess := true
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
@@ -67,7 +67,8 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				projectLock,
 				diggerConfig,
 			}
-			prManager.CreateCheckStatus(parsedGhContext.HeadRef, parsedGhContext.SHA)
+			println(prBranch, SHA)
+			prManager.CreateCheckStatus(prBranch, SHA)
 			switch command {
 
 			case "digger plan":

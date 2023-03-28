@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-github/v50/github"
 	"log"
 )
@@ -49,10 +50,17 @@ func (svc *GithubPullRequestService) PublishComment(prNumber int, comment string
 }
 
 func (svc *GithubPullRequestService) CreateCheckStatus(branch string, commitSHA string) error {
-	_, res, err := svc.Client.Checks.CreateCheckSuite(context.Background(), svc.Owner, svc.RepoName, github.CreateCheckSuiteOptions{
-		HeadBranch: &branch,
-		HeadSHA:    commitSHA,
-	})
-	println(res.Body, err)
+	//_, res, err := svc.Client.Checks.CreateCheckSuite(context.Background(), svc.Owner, svc.RepoName, github.CreateCheckSuiteOptions{
+	//	HeadBranch: &branch,
+	//	HeadSHA:    commitSHA,
+	//})
+	status := &github.RepoStatus{
+		Context:     github.String("my-check"),
+		State:       github.String("pending"),
+		Description: github.String("My custom check"),
+	}
+	_, res, err := svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, commitSHA, status)
+	println(res.StatusCode, res.Body, err)
+	spew.Dump(err)
 	return err
 }
