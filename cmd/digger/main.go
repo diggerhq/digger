@@ -37,6 +37,7 @@ func main() {
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	SHA := parsedGhContext.SHA
 	prBranch := parsedGhContext.HeadRef
+
 	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
