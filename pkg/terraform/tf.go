@@ -1,11 +1,13 @@
 package terraform
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"log"
 	"os"
+	"os/exec"
 )
 
 type TerraformExecutor interface {
@@ -13,12 +15,41 @@ type TerraformExecutor interface {
 	Plan() (bool, string, string, error)
 }
 
+type Terragrunt struct {
+	WorkingDir string
+}
+
 type Terraform struct {
 	WorkingDir string
 	Workspace  string
 }
 
-func (terraform *Terraform) Apply() (string, string, error) {
+func (terragrunt Terragrunt) Apply() (string, string, error) {
+	return terragrunt.runTerragruntCommand("apply")
+}
+
+func (terragrunt Terragrunt) Plan() (bool, string, string, error) {
+	stdout, stderr, err := terragrunt.runTerragruntCommand("plan")
+	return true, stdout, stderr, err
+}
+
+func (terragrunt Terragrunt) runTerragruntCommand(command string) (string, string, error) {
+	cmd := exec.Command("terragrunt", command, "--terragrunt-working-dir", terragrunt.WorkingDir)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	return stdout.String(), stderr.String(), err
+}
+
+func (terraform Terraform) Apply() (string, string, error) {
 	println("digger apply")
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
@@ -74,7 +105,7 @@ func (sw *StdWriter) GetString() string {
 	return s
 }
 
-func (terraform *Terraform) Plan() (bool, string, string, error) {
+func (terraform Terraform) Plan() (bool, string, string, error) {
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
 

@@ -101,6 +101,7 @@ projects:
   branch: /main/
   dir: .
   workspace: default
+  terragrunt: false
   workflow_configuration:
     on_pull_request_pushed: [digger plan]
     on_pull_request_closed: [digger unlock]
