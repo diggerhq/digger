@@ -346,24 +346,6 @@ func TestHappyPath(t *testing.T) {
 	lock, err := utils.GetLock()
 	assert.NoError(t, err)
 	assert.NotNil(t, lock, "failed to create lock")
-	/*
-		sess, err := session.NewSessionWithOptions(session.Options{
-			Profile: "digger-test",
-			Config: awssdk.Config{
-				Region: awssdk.String("us-east-1"),
-			},
-		})
-
-		svc := sts.New(sess)
-		input := &sts.GetCallerIdentityInput{}
-
-		result, err := svc.GetCallerIdentity(input)
-		assert.NotEmpty(t, *result.Account)
-
-		assert.NoError(t, err)
-		dynamoDb := dynamodb.New(sess)
-		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
-	*/
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	assert.NotEmpty(t, ghToken)
@@ -393,7 +375,7 @@ func TestHappyPath(t *testing.T) {
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
-	// new pr should lock the project
+	//  new pr should lock the project
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
@@ -407,9 +389,10 @@ func TestHappyPath(t *testing.T) {
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 	}
-	resource := repositoryName + "#default"
+	resource := repositoryName + "#" + projectLock.ProjectName
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
+	assert.NotNil(t, transactionId)
 	assert.Equal(t, 11, *transactionId, "TransactionId")
 
 	println("--- digger plan comment ---")
