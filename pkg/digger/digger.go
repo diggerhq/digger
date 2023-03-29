@@ -64,6 +64,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				projectCommands.ProjectName,
 				projectCommands.ProjectDir,
 				repoName,
+				projectCommands.Terragrunt,
 				prManager,
 				projectLock,
 				diggerConfig,
@@ -104,6 +105,7 @@ type ProjectCommand struct {
 	ProjectName      string
 	ProjectDir       string
 	ProjectWorkspace string
+	Terragrunt       bool
 	Commands         []string
 }
 
@@ -119,6 +121,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
+					Terragrunt:       project.Terragrunt,
 					Commands:         project.WorkflowConfiguration.OnCommitToDefault,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
@@ -126,6 +129,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
+					Terragrunt:       project.Terragrunt,
 					Commands:         project.WorkflowConfiguration.OnPullRequestPushed,
 				})
 			} else if event.Action == "closed" {
@@ -133,6 +137,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
+					Terragrunt:       project.Terragrunt,
 					Commands:         project.WorkflowConfiguration.OnPullRequestClosed,
 				})
 			}
@@ -157,6 +162,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
+						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
 					})
 				}
@@ -203,6 +209,7 @@ type DiggerExecutor struct {
 	projectName  string
 	projectDir   string
 	repoName     string
+	terragrunt   bool
 	prManager    github.PullRequestManager
 	lock         utils.ProjectLock
 	configDigger *DiggerConfig
@@ -214,7 +221,13 @@ func (d DiggerExecutor) LockId() string {
 
 func (d DiggerExecutor) Plan(prNumber int) {
 
-	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+	var terraformExecutor terraform.TerraformExecutor
+
+	if d.terragrunt {
+		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
+	} else {
+		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+	}
 
 	res, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
@@ -234,7 +247,14 @@ func (d DiggerExecutor) Plan(prNumber int) {
 }
 
 func (d DiggerExecutor) Apply(prNumber int) {
-	terraformExecutor := terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+	var terraformExecutor terraform.TerraformExecutor
+
+	if d.terragrunt {
+		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
+	} else {
+		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+	}
+
 	if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
 		stdout, stderr, err := terraformExecutor.Apply()
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
