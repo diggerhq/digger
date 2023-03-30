@@ -69,10 +69,10 @@ func (terraform Terraform) Apply() (string, string, error) {
 		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
 	}
 
-	err = tf.WorkspaceSelect(context.Background(), terraform.Workspace)
+	err = tf.WorkspaceNew(context.Background(), terraform.Workspace)
 
 	if err != nil {
-		log.Printf("terraform workspace select failed. workspace: %v. dir: %v", terraform.Workspace, terraform.WorkingDir)
+		log.Printf("terraform workspace new failed. workspace: %v . dir: %v", terraform.Workspace, terraform.WorkingDir)
 		return stdout.GetString(), "", fmt.Errorf("terraform select failed. %s", err)
 	}
 
@@ -123,10 +123,10 @@ func (terraform Terraform) Plan() (bool, string, string, error) {
 		println("terraform init failed.")
 		return false, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform init failed. %s", err)
 	}
-	err = tf.WorkspaceSelect(context.Background(), terraform.Workspace)
+	err = tf.WorkspaceNew(context.Background(), terraform.Workspace)
 
 	if err != nil {
-		log.Printf("terraform workspace select failed. workspace: %v. dir: %v", terraform.Workspace, terraform.WorkingDir)
+		log.Printf("terraform workspace new failed. workspace: %v . dir: %v", terraform.Workspace, terraform.WorkingDir)
 		return false, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform select failed. %s", err)
 	}
 	isNonEmptyPlan, err := tf.Plan(context.Background())
