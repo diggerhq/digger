@@ -23,7 +23,7 @@ func main() {
 		fmt.Printf("Failed to create lock provider. %s\n", err)
 		os.Exit(2)
 	}
-	println("Lock provvider has been created successfully")
+	println("Lock provider has been created successfully")
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
