@@ -21,6 +21,7 @@ type ProjectLockImpl struct {
 	PrManager    github.PullRequestManager
 	ProjectName  string
 	RepoName     string
+	RepoOwner    string
 }
 
 type Lock interface {
@@ -47,11 +48,11 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 	if transactionId != nil {
 		transactionIdStr := strconv.Itoa(*transactionId)
 		if *transactionId != prNumber {
-			comment := "Project " + projectLock.ProjectName + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
+			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
 			projectLock.PrManager.PublishComment(prNumber, comment)
 			return false, nil
 		}
-		comment := "Project " + projectLock.ProjectName + " locked by this PR #" + transactionIdStr + " already."
+		comment := "Project " + projectLock.projectId() + " locked by this PR #" + transactionIdStr + " already."
 		projectLock.PrManager.PublishComment(prNumber, comment)
 		return true, nil
 	}
@@ -62,16 +63,16 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 	}
 
 	if lockAcquired {
-		comment := "Project " + projectLock.ProjectName + " has been locked by PR #" + strconv.Itoa(prNumber)
+		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(prNumber)
 		projectLock.PrManager.PublishComment(prNumber, comment)
-		println("project " + projectLock.ProjectName + " locked successfully. PR # " + strconv.Itoa(prNumber))
+		println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(prNumber))
 		return true, nil
 	}
 
 	transactionId, _ = projectLock.InternalLock.GetLock(lockId)
 	transactionIdStr = strconv.Itoa(*transactionId)
 
-	comment := "Project " + projectLock.ProjectName + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.RepoName + "). The locking plan must be applied or discarded before future plans can execute"
+	comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.RepoName + "). The locking plan must be applied or discarded before future plans can execute"
 	projectLock.PrManager.PublishComment(prNumber, comment)
 	println(comment)
 	return false, nil
@@ -92,7 +93,7 @@ func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, e
 				return false, err
 			}
 			if lockReleased {
-				comment := "Project unlocked (" + projectLock.ProjectName + ")."
+				comment := "Project unlocked (" + projectLock.projectId() + ")."
 				projectLock.PrManager.PublishComment(prNumber, comment)
 				println("Project unlocked")
 				return true, nil
@@ -109,11 +110,15 @@ func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) {
 		lockReleased, _ := projectLock.InternalLock.Unlock(lockId)
 
 		if lockReleased {
-			comment := "Project unlocked (" + projectLock.ProjectName + ")."
+			comment := "Project unlocked (" + projectLock.projectId() + ")."
 			projectLock.PrManager.PublishComment(prNumber, comment)
 			println("Project unlocked")
 		}
 	}
+}
+
+func (projectLock *ProjectLockImpl) projectId() string {
+	return projectLock.RepoOwner + "/" + projectLock.RepoName
 }
 
 func GetLock() (Lock, error) {

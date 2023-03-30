@@ -43,6 +43,7 @@ func getProjectLockForTests() (error, *utils.ProjectLockImpl) {
 		PrManager:    githubPrService,
 		ProjectName:  "test_dynamodb_lock",
 		RepoName:     repositoryName,
+		RepoOwner:    repoOwner,
 	}
 	return err, projectLock
 }
@@ -388,6 +389,7 @@ func TestHappyPath(t *testing.T) {
 		PrManager:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
+		RepoOwner:    repoOwner,
 	}
 	resource := repositoryName + "#" + projectLock.ProjectName
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
@@ -428,6 +430,7 @@ func TestHappyPath(t *testing.T) {
 		PrManager:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
+		RepoOwner:    repoOwner,
 	}
 	transactionId, err = projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
@@ -451,6 +454,7 @@ func TestHappyPath(t *testing.T) {
 		PrManager:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
+		RepoOwner:    repoOwner,
 	}
 	transactionId, err = projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
@@ -528,6 +532,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",
 		RepoName:     repositoryName,
+		RepoOwner:    repoOwner,
 	}
 	resource := "digger_demo#default"
 	transactionId, err := projectLock.InternalLock.GetLock(resource)
@@ -567,6 +572,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",
 		RepoName:     repositoryName,
+		RepoOwner:    repoOwner,
 	}
 	transactionId, err = projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
@@ -590,6 +596,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		PrManager:    githubPrService,
 		ProjectName:  "digger_demo",
 		RepoName:     repositoryName,
+		RepoOwner:    repoOwner,
 	}
 	transactionId, err = projectLock.InternalLock.GetLock(resource)
 	assert.NoError(t, err)
