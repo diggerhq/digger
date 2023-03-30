@@ -56,6 +56,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				PrManager:    prManager,
 				ProjectName:  projectCommands.ProjectName,
 				RepoName:     repoName,
+				RepoOwner:    repoOwner,
 			}
 			diggerExecutor := DiggerExecutor{
 				workingDir,
@@ -216,7 +217,7 @@ type DiggerExecutor struct {
 }
 
 func (d DiggerExecutor) LockId() string {
-	return d.repoName + "#" + d.projectName
+	return d.repoOwner + "/" + d.repoName + "#" + d.projectName
 }
 
 func (d DiggerExecutor) Plan(prNumber int) {

@@ -14,6 +14,7 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 		PrManager:    &mockPrManager,
 		ProjectName:  "",
 		RepoName:     "",
+		RepoOwner:    "",
 	}
 	state1, err1 := pl.Lock("a", 1)
 	assert.True(t, state1)
