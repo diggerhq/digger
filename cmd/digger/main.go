@@ -20,10 +20,10 @@ func main() {
 
 	lock, err := utils.GetLock()
 	if err != nil {
-		fmt.Printf("Failed to create lock. %s\n", err)
+		fmt.Printf("Failed to create lock provider. %s\n", err)
 		os.Exit(2)
 	}
-	println("Lock has been created successfully")
+	println("Lock provvider has been created successfully")
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
