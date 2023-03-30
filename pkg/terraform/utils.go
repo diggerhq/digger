@@ -6,7 +6,7 @@ import (
 )
 
 func CreateTestTerraformProject() string {
-	file, err := os.MkdirTemp("", "digger-test")
+	file, err := os.MkdirTemp("", "digger-test-*")
 	if err != nil {
 		log.Fatal(err)
 	}
