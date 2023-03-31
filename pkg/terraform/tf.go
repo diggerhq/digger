@@ -1,9 +1,11 @@
 package terraform
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-exec/tfexec"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -35,18 +37,18 @@ func (terragrunt Terragrunt) Plan() (bool, string, string, error) {
 func (terragrunt Terragrunt) runTerragruntCommand(command string) (string, string, error) {
 	cmd := exec.Command("terragrunt", command, "--terragrunt-working-dir", terragrunt.WorkingDir)
 
-	stdout := StdWriter{[]byte{}, true}
-	stderr := StdWriter{[]byte{}, true}
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
+	var stdout, stderr bytes.Buffer
+	mwout := io.MultiWriter(os.Stdout, &stdout)
+	mwerr := io.MultiWriter(os.Stderr, &stderr)
+	cmd.Stdout = mwout
+	cmd.Stderr = mwerr
 	err := cmd.Run()
 
 	if err != nil {
-		return stdout.GetString(), stderr.GetString(), fmt.Errorf("error: %v", err)
+		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
 	}
 
-	return stdout.GetString(), stderr.GetString(), err
+	return stdout.String(), stderr.String(), err
 }
 
 func (terraform Terraform) Apply() (string, string, error) {
