@@ -35,6 +35,6 @@ func TestExecuteTerraformApply(t *testing.T) {
 	CreateValidTerraformTestFile(dir)
 
 	tf := Terraform{WorkingDir: dir, Workspace: "default"}
-	_, _, err := tf.Apply()
+	_, _, err := tf.Apply([]string{}, []string{})
 	assert.NoError(t, err)
 }

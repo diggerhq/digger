@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -11,8 +10,8 @@ import (
 )
 
 type TerraformExecutor interface {
-	Apply() (string, string, error)
-	Plan() (bool, string, string, error)
+	Apply([]string, []string) (string, string, error)
+	Plan([]string, []string) (bool, string, string, error)
 }
 
 type Terragrunt struct {
@@ -24,11 +23,11 @@ type Terraform struct {
 	Workspace  string
 }
 
-func (terragrunt Terragrunt) Apply() (string, string, error) {
+func (terragrunt Terragrunt) Apply(initParams []string, applyParams []string) (string, string, error) {
 	return terragrunt.runTerragruntCommand("apply")
 }
 
-func (terragrunt Terragrunt) Plan() (bool, string, string, error) {
+func (terragrunt Terragrunt) Plan(initParams []string, planParams []string) (bool, string, string, error) {
 	stdout, stderr, err := terragrunt.runTerragruntCommand("plan")
 	return true, stdout, stderr, err
 }
@@ -36,7 +35,8 @@ func (terragrunt Terragrunt) Plan() (bool, string, string, error) {
 func (terragrunt Terragrunt) runTerragruntCommand(command string) (string, string, error) {
 	cmd := exec.Command("terragrunt", command, "--terragrunt-working-dir", terragrunt.WorkingDir)
 
-	var stdout, stderr bytes.Buffer
+	stdout := StdWriter{[]byte{}, true}
+	stderr := StdWriter{[]byte{}, true}
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
@@ -46,43 +46,41 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string) (string, strin
 		fmt.Println("Error:", err)
 	}
 
-	return stdout.String(), stderr.String(), err
+	return stdout.GetString(), stderr.GetString(), err
 }
 
-func (terraform Terraform) Apply() (string, string, error) {
-	println("digger apply")
-	execDir := "terraform"
-	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
+func (terraform Terraform) Apply(initParams []string, applyParams []string) (string, string, error) {
+	initParams = append(append(initParams, "-upgrade=false"), "-input=false")
+	_, _, err := terraform.runTerraformCommand("init", initParams...)
 	if err != nil {
-		return "", "", fmt.Errorf("error while initializing terraform: %s", err)
+		return "", "", err
+	}
+	_, _, err = terraform.runTerraformCommand("select", terraform.Workspace)
+	if err != nil {
+		return "", "", err
+	}
+	return terraform.runTerraformCommand("apply", applyParams...)
+}
+
+func (tf Terraform) runTerraformCommand(command string, arg ...string) (string, string, error) {
+	args := []string{command}
+	args = append(args, arg...)
+	args = append(args, "-chdir="+tf.WorkingDir)
+
+	cmd := exec.Command("terraform", args...)
+
+	stdout := StdWriter{[]byte{}, true}
+	stderr := StdWriter{[]byte{}, true}
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Println("Error:", err)
 	}
 
-	stdout := &StdWriter{[]byte{}, true}
-	//stderr := &StdWriter{[]byte{}, true}
-	tf.SetStdout(stdout)
-	//tf.SetStderr(stderr)
-	tf.SetStderr(os.Stderr)
-
-	err = tf.Init(context.Background(), tfexec.Upgrade(false))
-	if err != nil {
-		println("terraform init failed.")
-		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
-	}
-
-	err = tf.WorkspaceSelect(context.Background(), terraform.Workspace)
-
-	if err != nil {
-		log.Printf("terraform workspace select failed. workspace: %v. dir: %v", terraform.Workspace, terraform.WorkingDir)
-		return stdout.GetString(), "", fmt.Errorf("terraform select failed. %s", err)
-	}
-
-	err = tf.Apply(context.Background())
-	if err != nil {
-		println("terraform plan failed.")
-		return stdout.GetString(), "", fmt.Errorf("terraform plan failed. %s", err)
-	}
-
-	return stdout.GetString(), "", nil
+	return stdout.GetString(), stderr.GetString(), err
 }
 
 type StdWriter struct {
@@ -105,7 +103,7 @@ func (sw *StdWriter) GetString() string {
 	return s
 }
 
-func (terraform Terraform) Plan() (bool, string, string, error) {
+func (terraform Terraform) Plan(initParams []string, planParams []string) (bool, string, string, error) {
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
 
