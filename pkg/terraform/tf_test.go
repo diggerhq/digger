@@ -19,7 +19,7 @@ func TestExecuteTerraformPlan(t *testing.T) {
 	CreateValidTerraformTestFile(dir)
 
 	tf := Terraform{WorkingDir: dir, Workspace: "default"}
-	_, _, _, err := tf.Plan()
+	_, _, _, err := tf.Plan([]string{}, []string{})
 	assert.NoError(t, err)
 }
 
