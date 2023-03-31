@@ -5,6 +5,7 @@ import (
 	"digger/pkg/digger"
 	"digger/pkg/github"
 	"digger/pkg/terraform"
+	"digger/pkg/testing_utils"
 	"digger/pkg/utils"
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -16,12 +17,6 @@ import (
 	"testing"
 	"time"
 )
-
-func SkipCI(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
-}
 
 func getProjectLockForTests() (error, *utils.ProjectLockImpl) {
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -327,7 +322,7 @@ var githubContextUnknownEventJson = `{
 }`
 
 func TestHappyPath(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 
 	dir := terraform.CreateTestTerraformProject()
 
@@ -462,7 +457,7 @@ func TestHappyPath(t *testing.T) {
 }
 
 func TestMultiEnvHappyPath(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 	t.Skip()
 
 	dir := terraform.CreateTestTerraformProject()
@@ -604,7 +599,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 }
 
 func TestGetNonExistingLock(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 
 	err, projectLock := getProjectLockForTests()
 	resource := "test_dynamodb_non_existing_lock#default"
@@ -614,7 +609,7 @@ func TestGetNonExistingLock(t *testing.T) {
 }
 
 func TestGetExistingLock(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 
 	err, projectLock := getProjectLockForTests()
 	randString := randomString(8)
@@ -629,7 +624,7 @@ func TestGetExistingLock(t *testing.T) {
 }
 
 func TestUnLock(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 
 	err, projectLock := getProjectLockForTests()
 	resource := "test_dynamodb_unlock#default"
