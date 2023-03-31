@@ -100,10 +100,10 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 			Plan: &Stage{
 				Steps: []Step{{
 					Action:    "init",
-					ExtraArgs: nil,
+					ExtraArgs: []string{},
 				}, {
 					"plan",
-					nil,
+					[]string{},
 				}},
 			},
 		}
