@@ -39,6 +39,7 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string) (string, strin
 	env := cmd.Env
 	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")
+	cmd.Env = env
 
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
