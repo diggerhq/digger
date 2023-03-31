@@ -2,10 +2,10 @@ package gcp
 
 import (
 	"cloud.google.com/go/storage"
+	"digger/pkg/testing_utils"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"
-	"os"
 	"testing"
 	"time"
 )
@@ -22,14 +22,8 @@ func randomString(length int) string {
 	return string(b)
 }
 
-func SkipCI(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
-}
-
 func TestGoogleStorageLock_NewLock(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 	ctx, client := GetGoogleStorageClient()
 	defer func(client *storage.Client) {
 		err := client.Close()
@@ -50,7 +44,7 @@ func TestGoogleStorageLock_NewLock(t *testing.T) {
 }
 
 func TestGoogleStorageLock_LockLocked(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 	ctx, client := GetGoogleStorageClient()
 	defer func(client *storage.Client) {
 		err := client.Close()
@@ -75,7 +69,7 @@ func TestGoogleStorageLock_LockLocked(t *testing.T) {
 }
 
 func TestGoogleStorageLock_UnlockLocked(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 	ctx, client := GetGoogleStorageClient()
 	defer func(client *storage.Client) {
 		err := client.Close()
@@ -105,7 +99,7 @@ func TestGoogleStorageLock_UnlockLocked(t *testing.T) {
 }
 
 func TestGoogleStorageLock_UnlockLockedWithDifferentId(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 	ctx, client := GetGoogleStorageClient()
 	defer func(client *storage.Client) {
 		err := client.Close()
@@ -132,7 +126,7 @@ func TestGoogleStorageLock_UnlockLockedWithDifferentId(t *testing.T) {
 }
 
 func TestGoogleStorageLock_GetExistingLock(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 	ctx, client := GetGoogleStorageClient()
 	defer func(client *storage.Client) {
 		err := client.Close()
@@ -158,7 +152,7 @@ func TestGoogleStorageLock_GetExistingLock(t *testing.T) {
 }
 
 func TestGoogleStorageLock_GetNotExistingLock(t *testing.T) {
-	SkipCI(t)
+	testing_utils.SkipCI(t)
 	ctx, client := GetGoogleStorageClient()
 	defer func(client *storage.Client) {
 		err := client.Close()
