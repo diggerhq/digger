@@ -123,7 +123,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				workflow = Workflow{}
+				workflow = *defaultWorkflow()
 			}
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -369,4 +369,34 @@ func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, st
 func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
 	regex := `(Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy.)`
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
+}
+
+func defaultWorkflow() *Workflow {
+	return &Workflow{
+		Configuration: &WorkflowConfiguration{
+			OnCommitToDefault:   []string{"digger unlock"},
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+		},
+		Plan: &Stage{
+			Steps: []Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "plan", ExtraArgs: []string{},
+				},
+			},
+		},
+		Apply: &Stage{
+			Steps: []Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "apply", ExtraArgs: []string{},
+				},
+			},
+		},
+	}
 }
