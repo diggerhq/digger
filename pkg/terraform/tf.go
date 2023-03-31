@@ -64,7 +64,7 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string)
 }
 
 func (tf Terraform) Apply(initParams []string, applyParams []string) (string, string, error) {
-	initParams = append(append(initParams, "-upgrade=true"), "-input=false")
+	initParams = append(append(append(initParams, "-upgrade=true"), "-input=false"), "-no-color")
 	_, _, _, err := tf.runTerraformCommand("init", initParams...)
 	if err != nil {
 		return "", "", err
@@ -81,7 +81,7 @@ func (tf Terraform) Apply(initParams []string, applyParams []string) (string, st
 			return "", "", err
 		}
 	}
-	applyParams = append(applyParams, "-input=false")
+	applyParams = append(append(append(applyParams, "-input=false"), "-no-color"), "-auto-approve")
 	stdout, stderr, _, err := tf.runTerraformCommand("apply", applyParams...)
 	if err != nil {
 		return "", "", err
@@ -134,7 +134,7 @@ func (sw *StdWriter) GetString() string {
 }
 
 func (tf Terraform) Plan(initParams []string, planParams []string) (bool, string, string, error) {
-	initParams = append(append(initParams, "-upgrade=true"), "-input=false")
+	initParams = append(append(append(initParams, "-upgrade=true"), "-input=false"), "-no-color")
 	_, _, _, err := tf.runTerraformCommand("init", initParams...)
 	if err != nil {
 		return false, "", "", err
@@ -150,7 +150,7 @@ func (tf Terraform) Plan(initParams []string, planParams []string) (bool, string
 			return false, "", "", err
 		}
 	}
-	planParams = append(planParams, "-input=false")
+	planParams = append(append(append(planParams, "-input=false"), "-no-color"), "-out=tfplan")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", planParams...)
 	if err != nil {
 		return false, "", "", err
