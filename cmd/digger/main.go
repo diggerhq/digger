@@ -57,7 +57,7 @@ func main() {
 	}
 	println("GitHub event processed successfully")
 
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, diggerConfig.Workflows)
 	if err != nil {
 		fmt.Printf("failed to convert event to command, %v", err)
 		os.Exit(7)
