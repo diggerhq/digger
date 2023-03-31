@@ -326,3 +326,35 @@ func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, std
 	regex := `(Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy.)`
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
 }
+
+type CIName string
+
+const (
+	None      = CIName("")
+	GitHub    = CIName("github")
+	GitLab    = CIName("gitlab")
+	BitBucket = CIName("bitbucket")
+)
+
+func (ci CIName) String() string {
+	return string(ci)
+}
+
+func DetectCI() CIName {
+
+	notEmpty := func(key string) bool {
+		return os.Getenv(key) != ""
+	}
+
+	if notEmpty("GITHUB_ACTIONS") {
+		return GitHub
+	}
+	if notEmpty("GITLAB_CI") {
+		return GitLab
+	}
+	if notEmpty("BITBUCKET_BUILD_NUMBER") {
+		return BitBucket
+	}
+	return None
+
+}

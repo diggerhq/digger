@@ -1,6 +1,9 @@
 package digger
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 func TestParseWorkspace(t *testing.T) {
 	var commentTests = []struct {
@@ -29,5 +32,27 @@ func TestParseWorkspace(t *testing.T) {
 			}
 		}
 	}
+}
 
+func TestDetectCIGitHub(t *testing.T) {
+	t.Setenv("GITHUB_ACTIONS", "github")
+	ci := DetectCI()
+	assert.Equal(t, GitHub, ci)
+}
+
+func TestDetectCINone(t *testing.T) {
+	ci := DetectCI()
+	assert.Equal(t, None, ci)
+}
+
+func TestDetectCIBitBucket(t *testing.T) {
+	t.Setenv("BITBUCKET_BUILD_NUMBER", "212")
+	ci := DetectCI()
+	assert.Equal(t, BitBucket, ci)
+}
+
+func TestDetectCIGitLab(t *testing.T) {
+	t.Setenv("GITLAB_CI", "gitlab")
+	ci := DetectCI()
+	assert.Equal(t, GitLab, ci)
 }
