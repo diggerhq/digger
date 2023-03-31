@@ -49,18 +49,23 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string)
 	args = append(args, "--terragrunt-working-dir", terragrunt.WorkingDir)
 	cmd := exec.Command("terragrunt", args...)
 
-	stdout := StdWriter{[]byte{}, true}
-	stderr := StdWriter{[]byte{}, true}
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	env := cmd.Env
+	env = append(env, "TF_CLI_ARGS=-no-color")
+	env = append(env, "TF_IN_AUTOMATION=true")
+	cmd.Env = env
 
+	var stdout, stderr bytes.Buffer
+	mwout := io.MultiWriter(os.Stdout, &stdout)
+	mwerr := io.MultiWriter(os.Stderr, &stderr)
+	cmd.Stdout = mwout
+	cmd.Stderr = mwerr
 	err := cmd.Run()
 
 	if err != nil {
-		fmt.Println("Error:", err)
+		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
 	}
 
-	return stdout.GetString(), stderr.GetString(), err
+	return stdout.String(), stderr.String(), err
 }
 
 func (tf Terraform) Apply(initParams []string, applyParams []string) (string, string, error) {
