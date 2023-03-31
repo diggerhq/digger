@@ -167,7 +167,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 				for _, project := range impactedProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
-						workflow = Workflow{}
+						workflow = *defaultWorkflow()
 					}
 					workspace := project.Workspace
 					workspaceOverride, err := parseWorkspace(event.Comment.Body)
