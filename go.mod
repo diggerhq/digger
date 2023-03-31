@@ -5,6 +5,7 @@ go 1.18
 require (
 	cloud.google.com/go/storage v1.30.1
 	github.com/aws/aws-sdk-go v1.44.219
+	github.com/caarlos0/env/v7 v7.1.0
 	github.com/hashicorp/terraform-exec v0.18.1
 	github.com/stretchr/testify v1.8.2
 	gopkg.in/yaml.v2 v2.4.0
