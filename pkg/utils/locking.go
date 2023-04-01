@@ -1,19 +1,22 @@
 package utils
 
 import (
-	"cloud.google.com/go/storage"
 	"digger/pkg/aws"
+	"digger/pkg/aws/envprovider"
 	"digger/pkg/gcp"
 	"digger/pkg/github"
 	"errors"
 	"fmt"
-	awssdk "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"cloud.google.com/go/storage"
+	awssdk "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 type ProjectLockImpl struct {
@@ -129,7 +132,8 @@ func GetLock() (Lock, error) {
 		sess, err := session.NewSessionWithOptions(session.Options{
 			Profile: awsProfile,
 			Config: awssdk.Config{
-				Region: awssdk.String(awsRegion),
+				Region:      awssdk.String(awsRegion),
+				Credentials: credentials.NewCredentials(&envprovider.EnvProvider{}),
 			},
 		})
 		if err != nil {
