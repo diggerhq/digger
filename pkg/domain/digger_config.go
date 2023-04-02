@@ -1,4 +1,4 @@
-package digger
+package domain
 
 import (
 	"errors"
@@ -11,11 +11,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type WorkflowConfiguration struct {
-	OnPullRequestPushed []string `yaml:"on_pull_request_pushed"`
-	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
-	OnCommitToDefault   []string `yaml:"on_commit_to_default"`
-}
+var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
 type DiggerConfig struct {
 	Projects []Project `yaml:"projects"`
@@ -29,7 +25,11 @@ type Project struct {
 	WorkflowConfiguration WorkflowConfiguration `yaml:"workflow_configuration"`
 }
 
-var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
+type WorkflowConfiguration struct {
+	OnPullRequestPushed []string `yaml:"on_pull_request_pushed"`
+	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
+	OnCommitToDefault   []string `yaml:"on_commit_to_default"`
+}
 
 func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawProject Project
