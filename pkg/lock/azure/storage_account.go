@@ -3,6 +3,6 @@ package azure
 // TODO: to implement
 type StorageAccount struct{}
 
-func (sa *StorageAccount) Lock() error
-func (sa *StorageAccount) Unlock() error
-func (sa *StorageAccount) Get() (bool, string, error)
+func (sa *StorageAccount) Lock() error                { return nil }
+func (sa *StorageAccount) Unlock() error              { return nil }
+func (sa *StorageAccount) Get() (bool, string, error) { return false, "", nil }
