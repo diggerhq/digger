@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-github/v50/github"
 	"log"
 )
@@ -24,6 +25,7 @@ type GithubPullRequestService struct {
 type PullRequestManager interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string)
+	CreateCheckStatus(branch string, commitSHA string) error
 }
 
 func (svc *GithubPullRequestService) GetChangedFiles(prNumber int) ([]string, error) {
@@ -45,4 +47,21 @@ func (svc *GithubPullRequestService) PublishComment(prNumber int, comment string
 	if err != nil {
 		log.Fatalf("error publishing comment: %v", err)
 	}
+}
+
+func (svc *GithubPullRequestService) CreateCheckStatus(branch string, commitSHA string) error {
+	//status := &github.RepoStatus{
+	//	Context:     github.String("my-check"),
+	//	State:       github.String("pending"),
+	//	Description: github.String("My custom check"),
+	//}
+	//_, res, err := svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, commitSHA, status)
+
+	options := github.CreateCheckRunOptions{
+		Name:    "my digger check",
+		HeadSHA: commitSHA,
+	}
+	_, res, err := svc.Client.Checks.CreateCheckRun(context.Background(), svc.Owner, svc.RepoName, options)
+	spew.Dump(res.StatusCode, err)
+	return err
 }
