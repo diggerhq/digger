@@ -4,6 +4,7 @@ import (
 	"digger/pkg/aws"
 	"digger/pkg/digger"
 	"digger/pkg/github"
+	"digger/pkg/gitlab"
 	"digger/pkg/terraform"
 	"digger/pkg/testing_utils"
 	"digger/pkg/utils"
@@ -651,4 +652,61 @@ func TestNonExistentGitHubEvent(t *testing.T) {
 	println(err.Error())
 	assert.Error(t, err)
 	assert.Equal(t, "error parsing GitHub context JSON: unknown GitHub event: non_existent_event", err.Error())
+}
+
+func TestGitLabHappyPath(t *testing.T) {
+	testing_utils.SkipCI(t)
+	t.Setenv("MERGE_REQUEST_EVENT_NAME", "merge_request_opened")
+	t.Setenv("CI_PROJECT_ID", "44723537")
+	t.Setenv("CI_PIPELINE_ID", "826381119")
+	t.Setenv("CI_PIPELINE_IID", "39")
+	t.Setenv("CI_MERGE_REQUEST_ID", "215270509")
+	t.Setenv("CI_MERGE_REQUEST_IID", "7")
+	t.Setenv("CI_PROJECT_NAME", "digger-demo")
+	t.Setenv("CI_PROJECT_NAMESPACE", "diggerdev")
+	t.Setenv("CI_PROJECT_NAMESPACE_ID", "12854814")
+	// CI_JOB_TOKEN should be set manually because it contains sensitive info
+
+	dir := terraform.CreateTestTerraformProject()
+
+	defer func(name string) {
+		err := os.RemoveAll(name)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(dir)
+
+	terraform.CreateValidTerraformTestFile(dir)
+	terraform.CreateSingleEnvDiggerYmlFile(dir)
+
+	diggerConfig, err := digger.NewDiggerConfig(dir)
+	assert.NoError(t, err)
+
+	lock, err := utils.GetLock()
+	assert.NoError(t, err)
+	assert.NotNil(t, lock, "failed to create lock")
+	println("--- new merge request ---")
+
+	gitLabContext, err := gitlab.ParseGitLabContext()
+	assert.NoError(t, err)
+
+	gitlabService, err := gitlab.NewGitLabService(gitLabContext.Token, gitLabContext)
+	assert.NoError(t, err)
+
+	gitlabEvent := gitlab.GitLabEvent{EventType: gitLabContext.EventType}
+	assert.Equal(t, gitlab.GitLabEventType("merge_request_opened"), gitlabEvent.EventType)
+
+	impactedProjects, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(impactedProjects))
+	assert.Equal(t, "dev", impactedProjects[0].Name)
+
+	commandsToRunPerProject, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, impactedProjects)
+	assert.NoError(t, err)
+	println("GitHub event converted to commands successfully")
+
+	err = gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, "")
+	assert.NoError(t, err)
+	println("Commands executed successfully")
+
 }

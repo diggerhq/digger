@@ -66,10 +66,11 @@ func gitLabCI(diggerConfig *digger.DiggerConfig, lock utils.Lock) {
 		os.Exit(4)
 	}
 
-	gitlabService := gitlab.NewGitLabService(gitLabContext.Token, gitLabContext.ProjectName, gitLabContext.ProjectNamespace)
-	gitlabEvent := gitlab.GitLabEvent{Name: gitLabContext.PipelineSource.String()}
+	gitlabService, err := gitlab.NewGitLabService(gitLabContext.Token, gitLabContext)
 
-	impactedProjects, prNumber, err := gitlab.ProcessGitLabEvent(gitlabEvent, diggerConfig, gitlabService)
+	gitlabEvent := gitlab.GitLabEvent{EventType: gitLabContext.EventType}
+
+	impactedProjects, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
 	if err != nil {
 		fmt.Printf("failed to process GitLab event, %v", err)
 		os.Exit(6)
@@ -83,7 +84,7 @@ func gitLabCI(diggerConfig *digger.DiggerConfig, lock utils.Lock) {
 	}
 	println("GitHub event converted to commands successfully")
 
-	err = gitlab.RunCommandsPerProject(commandsToRunPerProject, gitLabContext.ProjectNamespace, gitLabContext.ProjectName, gitlabEvent.Name, prNumber, diggerConfig, gitlabService, lock, "")
+	err = gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, "")
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
 		os.Exit(8)
