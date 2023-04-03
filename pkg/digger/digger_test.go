@@ -13,8 +13,8 @@ func TestParseWorkspace(t *testing.T) {
 		err bool
 	}{
 		{"test", "", false},
-		{"test -w workspace", "workspace", false},
-		{"test -w workspace -w workspace2", "", true},
+		{"test -w Workspace", "Workspace", false},
+		{"test -w Workspace -w workspace2", "", true},
 		{"test -w", "", true},
 	}
 

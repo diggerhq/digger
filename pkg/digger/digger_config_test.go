@@ -72,7 +72,7 @@ projects:
 - name: dev
   branch: /main/
   dir: path/to/module
-  workspace: default
+  Workspace: default
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
 	defer deleteFile()
@@ -92,7 +92,7 @@ projects:
 - name: dev
   branch: /main/
   dir: .
-  workspace: default
+  Workspace: default
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()

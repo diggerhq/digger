@@ -146,7 +146,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 		return commandsPerProject, nil
 	case models.IssueCommentEvent:
 		event := event.(models.IssueCommentEvent)
-		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
+		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger ProjectLock"}
 
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
@@ -204,33 +204,33 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
-	workingDir   string
-	workspace    string
-	repoOwner    string
-	projectName  string
-	projectDir   string
-	repoName     string
-	terragrunt   bool
-	prManager    github.PullRequestManager
-	lock         utils.ProjectLock
-	configDigger *DiggerConfig
+	WorkingDir   string
+	Workspace    string
+	RepoOwner    string
+	ProjectName  string
+	ProjectDir   string
+	RepoName     string
+	Terragrunt   bool
+	PRManager    github.PullRequestManager
+	ProjectLock  utils.ProjectLock
+	ConfigDigger *DiggerConfig
 }
 
 func (d DiggerExecutor) LockId() string {
-	return d.repoOwner + "/" + d.repoName + "#" + d.projectName
+	return d.RepoOwner + "/" + d.RepoName + "#" + d.ProjectName
 }
 
 func (d DiggerExecutor) Plan(prNumber int) {
 
 	var terraformExecutor terraform.TerraformExecutor
 
-	if d.terragrunt {
-		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
+	if d.Terragrunt {
+		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.WorkingDir, d.ProjectDir)}
 	} else {
-		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.WorkingDir, d.ProjectDir), Workspace: d.Workspace}
 	}
 
-	res, err := d.lock.Lock(d.LockId(), prNumber)
+	res, err := d.ProjectLock.Lock(d.LockId(), prNumber)
 	if err != nil {
 		log.Fatalf("Error locking project: %v", err)
 	}
@@ -242,7 +242,7 @@ func (d DiggerExecutor) Plan(prNumber int) {
 		}
 		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 		comment := "Plan for **" + d.LockId() + "**\n" + plan
-		d.prManager.PublishComment(prNumber, comment)
+		d.PRManager.PublishComment(prNumber, comment)
 	}
 
 }
@@ -250,31 +250,31 @@ func (d DiggerExecutor) Plan(prNumber int) {
 func (d DiggerExecutor) Apply(prNumber int) {
 	var terraformExecutor terraform.TerraformExecutor
 
-	if d.terragrunt {
-		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
+	if d.Terragrunt {
+		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.WorkingDir, d.ProjectDir)}
 	} else {
-		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.WorkingDir, d.ProjectDir), Workspace: d.Workspace}
 	}
 
-	if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
+	if res, _ := d.ProjectLock.Lock(d.LockId(), prNumber); res {
 		stdout, stderr, err := terraformExecutor.Apply()
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
-		d.prManager.PublishComment(prNumber, comment)
-		d.lock.Unlock(d.LockId(), prNumber)
+		d.PRManager.PublishComment(prNumber, comment)
+		d.ProjectLock.Unlock(d.LockId(), prNumber)
 	}
 
 }
 
 func (d DiggerExecutor) Unlock(prNumber int) {
-	d.lock.ForceUnlock(d.LockId(), prNumber)
+	d.ProjectLock.ForceUnlock(d.LockId(), prNumber)
 
 }
 
 func (d DiggerExecutor) Lock(prNumber int) bool {
-	isLocked, err := d.lock.Lock(d.LockId(), prNumber)
+	isLocked, err := d.ProjectLock.Lock(d.LockId(), prNumber)
 	if err != nil {
-		log.Fatalf("Failed to aquire lock: " + d.LockId())
+		log.Fatalf("Failed to aquire ProjectLock: " + d.LockId())
 	}
 	return isLocked
 }
