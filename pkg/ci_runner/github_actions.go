@@ -121,6 +121,7 @@ func (gha *GithubActions) CurrentEvent() (*domain.Event, error) {
 	ghEvent := gh.RawEvent
 	prNumber := extractPRNumber(ghEvent)
 
+	// TODO: send the correct properties
 	return &domain.Event{
 		PRDetails: domain.PRDetails{
 			Owner:          repoOwner,
