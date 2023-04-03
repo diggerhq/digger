@@ -39,10 +39,6 @@ type Workflow struct {
 	Configuration *WorkflowConfiguration `yaml:"workflow_configuration"`
 }
 
-type Command struct {
-	ExtraArgs []string `yaml:"extra_args,omitempty"`
-}
-
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
 func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
