@@ -10,9 +10,10 @@ type Commad struct {
 var availableCommands = []Commad{
 	{"digger help", "Display help information"},
 	{"digger version", "Display version information"},
-	{"digger apply", "Apply digger configuration"},
-	{"digger plan", "Plan digger configuration"},
-	{"digger lock", "Lock Terraform state"},
+	{"digger apply", "Apply the Terraform  configuration"},
+	{"digger plan", "Plan the Terraform  configuration"},
+	{"digger lock", "Lock Terraform project"},
+	{"digger unlock","Unlock the Terraform project"},
 }
 
 func DisplayCommands() {
