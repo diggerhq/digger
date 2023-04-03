@@ -13,7 +13,7 @@ var availableCommands = []Commad{
 	{"digger apply", "Apply the Terraform  configuration"},
 	{"digger plan", "Plan the Terraform  configuration"},
 	{"digger lock", "Lock Terraform project"},
-	{"digger unlock","Unlock the Terraform project"},
+	{"digger unlock", "Unlock the Terraform project"},
 }
 
 func DisplayCommands() {
@@ -21,4 +21,13 @@ func DisplayCommands() {
 	for _, command := range availableCommands {
 		fmt.Printf("  %s: %s\n", command.Name, command.Description)
 	}
+}
+
+// display commands as string
+func GetCommands() string {
+	var commands string
+	for _, command := range availableCommands {
+		commands += fmt.Sprintf("  %s: %s\n", command.Name, command.Description)
+	}
+	return commands
 }
