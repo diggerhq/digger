@@ -38,6 +38,7 @@ Need a feature that's not listed? Book a [community feedback call](https://calen
 - ⌛ Azure Support. Use Azure Cosmos DB for PR Locks. ETA April 2023
 - ⌛ Bitbucket Support
 - ⌛ Jenkins Support
+- ⌛ Digital Ocean Support
 
 ## How to use
 
