@@ -13,9 +13,8 @@ CI/CD for Terraform is [not easy](https://itnext.io/pains-in-terraform-collabora
 
 But why have 2 CI systems? Why not reuse the existing CI infrastructure? Digger does just that.
 
-With Digger terraform jobs natively in your CI runners. It takes care of locks, state, outputs etc.
+With Digger terraform jobs natively in your CI runners. It takes care of locks, state, outputs etc. [Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
 
-[Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
 
 ## Features
 - 👟 Runner-less. Terraform runs in the compute environment of your existing CI such as Github Actions, Gitlab, Argo etc.
