@@ -55,10 +55,11 @@ func (svc *GithubPullRequestService) SetStatus(prNumber int, status string, stat
 		log.Fatalf("error getting pull request: %v", err)
 	}
 
-	_, _, err = svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
+	createdStatus, resp, err := svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
 		State:       &status,
 		Context:     &statusContext,
 		Description: &statusContext,
 	})
+	log.Printf("Status: %v, resp: %v, err: %v", createdStatus, resp, err)
 	return err
 }
