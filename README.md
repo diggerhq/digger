@@ -26,6 +26,19 @@ With Digger terraform jobs natively in your CI runners. It takes care of locks, 
 - Terragrunt support
 - Workspaces support
 
+## Roadmap
+
+Need a feature that's not listed? Book a [community feedback call](https://calendly.com/diggerdev/digger-community-feedback) - we ship fast ✅
+
+- ✅ GCP support. Store PR locks in GCP storage buckets. Shipped in [#50](https://github.com/diggerhq/digger/pull/50)
+- ✅ Workspaces support. Allow usage of Terraform CLI Workspaces. Shipped in [#72](https://github.com/diggerhq/digger/pull/72)
+- ✅ Terragrunt support. Config option to run terragrunt wrapper. Shipped in [#76](https://github.com/diggerhq/digger/pull/76)
+- ⌛ Configurable workflows. In addition to Atlantis-style (apply, then merge) also support "apply-only" and "no-lock"
+- ⌛ Gitlab Support. ETA April 2023
+- ⌛ Azure Support. Use Azure Cosmos DB for PR Locks. ETA April 2023
+- ⌛ Bitbucket Support
+- ⌛ Jenkins Support
+
 ## How to use
 
 This is demo flow with a sample repo using local state - for real world scenario you'll need to configure remote backend (S3 + DynamoDB) and add a [workflow file](https://github.com/diggerhq/digger_demo/blob/main/.github/workflows/plan.yml) to the root of the repo.
@@ -55,16 +68,6 @@ Digger also doesn't differentiate locks based on statefiles - if a PR is locked,
 
 state-level locks will keep working normally because are handled by terraform itself ([same as in Atlantis](https://www.runatlantis.io/docs/locking.html#relationship-to-terraform-state-locking))
 
-
-## Roadmap
-
-- Support for multiple modes of locking (apply-only, no-lock + queing)
-- 🔍 GCP Support
-    - Supporting of GCP storage buckets for PR locks
-- 🔍 Azure Support 
-    - Supporting of Azure Cosmos DB for PR Locks
-- 🔍 Gitlab Support
-- 🔍 Jenkins Support
 
 ## Notes
 - We perform anonymous usage tracking. No sensitive or personal / identifyable data is logged. You can see what is tracked in [`pkg/utils/usage.go`](https://github.com/diggerhq/digger/blob/main/pkg/utils/usage.go)
