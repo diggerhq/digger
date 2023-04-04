@@ -26,6 +26,6 @@ type Event struct {
 }
 
 type ParsedEvent struct {
-	PRDetails PRDetails
-	Projects  []ProjectCommand
+	PRDetails       PRDetails
+	ProjectsInScope []ProjectCommand
 }

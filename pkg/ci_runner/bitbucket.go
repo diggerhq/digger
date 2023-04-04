@@ -7,6 +7,6 @@ import (
 
 type Bitbucket struct{}
 
-func (bb *Bitbucket) CurrentEvent() (*domain.Event, error) {
+func (bb *Bitbucket) CurrentEvent() (*domain.ParsedEvent, error) {
 	return nil, fmt.Errorf("not implemented yet")
 }
