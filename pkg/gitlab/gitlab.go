@@ -94,6 +94,9 @@ type GitLabService struct {
 
 func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string, error) {
 	opt := &go_gitlab.GetMergeRequestChangesOptions{}
+
+	log.Printf("projectId: %d", *gitlabService.Context.ProjectId)
+	log.Printf("mergeRequestId: %d", mergeRequestId)
 	mergeRequestChanges, _, err := gitlabService.Client.MergeRequests.GetMergeRequestChanges(*gitlabService.Context.ProjectId, mergeRequestId, opt)
 	if err != nil {
 		log.Fatalf("error getting gitlab's merge request: %v", err)
