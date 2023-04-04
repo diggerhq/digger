@@ -49,6 +49,7 @@ func (svc *GithubPullRequestService) PublishComment(prNumber int, comment string
 }
 
 func (svc *GithubPullRequestService) SetStatus(prNumber int, status string, statusContext string) error {
+	log.Printf("Setting status %s for PR %d, context %s", status, prNumber, statusContext)
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
