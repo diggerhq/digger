@@ -67,7 +67,7 @@ func main() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			reportErrorAndExit(repoOwner, fmt.Sprintf("Panic occurred. %s", r), 9)
+			reportErrorAndExit(repoOwner, fmt.Sprintf("Panic occurred. %s", r), 1)
 		}
 	}()
 
