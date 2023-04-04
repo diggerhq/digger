@@ -73,10 +73,21 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			switch command {
 			case "digger plan":
 				utils.SendUsageRecord(repoOwner, eventName, "plan")
-				diggerExecutor.Plan(prNumber)
+				prManager.SetStatus(prNumber, "pending", "plan")
+				err := diggerExecutor.Plan(prNumber)
+				if err != nil {
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/"+"plan")
+				} else {
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/"+"plan")
+				}
 			case "digger apply":
 				utils.SendUsageRecord(repoName, eventName, "apply")
-				diggerExecutor.Apply(prNumber)
+				err := diggerExecutor.Apply(prNumber)
+				if err != nil {
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/"+"apply")
+				} else {
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/"+"apply")
+				}
 			case "digger unlock":
 				utils.SendUsageRecord(repoOwner, eventName, "unlock")
 				diggerExecutor.Unlock(prNumber)
@@ -220,7 +231,7 @@ func (d DiggerExecutor) LockId() string {
 	return d.repoOwner + "/" + d.repoName + "#" + d.projectName
 }
 
-func (d DiggerExecutor) Plan(prNumber int) {
+func (d DiggerExecutor) Plan(prNumber int) error {
 
 	var terraformExecutor terraform.TerraformExecutor
 
@@ -232,22 +243,22 @@ func (d DiggerExecutor) Plan(prNumber int) {
 
 	res, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
-		log.Fatalf("Error locking project: %v", err)
+		return fmt.Errorf("Error locking project: %v", err)
 	}
 	if res {
 		isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan()
 
 		if err != nil {
-			log.Fatalf("Error executing plan: %v", err)
+			return fmt.Errorf("error executing plan: %v", err)
 		}
 		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 		comment := "Plan for **" + d.LockId() + "**\n" + plan
 		d.prManager.PublishComment(prNumber, comment)
 	}
-
+	return nil
 }
 
-func (d DiggerExecutor) Apply(prNumber int) {
+func (d DiggerExecutor) Apply(prNumber int) error {
 	var terraformExecutor terraform.TerraformExecutor
 
 	if d.terragrunt {
@@ -262,8 +273,9 @@ func (d DiggerExecutor) Apply(prNumber int) {
 		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
 		d.prManager.PublishComment(prNumber, comment)
 		d.lock.Unlock(d.LockId(), prNumber)
+		return err
 	}
-
+	return nil
 }
 
 func (d DiggerExecutor) Unlock(prNumber int) {
