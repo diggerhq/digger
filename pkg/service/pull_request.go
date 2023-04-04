@@ -103,9 +103,9 @@ func (prs *PullRequest) processTerraformAction(project *domain.ProjectCommand, a
 
 	switch action {
 	case domain.Plan:
-		output, err = tfRunner.Plan()
+		output, err = tfRunner.Plan(nil)
 	case domain.Apply:
-		output, err = tfRunner.Apply()
+		output, err = tfRunner.Apply(nil)
 	}
 
 	if err != nil {

@@ -23,7 +23,7 @@ func (terraform *Terraform) SetWorkingDir(path string) error {
 	return nil
 }
 
-func (terraform *Terraform) Plan() (*domain.TerraformOutput, error) {
+func (terraform *Terraform) Plan(planOpts *domain.PlanOpts) (*domain.TerraformOutput, error) {
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
 
@@ -66,7 +66,7 @@ func (terraform *Terraform) Plan() (*domain.TerraformOutput, error) {
 	return domain.NewTerraformOutput(stdout.GetString(), stderr.GetString()), nil
 }
 
-func (terraform *Terraform) Apply() (*domain.TerraformOutput, error) {
+func (terraform *Terraform) Apply(applyOpts *domain.ApplyOpts) (*domain.TerraformOutput, error) {
 	println("digger apply")
 	execDir := "terraform"
 	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
