@@ -26,7 +26,7 @@ type GitLabContext struct {
 	ProjectNamespace   string          `env:"CI_PROJECT_NAMESPACE"`
 	ProjectId          *int            `env:"CI_PROJECT_ID"`
 	ProjectNamespaceId *int            `env:"CI_PROJECT_NAMESPACE_ID"`
-	Token              string          `env:"CI_JOB_TOKEN"`
+	Token              string          `env:"GITLAB_TOKEN"`
 	DiggerCommand      string          `env:"DIGGER_COMMAND"`
 }
 
