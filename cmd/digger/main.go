@@ -67,10 +67,9 @@ func main() {
 	}
 	println("GitHub event processed successfully")
 
-	if eventName == "pull_request" && parsedGhContext.Action == "commented" {
+	if digger.CheckIfHelpComment(ghEvent) {
 		reply := utils.GetCommands()
-		githubPrService.ReplyComment(prNumber, reply)
-		os.Exit(0)
+		githubPrService.PublishComment(prNumber, reply)
 	}
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
