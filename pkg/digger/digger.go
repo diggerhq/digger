@@ -73,19 +73,21 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			switch command {
 			case "digger plan":
 				utils.SendUsageRecord(repoOwner, eventName, "plan")
+				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
 				err := diggerExecutor.Plan(prNumber)
 				if err != nil {
-					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/"+"plan")
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
 				} else {
-					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/"+"plan")
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 				}
 			case "digger apply":
 				utils.SendUsageRecord(repoName, eventName, "apply")
+				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
 				err := diggerExecutor.Apply(prNumber)
 				if err != nil {
-					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/"+"apply")
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
 				} else {
-					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/"+"apply")
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
 				}
 			case "digger unlock":
 				utils.SendUsageRecord(repoOwner, eventName, "unlock")
