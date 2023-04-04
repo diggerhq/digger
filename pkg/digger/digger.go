@@ -73,7 +73,6 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			switch command {
 			case "digger plan":
 				utils.SendUsageRecord(repoOwner, eventName, "plan")
-				prManager.SetStatus(prNumber, "pending", "plan")
 				err := diggerExecutor.Plan(prNumber)
 				if err != nil {
 					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/"+"plan")
