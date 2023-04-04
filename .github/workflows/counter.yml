@@ -4,12 +4,17 @@ on:
   schedule:
     - cron: '0 4 * * *'
   workflow_dispatch:
+  push:
+    branches:
+      - feat/action-count
 
 jobs:
   count:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: feat/action-counter
 
       - name: Generate user count JSON endpoint
         uses: cicirello/count-action-users@v1
