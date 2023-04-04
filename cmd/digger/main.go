@@ -67,6 +67,10 @@ func gitLabCI(diggerConfig *digger.DiggerConfig, lock utils.Lock) {
 	}
 
 	gitlabService, err := gitlab.NewGitLabService(gitLabContext.Token, gitLabContext)
+	if err != nil {
+		fmt.Printf("failed to initialise GitLab service, %v", err)
+		os.Exit(4)
+	}
 
 	gitlabEvent := gitlab.GitLabEvent{EventType: gitLabContext.EventType}
 
