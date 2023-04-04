@@ -49,3 +49,7 @@ func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) 
 func (t MockPullRequestManager) PublishComment(prNumber int, comment string) {
 
 }
+
+func (t MockPullRequestManager) SetStatus(prNumber int, status string, statusContext string) error {
+	return nil
+}
