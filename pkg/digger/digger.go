@@ -326,3 +326,14 @@ func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, std
 	regex := `(Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy.)`
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
 }
+
+func CheckIfHelpComment(event models.Event) bool {
+	switch event.(type) {
+	case models.IssueCommentEvent:
+		event := event.(models.IssueCommentEvent)
+		if strings.Contains(event.Comment.Body, "digger help") {
+			return true
+		}
+	}
+	return false
+}

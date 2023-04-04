@@ -11,6 +11,16 @@ import (
 )
 
 func main() {
+	args := os.Args[1:]
+	if len(args) > 0 && args[0] == "version" {
+		fmt.Println(utils.GetVersion())
+		os.Exit(0)
+	}
+	if len(args) > 0 && args[0] == "help" {
+		utils.DisplayCommands()
+		os.Exit(0)
+	}
+
 	diggerConfig, err := digger.NewDiggerConfig("")
 	if err != nil {
 		fmt.Printf("Failed to read digger config. %s\n", err)
@@ -56,6 +66,11 @@ func main() {
 		os.Exit(6)
 	}
 	println("GitHub event processed successfully")
+
+	if digger.CheckIfHelpComment(ghEvent) {
+		reply := utils.GetCommands()
+		githubPrService.PublishComment(prNumber, reply)
+	}
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	if err != nil {
