@@ -2,9 +2,12 @@ package domain
 
 type TerraformRunner interface {
 	SetWorkingDir(path string) error
-	Plan() (*TerraformOutput, error)
-	Apply() (*TerraformOutput, error)
+	Plan(*PlanOpts) (*TerraformOutput, error)
+	Apply(*ApplyOpts) (*TerraformOutput, error)
 }
+
+type PlanOpts struct{}
+type ApplyOpts struct{}
 
 type TerraformOutput struct {
 	Stdout string

@@ -21,12 +21,12 @@ func (terragrunt *Terragrunt) SetWorkingDir(path string) error {
 	return nil
 }
 
-func (terragrunt *Terragrunt) Apply() (*domain.TerraformOutput, error) {
+func (terragrunt *Terragrunt) Apply(applyOpts *domain.ApplyOpts) (*domain.TerraformOutput, error) {
 	stdout, stderr, err := terragrunt.runTerragruntCommand("apply")
 	return domain.NewTerraformOutput(stdout, stderr), err
 }
 
-func (terragrunt *Terragrunt) Plan() (*domain.TerraformOutput, error) {
+func (terragrunt *Terragrunt) Plan(planOpts *domain.PlanOpts) (*domain.TerraformOutput, error) {
 	stdout, stderr, err := terragrunt.runTerragruntCommand("plan")
 	return domain.NewTerraformOutput(stdout, stderr), err
 }
