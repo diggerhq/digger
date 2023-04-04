@@ -11,6 +11,16 @@ import (
 )
 
 func main() {
+  args := os.Args[1:]
+	if len(args) > 0 && args[0] == "version" {
+		fmt.Println(utils.GetVersion())
+		os.Exit(0)
+	}
+	if len(args) > 0 && args[0] == "help" {
+		utils.DisplayCommands()
+		os.Exit(0)
+	}
+
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
 		reportErrorAndExit("", "GITHUB_TOKEN is not defined", 1)
@@ -50,6 +60,11 @@ func main() {
 		reportErrorAndExit(repoOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
 	println("GitHub event processed successfully")
+
+	if digger.CheckIfHelpComment(ghEvent) {
+		reply := utils.GetCommands()
+		githubPrService.PublishComment(prNumber, reply)
+	}
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
 	if err != nil {
