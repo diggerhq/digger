@@ -61,7 +61,7 @@ func ParseGitLabContext() (*GitLabContext, error) {
 	return &parsedGitLabContext, nil
 }
 
-func NewGitLabService(token string, gitLabContext *GitLabContext) (CIService, error) {
+func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabService, error) {
 	client, err := go_gitlab.NewClient(token)
 	if err != nil {
 		log.Fatalf("failed to create gitlab client: %v", err)
@@ -72,7 +72,7 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (CIService, er
 	}, nil
 }
 
-func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *digger.DiggerConfig, service CIService) ([]digger.Project, error) {
+func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *digger.DiggerConfig, service *GitLabService) ([]digger.Project, error) {
 	var impactedProjects []digger.Project
 
 	mergeRequestId := gitlabContext.MergeRequestIId
