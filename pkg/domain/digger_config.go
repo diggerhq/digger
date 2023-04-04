@@ -21,7 +21,7 @@ type Project struct {
 	Name                  string                `yaml:"name"`
 	Dir                   string                `yaml:"dir"`
 	Workspace             string                `yaml:"workspace"`
-	Terragrunt            bool                  `yaml:"terragrunt"`
+	Runner                string                `yaml:"runner"`
 	WorkflowConfiguration WorkflowConfiguration `yaml:"workflow_configuration"`
 }
 
@@ -34,8 +34,8 @@ type WorkflowConfiguration struct {
 func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawProject Project
 	raw := rawProject{
-		Workspace:  "default",
-		Terragrunt: false,
+		Workspace: "default",
+		Runner:    "terraform",
 		WorkflowConfiguration: WorkflowConfiguration{
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},
@@ -75,10 +75,10 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 
 func defaultProject() Project {
 	return Project{
-		Name:       "default",
-		Dir:        ".",
-		Workspace:  "default",
-		Terragrunt: false,
+		Name:      "default",
+		Dir:       ".",
+		Workspace: "default",
+		Runner:    "terraform",
 		WorkflowConfiguration: WorkflowConfiguration{
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},

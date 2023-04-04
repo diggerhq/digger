@@ -7,6 +7,6 @@ import (
 
 type GitlabPipelines struct{}
 
-func (gp *GitlabPipelines) CurrentEvent() (*domain.Event, error) {
+func (gp *GitlabPipelines) CurrentEvent() (*domain.ParsedEvent, error) {
 	return nil, fmt.Errorf("not implemented yet")
 }

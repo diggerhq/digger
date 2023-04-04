@@ -2,7 +2,6 @@ package service
 
 import (
 	"digger/pkg/domain"
-	"digger/pkg/tf_runner"
 	"errors"
 
 	"golang.org/x/exp/slices"
@@ -19,35 +18,35 @@ var (
 	tfActions   = []domain.Action{domain.Plan, domain.Apply}
 )
 
-type PullRequest struct {
+type CmdProcessor struct {
 	scmProvider  domain.SCMProvider
 	lockProvider domain.LockProvider
 	parsedEvent  *domain.ParsedEvent
 }
 
-func NewPullRequest() *PullRequest {
-	return &PullRequest{}
+func NewCmdProcessor() *CmdProcessor {
+	return &CmdProcessor{}
 }
 
-func (prs *PullRequest) WithParsedEvent(pe *domain.ParsedEvent) *PullRequest {
+func (prs *CmdProcessor) WithParsedEvent(pe *domain.ParsedEvent) *CmdProcessor {
 	prs.parsedEvent = pe
 	return prs
 }
 
-func (prs *PullRequest) WithSCMProvider(scm domain.SCMProvider) *PullRequest {
+func (prs *CmdProcessor) WithSCMProvider(scm domain.SCMProvider) *CmdProcessor {
 	prs.scmProvider = scm
 	return prs
 }
 
-func (prs *PullRequest) WithLockProvider(lp domain.LockProvider) *PullRequest {
+func (prs *CmdProcessor) WithLockProvider(lp domain.LockProvider) *CmdProcessor {
 	prs.lockProvider = lp
 	return prs
 }
 
-func (prs *PullRequest) Process() error {
+func (prs *CmdProcessor) Process() error {
 	event := prs.parsedEvent
 
-	for _, p := range event.Projects {
+	for _, p := range event.ProjectsInScope {
 		for _, a := range p.Actions {
 			prs.processProjectAction(&p, a)
 		}
@@ -56,7 +55,7 @@ func (prs *PullRequest) Process() error {
 	return nil
 }
 
-func (prs *PullRequest) processProjectAction(project *domain.ProjectCommand, action domain.Action) error {
+func (prs *CmdProcessor) processProjectAction(project *domain.ProjectCommand, action domain.Action) error {
 	event := prs.parsedEvent
 	hasLock, _, err := prs.lockProvider.Get() // check project lock
 	if err != nil {
@@ -81,7 +80,7 @@ func (prs *PullRequest) processProjectAction(project *domain.ProjectCommand, act
 	return nil
 }
 
-func (prs *PullRequest) processLockAction(project *domain.ProjectCommand, action domain.Action) error {
+func (prs *CmdProcessor) processLockAction(project *domain.ProjectCommand, action domain.Action) error {
 	var err error
 
 	switch action {
@@ -94,18 +93,15 @@ func (prs *PullRequest) processLockAction(project *domain.ProjectCommand, action
 	return err
 }
 
-func (prs *PullRequest) processTerraformAction(project *domain.ProjectCommand, action domain.Action) error {
+func (prs *CmdProcessor) processTerraformAction(project *domain.ProjectCommand, action domain.Action) error {
 	var output *domain.TerraformOutput
 	var err error
-	tfRunner := loadTerraformRunner(project)
-
-	tfRunner.SetWorkingDir(project.WorkingDir)
 
 	switch action {
 	case domain.Plan:
-		output, err = tfRunner.Plan(nil)
+		output, err = project.Runner.Plan(nil)
 	case domain.Apply:
-		output, err = tfRunner.Apply(nil)
+		output, err = project.Runner.Apply(nil)
 	}
 
 	if err != nil {
@@ -115,12 +111,4 @@ func (prs *PullRequest) processTerraformAction(project *domain.ProjectCommand, a
 	// Parse output & publish
 	parsedOut := output.Stdout //TODO: parse output
 	return prs.scmProvider.PublishComment(parsedOut, prs.parsedEvent.PRDetails)
-}
-
-func loadTerraformRunner(project *domain.ProjectCommand) domain.TerraformRunner {
-	if project.Runner == "terragrunt" {
-		return &tf_runner.Terragrunt{}
-	}
-
-	return &tf_runner.Terraform{}
 }

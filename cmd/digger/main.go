@@ -18,16 +18,9 @@ func main() {
 
 	// Get CI event
 	ciRunner := ci_runner.Current()
-	event, err := ciRunner.CurrentEvent()
+	event, err := ciRunner.CurrentEvent(diggerConf)
 	if err != nil {
 		log.Fatalf("got an error while retrieving the event: %v", err)
-	}
-
-	// Parse event
-	ps := service.NewParser()
-	parsedEvent, err := ps.Parse(event, diggerConf)
-	if err != nil {
-		log.Fatalf("got an error while parsing the raw event: %v", err)
 	}
 
 	// Bootstrap the dependencies needed
@@ -41,8 +34,8 @@ func main() {
 	}
 
 	// Inject the dependencies
-	prs := service.NewPullRequest().
-		WithParsedEvent(parsedEvent).
+	prs := service.NewCmdProcessor().
+		WithParsedEvent(event).
 		WithSCMProvider(scmProvider).
 		WithLockProvider(lockProvider)
 

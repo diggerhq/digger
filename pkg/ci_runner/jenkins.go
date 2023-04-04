@@ -7,6 +7,6 @@ import (
 
 type Jenkins struct{}
 
-func (j *Jenkins) CurrentEvent() (*domain.Event, error) {
+func (j *Jenkins) CurrentEvent() (*domain.ParsedEvent, error) {
 	return nil, fmt.Errorf("not implemented yet")
 }
