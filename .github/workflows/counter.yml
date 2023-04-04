@@ -8,14 +8,12 @@ on:
 jobs:
   count:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
 
       - name: Generate user count JSON endpoint
         uses: cicirello/count-action-users@v1
         with:
-          target-directory: docs
-          action-list: owner/action-name
+          action-list: digger/run-digger
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
