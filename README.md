@@ -18,13 +18,13 @@ With Digger terraform jobs natively in your CI runners. It takes care of locks, 
 [Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
 
 ## Features
-- Runner-less. Terraform runs in the compute environment of your existing CI such as Github Actions, Gitlab, Argo etc.
-- Minimal backend, or none at all. Digger's own backend is a serverless function; it is only needed for certain CI environments (eg Gitlab)
-- Code-level locks. Avoid race conditions across multiple PRs. Similar to Atlantis workflow.
-- Multi-cloud. At the moment Digger supports AWS and GCP; Azure support coming in April 2023 (yes, in a few weeks).
-- Projects. Allow to isolate terraform runs and locks to a specific directory
-- Terragrunt support
-- Workspaces support
+- 👟 Runner-less. Terraform runs in the compute environment of your existing CI such as Github Actions, Gitlab, Argo etc.
+- 🪶 Minimal / no backend. Digger's own backend is a serverless function; it is only needed for certain CI environments (eg Gitlab)
+- 🔒 Code-level locks. Avoid race conditions across multiple PRs. Similar to Atlantis workflow.
+- ☁️ Multi-cloud. At the moment Digger supports AWS and GCP; Azure support coming in April 2023 (yes, in a few weeks).
+- 💥 Projects. Allow to isolate terraform runs and locks to a specific directory
+- 💥 Terragrunt support
+- 💥 Workspaces support
 
 ## Roadmap
 
