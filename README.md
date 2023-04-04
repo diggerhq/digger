@@ -1,5 +1,3 @@
-# Digger
-
 <h1 align="center">
   <img width="733" alt="Screenshot 2023-02-28 at 11 25 48" src="https://user-images.githubusercontent.com/1280498/221849642-ae6cb056-5b5b-478f-8cfb-42790e1739e7.png">
 </h1>
