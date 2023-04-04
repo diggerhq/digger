@@ -27,6 +27,25 @@ func SendUsageRecord(repoOwner string, eventName string, action string) error {
 		Action:    action,
 		Token:     "diggerABC@@1998fE",
 	}
+	return sendPayload(payload)
+}
+
+func SendLogRecord(repoOwner string, message string) error {
+	h := sha256.New()
+	h.Write([]byte(repoOwner))
+	sha := h.Sum(nil)
+	shaStr := hex.EncodeToString(sha)
+	payload := UsageRecord{
+		UserId:    shaStr,
+		EventName: "log",
+		Action:    message,
+		Token:     "diggerABC@@1998fE",
+	}
+	return sendPayload(payload)
+}
+
+func sendPayload(payload interface{}) error {
+
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Error marshalling usage record: %v", err)
