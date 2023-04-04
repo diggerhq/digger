@@ -77,7 +77,7 @@ func gitLabCI(diggerConfig *digger.DiggerConfig, lock utils.Lock) {
 	}
 	println("GitHub event processed successfully")
 
-	commandsToRunPerProject, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, impactedProjects)
+	commandsToRunPerProject, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects)
 	if err != nil {
 		fmt.Printf("failed to convert event to command, %v", err)
 		os.Exit(7)

@@ -701,7 +701,7 @@ func TestGitLabHappyPath(t *testing.T) {
 	assert.Equal(t, 1, len(impactedProjects))
 	assert.Equal(t, "dev", impactedProjects[0].Name)
 
-	commandsToRunPerProject, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, impactedProjects)
+	commandsToRunPerProject, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects)
 	assert.NoError(t, err)
 	println("GitHub event converted to commands successfully")
 

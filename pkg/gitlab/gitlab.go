@@ -8,6 +8,7 @@ import (
 	go_gitlab "github.com/xanzy/go-gitlab"
 	"log"
 	"os"
+	"strings"
 )
 
 // based on https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
@@ -26,6 +27,7 @@ type GitLabContext struct {
 	ProjectId          *int            `env:"CI_PROJECT_ID"`
 	ProjectNamespaceId *int            `env:"CI_PROJECT_NAMESPACE_ID"`
 	Token              string          `env:"CI_JOB_TOKEN"`
+	DiggerCommand      string          `env:"DIGGER_COMMAND"`
 }
 
 type PipelineSourceType string
@@ -129,10 +131,10 @@ const (
 	MergeRequestOpened  = GitLabEventType("merge_request_opened")
 	MergeRequestUpdated = GitLabEventType("merge_request_updated")
 	MergeRequestClosed  = GitLabEventType("merge_request_closed")
-	Comment             = GitLabEventType("comment")
+	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, impactedProjects []digger.Project) ([]digger.ProjectCommand, error) {
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []digger.Project) ([]digger.ProjectCommand, error) {
 	commandsPerProject := make([]digger.ProjectCommand, 0)
 
 	switch event.EventType {
@@ -169,33 +171,31 @@ func ConvertGitLabEventToCommands(event GitLabEvent, impactedProjects []digger.P
 			})
 		}
 		return commandsPerProject, nil
-		/*
-			case Comment:
-				supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
+	case MergeRequestComment:
+		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
-				for _, command := range supportedCommands {
-					if strings.Contains(event.Comment.Body, command) {
-						for _, project := range impactedProjects {
-							workspace := project.Workspace
-							workspaceOverride, err := parseWorkspace(event.Comment.Body)
-							if err != nil {
-								return []digger.ProjectCommand{}, err
-							}
-							if workspaceOverride != "" {
-								workspace = workspaceOverride
-							}
-							commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
-								ProjectName:      project.Name,
-								ProjectDir:       project.Dir,
-								ProjectWorkspace: workspace,
-								Terragrunt:       project.Terragrunt,
-								Commands:         []string{command},
-							})
-						}
-					}
+		for _, command := range supportedCommands {
+			if strings.Contains(gitLabContext.DiggerCommand, command) {
+				for _, project := range impactedProjects {
+					workspace := project.Workspace
+					//workspaceOverride, err := parseWorkspace(gitLabContext.DiggerCommand)
+					//if err != nil {
+					//	return []digger.ProjectCommand{}, err
+					//}
+					//if workspaceOverride != "" {
+					//	workspace = workspaceOverride
+					//}
+					commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
+						ProjectName:      project.Name,
+						ProjectDir:       project.Dir,
+						ProjectWorkspace: workspace,
+						Terragrunt:       project.Terragrunt,
+						Commands:         []string{command},
+					})
 				}
-				return commandsPerProject, nil
-		*/
+			}
+		}
+		return commandsPerProject, nil
 
 	default:
 		return []digger.ProjectCommand{}, fmt.Errorf("unsupported GitLab event type: %v", event)
