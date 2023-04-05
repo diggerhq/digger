@@ -18,7 +18,8 @@ type WorkflowConfiguration struct {
 }
 
 type DiggerConfig struct {
-	Projects []Project `yaml:"projects"`
+	CollectUsageData *bool     `yaml:"collect_usage_data"`
+	Projects         []Project `yaml:"projects"`
 }
 
 type Project struct {

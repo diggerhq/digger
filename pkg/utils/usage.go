@@ -3,11 +3,15 @@ package utils
 import (
 	"bytes"
 	"crypto/sha256"
+	"digger/pkg/digger"
 	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 )
+
+var collect_usage_data = true
 
 type UsageRecord struct {
 	UserId    interface{} `json:"userid"`
@@ -45,7 +49,9 @@ func SendLogRecord(repoOwner string, message string) error {
 }
 
 func sendPayload(payload interface{}) error {
-
+	if !collect_usage_data {
+		return nil
+	}
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Error marshalling usage record: %v", err)
@@ -62,4 +68,18 @@ func sendPayload(payload interface{}) error {
 	}
 	defer resp.Body.Close()
 	return nil
+}
+
+func init() {
+	config, err := digger.NewDiggerConfig("")
+	if err != nil {
+		return
+	}
+	if config.CollectUsageData != nil && !*config.CollectUsageData {
+		collect_usage_data = false
+	} else if config.CollectUsageData == nil && os.Getenv("DIGGER_COLLECT_USAGE_DATA") != "true" {
+		collect_usage_data = false
+	} else {
+		collect_usage_data = true
+	}
 }
