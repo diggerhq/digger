@@ -3,7 +3,6 @@ package utils
 import (
 	"bytes"
 	"crypto/sha256"
-	"digger/pkg/digger"
 	"encoding/hex"
 	"encoding/json"
 	"log"
@@ -71,7 +70,7 @@ func sendPayload(payload interface{}) error {
 }
 
 func init() {
-	config, err := digger.NewDiggerConfig("")
+	config, err := NewDiggerConfig("")
 	if err != nil {
 		return
 	}

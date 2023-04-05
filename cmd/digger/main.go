@@ -38,7 +38,7 @@ func main() {
 	}
 	println("GitHub context parsed successfully")
 
-	diggerConfig, err := digger.NewDiggerConfig("")
+	diggerConfig, err := utils.NewDiggerConfig("")
 	if err != nil {
 		reportErrorAndExit(parsedGhContext.RepositoryOwner, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
