@@ -77,7 +77,7 @@ func init() {
 	}
 	if config.CollectUsageData != nil && !*config.CollectUsageData {
 		collect_usage_data = false
-	} else if config.CollectUsageData == nil && os.Getenv("DIGGER_COLLECT_USAGE_DATA") == "false" {
+	} else if config.CollectUsageData == nil && os.Getenv("COLLECT_USAGE_DATA") == "false" {
 		collect_usage_data = false
 	} else {
 		collect_usage_data = true
