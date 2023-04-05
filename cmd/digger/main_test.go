@@ -869,7 +869,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 
-	diggerConfig := digger.DiggerConfig{}
+	diggerConfig := utils.DiggerConfig{}
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
@@ -889,7 +889,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	}
 	ghEvent := context.Event
 	eventName := context.EventName
-	diggerConfig := digger.DiggerConfig{}
+	diggerConfig := utils.DiggerConfig{}
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
@@ -915,18 +915,18 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	ghEvent := context.Event
 	pullRequestNumber := 11
 	// digger config
-	dev := digger.Project{Name: "dev", Dir: "dev", WorkflowConfiguration: digger.WorkflowConfiguration{
+	dev := utils.Project{Name: "dev", Dir: "dev", WorkflowConfiguration: utils.WorkflowConfiguration{
 		OnPullRequestPushed: []string{"digger plan"},
 		OnPullRequestClosed: []string{"digger unlock"},
 		OnCommitToDefault:   []string{"digger apply"},
 	}}
-	prod := digger.Project{Name: "prod", Dir: "prod", WorkflowConfiguration: digger.WorkflowConfiguration{
+	prod := utils.Project{Name: "prod", Dir: "prod", WorkflowConfiguration: utils.WorkflowConfiguration{
 		OnPullRequestPushed: []string{"digger plan"},
 		OnPullRequestClosed: []string{"digger unlock"},
 		OnCommitToDefault:   []string{"digger apply"},
 	}}
-	projects := []digger.Project{dev, prod}
-	diggerConfig := digger.DiggerConfig{Projects: projects}
+	projects := []utils.Project{dev, prod}
+	diggerConfig := utils.DiggerConfig{Projects: projects}
 
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}

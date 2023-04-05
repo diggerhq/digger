@@ -1,4 +1,4 @@
-package digger
+package utils
 
 import (
 	"errors"

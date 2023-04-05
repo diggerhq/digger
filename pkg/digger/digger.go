@@ -15,8 +15,8 @@ import (
 	"strings"
 )
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prManager github.PullRequestManager) ([]Project, int, error) {
-	var impactedProjects []Project
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *utils.DiggerConfig, prManager github.PullRequestManager) ([]utils.Project, int, error) {
+	var impactedProjects []utils.Project
 	var prNumber int
 
 	switch ghEvent.(type) {
@@ -47,7 +47,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) error {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *utils.DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) error {
 	lockAcquisitionSuccess := true
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
@@ -110,7 +110,7 @@ type ProjectCommand struct {
 	Commands         []string
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project) ([]ProjectCommand, error) {
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []utils.Project) ([]ProjectCommand, error) {
 	commandsPerProject := make([]ProjectCommand, 0)
 
 	switch event.(type) {
@@ -213,7 +213,7 @@ type DiggerExecutor struct {
 	terragrunt   bool
 	prManager    github.PullRequestManager
 	lock         utils.ProjectLock
-	configDigger *DiggerConfig
+	configDigger *utils.DiggerConfig
 }
 
 func (d DiggerExecutor) LockId() string {
