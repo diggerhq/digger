@@ -261,7 +261,10 @@ func (d DiggerExecutor) Apply(prNumber int) {
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
 		d.prManager.PublishComment(prNumber, comment)
-		d.lock.Unlock(d.LockId(), prNumber)
+		_, err = d.lock.Unlock(d.LockId(), prNumber)
+		if err != nil {
+			fmt.Printf("%v\n", err)
+		}
 	}
 
 }
