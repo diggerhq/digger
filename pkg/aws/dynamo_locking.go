@@ -1,9 +1,11 @@
 package aws
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"os"
 	"strconv"
 	"time"
 )
@@ -14,7 +16,39 @@ type DynamoDbLock struct {
 	DynamoDb *dynamodb.DynamoDB
 }
 
+func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() {
+	input := &dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("PK"),
+				AttributeType: aws.String("S"),
+			},
+			{
+				AttributeName: aws.String("SK"),
+				AttributeType: aws.String("S"),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("PK"),
+				KeyType:       aws.String("HASH"),
+			},
+			{
+				AttributeName: aws.String("SK"),
+				KeyType:       aws.String("HASH"),
+			},
+		},
+		BillingMode: aws.String("PAY_PER_REQUEST"),
+		TableName:   aws.String(TABLE_NAME),
+	}
+	_, err := dynamoDbLock.DynamoDb.CreateTable(input)
+	if err != nil && os.Getenv("DEBUG") != "" {
+		fmt.Printf("%v\n", err)
+	}
+}
+
 func (dynamoDbLock *DynamoDbLock) Lock(transactionId int, resource string) (bool, error) {
+	dynamoDbLock.createTableIfNotExists()
 	// TODO: remove timeout completely
 	timeout := 60 * 60 * 24 * 90
 	now := time.Now().Format(time.RFC3339)
@@ -59,6 +93,7 @@ func (dynamoDbLock *DynamoDbLock) Lock(transactionId int, resource string) (bool
 }
 
 func (dynamoDbLock *DynamoDbLock) Unlock(resource string) (bool, error) {
+	dynamoDbLock.createTableIfNotExists()
 	input := &dynamodb.DeleteItemInput{
 		TableName: aws.String(TABLE_NAME),
 		Key:       map[string]*dynamodb.AttributeValue{"PK": {S: aws.String("LOCK")}, "SK": {S: aws.String("RES#" + resource)}},
@@ -72,6 +107,7 @@ func (dynamoDbLock *DynamoDbLock) Unlock(resource string) (bool, error) {
 }
 
 func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
+	dynamoDbLock.createTableIfNotExists()
 	input := &dynamodb.GetItemInput{
 		TableName: aws.String(TABLE_NAME),
 		Key:       map[string]*dynamodb.AttributeValue{"PK": {S: aws.String("LOCK")}, "SK": {S: aws.String("RES#" + lockId)}},
