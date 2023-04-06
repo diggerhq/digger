@@ -35,7 +35,7 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() {
 			},
 			{
 				AttributeName: aws.String("SK"),
-				KeyType:       aws.String("HASH"),
+				KeyType:       aws.String("RANGE"),
 			},
 		},
 		BillingMode: aws.String("PAY_PER_REQUEST"),
