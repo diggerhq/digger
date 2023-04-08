@@ -120,7 +120,7 @@ func (sal *StorageAccount) GetLock(resource string) (*int, error) {
 	for entitiesPager.More() {
 		res, err := entitiesPager.NextPage(context.Background())
 		if err != nil {
-			return new(int), fmt.Errorf("could not retrieve the entities: %v", err)
+			return nil, fmt.Errorf("could not retrieve the entities: %v", err)
 		}
 		for _, e := range res.Entities {
 			var entity aztables.EDMEntity
@@ -129,11 +129,13 @@ func (sal *StorageAccount) GetLock(resource string) (*int, error) {
 				return new(int), fmt.Errorf("could not unmarshall entity: %v", err)
 			}
 
-			if entity.Properties["transaction_id"]
+			transactionId := int(entity.Properties["transaction_id"].(int32))
+			return &transactionId, nil
 		}
 	}
 
-	return new(int), nil
+	// Lock doesn't exist
+	return nil, nil
 }
 
 func (sal *StorageAccount) createTableIfNotExists() error {

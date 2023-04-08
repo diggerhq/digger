@@ -137,6 +137,17 @@ func (suite *SALockTestSuite) TestGetLock() {
 	suite.NoError(err, "should not have got an error")
 }
 
+func (suite *SALockTestSuite) TestGetLock_LockDoesNotExist() {
+	loadConnStringEnv()
+	sal, _ := NewStorageAccountLock()
+	resourceName := generateResourceName()
+
+	// Get a lock that doesn't exist
+	transactionId, err := sal.GetLock(resourceName)
+	suite.Nil(transactionId, "transaction id should be nil")
+	suite.NoError(err, "should not have got an error")
+}
+
 func TestStorageAccountLockTestSuite(t *testing.T) {
 	SkipCI(t)
 	suite.Run(t, new(SALockTestSuite))
