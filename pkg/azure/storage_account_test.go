@@ -137,7 +137,7 @@ func (suite *SALockTestSuite) TestGetLock() {
 	suite.NoError(err, "should not have got an error")
 }
 
-func (suite *SALockTestSuite) TestGetLock_LockDoesNotExist() {
+func (suite *SALockTestSuite) TestGetLock_WhenLockDoesNotExist() {
 	loadConnStringEnv()
 	sal, _ := NewStorageAccountLock()
 	resourceName := generateResourceName()
