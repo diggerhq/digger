@@ -29,7 +29,7 @@ func NewStorageAccountLock() (*StorageAccount, error) {
 	var svcClient *aztables.ServiceClient
 	var err error
 
-	// In order we are going to try to authenticate with:
+	// In order, we are going to try to authenticate with:
 	// 1. Shared Key credentials
 	// 2. Connection string credentials
 	// 3. Client secret credentials
@@ -122,6 +122,7 @@ func (sal *StorageAccount) GetLock(resource string) (*int, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve the entities: %v", err)
 		}
+
 		for _, e := range res.Entities {
 			var entity aztables.EDMEntity
 			err := json.Unmarshal(e, &entity)

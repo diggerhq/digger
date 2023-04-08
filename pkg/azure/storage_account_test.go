@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"net"
 	"os"
 	"testing"
 
@@ -29,6 +30,13 @@ type SALockTestSuite struct {
 func (suite *SALockTestSuite) SetupSuite() {
 	// We set 'testingMode' so we can use the right service url format
 	testingMode = true
+
+	// Make sure Azurite is started before tests
+	conn, err := net.Dial("tcp", "127.0.0.1:10002")
+	if err != nil {
+		suite.T().Skip("Please make sure 'Azurite' table service is started before running Azure tests.")
+	}
+	conn.Close()
 }
 
 // Runs after every test
