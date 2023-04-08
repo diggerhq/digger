@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	usingRealSA = false
+	usingRealSA = false // Whether we are running tests against a real storage account or not.
 	envNames    = []string{
 		"DIGGER_AZURE_CONNECTION_STRING",
 		"DIGGER_AZURE_SHARED_KEY",
@@ -37,6 +37,8 @@ type tt struct {
 	name    string
 }
 
+// We use a test table so we can run our tests,
+// using multiple authentication variations.
 var (
 	testCases = []tt{
 		{
@@ -180,6 +182,46 @@ func (suite *SALockTestSuite) TestUnlock() {
 			ok, err = sal.Unlock(resourceName)
 			suite.True(ok)
 			suite.NoError(err, "should not have got an error")
+		})
+	}
+}
+
+func (suite *SALockTestSuite) TestUnlock_WhenLockDoesNotExist() {
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			tc.loadEnv(suite)
+			sal, _ := NewStorageAccountLock()
+			resourceName := generateResourceName()
+
+			// Unlocking
+			ok, err := sal.Unlock(resourceName)
+			suite.False(ok)
+			suite.Error(err, "should have got an error")
+		})
+	}
+}
+
+func (suite *SALockTestSuite) TestUnlock_Twice_WhenLockExist() {
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			tc.loadEnv(suite)
+			sal, _ := NewStorageAccountLock()
+			resourceName := generateResourceName()
+
+			// Locking
+			ok, err := sal.Lock(18, resourceName)
+			suite.True(ok, "lock acquisition should be true")
+			suite.NoError(err, "should not have got an error")
+
+			// Unlocking the first time
+			ok, err = sal.Unlock(resourceName)
+			suite.True(ok)
+			suite.NoError(err, "should not have got an error")
+
+			// Unlocking the second time
+			ok, err = sal.Unlock(resourceName)
+			suite.False(ok)
+			suite.Error(err, "should have got an error")
 		})
 	}
 }
