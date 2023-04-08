@@ -7,17 +7,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/data/aztables"
 )
 
 const (
-	TABLE_NAME              = "DIGGERLOCK"
-	SERVICE_URL_FORMAT      = "https://%s.table.core.windows.net"
-	SERVICE_URL_FORMAT_TEST = "http://127.0.0.1:10002/%s"
+	TABLE_NAME = "DIGGERLOCK"
 )
 
 var (
-	testingMode = false
+	SERVICE_URL_FORMAT = "https://%s.table.core.windows.net"
 )
 
 type StorageAccount struct {
@@ -33,10 +32,12 @@ func NewStorageAccountLock() (*StorageAccount, error) {
 	// 1. Shared Key credentials
 	// 2. Connection string credentials
 	// 3. Client secret credentials
+
+	// 1. Shared Key
 	if key := (os.Getenv("DIGGER_AZURE_SHARED_KEY")); key != "" {
 		saName := os.Getenv("DIGGER_AZURE_SA_NAME")
 		if saName == "" {
-			return nil, fmt.Errorf("you must set 'DIGGER_AZURE_SA_NAME' environment variable when using shared key")
+			return nil, fmt.Errorf("you must set 'DIGGER_AZURE_SA_NAME' environment variable when using shared key authentication")
 		}
 
 		sharedCreds, err := aztables.NewSharedKeyCredential(saName, key)
@@ -47,19 +48,40 @@ func NewStorageAccountLock() (*StorageAccount, error) {
 		serviceURL := getServiceURL(saName)
 		svcClient, err = aztables.NewServiceClientWithSharedKey(serviceURL, sharedCreds, nil)
 		if err != nil {
-			return nil, fmt.Errorf("could not authenticate client with shared key method: %v", err)
+			return nil, fmt.Errorf("could not create service client with shared key authentication: %v", err)
 		}
 	}
 
-	if connStr := (os.Getenv("DIGGER_AZURE_CONNECTION_STRING")); connStr != "" {
+	// 2. Connection string
+	if connStr := os.Getenv("DIGGER_AZURE_CONNECTION_STRING"); connStr != "" {
 		svcClient, err = aztables.NewServiceClientFromConnectionString(connStr, nil)
 		if err != nil {
-			return nil, fmt.Errorf("could not authenticate client with connection string: %v", err)
+			return nil, fmt.Errorf("could not create service client with connection string authentication: %v", err)
 		}
 	}
 
+	// 3. Client secret
+	if tenantId := os.Getenv("DIGGER_AZURE_TENANT_ID"); tenantId != "" {
+		clientId := os.Getenv("DIGGER_AZURE_CLIENT_ID")
+		secret := os.Getenv("DIGGER_AZURE_CLIENT_SECRET")
+
+		if clientId == "" || secret == "" {
+			return nil, fmt.Errorf("you must set 'DIGGER_AZURE_CLIENT_ID' and 'DIGGER_AZURE_CLIENT_SECRET' when using client secret authentication")
+		}
+
+		saName := os.Getenv("DIGGER_AZURE_SA_NAME")
+		if saName == "" {
+			return nil, fmt.Errorf("you must set 'DIGGER_AZURE_SA_NAME' environment variable when using client secret authentication")
+		}
+
+		serviceURL := getServiceURL(saName)
+		cred, _ := azidentity.NewClientSecretCredential("", "", "", nil)
+		svcClient, _ = aztables.NewServiceClient(serviceURL, cred, nil)
+	}
+
+	// If service client is nil, it means that no authentication method was found
 	if svcClient == nil {
-		return nil, fmt.Errorf("could not initialize client because no authentication method was found")
+		return nil, fmt.Errorf("could not initialize service client because no authentication method was found")
 	}
 
 	return &StorageAccount{
@@ -177,10 +199,6 @@ func (sal *StorageAccount) isTableExists(table string) (bool, error) {
 }
 
 func getServiceURL(saName string) string {
-	if testingMode {
-		return fmt.Sprintf(SERVICE_URL_FORMAT_TEST, saName)
-	}
-
 	return fmt.Sprintf(SERVICE_URL_FORMAT, saName)
 }
 
