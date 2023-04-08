@@ -75,8 +75,14 @@ func NewStorageAccountLock() (*StorageAccount, error) {
 		}
 
 		serviceURL := getServiceURL(saName)
-		cred, _ := azidentity.NewClientSecretCredential("", "", "", nil)
-		svcClient, _ = aztables.NewServiceClient(serviceURL, cred, nil)
+		cred, err := azidentity.NewClientSecretCredential(tenantId, clientId, secret, nil)
+		if err != nil {
+			return nil, fmt.Errorf("could not create create client secret credential: %v", err)
+		}
+		svcClient, err = aztables.NewServiceClient(serviceURL, cred, nil)
+		if err != nil {
+			return nil, fmt.Errorf("could not create service client with client secret authentication: %v", err)
+		}
 	}
 
 	// If service client is nil, it means that no authentication method was found

@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"log"
 	"net"
 	"os"
 	"testing"
@@ -18,7 +19,7 @@ const (
 
 var (
 	usingRealSA = false
-	envToClean  = []string{
+	envNames    = []string{
 		"DIGGER_AZURE_CONNECTION_STRING",
 		"DIGGER_AZURE_SHARED_KEY",
 		"DIGGER_AZURE_SA_NAME",
@@ -27,13 +28,8 @@ var (
 		"DIGGER_AZURE_CLIENT_SECRET",
 	}
 
-	AZURE_CONN_STRING = ""
-	AZURE_SHARED_KEY  = ""
-	AZURE_SA_NAME     = ""
-
-	AZURE_TENANT_ID     = ""
-	AZURE_CLIENT_ID     = ""
-	AZURE_CLIENT_SECRET = ""
+	// Holds our current environment
+	envs = map[string]string{}
 )
 
 type tt struct {
@@ -85,7 +81,7 @@ func (suite *SALockTestSuite) SetupSuite() {
 
 	conn, err := net.Dial("tcp", "127.0.0.1:10002")
 	if err != nil {
-		suite.T().Skip("Please make sure 'Azurite' table service is started before running Azure tests, or use a real storage account.")
+		log.Fatalf("Please make sure 'Azurite' table service is started before running Azure tests, or use a real storage account.")
 	}
 	conn.Close()
 }
@@ -93,7 +89,7 @@ func (suite *SALockTestSuite) SetupSuite() {
 // Runs after every test
 func (suite *SALockTestSuite) TearDownTest() {
 	// Clean environment variables
-	for _, env := range envToClean {
+	for _, env := range envNames {
 		os.Setenv(env, "")
 	}
 }
@@ -237,7 +233,7 @@ func TestStorageAccountLockTestSuite(t *testing.T) {
 	// if we are not using a real storage account
 	// We'll be relying on Azurite emulator which has
 	// a different url format
-	if useRealSA == "" {
+	if useRealSA == "" || useRealSA == "0" {
 		SERVICE_URL_FORMAT = "http://127.0.0.1:10002/%s"
 		usingRealSA = false
 		suite.Run(t, new(SALockTestSuite))
@@ -255,41 +251,42 @@ func generateResourceName() string {
 }
 
 // Initialize and save environment variables
-// into local variables.
+// into a map.
 // This is useful so we can alter  environment variables
 // without losing their initial values.
 
 // This comes is handy when we want to test cases
-// where an environment variable is not defined for example.
+// where an environment variable is not defined.
 func prepareEnv() {
 	if !usingRealSA {
-		AZURE_SHARED_KEY = AZURITE_SHARED_KEY
-		AZURE_SA_NAME = AZURITE_SA_NAME
-		AZURE_CONN_STRING = AZURITE_CONN_STRING
+		envs["AZURE_SHARED_KEY"] = AZURITE_SHARED_KEY
+		envs["AZURE_SA_NAME"] = AZURITE_SA_NAME
+		envs["AZURE_CONN_STRING"] = AZURITE_CONN_STRING
 		return
 	}
 
-	AZURE_SHARED_KEY = os.Getenv("DIGGER_AZURE_SHARED_KEY")
-	AZURE_SA_NAME = os.Getenv("DIGGER_AZURE_SA_NAME")
-	AZURE_CONN_STRING = os.Getenv("DIGGER_AZURE_CONNECTION_STRING")
+	for _, env := range envNames {
+		envValue, exists := os.LookupEnv(env)
+		if !exists {
+			log.Fatalf("Since 'DIGGER_TEST_USE_REAL_SA' has been set, '%s' environment variable must also be set before starting the tests.", env)
+		}
 
-	AZURE_TENANT_ID = os.Getenv("DIGGER_AZURE_TENANT_ID")
-	AZURE_CLIENT_ID = os.Getenv("DIGGER_AZURE_CLIENT_ID")
-	AZURE_CLIENT_SECRET = os.Getenv("DIGGER_AZURE_CLIENT_SECRET")
+		envs[env] = envValue
+	}
 }
 
 func loadSharedKeyEnv() {
-	os.Setenv("DIGGER_AZURE_SHARED_KEY", AZURE_SHARED_KEY)
-	os.Setenv("DIGGER_AZURE_SA_NAME", AZURE_SA_NAME)
+	os.Setenv("DIGGER_AZURE_SHARED_KEY", envs["AZURE_SHARED_KEY"])
+	os.Setenv("DIGGER_AZURE_SA_NAME", envs["AZURE_SA_NAME"])
 }
 
 func loadConnStringEnv() {
-	os.Setenv("DIGGER_AZURE_CONNECTION_STRING", AZURE_CONN_STRING)
+	os.Setenv("DIGGER_AZURE_CONNECTION_STRING", envs["AZURE_CONN_STRING"])
 }
 
 func loadClientSecretEnv() {
-	os.Setenv("DIGGER_AZURE_TENANT_ID", AZURE_TENANT_ID)
-	os.Setenv("DIGGER_AZURE_CLIENT_ID", AZURE_CLIENT_ID)
-	os.Setenv("DIGGER_AZURE_CLIENT_SECRET", AZURE_CLIENT_SECRET)
-	os.Setenv("DIGGER_AZURE_SA_NAME", AZURE_SA_NAME)
+	os.Setenv("DIGGER_AZURE_TENANT_ID", envs["AZURE_TENANT_ID"])
+	os.Setenv("DIGGER_AZURE_CLIENT_ID", envs["AZURE_CLIENT_ID"])
+	os.Setenv("DIGGER_AZURE_CLIENT_SECRET", envs["AZURE_CLIENT_SECRET"])
+	os.Setenv("DIGGER_AZURE_SA_NAME", envs["AZURE_SA_NAME"])
 }
