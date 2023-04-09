@@ -1,7 +1,6 @@
 package azure
 
 import (
-	"log"
 	"net"
 	"os"
 	"testing"
@@ -59,6 +58,7 @@ var (
 				// Skip this test case if we are not testing on a real storage account
 				if !usingRealSA {
 					s.T().Skip("Client secret method can only be tested when used against a real storage account.")
+					return
 				}
 				loadClientSecretEnv()
 			},
@@ -73,27 +73,37 @@ type SALockTestSuite struct {
 // Runs once before the test suite starts
 func (suite *SALockTestSuite) SetupSuite() {
 	// Prepare environment variables
-	prepareEnv()
+	prepareEnv(suite)
 
 	// Make sure Azurite is started before the tests
 	// if we are not using a real storage account
 	if usingRealSA {
 		return
 	}
-
 	conn, err := net.Dial("tcp", "127.0.0.1:10002")
 	if err != nil {
-		log.Fatalf("Please make sure 'Azurite' table service is started before running Azure tests, or use a real storage account.")
+		suite.T().Fatalf("Please make sure 'Azurite' table service is started before running Azure tests, or use a real storage account.")
 	}
 	conn.Close()
+
+	cleanEnv()
 }
 
-// Runs after every test
-func (suite *SALockTestSuite) TearDownTest() {
+func cleanEnv() {
 	// Clean environment variables
 	for _, env := range envNames {
 		os.Setenv(env, "")
 	}
+}
+
+// Runs after every test
+func (suite *SALockTestSuite) TearDownTest() {
+	cleanEnv()
+}
+
+// Runs after every sub-test
+func (suite *SALockTestSuite) TearDownSubTest() {
+	cleanEnv()
 }
 
 func (suite *SALockTestSuite) TestNewStorageAccountLock() {
@@ -126,6 +136,7 @@ func (suite *SALockTestSuite) TestNewStorageAccountLock_WithSharedKey_MissingAcc
 
 func (suite *SALockTestSuite) TestNewStorageAccountLock_WithClientSecret_MissingEnv() {
 	loadClientSecretEnv()
+	os.Setenv("DIGGER_AZURE_CLIENT_ID", "")
 
 	sal, err := NewStorageAccountLock()
 	suite.Nil(sal)
@@ -149,7 +160,9 @@ func (suite *SALockTestSuite) TestLock_WhenAlreadyLocked() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			tc.loadEnv(suite)
-			sal, _ := NewStorageAccountLock()
+			sal, err := NewStorageAccountLock()
+			suite.NotNil(sal)
+			suite.NoError(err)
 			resourceName := generateResourceName()
 
 			// Locking the first time
@@ -165,7 +178,6 @@ func (suite *SALockTestSuite) TestLock_WhenAlreadyLocked() {
 	}
 }
 
-// TODO: Add Unlock test case for when lock doesn't exist
 func (suite *SALockTestSuite) TestUnlock() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
@@ -232,13 +244,13 @@ func (suite *SALockTestSuite) TestGetLock() {
 			tc.loadEnv(suite)
 			sal, err := NewStorageAccountLock()
 			suite.NotNil(sal)
-			suite.NoError(err)
+			suite.Require().NoError(err)
 
 			// Locking
 			resourceName := generateResourceName()
 			ok, err := sal.Lock(21, resourceName)
-			suite.True(ok, "lock acquisition should be true")
-			suite.NoError(err, "should not have got an error")
+			suite.Require().True(ok, "lock acquisition should be true")
+			suite.Require().NoError(err, "should not have got an error")
 
 			// Get the lock
 			transactionId, err := sal.GetLock(resourceName)
@@ -252,10 +264,12 @@ func (suite *SALockTestSuite) TestGetLock_WhenLockDoesNotExist() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			tc.loadEnv(suite)
-			sal, _ := NewStorageAccountLock()
-			resourceName := generateResourceName()
+			sal, err := NewStorageAccountLock()
+			suite.Require().NotNil(sal)
+			suite.Require().NoError(err)
 
 			// Get a lock that doesn't exist
+			resourceName := generateResourceName()
 			transactionId, err := sal.GetLock(resourceName)
 			suite.Nil(transactionId, "transaction id should be nil")
 			suite.NoError(err, "should not have got an error")
@@ -292,14 +306,14 @@ func generateResourceName() string {
 	return uuid.New().String()
 }
 
-// Initialize and save environment variables
-// into a map.
+// Initialize and save environment variables into a map.
 // This is useful so we can alter  environment variables
 // without losing their initial values.
 
 // This comes is handy when we want to test cases
 // where an environment variable is not defined.
-func prepareEnv() {
+func prepareEnv(s *SALockTestSuite) {
+	// When using Azurite, environment are known
 	if !usingRealSA {
 		envs["AZURE_SHARED_KEY"] = AZURITE_SHARED_KEY
 		envs["AZURE_SA_NAME"] = AZURITE_SA_NAME
@@ -307,10 +321,13 @@ func prepareEnv() {
 		return
 	}
 
+	// When using real storage account, environment
+	// variables are not known, and must be injected by the user
+	// before starting our tests.
 	for _, env := range envNames {
 		envValue, exists := os.LookupEnv(env)
 		if !exists {
-			log.Fatalf("Since 'DIGGER_TEST_USE_REAL_SA' has been set, '%s' environment variable must also be set before starting the tests.", env)
+			s.T().Fatalf("Since 'DIGGER_TEST_USE_REAL_SA' has been set, '%s' environment variable must also be set before starting the tests.", env)
 		}
 
 		envs[env] = envValue
@@ -318,17 +335,17 @@ func prepareEnv() {
 }
 
 func loadSharedKeyEnv() {
-	os.Setenv("DIGGER_AZURE_SHARED_KEY", envs["AZURE_SHARED_KEY"])
-	os.Setenv("DIGGER_AZURE_SA_NAME", envs["AZURE_SA_NAME"])
+	os.Setenv("DIGGER_AZURE_SHARED_KEY", envs["DIGGER_AZURE_SHARED_KEY"])
+	os.Setenv("DIGGER_AZURE_SA_NAME", envs["DIGGER_AZURE_SA_NAME"])
 }
 
 func loadConnStringEnv() {
-	os.Setenv("DIGGER_AZURE_CONNECTION_STRING", envs["AZURE_CONN_STRING"])
+	os.Setenv("DIGGER_AZURE_CONNECTION_STRING", envs["DIGGER_AZURE_CONNECTION_STRING"])
 }
 
 func loadClientSecretEnv() {
-	os.Setenv("DIGGER_AZURE_TENANT_ID", envs["AZURE_TENANT_ID"])
-	os.Setenv("DIGGER_AZURE_CLIENT_ID", envs["AZURE_CLIENT_ID"])
-	os.Setenv("DIGGER_AZURE_CLIENT_SECRET", envs["AZURE_CLIENT_SECRET"])
-	os.Setenv("DIGGER_AZURE_SA_NAME", envs["AZURE_SA_NAME"])
+	os.Setenv("DIGGER_AZURE_TENANT_ID", envs["DIGGER_AZURE_TENANT_ID"])
+	os.Setenv("DIGGER_AZURE_CLIENT_ID", envs["DIGGER_AZURE_CLIENT_ID"])
+	os.Setenv("DIGGER_AZURE_CLIENT_SECRET", envs["DIGGER_AZURE_CLIENT_SECRET"])
+	os.Setenv("DIGGER_AZURE_SA_NAME", envs["DIGGER_AZURE_SA_NAME"])
 }
