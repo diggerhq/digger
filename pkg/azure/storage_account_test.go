@@ -89,13 +89,6 @@ func (suite *SALockTestSuite) SetupSuite() {
 	cleanEnv()
 }
 
-func cleanEnv() {
-	// Clean environment variables
-	for _, env := range envNames {
-		os.Setenv(env, "")
-	}
-}
-
 // Runs after every test
 func (suite *SALockTestSuite) TearDownTest() {
 	cleanEnv()
@@ -241,8 +234,6 @@ func (suite *SALockTestSuite) TestUnlock_Twice_WhenLockExist() {
 func (suite *SALockTestSuite) TestGetLock() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
-			current := os.Environ()
-			print(current)
 			tc.loadEnv(suite)
 			sal, err := NewStorageAccountLock()
 			suite.NotNil(sal)
@@ -337,17 +328,29 @@ func prepareEnv(s *SALockTestSuite) {
 }
 
 func loadSharedKeyEnv() {
+	os.Setenv("DIGGER_AZURE_AUTH_METHOD", "SHARED_KEY")
+
 	os.Setenv("DIGGER_AZURE_SHARED_KEY", envs["DIGGER_AZURE_SHARED_KEY"])
 	os.Setenv("DIGGER_AZURE_SA_NAME", envs["DIGGER_AZURE_SA_NAME"])
 }
 
 func loadConnStringEnv() {
+	os.Setenv("DIGGER_AZURE_AUTH_METHOD", "CONNECTION_STRING")
 	os.Setenv("DIGGER_AZURE_CONNECTION_STRING", envs["DIGGER_AZURE_CONNECTION_STRING"])
 }
 
 func loadClientSecretEnv() {
+	os.Setenv("DIGGER_AZURE_AUTH_METHOD", "CLIENT_SECRET")
+
 	os.Setenv("DIGGER_AZURE_TENANT_ID", envs["DIGGER_AZURE_TENANT_ID"])
 	os.Setenv("DIGGER_AZURE_CLIENT_ID", envs["DIGGER_AZURE_CLIENT_ID"])
 	os.Setenv("DIGGER_AZURE_CLIENT_SECRET", envs["DIGGER_AZURE_CLIENT_SECRET"])
 	os.Setenv("DIGGER_AZURE_SA_NAME", envs["DIGGER_AZURE_SA_NAME"])
+}
+
+// Clean environment variables
+func cleanEnv() {
+	for _, env := range envNames {
+		os.Setenv(env, "")
+	}
 }
