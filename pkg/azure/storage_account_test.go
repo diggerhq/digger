@@ -195,10 +195,12 @@ func (suite *SALockTestSuite) TestUnlock_WhenLockDoesNotExist() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			tc.loadEnv(suite)
-			sal, _ := NewStorageAccountLock()
-			resourceName := generateResourceName()
+			sal, err := NewStorageAccountLock()
+			suite.NotNil(sal)
+			suite.Require().NoError(err)
 
 			// Unlocking
+			resourceName := generateResourceName()
 			ok, err := sal.Unlock(resourceName)
 			suite.False(ok)
 			suite.Error(err, "should have got an error")

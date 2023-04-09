@@ -35,18 +35,18 @@ func NewStorageAccountLock() (*StorageAccount, error) {
 		return nil, err
 	}
 
-	return &StorageAccount{
+	sal := &StorageAccount{
 		svcClient:   svcClient,
 		tableClient: svcClient.NewClient(TABLE_NAME),
-	}, nil
+	}
+
+	if err := sal.createTableIfNotExists(); err != nil {
+		return nil, fmt.Errorf("error while creating table: %v", err)
+	}
+	return sal, nil
 }
 
 func (sal *StorageAccount) Lock(transactionId int, resource string) (bool, error) {
-	err := sal.createTableIfNotExists()
-	if err != nil {
-		return false, err
-	}
-
 	entity := aztables.EDMEntity{
 		Properties: map[string]interface{}{
 			"transaction_id": transactionId,
