@@ -27,7 +27,7 @@ type StorageAccount struct {
 func NewStorageAccountLock() (*StorageAccount, error) {
 	authMethod := os.Getenv("DIGGER_AZURE_AUTH_METHOD")
 	if authMethod == "" {
-		return nil, fmt.Errorf("'DIGGER_AZURE_AUTH_METHOD' environment variable must be set to either")
+		return nil, fmt.Errorf("'DIGGER_AZURE_AUTH_METHOD' environment variable must be set to either 'SHARED_KEY' or 'CONNECTION_STRING' or 'CLIENT_SECRET'")
 	}
 
 	svcClient, err := getServiceClient(authMethod)
