@@ -22,5 +22,11 @@ jobs:
       - name: Build
         run: go build -v ./cmd/digger
 
+      - name: Install Azurite
+        run: npm install -g azurite
+
+      - name: Start Azurite service
+        run: azurite --silent
+
       - name: Test
         run: go test -v ./...
