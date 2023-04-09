@@ -3,6 +3,7 @@ package utils
 import (
 	"digger/pkg/aws"
 	"digger/pkg/aws/envprovider"
+	"digger/pkg/azure"
 	"digger/pkg/gcp"
 	"digger/pkg/github"
 	"errors"
@@ -158,6 +159,9 @@ func GetLock() (Lock, error) {
 		bucket := client.Bucket(bucketName)
 		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}
 		return &lock, nil
+	} else if lockProvider == "azure" {
+		return azure.NewStorageAccountLock()
 	}
+
 	return nil, errors.New("failed to find lock provider")
 }

@@ -27,7 +27,7 @@ type StorageAccount struct {
 func NewStorageAccountLock() (*StorageAccount, error) {
 	authMethod := os.Getenv("DIGGER_AZURE_AUTH_METHOD")
 	if authMethod == "" {
-		return nil, fmt.Errorf("'DIGGER_AZURE_AUTH_METHOD' environment variable must be set")
+		return nil, fmt.Errorf("'DIGGER_AZURE_AUTH_METHOD' environment variable must be set to either")
 	}
 
 	svcClient, err := getServiceClient(authMethod)
@@ -224,19 +224,3 @@ func (sal *StorageAccount) isTableExists(table string) (bool, error) {
 func getServiceURL(saName string) string {
 	return fmt.Sprintf(SERVICE_URL_FORMAT, saName)
 }
-
-// func (sal *StorageAccount) Lock(transactionId int, resource string) (bool, error) {
-// 	options := aztables.ListEntitiesOptions{}
-// 	entitiesPager := sal.tableClient.NewListEntitiesPager(&options)
-
-// 	for entitiesPager.More() {
-// 		marshEntites, err := entitiesPager.NextPage(context.Background())
-// 		if err != nil {
-// 			return false, fmt.Errorf("could not advance to next page while retrieving entities: %v", err)
-// 		}
-
-// 		var entity aztables.EDMEntity
-// 		json.Unmarshal(marshEntites.Entities, &entity)
-// 	}
-// 	return true, nil
-// }
