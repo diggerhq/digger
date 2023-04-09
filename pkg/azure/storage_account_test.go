@@ -241,6 +241,8 @@ func (suite *SALockTestSuite) TestUnlock_Twice_WhenLockExist() {
 func (suite *SALockTestSuite) TestGetLock() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
+			current := os.Environ()
+			print(current)
 			tc.loadEnv(suite)
 			sal, err := NewStorageAccountLock()
 			suite.NotNil(sal)
@@ -313,11 +315,11 @@ func generateResourceName() string {
 // This comes is handy when we want to test cases
 // where an environment variable is not defined.
 func prepareEnv(s *SALockTestSuite) {
-	// When using Azurite, environment are known
+	// When using Azurite, environment variables are known
 	if !usingRealSA {
-		envs["AZURE_SHARED_KEY"] = AZURITE_SHARED_KEY
-		envs["AZURE_SA_NAME"] = AZURITE_SA_NAME
-		envs["AZURE_CONN_STRING"] = AZURITE_CONN_STRING
+		envs["DIGGER_AZURE_SHARED_KEY"] = AZURITE_SHARED_KEY
+		envs["DIGGER_AZURE_SA_NAME"] = AZURITE_SA_NAME
+		envs["DIGGER_AZURE_CONNECTION_STRING"] = AZURITE_CONN_STRING
 		return
 	}
 

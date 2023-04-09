@@ -24,16 +24,7 @@ type StorageAccount struct {
 	svcClient   *aztables.ServiceClient
 }
 
-func NewStorageAccountLock() (*StorageAccount, error) {
-	var svcClient *aztables.ServiceClient
-	var err error
-
-	// In order, we are going to try to authenticate with:
-	// 1. Shared Key credentials
-	// 2. Connection string credentials
-	// 3. Client secret credentials
-
-	// 1. Shared Key
+func getServiceClient() (*aztables.ServiceClient, error) {
 	if key := (os.Getenv("DIGGER_AZURE_SHARED_KEY")); key != "" {
 		saName := os.Getenv("DIGGER_AZURE_SA_NAME")
 		if saName == "" {
@@ -46,21 +37,21 @@ func NewStorageAccountLock() (*StorageAccount, error) {
 		}
 
 		serviceURL := getServiceURL(saName)
-		svcClient, err = aztables.NewServiceClientWithSharedKey(serviceURL, sharedCreds, nil)
+		svcClient, err := aztables.NewServiceClientWithSharedKey(serviceURL, sharedCreds, nil)
 		if err != nil {
 			return nil, fmt.Errorf("could not create service client with shared key authentication: %v", err)
 		}
+		return svcClient, nil
 	}
 
-	// 2. Connection string
 	if connStr := os.Getenv("DIGGER_AZURE_CONNECTION_STRING"); connStr != "" {
-		svcClient, err = aztables.NewServiceClientFromConnectionString(connStr, nil)
+		svcClient, err := aztables.NewServiceClientFromConnectionString(connStr, nil)
 		if err != nil {
 			return nil, fmt.Errorf("could not create service client with connection string authentication: %v", err)
 		}
+		return svcClient, err
 	}
 
-	// 3. Client secret
 	if tenantId := os.Getenv("DIGGER_AZURE_TENANT_ID"); tenantId != "" {
 		clientId := os.Getenv("DIGGER_AZURE_CLIENT_ID")
 		secret := os.Getenv("DIGGER_AZURE_CLIENT_SECRET")
@@ -79,15 +70,21 @@ func NewStorageAccountLock() (*StorageAccount, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not create create client secret credential: %v", err)
 		}
-		svcClient, err = aztables.NewServiceClient(serviceURL, cred, nil)
+		svcClient, err := aztables.NewServiceClient(serviceURL, cred, nil)
 		if err != nil {
 			return nil, fmt.Errorf("could not create service client with client secret authentication: %v", err)
 		}
+		return svcClient, nil
 	}
 
-	// If service client is nil, it means that no authentication method was found
-	if svcClient == nil {
-		return nil, fmt.Errorf("could not initialize service client because no authentication method was found")
+	return nil, fmt.Errorf("could not initialize service client, because no authentication method was found")
+
+}
+
+func NewStorageAccountLock() (*StorageAccount, error) {
+	svcClient, err := getServiceClient()
+	if err != nil {
+		return nil, err
 	}
 
 	return &StorageAccount{
