@@ -103,7 +103,7 @@ func (sal *StorageAccount) GetLock(resource string) (*int, error) {
 			var entity aztables.EDMEntity
 			err := json.Unmarshal(e, &entity)
 			if err != nil {
-				return new(int), fmt.Errorf("could not unmarshall entity: %v", err)
+				return nil, fmt.Errorf("could not unmarshall entity: %v", err)
 			}
 
 			transactionId := int(entity.Properties["transaction_id"].(int32))
