@@ -47,6 +47,7 @@ func NewStorageAccountLock() (*StorageAccount, error) {
 }
 
 func (sal *StorageAccount) Lock(transactionId int, resource string) (bool, error) {
+	resource = normalizeResourceName(resource)
 	entity := aztables.EDMEntity{
 		Properties: map[string]interface{}{
 			"transaction_id": transactionId,
@@ -73,6 +74,7 @@ func (sal *StorageAccount) Lock(transactionId int, resource string) (bool, error
 }
 
 func (sal *StorageAccount) Unlock(resource string) (bool, error) {
+	resource = normalizeResourceName(resource)
 	_, err := sal.tableClient.DeleteEntity(context.Background(), "digger", resource, nil)
 	if err != nil {
 		return false, fmt.Errorf("could not delete lock: %v", err)
@@ -82,6 +84,7 @@ func (sal *StorageAccount) Unlock(resource string) (bool, error) {
 }
 
 func (sal *StorageAccount) GetLock(resource string) (*int, error) {
+	resource = normalizeResourceName(resource)
 	filterQuery := fmt.Sprintf("PartitionKey eq 'digger' and RowKey eq '%s'", resource)
 	selectQuery := "RowKey,PartitionKey,transaction_id"
 	listOpts := aztables.ListEntitiesOptions{
@@ -223,4 +226,9 @@ func (sal *StorageAccount) isTableExists(table string) (bool, error) {
 
 func getServiceURL(saName string) string {
 	return fmt.Sprintf(SERVICE_URL_FORMAT, saName)
+}
+
+func normalizeResourceName(resourceName string) string {
+	resourceName = strings.ReplaceAll(resourceName, "/", "-")
+	return strings.ReplaceAll(resourceName, "#", "-")
 }

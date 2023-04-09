@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"testing"
@@ -267,6 +268,28 @@ func (suite *SALockTestSuite) TestGetLock_WhenLockDoesNotExist() {
 			resourceName := generateResourceName()
 			transactionId, err := sal.GetLock(resourceName)
 			suite.Nil(transactionId, "transaction id should be nil")
+			suite.NoError(err, "should not have got an error")
+		})
+	}
+}
+
+func (suite *SALockTestSuite) TestGetLock_WithForbiddenCharacters() {
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			tc.loadEnv(suite)
+			sal, err := NewStorageAccountLock()
+			suite.NotNil(sal)
+			suite.Require().NoError(err)
+
+			// Locking
+			resourceName := fmt.Sprintf("digger/diggerhq/%s#project/", generateResourceName())
+			ok, err := sal.Lock(21, resourceName)
+			suite.Require().True(ok, "lock acquisition should be true")
+			suite.Require().NoError(err, "should not have got an error")
+
+			// Get the lock
+			transactionId, err := sal.GetLock(resourceName)
+			suite.Equal(21, *transactionId, "transaction id mismatch")
 			suite.NoError(err, "should not have got an error")
 		})
 	}
