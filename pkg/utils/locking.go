@@ -55,8 +55,6 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 			projectLock.PrManager.PublishComment(prNumber, comment)
 			return false, nil
 		}
-		comment := "Project " + projectLock.projectId() + " locked by this PR #" + transactionIdStr + " already."
-		projectLock.PrManager.PublishComment(prNumber, comment)
 		return true, nil
 	}
 
