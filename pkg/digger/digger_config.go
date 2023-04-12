@@ -18,7 +18,8 @@ type WorkflowConfiguration struct {
 }
 
 type DiggerConfig struct {
-	Projects []Project `yaml:"projects"`
+	Projects  []Project `yaml:"projects"`
+	AutoMerge bool      `yaml:"auto_merge"`
 }
 
 type Project struct {

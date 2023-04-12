@@ -47,8 +47,9 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) error {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
 	lockAcquisitionSuccess := true
+	allAppliesSuccess := true
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
 			projectLock := &utils.ProjectLockImpl{
@@ -86,6 +87,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				err := diggerExecutor.Apply(prNumber)
 				if err != nil {
 					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+					allAppliesSuccess = false
 				} else {
 					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
 				}
@@ -102,7 +104,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 	if !lockAcquisitionSuccess {
 		os.Exit(1)
 	}
-	return nil
+	return allAppliesSuccess, nil
 }
 
 func GetGitHubContext(ghContext string) (*models.Github, error) {
