@@ -104,6 +104,19 @@ projects:
 	assert.Equal(t, dg.Projects[0].WorkflowConfiguration.OnCommitToDefault[0], "digger apply")
 }
 
+func TestMissingProjectsReturnsError(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	_, err := NewDiggerConfig(tempDir)
+	assert.ErrorContains(t, err, "no projects found")
+}
+
 func createTempDir() string {
 	dir, err := os.MkdirTemp("", "tmp")
 	if err != nil {
