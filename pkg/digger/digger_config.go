@@ -58,16 +58,22 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 			return nil, fmt.Errorf("error while retrieving config file: %v", err)
 		}
 	}
+	if fileName == "" {
+		config.Projects = []Project{defaultProject()}
+		return config, nil
+	}
 
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		config.Projects = make([]Project, 1)
-		config.Projects[0] = defaultProject()
-		return config, nil
+		return nil, fmt.Errorf("error reading '%s': %v", fileName, err)
 	}
 
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+	}
+
+	if config.Projects == nil || len(config.Projects) == 0 {
+		return nil, fmt.Errorf("no projects found in '%s'", fileName)
 	}
 
 	return config, nil
