@@ -50,7 +50,9 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
 	lockAcquisitionSuccess := true
 	allAppliesSuccess := true
+	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
+		appliesPerProject[projectCommands.ProjectName] = false
 		for _, command := range projectCommands.Commands {
 			projectLock := &utils.ProjectLockImpl{
 				InternalLock: lock,
@@ -87,9 +89,9 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				err := diggerExecutor.Apply(prNumber)
 				if err != nil {
 					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
-					allAppliesSuccess = false
 				} else {
 					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+					appliesPerProject[projectCommands.ProjectName] = true
 				}
 			case "digger unlock":
 				utils.SendUsageRecord(repoOwner, eventName, "unlock")
@@ -103,6 +105,11 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 
 	if !lockAcquisitionSuccess {
 		os.Exit(1)
+	}
+	for _, success := range appliesPerProject {
+		if !success {
+			allAppliesSuccess = false
+		}
 	}
 	return allAppliesSuccess, nil
 }
