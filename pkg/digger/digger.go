@@ -114,6 +114,33 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 	return allAppliesSuccess, nil
 }
 
+func MergePullRequest(githubPrService github.PullRequestManager, prNumber int) {
+	combinedStatus, err := githubPrService.GetCombinedPullRequestStatus(prNumber)
+
+	if err != nil {
+		log.Fatalf("failed to get combined status, %v", err)
+	}
+
+	if combinedStatus != "success" {
+		log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
+	}
+
+	prIsMergeable, mergeableState, err := githubPrService.IsMergeable(prNumber)
+
+	if err != nil {
+		log.Fatalf("failed to check if PR is mergeable, %v", err)
+	}
+
+	if !prIsMergeable {
+		log.Fatalf("PR is not mergeable. State: %v", mergeableState)
+	}
+
+	err = githubPrService.MergePullRequest(prNumber)
+	if err != nil {
+		log.Fatalf("failed to merge PR, %v", err)
+	}
+}
+
 func GetGitHubContext(ghContext string) (*models.Github, error) {
 	parsedGhContext := new(models.Github)
 	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
