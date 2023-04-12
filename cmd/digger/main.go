@@ -71,23 +71,7 @@ func main() {
 	}
 
 	if diggerConfig.AutoMerge && allAppliesSuccess {
-		prIsMergeable, mergeableState, err := githubPrService.IsMergeable(prNumber)
-
-		if err != nil {
-			fmt.Printf("failed to check if PR is mergeable, %v", err)
-			os.Exit(1)
-		}
-
-		if !prIsMergeable {
-			fmt.Printf("PR is not mergeable. State: %v", mergeableState)
-			os.Exit(1)
-		}
-
-		err = githubPrService.MergePullRequest(prNumber)
-		if err != nil {
-			fmt.Printf("failed to merge PR, %v", err)
-			os.Exit(9)
-		}
+		digger.MergePullRequest(githubPrService, prNumber)
 		println("PR merged successfully")
 	}
 
