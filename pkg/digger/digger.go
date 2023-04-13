@@ -261,10 +261,11 @@ func (d DiggerExecutor) Apply(prNumber int) {
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
 		d.prManager.PublishComment(prNumber, comment)
-		_, err = d.lock.Unlock(d.LockId(), prNumber)
-		if err != nil {
-			fmt.Printf("%v\n", err)
-			os.Exit(1)
+		if err == nil {
+			_, err := d.lock.Unlock(d.LockId(), prNumber)
+		} else {
+			fmt.Errorf("error unlocking project: %v", err)
+			d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
 		}
 	}
 
