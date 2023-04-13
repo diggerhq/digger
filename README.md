@@ -2,7 +2,7 @@
   <img width="733" alt="Screenshot 2023-02-28 at 11 25 48" src="https://user-images.githubusercontent.com/1280498/221849642-ae6cb056-5b5b-478f-8cfb-42790e1739e7.png">
 </h1>
 <h2 align="center">
-  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA">Slack</a> |
+  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1sqckde6q-iRNgEQDjsLW6l5Z~Bwwt6g">Slack</a> |
   <a href="https://digger.dev">Website</a> |
   <a href="https://diggerhq.gitbook.io/digger-docs/">Docs</a>
 </h2>
@@ -32,9 +32,9 @@ Need a feature that's not listed? Book a [community feedback call](https://calen
 - ✅ GCP support. Store PR locks in GCP storage buckets. Shipped in [#50](https://github.com/diggerhq/digger/pull/50)
 - ✅ Workspaces support. Allow usage of Terraform CLI Workspaces. Shipped in [#72](https://github.com/diggerhq/digger/pull/72)
 - ✅ Terragrunt support. Config option to run terragrunt wrapper. Shipped in [#76](https://github.com/diggerhq/digger/pull/76)
+- ⌚ Azure support using Storage Account Tables WIP: [#122](https://github.com/diggerhq/digger/pull/122)
 - ⌛ Configurable workflows. In addition to Atlantis-style (apply, then merge) also support "apply-only" and "no-lock"
 - ⌛ Gitlab Support. ETA April 2023
-- ⌛ Azure Support. Use Azure Cosmos DB for PR Locks. ETA April 2023
 - ⌛ Bitbucket Support
 - ⌛ Jenkins Support
 - ⌛ Digital Ocean Support
