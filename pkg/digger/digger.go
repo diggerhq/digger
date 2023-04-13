@@ -263,8 +263,11 @@ func (d DiggerExecutor) Apply(prNumber int) {
 		d.prManager.PublishComment(prNumber, comment)
 		if err == nil {
 			_, err := d.lock.Unlock(d.LockId(), prNumber)
+			if err != nil {
+				fmt.Errorf("error unlocking project: %v", err)
+			}
 		} else {
-			fmt.Errorf("error unlocking project: %v", err)
+			
 			d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
 		}
 	}
