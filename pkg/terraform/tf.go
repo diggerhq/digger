@@ -35,7 +35,7 @@ func (terragrunt Terragrunt) Plan() (bool, string, string, error) {
 }
 
 func (terragrunt Terragrunt) runTerragruntCommand(command string) (string, string, error) {
-	cmd := exec.Command("terragrunt", command, "--terragrunt-working-dir", terragrunt.WorkingDir)
+	cmd := exec.Command("terragrunt", command, "--terragrunt-working-dir", terragrunt.WorkingDir, "--terragrunt-non-interactive")
 	env := os.Environ()
 	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")
