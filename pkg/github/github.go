@@ -2,8 +2,9 @@ package github
 
 import (
 	"context"
-	"github.com/google/go-github/v50/github"
 	"log"
+
+	"github.com/google/go-github/v50/github"
 )
 
 func NewGithubPullRequestService(ghToken string, repoName string, owner string) PullRequestManager {

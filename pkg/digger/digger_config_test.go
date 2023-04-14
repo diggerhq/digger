@@ -88,20 +88,21 @@ func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
 	defer teardown()
 
 	diggerCfg := `
-projects:
-- name: dev
-  branch: /main/
-  dir: .
-  workspace: default
+workflows:
+  default:
+    plan:
+      steps:
+      - init
+      - plan:
+          extra_args: ["-var-file=terraform.tfvars"]
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
 	dg, err := NewDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.Equal(t, dg.Projects[0].WorkflowConfiguration.OnPullRequestPushed[0], "digger plan")
-	assert.Equal(t, dg.Projects[0].WorkflowConfiguration.OnPullRequestClosed[0], "digger unlock")
-	assert.Equal(t, dg.Projects[0].WorkflowConfiguration.OnCommitToDefault[0], "digger apply")
+	assert.Equal(t, Step{"init", nil}, dg.Workflows["default"].Plan.Steps[0], "expected step name to be 'init'")
+	assert.Equal(t, Step{"plan", []string{"-var-file=terraform.tfvars"}}, dg.Workflows["default"].Plan.Steps[1], "expected step name to be 'init'")
 }
 
 func createTempDir() string {
