@@ -28,7 +28,8 @@ func (terragrunt Terragrunt) Apply(initParams []string, applyParams []string) (s
 	if err != nil {
 		return stdout, stderr, err
 	}
-
+	applyParams = append(applyParams, "--auto-approve")
+	applyParams = append(applyParams, "--terragrunt-non-interactive")
 	stdout, stderr, err = terragrunt.runTerragruntCommand("apply", applyParams...)
 	return stdout, stderr, err
 }
@@ -47,7 +48,6 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string)
 	args := []string{command}
 	args = append(args, arg...)
 	args = append(args, "--terragrunt-working-dir", terragrunt.WorkingDir)
-	args = append(args, "--auto-approve")
 	cmd := exec.Command("terragrunt", args...)
 
 	env := os.Environ()
