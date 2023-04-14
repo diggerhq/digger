@@ -66,6 +66,8 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				projectCommands.ProjectDir,
 				repoName,
 				projectCommands.Terragrunt,
+				projectCommands.ApplyStage,
+				projectCommands.PlanStage,
 				prManager,
 				projectLock,
 				diggerConfig,
@@ -108,22 +110,30 @@ type ProjectCommand struct {
 	ProjectWorkspace string
 	Terragrunt       bool
 	Commands         []string
+	ApplyStage       utils.Stage
+	PlanStage        utils.Stage
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []utils.Project) ([]ProjectCommand, error) {
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []utils.Project, workflows map[string]utils.Workflow) ([]ProjectCommand, error) {
 	commandsPerProject := make([]ProjectCommand, 0)
 
 	switch event.(type) {
 	case models.PullRequestEvent:
 		event := event.(models.PullRequestEvent)
 		for _, project := range impactedProjects {
+			workflow, ok := workflows[project.Workflow]
+			if !ok {
+				workflow = *defaultWorkflow()
+			}
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
-					Commands:         project.WorkflowConfiguration.OnCommitToDefault,
+					Commands:         workflow.Configuration.OnCommitToDefault,
+					ApplyStage:       *workflow.Apply,
+					PlanStage:        *workflow.Plan,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -131,7 +141,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []utils.P
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
-					Commands:         project.WorkflowConfiguration.OnPullRequestPushed,
+					Commands:         workflow.Configuration.OnPullRequestPushed,
+					ApplyStage:       *workflow.Apply,
+					PlanStage:        *workflow.Plan,
 				})
 			} else if event.Action == "closed" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -139,7 +151,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []utils.P
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
-					Commands:         project.WorkflowConfiguration.OnPullRequestClosed,
+					Commands:         workflow.Configuration.OnPullRequestPushed,
+					ApplyStage:       *workflow.Apply,
+					PlanStage:        *workflow.Plan,
 				})
 			}
 		}
@@ -151,6 +165,10 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []utils.P
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
 				for _, project := range impactedProjects {
+					workflow, ok := workflows[project.Workflow]
+					if !ok {
+						workflow = *defaultWorkflow()
+					}
 					workspace := project.Workspace
 					workspaceOverride, err := parseWorkspace(event.Comment.Body)
 					if err != nil {
@@ -165,6 +183,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []utils.P
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
+						ApplyStage:       *workflow.Apply,
+						PlanStage:        *workflow.Plan,
 					})
 				}
 			}
@@ -211,6 +231,8 @@ type DiggerExecutor struct {
 	projectDir   string
 	repoName     string
 	terragrunt   bool
+	applyStage   utils.Stage
+	planStage    utils.Stage
 	prManager    github.PullRequestManager
 	lock         utils.ProjectLock
 	configDigger *utils.DiggerConfig
@@ -235,7 +257,18 @@ func (d DiggerExecutor) Plan(prNumber int) {
 		log.Fatalf("Error locking project: %v", err)
 	}
 	if res {
-		isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan()
+		var initArgs []string
+		var planArgs []string
+
+		for _, step := range d.planStage.Steps {
+			if step.Action == "init" {
+				initArgs = append(initArgs, step.ExtraArgs...)
+			}
+			if step.Action == "plan" {
+				planArgs = append(planArgs, step.ExtraArgs...)
+			}
+		}
+		isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan(initArgs, planArgs)
 
 		if err != nil {
 			log.Fatalf("Error executing plan: %v", err)
@@ -257,18 +290,40 @@ func (d DiggerExecutor) Apply(prNumber int) {
 	}
 
 	if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
-		stdout, stderr, err := terraformExecutor.Apply()
+		var initArgs []string
+		var applyArgs []string
+
+		for _, step := range d.applyStage.Steps {
+			if step.Action == "init" {
+				initArgs = append(initArgs, step.ExtraArgs...)
+			}
+			if step.Action == "apply" {
+				applyArgs = append(applyArgs, step.ExtraArgs...)
+			}
+		}
+		stdout, stderr, err := terraformExecutor.Apply(initArgs, applyArgs)
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
 		d.prManager.PublishComment(prNumber, comment)
-		d.lock.Unlock(d.LockId(), prNumber)
+		if err == nil {
+			_, err := d.lock.Unlock(d.LockId(), prNumber)
+			if err != nil {
+				fmt.Errorf("error unlocking project: %v", err)
+			}
+		} else {
+
+			d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
+		}
 	}
 
 }
 
 func (d DiggerExecutor) Unlock(prNumber int) {
-	d.lock.ForceUnlock(d.LockId(), prNumber)
-
+	err := d.lock.ForceUnlock(d.LockId(), prNumber)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
+	}
 }
 
 func (d DiggerExecutor) Lock(prNumber int) bool {
@@ -336,4 +391,34 @@ func CheckIfHelpComment(event models.Event) bool {
 		}
 	}
 	return false
+}
+
+func defaultWorkflow() *utils.Workflow {
+	return &utils.Workflow{
+		Configuration: &utils.WorkflowConfiguration{
+			OnCommitToDefault:   []string{"digger unlock"},
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+		},
+		Plan: &utils.Stage{
+			Steps: []utils.Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "plan", ExtraArgs: []string{},
+				},
+			},
+		},
+		Apply: &utils.Stage{
+			Steps: []utils.Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "apply", ExtraArgs: []string{},
+				},
+			},
+		},
+	}
 }

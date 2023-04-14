@@ -3,12 +3,11 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-
-	"gopkg.in/yaml.v2"
 )
 
 type WorkflowConfiguration struct {
@@ -18,16 +17,27 @@ type WorkflowConfiguration struct {
 }
 
 type DiggerConfig struct {
+	Projects  []Project           `yaml:"projects"`
+	Workflows map[string]Workflow `yaml:"workflows"`
 	CollectUsageData *bool     `yaml:"collect_usage_data"`
-	Projects         []Project `yaml:"projects"`
 }
 
 type Project struct {
-	Name                  string                `yaml:"name"`
-	Dir                   string                `yaml:"dir"`
-	Workspace             string                `yaml:"workspace"`
-	Terragrunt            bool                  `yaml:"terragrunt"`
-	WorkflowConfiguration WorkflowConfiguration `yaml:"workflow_configuration"`
+	Name       string `yaml:"name"`
+	Dir        string `yaml:"dir"`
+	Workspace  string `yaml:"workspace"`
+	Terragrunt bool   `yaml:"terragrunt"`
+	Workflow   string `yaml:"workflow"`
+}
+
+type Stage struct {
+	Steps []Step `yaml:"steps"`
+}
+
+type Workflow struct {
+	Plan          *Stage                 `yaml:"plan,omitempty"`
+	Apply         *Stage                 `yaml:"apply,omitempty"`
+	Configuration *WorkflowConfiguration `yaml:"workflow_configuration"`
 }
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
@@ -37,11 +47,7 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	raw := rawProject{
 		Workspace:  "default",
 		Terragrunt: false,
-		WorkflowConfiguration: WorkflowConfiguration{
-			OnPullRequestPushed: []string{"digger plan"},
-			OnPullRequestClosed: []string{"digger unlock"},
-			OnCommitToDefault:   []string{"digger apply"},
-		},
+		Workflow:   "default",
 	}
 	if err := unmarshal(&raw); err != nil {
 		return err
@@ -51,6 +57,28 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 }
 
+type Step struct {
+	Action    string
+	ExtraArgs []string `yaml:"extra_args,omitempty"`
+}
+
+func (s *Step) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.ScalarNode {
+		return value.Decode(&s.Action)
+	}
+
+	var stepMap map[string]map[string][]string
+	if err := value.Decode(&stepMap); err != nil {
+		return err
+	}
+
+	for k, v := range stepMap {
+		s.Action = k
+		s.ExtraArgs = v["extra_args"]
+		break
+	}
+	return nil
+}
 func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	config := &DiggerConfig{}
 	fileName, err := retrieveConfigFile(workingDir)
@@ -64,6 +92,18 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	if err != nil {
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = defaultProject()
+		config.Workflows = make(map[string]Workflow)
+		config.Workflows["default"] = Workflow{
+			Plan: &Stage{
+				Steps: []Step{{
+					Action:    "init",
+					ExtraArgs: []string{},
+				}, {
+					"plan",
+					[]string{},
+				}},
+			},
+		}
 		return config, nil
 	}
 
@@ -80,11 +120,8 @@ func defaultProject() Project {
 		Dir:        ".",
 		Workspace:  "default",
 		Terragrunt: false,
-		WorkflowConfiguration: WorkflowConfiguration{
-			OnPullRequestPushed: []string{"digger plan"},
-			OnPullRequestClosed: []string{"digger unlock"},
-			OnCommitToDefault:   []string{"digger apply"},
-		}}
+		Workflow:   "default",
+	}
 }
 
 func (c *DiggerConfig) GetProject(projectName string) *Project {
@@ -130,12 +167,29 @@ func (c *DiggerConfig) GetDirectory(projectName string) string {
 	return project.Dir
 }
 
+func (c *DiggerConfig) GetWorkflow(workflowName string) *Workflow {
+	workflows := c.Workflows
+
+	workflow, ok := workflows[workflowName]
+	if !ok {
+		return nil
+	}
+	return &workflow
+
+}
+
 func (c *DiggerConfig) GetWorkflowConfiguration(projectName string) WorkflowConfiguration {
 	project := c.GetProject(projectName)
+	workflows := c.Workflows
 	if project == nil {
 		return WorkflowConfiguration{}
 	}
-	return project.WorkflowConfiguration
+	workflow, ok := workflows[project.Workflow]
+
+	if !ok {
+		return WorkflowConfiguration{}
+	}
+	return *workflow.Configuration
 }
 
 type File struct {
