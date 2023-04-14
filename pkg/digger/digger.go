@@ -305,14 +305,25 @@ func (d DiggerExecutor) Apply(prNumber int) {
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
 		d.prManager.PublishComment(prNumber, comment)
-		d.lock.Unlock(d.LockId(), prNumber)
+		if err == nil {
+			_, err := d.lock.Unlock(d.LockId(), prNumber)
+			if err != nil {
+				fmt.Errorf("error unlocking project: %v", err)
+			}
+		} else {
+
+			d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
+		}
 	}
 
 }
 
 func (d DiggerExecutor) Unlock(prNumber int) {
-	d.lock.ForceUnlock(d.LockId(), prNumber)
-
+	err := d.lock.ForceUnlock(d.LockId(), prNumber)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
+	}
 }
 
 func (d DiggerExecutor) Lock(prNumber int) bool {
@@ -369,6 +380,17 @@ func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, st
 func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
 	regex := `(Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy.)`
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
+}
+
+func CheckIfHelpComment(event models.Event) bool {
+	switch event.(type) {
+	case models.IssueCommentEvent:
+		event := event.(models.IssueCommentEvent)
+		if strings.Contains(event.Comment.Body, "digger help") {
+			return true
+		}
+	}
+	return false
 }
 
 func defaultWorkflow() *Workflow {
