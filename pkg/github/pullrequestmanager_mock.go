@@ -17,3 +17,18 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) SetStatus(prNu
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "SetStatus")
 	return nil
 }
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetCombinedPullRequestStatus")
+	return "", nil
+}
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) MergePullRequest(prNumber int) error {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "MergePullRequest")
+	return nil
+}
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMergeable(prNumber int) (bool, string, error) {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsMergeable")
+	return true, "", nil
+}
