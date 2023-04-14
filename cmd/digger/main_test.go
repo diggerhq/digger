@@ -873,7 +873,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, &diggerConfig, prManager, lock, "")
 	assert.NoError(t, err)
 	if err != nil {
@@ -893,7 +893,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, &diggerConfig, prManager, lock, "")
 	assert.NoError(t, err)
 	if err != nil {
@@ -914,17 +914,40 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	assert.NoError(t, err)
 	ghEvent := context.Event
 	pullRequestNumber := 11
-	// digger config
-	dev := utils.Project{Name: "dev", Dir: "dev", WorkflowConfiguration: utils.WorkflowConfiguration{
-		OnPullRequestPushed: []string{"digger plan"},
-		OnPullRequestClosed: []string{"digger unlock"},
-		OnCommitToDefault:   []string{"digger apply"},
-	}}
-	prod := utils.Project{Name: "prod", Dir: "prod", WorkflowConfiguration: utils.WorkflowConfiguration{
-		OnPullRequestPushed: []string{"digger plan"},
-		OnPullRequestClosed: []string{"digger unlock"},
-		OnCommitToDefault:   []string{"digger apply"},
-	}}
+	dev := utils.Project{Name: "dev", Dir: "dev", Workflow: "dev"}
+	prod := utils.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
+	workflows := map[string]utils.Workflow{
+		"dev": {
+			Plan: &utils.Stage{Steps: []utils.Step{
+				{Action: "init", ExtraArgs: []string{}},
+				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
+			}},
+			Apply: &utils.Stage{Steps: []utils.Step{
+				{Action: "init", ExtraArgs: []string{}},
+				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
+			}},
+			Configuration: &utils.WorkflowConfiguration{
+				OnPullRequestPushed: []string{"digger plan"},
+				OnPullRequestClosed: []string{"digger unlock"},
+				OnCommitToDefault:   []string{"digger apply"},
+			},
+		},
+		"prod": {
+			Plan: &utils.Stage{Steps: []utils.Step{
+				{Action: "init", ExtraArgs: []string{}},
+				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
+			}},
+			Apply: &utils.Stage{Steps: []utils.Step{
+				{Action: "init", ExtraArgs: []string{}},
+				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
+			}},
+			Configuration: &utils.WorkflowConfiguration{
+				OnPullRequestPushed: []string{"digger plan"},
+				OnPullRequestClosed: []string{"digger unlock"},
+				OnCommitToDefault:   []string{"digger apply"},
+			},
+		},
+	}
 	projects := []utils.Project{dev, prod}
 	diggerConfig := utils.DiggerConfig{Projects: projects}
 
@@ -933,7 +956,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	lock := &utils.MockLock{}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, workflows)
 	spew.Dump(lock.MapLock)
 	assert.Equal(t, pullRequestNumber, prNumber)
 	assert.Equal(t, 1, len(commandsToRunPerProject))
