@@ -67,7 +67,7 @@ func main() {
 		githubPrService.PublishComment(prNumber, reply)
 	}
 
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects)
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(repoOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 	}
