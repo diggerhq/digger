@@ -47,7 +47,9 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string)
 	args := []string{command}
 	args = append(args, arg...)
 	args = append(args, "--terragrunt-working-dir", terragrunt.WorkingDir)
+	args = append(args, "--auto-approve")
 	cmd := exec.Command("terragrunt", args...)
+
 	env := os.Environ()
 	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")

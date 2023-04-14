@@ -11,38 +11,44 @@ import (
 )
 
 func main() {
+	utils.SendUsageRecord("", "log", "initialize")
+	args := os.Args[1:]
+	if len(args) > 0 && args[0] == "version" {
+		fmt.Println(utils.GetVersion())
+		os.Exit(0)
+	}
+	if len(args) > 0 && args[0] == "help" {
+		utils.DisplayCommands()
+		os.Exit(0)
+	}
+
+	ghToken := os.Getenv("GITHUB_TOKEN")
+	if ghToken == "" {
+		reportErrorAndExit("", "GITHUB_TOKEN is not defined", 1)
+	}
+
+	ghContext := os.Getenv("GITHUB_CONTEXT")
+	if ghContext == "" {
+		reportErrorAndExit("", "GITHUB_CONTEXT is not defined", 2)
+	}
+
+	parsedGhContext, err := models.GetGitHubContext(ghContext)
+	if err != nil {
+		reportErrorAndExit("", fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
+	}
+	println("GitHub context parsed successfully")
+
 	diggerConfig, err := digger.NewDiggerConfig("")
 	if err != nil {
-		fmt.Printf("Failed to read digger config. %s\n", err)
-		os.Exit(1)
+		reportErrorAndExit(parsedGhContext.RepositoryOwner, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
 	println("Digger config read successfully")
 
 	lock, err := utils.GetLock()
 	if err != nil {
-		fmt.Printf("Failed to create lock provider. %s\n", err)
-		os.Exit(2)
+		reportErrorAndExit(parsedGhContext.RepositoryOwner, fmt.Sprintf("Failed to create lock provider. %s", err), 5)
 	}
 	println("Lock provider has been created successfully")
-
-	ghToken := os.Getenv("GITHUB_TOKEN")
-	if ghToken == "" {
-		println("GITHUB_TOKEN is not defined")
-		os.Exit(3)
-	}
-
-	ghContext := os.Getenv("GITHUB_CONTEXT")
-	if ghContext == "" {
-		fmt.Printf("GITHUB_CONTEXT is not defined. %s\n", err)
-		os.Exit(4)
-	}
-
-	parsedGhContext, err := models.GetGitHubContext(ghContext)
-	if err != nil {
-		fmt.Printf("failed to parse GitHub context. %s\n", err.Error())
-		os.Exit(5)
-	}
-	println("GitHub context parsed successfully")
 
 	ghEvent := parsedGhContext.Event
 	eventName := parsedGhContext.EventName
@@ -52,22 +58,42 @@ func main() {
 
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
-		fmt.Printf("failed to process GitHub event, %v", err)
-		os.Exit(6)
+		reportErrorAndExit(repoOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
 	println("GitHub event processed successfully")
 
+	if digger.CheckIfHelpComment(ghEvent) {
+		reply := utils.GetCommands()
+		githubPrService.PublishComment(prNumber, reply)
+	}
+
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, diggerConfig.Workflows)
 	if err != nil {
-		fmt.Printf("failed to convert event to command, %v", err)
-		os.Exit(7)
+		reportErrorAndExit(repoOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 	}
 	println("GitHub event converted to commands successfully")
 
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, "")
 	if err != nil {
-		fmt.Printf("failed to execute command, %v", err)
-		os.Exit(8)
+		reportErrorAndExit(repoOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 	println("Commands executed successfully")
+
+	reportErrorAndExit(repoOwner, "Digger finished successfully", 0)
+
+	defer func() {
+		if r := recover(); r != nil {
+			reportErrorAndExit(repoOwner, fmt.Sprintf("Panic occurred. %s", r), 1)
+		}
+	}()
+
+}
+
+func reportErrorAndExit(repoOwner string, message string, exitCode int) {
+	fmt.Printf(message)
+	err := utils.SendLogRecord(repoOwner, message)
+	if err != nil {
+		fmt.Printf("Failed to send log record. %s\n", err)
+	}
+	os.Exit(exitCode)
 }

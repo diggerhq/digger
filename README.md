@@ -1,30 +1,43 @@
-# Digger
-
 <h1 align="center">
   <img width="733" alt="Screenshot 2023-02-28 at 11 25 48" src="https://user-images.githubusercontent.com/1280498/221849642-ae6cb056-5b5b-478f-8cfb-42790e1739e7.png">
 </h1>
-<p align="center">
-  <p align="center">Digger is an open-source Terraform Cloud Alternative</p>
-</p>
 <h2 align="center">
-  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA">Slack</a> |
+  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1sqckde6q-iRNgEQDjsLW6l5Z~Bwwt6g">Slack</a> |
   <a href="https://digger.dev">Website</a> |
   <a href="https://diggerhq.gitbook.io/digger-docs/">Docs</a>
 </h2>
 
-Digger is Github Action that runs Terraform `plan` and `apply` with PR-level locks
+Digger runs Terraform jobs in the CI/CD system you already have, such as Github Actions.
 
-Unlike Terraform Cloud or Spacelift, terraform jobs run natively in your Github Actions - no need to share sensitive data with another CI system
+CI/CD for Terraform is [not easy](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). This is why Terraform Cloud, Spacelift and Atlantis are essentially standalone full-stack CI/CD systems.
 
-Unlike Atlantis, there's no need to deploy and maintain a backend service.
+But why have 2 CI systems? Why not reuse the existing CI infrastructure? Digger does just that.
 
-<img width="693" alt="Screenshot 2023-02-24 at 19 52 12" src="https://user-images.githubusercontent.com/1280498/221277610-368ae950-6319-4bf3-9df2-ca75ca5a05f9.png">
+With Digger terraform jobs natively in your CI runners. It takes care of locks, state, outputs etc. [Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
 
-Demo video: https://www.loom.com/share/e201e639a73941e0b5508710377a6106
 
 ## Features
-- code-level locks - only 1 open PR can run plan / apply. This avoids conflicts
-- no need to install any backend into your infra - locks are stored in DynamoDB
+- 👟 Runner-less. Terraform runs in the compute environment of your existing CI such as Github Actions, Gitlab, Argo etc.
+- 🪶 Minimal / no backend. Digger's own backend is a serverless function; it is only needed for certain CI environments (eg Gitlab)
+- 🔒 Code-level locks. Avoid race conditions across multiple PRs. Similar to Atlantis workflow.
+- ☁️ Multi-cloud. At the moment Digger supports AWS and GCP; Azure support coming in April 2023 (yes, in a few weeks).
+- 💥 Projects. Allow to isolate terraform runs and locks to a specific directory
+- 💥 Terragrunt support
+- 💥 Workspaces support
+
+## Roadmap
+
+Need a feature that's not listed? Book a [community feedback call](https://calendly.com/diggerdev/digger-community-feedback) - we ship fast ✅
+
+- ✅ GCP support. Store PR locks in GCP storage buckets. Shipped in [#50](https://github.com/diggerhq/digger/pull/50)
+- ✅ Workspaces support. Allow usage of Terraform CLI Workspaces. Shipped in [#72](https://github.com/diggerhq/digger/pull/72)
+- ✅ Terragrunt support. Config option to run terragrunt wrapper. Shipped in [#76](https://github.com/diggerhq/digger/pull/76)
+- ⌚ Azure support using Storage Account Tables WIP: [#122](https://github.com/diggerhq/digger/pull/122)
+- ⌛ Configurable workflows. In addition to Atlantis-style (apply, then merge) also support "apply-only" and "no-lock"
+- ⌛ Gitlab Support. ETA April 2023
+- ⌛ Bitbucket Support
+- ⌛ Jenkins Support
+- ⌛ Digital Ocean Support
 
 ## How to use
 
@@ -55,16 +68,6 @@ Digger also doesn't differentiate locks based on statefiles - if a PR is locked,
 
 state-level locks will keep working normally because are handled by terraform itself ([same as in Atlantis](https://www.runatlantis.io/docs/locking.html#relationship-to-terraform-state-locking))
 
-
-## Roadmap
-
-- Support for multiple modes of locking (apply-only, no-lock + queing)
-- 🔍 GCP Support
-    - Supporting of GCP storage buckets for PR locks
-- 🔍 Azure Support 
-    - Supporting of Azure Cosmos DB for PR Locks
-- 🔍 Gitlab Support
-- 🔍 Jenkins Support
 
 ## Notes
 - We perform anonymous usage tracking. No sensitive or personal / identifyable data is logged. You can see what is tracked in [`pkg/utils/usage.go`](https://github.com/diggerhq/digger/blob/main/pkg/utils/usage.go)
