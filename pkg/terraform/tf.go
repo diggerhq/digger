@@ -2,18 +2,16 @@ package terraform
 
 import (
 	"bytes"
-	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-exec/tfexec"
 	"io"
-	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type TerraformExecutor interface {
-	Apply() (string, string, error)
-	Plan() (bool, string, string, error)
+	Apply([]string, []string) (string, string, error)
+	Plan([]string, []string) (bool, string, string, error)
 }
 
 type Terragrunt struct {
@@ -25,17 +23,33 @@ type Terraform struct {
 	Workspace  string
 }
 
-func (terragrunt Terragrunt) Apply() (string, string, error) {
-	return terragrunt.runTerragruntCommand("apply")
+func (terragrunt Terragrunt) Apply(initParams []string, applyParams []string) (string, string, error) {
+	stdout, stderr, err := terragrunt.runTerragruntCommand("init", initParams...)
+	if err != nil {
+		return stdout, stderr, err
+	}
+	applyParams = append(applyParams, "--auto-approve")
+	applyParams = append(applyParams, "--terragrunt-non-interactive")
+	stdout, stderr, err = terragrunt.runTerragruntCommand("apply", applyParams...)
+	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Plan() (bool, string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand("plan")
+func (terragrunt Terragrunt) Plan(initParams []string, planParams []string) (bool, string, string, error) {
+	stdout, stderr, err := terragrunt.runTerragruntCommand("init", initParams...)
+	if err != nil {
+		return false, stdout, stderr, err
+	}
+
+	stdout, stderr, err = terragrunt.runTerragruntCommand("plan", planParams...)
 	return true, stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) runTerragruntCommand(command string) (string, string, error) {
-	cmd := exec.Command("terragrunt", command, "--terragrunt-working-dir", terragrunt.WorkingDir, "--terragrunt-non-interactive", "--auto-approve")
+func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string) (string, string, error) {
+	args := []string{command}
+	args = append(args, arg...)
+	args = append(args, "--terragrunt-working-dir", terragrunt.WorkingDir)
+	cmd := exec.Command("terragrunt", args...)
+
 	env := os.Environ()
 	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")
@@ -55,48 +69,54 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string) (string, strin
 	return stdout.String(), stderr.String(), err
 }
 
-func (terraform Terraform) Apply() (string, string, error) {
-	println("digger apply")
-	execDir := "terraform"
-	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
+func (tf Terraform) Apply(initParams []string, applyParams []string) (string, string, error) {
+	initParams = append(append(append(initParams, "-upgrade=true"), "-input=false"), "-no-color")
+	_, _, _, err := tf.runTerraformCommand("init", initParams...)
 	if err != nil {
-		return "", "", fmt.Errorf("error while initializing terraform: %s", err)
+		return "", "", err
 	}
-
-	stdout := &StdWriter{[]byte{}, true}
-	//stderr := &StdWriter{[]byte{}, true}
-	tf.SetStdout(stdout)
-	//tf.SetStderr(stderr)
-	tf.SetStderr(os.Stderr)
-
-	err = tf.Init(context.Background(), tfexec.Upgrade(false))
-	if err != nil {
-		println("terraform init failed.")
-		return stdout.GetString(), "", fmt.Errorf("terraform init failed. %s", err)
-	}
-	currentWorkspace, err := tf.WorkspaceShow(context.Background())
+	workspace, _, _, err := tf.runTerraformCommand("workspace", "show")
 
 	if err != nil {
-		log.Printf("terraform workspace show failed. workspace: %v . dir: %v", terraform.Workspace, terraform.WorkingDir)
-		return stdout.GetString(), "", fmt.Errorf("terraform show failed. %s", err)
+		return "", "", err
 	}
 
-	if currentWorkspace != terraform.Workspace {
-		err = tf.WorkspaceNew(context.Background(), terraform.Workspace)
-
+	if strings.TrimSpace(workspace) != tf.Workspace {
+		_, _, _, err = tf.runTerraformCommand("workspace", "new", tf.Workspace)
 		if err != nil {
-			log.Printf("terraform workspace new failed. workspace: %v . dir: %v", terraform.Workspace, terraform.WorkingDir)
-			return stdout.GetString(), "", fmt.Errorf("terraform select failed. %s", err)
+			return "", "", err
 		}
 	}
-
-	err = tf.Apply(context.Background())
+	applyParams = append(append(append(applyParams, "-input=false"), "-no-color"), "-auto-approve")
+	stdout, stderr, _, err := tf.runTerraformCommand("apply", applyParams...)
 	if err != nil {
-		println("terraform plan failed.")
-		return stdout.GetString(), "", fmt.Errorf("terraform plan failed. %s", err)
+		return "", "", err
+	}
+	return stdout, stderr, nil
+}
+
+func (tf Terraform) runTerraformCommand(command string, arg ...string) (string, string, int, error) {
+	args := []string{"-chdir=" + tf.WorkingDir}
+	args = append(args, command)
+	args = append(args, arg...)
+	fmt.Printf("Running terraform %v", args)
+
+	var stdout, stderr bytes.Buffer
+	mwout := io.MultiWriter(os.Stdout, &stdout)
+	mwerr := io.MultiWriter(os.Stderr, &stderr)
+
+	cmd := exec.Command("terraform", args...)
+
+	cmd.Stdout = mwout
+	cmd.Stderr = mwerr
+
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Println("Error:", err)
 	}
 
-	return stdout.GetString(), "", nil
+	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err
 }
 
 type StdWriter struct {
@@ -119,45 +139,27 @@ func (sw *StdWriter) GetString() string {
 	return s
 }
 
-func (terraform Terraform) Plan() (bool, string, string, error) {
-	execDir := "terraform"
-	tf, err := tfexec.NewTerraform(terraform.WorkingDir, execDir)
+func (tf Terraform) Plan(initParams []string, planParams []string) (bool, string, string, error) {
+	initParams = append(append(append(initParams, "-upgrade=true"), "-input=false"), "-no-color")
+	_, _, _, err := tf.runTerraformCommand("init", initParams...)
+	if err != nil {
+		return false, "", "", err
+	}
+	workspace, _, _, err := tf.runTerraformCommand("workspace", "show")
 
 	if err != nil {
-		println("Error while initializing terraform: " + err.Error())
-		os.Exit(1)
+		return false, "", "", err
 	}
-	stdout := &StdWriter{[]byte{}, true}
-	stderr := &StdWriter{[]byte{}, true}
-	tf.SetStdout(stdout)
-	tf.SetStderr(stderr)
-
-	err = tf.Init(context.Background(), tfexec.Upgrade(true))
-	if err != nil {
-		println("terraform init failed.")
-		return false, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform init failed. %s", err)
-	}
-	currentWorkspace, err := tf.WorkspaceShow(context.Background())
-
-	if err != nil {
-		log.Printf("terraform workspace show failed. workspace: %v . dir: %v", terraform.Workspace, terraform.WorkingDir)
-		return false, stdout.GetString(), "", fmt.Errorf("terraform show failed. %s", err)
-	}
-
-	if currentWorkspace != terraform.Workspace {
-		err = tf.WorkspaceNew(context.Background(), terraform.Workspace)
-
+	if strings.TrimSpace(workspace) != tf.Workspace {
+		_, _, _, err = tf.runTerraformCommand("workspace", "new", tf.Workspace)
 		if err != nil {
-			log.Printf("terraform workspace new failed. workspace: %v . dir: %v", terraform.Workspace, terraform.WorkingDir)
-			return false, stdout.GetString(), "", fmt.Errorf("terraform select failed. %s", err)
+			return false, "", "", err
 		}
 	}
-
-	isNonEmptyPlan, err := tf.Plan(context.Background())
+	planParams = append(append(append(planParams, "-input=false"), "-no-color"), "-out=tfplan")
+	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", planParams...)
 	if err != nil {
-		println("terraform plan failed. dir: " + terraform.WorkingDir)
-		return isNonEmptyPlan, stdout.GetString(), stderr.GetString(), fmt.Errorf("terraform plan failed. %s", err)
+		return false, "", "", err
 	}
-
-	return isNonEmptyPlan, stdout.GetString(), stderr.GetString(), nil
+	return statusCode != 2, stdout, stderr, nil
 }
