@@ -47,9 +47,12 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) error {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
 	lockAcquisitionSuccess := true
+	allAppliesSuccess := true
+	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
+		appliesPerProject[projectCommands.ProjectName] = false
 		for _, command := range projectCommands.Commands {
 			projectLock := &utils.ProjectLockImpl{
 				InternalLock: lock,
@@ -90,6 +93,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
 				} else {
 					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+					appliesPerProject[projectCommands.ProjectName] = true
 				}
 			case "digger unlock":
 				utils.SendUsageRecord(repoOwner, eventName, "unlock")
@@ -104,7 +108,39 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 	if !lockAcquisitionSuccess {
 		os.Exit(1)
 	}
-	return nil
+	for _, success := range appliesPerProject {
+		if !success {
+			allAppliesSuccess = false
+		}
+	}
+	return allAppliesSuccess, nil
+}
+
+func MergePullRequest(githubPrService github.PullRequestManager, prNumber int) {
+	combinedStatus, err := githubPrService.GetCombinedPullRequestStatus(prNumber)
+
+	if err != nil {
+		log.Fatalf("failed to get combined status, %v", err)
+	}
+
+	if combinedStatus != "success" {
+		log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
+	}
+
+	prIsMergeable, mergeableState, err := githubPrService.IsMergeable(prNumber)
+
+	if err != nil {
+		log.Fatalf("failed to check if PR is mergeable, %v", err)
+	}
+
+	if !prIsMergeable {
+		log.Fatalf("PR is not mergeable. State: %v", mergeableState)
+	}
+
+	err = githubPrService.MergePullRequest(prNumber)
+	if err != nil {
+		log.Fatalf("failed to merge PR, %v", err)
+	}
 }
 
 func GetGitHubContext(ghContext string) (*models.Github, error) {
