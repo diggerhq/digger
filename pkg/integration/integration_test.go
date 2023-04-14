@@ -379,7 +379,7 @@ func TestHappyPath(t *testing.T) {
 	//  new pr should lock the project
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
 	assert.NoError(t, err)
@@ -406,7 +406,7 @@ func TestHappyPath(t *testing.T) {
 	// 'digger plan' comment should trigger terraform execution
 	impactedProjects, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
 	assert.NoError(t, err)
@@ -420,7 +420,7 @@ func TestHappyPath(t *testing.T) {
 	// 'digger apply' comment should trigger terraform execution and unlock the project
 	impactedProjects, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
 	assert.NoError(t, err)
@@ -444,7 +444,7 @@ func TestHappyPath(t *testing.T) {
 
 	impactedProjects, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
 	assert.NoError(t, err)
@@ -522,7 +522,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	// no files changed, no locks
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
 	assert.NoError(t, err)
@@ -548,7 +548,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	// 'digger plan' comment should trigger terraform execution
 	impactedProjects, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
 	assert.NoError(t, err)
@@ -562,7 +562,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	// 'digger apply' comment should trigger terraform execution and unlock the project
 	impactedProjects, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
 	assert.NoError(t, err)
@@ -586,7 +586,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	impactedProjects, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
 	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
 	assert.NoError(t, err)
