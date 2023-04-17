@@ -127,7 +127,7 @@ func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) err
 }
 
 func (projectLock *ProjectLockImpl) projectId() string {
-	return projectLock.RepoOwner + "/" + projectLock.RepoName
+	return projectLock.RepoOwner + "/" + projectLock.RepoName + "#" + projectLock.ProjectName
 }
 
 func GetLock() (Lock, error) {
