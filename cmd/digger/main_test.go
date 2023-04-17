@@ -874,7 +874,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, &diggerConfig, prManager, lock, "")
 
 	assert.NoError(t, err)
@@ -896,7 +896,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, &diggerConfig, prManager, lock, "")
 
 	assert.NoError(t, err)
