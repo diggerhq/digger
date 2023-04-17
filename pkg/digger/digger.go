@@ -47,9 +47,12 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *utils.DiggerConfig, 
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *utils.DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) error {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *utils.DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
 	lockAcquisitionSuccess := true
+	allAppliesSuccess := true
+	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
+		appliesPerProject[projectCommands.ProjectName] = false
 		for _, command := range projectCommands.Commands {
 			projectLock := &utils.ProjectLockImpl{
 				InternalLock: lock,
@@ -75,10 +78,23 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			switch command {
 			case "digger plan":
 				utils.SendUsageRecord(repoOwner, eventName, "plan")
-				diggerExecutor.Plan(prNumber)
+				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
+				err := diggerExecutor.Plan(prNumber)
+				if err != nil {
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
+				} else {
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
+				}
 			case "digger apply":
 				utils.SendUsageRecord(repoName, eventName, "apply")
-				diggerExecutor.Apply(prNumber)
+				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				err := diggerExecutor.Apply(prNumber)
+				if err != nil {
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+				} else {
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+					appliesPerProject[projectCommands.ProjectName] = true
+				}
 			case "digger unlock":
 				utils.SendUsageRecord(repoOwner, eventName, "unlock")
 				diggerExecutor.Unlock(prNumber)
@@ -92,7 +108,39 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 	if !lockAcquisitionSuccess {
 		os.Exit(1)
 	}
-	return nil
+	for _, success := range appliesPerProject {
+		if !success {
+			allAppliesSuccess = false
+		}
+	}
+	return allAppliesSuccess, nil
+}
+
+func MergePullRequest(githubPrService github.PullRequestManager, prNumber int) {
+	combinedStatus, err := githubPrService.GetCombinedPullRequestStatus(prNumber)
+
+	if err != nil {
+		log.Fatalf("failed to get combined status, %v", err)
+	}
+
+	if combinedStatus != "success" {
+		log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
+	}
+
+	prIsMergeable, mergeableState, err := githubPrService.IsMergeable(prNumber)
+
+	if err != nil {
+		log.Fatalf("failed to check if PR is mergeable, %v", err)
+	}
+
+	if !prIsMergeable {
+		log.Fatalf("PR is not mergeable. State: %v", mergeableState)
+	}
+
+	err = githubPrService.MergePullRequest(prNumber)
+	if err != nil {
+		log.Fatalf("failed to merge PR, %v", err)
+	}
 }
 
 func GetGitHubContext(ghContext string) (*models.Github, error) {
@@ -242,7 +290,7 @@ func (d DiggerExecutor) LockId() string {
 	return d.repoOwner + "/" + d.repoName + "#" + d.projectName
 }
 
-func (d DiggerExecutor) Plan(prNumber int) {
+func (d DiggerExecutor) Plan(prNumber int) error {
 
 	var terraformExecutor terraform.TerraformExecutor
 
@@ -254,7 +302,7 @@ func (d DiggerExecutor) Plan(prNumber int) {
 
 	res, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
-		log.Fatalf("Error locking project: %v", err)
+		return fmt.Errorf("Error locking project: %v", err)
 	}
 	if res {
 		var initArgs []string
@@ -271,16 +319,16 @@ func (d DiggerExecutor) Plan(prNumber int) {
 		isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan(initArgs, planArgs)
 
 		if err != nil {
-			log.Fatalf("Error executing plan: %v", err)
+			return fmt.Errorf("error executing plan: %v", err)
 		}
 		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 		comment := "Plan for **" + d.LockId() + "**\n" + plan
 		d.prManager.PublishComment(prNumber, comment)
 	}
-
+	return nil
 }
 
-func (d DiggerExecutor) Apply(prNumber int) {
+func (d DiggerExecutor) Apply(prNumber int) error {
 	var terraformExecutor terraform.TerraformExecutor
 
 	if d.terragrunt {
@@ -308,14 +356,13 @@ func (d DiggerExecutor) Apply(prNumber int) {
 		if err == nil {
 			_, err := d.lock.Unlock(d.LockId(), prNumber)
 			if err != nil {
-				fmt.Errorf("error unlocking project: %v", err)
+				return fmt.Errorf("error unlocking project: %v", err)
 			}
 		} else {
-
 			d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
 		}
 	}
-
+	return nil
 }
 
 func (d DiggerExecutor) Unlock(prNumber int) {
