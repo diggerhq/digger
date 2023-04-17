@@ -18,6 +18,7 @@ type WorkflowConfiguration struct {
 
 type DiggerConfig struct {
 	Projects  []Project           `yaml:"projects"`
+	AutoMerge bool                `yaml:"auto_merge"`
 	Workflows map[string]Workflow `yaml:"workflows"`
 	CollectUsageData *bool     `yaml:"collect_usage_data"`
 }

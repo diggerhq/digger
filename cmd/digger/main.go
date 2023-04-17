@@ -73,10 +73,16 @@ func main() {
 	}
 	println("GitHub event converted to commands successfully")
 
-	err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, "")
+	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, "")
 	if err != nil {
 		reportErrorAndExit(repoOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
+
+	if diggerConfig.AutoMerge && allAppliesSuccess {
+		digger.MergePullRequest(githubPrService, prNumber)
+		println("PR merged successfully")
+	}
+
 	println("Commands executed successfully")
 
 	reportErrorAndExit(repoOwner, "Digger finished successfully", 0)
