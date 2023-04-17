@@ -17,9 +17,10 @@ type WorkflowConfiguration struct {
 }
 
 type DiggerConfig struct {
-	Projects  []Project           `yaml:"projects"`
-	AutoMerge bool                `yaml:"auto_merge"`
-	Workflows map[string]Workflow `yaml:"workflows"`
+	Projects         []Project           `yaml:"projects"`
+	AutoMerge        bool                `yaml:"auto_merge"`
+	Workflows        map[string]Workflow `yaml:"workflows"`
+	CollectUsageData *bool               `yaml:"collect_usage_data"`
 }
 
 type Project struct {
@@ -102,6 +103,20 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 					"plan",
 					[]string{},
 				}},
+			},
+			Apply: &Stage{
+				Steps: []Step{{
+					Action:    "init",
+					ExtraArgs: []string{},
+				}, {
+					"apply",
+					[]string{},
+				}},
+			},
+			Configuration: &WorkflowConfiguration{
+				OnPullRequestPushed: []string{"digger plan"},
+				OnPullRequestClosed: []string{"digger unlock"},
+				OnCommitToDefault:   []string{"digger apply"},
 			},
 		}
 		return config, nil
