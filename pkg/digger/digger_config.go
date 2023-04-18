@@ -222,12 +222,18 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 		}
 
 		for _, dir := range dirs {
-			pattern := config.GenerateProjectsConfig.Include
-			match, err := doublestar.PathMatch(pattern, dir)
+			includePattern := config.GenerateProjectsConfig.Include
+			excludePattern := config.GenerateProjectsConfig.Exclude
+			includeMatch, err := doublestar.PathMatch(includePattern, dir)
 			if err != nil {
 				return nil, err
 			}
-			if match {
+
+			excludeMatch, err := doublestar.PathMatch(excludePattern, dir)
+			if err != nil {
+				return nil, err
+			}
+			if includeMatch && !excludeMatch {
 				project := Project{Name: dir}
 				config.Projects = append(config.Projects, project)
 			}

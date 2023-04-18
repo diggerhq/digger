@@ -112,7 +112,7 @@ func TestDiggerGenerateProjects(t *testing.T) {
 	diggerCfg := `
 projects:
   include: dev/*
-  exclude: ssdsd
+  exclude: dev/project
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
 	defer deleteFile()
@@ -120,6 +120,7 @@ projects:
 	walker := &MockDirWalker{}
 	walker.Files = append(walker.Files, "dev/test1")
 	walker.Files = append(walker.Files, "dev/test2")
+	walker.Files = append(walker.Files, "dev/project")
 	walker.Files = append(walker.Files, "testtt")
 
 	dg, err := NewDiggerConfig(tempDir, walker)
@@ -128,6 +129,7 @@ projects:
 	assert.NotNil(t, dg.GenerateProjectsConfig, "expected GenerateProjectsConfig to be not nil")
 	assert.Equal(t, "dev/test1", dg.Projects[0].Name)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Name)
+	assert.Equal(t, 2, len(dg.Projects))
 	//assert.Equal(t, "path/to/module", dg.GetDirectory("dev"))
 }
 
