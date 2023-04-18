@@ -2,21 +2,27 @@ package github
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
 
-	"github.com/google/go-github/v50/github"
+	"github.com/google/go-github/v51/github"
 )
 
 func NewGithubPullRequestService(ghToken string, repoName string, owner string) PullRequestManager {
 	client := github.NewTokenClient(context.Background(), ghToken)
-	return &GithubPullRequestService{
+	return &GithubService{
 		Client:   client,
 		RepoName: repoName,
 		Owner:    owner,
 	}
 }
 
-type GithubPullRequestService struct {
+type GithubService struct {
 	Client   *github.Client
 	RepoName string
 	Owner    string
@@ -29,9 +35,86 @@ type PullRequestManager interface {
 	GetCombinedPullRequestStatus(prNumber int) (string, error)
 	MergePullRequest(prNumber int) error
 	IsMergeable(prNumber int) (bool, string, error)
+	DownloadLatestPlans(prNumber int) (string, error)
 }
 
-func (svc *GithubPullRequestService) GetChangedFiles(prNumber int) ([]string, error) {
+func (svc *GithubService) DownloadLatestPlans(prNumber int) (string, error) {
+	artifacts, _, err := svc.Client.Actions.ListArtifacts(context.Background(), svc.Owner, svc.RepoName, &github.ListOptions{
+		PerPage: 100,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	latestPlan := getLatestArtifactWithName(artifacts.Artifacts, "plan"+strconv.Itoa(prNumber))
+
+	if latestPlan == nil {
+		return "", nil
+	}
+
+	downloadUrl, _, err := svc.Client.Actions.DownloadArtifact(context.Background(), svc.Owner, svc.RepoName, *latestPlan.ID, true)
+
+	if err != nil {
+		return "", err
+	}
+	file := "plan" + strconv.Itoa(prNumber) + ".zip"
+
+	err = downloadArtifact(svc.Client.Client(), downloadUrl, file)
+
+	if err != nil {
+		return "", err
+	}
+	return file, nil
+}
+
+func downloadArtifact(client *http.Client, artifactUrl *url.URL, outputFile string) error {
+
+	req, err := http.NewRequest("GET", artifactUrl.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to download artifact, status code: %d", resp.StatusCode)
+	}
+
+	out, err := os.Create(outputFile)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getLatestArtifactWithName(artifacts []*github.Artifact, name string) *github.Artifact {
+	var latest *github.Artifact
+
+	for _, item := range artifacts {
+		if *item.Name != name {
+			continue
+		}
+		if item.UpdatedAt.Time.After(latest.UpdatedAt.Time) {
+			latest = item
+		}
+	}
+
+	return latest
+}
+
+func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	files, _, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -45,14 +128,14 @@ func (svc *GithubPullRequestService) GetChangedFiles(prNumber int) ([]string, er
 	return fileNames, nil
 }
 
-func (svc *GithubPullRequestService) PublishComment(prNumber int, comment string) {
+func (svc *GithubService) PublishComment(prNumber int, comment string) {
 	_, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
 	if err != nil {
 		log.Fatalf("error publishing comment: %v", err)
 	}
 }
 
-func (svc *GithubPullRequestService) SetStatus(prNumber int, status string, statusContext string) error {
+func (svc *GithubService) SetStatus(prNumber int, status string, statusContext string) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -66,7 +149,7 @@ func (svc *GithubPullRequestService) SetStatus(prNumber int, status string, stat
 	return err
 }
 
-func (svc *GithubPullRequestService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+func (svc *GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -80,7 +163,7 @@ func (svc *GithubPullRequestService) GetCombinedPullRequestStatus(prNumber int) 
 	return *statuses.State, nil
 }
 
-func (svc *GithubPullRequestService) MergePullRequest(prNumber int) error {
+func (svc *GithubService) MergePullRequest(prNumber int) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -93,7 +176,7 @@ func (svc *GithubPullRequestService) MergePullRequest(prNumber int) error {
 	return err
 }
 
-func (svc *GithubPullRequestService) IsMergeable(prNumber int) (bool, string, error) {
+func (svc *GithubService) IsMergeable(prNumber int) (bool, string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)

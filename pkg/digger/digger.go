@@ -290,6 +290,10 @@ func (d DiggerExecutor) LockId() string {
 	return d.repoOwner + "/" + d.repoName + "#" + d.projectName
 }
 
+func (d DiggerExecutor) planFileName() string {
+	return d.projectName + ".tfplan"
+}
+
 func (d DiggerExecutor) Plan(prNumber int) error {
 
 	var terraformExecutor terraform.TerraformExecutor
@@ -308,7 +312,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 		var initArgs []string
 		var planArgs []string
 
-		planArgs = append(planArgs, "-out", d.LockId()+".tfplan")
+		planArgs = append(planArgs, "-out", d.planFileName())
 
 		for _, step := range d.planStage.Steps {
 			if step.Action == "init" {
@@ -331,6 +335,26 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 }
 
 func (d DiggerExecutor) Apply(prNumber int) error {
+	plansFilename, err := d.prManager.DownloadLatestPlans(prNumber)
+
+	if err != nil {
+		return fmt.Errorf("error downloading plan: %v", err)
+	}
+
+	if plansFilename == "" {
+		return fmt.Errorf("no plans found for this PR")
+	}
+
+	plansFilename, err = utils.GetFileFromZip(plansFilename, d.planFileName())
+
+	if err != nil {
+		return fmt.Errorf("error extracting plan: %v", err)
+	}
+
+	if plansFilename == "" {
+		return fmt.Errorf("no plans found for this project")
+	}
+
 	var terraformExecutor terraform.TerraformExecutor
 
 	if d.terragrunt {
@@ -351,7 +375,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 				applyArgs = append(applyArgs, step.ExtraArgs...)
 			}
 		}
-		stdout, stderr, err := terraformExecutor.Apply(initArgs, applyArgs)
+		stdout, stderr, err := terraformExecutor.Apply(initArgs, applyArgs, plansFilename)
 		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
 		d.prManager.PublishComment(prNumber, comment)

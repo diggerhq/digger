@@ -10,7 +10,7 @@ import (
 )
 
 type TerraformExecutor interface {
-	Apply([]string, []string) (string, string, error)
+	Apply([]string, []string, string) (string, string, error)
 	Plan([]string, []string) (bool, string, string, error)
 }
 
@@ -23,13 +23,14 @@ type Terraform struct {
 	Workspace  string
 }
 
-func (terragrunt Terragrunt) Apply(initParams []string, applyParams []string) (string, string, error) {
+func (terragrunt Terragrunt) Apply(initParams []string, applyParams []string, plan string) (string, string, error) {
 	stdout, stderr, err := terragrunt.runTerragruntCommand("init", initParams...)
 	if err != nil {
 		return stdout, stderr, err
 	}
 	applyParams = append(applyParams, "--auto-approve")
 	applyParams = append(applyParams, "--terragrunt-non-interactive")
+	applyParams = append(applyParams, plan)
 	stdout, stderr, err = terragrunt.runTerragruntCommand("apply", applyParams...)
 	return stdout, stderr, err
 }
@@ -69,7 +70,7 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string)
 	return stdout.String(), stderr.String(), err
 }
 
-func (tf Terraform) Apply(initParams []string, applyParams []string) (string, string, error) {
+func (tf Terraform) Apply(initParams []string, applyParams []string, plan string) (string, string, error) {
 	initParams = append(append(append(initParams, "-upgrade=true"), "-input=false"), "-no-color")
 	_, _, _, err := tf.runTerraformCommand("init", initParams...)
 	if err != nil {
@@ -88,6 +89,7 @@ func (tf Terraform) Apply(initParams []string, applyParams []string) (string, st
 		}
 	}
 	applyParams = append(append(append(applyParams, "-input=false"), "-no-color"), "-auto-approve")
+	applyParams = append(applyParams, plan)
 	stdout, stderr, _, err := tf.runTerraformCommand("apply", applyParams...)
 	if err != nil {
 		return "", "", err
