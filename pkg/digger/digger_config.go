@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
@@ -22,7 +23,7 @@ type DiggerConfig struct {
 	AutoMerge bool                `yaml:"auto_merge"`
 	Workflows map[string]Workflow `yaml:"workflows"`
 
-	GenerateProjectsConfig GenerateProjectsConfig
+	GenerateProjectsConfig *GenerateProjectsConfig
 }
 
 type ProjectsConfigLoader interface {
@@ -126,7 +127,7 @@ func (dc *DiggerConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if err != nil {
 			print(err)
 		}
-		dc.GenerateProjectsConfig = genProjectsConfig
+		dc.GenerateProjectsConfig = &genProjectsConfig
 	}
 
 	workflows, ok := diggerConfig["workflows"]
@@ -148,7 +149,41 @@ func (dc *DiggerConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
+type DirWalker interface {
+	GetDirs(workingDir string) ([]string, error)
+}
+
+type MockDirWalker struct {
+	Files []string
+}
+
+type FileSystemDirWalker struct {
+}
+
+func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(workingDir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				files = append(files, path)
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
+}
+
+func (walker *MockDirWalker) GetDirs(workingDir string) ([]string, error) {
+
+	return walker.Files, nil
+}
+
+func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	config := &DiggerConfig{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -178,6 +213,25 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+	}
+
+	if config.GenerateProjectsConfig != nil {
+		dirs, err := walker.GetDirs(workingDir)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, dir := range dirs {
+			pattern := config.GenerateProjectsConfig.Include
+			match, err := doublestar.PathMatch(pattern, dir)
+			if err != nil {
+				return nil, err
+			}
+			if match {
+				project := Project{Name: dir}
+				config.Projects = append(config.Projects, project)
+			}
+		}
 	}
 
 	return config, nil

@@ -341,7 +341,9 @@ func TestHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateSingleEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := digger.NewDiggerConfig(dir)
+	walker := digger.MockDirWalker{}
+
+	diggerConfig, err := digger.NewDiggerConfig(dir, &walker)
 	assert.NoError(t, err)
 
 	lock, err := utils.GetLock()
@@ -477,7 +479,9 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateMultiEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := digger.NewDiggerConfig(dir)
+	walker := digger.MockDirWalker{}
+
+	diggerConfig, err := digger.NewDiggerConfig(dir, &walker)
 	assert.NoError(t, err)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
