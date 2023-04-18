@@ -32,18 +32,15 @@ runs:
         mv digger /usr/local/bin/digger
         cd ${{ github.workspace }}
         digger
-    - name: generate artifact name based on issue number
-      if: ${{ github.event_name == 'issue_comment' }}
+    - name: generate artifact name based on issue number or pr number
       id: artifact
       shell: bash
       run: |
-          echo "::set-output name=artifact::plans-${{ github.event.issue.number }}"
-    - name: generate artifact name based on pull request number
-      if: ${{ github.event_name != 'issue_comment' }}
-      id: artifact
-      shell: bash
-      run: |
-          echo "::set-output name=artifact::plans-${{ github.pull_request.number }}"
+          if [[ ${{ github.event.issue.pull_request.url }} ]]; then
+            echo "::set-output name=artifact::plans-${{ github.event.issue.pull_request.number }}"
+          else
+            echo "::set-output name=artifact::plans-${{ github.event.issue.number }}"
+          fi
     - name: upload plan
       uses: actions/upload-artifact@v3
       with:
