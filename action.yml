@@ -36,10 +36,10 @@ runs:
       id: artifact
       shell: bash
       run: |
-          if [[ ${{ github.event.issue.pull_request.url }} ]]; then
-            echo "::set-output name=artifact::plans-${{ github.event.issue.pull_request.number }}"
-          else
+          if [[ ${{ github.event_name }} == 'issue']]; then
             echo "::set-output name=artifact::plans-${{ github.event.issue.number }}"
+          else
+            echo "::set-output name=artifact::plans-${{ github.event.number }}"
           fi
     - name: upload plan
       uses: actions/upload-artifact@v3
