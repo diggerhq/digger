@@ -51,6 +51,10 @@ func TestExecuteTerraformApplyDefaultWorkspace(t *testing.T) {
 	CreateValidTerraformTestFile(dir)
 
 	tf := Terraform{WorkingDir: dir, Workspace: "default"}
-	_, _, err := tf.Apply([]string{}, []string{})
+	var planArgs []string
+	planArgs = append(planArgs, "-out", "plan.tfplan")
+	tf.Plan([]string{}, planArgs)
+
+	_, _, err := tf.Apply([]string{}, []string{}, "plan.tfplan")
 	assert.NoError(t, err)
 }
