@@ -11,9 +11,6 @@ runs:
   using: composite
   steps:
     - uses: actions/download-artifact@v3
-      with:
-          name: plans
-          path: '*.tfplan'
     - name: print plan files
       shell: bash
       run: |
