@@ -36,6 +36,8 @@ runs:
       id: artifact
       shell: bash
       run: |
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.event.issue.number: ${{ github.event.issue.number }}"
           if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             echo "::set-output name=artifact::plans-${{ github.event.issue.number }}"
           else
