@@ -308,6 +308,8 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 		var initArgs []string
 		var planArgs []string
 
+		planArgs = append(planArgs, "-out", d.LockId()+".tfplan")
+
 		for _, step := range d.planStage.Steps {
 			if step.Action == "init" {
 				initArgs = append(initArgs, step.ExtraArgs...)
