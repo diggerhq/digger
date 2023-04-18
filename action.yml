@@ -2,12 +2,6 @@ name: run-digger
 description: Manage terraform collaboration
 author: Digger
 
-inputs:
-  workspace:
-    description: Name of the terraform workspace
-    required: false
-    default: default
-
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -38,6 +32,23 @@ runs:
         mv digger /usr/local/bin/digger
         cd ${{ github.workspace }}
         digger
+    - name: Check if file exists
+      id: check-file
+      shell: bash
+      run: |
+        if [ -e tfplan ]; then
+          echo "::set-output name=exists::true"
+        else
+          echo "::set-output name=exists::false"
+        fi
+
+    - name: upload plan if exists
+      if: steps.check-file.outputs.exists == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+          name: tfplan
+          path: tfplan
+          retention-days: 14
 
 branding:
   icon: globe
