@@ -156,7 +156,7 @@ func (tf Terraform) Plan(initParams []string, planParams []string) (bool, string
 			return false, "", "", err
 		}
 	}
-	planParams = append(append(append(planParams, "-input=false"), "-no-color"), "-out=tfplan")
+	planParams = append(append(planParams, "-input=false"), "-no-color")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", planParams...)
 	if err != nil {
 		return false, "", "", err
