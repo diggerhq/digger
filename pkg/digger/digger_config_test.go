@@ -105,6 +105,25 @@ workflows:
 	assert.Equal(t, Step{"plan", []string{"-var-file=terraform.tfvars"}}, dg.Workflows["default"].Plan.Steps[1], "expected step name to be 'init'")
 }
 
+func TestDiggerGenerateProjects(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+  include: test
+  exclude: ssdsd
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+
+	dg, err := NewDiggerConfig(tempDir)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg.GenerateProjectsConfig, "expected GenerateProjectsConfig to be not nil")
+	//assert.Equal(t, "path/to/module", dg.GetDirectory("dev"))
+}
+
 func createTempDir() string {
 	dir, err := os.MkdirTemp("", "tmp")
 	if err != nil {

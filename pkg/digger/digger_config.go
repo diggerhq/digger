@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"gopkg.in/yaml.v3"
@@ -20,6 +21,12 @@ type DiggerConfig struct {
 	Projects  []Project           `yaml:"projects"`
 	AutoMerge bool                `yaml:"auto_merge"`
 	Workflows map[string]Workflow `yaml:"workflows"`
+
+	GenerateProjectsConfig GenerateProjectsConfig
+}
+
+type ProjectsConfigLoader interface {
+	GetProjects(projectRootPath string, projectsConfigYML string)
 }
 
 type Project struct {
@@ -28,6 +35,13 @@ type Project struct {
 	Workspace  string `yaml:"workspace"`
 	Terragrunt bool   `yaml:"terragrunt"`
 	Workflow   string `yaml:"workflow"`
+}
+
+type GenerateProjectsConfig struct {
+	Include string `yaml:"include"`
+	Exclude string `yaml:"exclude"`
+	//	Terragrunt bool   `yaml:"terragrunt"`
+	//	Workflow   string `yaml:"workflow"`
 }
 
 type Stage struct {
@@ -79,6 +93,61 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 	}
 	return nil
 }
+
+func (dc *DiggerConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var diggerConfig map[string]interface{}
+	if err := unmarshal(&diggerConfig); err != nil {
+		return err
+	}
+
+	autoMerge, ok := diggerConfig["auto_merge"]
+	if !ok {
+		dc.AutoMerge = false
+	} else {
+		dc.AutoMerge = autoMerge.(bool)
+	}
+
+	projects, ok := diggerConfig["projects"]
+	if ok {
+		jsonData, err := json.Marshal(projects)
+		if err != nil {
+			panic(err)
+		}
+
+		var p []Project
+		err = yaml.Unmarshal(jsonData, &p)
+		if err == nil {
+			dc.Projects = p
+			return nil
+		}
+
+		var genProjectsConfig GenerateProjectsConfig
+		err = yaml.Unmarshal(jsonData, &genProjectsConfig)
+		if err != nil {
+			print(err)
+		}
+		dc.GenerateProjectsConfig = genProjectsConfig
+	}
+
+	workflows, ok := diggerConfig["workflows"]
+	if ok {
+		jsonData, err := yaml.Marshal(workflows)
+		if err != nil {
+			println(err.Error())
+		}
+		var w map[string]Workflow
+		err = yaml.Unmarshal(jsonData, &w)
+		if err == nil {
+			dc.Workflows = w
+			return nil
+		} else {
+			fmt.Println("failed to parse workflows")
+			println(err.Error())
+		}
+	}
+	return nil
+}
+
 func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 	config := &DiggerConfig{}
 	fileName, err := retrieveConfigFile(workingDir)
@@ -107,7 +176,7 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 		return config, nil
 	}
 
-	if err := yaml.Unmarshal(data, config); err != nil {
+	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 	}
 
