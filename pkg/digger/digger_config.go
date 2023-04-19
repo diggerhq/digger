@@ -57,10 +57,6 @@ type DirWalker interface {
 	GetDirs(workingDir string) ([]string, error)
 }
 
-type MockDirWalker struct {
-	Files []string
-}
-
 type FileSystemDirWalker struct {
 }
 
@@ -80,11 +76,6 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 		return nil, err
 	}
 	return files, nil
-}
-
-func (walker *MockDirWalker) GetDirs(workingDir string) ([]string, error) {
-
-	return walker.Files, nil
 }
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
