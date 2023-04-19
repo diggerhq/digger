@@ -329,37 +329,47 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 }
 
 func (d DiggerExecutor) Apply(prNumber int) error {
-	var terraformExecutor terraform.TerraformExecutor
-
-	if d.terragrunt {
-		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
-	} else {
-		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+	isMergeable, _, err := d.prManager.IsMergeable(prNumber)
+	if err != nil {
+		return fmt.Errorf("error validating is PR is mergeable: %v", err)
 	}
 
-	if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
-		var initArgs []string
-		var applyArgs []string
-
-		for _, step := range d.applyStage.Steps {
-			if step.Action == "init" {
-				initArgs = append(initArgs, step.ExtraArgs...)
-			}
-			if step.Action == "apply" {
-				applyArgs = append(applyArgs, step.ExtraArgs...)
-			}
-		}
-		stdout, stderr, err := terraformExecutor.Apply(initArgs, applyArgs)
-		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
+	if !isMergeable {
+		comment := "Cannot perform Apply since the PR is not currently mergeable."
 		d.prManager.PublishComment(prNumber, comment)
-		if err == nil {
-			_, err := d.lock.Unlock(d.LockId(), prNumber)
-			if err != nil {
-				return fmt.Errorf("error unlocking project: %v", err)
-			}
+	} else {
+		var terraformExecutor terraform.TerraformExecutor
+
+		if d.terragrunt {
+			terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
 		} else {
-			d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
+			terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+		}
+
+		if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
+			var initArgs []string
+			var applyArgs []string
+
+			for _, step := range d.applyStage.Steps {
+				if step.Action == "init" {
+					initArgs = append(initArgs, step.ExtraArgs...)
+				}
+				if step.Action == "apply" {
+					applyArgs = append(applyArgs, step.ExtraArgs...)
+				}
+			}
+			stdout, stderr, err := terraformExecutor.Apply(initArgs, applyArgs)
+			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
+			comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
+			d.prManager.PublishComment(prNumber, comment)
+			if err == nil {
+				_, err := d.lock.Unlock(d.LockId(), prNumber)
+				if err != nil {
+					return fmt.Errorf("error unlocking project: %v", err)
+				}
+			} else {
+				d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
+			}
 		}
 	}
 	return nil
