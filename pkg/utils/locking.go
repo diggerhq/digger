@@ -127,7 +127,7 @@ func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) err
 }
 
 func (projectLock *ProjectLockImpl) projectId() string {
-	return projectLock.RepoOwner + "/" + projectLock.RepoName
+	return projectLock.RepoOwner + "/" + projectLock.RepoName + "#" + projectLock.ProjectName
 }
 
 func GetLock() (Lock, error) {
@@ -159,7 +159,7 @@ func GetLock() (Lock, error) {
 
 		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
 		if bucketName == "" {
-			bucketName = "digger-lock"
+			return nil, errors.New("GOOGLE_STORAGE_BUCKET is not set")
 		}
 		bucket := client.Bucket(bucketName)
 		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}
