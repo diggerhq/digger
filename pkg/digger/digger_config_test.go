@@ -9,6 +9,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type MockDirWalker struct {
+	Files []string
+}
+
+func (walker *MockDirWalker) GetDirs(workingDir string) ([]string, error) {
+
+	return walker.Files, nil
+}
+
 func setUp() (string, func()) {
 	tempDir := createTempDir()
 	return tempDir, func() {
