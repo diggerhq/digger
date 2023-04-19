@@ -14,11 +14,9 @@ inputs:
   aws-access-key-id:
     description: AWS access key id
     required: false
-    default: ${{ secrets.AWS_ACCESS_KEY_ID }}
   aws-secret-access-key:
     description: AWS secret access key
     required: false
-    default: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   aws-region:
     description: AWS region
     required: false
@@ -30,7 +28,6 @@ inputs:
   google-auth-credentials:
       description: Google auth credentials
       required: false
-      default: ${{ secrets.GCP_CREDENTIALS }}
   setup-terragrunt:
     description: Setup terragrunt
     required: false
@@ -90,7 +87,7 @@ runs:
       uses: autero1/action-terragrunt@v1.1.0
       with:
         terragrunt_version: ${{ inputs.terragrunt-version }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: github.token
       if: inputs.setup-terragrunt == 'true'
 
     - name: build and run digger
