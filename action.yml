@@ -87,7 +87,6 @@ runs:
       uses: autero1/action-terragrunt@v1.1.0
       with:
         terragrunt_version: ${{ inputs.terragrunt-version }}
-        token: github.token
       if: inputs.setup-terragrunt == 'true'
 
     - name: build and run digger
