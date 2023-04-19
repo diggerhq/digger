@@ -16,9 +16,16 @@ type WorkflowConfiguration struct {
 	OnCommitToDefault   []string `yaml:"on_commit_to_default"`
 }
 
-type DiggerConfig struct {
+type DiggerConfigYaml struct {
 	Projects  []Project           `yaml:"projects"`
+	AutoMerge bool                `yaml:"auto_merge"`
 	Workflows map[string]Workflow `yaml:"workflows"`
+}
+
+type DiggerConfig struct {
+	Projects  []Project
+	AutoMerge bool
+	Workflows map[string]Workflow
 }
 
 type Project struct {
@@ -78,8 +85,19 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 	}
 	return nil
 }
+
+func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, error) {
+	var diggerConfig DiggerConfig
+
+	diggerConfig.AutoMerge = diggerYaml.AutoMerge
+	diggerConfig.Workflows = diggerYaml.Workflows
+	diggerConfig.Projects = diggerYaml.Projects
+
+	return &diggerConfig, nil
+}
+
 func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
-	config := &DiggerConfig{}
+	config := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
 		if errors.Is(err, ErrDiggerConfigConflict) {
@@ -102,15 +120,37 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 					[]string{},
 				}},
 			},
+			Apply: &Stage{
+				Steps: []Step{{
+					Action:    "init",
+					ExtraArgs: []string{},
+				}, {
+					"apply",
+					[]string{},
+				}},
+			},
+			Configuration: &WorkflowConfiguration{
+				OnPullRequestPushed: []string{"digger plan"},
+				OnPullRequestClosed: []string{"digger unlock"},
+				OnCommitToDefault:   []string{"digger apply"},
+			},
 		}
-		return config, nil
+		c, err := ConvertDiggerYamlToConfig(config)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
 	}
 
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 	}
 
-	return config, nil
+	c, err := ConvertDiggerYamlToConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func defaultProject() Project {
