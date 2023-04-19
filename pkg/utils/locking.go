@@ -36,7 +36,7 @@ type Lock interface {
 type ProjectLock interface {
 	Lock(lockId string, prNumber int) (bool, error)
 	Unlock(lockId string, prNumber int) (bool, error)
-	ForceUnlock(lockId string, prNumber int)
+	ForceUnlock(lockId string, prNumber int) error
 }
 
 func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, error) {
@@ -55,8 +55,6 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 			projectLock.PrManager.PublishComment(prNumber, comment)
 			return false, nil
 		}
-		comment := "Project " + projectLock.projectId() + " locked by this PR #" + transactionIdStr + " already."
-		projectLock.PrManager.PublishComment(prNumber, comment)
 		return true, nil
 	}
 
@@ -106,18 +104,26 @@ func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, e
 	return false, nil
 }
 
-func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) {
+func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) error {
 	fmt.Printf("ForceUnlock %s\n", lockId)
-	lock, _ := projectLock.InternalLock.GetLock(lockId)
+	lock, err := projectLock.InternalLock.GetLock(lockId)
+	if err != nil {
+		return err
+	}
 	if lock != nil {
-		lockReleased, _ := projectLock.InternalLock.Unlock(lockId)
+		lockReleased, err := projectLock.InternalLock.Unlock(lockId)
+		if err != nil {
+			return err
+		}
 
 		if lockReleased {
 			comment := "Project unlocked (" + projectLock.projectId() + ")."
 			projectLock.PrManager.PublishComment(prNumber, comment)
 			println("Project unlocked")
 		}
+		return nil
 	}
+	return nil
 }
 
 func (projectLock *ProjectLockImpl) projectId() string {
