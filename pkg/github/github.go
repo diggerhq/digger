@@ -47,28 +47,28 @@ func (svc *GithubService) DownloadLatestPlans(prNumber int) (string, error) {
 		return "", err
 	}
 
-	latestPlan := getLatestArtifactWithName(artifacts.Artifacts, "plan"+strconv.Itoa(prNumber))
+	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, "plans-"+strconv.Itoa(prNumber))
 
-	if latestPlan == nil {
+	if latestPlans == nil {
 		return "", nil
 	}
 
-	downloadUrl, _, err := svc.Client.Actions.DownloadArtifact(context.Background(), svc.Owner, svc.RepoName, *latestPlan.ID, true)
+	downloadUrl, _, err := svc.Client.Actions.DownloadArtifact(context.Background(), svc.Owner, svc.RepoName, *latestPlans.ID, true)
 
 	if err != nil {
 		return "", err
 	}
-	file := "plan" + strconv.Itoa(prNumber) + ".zip"
+	filename := "plans-" + strconv.Itoa(prNumber) + ".zip"
 
-	err = downloadArtifact(svc.Client.Client(), downloadUrl, file)
+	err = downloadArtifactIntoFile(svc.Client.Client(), downloadUrl, filename)
 
 	if err != nil {
 		return "", err
 	}
-	return file, nil
+	return filename, nil
 }
 
-func downloadArtifact(client *http.Client, artifactUrl *url.URL, outputFile string) error {
+func downloadArtifactIntoFile(client *http.Client, artifactUrl *url.URL, outputFile string) error {
 
 	req, err := http.NewRequest("GET", artifactUrl.String(), nil)
 	if err != nil {
