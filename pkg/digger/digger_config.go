@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
@@ -17,15 +18,21 @@ type WorkflowConfiguration struct {
 }
 
 type DiggerConfigYaml struct {
-	Projects  []Project           `yaml:"projects"`
-	AutoMerge bool                `yaml:"auto_merge"`
-	Workflows map[string]Workflow `yaml:"workflows"`
+	Projects               []Project               `yaml:"projects"`
+	GenerateProjectsConfig *GenerateProjectsConfig `yaml:"generate_projects"`
+	AutoMerge              bool                    `yaml:"auto_merge"`
+	Workflows              map[string]Workflow     `yaml:"workflows"`
 }
 
 type DiggerConfig struct {
 	Projects  []Project
 	AutoMerge bool
 	Workflows map[string]Workflow
+}
+
+type GenerateProjectsConfig struct {
+	Include string `yaml:"include"`
+	Exclude string `yaml:"exclude"`
 }
 
 type Project struct {
@@ -44,6 +51,40 @@ type Workflow struct {
 	Plan          *Stage                 `yaml:"plan,omitempty"`
 	Apply         *Stage                 `yaml:"apply,omitempty"`
 	Configuration *WorkflowConfiguration `yaml:"workflow_configuration"`
+}
+
+type DirWalker interface {
+	GetDirs(workingDir string) ([]string, error)
+}
+
+type MockDirWalker struct {
+	Files []string
+}
+
+type FileSystemDirWalker struct {
+}
+
+func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(workingDir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				files = append(files, path)
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
+}
+
+func (walker *MockDirWalker) GetDirs(workingDir string) ([]string, error) {
+
+	return walker.Files, nil
 }
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
@@ -86,17 +127,42 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, error) {
+func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	var diggerConfig DiggerConfig
 
 	diggerConfig.AutoMerge = diggerYaml.AutoMerge
 	diggerConfig.Workflows = diggerYaml.Workflows
 	diggerConfig.Projects = diggerYaml.Projects
 
+	if diggerYaml.GenerateProjectsConfig != nil {
+		dirs, err := walker.GetDirs(workingDir)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, dir := range dirs {
+			includePattern := diggerYaml.GenerateProjectsConfig.Include
+			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
+			includeMatch, err := doublestar.PathMatch(includePattern, dir)
+			if err != nil {
+				return nil, err
+			}
+
+			excludeMatch, err := doublestar.PathMatch(excludePattern, dir)
+			if err != nil {
+				return nil, err
+			}
+			if includeMatch && !excludeMatch {
+				project := Project{Name: dir}
+				diggerConfig.Projects = append(diggerConfig.Projects, project)
+			}
+		}
+	}
+
 	return &diggerConfig, nil
 }
 
-func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
+func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	config := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -135,7 +201,7 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 				OnCommitToDefault:   []string{"digger apply"},
 			},
 		}
-		c, err := ConvertDiggerYamlToConfig(config)
+		c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +212,7 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 	}
 
-	c, err := ConvertDiggerYamlToConfig(config)
+	c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
 	if err != nil {
 		return nil, err
 	}
