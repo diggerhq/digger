@@ -144,7 +144,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 				return nil, err
 			}
 			if includeMatch && !excludeMatch {
-				project := Project{Name: dir}
+				project := Project{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir)}
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
