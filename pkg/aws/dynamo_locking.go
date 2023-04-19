@@ -17,7 +17,17 @@ type DynamoDbLock struct {
 }
 
 func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() {
-	input := &dynamodb.CreateTableInput{
+	input := &dynamodb.DescribeTableInput{
+		TableName: aws.String(TABLE_NAME),
+	}
+
+	_, err := dynamoDbLock.DynamoDb.DescribeTable(input)
+	// table already exists
+	if err == nil {
+		return
+	}
+
+	createtbl_input := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
 				AttributeName: aws.String("PK"),
@@ -41,9 +51,11 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() {
 		BillingMode: aws.String("PAY_PER_REQUEST"),
 		TableName:   aws.String(TABLE_NAME),
 	}
-	_, err := dynamoDbLock.DynamoDb.CreateTable(input)
+	_, err = dynamoDbLock.DynamoDb.CreateTable(createtbl_input)
 	if err != nil && os.Getenv("DEBUG") != "" {
 		fmt.Printf("%v\n", err)
+	} else {
+		fmt.Printf("DynamoDB Table %v has ben created\n", TABLE_NAME)
 	}
 }
 
