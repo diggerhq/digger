@@ -6,6 +6,7 @@ import (
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 )
@@ -62,6 +63,7 @@ func main() {
 	if err != nil {
 		reportErrorAndExit(repoOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
+	logImpactedProjects(impactedProjects, prNumber)
 	println("GitHub event processed successfully")
 
 	if digger.CheckIfHelpComment(ghEvent) {
@@ -95,6 +97,13 @@ func main() {
 		}
 	}()
 
+}
+
+func logImpactedProjects(projects []digger.Project, prNumber int) {
+	log.Printf("Following projects are impacted by pull request: %d\n", prNumber)
+	for _, p := range projects {
+		fmt.Printf("%s\n", p.Name)
+	}
 }
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {
