@@ -75,6 +75,7 @@ func main() {
 	if err != nil {
 		reportErrorAndExit(repoOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 	}
+	logCommands(commandsToRunPerProject)
 	println("GitHub event converted to commands successfully")
 
 	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, "")
@@ -103,6 +104,18 @@ func logImpactedProjects(projects []digger.Project, prNumber int) {
 	logMessage := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
 	for _, p := range projects {
 		logMessage += fmt.Sprintf("%s\n", p.Name)
+	}
+	log.Print(logMessage)
+}
+
+func logCommands(projectCommands []digger.ProjectCommand) {
+	logMessage := fmt.Sprintf("Following commands are going to be executed:")
+	for _, pc := range projectCommands {
+		logMessage += fmt.Sprintf("%s: ", pc.ProjectName)
+		for _, c := range pc.Commands {
+			logMessage += fmt.Sprintf("\"%s\", ", c)
+		}
+		logMessage += "\n"
 	}
 	log.Print(logMessage)
 }
