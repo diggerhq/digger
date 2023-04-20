@@ -35,7 +35,7 @@ inputs:
   terragrunt-version:
     description: Terragrunt version
     required: false
-    default: v0.31.1
+    default: v0.45.4
   setup-terraform:
     description: Setup terraform
     required: false
@@ -43,7 +43,7 @@ inputs:
   terraform-version:
     description: Terraform version
     required: false
-    default: v0.15.4
+    default: v1.4.5
 
 outputs:
   output:
