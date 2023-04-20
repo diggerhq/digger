@@ -127,6 +127,7 @@ generate_projects:
 	defer deleteFile()
 
 	walker := &MockDirWalker{}
+	walker.Files = append(walker.Files, "dev")
 	walker.Files = append(walker.Files, "dev/test1")
 	walker.Files = append(walker.Files, "dev/test2")
 	walker.Files = append(walker.Files, "dev/project")
@@ -155,6 +156,7 @@ generate_projects:
 	defer deleteFile()
 
 	walker := &MockDirWalker{}
+	walker.Files = append(walker.Files, "dev")
 	walker.Files = append(walker.Files, "dev/test1")
 	walker.Files = append(walker.Files, "dev/test1/utils")
 	walker.Files = append(walker.Files, "dev/test2")
@@ -169,6 +171,32 @@ generate_projects:
 	assert.Equal(t, tempDir+"/dev/test1", dg.Projects[0].Dir)
 	assert.Equal(t, tempDir+"/dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, 2, len(dg.Projects))
+}
+
+func TestDiggerGenerateProjectsIgnoreSubdirs(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  include: dev
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+
+	walker := &MockDirWalker{}
+	walker.Files = append(walker.Files, "dev")
+	walker.Files = append(walker.Files, "dev/test1")
+	walker.Files = append(walker.Files, "dev/test1/utils")
+	walker.Files = append(walker.Files, "dev/test2")
+	walker.Files = append(walker.Files, "dev/project")
+	walker.Files = append(walker.Files, "testtt")
+
+	dg, err := NewDiggerConfig(tempDir, walker)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "dev", dg.Projects[0].Name)
+	assert.Equal(t, 1, len(dg.Projects))
 }
 
 func createTempDir() string {
