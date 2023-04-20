@@ -100,10 +100,11 @@ func main() {
 }
 
 func logImpactedProjects(projects []digger.Project, prNumber int) {
-	log.Printf("Following projects are impacted by pull request: %d\n", prNumber)
+	logMessage := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
 	for _, p := range projects {
-		fmt.Printf("%s\n", p.Name)
+		logMessage += fmt.Sprintf("%s\n", p.Name)
 	}
+	log.Print(logMessage)
 }
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {
