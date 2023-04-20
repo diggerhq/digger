@@ -323,6 +323,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 		}
 		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 		comment := "Plan for **" + d.LockId() + "**\n" + plan
+		log.Println(comment)
 		d.prManager.PublishComment(prNumber, comment)
 	}
 	return nil
