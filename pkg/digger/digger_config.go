@@ -194,7 +194,7 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 		}
 		c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read config file: %v", err)
+			return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
 		}
 		return c, nil
 	}
