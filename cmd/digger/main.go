@@ -40,7 +40,7 @@ func main() {
 
 	walker := digger.FileSystemDirWalker{}
 
-	diggerConfig, err := digger.NewDiggerConfig("", &walker)
+	diggerConfig, err := digger.NewDiggerConfig("./", &walker)
 	if err != nil {
 		reportErrorAndExit(parsedGhContext.RepositoryOwner, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
