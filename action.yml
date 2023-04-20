@@ -76,6 +76,7 @@ runs:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         aws-region: ${{ inputs.aws-region }}
+      if: inputs.setup-aws == 'true'
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
