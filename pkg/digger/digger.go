@@ -291,7 +291,7 @@ func (d DiggerExecutor) LockId() string {
 }
 
 func (d DiggerExecutor) Plan(prNumber int) error {
-
+	log.Println("Running terraform plan.")
 	var terraformExecutor terraform.TerraformExecutor
 
 	if d.terragrunt {
