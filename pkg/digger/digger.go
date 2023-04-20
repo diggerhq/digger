@@ -282,7 +282,7 @@ func parseProjectName(comment string) string {
 type DiggerExecutor struct {
 	applyStage        Stage
 	planStage         Stage
-	commandRunner     CommandRunner
+	commandRunner     CommandRun
 	terraformExecutor terraform.TerraformExecutor
 	prManager         github.PullRequestManager
 	lock              utils.ProjectLock
@@ -322,7 +322,6 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 		return fmt.Errorf("error locking project: %v", err)
 	}
 	if res {
-
 		for _, step := range d.planStage.Steps {
 			if step.Action == "init" {
 				_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
