@@ -302,7 +302,8 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 
 	res, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
-		return fmt.Errorf("Error locking project: %v", err)
+		log.Println("failed to lock project.")
+		return fmt.Errorf("error locking project: %v", err)
 	}
 	log.Printf("Lock result: %t\n", res)
 	if res {
