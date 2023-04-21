@@ -97,6 +97,7 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 type Step struct {
 	Action    string
+	Value     string
 	ExtraArgs []string `yaml:"extra_args,omitempty"`
 }
 
@@ -105,14 +106,23 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 		return value.Decode(&s.Action)
 	}
 
-	var stepMap map[string]map[string][]string
+	var stepMap map[string]interface{}
 	if err := value.Decode(&stepMap); err != nil {
 		return err
 	}
 
 	for k, v := range stepMap {
 		s.Action = k
-		s.ExtraArgs = v["extra_args"]
+		switch v := v.(type) {
+		case string:
+			s.Value = v
+		case map[string]interface{}:
+			var extraArgs []string
+			for _, v := range v["extra_args"].([]interface{}) {
+				extraArgs = append(extraArgs, v.(string))
+			}
+			s.ExtraArgs = extraArgs
+		}
 		break
 	}
 	return nil
@@ -173,8 +183,8 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 					Action:    "init",
 					ExtraArgs: []string{},
 				}, {
-					"plan",
-					[]string{},
+					Action:    "plan",
+					ExtraArgs: []string{},
 				}},
 			},
 			Apply: &Stage{
@@ -182,8 +192,8 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 					Action:    "init",
 					ExtraArgs: []string{},
 				}, {
-					"apply",
-					[]string{},
+					Action:    "apply",
+					ExtraArgs: []string{},
 				}},
 			},
 			Configuration: &WorkflowConfiguration{

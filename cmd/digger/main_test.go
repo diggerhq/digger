@@ -875,7 +875,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, &diggerConfig, prManager, lock, "")
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -897,7 +897,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, &diggerConfig, prManager, lock, "")
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, "")
 
 	assert.NoError(t, err)
 	if err != nil {
