@@ -75,12 +75,14 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			}
 
 			commandRunner := CommandRunner{}
+			zipManager := &utils.Zipper{}
 
 			diggerExecutor := DiggerExecutor{
 				projectCommands.ProjectName,
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
 				commandRunner,
+				zipManager,
 				terraformExecutor,
 				prManager,
 				projectLock,
@@ -288,6 +290,7 @@ type DiggerExecutor struct {
 	applyStage        configuration.Stage
 	planStage         configuration.Stage
 	commandRunner     CommandRun
+	zipManager        utils.Zip
 	terraformExecutor terraform.TerraformExecutor
 	prManager         github.PullRequestManager
 	lock              utils.ProjectLock
@@ -374,7 +377,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 		return fmt.Errorf("no plans found for this PR")
 	}
 
-	plansFilename, err = utils.GetFileFromZip(plansFilename, d.planFileName())
+	plansFilename, err = d.zipManager.GetFileFromZip(plansFilename, d.planFileName())
 
 	if err != nil {
 		return fmt.Errorf("error extracting plan: %v", err)

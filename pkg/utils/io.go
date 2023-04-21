@@ -7,7 +7,14 @@ import (
 	"io/ioutil"
 )
 
-func GetFileFromZip(zipFile string, filename string) (string, error) {
+type Zip interface {
+	GetFileFromZip(zipFile string, filename string) (string, error)
+}
+
+type Zipper struct {
+}
+
+func (z *Zipper) GetFileFromZip(zipFile string, filename string) (string, error) {
 	reader, err := zip.OpenReader(zipFile)
 	if err != nil {
 		return "", err
