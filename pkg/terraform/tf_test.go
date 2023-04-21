@@ -19,7 +19,8 @@ func TestExecuteTerraformPlan(t *testing.T) {
 	CreateValidTerraformTestFile(dir)
 
 	tf := Terraform{WorkingDir: dir, Workspace: "dev"}
-	_, _, _, err := tf.Plan([]string{}, []string{})
+	tf.Init([]string{})
+	_, _, _, err := tf.Plan([]string{})
 	assert.NoError(t, err)
 }
 
@@ -35,7 +36,8 @@ func TestExecuteTerraformApply(t *testing.T) {
 	CreateValidTerraformTestFile(dir)
 
 	tf := Terraform{WorkingDir: dir, Workspace: "dev"}
-	_, _, _, err := tf.Plan([]string{}, []string{})
+	tf.Init([]string{})
+	_, _, _, err := tf.Plan([]string{})
 	assert.NoError(t, err)
 }
 
@@ -51,10 +53,11 @@ func TestExecuteTerraformApplyDefaultWorkspace(t *testing.T) {
 	CreateValidTerraformTestFile(dir)
 
 	tf := Terraform{WorkingDir: dir, Workspace: "default"}
+	tf.Init([]string{})
 	var planArgs []string
 	planArgs = append(planArgs, "-out", "plan.tfplan")
-	tf.Plan([]string{}, planArgs)
+	tf.Plan(planArgs)
 
-	_, _, err := tf.Apply([]string{}, []string{}, "plan.tfplan")
+	_, _, err := tf.Apply([]string{}, "plan.tfplan")
 	assert.NoError(t, err)
 }

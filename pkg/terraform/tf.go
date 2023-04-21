@@ -10,8 +10,9 @@ import (
 )
 
 type TerraformExecutor interface {
-	Apply([]string, []string, string) (string, string, error)
-	Plan([]string, []string) (bool, string, string, error)
+	Init([]string) (string, string, error)
+	Apply([]string, string) (string, string, error)
+	Plan([]string) (bool, string, string, error)
 }
 
 type Terragrunt struct {
@@ -23,25 +24,21 @@ type Terraform struct {
 	Workspace  string
 }
 
-func (terragrunt Terragrunt) Apply(initParams []string, applyParams []string, plan string) (string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand("init", initParams...)
-	if err != nil {
-		return stdout, stderr, err
-	}
-	applyParams = append(applyParams, "--auto-approve")
-	applyParams = append(applyParams, "--terragrunt-non-interactive")
-	applyParams = append(applyParams, plan)
-	stdout, stderr, err = terragrunt.runTerragruntCommand("apply", applyParams...)
+func (terragrunt Terragrunt) Init(params []string) (string, string, error) {
+	return terragrunt.runTerragruntCommand("init", params...)
+
+}
+
+func (terragrunt Terragrunt) Apply(params []string, plan string) (string, string, error) {
+	params = append(params, "--auto-approve")
+	params = append(params, "--terragrunt-non-interactive")
+	params = append(params, plan)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("apply", params...)
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Plan(initParams []string, planParams []string) (bool, string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand("init", initParams...)
-	if err != nil {
-		return false, stdout, stderr, err
-	}
-
-	stdout, stderr, err = terragrunt.runTerragruntCommand("plan", planParams...)
+func (terragrunt Terragrunt) Plan(params []string) (bool, string, string, error) {
+	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", params...)
 	return true, stdout, stderr, err
 }
 
@@ -70,12 +67,15 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string)
 	return stdout.String(), stderr.String(), err
 }
 
-func (tf Terraform) Apply(initParams []string, applyParams []string, plan string) (string, string, error) {
-	initParams = append(append(append(initParams, "-upgrade=true"), "-input=false"), "-no-color")
-	_, _, _, err := tf.runTerraformCommand("init", initParams...)
-	if err != nil {
-		return "", "", err
-	}
+func (tf Terraform) Init(params []string) (string, string, error) {
+	params = append(params, "-upgrade=true")
+	params = append(params, "-input=false")
+	params = append(params, "-no-color")
+	stdout, stderr, _, err := tf.runTerraformCommand("init", params...)
+	return stdout, stderr, err
+}
+
+func (tf Terraform) Apply(params []string, plan string) (string, string, error) {
 	workspace, _, _, err := tf.runTerraformCommand("workspace", "show")
 
 	if err != nil {
@@ -88,9 +88,9 @@ func (tf Terraform) Apply(initParams []string, applyParams []string, plan string
 			return "", "", err
 		}
 	}
-	applyParams = append(append(append(applyParams, "-input=false"), "-no-color"), "-auto-approve")
-	applyParams = append(applyParams, plan)
-	stdout, stderr, _, err := tf.runTerraformCommand("apply", applyParams...)
+	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
+	params = append(params, plan)
+	stdout, stderr, _, err := tf.runTerraformCommand("apply", params...)
 	if err != nil {
 		return "", "", err
 	}
@@ -141,12 +141,7 @@ func (sw *StdWriter) GetString() string {
 	return s
 }
 
-func (tf Terraform) Plan(initParams []string, planParams []string) (bool, string, string, error) {
-	initParams = append(append(append(initParams, "-upgrade=true"), "-input=false"), "-no-color")
-	_, _, _, err := tf.runTerraformCommand("init", initParams...)
-	if err != nil {
-		return false, "", "", err
-	}
+func (tf Terraform) Plan(params []string) (bool, string, string, error) {
 	workspace, _, _, err := tf.runTerraformCommand("workspace", "show")
 
 	if err != nil {
@@ -158,8 +153,8 @@ func (tf Terraform) Plan(initParams []string, planParams []string) (bool, string
 			return false, "", "", err
 		}
 	}
-	planParams = append(append(planParams, "-input=false"), "-no-color")
-	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", planParams...)
+	params = append(append(params, "-input=false"), "-no-color")
+	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", params...)
 	if err != nil {
 		return false, "", "", err
 	}
