@@ -34,8 +34,8 @@ func (m *MockTerraformExecutor) Init(params []string) (string, string, error) {
 	return "", "", nil
 }
 
-func (m *MockTerraformExecutor) Apply(params []string) (string, string, error) {
-	m.Commands = append(m.Commands, RunInfo{"Apply", strings.Join(params, " "), time.Now()})
+func (m *MockTerraformExecutor) Apply(params []string, plan string) (string, string, error) {
+	m.Commands = append(m.Commands, RunInfo{"Apply", strings.Join(params, " ") + " " + plan, time.Now()})
 	return "", "", nil
 }
 
@@ -77,6 +77,11 @@ func (m *MockPRManager) IsMergeable(prNumber int) (bool, string, error) {
 	return true, "", nil
 }
 
+func (m *MockPRManager) DownloadLatestPlans(prNumber int) (string, error) {
+	m.Commands = append(m.Commands, RunInfo{"DownloadLatestPlans", strconv.Itoa(prNumber), time.Now()})
+	return "plan", nil
+}
+
 type MockProjectLock struct {
 	Commands []RunInfo
 }
@@ -101,12 +106,22 @@ func (m *MockProjectLock) LockId() string {
 	return ""
 }
 
+type MockZipper struct {
+	Commands []RunInfo
+}
+
+func (m *MockZipper) GetFileFromZip(zipFile string, filename string) (string, error) {
+	m.Commands = append(m.Commands, RunInfo{"GetFileFromZip", zipFile + " " + filename, time.Now()})
+	return "plan", nil
+}
+
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
 	lock := &MockProjectLock{}
+	zipper := &MockZipper{}
 
 	executor := DiggerExecutor{
 		applyStage: configuration.Stage{
@@ -129,6 +144,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 			},
 		},
 		planStage:         configuration.Stage{},
+		zipManager:        zipper,
 		commandRunner:     commandRunner,
 		terraformExecutor: terraformExecutor,
 		prManager:         prManager,
@@ -139,7 +155,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock)
 
-	assert.Equal(t, []string{"IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 Apply for ****\n```terraform\n\n```", "Unlock 1", "Run echo", "LockId ", "PublishComment 1 Running echo for ****\n"}, commandStrings)
+	assert.Equal(t, []string{"DownloadLatestPlans 1", "IsMergeable 1", "Lock 1", "Init ", "Apply  plan", "LockId ", "PublishComment 1 Apply for ****\n```terraform\n\n```", "Unlock 1", "Run echo", "LockId ", "PublishComment 1 Running echo for ****\n"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {

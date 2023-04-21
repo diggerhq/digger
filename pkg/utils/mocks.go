@@ -65,3 +65,7 @@ func (t MockPullRequestManager) MergePullRequest(prNumber int) error {
 func (t MockPullRequestManager) IsMergeable(prNumber int) (bool, string, error) {
 	return true, "", nil
 }
+
+func (t MockPullRequestManager) DownloadLatestPlans(prNumber int) (string, error) {
+	return "", nil
+}

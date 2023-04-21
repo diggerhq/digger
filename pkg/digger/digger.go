@@ -75,11 +75,14 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			}
 
 			commandRunner := CommandRunner{}
+			zipManager := &utils.Zipper{}
 
 			diggerExecutor := DiggerExecutor{
+				projectCommands.ProjectName,
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
 				commandRunner,
+				zipManager,
 				terraformExecutor,
 				prManager,
 				projectLock,
@@ -283,9 +286,11 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
+	projectName       string
 	applyStage        configuration.Stage
 	planStage         configuration.Stage
 	commandRunner     CommandRun
+	zipManager        utils.Zip
 	terraformExecutor terraform.TerraformExecutor
 	prManager         github.PullRequestManager
 	lock              utils.ProjectLock
@@ -318,6 +323,10 @@ func (c CommandRunner) Run(command string) (string, string, error) {
 	return stdout.String(), stderr.String(), err
 }
 
+func (d DiggerExecutor) planFileName() string {
+	return d.projectName + ".tfplan"
+}
+
 func (d DiggerExecutor) Plan(prNumber int) error {
 
 	res, err := d.lock.Lock(prNumber)
@@ -334,6 +343,8 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				}
 			}
 			if step.Action == "plan" {
+				planArgs := []string{"-out", d.planFileName()}
+				planArgs = append(planArgs, step.ExtraArgs...)
 				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(step.ExtraArgs)
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
@@ -356,6 +367,26 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 }
 
 func (d DiggerExecutor) Apply(prNumber int) error {
+	plansFilename, err := d.prManager.DownloadLatestPlans(prNumber)
+
+	if err != nil {
+		return fmt.Errorf("error downloading plan: %v", err)
+	}
+
+	if plansFilename == "" {
+		return fmt.Errorf("no plans found for this PR")
+	}
+
+	plansFilename, err = d.zipManager.GetFileFromZip(plansFilename, d.planFileName())
+
+	if err != nil {
+		return fmt.Errorf("error extracting plan: %v", err)
+	}
+
+	if plansFilename == "" {
+		return fmt.Errorf("no plans found for this project")
+	}
+
 	isMergeable, _, err := d.prManager.IsMergeable(prNumber)
 	if err != nil {
 		return fmt.Errorf("error validating is PR is mergeable: %v", err)
@@ -376,7 +407,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					}
 				}
 				if step.Action == "apply" {
-					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs)
+					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := "Apply for **" + d.lock.LockId() + "**\n" + applyOutput
 					d.prManager.PublishComment(prNumber, comment)
