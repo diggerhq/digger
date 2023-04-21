@@ -1,6 +1,8 @@
 package digger
 
 import (
+	"bytes"
+	"digger/pkg/configuration"
 	"digger/pkg/github"
 	"digger/pkg/models"
 	"digger/pkg/terraform"
@@ -8,15 +10,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strings"
 )
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prManager github.PullRequestManager) ([]Project, int, error) {
-	var impactedProjects []Project
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager github.PullRequestManager) ([]configuration.Project, int, error) {
+	var impactedProjects []configuration.Project
 	var prNumber int
 
 	switch ghEvent.(type) {
@@ -47,9 +51,12 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) error {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
 	lockAcquisitionSuccess := true
+	allAppliesSuccess := true
+	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
+		appliesPerProject[projectCommands.ProjectName] = false
 		for _, command := range projectCommands.Commands {
 			projectLock := &utils.ProjectLockImpl{
 				InternalLock: lock,
@@ -58,25 +65,47 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				RepoName:     repoName,
 				RepoOwner:    repoOwner,
 			}
+
+			var terraformExecutor terraform.TerraformExecutor
+
+			if projectCommands.Terragrunt {
+				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
+			} else {
+				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
+			}
+
+			commandRunner := CommandRunner{}
+
 			diggerExecutor := DiggerExecutor{
-				workingDir,
-				projectCommands.ProjectWorkspace,
-				repoOwner,
-				projectCommands.ProjectName,
-				projectCommands.ProjectDir,
-				repoName,
-				projectCommands.Terragrunt,
+				projectCommands.ApplyStage,
+				projectCommands.PlanStage,
+				commandRunner,
+				terraformExecutor,
 				prManager,
 				projectLock,
-				diggerConfig,
 			}
 			switch command {
 			case "digger plan":
 				utils.SendUsageRecord(repoOwner, eventName, "plan")
-				diggerExecutor.Plan(prNumber)
+				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
+				err := diggerExecutor.Plan(prNumber)
+				if err != nil {
+					log.Printf("Failed to run digger plan command. %v", err)
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
+				} else {
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
+				}
 			case "digger apply":
 				utils.SendUsageRecord(repoName, eventName, "apply")
-				diggerExecutor.Apply(prNumber)
+				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				err := diggerExecutor.Apply(prNumber)
+				if err != nil {
+					log.Printf("Failed to run digger apply command. %v", err)
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+				} else {
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+					appliesPerProject[projectCommands.ProjectName] = true
+				}
 			case "digger unlock":
 				utils.SendUsageRecord(repoOwner, eventName, "unlock")
 				diggerExecutor.Unlock(prNumber)
@@ -90,7 +119,39 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 	if !lockAcquisitionSuccess {
 		os.Exit(1)
 	}
-	return nil
+	for _, success := range appliesPerProject {
+		if !success {
+			allAppliesSuccess = false
+		}
+	}
+	return allAppliesSuccess, nil
+}
+
+func MergePullRequest(githubPrService github.PullRequestManager, prNumber int) {
+	combinedStatus, err := githubPrService.GetCombinedPullRequestStatus(prNumber)
+
+	if err != nil {
+		log.Fatalf("failed to get combined status, %v", err)
+	}
+
+	if combinedStatus != "success" {
+		log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
+	}
+
+	prIsMergeable, mergeableState, err := githubPrService.IsMergeable(prNumber)
+
+	if err != nil {
+		log.Fatalf("failed to check if PR is mergeable, %v", err)
+	}
+
+	if !prIsMergeable {
+		log.Fatalf("PR is not mergeable. State: %v", mergeableState)
+	}
+
+	err = githubPrService.MergePullRequest(prNumber)
+	if err != nil {
+		log.Fatalf("failed to merge PR, %v", err)
+	}
 }
 
 func GetGitHubContext(ghContext string) (*models.Github, error) {
@@ -108,22 +169,30 @@ type ProjectCommand struct {
 	ProjectWorkspace string
 	Terragrunt       bool
 	Commands         []string
+	ApplyStage       configuration.Stage
+	PlanStage        configuration.Stage
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project) ([]ProjectCommand, error) {
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, error) {
 	commandsPerProject := make([]ProjectCommand, 0)
 
 	switch event.(type) {
 	case models.PullRequestEvent:
 		event := event.(models.PullRequestEvent)
 		for _, project := range impactedProjects {
+			workflow, ok := workflows[project.Workflow]
+			if !ok {
+				workflow = *defaultWorkflow()
+			}
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
-					Commands:         project.WorkflowConfiguration.OnCommitToDefault,
+					Commands:         workflow.Configuration.OnCommitToDefault,
+					ApplyStage:       *workflow.Apply,
+					PlanStage:        *workflow.Plan,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -131,7 +200,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
-					Commands:         project.WorkflowConfiguration.OnPullRequestPushed,
+					Commands:         workflow.Configuration.OnPullRequestPushed,
+					ApplyStage:       *workflow.Apply,
+					PlanStage:        *workflow.Plan,
 				})
 			} else if event.Action == "closed" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -139,7 +210,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
-					Commands:         project.WorkflowConfiguration.OnPullRequestClosed,
+					Commands:         workflow.Configuration.OnPullRequestPushed,
+					ApplyStage:       *workflow.Apply,
+					PlanStage:        *workflow.Plan,
 				})
 			}
 		}
@@ -151,6 +224,10 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
 				for _, project := range impactedProjects {
+					workflow, ok := workflows[project.Workflow]
+					if !ok {
+						workflow = *defaultWorkflow()
+					}
 					workspace := project.Workspace
 					workspaceOverride, err := parseWorkspace(event.Comment.Body)
 					if err != nil {
@@ -165,6 +242,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
+						ApplyStage:       *workflow.Apply,
+						PlanStage:        *workflow.Plan,
 					})
 				}
 			}
@@ -204,77 +283,138 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
-	workingDir   string
-	workspace    string
-	repoOwner    string
-	projectName  string
-	projectDir   string
-	repoName     string
-	terragrunt   bool
-	prManager    github.PullRequestManager
-	lock         utils.ProjectLock
-	configDigger *DiggerConfig
+	applyStage        configuration.Stage
+	planStage         configuration.Stage
+	commandRunner     CommandRun
+	terraformExecutor terraform.TerraformExecutor
+	prManager         github.PullRequestManager
+	lock              utils.ProjectLock
 }
 
-func (d DiggerExecutor) LockId() string {
-	return d.repoOwner + "/" + d.repoName + "#" + d.projectName
+type CommandRun interface {
+	Run(command string) (string, string, error)
 }
 
-func (d DiggerExecutor) Plan(prNumber int) {
+type CommandRunner struct {
+}
 
-	var terraformExecutor terraform.TerraformExecutor
+func (c CommandRunner) Run(command string) (string, string, error) {
+	parts := strings.Fields(command)
+	command = parts[0]
+	params := parts[1:]
+	cmd := exec.Command(command, params...)
 
-	if d.terragrunt {
-		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
-	} else {
-		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
-	}
+	var stdout, stderr bytes.Buffer
+	mwout := io.MultiWriter(os.Stdout, &stdout)
+	mwerr := io.MultiWriter(os.Stderr, &stderr)
+	cmd.Stdout = mwout
+	cmd.Stderr = mwerr
+	err := cmd.Run()
 
-	res, err := d.lock.Lock(d.LockId(), prNumber)
 	if err != nil {
-		log.Fatalf("Error locking project: %v", err)
-	}
-	if res {
-		isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan()
-
-		if err != nil {
-			log.Fatalf("Error executing plan: %v", err)
-		}
-		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
-		comment := "Plan for **" + d.LockId() + "**\n" + plan
-		d.prManager.PublishComment(prNumber, comment)
+		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
 	}
 
+	return stdout.String(), stderr.String(), err
 }
 
-func (d DiggerExecutor) Apply(prNumber int) {
-	var terraformExecutor terraform.TerraformExecutor
+func (d DiggerExecutor) Plan(prNumber int) error {
 
-	if d.terragrunt {
-		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
-	} else {
-		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+	res, err := d.lock.Lock(prNumber)
+	if err != nil {
+		return fmt.Errorf("error locking project: %v", err)
+	}
+	log.Printf("Lock result: %t\n", res)
+	if res {
+		for _, step := range d.planStage.Steps {
+			if step.Action == "init" {
+				_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
+				if err != nil {
+					return fmt.Errorf("error running init: %v", err)
+				}
+			}
+			if step.Action == "plan" {
+				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(step.ExtraArgs)
+				if err != nil {
+					return fmt.Errorf("error executing plan: %v", err)
+				}
+				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
+				comment := "Plan for **" + d.lock.LockId() + "**\n" + plan
+				d.prManager.PublishComment(prNumber, comment)
+			}
+			if step.Action == "run" {
+				stdout, stderr, err := d.commandRunner.Run(step.Value)
+				comment := "Running " + step.Value + " for **" + d.lock.LockId() + "**\n" + stdout + stderr
+				d.prManager.PublishComment(prNumber, comment)
+				if err != nil {
+					return fmt.Errorf("error running command: %v", err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (d DiggerExecutor) Apply(prNumber int) error {
+	isMergeable, _, err := d.prManager.IsMergeable(prNumber)
+	if err != nil {
+		return fmt.Errorf("error validating is PR is mergeable: %v", err)
 	}
 
-	if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
-		stdout, stderr, err := terraformExecutor.Apply()
-		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
+	if !isMergeable {
+		comment := "Cannot perform Apply since the PR is not currently mergeable."
 		d.prManager.PublishComment(prNumber, comment)
-		d.lock.Unlock(d.LockId(), prNumber)
-	}
+	} else {
 
+		if res, _ := d.lock.Lock(prNumber); res {
+
+			for _, step := range d.applyStage.Steps {
+				if step.Action == "init" {
+					_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
+					if err != nil {
+						return fmt.Errorf("error running init: %v", err)
+					}
+				}
+				if step.Action == "apply" {
+					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs)
+					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
+					comment := "Apply for **" + d.lock.LockId() + "**\n" + applyOutput
+					d.prManager.PublishComment(prNumber, comment)
+					if err == nil {
+						_, err := d.lock.Unlock(prNumber)
+						if err != nil {
+							return fmt.Errorf("error unlocking project: %v", err)
+						}
+					} else {
+						d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
+					}
+				}
+				if step.Action == "run" {
+					stdout, stderr, err := d.commandRunner.Run(step.Value)
+					comment := "Running " + step.Value + " for **" + d.lock.LockId() + "**\n" + stdout + stderr
+					d.prManager.PublishComment(prNumber, comment)
+					if err != nil {
+						return fmt.Errorf("error running command: %v", err)
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (d DiggerExecutor) Unlock(prNumber int) {
-	d.lock.ForceUnlock(d.LockId(), prNumber)
-
+	err := d.lock.ForceUnlock(prNumber)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
+	}
 }
 
 func (d DiggerExecutor) Lock(prNumber int) bool {
-	isLocked, err := d.lock.Lock(d.LockId(), prNumber)
+	isLocked, err := d.lock.Lock(prNumber)
 	if err != nil {
-		log.Fatalf("Failed to aquire lock: " + d.LockId())
+		log.Fatalf("Failed to aquire lock: " + d.lock.LockId())
 	}
 	return isLocked
 }
@@ -336,4 +476,34 @@ func CheckIfHelpComment(event models.Event) bool {
 		}
 	}
 	return false
+}
+
+func defaultWorkflow() *configuration.Workflow {
+	return &configuration.Workflow{
+		Configuration: &configuration.WorkflowConfiguration{
+			OnCommitToDefault:   []string{"digger unlock"},
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+		},
+		Plan: &configuration.Stage{
+			Steps: []configuration.Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "plan", ExtraArgs: []string{},
+				},
+			},
+		},
+		Apply: &configuration.Stage{
+			Steps: []configuration.Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "apply", ExtraArgs: []string{},
+				},
+			},
+		},
+	}
 }
