@@ -175,8 +175,7 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 		}
 	}
 
-	data, err := os.ReadFile(fileName)
-	if err != nil {
+	if fileName == "" {
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = defaultProject()
 		config.Workflows = make(map[string]Workflow)
@@ -212,8 +211,17 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 		return c, nil
 	}
 
+	data, err := os.ReadFile(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
+	}
+
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+	}
+
+	if (config.Projects == nil || len(config.Projects) == 0) && config.GenerateProjectsConfig == nil {
+		return nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
 
 	c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
