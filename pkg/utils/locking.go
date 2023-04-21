@@ -161,7 +161,7 @@ func GetLock() (Lock, error) {
 		input := &sts.GetCallerIdentityInput{}
 		result, err := svc.GetCallerIdentity(input)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to connect to AWS account. %v\n", err)
 		}
 		log.Printf("Successfully connected to AWS account %s, user Id: %s\n", result.Account, result.UserId)
 
