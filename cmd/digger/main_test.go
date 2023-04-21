@@ -1,6 +1,7 @@
 package main
 
 import (
+	"digger/pkg/configuration"
 	"digger/pkg/digger"
 	"digger/pkg/models"
 	"digger/pkg/utils"
@@ -869,12 +870,12 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 
-	diggerConfig := digger.DiggerConfig{}
+	diggerConfig := configuration.DiggerConfig{}
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, "")
 
 	assert.NoError(t, err)
@@ -891,12 +892,12 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	}
 	ghEvent := context.Event
 	eventName := context.EventName
-	diggerConfig := digger.DiggerConfig{}
+	diggerConfig := configuration.DiggerConfig{}
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]digger.Workflow{})
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, "")
 
 	assert.NoError(t, err)
@@ -918,42 +919,42 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	assert.NoError(t, err)
 	ghEvent := context.Event
 	pullRequestNumber := 11
-	dev := digger.Project{Name: "dev", Dir: "dev", Workflow: "dev"}
-	prod := digger.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
-	workflows := map[string]digger.Workflow{
+	dev := configuration.Project{Name: "dev", Dir: "dev", Workflow: "dev"}
+	prod := configuration.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
+	workflows := map[string]configuration.Workflow{
 		"dev": {
-			Plan: &digger.Stage{Steps: []digger.Step{
+			Plan: &configuration.Stage{Steps: []configuration.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &digger.Stage{Steps: []digger.Step{
+			Apply: &configuration.Stage{Steps: []configuration.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Configuration: &digger.WorkflowConfiguration{
+			Configuration: &configuration.WorkflowConfiguration{
 				OnPullRequestPushed: []string{"digger plan"},
 				OnPullRequestClosed: []string{"digger unlock"},
 				OnCommitToDefault:   []string{"digger apply"},
 			},
 		},
 		"prod": {
-			Plan: &digger.Stage{Steps: []digger.Step{
+			Plan: &configuration.Stage{Steps: []configuration.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &digger.Stage{Steps: []digger.Step{
+			Apply: &configuration.Stage{Steps: []configuration.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Configuration: &digger.WorkflowConfiguration{
+			Configuration: &configuration.WorkflowConfiguration{
 				OnPullRequestPushed: []string{"digger plan"},
 				OnPullRequestClosed: []string{"digger unlock"},
 				OnCommitToDefault:   []string{"digger apply"},
 			},
 		},
 	}
-	projects := []digger.Project{dev, prod}
-	diggerConfig := digger.DiggerConfig{Projects: projects}
+	projects := []configuration.Project{dev, prod}
+	diggerConfig := configuration.DiggerConfig{Projects: projects}
 
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}

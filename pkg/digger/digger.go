@@ -2,6 +2,7 @@ package digger
 
 import (
 	"bytes"
+	"digger/pkg/configuration"
 	"digger/pkg/github"
 	"digger/pkg/models"
 	"digger/pkg/terraform"
@@ -18,8 +19,8 @@ import (
 	"strings"
 )
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prManager github.PullRequestManager) ([]Project, int, error) {
-	var impactedProjects []Project
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager github.PullRequestManager) ([]configuration.Project, int, error) {
+	var impactedProjects []configuration.Project
 	var prNumber int
 
 	switch ghEvent.(type) {
@@ -168,11 +169,11 @@ type ProjectCommand struct {
 	ProjectWorkspace string
 	Terragrunt       bool
 	Commands         []string
-	ApplyStage       Stage
-	PlanStage        Stage
+	ApplyStage       configuration.Stage
+	PlanStage        configuration.Stage
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []Project, workflows map[string]Workflow) ([]ProjectCommand, error) {
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, error) {
 	commandsPerProject := make([]ProjectCommand, 0)
 
 	switch event.(type) {
@@ -282,8 +283,8 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
-	applyStage        Stage
-	planStage         Stage
+	applyStage        configuration.Stage
+	planStage         configuration.Stage
 	commandRunner     CommandRun
 	terraformExecutor terraform.TerraformExecutor
 	prManager         github.PullRequestManager
@@ -293,7 +294,6 @@ type DiggerExecutor struct {
 type CommandRun interface {
 	Run(command string) (string, string, error)
 }
-
 
 type CommandRunner struct {
 }
@@ -478,15 +478,15 @@ func CheckIfHelpComment(event models.Event) bool {
 	return false
 }
 
-func defaultWorkflow() *Workflow {
-	return &Workflow{
-		Configuration: &WorkflowConfiguration{
+func defaultWorkflow() *configuration.Workflow {
+	return &configuration.Workflow{
+		Configuration: &configuration.WorkflowConfiguration{
 			OnCommitToDefault:   []string{"digger unlock"},
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},
 		},
-		Plan: &Stage{
-			Steps: []Step{
+		Plan: &configuration.Stage{
+			Steps: []configuration.Step{
 				{
 					Action: "init", ExtraArgs: []string{},
 				},
@@ -495,8 +495,8 @@ func defaultWorkflow() *Workflow {
 				},
 			},
 		},
-		Apply: &Stage{
-			Steps: []Step{
+		Apply: &configuration.Stage{
+			Steps: []configuration.Step{
 				{
 					Action: "init", ExtraArgs: []string{},
 				},

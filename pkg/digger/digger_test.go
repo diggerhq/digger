@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"digger/pkg/configuration"
 	"github.com/stretchr/testify/assert"
 	"sort"
 	"strconv"
@@ -108,8 +109,8 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	lock := &MockProjectLock{}
 
 	executor := DiggerExecutor{
-		applyStage: Stage{
-			Steps: []Step{
+		applyStage: configuration.Stage{
+			Steps: []configuration.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -127,7 +128,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 				},
 			},
 		},
-		planStage:         Stage{},
+		planStage:         configuration.Stage{},
 		commandRunner:     commandRunner,
 		terraformExecutor: terraformExecutor,
 		prManager:         prManager,
@@ -149,9 +150,9 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 	lock := &MockProjectLock{}
 
 	executor := DiggerExecutor{
-		applyStage: Stage{},
-		planStage: Stage{
-			Steps: []Step{
+		applyStage: configuration.Stage{},
+		planStage: configuration.Stage{
+			Steps: []configuration.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,

@@ -1,4 +1,4 @@
-package digger
+package configuration
 
 import (
 	"log"
