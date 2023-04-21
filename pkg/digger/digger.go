@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"bytes"
 	"digger/pkg/github"
 	"digger/pkg/models"
 	"digger/pkg/terraform"
@@ -8,8 +9,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strings"
@@ -47,7 +50,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *DiggerConfig, prMana
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, diggerConfig *DiggerConfig, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
 	lockAcquisitionSuccess := true
 	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
@@ -61,19 +64,24 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				RepoName:     repoName,
 				RepoOwner:    repoOwner,
 			}
+
+			var terraformExecutor terraform.TerraformExecutor
+
+			if projectCommands.Terragrunt {
+				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
+			} else {
+				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
+			}
+
+			commandRunner := CommandRunner{}
+
 			diggerExecutor := DiggerExecutor{
-				workingDir,
-				projectCommands.ProjectWorkspace,
-				repoOwner,
-				projectCommands.ProjectName,
-				projectCommands.ProjectDir,
-				repoName,
-				projectCommands.Terragrunt,
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
+				commandRunner,
+				terraformExecutor,
 				prManager,
 				projectLock,
-				diggerConfig,
 			}
 			switch command {
 			case "digger plan":
@@ -274,103 +282,129 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
-	workingDir   string
-	workspace    string
-	repoOwner    string
-	projectName  string
-	projectDir   string
-	repoName     string
-	terragrunt   bool
-	applyStage   Stage
-	planStage    Stage
-	prManager    github.PullRequestManager
-	lock         utils.ProjectLock
-	configDigger *DiggerConfig
+	applyStage        Stage
+	planStage         Stage
+	commandRunner     CommandRun
+	terraformExecutor terraform.TerraformExecutor
+	prManager         github.PullRequestManager
+	lock              utils.ProjectLock
 }
 
-func (d DiggerExecutor) LockId() string {
-	return d.repoOwner + "/" + d.repoName + "#" + d.projectName
+type CommandRun interface {
+	Run(command string) (string, string, error)
+}
+
+
+type CommandRunner struct {
+}
+
+func (c CommandRunner) Run(command string) (string, string, error) {
+	parts := strings.Fields(command)
+	command = parts[0]
+	params := parts[1:]
+	cmd := exec.Command(command, params...)
+
+	var stdout, stderr bytes.Buffer
+	mwout := io.MultiWriter(os.Stdout, &stdout)
+	mwerr := io.MultiWriter(os.Stderr, &stderr)
+	cmd.Stdout = mwout
+	cmd.Stderr = mwerr
+	err := cmd.Run()
+
+	if err != nil {
+		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
+	}
+
+	return stdout.String(), stderr.String(), err
 }
 
 func (d DiggerExecutor) Plan(prNumber int) error {
-	log.Println("Running terraform plan.")
-	var terraformExecutor terraform.TerraformExecutor
 
-	if d.terragrunt {
-		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
-	} else {
-		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
-	}
-
-	res, err := d.lock.Lock(d.LockId(), prNumber)
+	res, err := d.lock.Lock(prNumber)
 	if err != nil {
 		return fmt.Errorf("error locking project: %v", err)
 	}
 	log.Printf("Lock result: %t\n", res)
 	if res {
-		var initArgs []string
-		var planArgs []string
-
 		for _, step := range d.planStage.Steps {
 			if step.Action == "init" {
-				initArgs = append(initArgs, step.ExtraArgs...)
+				_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
+				if err != nil {
+					return fmt.Errorf("error running init: %v", err)
+				}
 			}
 			if step.Action == "plan" {
-				planArgs = append(planArgs, step.ExtraArgs...)
+				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(step.ExtraArgs)
+				if err != nil {
+					return fmt.Errorf("error executing plan: %v", err)
+				}
+				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
+				comment := "Plan for **" + d.lock.LockId() + "**\n" + plan
+				d.prManager.PublishComment(prNumber, comment)
+			}
+			if step.Action == "run" {
+				stdout, stderr, err := d.commandRunner.Run(step.Value)
+				comment := "Running " + step.Value + " for **" + d.lock.LockId() + "**\n" + stdout + stderr
+				d.prManager.PublishComment(prNumber, comment)
+				if err != nil {
+					return fmt.Errorf("error running command: %v", err)
+				}
 			}
 		}
-		isNonEmptyPlan, stdout, stderr, err := terraformExecutor.Plan(initArgs, planArgs)
-
-		if err != nil {
-			return fmt.Errorf("error executing plan: %v", err)
-		}
-		plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
-		comment := "Plan for **" + d.LockId() + "**\n" + plan
-		log.Println(comment)
-		d.prManager.PublishComment(prNumber, comment)
 	}
 	return nil
 }
 
 func (d DiggerExecutor) Apply(prNumber int) error {
-	var terraformExecutor terraform.TerraformExecutor
-
-	if d.terragrunt {
-		terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(d.workingDir, d.projectDir)}
-	} else {
-		terraformExecutor = terraform.Terraform{WorkingDir: path.Join(d.workingDir, d.projectDir), Workspace: d.workspace}
+	isMergeable, _, err := d.prManager.IsMergeable(prNumber)
+	if err != nil {
+		return fmt.Errorf("error validating is PR is mergeable: %v", err)
 	}
 
-	if res, _ := d.lock.Lock(d.LockId(), prNumber); res {
-		var initArgs []string
-		var applyArgs []string
-
-		for _, step := range d.applyStage.Steps {
-			if step.Action == "init" {
-				initArgs = append(initArgs, step.ExtraArgs...)
-			}
-			if step.Action == "apply" {
-				applyArgs = append(applyArgs, step.ExtraArgs...)
-			}
-		}
-		stdout, stderr, err := terraformExecutor.Apply(initArgs, applyArgs)
-		applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-		comment := "Apply for **" + d.LockId() + "**\n" + applyOutput
+	if !isMergeable {
+		comment := "Cannot perform Apply since the PR is not currently mergeable."
 		d.prManager.PublishComment(prNumber, comment)
-		if err == nil {
-			_, err := d.lock.Unlock(d.LockId(), prNumber)
-			if err != nil {
-				return fmt.Errorf("error unlocking project: %v", err)
+	} else {
+
+		if res, _ := d.lock.Lock(prNumber); res {
+
+			for _, step := range d.applyStage.Steps {
+				if step.Action == "init" {
+					_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
+					if err != nil {
+						return fmt.Errorf("error running init: %v", err)
+					}
+				}
+				if step.Action == "apply" {
+					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs)
+					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
+					comment := "Apply for **" + d.lock.LockId() + "**\n" + applyOutput
+					d.prManager.PublishComment(prNumber, comment)
+					if err == nil {
+						_, err := d.lock.Unlock(prNumber)
+						if err != nil {
+							return fmt.Errorf("error unlocking project: %v", err)
+						}
+					} else {
+						d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
+					}
+				}
+				if step.Action == "run" {
+					stdout, stderr, err := d.commandRunner.Run(step.Value)
+					comment := "Running " + step.Value + " for **" + d.lock.LockId() + "**\n" + stdout + stderr
+					d.prManager.PublishComment(prNumber, comment)
+					if err != nil {
+						return fmt.Errorf("error running command: %v", err)
+					}
+				}
 			}
-		} else {
-			d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
 		}
 	}
 	return nil
 }
 
 func (d DiggerExecutor) Unlock(prNumber int) {
-	err := d.lock.ForceUnlock(d.LockId(), prNumber)
+	err := d.lock.ForceUnlock(prNumber)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		os.Exit(1)
@@ -378,9 +412,9 @@ func (d DiggerExecutor) Unlock(prNumber int) {
 }
 
 func (d DiggerExecutor) Lock(prNumber int) bool {
-	isLocked, err := d.lock.Lock(d.LockId(), prNumber)
+	isLocked, err := d.lock.Lock(prNumber)
 	if err != nil {
-		log.Fatalf("Failed to aquire lock: " + d.LockId())
+		log.Fatalf("Failed to aquire lock: " + d.lock.LockId())
 	}
 	return isLocked
 }

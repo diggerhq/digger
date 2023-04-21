@@ -3,6 +3,7 @@ package utils
 import (
 	"digger/pkg/aws"
 	"digger/pkg/aws/envprovider"
+	"digger/pkg/azure"
 	"digger/pkg/gcp"
 	"digger/pkg/github"
 	"errors"
@@ -27,6 +28,10 @@ type ProjectLockImpl struct {
 	RepoOwner    string
 }
 
+func (p ProjectLockImpl) LockId() string {
+	return p.RepoOwner + "/" + p.RepoName + "#" + p.ProjectName
+}
+
 type Lock interface {
 	Lock(transactionId int, resource string) (bool, error)
 	Unlock(resource string) (bool, error)
@@ -34,12 +39,14 @@ type Lock interface {
 }
 
 type ProjectLock interface {
-	Lock(lockId string, prNumber int) (bool, error)
-	Unlock(lockId string, prNumber int) (bool, error)
-	ForceUnlock(lockId string, prNumber int) error
+	Lock(prNumber int) (bool, error)
+	Unlock(prNumber int) (bool, error)
+	ForceUnlock(prNumber int) error
+	LockId() string
 }
 
-func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, error) {
+func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
+	lockId := projectLock.LockId()
 	fmt.Printf("Lock %s\n", lockId)
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 	var transactionIdStr string
@@ -79,7 +86,8 @@ func (projectLock *ProjectLockImpl) Lock(lockId string, prNumber int) (bool, err
 	return false, nil
 }
 
-func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, error) {
+func (projectLock *ProjectLockImpl) Unlock(prNumber int) (bool, error) {
+	lockId := projectLock.LockId()
 	fmt.Printf("Unlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
@@ -104,7 +112,8 @@ func (projectLock *ProjectLockImpl) Unlock(lockId string, prNumber int) (bool, e
 	return false, nil
 }
 
-func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) error {
+func (projectLock *ProjectLockImpl) ForceUnlock(prNumber int) error {
+	lockId := projectLock.LockId()
 	fmt.Printf("ForceUnlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
@@ -127,7 +136,7 @@ func (projectLock *ProjectLockImpl) ForceUnlock(lockId string, prNumber int) err
 }
 
 func (projectLock *ProjectLockImpl) projectId() string {
-	return projectLock.RepoOwner + "/" + projectLock.RepoName
+	return projectLock.RepoOwner + "/" + projectLock.RepoName + "#" + projectLock.ProjectName
 }
 
 func GetLock() (Lock, error) {
@@ -166,6 +175,9 @@ func GetLock() (Lock, error) {
 		bucket := client.Bucket(bucketName)
 		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}
 		return &lock, nil
+	} else if lockProvider == "azure" {
+		return azure.NewStorageAccountLock()
 	}
+
 	return nil, errors.New("failed to find lock provider")
 }
