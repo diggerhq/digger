@@ -12,14 +12,14 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 	pl := ProjectLockImpl{
 		InternalLock: &mockDynamoDB,
 		PrManager:    &mockPrManager,
-		ProjectName:  "",
+		ProjectName:  "a",
 		RepoName:     "",
 		RepoOwner:    "",
 	}
-	state1, err1 := pl.Lock("a", 1)
+	state1, err1 := pl.Lock(1)
 	assert.True(t, state1)
 	assert.NoError(t, err1)
-	state2, err2 := pl.Lock("a", 2)
+	state2, err2 := pl.Lock(2)
 	assert.False(t, state2)
 	// No error because the lock was not aquired
 	assert.NoError(t, err2)
