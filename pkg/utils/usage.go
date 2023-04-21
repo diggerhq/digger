@@ -70,7 +70,8 @@ func sendPayload(payload interface{}) error {
 }
 
 func init() {
-	config, err := NewDiggerConfig("")
+	walker := FileSystemDirWalker{}
+	config, err := NewDiggerConfig("", &walker)
 	if err != nil {
 		return
 	}

@@ -18,17 +18,18 @@ type WorkflowConfiguration struct {
 }
 
 type DiggerConfigYaml struct {
-	Projects  []Project           `yaml:"projects"`
-	AutoMerge bool                `yaml:"auto_merge"`
-	Workflows map[string]Workflow `yaml:"workflows"`
-	CollectUsageData *bool     `yaml:"collect_usage_data"`
+	Projects               []Project               `yaml:"projects"`
+	AutoMerge              bool                    `yaml:"auto_merge"`
+	Workflows              map[string]Workflow     `yaml:"workflows"`
+	CollectUsageData       *bool                   `yaml:"collect_usage_data"`
 	GenerateProjectsConfig *GenerateProjectsConfig `yaml:"generate_projects"`
 }
 
 type DiggerConfig struct {
-	Projects  []Project
-	AutoMerge bool
-	Workflows map[string]Workflow
+	Projects         []Project
+	AutoMerge        bool
+	CollectUsageData *bool
+	Workflows        map[string]Workflow
 }
 
 type GenerateProjectsConfig struct {
@@ -135,6 +136,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 	diggerConfig.AutoMerge = diggerYaml.AutoMerge
 	diggerConfig.Workflows = diggerYaml.Workflows
 	diggerConfig.Projects = diggerYaml.Projects
+	diggerConfig.CollectUsageData = diggerYaml.CollectUsageData
 
 	if diggerYaml.GenerateProjectsConfig != nil {
 		dirs, err := walker.GetDirs(workingDir)
