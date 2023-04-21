@@ -163,7 +163,7 @@ func GetLock() (Lock, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to AWS account. %v\n", err)
 		}
-		log.Printf("Successfully connected to AWS account %s, user Id: %s\n", result.Account, result.UserId)
+		log.Printf("Successfully connected to AWS account %s, user Id: %s\n", *result.Account, *result.UserId)
 
 		dynamoDb := dynamodb.New(sess)
 		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
