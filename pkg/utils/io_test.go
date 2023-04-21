@@ -31,8 +31,8 @@ func TestGetFileFromZip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	retrievedFile, err := GetFileFromZip(zipFileName, "file1.txt")
+	zipper := &Zipper{}
+	retrievedFile, err := zipper.GetFileFromZip(zipFileName, "file1.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,8 @@ func TestGetFileFromZipNoFileExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	retrievedFile, err := GetFileFromZip(zipFileName, "file3.txt")
+	zipper := &Zipper{}
+	retrievedFile, err := zipper.GetFileFromZip(zipFileName, "file3.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
