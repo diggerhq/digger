@@ -97,6 +97,8 @@ func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
 	defer teardown()
 
 	diggerCfg := `
+projects:
+- name: dev
 workflows:
   default:
     plan:
@@ -199,6 +201,20 @@ generate_projects:
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "dev", dg.Projects[0].Name)
 	assert.Equal(t, 1, len(dg.Projects))
+}
+
+func TestMissingProjectsReturnsError(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+	walker := &MockDirWalker{}
+
+	_, err := NewDiggerConfig(tempDir, walker)
+	assert.ErrorContains(t, err, "no projects configuration found")
 }
 
 func createTempDir() string {
