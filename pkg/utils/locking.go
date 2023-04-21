@@ -144,6 +144,7 @@ func GetLock() (Lock, error) {
 	awsProfile := strings.ToLower(os.Getenv("AWS_PROFILE"))
 	lockProvider := strings.ToLower(os.Getenv("LOCK_PROVIDER"))
 	if lockProvider == "" || lockProvider == "aws" {
+		log.Println("Using AWS lock provider.")
 		sess, err := session.NewSessionWithOptions(session.Options{
 			Profile: awsProfile,
 			Config: awssdk.Config{
@@ -158,6 +159,7 @@ func GetLock() (Lock, error) {
 		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 		return &dynamoDbLock, nil
 	} else if lockProvider == "gcp" {
+		log.Println("Using GCP lock provider.")
 		ctx, client := gcp.GetGoogleStorageClient()
 		defer func(client *storage.Client) {
 			err := client.Close()
