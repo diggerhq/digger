@@ -1,6 +1,7 @@
 package main
 
 import (
+	"digger/pkg/configuration"
 	"digger/pkg/digger"
 	"digger/pkg/github"
 	"digger/pkg/models"
@@ -45,9 +46,9 @@ func main() {
 	}
 	println("GitHub context parsed successfully")
 
-	walker := utils.FileSystemDirWalker{}
+	walker := configuration.FileSystemDirWalker{}
 
-	diggerConfig, err := utils.NewDiggerConfig("./", &walker)
+	diggerConfig, err := configuration.NewDiggerConfig("./", &walker)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -106,7 +107,7 @@ func main() {
 
 }
 
-func logImpactedProjects(projects []utils.Project, prNumber int) {
+func logImpactedProjects(projects []configuration.Project, prNumber int) {
 	logMessage := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
 	for _, p := range projects {
 		logMessage += fmt.Sprintf("%s\n", p.Name)

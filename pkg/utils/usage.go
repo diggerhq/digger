@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"crypto/sha256"
+	"digger/pkg/configuration"
 	"encoding/hex"
 	"encoding/json"
 	"log"
@@ -70,8 +71,8 @@ func sendPayload(payload interface{}) error {
 }
 
 func init() {
-	walker := FileSystemDirWalker{}
-	config, err := NewDiggerConfig("", &walker)
+	walker := configuration.FileSystemDirWalker{}
+	config, err := configuration.NewDiggerConfig("", &walker)
 	if err != nil {
 		return
 	}
