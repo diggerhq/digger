@@ -28,10 +28,6 @@ type ProjectLockImpl struct {
 	RepoOwner    string
 }
 
-func (p ProjectLockImpl) LockId() string {
-	return p.RepoOwner + "/" + p.RepoName + "#" + p.ProjectName
-}
-
 type Lock interface {
 	Lock(transactionId int, resource string) (bool, error)
 	Unlock(resource string) (bool, error)
@@ -136,6 +132,10 @@ func (projectLock *ProjectLockImpl) ForceUnlock(prNumber int) error {
 }
 
 func (projectLock *ProjectLockImpl) projectId() string {
+	return projectLock.RepoOwner + "/" + projectLock.RepoName + "#" + projectLock.ProjectName
+}
+
+func (projectLock *ProjectLockImpl) LockId() string {
 	return projectLock.RepoOwner + "/" + projectLock.RepoName + "#" + projectLock.ProjectName
 }
 
