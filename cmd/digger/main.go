@@ -6,6 +6,7 @@ import (
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 )
@@ -44,7 +45,9 @@ func main() {
 	}
 	println("GitHub context parsed successfully")
 
-	diggerConfig, err := digger.NewDiggerConfig("")
+	walker := digger.FileSystemDirWalker{}
+
+	diggerConfig, err := digger.NewDiggerConfig("./", &walker)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -66,6 +69,7 @@ func main() {
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
+	logImpactedProjects(impactedProjects, prNumber)
 	println("GitHub event processed successfully")
 
 	if digger.CheckIfHelpComment(ghEvent) {
@@ -78,6 +82,7 @@ func main() {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 	}
 	println("GitHub event converted to commands successfully")
+	logCommands(commandsToRunPerProject)
 
 	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, "")
 	if err != nil {
@@ -99,6 +104,26 @@ func main() {
 		}
 	}()
 
+}
+
+func logImpactedProjects(projects []digger.Project, prNumber int) {
+	logMessage := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
+	for _, p := range projects {
+		logMessage += fmt.Sprintf("%s\n", p.Name)
+	}
+	log.Print(logMessage)
+}
+
+func logCommands(projectCommands []digger.ProjectCommand) {
+	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
+	for _, pc := range projectCommands {
+		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)
+		for _, c := range pc.Commands {
+			logMessage += fmt.Sprintf("\"%s\", ", c)
+		}
+		logMessage += "\n"
+	}
+	log.Print(logMessage)
 }
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {

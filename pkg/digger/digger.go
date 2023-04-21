@@ -89,6 +89,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
 				err := diggerExecutor.Plan(prNumber)
 				if err != nil {
+					log.Printf("Failed to run digger plan command. %v", err)
 					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
 				} else {
 					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
@@ -98,6 +99,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
 				err := diggerExecutor.Apply(prNumber)
 				if err != nil {
+					log.Printf("Failed to run digger apply command. %v", err)
 					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
 				} else {
 					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
@@ -292,6 +294,7 @@ type CommandRun interface {
 	Run(command string) (string, string, error)
 }
 
+
 type CommandRunner struct {
 }
 
@@ -321,6 +324,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 	if err != nil {
 		return fmt.Errorf("error locking project: %v", err)
 	}
+	log.Printf("Lock result: %t\n", res)
 	if res {
 		for _, step := range d.planStage.Steps {
 			if step.Action == "init" {
