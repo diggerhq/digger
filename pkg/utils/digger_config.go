@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
@@ -21,12 +22,18 @@ type DiggerConfigYaml struct {
 	AutoMerge bool                `yaml:"auto_merge"`
 	Workflows map[string]Workflow `yaml:"workflows"`
 	CollectUsageData *bool     `yaml:"collect_usage_data"`
+	GenerateProjectsConfig *GenerateProjectsConfig `yaml:"generate_projects"`
 }
 
 type DiggerConfig struct {
 	Projects  []Project
 	AutoMerge bool
 	Workflows map[string]Workflow
+}
+
+type GenerateProjectsConfig struct {
+	Include string `yaml:"include"`
+	Exclude string `yaml:"exclude"`
 }
 
 type Project struct {
@@ -45,6 +52,31 @@ type Workflow struct {
 	Plan          *Stage                 `yaml:"plan,omitempty"`
 	Apply         *Stage                 `yaml:"apply,omitempty"`
 	Configuration *WorkflowConfiguration `yaml:"workflow_configuration"`
+}
+
+type DirWalker interface {
+	GetDirs(workingDir string) ([]string, error)
+}
+
+type FileSystemDirWalker struct {
+}
+
+func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(workingDir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				files = append(files, path)
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
 }
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
@@ -66,6 +98,7 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 type Step struct {
 	Action    string
+	Value     string
 	ExtraArgs []string `yaml:"extra_args,omitempty"`
 }
 
@@ -74,30 +107,64 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 		return value.Decode(&s.Action)
 	}
 
-	var stepMap map[string]map[string][]string
+	var stepMap map[string]interface{}
 	if err := value.Decode(&stepMap); err != nil {
 		return err
 	}
 
 	for k, v := range stepMap {
 		s.Action = k
-		s.ExtraArgs = v["extra_args"]
+		switch v := v.(type) {
+		case string:
+			s.Value = v
+		case map[string]interface{}:
+			var extraArgs []string
+			for _, v := range v["extra_args"].([]interface{}) {
+				extraArgs = append(extraArgs, v.(string))
+			}
+			s.ExtraArgs = extraArgs
+		}
 		break
 	}
 	return nil
 }
 
-func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, error) {
+func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	var diggerConfig DiggerConfig
 
 	diggerConfig.AutoMerge = diggerYaml.AutoMerge
 	diggerConfig.Workflows = diggerYaml.Workflows
 	diggerConfig.Projects = diggerYaml.Projects
 
+	if diggerYaml.GenerateProjectsConfig != nil {
+		dirs, err := walker.GetDirs(workingDir)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, dir := range dirs {
+			includePattern := diggerYaml.GenerateProjectsConfig.Include
+			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
+			includeMatch, err := doublestar.PathMatch(includePattern, dir)
+			if err != nil {
+				return nil, err
+			}
+
+			excludeMatch, err := doublestar.PathMatch(excludePattern, dir)
+			if err != nil {
+				return nil, err
+			}
+			if includeMatch && !excludeMatch {
+				project := Project{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir)}
+				diggerConfig.Projects = append(diggerConfig.Projects, project)
+			}
+		}
+	}
+
 	return &diggerConfig, nil
 }
 
-func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
+func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	config := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -117,8 +184,8 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 					Action:    "init",
 					ExtraArgs: []string{},
 				}, {
-					"plan",
-					[]string{},
+					Action:    "plan",
+					ExtraArgs: []string{},
 				}},
 			},
 			Apply: &Stage{
@@ -126,8 +193,8 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 					Action:    "init",
 					ExtraArgs: []string{},
 				}, {
-					"apply",
-					[]string{},
+					Action:    "apply",
+					ExtraArgs: []string{},
 				}},
 			},
 			Configuration: &WorkflowConfiguration{
@@ -136,9 +203,9 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 				OnCommitToDefault:   []string{"digger apply"},
 			},
 		}
-		c, err := ConvertDiggerYamlToConfig(config)
+		c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
 		}
 		return c, nil
 	}
@@ -147,7 +214,7 @@ func NewDiggerConfig(workingDir string) (*DiggerConfig, error) {
 		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 	}
 
-	c, err := ConvertDiggerYamlToConfig(config)
+	c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
 	if err != nil {
 		return nil, err
 	}

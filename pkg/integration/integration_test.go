@@ -341,7 +341,7 @@ func TestHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateSingleEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := utils.NewDiggerConfig(dir)
+	diggerConfig, err := utils.NewDiggerConfig(dir, &utils.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	lock, err := utils.GetLock()
@@ -381,7 +381,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, dir)
 	assert.NoError(t, err)
 
 	projectLock := &utils.ProjectLockImpl{
@@ -408,7 +408,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -422,7 +422,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
@@ -446,7 +446,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, lock, dir)
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
@@ -477,7 +477,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateMultiEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := utils.NewDiggerConfig(dir)
+	diggerConfig, err := utils.NewDiggerConfig(dir, &utils.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -524,7 +524,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock := &utils.ProjectLockImpl{
@@ -550,7 +550,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -564,7 +564,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
@@ -588,7 +588,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]utils.Workflow{})
 	assert.NoError(t, err)
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, diggerConfig, githubPrService, &dynamoDbLock, dir)
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, &dynamoDbLock, dir)
 	assert.NoError(t, err)
 
 	projectLock = &utils.ProjectLockImpl{
