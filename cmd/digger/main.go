@@ -13,6 +13,12 @@ import (
 )
 
 func main() {
+
+	print("List all env variables")
+	for _, env := range os.Environ() {
+		println(env)
+	}
+
 	githubRepositoryOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
 	if githubRepositoryOwner != "" {
 		utils.SendUsageRecord(githubRepositoryOwner, "log", "initialize")
