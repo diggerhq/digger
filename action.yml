@@ -21,6 +21,13 @@ inputs:
     description: AWS region
     required: false
     default: us-east-1
+  setup-google-cloud:
+    description: Setup google cloud
+    required: false
+    default: 'false'
+  google-auth-credentials:
+      description: Google auth credentials
+      required: false
   setup-terragrunt:
     description: Setup terragrunt
     required: false
