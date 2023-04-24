@@ -6,6 +6,7 @@ import (
 	"digger/pkg/github"
 	"digger/pkg/models"
 	"digger/pkg/utils"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,9 +15,24 @@ import (
 
 func main() {
 
-	print("List all env variables")
+	println("List all env variables:")
 	for _, env := range os.Environ() {
 		println(env)
+	}
+
+	gac := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if gac != "" {
+		println("check if GOOGLE_APPLICATION_CREDENTIALS file exists.")
+
+		if _, err := os.Stat(gac); errors.Is(err, os.ErrNotExist) {
+			fmt.Printf("file %s doesn't exist\n", gac)
+		} else {
+			fmt.Printf("file %s does exist\n", gac)
+			file, err := os.Open("file.txt")
+			if err != nil {
+				fmt.Print(file)
+			}
+		}
 	}
 
 	githubRepositoryOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
