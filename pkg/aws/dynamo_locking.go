@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -131,6 +132,7 @@ func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
 	}
 	if result.Item != nil {
 		transactionId := result.Item["transaction_id"].N
+		log.Printf("transaction_id: %s\n", transactionId)
 		res, err := strconv.Atoi(*transactionId)
 		return &res, err
 	} else {
