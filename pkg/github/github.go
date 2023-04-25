@@ -106,7 +106,7 @@ func getLatestArtifactWithName(artifacts []*github.Artifact, name string) *githu
 		if *item.Name != name {
 			continue
 		}
-		if item.UpdatedAt.Time.After(latest.UpdatedAt.Time) {
+		if latest == nil || item.UpdatedAt.Time.After(latest.UpdatedAt.Time) {
 			latest = item
 		}
 	}
