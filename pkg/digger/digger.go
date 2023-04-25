@@ -172,8 +172,8 @@ type ProjectCommand struct {
 	ProjectWorkspace string
 	Terragrunt       bool
 	Commands         []string
-	ApplyStage       configuration.Stage
-	PlanStage        configuration.Stage
+	ApplyStage       *configuration.Stage
+	PlanStage        *configuration.Stage
 }
 
 func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, error) {
@@ -194,8 +194,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       *workflow.Apply,
-					PlanStage:        *workflow.Plan,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -204,8 +204,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:       *workflow.Apply,
-					PlanStage:        *workflow.Plan,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 				})
 			} else if event.Action == "closed" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -214,8 +214,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:       *workflow.Apply,
-					PlanStage:        *workflow.Plan,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 				})
 			}
 		}
@@ -245,8 +245,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
-						ApplyStage:       *workflow.Apply,
-						PlanStage:        *workflow.Plan,
+						ApplyStage:       workflow.Apply,
+						PlanStage:        workflow.Plan,
 					})
 				}
 			}
@@ -287,8 +287,8 @@ func parseProjectName(comment string) string {
 
 type DiggerExecutor struct {
 	projectName       string
-	applyStage        configuration.Stage
-	planStage         configuration.Stage
+	applyStage        *configuration.Stage
+	planStage         *configuration.Stage
 	commandRunner     CommandRun
 	zipManager        utils.Zip
 	terraformExecutor terraform.TerraformExecutor
@@ -335,7 +335,21 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 	}
 	log.Printf("Lock result: %t\n", res)
 	if res {
-		for _, step := range d.planStage.Steps {
+		var planSteps []configuration.Step
+
+		if d.planStage != nil {
+			planSteps = d.planStage.Steps
+		} else {
+			planSteps = []configuration.Step{
+				{
+					Action: "init",
+				},
+				{
+					Action: "plan",
+				},
+			}
+		}
+		for _, step := range planSteps {
 			if step.Action == "init" {
 				_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
 				if err != nil {
@@ -398,8 +412,22 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 	} else {
 
 		if res, _ := d.lock.Lock(prNumber); res {
+			var applySteps []configuration.Step
 
-			for _, step := range d.applyStage.Steps {
+			if d.applyStage != nil {
+				applySteps = d.applyStage.Steps
+			} else {
+				applySteps = []configuration.Step{
+					{
+						Action: "init",
+					},
+					{
+						Action: "apply",
+					},
+				}
+			}
+
+			for _, step := range applySteps {
 				if step.Action == "init" {
 					_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
 					if err != nil {

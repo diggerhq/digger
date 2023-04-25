@@ -124,7 +124,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	zipper := &MockZipper{}
 
 	executor := DiggerExecutor{
-		applyStage: configuration.Stage{
+		applyStage: &configuration.Stage{
 			Steps: []configuration.Step{
 				{
 					Action:    "init",
@@ -143,7 +143,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 				},
 			},
 		},
-		planStage:         configuration.Stage{},
+		planStage:         &configuration.Stage{},
 		zipManager:        zipper,
 		commandRunner:     commandRunner,
 		terraformExecutor: terraformExecutor,
@@ -166,8 +166,8 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 	lock := &MockProjectLock{}
 
 	executor := DiggerExecutor{
-		applyStage: configuration.Stage{},
-		planStage: configuration.Stage{
+		applyStage: &configuration.Stage{},
+		planStage: &configuration.Stage{
 			Steps: []configuration.Step{
 				{
 					Action:    "init",
