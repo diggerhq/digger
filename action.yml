@@ -31,7 +31,10 @@ inputs:
   google-workload-identity-provider:
       description: Workload identity provider to be used for Google OIDC auth (mutually exclusive with 'google-auth-credentials' input)
       required: false
-  google-service_account:
+  google-workload-identity-provider-audience:
+      description: "'audience' parameter configured in Google's Workload Identity Provider (if specified). To be used when the 'google-workload-identity-provider' input is specified"
+      required: false
+  google-service-account:
       description: Service account to be used when the 'google-workload-identity-provider' input is specified)
       required: false
   setup-terragrunt:
@@ -76,8 +79,8 @@ runs:
       run: |
         if [[ -z "${{ toJSON(inputs.google-auth-credentials) }}" && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
           echo "Either 'google-auth-credentials' or 'google-workload-identity-provider' input must be specified with 'setup-google-cloud'"
-        elif [[ ! -z "${{ inputs.google-workload-identity-provider }}" && -z "${{ inputs.google-service_account }}" ]]; then
-          echo "'google-service_account' input must be specified with 'google-workload-identity-provider'"
+        elif [[ ! -z "${{ inputs.google-workload-identity-provider }}" && -z "${{ inputs.google-service-account }}" ]]; then
+          echo "'google-service-account' input must be specified with 'google-workload-identity-provider'"
         else
           exit 0
         fi
@@ -95,8 +98,9 @@ runs:
       uses: google-github-actions/auth@v1
       with:
         token_format: access_token
-        service_account: ${{ inputs.google-service_account }}
+        service_account: ${{ inputs.google-service-account }}
         workload_identity_provider: ${{ inputs.google-workload-identity-provider }}
+        audience: ${{ inputs.google-workload-identity-provider-audience }}
       if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-workload-identity-provider != '' }}
 
     - name: Set up Cloud SDK
