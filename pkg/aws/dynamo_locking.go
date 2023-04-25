@@ -132,7 +132,7 @@ func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
 	}
 	if result.Item != nil {
 		transactionId := result.Item["transaction_id"].N
-		log.Printf("transaction_id: %s\n", transactionId)
+		log.Printf("transaction_id: %s\n", *transactionId)
 		res, err := strconv.Atoi(*transactionId)
 		return &res, err
 	} else {
