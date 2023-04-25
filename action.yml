@@ -59,13 +59,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v3
-      if: github.event_name == 'issue_comment'
-      with:
-          ref: refs/pull/${{ github.event.issue.number }}/merge
-    - uses: actions/checkout@v3
-      if: github.event_name != 'issue_comment'
-
     - name: Validate General Input Configuration
       run: |
         if [[ "${{ inputs.setup-aws }}" == "false" && "${{ inputs.setup-google-cloud }}" == "false" ]]; then
