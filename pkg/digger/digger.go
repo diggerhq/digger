@@ -365,7 +365,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 			if step.Action == "plan" {
 				planArgs := []string{"-out", d.planFileName()}
 				planArgs = append(planArgs, step.ExtraArgs...)
-				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(step.ExtraArgs)
+				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(planArgs)
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
