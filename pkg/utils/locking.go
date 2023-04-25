@@ -48,6 +48,8 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 	var transactionIdStr string
 
+	fmt.Printf("transactionIdStr %s\n", transactionIdStr)
+
 	if err != nil {
 		return false, err
 	}
