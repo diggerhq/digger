@@ -26,7 +26,13 @@ inputs:
     required: false
     default: 'false'
   google-auth-credentials:
-      description: Google auth credentials
+      description: Service account key used got Google auth (mutually exclusive with 'google-workload-identity-provider' input)
+      required: false
+  google-workload-identity-provider:
+      description: Workload identity provider to be used for Google OIDC auth (mutually exclusive with 'google-auth-credentials' input)
+      required: false
+  google-service_account:
+      description: Service account to be used when the 'google-workload-identity-provider' input is specified)
       required: false
   setup-terragrunt:
     description: Setup terragrunt
@@ -60,14 +66,48 @@ runs:
     - uses: actions/checkout@v3
       if: github.event_name != 'issue_comment'
 
-    - id: google-auth
+    - name: Validate General Input Configuration
+      run: |
+        if [[ "${{ inputs.setup-aws }}" == "false" && "${{ inputs.setup-google-cloud }}" == "false" ]]; then
+          echo "Either 'setup-aws' or 'setup-google-cloud' input must be set to 'true'"
+        elif [[ "${{ inputs.setup-terragrunt }}" == "false" && "${{ inputs.setup-terraform }}" == "false" ]]; then
+          echo "Either 'setup-terragrunt' or 'setup-terraform' input must be set to 'true'"
+        else
+          exit 0
+        fi
+        exit 1
+      shell: bash
+      if: inputs.setup-google-cloud == 'true'
+
+    - name: Validate Input Configuration for Google
+      run: |
+        if [[ -z "${{ inputs.google-auth-credentials }}" && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
+          echo "Either 'google-auth-credentials' or 'google-workload-identity-provider' input must be specified with 'setup-google-cloud'"
+        elif [[ ! -z "${{ inputs.google-workload-identity-provider }}" && -z "${{ inputs.google-service_account }}" ]]; then
+          echo "'google-service_account' input must be specified with 'google-workload-identity-provider'"
+        else
+          exit 0
+        fi
+        exit 1
+      shell: bash
+      if: inputs.setup-google-cloud == 'true'
+
+    - name: Set up Google Auth Using A Service Account Key
       uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ inputs.google-auth-credentials }}
-      if: inputs.setup-google-cloud == 'true'
+      if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-auth-credentials != '' }}
 
-    - name: 'Set up Cloud SDK'
-      uses: 'google-github-actions/setup-gcloud@v1'
+    - name: Set up Google Auth Using Workload Identity Federation
+      uses: google-github-actions/auth@v1
+      with:
+        token_format: access_token
+        service_account: ${{ inputs.google-service_account }}
+        workload_identity_provider: ${{ inputs.google-workload-identity-provider }}
+      if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-workload-identity-provider != '' }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
       if: inputs.setup-google-cloud == 'true'
 
     - name: Configure Test AWS credentials
@@ -117,9 +157,9 @@ runs:
       shell: bash
       run: |
           if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
-            echo "::set-output name=artifact::plans-${{ github.event.issue.number }}"
+            echo "artifact=plans-${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=artifact::plans-${{ github.event.number }}"
+            echo "artifact=plans-${{ github.event.number }}" >> $GITHUB_OUTPUT
           fi
     - name: upload plan
       uses: actions/upload-artifact@v3
