@@ -219,7 +219,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
-					Commands:         workflow.Configuration.OnPullRequestPushed,
+					Commands:         workflow.Configuration.OnPullRequestClosed,
 					ApplyStage:       workflow.Apply,
 					PlanStage:        workflow.Plan,
 				})
