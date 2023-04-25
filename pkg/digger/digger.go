@@ -52,7 +52,6 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 }
 
 func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
-	lockAcquisitionSuccess := true
 	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
@@ -95,6 +94,8 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
 					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
+
+					return false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else {
 					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 				}
@@ -105,23 +106,28 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				if err != nil {
 					log.Printf("Failed to run digger apply command. %v", err)
 					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+
+					return false, fmt.Errorf("failed to run digger apply command. %v", err)
 				} else {
 					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
 					appliesPerProject[projectCommands.ProjectName] = true
 				}
 			case "digger unlock":
 				utils.SendUsageRecord(repoOwner, eventName, "unlock")
-				diggerExecutor.Unlock(prNumber)
+				err := diggerExecutor.Unlock(prNumber)
+				if err != nil {
+					return false, fmt.Errorf("failed to unlock project. %v", err)
+				}
 			case "digger lock":
 				utils.SendUsageRecord(repoOwner, eventName, "lock")
-				lockAcquisitionSuccess = diggerExecutor.Lock(prNumber)
+				err := diggerExecutor.Lock(prNumber)
+				if err != nil {
+					return false, fmt.Errorf("failed to lock project. %v", err)
+				}
 			}
 		}
 	}
 
-	if !lockAcquisitionSuccess {
-		os.Exit(1)
-	}
 	for _, success := range appliesPerProject {
 		if !success {
 			allAppliesSuccess = false
@@ -462,20 +468,20 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 	return nil
 }
 
-func (d DiggerExecutor) Unlock(prNumber int) {
+func (d DiggerExecutor) Unlock(prNumber int) error {
 	err := d.lock.ForceUnlock(prNumber)
 	if err != nil {
-		fmt.Printf("%v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to aquire lock: %s, %v", d.lock.LockId(), err)
 	}
+	return nil
 }
 
-func (d DiggerExecutor) Lock(prNumber int) bool {
-	isLocked, err := d.lock.Lock(prNumber)
+func (d DiggerExecutor) Lock(prNumber int) error {
+	_, err := d.lock.Lock(prNumber)
 	if err != nil {
-		log.Fatalf("Failed to aquire lock: " + d.lock.LockId())
+		return fmt.Errorf("failed to aquire lock: %s, %v", d.lock.LockId(), err)
 	}
-	return isLocked
+	return nil
 }
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr string) string {
