@@ -2,12 +2,13 @@ package digger
 
 import (
 	"digger/pkg/configuration"
-	"github.com/stretchr/testify/assert"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type RunInfo struct {
@@ -155,7 +156,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock)
 
-	assert.Equal(t, []string{"DownloadLatestPlans 1", "IsMergeable 1", "Lock 1", "Init ", "Apply  plan", "LockId ", "PublishComment 1 Apply for ****\n```terraform\n\n```", "Unlock 1", "Run echo", "LockId ", "PublishComment 1 Running echo for ****\n"}, commandStrings)
+	assert.Equal(t, []string{"DownloadLatestPlans 1", "IsMergeable 1", "Lock 1", "Init ", "Apply  plan", "LockId ", "PublishComment 1 Apply for ****\n```terraform\n\n```", "Unlock 1", "Run echo", "LockId "}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
@@ -196,7 +197,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock)
 
-	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out .tfplan", "LockId ", "PublishComment 1 Plan for ****\n```terraform\n\n```", "Run echo", "LockId ", "PublishComment 1 Running echo for ****\n"}, commandStrings)
+	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out .tfplan", "LockId ", "PublishComment 1 Plan for ****\n```terraform\n\n```", "Run echo", "LockId "}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock) []string {
