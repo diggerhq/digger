@@ -370,7 +370,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
-				comment := utils.GetCollapsibleComment("Plan for **"+d.lock.LockId()+"**", plan)
+				comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+d.lock.LockId()+"**", plan)
 				d.prManager.PublishComment(prNumber, comment)
 			}
 			if step.Action == "run" {
@@ -442,7 +442,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 				if step.Action == "apply" {
 					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-					comment := utils.GetCollapsibleComment("Apply for **"+d.lock.LockId()+"**", applyOutput)
+					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.lock.LockId()+"**", applyOutput)
 					d.prManager.PublishComment(prNumber, comment)
 					if err == nil {
 						_, err := d.lock.Unlock(prNumber)

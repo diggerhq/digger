@@ -1,11 +1,11 @@
 package utils
 
-func GetCollapsibleComment(summary string, collapedComment string) string {
+func GetTerraformOutputAsCollapsibleComment(summary string, collapsedComment string) string {
 	str := `<details>
   <summary>` + summary + `</summary>
-  
-  ` + "```" + `
-` + collapedComment + `
+
+  ` + "```terraform" + `
+` + collapsedComment + `
   ` + "```" + `
 </details>`
 
