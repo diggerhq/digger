@@ -45,10 +45,9 @@ type ProjectLock interface {
 func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 	lockId := projectLock.LockId()
 	fmt.Printf("Lock %s\n", lockId)
+	fmt.Printf("Project %s\n", projectLock.projectId())
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 	var transactionIdStr string
-
-	fmt.Printf("transactionIdStr %d\n", transactionId)
 
 	if err != nil {
 		return false, err
