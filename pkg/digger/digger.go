@@ -78,6 +78,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 
 			diggerExecutor := DiggerExecutor{
 				projectCommands.ProjectName,
+				projectCommands.ProjectDir,
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
 				commandRunner,
@@ -294,6 +295,7 @@ func parseProjectName(comment string) string {
 
 type DiggerExecutor struct {
 	projectName       string
+	workingDir        string
 	applyStage        *configuration.Stage
 	planStage         *configuration.Stage
 	commandRunner     CommandRun
@@ -371,7 +373,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
-				err = d.encryptor.EncryptFile(d.planFileName())
+				err = d.encryptor.EncryptFile(path.Join(d.workingDir, d.planFileName()))
 				if err != nil {
 					return fmt.Errorf("error encrypting plan: %v", err)
 				}
