@@ -401,7 +401,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 		return fmt.Errorf("no plans found for this PR")
 	}
 
-	plansFilename, err = d.zipManager.GetFileFromZip(plansFilename, d.planFileName()+".enc")
+	plansFilename, err = d.zipManager.GetFileFromZip(plansFilename, d.planFileName())
 
 	if err != nil {
 		return fmt.Errorf("error extracting plan: %v", err)
