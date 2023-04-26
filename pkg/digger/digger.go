@@ -371,7 +371,10 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
-				d.encryptor.EncryptFile(d.planFileName())
+				err = d.encryptor.EncryptFile(d.planFileName())
+				if err != nil {
+					return fmt.Errorf("error encrypting plan: %v", err)
+				}
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				comment := "Plan for **" + d.lock.LockId() + "**\n" + plan
 				d.prManager.PublishComment(prNumber, comment)
@@ -411,7 +414,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 		return fmt.Errorf("no plans found for this project")
 	}
 
-	d.encryptor.DecryptFile(plansFilename)
+	err = d.encryptor.DecryptFile(plansFilename)
 
 	if err != nil {
 		return fmt.Errorf("error decrypting plan file: %v", err)
