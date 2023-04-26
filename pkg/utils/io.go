@@ -20,11 +20,15 @@ func (z *Zipper) GetFileFromZip(zipFile string, filename string) (string, error)
 		return "", err
 	}
 	defer reader.Close()
-
+	println(zipFile)
+	println(len(reader.File))
+	println(filename)
 	for _, file := range reader.File {
 		if file.FileInfo().IsDir() {
 			continue
 		}
+		println(file.Name)
+
 		if file.Name == filename {
 			rc, err := file.Open()
 			if err != nil {
