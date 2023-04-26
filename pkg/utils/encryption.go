@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -49,8 +48,7 @@ func (e *Encryptor) EncryptFile(filename string) error {
 		return fmt.Errorf("error encrypting plan file: %v", err)
 	}
 
-	encryptedDataB64 := base64.StdEncoding.EncodeToString(encryptedData)
-	err = ioutil.WriteFile(filename, []byte(encryptedDataB64), 0644)
+	err = ioutil.WriteFile(filename, encryptedData, 0644)
 	if err != nil {
 		return fmt.Errorf("error writing encrypted plan file: %v", err)
 	}
