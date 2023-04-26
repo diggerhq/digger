@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"strings"
 )
 
 type Zip interface {
@@ -20,12 +21,12 @@ func (z *Zipper) GetFileFromZip(zipFile string, filename string) (string, error)
 		return "", err
 	}
 	defer reader.Close()
-
 	for _, file := range reader.File {
 		if file.FileInfo().IsDir() {
 			continue
 		}
-		if file.Name == filename {
+
+		if strings.HasSuffix(file.Name, filename) {
 			rc, err := file.Open()
 			if err != nil {
 				return "", err
