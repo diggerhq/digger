@@ -73,9 +73,9 @@ func (t MockPullRequestManager) DownloadLatestPlans(prNumber int) (string, error
 type MockEncryptor struct {
 }
 
-func (t *MockEncryptor) EncryptFile(filename string) (string, error) {
-	return "", nil
+func (t *MockEncryptor) EncryptFile(filename string) error {
+	return nil
 }
-func (t *MockEncryptor) DecryptFile(filename string) (string, error) {
-	return "", nil
+func (t *MockEncryptor) DecryptFile(filename string) error {
+	return nil
 }
