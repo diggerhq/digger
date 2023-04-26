@@ -296,6 +296,7 @@ type DiggerExecutor struct {
 	applyStage        *configuration.Stage
 	planStage         *configuration.Stage
 	commandRunner     CommandRun
+	encryptor         utils.Encryptor
 	zipManager        utils.Zip
 	terraformExecutor terraform.TerraformExecutor
 	prManager         github.PullRequestManager
@@ -369,9 +370,11 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
+				d.encryptor.EncryptFile(d.planFileName(), d.planFileName()+".enc")
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				comment := "Plan for **" + d.lock.LockId() + "**\n" + plan
 				d.prManager.PublishComment(prNumber, comment)
+
 			}
 			if step.Action == "run" {
 				stdout, stderr, err := d.commandRunner.Run(step.Value)
