@@ -375,8 +375,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 			}
 			if step.Action == "run" {
 				stdout, stderr, err := d.commandRunner.Run(step.Value)
-				comment := "Running " + step.Value + " for **" + d.lock.LockId() + "**\n" + stdout + stderr
-				d.prManager.PublishComment(prNumber, comment)
+				log.Printf("Running %v for **%v**\n%v%v", step.Value, d.lock.LockId(), stdout, stderr)
 				if err != nil {
 					return fmt.Errorf("error running command: %v", err)
 				}
@@ -456,8 +455,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 				}
 				if step.Action == "run" {
 					stdout, stderr, err := d.commandRunner.Run(step.Value)
-					comment := "Running " + step.Value + " for **" + d.lock.LockId() + "**\n" + stdout + stderr
-					d.prManager.PublishComment(prNumber, comment)
+					log.Printf("Running %v for **%v**\n%v%v", step.Value, d.lock.LockId(), stdout, stderr)
 					if err != nil {
 						return fmt.Errorf("error running command: %v", err)
 					}
