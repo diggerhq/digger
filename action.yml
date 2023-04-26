@@ -119,6 +119,7 @@ runs:
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false
       if: inputs.setup-terraform == 'true'
 
     - name: Setup Terragrunt

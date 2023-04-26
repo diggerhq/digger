@@ -97,6 +97,42 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 }
 
+func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type rawWorkflow Workflow
+	raw := rawWorkflow{
+		Configuration: &WorkflowConfiguration{
+			OnCommitToDefault:   []string{"digger unlock"},
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+		},
+		Plan: &Stage{
+			Steps: []Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "plan", ExtraArgs: []string{},
+				},
+			},
+		},
+		Apply: &Stage{
+			Steps: []Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "apply", ExtraArgs: []string{},
+				},
+			},
+		},
+	}
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+	*w = Workflow(raw)
+	return nil
+}
+
 type Step struct {
 	Action    string
 	Value     string
