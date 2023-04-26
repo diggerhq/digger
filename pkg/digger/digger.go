@@ -51,7 +51,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, encryptor utils.Encrypt, workingDir string) (bool, error) {
 	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
@@ -81,6 +81,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
 				commandRunner,
+				encryptor,
 				zipManager,
 				terraformExecutor,
 				prManager,
@@ -296,7 +297,7 @@ type DiggerExecutor struct {
 	applyStage        *configuration.Stage
 	planStage         *configuration.Stage
 	commandRunner     CommandRun
-	encryptor         utils.Encryptor
+	encryptor         utils.Encrypt
 	zipManager        utils.Zip
 	terraformExecutor terraform.TerraformExecutor
 	prManager         github.PullRequestManager
@@ -370,7 +371,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
-				d.encryptor.EncryptFile(d.planFileName(), d.planFileName()+".enc")
+				d.encryptor.EncryptFile(d.planFileName())
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				comment := "Plan for **" + d.lock.LockId() + "**\n" + plan
 				d.prManager.PublishComment(prNumber, comment)
@@ -400,7 +401,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 		return fmt.Errorf("no plans found for this PR")
 	}
 
-	plansFilename, err = d.zipManager.GetFileFromZip(plansFilename, d.planFileName())
+	plansFilename, err = d.zipManager.GetFileFromZip(plansFilename, d.planFileName()+".enc")
 
 	if err != nil {
 		return fmt.Errorf("error extracting plan: %v", err)
@@ -408,6 +409,12 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 
 	if plansFilename == "" {
 		return fmt.Errorf("no plans found for this project")
+	}
+
+	decryptedPlanFilename, err := d.encryptor.DecryptFile(plansFilename)
+
+	if err != nil {
+		return fmt.Errorf("error decrypting plan file: %v", err)
 	}
 
 	isMergeable, _, err := d.prManager.IsMergeable(prNumber)
@@ -444,7 +451,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					}
 				}
 				if step.Action == "apply" {
-					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename)
+					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, decryptedPlanFilename)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := "Apply for **" + d.lock.LockId() + "**\n" + applyOutput
 					d.prManager.PublishComment(prNumber, comment)

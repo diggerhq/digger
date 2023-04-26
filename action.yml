@@ -159,7 +159,7 @@ runs:
       uses: actions/upload-artifact@v3
       with:
           name: ${{ steps.artifact.outputs.artifact }}
-          path: '${{ github.workspace }}/**/*.tfplan'
+          path: '${{ github.workspace }}/**/*.tfplan.enc'
           retention-days: 14
 
 branding:

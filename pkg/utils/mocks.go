@@ -69,3 +69,13 @@ func (t MockPullRequestManager) IsMergeable(prNumber int) (bool, string, error) 
 func (t MockPullRequestManager) DownloadLatestPlans(prNumber int) (string, error) {
 	return "", nil
 }
+
+type MockEncryptor struct {
+}
+
+func (t *MockEncryptor) EncryptFile(filename string) (string, error) {
+	return "", nil
+}
+func (t *MockEncryptor) DecryptFile(filename string) (string, error) {
+	return "", nil
+}

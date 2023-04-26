@@ -874,9 +874,10 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	encryptor := &utils.MockEncryptor{}
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, "")
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, encryptor, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -895,10 +896,11 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	diggerConfig := configuration.DiggerConfig{}
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
+	encryptor := &utils.MockEncryptor{}
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, "")
+	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, encryptor, "")
 
 	assert.NoError(t, err)
 	if err != nil {
