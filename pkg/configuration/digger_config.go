@@ -199,6 +199,15 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		}
 	}
 
+	projectNames := make(map[string]bool)
+
+	for _, project := range diggerConfig.Projects {
+		if projectNames[project.Name] {
+			return nil, fmt.Errorf("project name '%s' is duplicated", project.Name)
+		}
+		projectNames[project.Name] = true
+	}
+
 	return &diggerConfig, nil
 }
 
