@@ -84,8 +84,8 @@ func main() {
 	}
 	println("GitHub event converted to commands successfully")
 	logCommands(commandsToRunPerProject)
-
-	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, "")
+	encryptor := utils.Encryptor{Token: ghToken}
+	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, &encryptor, "")
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
