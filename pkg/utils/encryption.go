@@ -8,73 +8,54 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 )
 
 type Encrypt interface {
-	EncryptFile(string) (string, error)
-	DecryptFile(string) (string, error)
+	EncryptFile(string) error
+	DecryptFile(string) error
 }
 
 type Encryptor struct {
 	Token string
 }
 
-func (e *Encryptor) DecryptFile(filename string) (string, error) {
-	decryptedFile := filename + ".dec"
+func (e *Encryptor) DecryptFile(filename string) error {
 
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Println("Error reading plan file:", err)
+		return fmt.Errorf("error reading plan file: %v", err)
 	}
 
 	decryptedData, err := decrypt(data, e.Token)
 	if err != nil {
-		return "", fmt.Errorf("error decrypting plan file: %v", err)
+		fmt.Errorf("error decrypting plan file: %v", err)
 	}
 
-	err = ioutil.WriteFile(decryptedFile, decryptedData, 0644)
+	err = ioutil.WriteFile(filename, decryptedData, 0644)
 	if err != nil {
-		return "", fmt.Errorf("error writing decrypted plan file: %v", err)
+		return fmt.Errorf("error writing decrypted plan file: %v", err)
 	}
-
-	defer func(name string) {
-		err := os.Remove(name)
-		if err != nil {
-			fmt.Println("Error removing encrypted plan file:", err)
-		}
-	}(filename)
-
-	return decryptedFile, nil
+	return nil
 }
 
-func (e *Encryptor) EncryptFile(filename string) (string, error) {
-	encryptedFile := filename + ".enc"
-
+func (e *Encryptor) EncryptFile(filename string) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Println("Error reading plan file:", err)
+		return fmt.Errorf("error reading plan file: %v", err)
 	}
 
 	encryptedData, err := encrypt(data, e.Token)
 	if err != nil {
-		return "", fmt.Errorf("error encrypting plan file: %v", err)
+		return fmt.Errorf("error encrypting plan file: %v", err)
 	}
 
 	encryptedDataB64 := base64.StdEncoding.EncodeToString(encryptedData)
-	err = ioutil.WriteFile(encryptedFile, []byte(encryptedDataB64), 0644)
+	err = ioutil.WriteFile(filename, []byte(encryptedDataB64), 0644)
 	if err != nil {
-		return "", fmt.Errorf("error writing encrypted plan file: %v", err)
+		return fmt.Errorf("error writing encrypted plan file: %v", err)
 	}
 
-	defer func(name string) {
-		err := os.Remove(name)
-		if err != nil {
-			fmt.Println("Error removing plan file:", err)
-		}
-	}(filename)
-
-	return encryptedFile, nil
+	return nil
 }
 
 func decrypt(data []byte, token string) ([]byte, error) {

@@ -411,7 +411,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 		return fmt.Errorf("no plans found for this project")
 	}
 
-	decryptedPlanFilename, err := d.encryptor.DecryptFile(plansFilename)
+	d.encryptor.DecryptFile(plansFilename)
 
 	if err != nil {
 		return fmt.Errorf("error decrypting plan file: %v", err)
@@ -451,7 +451,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					}
 				}
 				if step.Action == "apply" {
-					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, decryptedPlanFilename)
+					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := "Apply for **" + d.lock.LockId() + "**\n" + applyOutput
 					d.prManager.PublishComment(prNumber, comment)
