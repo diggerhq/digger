@@ -3,10 +3,6 @@ description: Manage terraform collaboration
 author: Digger
 
 inputs:
-  workspace:
-    description: Name of the terraform workspace
-    required: false
-    default: default
   setup-aws:
     description: Setup AWS
     required: false
@@ -163,7 +159,7 @@ runs:
       uses: actions/upload-artifact@v3
       with:
           name: ${{ steps.artifact.outputs.artifact }}
-          path: '*.tfplan'
+          path: '${{ github.workspace }}/**/*.tfplan'
           retention-days: 14
 
 branding:
