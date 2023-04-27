@@ -51,7 +51,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 	return impactedProjects, prNumber, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, workingDir string) (bool, error) {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
 	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
@@ -74,17 +74,16 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			}
 
 			commandRunner := CommandRunner{}
-			zipManager := &utils.Zipper{}
 
 			diggerExecutor := DiggerExecutor{
 				projectCommands.ProjectName,
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
 				commandRunner,
-				zipManager,
 				terraformExecutor,
 				prManager,
 				projectLock,
+				planStorage,
 			}
 			switch command {
 			case "digger plan":
@@ -296,10 +295,10 @@ type DiggerExecutor struct {
 	applyStage        *configuration.Stage
 	planStage         *configuration.Stage
 	commandRunner     CommandRun
-	zipManager        utils.Zip
 	terraformExecutor terraform.TerraformExecutor
 	prManager         github.PullRequestManager
 	lock              utils.ProjectLock
+	planStorage       utils.PlanStorage
 }
 
 type CommandRun interface {
@@ -369,6 +368,12 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
+				if d.planStorage != nil {
+					err = d.planStorage.StorePlan(d.planFileName())
+					if err != nil {
+						return fmt.Errorf("error storing plan: %v", err)
+					}
+				}
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+d.lock.LockId()+"**", plan)
 				d.prManager.PublishComment(prNumber, comment)
@@ -386,24 +391,13 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 }
 
 func (d DiggerExecutor) Apply(prNumber int) error {
-	plansFilename, err := d.prManager.DownloadLatestPlans(prNumber)
-
-	if err != nil {
-		return fmt.Errorf("error downloading plan: %v", err)
-	}
-
-	if plansFilename == "" {
-		return fmt.Errorf("no plans found for this PR")
-	}
-
-	plansFilename, err = d.zipManager.GetFileFromZip(plansFilename, d.planFileName())
-
-	if err != nil {
-		return fmt.Errorf("error extracting plan: %v", err)
-	}
-
-	if plansFilename == "" {
-		return fmt.Errorf("no plans found for this project")
+	var plansFilename *string
+	if d.planStorage != nil {
+		var err error
+		plansFilename, err = d.planStorage.RetrievePlan(d.planFileName())
+		if err != nil {
+			return fmt.Errorf("error retrieving plan: %v", err)
+		}
 	}
 
 	isMergeable, _, err := d.prManager.IsMergeable(prNumber)
