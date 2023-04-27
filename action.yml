@@ -50,7 +50,7 @@ inputs:
     required: false
     default: v1.4.5
   upload-plan-destination:
-    description: Destination to upload the plan to
+    description: Destination to upload the plan to. gcp and github are currently supported
     required: false
 
 outputs:
