@@ -49,6 +49,9 @@ inputs:
     description: Terraform version
     required: false
     default: v1.4.5
+  upload-plan-destination:
+    description: Destination to upload the plan to
+    required: false
 
 outputs:
   output:
@@ -127,6 +130,8 @@ runs:
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
       shell: bash
+      env:
+        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -138,6 +143,7 @@ runs:
       if: ${{ startsWith(github.action_ref, 'v') }}
       env:
         actionref: ${{ github.action_ref }}
+        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
       id: digger
       shell: bash
       run: |
@@ -161,6 +167,7 @@ runs:
           name: ${{ steps.artifact.outputs.artifact }}
           path: '${{ github.workspace }}/**/*.tfplan'
           retention-days: 14
+      if: ${{ inputs.upload-plan-destination == 'github' }}
 
 branding:
   icon: globe
