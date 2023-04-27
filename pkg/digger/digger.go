@@ -417,6 +417,11 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 
 	err = d.encryptor.DecryptFile(plansFilename)
 
+	content, err := os.ReadFile(plansFilename)
+
+	log.Printf("!!!!!!!!!!!!! %v", err)
+	log.Printf("!!!!!!!!!!!!! %v", string(content))
+
 	if err != nil {
 		return fmt.Errorf("error decrypting plan file: %v", err)
 	}
