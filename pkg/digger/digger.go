@@ -370,7 +370,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
-				comment := "Plan for **" + d.lock.LockId() + "**\n" + plan
+				comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+d.lock.LockId()+"**", plan)
 				d.prManager.PublishComment(prNumber, comment)
 			}
 			if step.Action == "run" {
@@ -442,7 +442,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 				if step.Action == "apply" {
 					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-					comment := "Apply for **" + d.lock.LockId() + "**\n" + applyOutput
+					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.lock.LockId()+"**", applyOutput)
 					d.prManager.PublishComment(prNumber, comment)
 					if err == nil {
 						_, err := d.lock.Unlock(prNumber)
@@ -483,7 +483,7 @@ func (d DiggerExecutor) Lock(prNumber int) error {
 }
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr string) string {
-	var errorStr, result, start string
+	var errorStr, start string
 
 	// removes output of terraform -version command that terraform-exec executes on every run
 	i := strings.Index(stdout, "Initializing the backend...")
@@ -498,7 +498,7 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 		} else if stderr != "" {
 			errorStr = stderr
 		}
-		return "```terraform\n" + errorStr + "\n```"
+		return errorStr
 	} else if nonEmptyOutput {
 		start = "Terraform will perform the following actions:"
 	} else {
@@ -516,8 +516,7 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 		endPos = strings.Index(stdout, matches[0]) + len(matches[0])
 	}
 
-	result = stdout[startPos:endPos]
-	return "```terraform\n" + result + "\n```"
+	return stdout[startPos:endPos]
 }
 
 func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
