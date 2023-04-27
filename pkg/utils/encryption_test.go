@@ -14,7 +14,7 @@ func TestEncryptingAndDecrypting(t *testing.T) {
 	deleteFile := createFile(planfile, content)
 	defer deleteFile()
 
-	token := "test"
+	token := "token"
 	encryptor := Encryptor{Token: token}
 
 	// Act
@@ -42,6 +42,7 @@ func TestEncryptingAndDecrypting(t *testing.T) {
 
 	fileContent, err = ioutil.ReadFile(planfile)
 
+	println(string(fileContent))
 	assert.Equal(t, content, string(fileContent))
 }
 

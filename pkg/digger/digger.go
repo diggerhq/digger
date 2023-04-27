@@ -414,10 +414,12 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 	if plansFilename == "" {
 		return fmt.Errorf("no plans found for this project")
 	}
+	content, err := os.ReadFile(plansFilename)
+	log.Printf("!!!!!!!!!!!!! %v", string(content))
 
 	err = d.encryptor.DecryptFile(plansFilename)
 
-	content, err := os.ReadFile(plansFilename)
+	content, err = os.ReadFile(plansFilename)
 
 	log.Printf("!!!!!!!!!!!!! %v", err)
 	log.Printf("!!!!!!!!!!!!! %v", string(content))
@@ -471,6 +473,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 						}
 					} else {
 						d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
+						return err
 					}
 				}
 				if step.Action == "run" {
