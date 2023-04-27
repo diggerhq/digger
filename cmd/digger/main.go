@@ -132,7 +132,7 @@ func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prN
 			reportErrorAndExit(repoOwner, fmt.Sprintf("GOOGLE_STORAGE_BUCKET is not defined"), 9)
 		}
 		bucket := client.Bucket(bucketName)
-		planStorage = &utils.PlanStorageGoogle{
+		planStorage = &utils.PlanStorageGcp{
 			Client:  client,
 			Bucket:  bucket,
 			Context: ctx,

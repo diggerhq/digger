@@ -17,7 +17,7 @@ type PlanStorage interface {
 	RetrievePlan(planFileName string) (*string, error)
 }
 
-type PlanStorageGoogle struct {
+type PlanStorageGcp struct {
 	Client  *storage.Client
 	Bucket  *storage.BucketHandle
 	Context context.Context
@@ -31,7 +31,7 @@ type GithubPlanStorage struct {
 	ZipManager        Zipper
 }
 
-func (psg *PlanStorageGoogle) StorePlan(planFileName string) error {
+func (psg *PlanStorageGcp) StorePlan(planFileName string) error {
 	file, err := os.Open(planFileName)
 	if err != nil {
 		return fmt.Errorf("unable to open file: %v", err)
@@ -53,7 +53,7 @@ func (psg *PlanStorageGoogle) StorePlan(planFileName string) error {
 	return nil
 }
 
-func (psg *PlanStorageGoogle) RetrievePlan(planFileName string) (*string, error) {
+func (psg *PlanStorageGcp) RetrievePlan(planFileName string) (*string, error) {
 	obj := psg.Bucket.Object(planFileName)
 	rc, err := obj.NewReader(psg.Context)
 	if err != nil {
