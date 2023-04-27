@@ -92,6 +92,30 @@ projects:
 	assert.Equal(t, "path/to/module", dg.GetDirectory("dev"))
 }
 
+func TestCustomCommandsConfiguration(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: infra/dev
+  workflow: myworkflow
+
+workflows:
+  myworkflow:
+    plan:
+      steps:
+      - run: echo "hello"
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	dg, err := NewDiggerConfig(tempDir, &FileSystemDirWalker{})
+	assert.NoError(t, err, "expected error to be nil")
+	assert.Equal(t, Step{Action: "run", Value: "echo \"hello\""}, dg.Workflows["myworkflow"].Plan.Steps[0], "parsed struct does not match expected struct")
+}
+
 func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()

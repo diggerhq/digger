@@ -126,3 +126,22 @@ workflows:
 		log.Fatal(err2)
 	}
 }
+
+func CreateCustomDiggerYmlFile(dir string, diggerYaml string) {
+	f, err := os.Create(dir + "/digger.yml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+
+		}
+	}(f)
+
+	_, err2 := f.WriteString(diggerYaml)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+}
