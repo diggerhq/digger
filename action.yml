@@ -49,6 +49,9 @@ inputs:
     description: Terraform version
     required: false
     default: v1.4.5
+  upload-plan-destination:
+    description: Destination to upload the plan to. gcp and github are currently supported
+    required: false
 
 outputs:
   output:
@@ -73,7 +76,7 @@ runs:
 
     - name: Validate Input Configuration for Google
       run: |
-        if [[ -z "${{ toJSON(inputs.google-auth-credentials) }}" && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
+        if [[ -z ${{ toJSON(inputs.google-auth-credentials) }} && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
           echo "Either 'google-auth-credentials' or 'google-workload-identity-provider' input must be specified with 'setup-google-cloud'"
         elif [[ ! -z "${{ inputs.google-workload-identity-provider }}" && -z "${{ inputs.google-service-account }}" ]]; then
           echo "'google-service-account' input must be specified with 'google-workload-identity-provider'"
@@ -87,7 +90,7 @@ runs:
     - name: Set up Google Auth Using A Service Account Key
       uses: google-github-actions/auth@v1
       with:
-        credentials_json: ${{ inputs.google-auth-credentials }}
+        credentials_json: '${{ inputs.google-auth-credentials }}'
       if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-auth-credentials != '' }}
 
     - name: Set up Google Auth Using Workload Identity Federation
@@ -127,6 +130,8 @@ runs:
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
       shell: bash
+      env:
+        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -138,6 +143,7 @@ runs:
       if: ${{ startsWith(github.action_ref, 'v') }}
       env:
         actionref: ${{ github.action_ref }}
+        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
       id: digger
       shell: bash
       run: |
@@ -161,6 +167,7 @@ runs:
           name: ${{ steps.artifact.outputs.artifact }}
           path: '${{ github.workspace }}/**/*.tfplan'
           retention-days: 14
+      if: ${{ inputs.upload-plan-destination == 'github' }}
 
 branding:
   icon: globe

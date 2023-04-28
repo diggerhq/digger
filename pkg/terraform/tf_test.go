@@ -57,7 +57,7 @@ func TestExecuteTerraformApplyDefaultWorkspace(t *testing.T) {
 	var planArgs []string
 	planArgs = append(planArgs, "-out", "plan.tfplan")
 	tf.Plan(planArgs)
-
-	_, _, err := tf.Apply([]string{}, "plan.tfplan")
+	plan := "plan.tfplan"
+	_, _, err := tf.Apply([]string{}, &plan)
 	assert.NoError(t, err)
 }
