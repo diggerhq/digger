@@ -35,8 +35,11 @@ func (m *MockTerraformExecutor) Init(params []string) (string, string, error) {
 	return "", "", nil
 }
 
-func (m *MockTerraformExecutor) Apply(params []string, plan string) (string, string, error) {
-	m.Commands = append(m.Commands, RunInfo{"Apply", strings.Join(params, " ") + " " + plan, time.Now()})
+func (m *MockTerraformExecutor) Apply(params []string, plan *string) (string, string, error) {
+	if plan != nil {
+		params = append(params, *plan)
+	}
+	m.Commands = append(m.Commands, RunInfo{"Apply", strings.Join(params, " "), time.Now()})
 	return "", "", nil
 }
 
@@ -116,14 +119,27 @@ func (m *MockZipper) GetFileFromZip(zipFile string, filename string) (string, er
 	return "plan", nil
 }
 
+type MockPlanStorage struct {
+	Commands []RunInfo
+}
+
+func (m *MockPlanStorage) StorePlan(planFileName string) error {
+	m.Commands = append(m.Commands, RunInfo{"StorePlan", planFileName, time.Now()})
+	return nil
+}
+
+func (m *MockPlanStorage) RetrievePlan(planFileName string) (*string, error) {
+	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", planFileName, time.Now()})
+	return nil, nil
+}
+
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
 	lock := &MockProjectLock{}
-	zipper := &MockZipper{}
-
+	planStorage := &MockPlanStorage{}
 	executor := DiggerExecutor{
 		applyStage: &configuration.Stage{
 			Steps: []configuration.Step{
@@ -145,18 +161,18 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 			},
 		},
 		planStage:         &configuration.Stage{},
-		zipManager:        zipper,
 		commandRunner:     commandRunner,
 		terraformExecutor: terraformExecutor,
 		prManager:         prManager,
 		lock:              lock,
+		planStorage:       planStorage,
 	}
 
 	executor.Apply(1)
 
-	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock)
+	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"DownloadLatestPlans 1", "IsMergeable 1", "Lock 1", "Init ", "Apply  plan", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Unlock 1", "Run echo", "LockId "}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Unlock 1", "Run echo", "LockId "}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
@@ -165,6 +181,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
 	lock := &MockProjectLock{}
+	planStorage := &MockPlanStorage{}
 
 	executor := DiggerExecutor{
 		applyStage: &configuration.Stage{},
@@ -191,16 +208,17 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		terraformExecutor: terraformExecutor,
 		prManager:         prManager,
 		lock:              lock,
+		planStorage:       planStorage,
 	}
 
 	executor.Plan(1)
 
-	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock)
+	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out .tfplan", "LockId ", "PublishComment 1 <details>\n  <summary>Plan for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
+	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out .tfplan", "StorePlan .tfplan", "LockId ", "PublishComment 1 <details>\n  <summary>Plan for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
 }
 
-func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock) []string {
+func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage) []string {
 	var commands []RunInfo
 	for _, command := range terraformExecutor.Commands {
 		commands = append(commands, command)
@@ -212,6 +230,9 @@ func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, comm
 		commands = append(commands, command)
 	}
 	for _, command := range lock.Commands {
+		commands = append(commands, command)
+	}
+	for _, command := range planStorage.Commands {
 		commands = append(commands, command)
 	}
 

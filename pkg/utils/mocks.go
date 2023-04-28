@@ -69,3 +69,14 @@ func (t MockPullRequestManager) IsMergeable(prNumber int) (bool, string, error) 
 func (t MockPullRequestManager) DownloadLatestPlans(prNumber int) (string, error) {
 	return "", nil
 }
+
+type MockPlanStorage struct {
+}
+
+func (t MockPlanStorage) StorePlan(planfile string) error {
+	return nil
+}
+
+func (t MockPlanStorage) RetrievePlan(planfile string) (*string, error) {
+	return nil, nil
+}
