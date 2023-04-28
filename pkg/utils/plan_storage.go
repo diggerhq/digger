@@ -75,7 +75,8 @@ func (psg *PlanStorageGcp) RetrievePlan(planFileName string) (*string, error) {
 }
 
 func (gps *GithubPlanStorage) StorePlan(planFileName string) error {
-	return fmt.Errorf("not implemented")
+	_ = fmt.Sprintf("Skipping storing plan %s. It should be achieved using actions/upload-artifact@v3", planFileName)
+	return nil
 }
 
 func (gps *GithubPlanStorage) RetrievePlan(planFileName string) (*string, error) {
