@@ -49,6 +49,10 @@ inputs:
     description: Terraform version
     required: false
     default: v1.4.5
+  configure-checkout:
+    description: Configure checkout. Beware that this will overwrite any changes in the working directory
+    required: false
+    default: 'true'
 
 outputs:
   output:
@@ -83,7 +87,12 @@ runs:
         exit 1
       shell: bash
       if: inputs.setup-google-cloud == 'true'
-
+    - uses: actions/checkout@v3
+      with:
+        ref: refs/pull/${{ github.event.issue.number }}/merge
+      if: github.event_name == 'issue_comment' && ${{ inputs.configure-checkout == 'true' }}
+    - uses: actions/checkout@v3
+      if: github.event_name != 'issue_comment' && ${{ inputs.configure-checkout == 'true' }}
     - name: Set up Google Auth Using A Service Account Key
       uses: google-github-actions/auth@v1
       with:
