@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"digger/pkg/configuration"
 	"digger/pkg/digger"
-	"digger/pkg/github"
+	"digger/pkg/gcp"
+	dg_github "digger/pkg/github"
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"fmt"
+	"github.com/google/go-github/v51/github"
 	"log"
 	"os"
 	"strings"
@@ -64,7 +67,7 @@ func main() {
 	eventName := parsedGhContext.EventName
 	splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
-	githubPrService := github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
 	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
@@ -85,7 +88,9 @@ func main() {
 	println("GitHub event converted to commands successfully")
 	logCommands(commandsToRunPerProject)
 
-	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, "")
+	planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
+
+	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, "")
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -105,6 +110,35 @@ func main() {
 		}
 	}()
 
+}
+
+func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prNumber int) utils.PlanStorage {
+	var planStorage utils.PlanStorage
+
+	if os.Getenv("PLAN_UPLOAD_DESTINATION") == "github" {
+		zipManager := utils.Zipper{}
+		planStorage = &utils.GithubPlanStorage{
+			Client:            github.NewTokenClient(context.Background(), ghToken),
+			Owner:             repoOwner,
+			RepoName:          repositoryName,
+			PullRequestNumber: prNumber,
+			ZipManager:        zipManager,
+		}
+	} else if os.Getenv("PLAN_UPLOAD_DESTINATION") == "gcp" {
+		ctx, client := gcp.GetGoogleStorageClient()
+
+		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
+		if bucketName == "" {
+			reportErrorAndExit(repoOwner, fmt.Sprintf("GOOGLE_STORAGE_BUCKET is not defined"), 9)
+		}
+		bucket := client.Bucket(bucketName)
+		planStorage = &utils.PlanStorageGcp{
+			Client:  client,
+			Bucket:  bucket,
+			Context: ctx,
+		}
+	}
+	return planStorage
 }
 
 func logImpactedProjects(projects []configuration.Project, prNumber int) {
