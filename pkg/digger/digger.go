@@ -38,6 +38,9 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		requestedProject := parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
 		if requestedProject != "" {
 			impactedProjects = diggerConfig.GetProjects(requestedProject)
+			if len(impactedProjects) == 0 {
+				prManager.PublishComment(prNumber, "Error: Invalid project name '"+requestedProject+"'. The requested operation cannot be performed.")
+			}
 		} else {
 			changedFiles, err := prManager.GetChangedFiles(prNumber)
 			if err != nil {
