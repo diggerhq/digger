@@ -69,14 +69,11 @@ runs:
       run: |
         if [[ "${{ inputs.setup-aws }}" == "false" && "${{ inputs.setup-google-cloud }}" == "false" ]]; then
           echo "Either 'setup-aws' or 'setup-google-cloud' input must be set to 'true'"
-        elif [[ "${{ inputs.setup-terragrunt }}" == "false" && "${{ inputs.setup-terraform }}" == "false" ]]; then
-          echo "Either 'setup-terragrunt' or 'setup-terraform' input must be set to 'true'"
         else
           exit 0
         fi
         exit 1
       shell: bash
-      if: inputs.setup-google-cloud == 'true'
 
     - name: Validate Input Configuration for Google
       run: |
