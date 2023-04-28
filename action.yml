@@ -90,7 +90,7 @@ runs:
     - name: Set up Google Auth Using A Service Account Key
       uses: google-github-actions/auth@v1
       with:
-        credentials_json: ${{ toJSON(inputs.google-auth-credentials) }}
+        credentials_json: '${{ inputs.google-auth-credentials }}'
       if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-auth-credentials != '' }}
 
     - name: Set up Google Auth Using Workload Identity Federation
