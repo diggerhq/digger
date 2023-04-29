@@ -19,9 +19,10 @@ import (
 	"strings"
 )
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager github.PullRequestManager) ([]configuration.Project, int, error) {
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager github.PullRequestManager) ([]configuration.Project, string, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
+	var requestedProject string
 
 	switch ghEvent.(type) {
 	case models.PullRequestEvent:
@@ -29,13 +30,13 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		changedFiles, err := prManager.GetChangedFiles(prNumber)
 
 		if err != nil {
-			return nil, 0, fmt.Errorf("could not get changed files")
+			return nil, "", 0, fmt.Errorf("could not get changed files")
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 	case models.IssueCommentEvent:
 		prNumber = ghEvent.(models.IssueCommentEvent).Issue.Number
-		requestedProject := parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
+		requestedProject = parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
 		if requestedProject != "" {
 			impactedProjects = diggerConfig.GetProjects(requestedProject)
 			if len(impactedProjects) == 0 {
@@ -49,9 +50,9 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 			impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 		}
 	default:
-		return nil, 0, fmt.Errorf("unsupported event type")
+		return nil, "", 0, fmt.Errorf("unsupported event type")
 	}
-	return impactedProjects, prNumber, nil
+	return impactedProjects, requestedProject, prNumber, nil
 }
 
 func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
@@ -526,15 +527,23 @@ func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, std
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
 }
 
-func CheckIfHelpComment(event models.Event) bool {
+func issueCommentEventContainsComment(event models.Event, comment string) bool {
 	switch event.(type) {
 	case models.IssueCommentEvent:
 		event := event.(models.IssueCommentEvent)
-		if strings.Contains(event.Comment.Body, "digger help") {
+		if strings.Contains(event.Comment.Body, comment) {
 			return true
 		}
 	}
 	return false
+}
+
+func CheckIfHelpComment(event models.Event) bool {
+	return issueCommentEventContainsComment(event, "digger help")
+}
+
+func CheckIfApplyComment(event models.Event) bool {
+	return issueCommentEventContainsComment(event, "digger apply")
 }
 
 func defaultWorkflow() *configuration.Workflow {

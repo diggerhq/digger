@@ -9,10 +9,11 @@ import (
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/google/go-github/v51/github"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/google/go-github/v51/github"
 )
 
 func main() {
@@ -69,11 +70,11 @@ func main() {
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
-	logImpactedProjects(impactedProjects, prNumber)
+	logImpactedAndRequestedProjects(impactedProjects, requestedProject, prNumber)
 	println("GitHub event processed successfully")
 
 	if digger.CheckIfHelpComment(ghEvent) {
@@ -95,7 +96,7 @@ func main() {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
-	if diggerConfig.AutoMerge && allAppliesSuccess {
+	if digger.CheckIfApplyComment(ghEvent) && diggerConfig.AutoMerge && allAppliesSuccess && (requestedProject == "" || len(impactedProjects) == 1) {
 		digger.MergePullRequest(githubPrService, prNumber)
 		println("PR merged successfully")
 	}
@@ -141,7 +142,11 @@ func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prN
 	return planStorage
 }
 
-func logImpactedProjects(projects []configuration.Project, prNumber int) {
+func logImpactedAndRequestedProjects(projects []configuration.Project, requestedProject string, prNumber int) {
+	if requestedProject != "" {
+		log.Printf("The project '%s' was requested in pull request #%d comment\n", requestedProject, prNumber)
+	}
+
 	logMessage := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
 	for _, p := range projects {
 		logMessage += fmt.Sprintf("%s\n", p.Name)
