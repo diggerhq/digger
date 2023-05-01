@@ -386,7 +386,7 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	//  new pr should lock the project
-	impactedProjects, _, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -421,7 +421,7 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -435,7 +435,7 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -459,7 +459,7 @@ func TestHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -537,7 +537,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	// no files changed, no locks
-	impactedProjects, _, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -572,7 +572,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -586,7 +586,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -610,7 +610,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -752,7 +752,7 @@ workflows:
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	//  new pr should lock the project
-	impactedProjects, _, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -788,7 +788,7 @@ workflows:
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -802,7 +802,7 @@ workflows:
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
@@ -825,7 +825,7 @@ workflows:
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	impactedProjects, _, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, _, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
 	commandsToRunPerProject, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
 	assert.NoError(t, err)
