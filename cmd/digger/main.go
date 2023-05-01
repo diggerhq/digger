@@ -95,7 +95,7 @@ func main() {
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
-
+	println(fmt.Sprintf("requestedProject=%s; impactedProjects=%d", err, len(impactedProjects)))
 	if digger.CheckIfApplyComment(ghEvent) && diggerConfig.AutoMerge && allAppliesSuccess && (requestedProject == "" || len(impactedProjects) == 1) {
 		digger.MergePullRequest(githubPrService, prNumber)
 		println("PR merged successfully")
