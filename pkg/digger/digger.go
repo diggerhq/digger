@@ -19,10 +19,10 @@ import (
 	"strings"
 )
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager github.PullRequestManager) ([]configuration.Project, string, int, error) {
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager github.PullRequestManager) ([]configuration.Project, int, bool, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
-	var requestedProject string
+	var mergePrIfCmdSuccessfull = false
 
 	switch ghEvent.(type) {
 	case models.PullRequestEvent:
@@ -30,18 +30,21 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		changedFiles, err := prManager.GetChangedFiles(prNumber)
 
 		if err != nil {
-			return nil, "", 0, fmt.Errorf("could not get changed files")
+			return nil, 0, false, fmt.Errorf("could not get changed files")
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 	case models.IssueCommentEvent:
 		prNumber = ghEvent.(models.IssueCommentEvent).Issue.Number
-		requestedProject = parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
+		requestedProject := parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
 		if requestedProject != "" {
-			impactedProjects = diggerConfig.GetProjects(requestedProject)
-			if len(impactedProjects) == 0 {
+			newImpactedProjects := diggerConfig.GetProjects(requestedProject)
+			if len(newImpactedProjects) == 0 {
 				prManager.PublishComment(prNumber, "Error: Invalid project name '"+requestedProject+"'. The requested operation cannot be performed.")
+			} else if len(impactedProjects) == 1 && CheckIfApplyComment(ghEvent) {
+				mergePrIfCmdSuccessfull = true
 			}
+			impactedProjects = newImpactedProjects
 		} else {
 			changedFiles, err := prManager.GetChangedFiles(prNumber)
 			if err != nil {
@@ -50,9 +53,9 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 			impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 		}
 	default:
-		return nil, "", 0, fmt.Errorf("unsupported event type")
+		return nil, 0, false, fmt.Errorf("unsupported event type")
 	}
-	return impactedProjects, requestedProject, prNumber, nil
+	return impactedProjects, prNumber, mergePrIfCmdSuccessfull, nil
 }
 
 func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.PullRequestManager, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
