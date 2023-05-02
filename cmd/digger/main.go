@@ -9,10 +9,11 @@ import (
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/google/go-github/v51/github"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/google/go-github/v51/github"
 )
 
 func main() {
@@ -69,7 +70,7 @@ func main() {
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	impactedProjects, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, prNumber, mergeIfAllAppliesSuccess, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
@@ -95,7 +96,7 @@ func main() {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
-	if diggerConfig.AutoMerge && allAppliesSuccess {
+	if diggerConfig.AutoMerge && mergeIfAllAppliesSuccess && allAppliesSuccess {
 		digger.MergePullRequest(githubPrService, prNumber)
 		println("PR merged successfully")
 	}
