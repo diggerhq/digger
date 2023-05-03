@@ -75,6 +75,9 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuratio
 	var impactedProjects []configuration.Project
 
 	mergeRequestId := gitlabContext.MergeRequestIId
+	fmt.Printf("*gitlabContext: %v\n", gitlabContext)
+	fmt.Printf("*mergeRequestId: %d\n", *mergeRequestId)
+
 	changedFiles, err := service.GetChangedFiles(*mergeRequestId)
 
 	if err != nil {
