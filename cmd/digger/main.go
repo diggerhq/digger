@@ -103,6 +103,7 @@ func gitHubCI(lock utils.Lock) {
 }
 
 func gitLabCI(lock utils.Lock) {
+	println("Using GitLab.")
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
 
 	walker := configuration.FileSystemDirWalker{}
@@ -131,14 +132,14 @@ func gitLabCI(lock utils.Lock) {
 		fmt.Printf("failed to process GitLab event, %v", err)
 		os.Exit(6)
 	}
-	println("GitHub event processed successfully")
+	println("GitLab event processed successfully")
 
 	commandsToRunPerProject, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects, diggerConfig.Workflows)
 	if err != nil {
 		fmt.Printf("failed to convert event to command, %v", err)
 		os.Exit(7)
 	}
-	println("GitHub event converted to commands successfully")
+	println("GitLab event converted to commands successfully")
 
 	for _, v := range commandsToRunPerProject {
 		fmt.Printf("command: %s", v.ProjectName)
