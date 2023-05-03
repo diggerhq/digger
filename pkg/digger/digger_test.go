@@ -134,8 +134,18 @@ func (m *MockPlanStorage) RetrievePlan(planFileName string) (*string, error) {
 	return nil, nil
 }
 
-func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
+func TestCorrectCommandExecutionWhenApplyingWithoutUnlock(t *testing.T) {
+	commandStrings := RetrieveCommandExecutionWhenApplying()
+	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
+}
+
+func TestCorrectCommandExecutionWhenApplyingWithUnlock(t *testing.T) {
 	os.Setenv("UNLOCK_ON_APPLY", "true")
+	commandStrings := RetrieveCommandExecutionWhenApplying()
+	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Unlock 1", "Run echo", "LockId "}, commandStrings)
+}
+
+func RetrieveCommandExecutionWhenApplying() []string {
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
@@ -171,9 +181,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	executor.Apply(1)
 
-	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
-
-	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Unlock 1", "Run echo", "LockId "}, commandStrings)
+	return allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
