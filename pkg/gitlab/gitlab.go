@@ -74,10 +74,12 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.Project, error) {
 	var impactedProjects []configuration.Project
 
-	mergeRequestId := gitlabContext.MergeRequestIId
-	fmt.Printf("*gitlabContext: %v\n", gitlabContext)
-	fmt.Printf("*mergeRequestId: %d\n", *mergeRequestId)
+	if gitlabContext.MergeRequestIId == nil {
+		println("Merge Request ID is not found.")
+		return nil, nil
+	}
 
+	mergeRequestId := gitlabContext.MergeRequestIId
 	changedFiles, err := service.GetChangedFiles(*mergeRequestId)
 
 	if err != nil {
