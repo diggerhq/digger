@@ -445,6 +445,9 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.lock.LockId()+"**", applyOutput)
 					d.prManager.PublishComment(prNumber, comment)
+					if err != nil {
+						d.prManager.PublishComment(prNumber, "Error during applying.")
+					}
 				}
 				if step.Action == "run" {
 					stdout, stderr, err := d.commandRunner.Run(step.Value)
