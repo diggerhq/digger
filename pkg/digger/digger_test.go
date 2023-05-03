@@ -2,7 +2,6 @@ package digger
 
 import (
 	"digger/pkg/configuration"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -134,18 +133,8 @@ func (m *MockPlanStorage) RetrievePlan(planFileName string) (*string, error) {
 	return nil, nil
 }
 
-func TestCorrectCommandExecutionWhenApplyingWithoutUnlock(t *testing.T) {
-	commandStrings := RetrieveCommandExecutionWhenApplying()
-	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
-}
+func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
-func TestCorrectCommandExecutionWhenApplyingWithUnlock(t *testing.T) {
-	os.Setenv("UNLOCK_ON_APPLY", "true")
-	commandStrings := RetrieveCommandExecutionWhenApplying()
-	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Unlock 1", "Run echo", "LockId "}, commandStrings)
-}
-
-func RetrieveCommandExecutionWhenApplying() []string {
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
@@ -181,7 +170,9 @@ func RetrieveCommandExecutionWhenApplying() []string {
 
 	executor.Apply(1)
 
-	return allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
+	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
+
+	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
