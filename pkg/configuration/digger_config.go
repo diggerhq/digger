@@ -94,7 +94,6 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	*p = Project(raw)
 	return nil
-
 }
 
 func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
