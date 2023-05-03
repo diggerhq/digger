@@ -6,32 +6,22 @@ import (
 	"digger/pkg/digger"
 	"digger/pkg/gcp"
 	dg_github "digger/pkg/github"
+	"digger/pkg/gitlab"
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"fmt"
+	"github.com/google/go-github/v51/github"
 	"log"
 	"os"
 	"strings"
-
-	"github.com/google/go-github/v51/github"
 )
 
-func main() {
+func gitHubCI(lock utils.Lock) {
 	githubRepositoryOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
 	if githubRepositoryOwner != "" {
 		utils.SendUsageRecord(githubRepositoryOwner, "log", "initialize")
 	} else {
 		utils.SendUsageRecord("", "log", "non github initialisation")
-	}
-
-	args := os.Args[1:]
-	if len(args) > 0 && args[0] == "version" {
-		fmt.Println(utils.GetVersion())
-		os.Exit(0)
-	}
-	if len(args) > 0 && args[0] == "help" {
-		utils.DisplayCommands()
-		os.Exit(0)
 	}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
@@ -58,7 +48,7 @@ func main() {
 	}
 	println("Digger config read successfully")
 
-	lock, err := utils.GetLock()
+	lock, err = utils.GetLock()
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to create lock provider. %s", err), 5)
 	}
@@ -110,6 +100,105 @@ func main() {
 			reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Panic occurred. %s", r), 1)
 		}
 	}()
+}
+
+func gitLabCI(lock utils.Lock) {
+	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
+
+	walker := configuration.FileSystemDirWalker{}
+	diggerConfig, err := configuration.NewDiggerConfig("./", &walker)
+	if err != nil {
+		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+	}
+	println("Digger config read successfully")
+
+	gitLabContext, err := gitlab.ParseGitLabContext()
+	if err != nil {
+		fmt.Printf("failed to parse GitLab context. %s\n", err.Error())
+		os.Exit(4)
+	}
+
+	gitlabService, err := gitlab.NewGitLabService(gitLabContext.Token, gitLabContext)
+	if err != nil {
+		fmt.Printf("failed to initialise GitLab service, %v", err)
+		os.Exit(4)
+	}
+
+	gitlabEvent := gitlab.GitLabEvent{EventType: gitLabContext.EventType}
+
+	impactedProjects, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
+	if err != nil {
+		fmt.Printf("failed to process GitLab event, %v", err)
+		os.Exit(6)
+	}
+	println("GitHub event processed successfully")
+
+	commandsToRunPerProject, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects, diggerConfig.Workflows)
+	if err != nil {
+		fmt.Printf("failed to convert event to command, %v", err)
+		os.Exit(7)
+	}
+	println("GitHub event converted to commands successfully")
+
+	for _, v := range commandsToRunPerProject {
+		fmt.Printf("command: %s", v.ProjectName)
+	}
+
+	/*
+		err = gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, "")
+		if err != nil {
+			fmt.Printf("failed to execute command, %v", err)
+			os.Exit(8)
+		}
+
+	*/
+	println("Commands executed successfully")
+}
+
+/*
+Exit codes:
+0 - No errors
+1 - Failed to read digger config
+2 - Failed to create lock provider
+3 - Failed to find auth token
+4 - Failed to initialise CI context
+5 -
+6 - failed to process CI event
+7 - failed to convert event to command
+8 - failed to execute command
+10 - No CI detected
+*/
+
+func main() {
+
+	args := os.Args[1:]
+	if len(args) > 0 && args[0] == "version" {
+		fmt.Println(utils.GetVersion())
+		os.Exit(0)
+	}
+	if len(args) > 0 && args[0] == "help" {
+		utils.DisplayCommands()
+		os.Exit(0)
+	}
+
+	lock, err := utils.GetLock()
+	if err != nil {
+		fmt.Printf("Failed to create lock provider. %s\n", err)
+		os.Exit(2)
+	}
+	println("Lock provider has been created successfully")
+
+	ci := digger.DetectCI()
+	switch ci {
+	case digger.GitHub:
+		gitHubCI(lock)
+	case digger.GitLab:
+		gitLabCI(lock)
+	case digger.BitBucket:
+	case digger.None:
+		print("No CI detected.")
+		os.Exit(10)
+	}
 
 }
 

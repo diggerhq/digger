@@ -578,3 +578,35 @@ func defaultWorkflow() *configuration.Workflow {
 		},
 	}
 }
+
+type CIName string
+
+const (
+	None      = CIName("")
+	GitHub    = CIName("github")
+	GitLab    = CIName("gitlab")
+	BitBucket = CIName("bitbucket")
+)
+
+func (ci CIName) String() string {
+	return string(ci)
+}
+
+func DetectCI() CIName {
+
+	notEmpty := func(key string) bool {
+		return os.Getenv(key) != ""
+	}
+
+	if notEmpty("GITHUB_ACTIONS") {
+		return GitHub
+	}
+	if notEmpty("GITLAB_CI") {
+		return GitLab
+	}
+	if notEmpty("BITBUCKET_BUILD_NUMBER") {
+		return BitBucket
+	}
+	return None
+
+}
