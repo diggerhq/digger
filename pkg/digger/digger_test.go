@@ -2,6 +2,7 @@ package digger
 
 import (
 	"digger/pkg/configuration"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -134,7 +135,7 @@ func (m *MockPlanStorage) RetrievePlan(planFileName string) (*string, error) {
 }
 
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
-
+	os.Setenv("UNLOCK_ON_APPLY", "true")
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
@@ -176,7 +177,6 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
-
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
