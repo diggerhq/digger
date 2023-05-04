@@ -70,6 +70,10 @@ func (t MockPullRequestManager) DownloadLatestPlans(prNumber int) (string, error
 	return "", nil
 }
 
+func (t MockPullRequestManager) IsClosed(prNumber int) (bool, error) {
+	return false, nil
+}
+
 type MockPlanStorage struct {
 }
 
