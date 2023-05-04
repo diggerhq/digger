@@ -86,6 +86,11 @@ func (m *MockPRManager) DownloadLatestPlans(prNumber int) (string, error) {
 	return "plan", nil
 }
 
+func (m *MockPRManager) IsClosed(prNumber int) (bool, error) {
+	m.Commands = append(m.Commands, RunInfo{"IsClosed", strconv.Itoa(prNumber), time.Now()})
+	return false, nil
+}
+
 type MockProjectLock struct {
 	Commands []RunInfo
 }
