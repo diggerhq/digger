@@ -30,12 +30,12 @@ type MockTerraformExecutor struct {
 	Commands []RunInfo
 }
 
-func (m *MockTerraformExecutor) Init(params []string) (string, string, error) {
+func (m *MockTerraformExecutor) Init(params []string, envs map[string]string) (string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Init", strings.Join(params, " "), time.Now()})
 	return "", "", nil
 }
 
-func (m *MockTerraformExecutor) Apply(params []string, plan *string) (string, string, error) {
+func (m *MockTerraformExecutor) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
 	if plan != nil {
 		params = append(params, *plan)
 	}
@@ -43,7 +43,7 @@ func (m *MockTerraformExecutor) Apply(params []string, plan *string) (string, st
 	return "", "", nil
 }
 
-func (m *MockTerraformExecutor) Plan(params []string) (bool, string, string, error) {
+func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string) (bool, string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Plan", strings.Join(params, " "), time.Now()})
 	return true, "", "", nil
 }
