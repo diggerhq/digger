@@ -25,7 +25,7 @@ type DiggerConfigYaml struct {
 	GenerateProjectsConfig *GenerateProjectsConfig `yaml:"generate_projects"`
 }
 
-type EnvConfig struct {
+type EnvVarConfig struct {
 	Name      string `yaml:"name"`
 	ValueFrom string `yaml:"value_from"`
 	Value     string `yaml:"value"`
@@ -56,15 +56,15 @@ type Stage struct {
 }
 
 type Workflow struct {
-	Envs          Envs                   `yaml:"envs"`
+	EnvVars       EnvVars                `yaml:"env_vars"`
 	Plan          *Stage                 `yaml:"plan,omitempty"`
 	Apply         *Stage                 `yaml:"apply,omitempty"`
 	Configuration *WorkflowConfiguration `yaml:"workflow_configuration"`
 }
 
-type Envs struct {
-	State    []EnvConfig `yaml:"state"`
-	Commands []EnvConfig `yaml:"commands"`
+type EnvVars struct {
+	State    []EnvVarConfig `yaml:"state"`
+	Commands []EnvVarConfig `yaml:"commands"`
 }
 
 type DirWalker interface {
