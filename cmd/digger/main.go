@@ -123,6 +123,7 @@ func gitLabCI(lock utils.Lock) {
 		os.Exit(4)
 	}
 
+	println("gitLabCI: get current user")
 	gitlabService, err := gitlab.NewGitLabService(gitlabToken, gitLabContext)
 	if err != nil {
 		fmt.Printf("failed to initialise GitLab service, %v", err)
