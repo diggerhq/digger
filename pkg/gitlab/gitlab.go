@@ -118,6 +118,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 
 	for i, change := range mergeRequestChanges.Changes {
 		fileNames[i] = change.NewPath
+		fmt.Printf("changed file: %s \n", change.NewPath)
 	}
 	return fileNames, nil
 }
