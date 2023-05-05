@@ -105,6 +105,7 @@ func gitHubCI(lock utils.Lock) {
 func gitLabCI(lock utils.Lock) {
 	println("Using GitLab.")
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
+	ciJobToken := os.Getenv("CI_JOB_TOKEN")
 
 	walker := configuration.FileSystemDirWalker{}
 	diggerConfig, err := configuration.NewDiggerConfig("./", &walker)
@@ -119,7 +120,7 @@ func gitLabCI(lock utils.Lock) {
 		os.Exit(4)
 	}
 
-	gitlabService, err := gitlab.NewGitLabService(gitLabContext.Token, gitLabContext)
+	gitlabService, err := gitlab.NewGitLabService(ciJobToken, gitLabContext)
 	if err != nil {
 		fmt.Printf("failed to initialise GitLab service, %v", err)
 		os.Exit(4)
