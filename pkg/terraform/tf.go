@@ -110,7 +110,6 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	args := []string{"-chdir=" + tf.WorkingDir}
 	args = append(args, command)
 	args = append(args, arg...)
-	fmt.Printf("Running terraform %v", args)
 
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
@@ -127,6 +126,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
 
+	fmt.Printf("Running terraform %v with envs %v", args, cmd.Env)
 	err := cmd.Run()
 
 	if err != nil {
