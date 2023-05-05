@@ -126,7 +126,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
 
-	fmt.Printf("Env vars %v", envs)
+	fmt.Printf("Env vars %v")
 	err := cmd.Run()
 
 	if err != nil {
