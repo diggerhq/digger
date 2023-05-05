@@ -1,12 +1,13 @@
 package gcp
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"time"
+
+	"cloud.google.com/go/storage"
 )
 
 type GoogleStorageLock struct {
@@ -20,8 +21,12 @@ func (googleLock *GoogleStorageLock) Lock(transactionId int, resource string) (b
 	if err != nil {
 		fmt.Printf("failed to get lock: %v\n", err)
 	}
-	if existingLockTransactionId != nil {
+	if existingLockTransactionId != nil && *existingLockTransactionId != transactionId {
 		return false, nil
+	}
+
+	if *existingLockTransactionId == transactionId {
+		return true, nil
 	}
 
 	now := time.Now().Format(time.RFC3339)

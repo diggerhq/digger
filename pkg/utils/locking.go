@@ -8,11 +8,12 @@ import (
 	"digger/pkg/github"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/service/sts"
 
 	"cloud.google.com/go/storage"
 	awssdk "github.com/aws/aws-sdk-go/aws"
