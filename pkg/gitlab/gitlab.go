@@ -69,7 +69,7 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 	println("NewGitLabService: get current user")
 	user, _, err := client.Users.CurrentUser()
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to get current GitLab user info, %v", err)
 	}
 	fmt.Printf("current GitLab user: %s\n", user.Name)
 
