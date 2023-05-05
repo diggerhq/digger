@@ -65,6 +65,13 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 	if err != nil {
 		log.Fatalf("failed to create gitlab client: %v", err)
 	}
+
+	user, _, err := client.Users.CurrentUser()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("current GitLab user: %s\n", user.Name)
+
 	return &GitLabService{
 		Client:  client,
 		Context: gitLabContext,
