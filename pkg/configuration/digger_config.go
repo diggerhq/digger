@@ -137,6 +137,10 @@ func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				},
 			},
 		},
+		EnvVars: EnvVars{
+			State:    []EnvVarConfig{},
+			Commands: []EnvVarConfig{},
+		},
 	}
 	if err := unmarshal(&raw); err != nil {
 		return err
