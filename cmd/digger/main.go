@@ -112,7 +112,8 @@ func gitLabCI(lock utils.Lock) {
 	}
 
 	walker := configuration.FileSystemDirWalker{}
-	diggerConfig, err := configuration.NewDiggerConfig("./", &walker)
+	path, err := os.Getwd()
+	diggerConfig, err := configuration.NewDiggerConfig(path, &walker)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
