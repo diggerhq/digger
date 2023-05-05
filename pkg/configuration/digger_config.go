@@ -375,6 +375,8 @@ func retrieveConfigFile(workingDir string) (string, error) {
 		fileName = path.Join(workingDir, fileName)
 	}
 
+	fmt.Printf("retrieveConfigFile: workingDir:%s\n", workingDir)
+
 	// Make sure we don't have more than one digger config file
 	ymlCfg := isFileExists(fileName + ".yml")
 	yamlCfg := isFileExists(fileName + ".yaml")
