@@ -48,7 +48,6 @@ func gitHubCI(lock utils.Lock) {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
 	println("Digger config read successfully")
-	spew.Dump(diggerConfig)
 
 	lock, err = utils.GetLock()
 	if err != nil {
@@ -118,6 +117,7 @@ func gitLabCI(lock utils.Lock) {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
 	println("Digger config read successfully")
+	spew.Dump(diggerConfig)
 
 	gitLabContext, err := gitlab.ParseGitLabContext()
 	if err != nil {
