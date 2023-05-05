@@ -125,6 +125,12 @@ func gitLabCI(lock utils.Lock) {
 		os.Exit(4)
 	}
 
+	user, _, err := gitlabService.Client.Users.CurrentUser()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("current GitLab user: %s\n", user.Name)
+
 	gitlabEvent := gitlab.GitLabEvent{EventType: gitLabContext.EventType}
 
 	impactedProjects, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
