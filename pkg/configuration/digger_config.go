@@ -25,6 +25,12 @@ type DiggerConfigYaml struct {
 	GenerateProjectsConfig *GenerateProjectsConfig `yaml:"generate_projects"`
 }
 
+type EnvConfig struct {
+	Name      string `yaml:"name"`
+	ValueFrom string `yaml:"value_from"`
+	Value     string `yaml:"value"`
+}
+
 type DiggerConfig struct {
 	Projects         []Project
 	AutoMerge        bool
@@ -50,9 +56,15 @@ type Stage struct {
 }
 
 type Workflow struct {
+	Envs          Envs                   `yaml:"envs"`
 	Plan          *Stage                 `yaml:"plan,omitempty"`
 	Apply         *Stage                 `yaml:"apply,omitempty"`
 	Configuration *WorkflowConfiguration `yaml:"workflow_configuration"`
+}
+
+type Envs struct {
+	State    []EnvConfig `yaml:"state"`
+	Commands []EnvConfig `yaml:"commands"`
 }
 
 type DirWalker interface {
