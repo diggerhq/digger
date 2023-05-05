@@ -220,6 +220,7 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 	}
 
 	if fileName == "" {
+		fmt.Println("No digger config found, using default one")
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = defaultProject()
 		config.Workflows = make(map[string]Workflow)
