@@ -4,7 +4,7 @@
 <h2 align="center">
   <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a> |
   <a href="https://digger.dev">Website</a> |
-  <a href="https://diggerhq.gitbook.io/digger-docs/">Docs</a>
+  <a href="https://docs.digger.dev/">Docs</a>
 </h2>
 
 Digger runs Terraform jobs in the CI/CD system you already have, such as Github Actions.
