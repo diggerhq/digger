@@ -96,6 +96,11 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuratio
 
 	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 
+	fmt.Println("Impacted projects:")
+	for _, v := range impactedProjects {
+		fmt.Printf("%s", v.Name)
+	}
+
 	return impactedProjects, nil
 }
 
