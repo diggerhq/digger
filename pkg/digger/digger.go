@@ -81,9 +81,10 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			}
 
 			commandRunner := CommandRunner{}
-
 			diggerExecutor := DiggerExecutor{
 				projectCommands.ProjectName,
+				projectCommands.StateEnvs,
+				projectCommands.RunEnvs,
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
 				commandRunner,
@@ -186,6 +187,8 @@ type ProjectCommand struct {
 	Commands         []string
 	ApplyStage       *configuration.Stage
 	PlanStage        *configuration.Stage
+	StateEnvs        map[string]string
+	RunEnvs          map[string]string
 }
 
 func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, error) {
@@ -199,6 +202,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			if !ok {
 				workflow = *defaultWorkflow()
 			}
+
+			stateEnvs, runEnvs := collectEnvs(workflow.Envs)
+
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
 					ProjectName:      project.Name,
@@ -208,6 +214,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					Commands:         workflow.Configuration.OnCommitToDefault,
 					ApplyStage:       workflow.Apply,
 					PlanStage:        workflow.Plan,
+					RunEnvs:          runEnvs,
+					StateEnvs:        stateEnvs,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -218,6 +226,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					Commands:         workflow.Configuration.OnPullRequestPushed,
 					ApplyStage:       workflow.Apply,
 					PlanStage:        workflow.Plan,
+					RunEnvs:          runEnvs,
+					StateEnvs:        stateEnvs,
 				})
 			} else if event.Action == "closed" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -228,6 +238,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					Commands:         workflow.Configuration.OnPullRequestClosed,
 					ApplyStage:       workflow.Apply,
 					PlanStage:        workflow.Plan,
+					RunEnvs:          runEnvs,
+					StateEnvs:        stateEnvs,
 				})
 			}
 		}
@@ -243,6 +255,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					if !ok {
 						workflow = *defaultWorkflow()
 					}
+
+					stateEnvs, runEnvs := collectEnvs(workflow.Envs)
+
 					workspace := project.Workspace
 					workspaceOverride, err := parseWorkspace(event.Comment.Body)
 					if err != nil {
@@ -259,6 +274,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						Commands:         []string{command},
 						ApplyStage:       workflow.Apply,
 						PlanStage:        workflow.Plan,
+						RunEnvs:          runEnvs,
+						StateEnvs:        stateEnvs,
 					})
 				}
 			}
@@ -267,6 +284,29 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 	default:
 		return []ProjectCommand{}, fmt.Errorf("unsupported event type: %T", event)
 	}
+}
+
+func collectEnvs(envs configuration.Envs) (map[string]string, map[string]string) {
+	stateEnvs := map[string]string{}
+
+	for _, env := range envs.State {
+		if env.Value != "" {
+			stateEnvs[env.Name] = env.Value
+		} else if env.ValueFrom != "" {
+			stateEnvs[env.Name] = os.Getenv(env.ValueFrom)
+		}
+	}
+
+	runEnvs := map[string]string{}
+
+	for _, env := range envs.Commands {
+		if env.Value != "" {
+			stateEnvs[env.Name] = env.Value
+		} else if env.ValueFrom != "" {
+			stateEnvs[env.Name] = os.Getenv(env.ValueFrom)
+		}
+	}
+	return stateEnvs, runEnvs
 }
 
 func parseWorkspace(comment string) (string, error) {
@@ -299,6 +339,8 @@ func parseProjectName(comment string) string {
 
 type DiggerExecutor struct {
 	projectName       string
+	stateEnvs         map[string]string
+	runEnvs           map[string]string
 	applyStage        *configuration.Stage
 	planStage         *configuration.Stage
 	commandRunner     CommandRun
@@ -363,7 +405,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 		}
 		for _, step := range planSteps {
 			if step.Action == "init" {
-				_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
+				_, _, err := d.terraformExecutor.Init(step.ExtraArgs, d.stateEnvs)
 				if err != nil {
 					return fmt.Errorf("error running init: %v", err)
 				}
@@ -371,7 +413,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 			if step.Action == "plan" {
 				planArgs := []string{"-out", d.planFileName()}
 				planArgs = append(planArgs, step.ExtraArgs...)
-				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(planArgs)
+				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(planArgs, d.runEnvs)
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
@@ -435,13 +477,13 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 
 			for _, step := range applySteps {
 				if step.Action == "init" {
-					_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
+					_, _, err := d.terraformExecutor.Init(step.ExtraArgs, d.stateEnvs)
 					if err != nil {
 						return fmt.Errorf("error running init: %v", err)
 					}
 				}
 				if step.Action == "apply" {
-					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename)
+					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename, d.runEnvs)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.lock.LockId()+"**", applyOutput)
 					d.prManager.PublishComment(prNumber, comment)

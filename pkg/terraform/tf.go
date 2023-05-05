@@ -10,9 +10,9 @@ import (
 )
 
 type TerraformExecutor interface {
-	Init([]string) (string, string, error)
-	Apply([]string, *string) (string, string, error)
-	Plan([]string) (bool, string, string, error)
+	Init([]string, map[string]string) (string, string, error)
+	Apply([]string, *string, map[string]string) (string, string, error)
+	Plan([]string, map[string]string) (bool, string, string, error)
 }
 
 type Terragrunt struct {
@@ -24,27 +24,27 @@ type Terraform struct {
 	Workspace  string
 }
 
-func (terragrunt Terragrunt) Init(params []string) (string, string, error) {
-	return terragrunt.runTerragruntCommand("init", params...)
+func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
+	return terragrunt.runTerragruntCommand("init", envs, params...)
 
 }
 
-func (terragrunt Terragrunt) Apply(params []string, plan *string) (string, string, error) {
+func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, err := terragrunt.runTerragruntCommand("apply", params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("apply", envs, params...)
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Plan(params []string) (bool, string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", params...)
+func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", envs, params...)
 	return true, stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string) (string, string, error) {
+func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[string]string, arg ...string) (string, string, error) {
 	args := []string{command}
 	args = append(args, arg...)
 	args = append(args, "--terragrunt-working-dir", terragrunt.WorkingDir)
@@ -53,6 +53,11 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string)
 	env := os.Environ()
 	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")
+
+	for k, v := range envs {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	cmd.Env = env
 
 	var stdout, stderr bytes.Buffer
@@ -69,23 +74,23 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, arg ...string)
 	return stdout.String(), stderr.String(), err
 }
 
-func (tf Terraform) Init(params []string) (string, string, error) {
+func (tf Terraform) Init(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "-upgrade=true")
 	params = append(params, "-input=false")
 	params = append(params, "-no-color")
-	stdout, stderr, _, err := tf.runTerraformCommand("init", params...)
+	stdout, stderr, _, err := tf.runTerraformCommand("init", envs, params...)
 	return stdout, stderr, err
 }
 
-func (tf Terraform) Apply(params []string, plan *string) (string, string, error) {
-	workspace, _, _, err := tf.runTerraformCommand("workspace", "show")
+func (tf Terraform) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
+	workspace, _, _, err := tf.runTerraformCommand("workspace", envs, "show")
 
 	if err != nil {
 		return "", "", err
 	}
 
 	if strings.TrimSpace(workspace) != tf.Workspace {
-		_, _, _, err = tf.runTerraformCommand("workspace", "new", tf.Workspace)
+		_, _, _, err = tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
 		if err != nil {
 			return "", "", err
 		}
@@ -94,14 +99,14 @@ func (tf Terraform) Apply(params []string, plan *string) (string, string, error)
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, _, err := tf.runTerraformCommand("apply", params...)
+	stdout, stderr, _, err := tf.runTerraformCommand("apply", envs, params...)
 	if err != nil {
 		return "", "", err
 	}
 	return stdout, stderr, nil
 }
 
-func (tf Terraform) runTerraformCommand(command string, arg ...string) (string, string, int, error) {
+func (tf Terraform) runTerraformCommand(command string, envs map[string]string, arg ...string) (string, string, int, error) {
 	args := []string{"-chdir=" + tf.WorkingDir}
 	args = append(args, command)
 	args = append(args, arg...)
@@ -112,6 +117,12 @@ func (tf Terraform) runTerraformCommand(command string, arg ...string) (string, 
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
 
 	cmd := exec.Command("terraform", args...)
+
+	env := os.Environ()
+	for k, v := range envs {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+	cmd.Env = env
 
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
@@ -145,20 +156,20 @@ func (sw *StdWriter) GetString() string {
 	return s
 }
 
-func (tf Terraform) Plan(params []string) (bool, string, string, error) {
-	workspace, _, _, err := tf.runTerraformCommand("workspace", "show")
+func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+	workspace, _, _, err := tf.runTerraformCommand("workspace", envs, "show")
 
 	if err != nil {
 		return false, "", "", err
 	}
 	if strings.TrimSpace(workspace) != tf.Workspace {
-		_, _, _, err = tf.runTerraformCommand("workspace", "new", tf.Workspace)
+		_, _, _, err = tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
 		if err != nil {
 			return false, "", "", err
 		}
 	}
 	params = append(append(params, "-input=false"), "-no-color")
-	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", params...)
+	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
 	if err != nil {
 		return false, "", "", err
 	}
