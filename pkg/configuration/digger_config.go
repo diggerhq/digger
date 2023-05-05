@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -373,6 +374,16 @@ func retrieveConfigFile(workingDir string) (string, error) {
 	fileName := "digger"
 	if workingDir != "" {
 		fileName = path.Join(workingDir, fileName)
+	}
+
+	println("list dir files")
+	files, err := os.ReadDir(workingDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		fmt.Println(file.Name(), file.IsDir())
 	}
 
 	fmt.Printf("retrieveConfigFile: workingDir:%s\n", workingDir)
