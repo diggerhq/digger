@@ -198,6 +198,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 	case models.PullRequestEvent:
 		event := event.(models.PullRequestEvent)
 		for _, project := range impactedProjects {
+			fmt.Printf("Project workflow name: %v", project.Workflow)
+			fmt.Printf("Project workflow: %v", workflows[project.Workflow])
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
 				workflow = *defaultWorkflow()
