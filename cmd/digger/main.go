@@ -106,6 +106,9 @@ func gitLabCI(lock utils.Lock) {
 	println("Using GitLab.")
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
 	ciJobToken := os.Getenv("CI_JOB_TOKEN")
+	if ciJobToken == "" {
+		fmt.Println("CI_JOB_TOKEN is empty")
+	}
 
 	walker := configuration.FileSystemDirWalker{}
 	diggerConfig, err := configuration.NewDiggerConfig("./", &walker)
