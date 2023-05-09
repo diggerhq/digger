@@ -122,7 +122,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 	cmd.Env = env
-
+	fmt.Printf("runTerraformCommand %v", cmd.Env)
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
 
