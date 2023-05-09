@@ -10,7 +10,6 @@ import (
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-github/v51/github"
 	"log"
 	"os"
@@ -124,7 +123,6 @@ func gitLabCI(lock utils.Lock) {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
 	println("Digger config read successfully")
-	spew.Dump(diggerConfig)
 
 	gitLabContext, err := gitlab.ParseGitLabContext()
 	if err != nil {
