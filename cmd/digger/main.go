@@ -184,10 +184,6 @@ Exit codes:
 */
 
 func main() {
-
-	fmt.Printf("main \n")
-
-	os.Exit(0)
 	args := os.Args[1:]
 	if len(args) > 0 && args[0] == "version" {
 		fmt.Println(utils.GetVersion())

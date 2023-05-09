@@ -377,8 +377,6 @@ func retrieveConfigFile(workingDir string) (string, error) {
 		fileName = path.Join(workingDir, fileName)
 	}
 
-	fmt.Printf("retrieveConfigFile1: working dir: %s \n", workingDir)
-
 	println("list dir files")
 	files, err := os.ReadDir(workingDir)
 	if err != nil {
@@ -388,8 +386,6 @@ func retrieveConfigFile(workingDir string) (string, error) {
 	for _, file := range files {
 		fmt.Println(file.Name(), file.IsDir())
 	}
-
-	fmt.Printf("retrieveConfigFile: workingDir:%s\n", workingDir)
 
 	// Make sure we don't have more than one digger config file
 	ymlCfg := isFileExists(fileName + ".yml")
