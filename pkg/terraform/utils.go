@@ -120,6 +120,13 @@ workflows:
       on_pull_request_pushed: [digger plan]
       on_pull_request_closed: [digger unlock]
       on_commit_to_default: [digger apply]
+    env_vars:
+      state:
+      - name: TF_VAR_my_var
+        value: my_value
+      commands:
+      - name: TF_VAR_my_var_commands
+        value: my_value_commands
 `
 	_, err2 := f.WriteString(digger_yml)
 	if err2 != nil {

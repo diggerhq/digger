@@ -303,11 +303,11 @@ func collectEnvVars(envs configuration.EnvVars) (map[string]string, map[string]s
 
 	commandEnvVars := map[string]string{}
 
-	for _, env := range envs.Commands {
-		if env.Value != "" {
-			stateEnvVars[env.Name] = env.Value
-		} else if env.ValueFrom != "" {
-			stateEnvVars[env.Name] = os.Getenv(env.ValueFrom)
+	for _, envvar := range envs.Commands {
+		if envvar.Value != "" {
+			commandEnvVars[envvar.Name] = envvar.Value
+		} else if envvar.ValueFrom != "" {
+			commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
 		}
 	}
 	return stateEnvVars, commandEnvVars

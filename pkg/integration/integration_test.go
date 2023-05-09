@@ -388,7 +388,7 @@ func TestHappyPath(t *testing.T) {
 	//  new pr should lock the project
 	impactedProjects, prNumber, _, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, map[string]configuration.Workflow{})
+	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	zipManager := utils.Zipper{}
 	planStorage := &utils.GithubPlanStorage{
