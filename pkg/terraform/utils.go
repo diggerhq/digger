@@ -102,24 +102,9 @@ projects:
   dir: .
   workspace: default
   terragrunt: false
-  workflow: myworkflow
+  workflow: dev
 workflows:
-  myworkflow:
-    plan:
-      steps:
-      - init:
-          extra_args: ["-lock=false"]
-      - plan:
-          extra_args: ["-lock=false"]
-      - run: echo "hello"
-    apply:
-      steps:
-      - apply:
-          extra_args: ["-lock=false"]
-    workflow_configuration:
-      on_pull_request_pushed: [digger plan]
-      on_pull_request_closed: [digger unlock]
-      on_commit_to_default: [digger apply]
+  dev:
     env_vars:
       state:
       - name: TF_VAR_my_var
