@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -420,7 +421,11 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
 				if d.planStorage != nil {
-					err = d.planStorage.StorePlan(path.Join(d.projectPath, d.planFileName()))
+					planPath, err := filepath.Abs(path.Join(d.projectPath, d.planFileName()))
+					if err != nil {
+						return fmt.Errorf("error getting plan path: %v", err)
+					}
+					err = d.planStorage.StorePlan(planPath)
 					if err != nil {
 						return fmt.Errorf("error storing plan: %v", err)
 					}
