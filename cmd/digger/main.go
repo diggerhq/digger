@@ -113,10 +113,11 @@ func gitLabCI(lock utils.Lock) {
 
 	walker := configuration.FileSystemDirWalker{}
 	currentDir, err := os.Getwd()
-	fmt.Printf("working dir: %s \n", currentDir)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
+	fmt.Printf("working dir: %s \n", currentDir)
+
 	diggerConfig, err := configuration.NewDiggerConfig(currentDir, &walker)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
