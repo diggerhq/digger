@@ -205,8 +205,6 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 
 			stateEnvVars, commandEnvVars := collectEnvVars(workflow.EnvVars)
 
-			fmt.Printf("stateEnvVars: %v\n", stateEnvVars)
-			fmt.Printf("commandEnvVars: %v\n", commandEnvVars)
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
 					ProjectName:      project.Name,
