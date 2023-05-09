@@ -119,7 +119,7 @@ func gitLabCI(lock utils.Lock) {
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, err := configuration.NewDiggerConfig("./", &walker)
+	diggerConfig, err := configuration.NewDiggerConfig(currentDir, &walker)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -184,7 +184,10 @@ Exit codes:
 */
 
 func main() {
+
 	fmt.Printf("main \n")
+
+	os.Exit(0)
 	args := os.Args[1:]
 	if len(args) > 0 && args[0] == "version" {
 		fmt.Println(utils.GetVersion())
@@ -213,7 +216,6 @@ func main() {
 		print("No CI detected.")
 		os.Exit(10)
 	}
-
 }
 
 func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prNumber int) utils.PlanStorage {
