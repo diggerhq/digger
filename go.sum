@@ -37,6 +37,8 @@ github.com/aws/aws-sdk-go v1.44.255 h1:tOd7OP5V6BeHhANksc7CFB/ILS2mHj3kRhTfZKFns
 github.com/aws/aws-sdk-go v1.44.255/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/aws/aws-sdk-go v1.44.257 h1:HwelXYZZ8c34uFFhgVw3ybu2gB5fkk8KLj2idTvzZb8=
 github.com/aws/aws-sdk-go v1.44.257/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
+github.com/aws/aws-sdk-go v1.44.260 h1:78IJkDpDPXvLXvIkNAKDP/i3z8Vj+3sTAtQYw/v/2o8=
+github.com/aws/aws-sdk-go v1.44.260/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/bmatcuk/doublestar/v4 v4.6.0 h1:HTuxyug8GyFbRkrffIpzNCSK4luc0TY3wzXvzIZhEXc=
 github.com/bmatcuk/doublestar/v4 v4.6.0/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/bwesterb/go-ristretto v1.2.0/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
