@@ -212,6 +212,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 }
 
 func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
+	fmt.Println("NewDiggerConfig")
 	config := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
