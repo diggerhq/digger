@@ -57,6 +57,14 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 		return false, nil
 	}
 
+	existingLockTransactionId, err := projectLock.InternalLock.GetLock(lockId)
+	if err != nil {
+		fmt.Printf("failed to get lock: %v\n", err)
+		return false, err
+	}
+	if existingLockTransactionId != nil {
+		return *existingLockTransactionId == prNumber, nil
+	}
 	lockAcquired, err := projectLock.InternalLock.Lock(prNumber, lockId)
 	if err != nil {
 		return false, err

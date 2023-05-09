@@ -17,18 +17,6 @@ type GoogleStorageLock struct {
 }
 
 func (googleLock *GoogleStorageLock) Lock(transactionId int, resource string) (bool, error) {
-	existingLockTransactionId, err := googleLock.GetLock(resource)
-	if err != nil {
-		fmt.Printf("failed to get lock: %v\n", err)
-	}
-	if existingLockTransactionId != nil && *existingLockTransactionId != transactionId {
-		return false, nil
-	}
-
-	if *existingLockTransactionId == transactionId {
-		return true, nil
-	}
-
 	now := time.Now().Format(time.RFC3339)
 	fileName := resource
 
