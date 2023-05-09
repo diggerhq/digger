@@ -8,11 +8,12 @@ import (
 	"digger/pkg/github"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/service/sts"
 
 	"cloud.google.com/go/storage"
 	awssdk "github.com/aws/aws-sdk-go/aws"
@@ -56,6 +57,21 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 		return false, nil
 	}
 
+	existingLockTransactionId, err := projectLock.InternalLock.GetLock(lockId)
+	if err != nil {
+		fmt.Printf("failed to get lock: %v\n", err)
+		return false, err
+	}
+	if existingLockTransactionId != nil {
+		if *existingLockTransactionId == prNumber {
+			return true, nil
+		} else {
+			transactionIdStr := strconv.Itoa(*existingLockTransactionId)
+			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.RepoName + "). The locking plan must be applied or discarded before future plans can execute"
+			projectLock.PrManager.PublishComment(prNumber, comment)
+			return false, nil
+		}
+	}
 	lockAcquired, err := projectLock.InternalLock.Lock(prNumber, lockId)
 	if err != nil {
 		return false, err
@@ -65,15 +81,9 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(prNumber)
 		projectLock.PrManager.PublishComment(prNumber, comment)
 		println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(prNumber))
-		return true, nil
-	}
-	var transactionIdStr string
-	transactionId, _ := projectLock.InternalLock.GetLock(lockId)
-	transactionIdStr = strconv.Itoa(*transactionId)
 
-	comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.RepoName + "). The locking plan must be applied or discarded before future plans can execute"
-	projectLock.PrManager.PublishComment(prNumber, comment)
-	return false, nil
+	}
+	return lockAcquired, nil
 }
 
 func (projectLock *ProjectLockImpl) verifyNoHangingLocks(prNumber int) (bool, error) {
