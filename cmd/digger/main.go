@@ -18,6 +18,7 @@ import (
 )
 
 func gitHubCI(lock utils.Lock) {
+	println("Using GitHub.")
 	githubRepositoryOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
 	if githubRepositoryOwner != "" {
 		utils.SendUsageRecord(githubRepositoryOwner, "log", "initialize")
