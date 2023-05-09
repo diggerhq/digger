@@ -145,6 +145,13 @@ workflows:
       on_pull_request_pushed: [digger plan]
       on_pull_request_closed: [digger unlock]
       on_commit_to_default: [digger apply]
+    env_vars:
+      state:
+      - name: TF_VAR_state
+        value: s3://mybucket/terraform.tfstate
+      commands:
+      - name: TF_VAR_command
+        value: plan
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
