@@ -116,7 +116,7 @@ func gitLabCI(lock utils.Lock) {
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
-	fmt.Printf("working dir: %s \n", currentDir)
+	fmt.Printf("main: working dir: %s \n", currentDir)
 
 	diggerConfig, err := configuration.NewDiggerConfig(currentDir, &walker)
 	if err != nil {
