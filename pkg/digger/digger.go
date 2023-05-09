@@ -73,16 +73,17 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			}
 
 			var terraformExecutor terraform.TerraformExecutor
-
+			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
 			if projectCommands.Terragrunt {
-				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
+				terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
 			} else {
-				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
+				terraformExecutor = terraform.Terraform{WorkingDir: projectPath, Workspace: projectCommands.ProjectWorkspace}
 			}
 
 			commandRunner := CommandRunner{}
 			diggerExecutor := DiggerExecutor{
-				projectCommands.ProjectName,
+				projectCommands.ProjectDir,
+				projectPath,
 				projectCommands.StateEnvVars,
 				projectCommands.CommandEnvVars,
 				projectCommands.ApplyStage,
@@ -339,6 +340,7 @@ func parseProjectName(comment string) string {
 
 type DiggerExecutor struct {
 	projectName       string
+	projectPath       string
 	stateEnvVars      map[string]string
 	commandEnvVars    map[string]string
 	applyStage        *configuration.Stage
@@ -418,7 +420,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
 				if d.planStorage != nil {
-					err = d.planStorage.StorePlan(d.planFileName())
+					err = d.planStorage.StorePlan(path.Join(d.projectPath, d.planFileName()))
 					if err != nil {
 						return fmt.Errorf("error storing plan: %v", err)
 					}
