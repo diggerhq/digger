@@ -6,10 +6,11 @@ require (
 	cloud.google.com/go/storage v1.30.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.0.0
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.1
-	github.com/aws/aws-sdk-go v1.44.219
+	github.com/aws/aws-sdk-go v1.44.257
 	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/caarlos0/env/v7 v7.1.0
 	github.com/google/go-github/v51 v51.0.0
+	github.com/google/go-github/v52 v52.0.0
 	github.com/google/uuid v1.3.0
 	github.com/stretchr/testify v1.8.2
 	github.com/xanzy/go-gitlab v0.83.0
@@ -40,11 +41,12 @@ require (
 	github.com/pkg/browser v0.0.0-20210115035449-ce105d075bb4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/oauth2 v0.6.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/oauth2 v0.7.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
+
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
