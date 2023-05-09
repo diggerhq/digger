@@ -65,16 +65,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Validate General Input Configuration
-      run: |
-        if [[ "${{ inputs.setup-aws }}" == "false" && "${{ inputs.setup-google-cloud }}" == "false" ]]; then
-          echo "Either 'setup-aws' or 'setup-google-cloud' input must be set to 'true'"
-        else
-          exit 0
-        fi
-        exit 1
-      shell: bash
-
     - name: Validate Input Configuration for Google
       run: |
         if [[ -z ${{ toJSON(inputs.google-auth-credentials) }} && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
