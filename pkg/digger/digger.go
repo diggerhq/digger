@@ -199,7 +199,6 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		event := event.(models.PullRequestEvent)
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
-			fmt.Printf("Workflow: %v, ok: %v", workflow, ok)
 			if !ok {
 				workflow = *defaultWorkflow()
 			}
@@ -243,8 +242,6 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					StateEnvVars:     stateEnvVars,
 				})
 			}
-			fmt.Printf("ConvertGithubEventToCommands: commandEnvVars: %v\n", commandEnvVars)
-			fmt.Printf("ConvertGithubEventToCommands: stateEnvar: %v\n", stateEnvVars)
 		}
 		return commandsPerProject, nil
 	case models.IssueCommentEvent:
@@ -255,7 +252,6 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			if strings.Contains(event.Comment.Body, command) {
 				for _, project := range impactedProjects {
 					workflow, ok := workflows[project.Workflow]
-					fmt.Printf("Workflow: %v, ok: %v", workflow, ok)
 					if !ok {
 						workflow = *defaultWorkflow()
 					}
@@ -281,8 +277,6 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						CommandEnvVars:   commandEnvVars,
 						StateEnvVars:     stateEnvVars,
 					})
-					fmt.Printf("ConvertGithubEventToCommands: commandEnvVars: %v\n", commandEnvVars)
-					fmt.Printf("ConvertGithubEventToCommands: stateEnvar: %v\n", stateEnvVars)
 				}
 			}
 		}
@@ -293,7 +287,6 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 }
 
 func collectEnvVars(envs configuration.EnvVars) (map[string]string, map[string]string) {
-	fmt.Printf("collectEnvVars: %v\n", envs)
 	stateEnvVars := map[string]string{}
 
 	for _, envvar := range envs.State {
@@ -412,7 +405,6 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 		}
 		for _, step := range planSteps {
 			if step.Action == "init" {
-				fmt.Printf("Init envs: %v\n", d.stateEnvVars)
 				_, _, err := d.terraformExecutor.Init(step.ExtraArgs, d.stateEnvVars)
 				if err != nil {
 					return fmt.Errorf("error running init: %v", err)
@@ -421,7 +413,6 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 			if step.Action == "plan" {
 				planArgs := []string{"-out", d.planFileName()}
 				planArgs = append(planArgs, step.ExtraArgs...)
-				fmt.Printf("Plan envs: %v\n", d.commandEnvVars)
 				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(planArgs, d.commandEnvVars)
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
@@ -486,14 +477,12 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 
 			for _, step := range applySteps {
 				if step.Action == "init" {
-					fmt.Printf("Init envs: %v\n", d.stateEnvVars)
 					_, _, err := d.terraformExecutor.Init(step.ExtraArgs, d.stateEnvVars)
 					if err != nil {
 						return fmt.Errorf("error running init: %v", err)
 					}
 				}
 				if step.Action == "apply" {
-					fmt.Printf("Apply envs: %v\n", d.commandEnvVars)
 					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename, d.commandEnvVars)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.lock.LockId()+"**", applyOutput)
