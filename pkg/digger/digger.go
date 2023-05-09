@@ -289,7 +289,7 @@ func parseWorkspace(comment string) (string, error) {
 }
 
 func parseProjectName(comment string) string {
-	re := regexp.MustCompile(`-p ([a-zA-Z\-]+)`)
+	re := regexp.MustCompile(`-p ([0-9a-zA-Z\-_]+)`)
 	match := re.FindStringSubmatch(comment)
 	if len(match) > 1 {
 		return match[1]
@@ -445,13 +445,8 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.lock.LockId()+"**", applyOutput)
 					d.prManager.PublishComment(prNumber, comment)
-					if err == nil {
-						_, err := d.lock.Unlock(prNumber)
-						if err != nil {
-							return fmt.Errorf("error unlocking project: %v", err)
-						}
-					} else {
-						d.prManager.PublishComment(prNumber, "Error during applying. Project lock will persist")
+					if err != nil {
+						d.prManager.PublishComment(prNumber, "Error during applying.")
 					}
 				}
 				if step.Action == "run" {

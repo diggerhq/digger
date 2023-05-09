@@ -86,6 +86,11 @@ func (m *MockPRManager) DownloadLatestPlans(prNumber int) (string, error) {
 	return "plan", nil
 }
 
+func (m *MockPRManager) IsClosed(prNumber int) (bool, error) {
+	m.Commands = append(m.Commands, RunInfo{"IsClosed", strconv.Itoa(prNumber), time.Now()})
+	return false, nil
+}
+
 type MockProjectLock struct {
 	Commands []RunInfo
 }
@@ -172,11 +177,10 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Unlock 1", "Run echo", "LockId "}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
-
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
