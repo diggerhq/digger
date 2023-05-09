@@ -37,3 +37,8 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) DownloadLatest
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "DownloadLatestPlans")
 	return "", nil
 }
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsClosed(prNumber int) (bool, error) {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsClosed")
+	return false, nil
+}

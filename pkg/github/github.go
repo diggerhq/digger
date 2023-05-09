@@ -28,6 +28,7 @@ type PullRequestManager interface {
 	GetCombinedPullRequestStatus(prNumber int) (string, error)
 	MergePullRequest(prNumber int) error
 	IsMergeable(prNumber int) (bool, string, error)
+	IsClosed(prNumber int) (bool, error)
 }
 
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
@@ -99,4 +100,13 @@ func (svc *GithubService) IsMergeable(prNumber int) (bool, string, error) {
 	}
 
 	return pr.GetMergeable(), pr.GetMergeableState(), nil
+}
+
+func (svc *GithubService) IsClosed(prNumber int) (bool, error) {
+	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
+	if err != nil {
+		log.Fatalf("error getting pull request: %v", err)
+	}
+
+	return pr.GetState() == "closed", nil
 }
