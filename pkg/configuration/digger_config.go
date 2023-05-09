@@ -376,7 +376,7 @@ func retrieveConfigFile(workingDir string) (string, error) {
 		fileName = path.Join(workingDir, fileName)
 	}
 
-	fmt.Printf("retrieveConfigFile: working dir: %s \n", workingDir)
+	fmt.Printf("retrieveConfigFile1: working dir: %s \n", workingDir)
 
 	println("list dir files")
 	files, err := os.ReadDir(workingDir)
