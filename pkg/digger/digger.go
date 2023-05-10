@@ -351,7 +351,7 @@ type DiggerExecutor struct {
 	PlanStage         *configuration.Stage
 	CommandRunner     CommandRun
 	TerraformExecutor terraform.TerraformExecutor
-	ciService         ci.CIService
+	CIService         ci.CIService
 	ProjectLock       utils.ProjectLock
 	PlanStorage       utils.PlanStorage
 }
@@ -438,7 +438,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				}
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+d.ProjectLock.LockId()+"**", plan)
-				d.ciService.PublishComment(prNumber, comment)
+				d.CIService.PublishComment(prNumber, comment)
 			}
 			if step.Action == "run" {
 				stdout, stderr, err := d.CommandRunner.Run(step.Value)
@@ -462,14 +462,14 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 		}
 	}
 
-	isMergeable, _, err := d.ciService.IsMergeable(prNumber)
+	isMergeable, _, err := d.CIService.IsMergeable(prNumber)
 	if err != nil {
 		return fmt.Errorf("error validating is PR is mergeable: %v", err)
 	}
 
 	if !isMergeable {
 		comment := "Cannot perform Apply since the PR is not currently mergeable."
-		d.ciService.PublishComment(prNumber, comment)
+		d.CIService.PublishComment(prNumber, comment)
 	} else {
 
 		if res, _ := d.ProjectLock.Lock(prNumber); res {
@@ -499,9 +499,9 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					stdout, stderr, err := d.TerraformExecutor.Apply(step.ExtraArgs, plansFilename, d.CommandEnvVars)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.ProjectLock.LockId()+"**", applyOutput)
-					d.ciService.PublishComment(prNumber, comment)
+					d.CIService.PublishComment(prNumber, comment)
 					if err != nil {
-						d.ciService.PublishComment(prNumber, "Error during applying.")
+						d.CIService.PublishComment(prNumber, "Error during applying.")
 						return fmt.Errorf("error executing apply: %v", err)
 					}
 				}

@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"digger/pkg/ci"
 	"digger/pkg/configuration"
 	"digger/pkg/digger"
 	"digger/pkg/terraform"
@@ -9,7 +10,6 @@ import (
 	"github.com/caarlos0/env/v7"
 	go_gitlab "github.com/xanzy/go-gitlab"
 	"log"
-	"os"
 	"path"
 	"strings"
 )
@@ -136,32 +136,27 @@ func (gitlabService GitLabService) PublishComment(mergeRequest int, comment stri
 	//panic("implement me")
 }
 
-type CIService interface {
-	GetChangedFiles(prNumber int) ([]string, error)
-	PublishComment(prNumber int, comment string)
-}
-
-func (C CIService) SetStatus(prNumber int, status string, statusContext string) error {
+func (gitlabService GitLabService) SetStatus(prNumber int, status string, statusContext string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (C CIService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+func (gitlabService GitLabService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (C CIService) MergePullRequest(prNumber int) error {
+func (gitlabService GitLabService) MergePullRequest(prNumber int) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (C CIService) IsMergeable(prNumber int) (bool, string, error) {
+func (gitlabService GitLabService) IsMergeable(prNumber int) (bool, string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (C CIService) IsClosed(prNumber int) (bool, error) {
+func (gitlabService GitLabService) IsClosed(prNumber int) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -271,7 +266,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 	}
 }
 
-func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service CIService, lock utils.Lock, workingDir string) error {
+func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
 
 	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
@@ -282,54 +277,63 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 				InternalLock: lock,
 				PrManager:    service,
 				ProjectName:  projectCommands.ProjectName,
-				RepoName:     repoName,
-				RepoOwner:    repoOwner,
+				RepoName:     gitLabContext.ProjectName,
+				RepoOwner:    gitLabContext.ProjectNamespace,
 			}
 
 			var terraformExecutor terraform.TerraformExecutor
-
+			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
 			if projectCommands.Terragrunt {
 				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
 			} else {
 				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
 			}
+			commandRunner := digger.CommandRunner{}
 
-			commandRunner := CommandRunner{}
-
-			diggerExecutor := DiggerExecutor{
+			diggerExecutor := digger.DiggerExecutor{
+				gitLabContext.ProjectNamespace,
+				gitLabContext.ProjectName,
 				projectCommands.ProjectName,
+				projectPath,
+				projectCommands.StateEnvVars,
+				projectCommands.CommandEnvVars,
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
 				commandRunner,
 				terraformExecutor,
-				prManager,
+				service,
 				projectLock,
 				planStorage,
 			}
+
+			repoOwner := gitLabContext.ProjectNamespace
+			repoName := gitLabContext.ProjectName
+			prNumber := *gitLabContext.MergeRequestIId
+			eventName := ""
 			switch command {
 			case "digger plan":
 				utils.SendUsageRecord(repoOwner, eventName, "plan")
-				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
+				service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
 				err := diggerExecutor.Plan(prNumber)
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
-					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
+					service.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
 
 					return false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else {
-					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
+					service.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 				}
 			case "digger apply":
 				utils.SendUsageRecord(repoName, eventName, "apply")
-				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
 				err := diggerExecutor.Apply(prNumber)
 				if err != nil {
 					log.Printf("Failed to run digger apply command. %v", err)
-					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+					service.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
 
 					return false, fmt.Errorf("failed to run digger apply command. %v", err)
 				} else {
-					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+					service.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
 					appliesPerProject[projectCommands.ProjectName] = true
 				}
 			case "digger unlock":
@@ -354,48 +358,52 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 		}
 	}
 	return allAppliesSuccess, nil
+	/*
 
-	lockAcquisitionSuccess := true
-	for _, projectCommands := range commandsPerProject {
-		for _, command := range projectCommands.Commands {
-			projectLock := &utils.ProjectLockImpl{
-				InternalLock: lock,
-				PrManager:    service,
-				ProjectName:  projectCommands.ProjectName,
-				RepoName:     gitLabContext.ProjectName,
-				RepoOwner:    gitLabContext.ProjectNamespace,
-			}
-			diggerExecutor := digger.DiggerExecutor{
-				workingDir,
-				projectCommands.ProjectWorkspace,
-				gitLabContext.ProjectNamespace,
-				projectCommands.ProjectName,
-				projectCommands.ProjectDir,
-				gitLabContext.ProjectName,
-				projectCommands.Terragrunt,
-				service,
-				projectLock,
-				diggerConfig,
-			}
-			switch command {
-			case "digger plan":
-				utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "plan")
-				diggerExecutor.Plan(*gitLabContext.MergeRequestIId)
-			case "digger apply":
-				utils.SendUsageRecord(gitLabContext.ProjectName, gitLabContext.EventType.String(), "apply")
-				diggerExecutor.Apply(*gitLabContext.MergeRequestIId)
-			case "digger unlock":
-				utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "unlock")
-				diggerExecutor.Unlock(*gitLabContext.MergeRequestIId)
-			case "digger lock":
-				utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "lock")
-				lockAcquisitionSuccess = diggerExecutor.Lock(*gitLabContext.MergeRequestIId)
+		lockAcquisitionSuccess := true
+		for _, projectCommands := range commandsPerProject {
+			for _, command := range projectCommands.Commands {
+				projectLock := &utils.ProjectLockImpl{
+					InternalLock: lock,
+					PrManager:    service,
+					ProjectName:  projectCommands.ProjectName,
+					RepoName:     gitLabContext.ProjectName,
+					RepoOwner:    gitLabContext.ProjectNamespace,
+				}
+				diggerExecutor := digger.DiggerExecutor{
+					workingDir,
+					projectCommands.ProjectWorkspace,
+					gitLabContext.ProjectNamespace,
+					projectCommands.ProjectName,
+					projectCommands.ProjectDir,
+					gitLabContext.ProjectName,
+					projectCommands.Terragrunt,
+					service,
+					projectLock,
+					diggerConfig,
+				}
+				switch command {
+				case "digger plan":
+					utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "plan")
+					diggerExecutor.Plan(*gitLabContext.MergeRequestIId)
+				case "digger apply":
+					utils.SendUsageRecord(gitLabContext.ProjectName, gitLabContext.EventType.String(), "apply")
+					diggerExecutor.Apply(*gitLabContext.MergeRequestIId)
+				case "digger unlock":
+					utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "unlock")
+					diggerExecutor.Unlock(*gitLabContext.MergeRequestIId)
+				case "digger lock":
+					utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "lock")
+					lockAcquisitionSuccess = diggerExecutor.Lock(*gitLabContext.MergeRequestIId)
+				}
 			}
 		}
-	}
 
-	if !lockAcquisitionSuccess {
-		os.Exit(1)
-	}
-	return nil
+		if !lockAcquisitionSuccess {
+			os.Exit(1)
+		}
+		return nil
+
+	*/
+
 }
