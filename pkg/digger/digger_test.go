@@ -151,7 +151,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	lock := &MockProjectLock{}
 	planStorage := &MockPlanStorage{}
 	executor := DiggerExecutor{
-		applyStage: &configuration.Stage{
+		ApplyStage: &configuration.Stage{
 			Steps: []configuration.Step{
 				{
 					Action:    "init",
@@ -170,12 +170,12 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 				},
 			},
 		},
-		planStage:         &configuration.Stage{},
-		commandRunner:     commandRunner,
-		terraformExecutor: terraformExecutor,
-		prManager:         prManager,
-		lock:              lock,
-		planStorage:       planStorage,
+		PlanStage:         &configuration.Stage{},
+		CommandRunner:     commandRunner,
+		TerraformExecutor: terraformExecutor,
+		ciService:         prManager,
+		ProjectLock:       lock,
+		PlanStorage:       planStorage,
 	}
 
 	executor.Apply(1)
@@ -193,8 +193,8 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 	planStorage := &MockPlanStorage{}
 
 	executor := DiggerExecutor{
-		applyStage: &configuration.Stage{},
-		planStage: &configuration.Stage{
+		ApplyStage: &configuration.Stage{},
+		PlanStage: &configuration.Stage{
 			Steps: []configuration.Step{
 				{
 					Action:    "init",
@@ -213,11 +213,11 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 				},
 			},
 		},
-		commandRunner:     commandRunner,
-		terraformExecutor: terraformExecutor,
-		prManager:         prManager,
-		lock:              lock,
-		planStorage:       planStorage,
+		CommandRunner:     commandRunner,
+		TerraformExecutor: terraformExecutor,
+		ciService:         prManager,
+		ProjectLock:       lock,
+		PlanStorage:       planStorage,
 	}
 
 	executor.Plan(1)
