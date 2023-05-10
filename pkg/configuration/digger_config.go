@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -106,7 +107,6 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	*p = Project(raw)
 	return nil
-
 }
 
 func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -228,6 +228,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 }
 
 func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
+	fmt.Println("NewDiggerConfig")
 	config := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -237,6 +238,7 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 	}
 
 	if fileName == "" {
+		fmt.Println("No digger config found, using default one")
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = defaultProject()
 		config.Workflows = make(map[string]Workflow)
@@ -328,6 +330,8 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 		for _, file := range changedFiles {
 			absoluteFile, _ := filepath.Abs(path.Join("/", file))
 			absoluteDir, _ := filepath.Abs(path.Join("/", project.Dir))
+
+			//fmt.Printf("absoluteFile: %s, absoluteDir: %s \n", absoluteFile, absoluteDir)
 			if strings.HasPrefix(absoluteFile, absoluteDir) {
 				result = append(result, project)
 				break
@@ -387,6 +391,16 @@ func retrieveConfigFile(workingDir string) (string, error) {
 	fileName := "digger"
 	if workingDir != "" {
 		fileName = path.Join(workingDir, fileName)
+	}
+
+	println("list dir files")
+	files, err := os.ReadDir(workingDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		fmt.Println(file.Name(), file.IsDir())
 	}
 
 	// Make sure we don't have more than one digger config file
