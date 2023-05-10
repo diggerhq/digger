@@ -286,6 +286,7 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 
 			var terraformExecutor terraform.TerraformExecutor
 			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
+			fmt.Printf("pprojectPath: %s\n\n", projectPath)
 			if projectCommands.Terragrunt {
 				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
 			} else {
