@@ -502,6 +502,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					d.ciService.PublishComment(prNumber, comment)
 					if err != nil {
 						d.ciService.PublishComment(prNumber, "Error during applying.")
+						return fmt.Errorf("error executing apply: %v", err)
 					}
 				}
 				if step.Action == "run" {
