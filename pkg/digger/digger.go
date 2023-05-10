@@ -2,8 +2,8 @@ package digger
 
 import (
 	"bytes"
+	"digger/pkg/ci"
 	"digger/pkg/configuration"
-	"digger/pkg/github"
 	"digger/pkg/models"
 	"digger/pkg/terraform"
 	"digger/pkg/utils"
@@ -19,7 +19,7 @@ import (
 	"strings"
 )
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager github.CIService) ([]configuration.Project, int, bool, error) {
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager ci.CIService) ([]configuration.Project, int, bool, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
 	var mergePrIfCmdSuccessfull = false
@@ -58,7 +58,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 	return impactedProjects, prNumber, mergePrIfCmdSuccessfull, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager github.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
+func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
 	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
@@ -146,7 +146,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 	return allAppliesSuccess, nil
 }
 
-func MergePullRequest(githubPrService github.CIService, prNumber int) {
+func MergePullRequest(githubPrService ci.CIService, prNumber int) {
 	combinedStatus, err := githubPrService.GetCombinedPullRequestStatus(prNumber)
 
 	if err != nil {
@@ -351,7 +351,7 @@ type DiggerExecutor struct {
 	planStage         *configuration.Stage
 	commandRunner     CommandRun
 	terraformExecutor terraform.TerraformExecutor
-	prManager         github.CIService
+	prManager         ci.CIService
 	lock              utils.ProjectLock
 	planStorage       utils.PlanStorage
 }
