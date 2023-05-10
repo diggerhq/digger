@@ -138,11 +138,14 @@ func (gitlabService GitLabService) PublishComment(mergeRequest int, comment stri
 
 func (gitlabService GitLabService) SetStatus(prNumber int, status string, statusContext string) error {
 	//TODO implement me
-	panic("SetStatus: implement me")
+	fmt.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s", prNumber, status, statusContext)
+	return nil
+	//panic("SetStatus: implement me")
 }
 
 func (gitlabService GitLabService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	//TODO implement me
+
 	panic("GetCombinedPullRequestStatus: implement me")
 }
 
