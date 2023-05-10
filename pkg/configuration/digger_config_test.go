@@ -116,6 +116,56 @@ workflows:
 	assert.Equal(t, Step{Action: "run", Value: "echo \"hello\""}, dg.Workflows["myworkflow"].Plan.Steps[0], "parsed struct does not match expected struct")
 }
 
+func TestEnvVarsConfiguration(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  branch: /main/
+  dir: .
+  workspace: default
+  terragrunt: false
+  workflow: myworkflow
+workflows:
+  myworkflow:
+    plan:
+      steps:
+      - init:
+          extra_args: ["-lock=false"]
+      - plan:
+          extra_args: ["-lock=false"]
+      - run: echo "hello"
+    apply:
+      steps:
+      - apply:
+          extra_args: ["-lock=false"]
+    workflow_configuration:
+      on_pull_request_pushed: [digger plan]
+      on_pull_request_closed: [digger unlock]
+      on_commit_to_default: [digger apply]
+    env_vars:
+      state:
+      - name: TF_VAR_state
+        value: s3://mybucket/terraform.tfstate
+      commands:
+      - name: TF_VAR_command
+        value: plan
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	dg, err := NewDiggerConfig(tempDir, &FileSystemDirWalker{})
+	assert.NoError(t, err, "expected error to be nil")
+	assert.Equal(t, []EnvVarConfig{
+		{Name: "TF_VAR_state", Value: "s3://mybucket/terraform.tfstate"},
+	}, dg.Workflows["myworkflow"].EnvVars.State, "parsed struct does not match expected struct")
+	assert.Equal(t, []EnvVarConfig{
+		{Name: "TF_VAR_command", Value: "plan"},
+	}, dg.Workflows["myworkflow"].EnvVars.Commands, "parsed struct does not match expected struct")
+}
+
 func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()

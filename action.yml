@@ -65,16 +65,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Validate General Input Configuration
-      run: |
-        if [[ "${{ inputs.setup-aws }}" == "false" && "${{ inputs.setup-google-cloud }}" == "false" ]]; then
-          echo "Either 'setup-aws' or 'setup-google-cloud' input must be set to 'true'"
-        else
-          exit 0
-        fi
-        exit 1
-      shell: bash
-
     - name: Validate Input Configuration for Google
       run: |
         if [[ -z ${{ toJSON(inputs.google-auth-credentials) }} && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
@@ -116,7 +106,7 @@ runs:
       if: inputs.setup-google-cloud == 'true'
 
     - name: Configure Test AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
@@ -124,7 +114,7 @@ runs:
       if: inputs.setup-aws == 'true'
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
+      uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: ${{ inputs.terraform-version }}
         terraform_wrapper: false

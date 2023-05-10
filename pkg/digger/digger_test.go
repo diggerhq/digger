@@ -30,12 +30,12 @@ type MockTerraformExecutor struct {
 	Commands []RunInfo
 }
 
-func (m *MockTerraformExecutor) Init(params []string) (string, string, error) {
+func (m *MockTerraformExecutor) Init(params []string, envs map[string]string) (string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Init", strings.Join(params, " "), time.Now()})
 	return "", "", nil
 }
 
-func (m *MockTerraformExecutor) Apply(params []string, plan *string) (string, string, error) {
+func (m *MockTerraformExecutor) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
 	if plan != nil {
 		params = append(params, *plan)
 	}
@@ -43,7 +43,7 @@ func (m *MockTerraformExecutor) Apply(params []string, plan *string) (string, st
 	return "", "", nil
 }
 
-func (m *MockTerraformExecutor) Plan(params []string) (bool, string, string, error) {
+func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string) (bool, string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Plan", strings.Join(params, " "), time.Now()})
 	return true, "", "", nil
 }
@@ -128,14 +128,19 @@ type MockPlanStorage struct {
 	Commands []RunInfo
 }
 
-func (m *MockPlanStorage) StorePlan(planFileName string) error {
-	m.Commands = append(m.Commands, RunInfo{"StorePlan", planFileName, time.Now()})
+func (m *MockPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
+	m.Commands = append(m.Commands, RunInfo{"StorePlan", localPlanFilePath, time.Now()})
 	return nil
 }
 
-func (m *MockPlanStorage) RetrievePlan(planFileName string) (*string, error) {
-	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", planFileName, time.Now()})
+func (m *MockPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
+	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", localPlanFilePath, time.Now()})
 	return nil, nil
+}
+
+func (m *MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
+	m.Commands = append(m.Commands, RunInfo{"DeleteStoredPlan", storedPlanFilePath, time.Now()})
+	return nil
 }
 
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
@@ -177,7 +182,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"RetrievePlan .tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan #.tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
@@ -219,7 +224,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out .tfplan", "StorePlan .tfplan", "LockId ", "PublishComment 1 <details>\n  <summary>Plan for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
+	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out #.tfplan", "StorePlan #.tfplan", "LockId ", "PublishComment 1 <details>\n  <summary>Plan for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run echo", "LockId "}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage) []string {

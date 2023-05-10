@@ -1,20 +1,22 @@
 package utils
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	"github.com/google/go-github/v51/github"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
+
+	"cloud.google.com/go/storage"
+	"github.com/google/go-github/v51/github"
 )
 
 type PlanStorage interface {
-	StorePlan(planFileName string) error
-	RetrievePlan(planFileName string) (*string, error)
+	StorePlan(localPlanFilePath string, storedPlanFilePath string) error
+	RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error)
+	DeleteStoredPlan(storedPlanFilePath string) error
 }
 
 type PlanStorageGcp struct {
@@ -31,14 +33,14 @@ type GithubPlanStorage struct {
 	ZipManager        Zipper
 }
 
-func (psg *PlanStorageGcp) StorePlan(planFileName string) error {
-	file, err := os.Open(planFileName)
+func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
+	file, err := os.Open(localPlanFilePath)
 	if err != nil {
 		return fmt.Errorf("unable to open file: %v", err)
 	}
 	defer file.Close()
 
-	obj := psg.Bucket.Object(planFileName)
+	obj := psg.Bucket.Object(storedPlanFilePath)
 	wc := obj.NewWriter(psg.Context)
 
 	if _, err = io.Copy(wc, file); err != nil {
@@ -53,15 +55,15 @@ func (psg *PlanStorageGcp) StorePlan(planFileName string) error {
 	return nil
 }
 
-func (psg *PlanStorageGcp) RetrievePlan(planFileName string) (*string, error) {
-	obj := psg.Bucket.Object(planFileName)
+func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
+	obj := psg.Bucket.Object(storedPlanFilePath)
 	rc, err := obj.NewReader(psg.Context)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read data from bucket: %v", err)
 	}
 	defer rc.Close()
 
-	file, err := os.Create(planFileName)
+	file, err := os.Create(localPlanFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create file: %v", err)
 	}
@@ -71,15 +73,25 @@ func (psg *PlanStorageGcp) RetrievePlan(planFileName string) (*string, error) {
 		return nil, fmt.Errorf("unable to write data to file: %v", err)
 	}
 
-	return &planFileName, nil
+	return &localPlanFilePath, nil
 }
 
-func (gps *GithubPlanStorage) StorePlan(planFileName string) error {
-	_ = fmt.Sprintf("Skipping storing plan %s. It should be achieved using actions/upload-artifact@v3", planFileName)
+func (psg *PlanStorageGcp) DeleteStoredPlan(storedPlanFilePath string) error {
+	obj := psg.Bucket.Object(storedPlanFilePath)
+	err := obj.Delete(psg.Context)
+
+	if err != nil {
+		return fmt.Errorf("unable to delete file '%v' from bucket: %v", storedPlanFilePath, err)
+	}
 	return nil
 }
 
-func (gps *GithubPlanStorage) RetrievePlan(planFileName string) (*string, error) {
+func (gps *GithubPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
+	_ = fmt.Sprintf("Skipping storing plan %s. It should be achieved using actions/upload-artifact@v3", localPlanFilePath)
+	return nil
+}
+
+func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
 	plansFilename, err := gps.DownloadLatestPlans()
 
 	if err != nil {
@@ -90,12 +102,16 @@ func (gps *GithubPlanStorage) RetrievePlan(planFileName string) (*string, error)
 		return nil, fmt.Errorf("no plans found for this PR")
 	}
 
-	plansFilename, err = gps.ZipManager.GetFileFromZip(plansFilename, planFileName)
+	plansFilename, err = gps.ZipManager.GetFileFromZip(plansFilename, storedPlanFilePath)
 
 	if err != nil {
 		return nil, fmt.Errorf("error extracting plan: %v", err)
 	}
 	return &plansFilename, nil
+}
+
+func (gps *GithubPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
+	return nil
 }
 
 func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
