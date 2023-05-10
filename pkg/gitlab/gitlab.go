@@ -133,33 +133,33 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 
 func (gitlabService GitLabService) PublishComment(mergeRequest int, comment string) {
 	//TODO implement me
-	panic("PublishComment: implement me")
+	fmt.Printf("PublishComment: mergeRequest: %d, comment: %s\n", mergeRequest, comment)
 }
 
-func (gitlabService GitLabService) SetStatus(prNumber int, status string, statusContext string) error {
+func (gitlabService GitLabService) SetStatus(mergeRequest int, status string, statusContext string) error {
 	//TODO implement me
-	fmt.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s", prNumber, status, statusContext)
+	fmt.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s\n", mergeRequest, status, statusContext)
 	return nil
 	//panic("SetStatus: implement me")
 }
 
-func (gitlabService GitLabService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequest int) (string, error) {
 	//TODO implement me
 
 	panic("GetCombinedPullRequestStatus: implement me")
 }
 
-func (gitlabService GitLabService) MergePullRequest(prNumber int) error {
+func (gitlabService GitLabService) MergePullRequest(mergeRequest int) error {
 	//TODO implement me
 	panic("MergePullRequest: implement me")
 }
 
-func (gitlabService GitLabService) IsMergeable(prNumber int) (bool, string, error) {
+func (gitlabService GitLabService) IsMergeable(mergeRequest int) (bool, string, error) {
 	//TODO implement me
 	panic("IsMergeable: implement me")
 }
 
-func (gitlabService GitLabService) IsClosed(prNumber int) (bool, error) {
+func (gitlabService GitLabService) IsClosed(mergeRequest int) (bool, error) {
 	//TODO implement me
 	panic("IsClosed: implement me")
 }
