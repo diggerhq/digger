@@ -133,32 +133,32 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 
 func (gitlabService GitLabService) PublishComment(mergeRequest int, comment string) {
 	//TODO implement me
-	//panic("implement me")
+	panic("PublishComment: implement me")
 }
 
 func (gitlabService GitLabService) SetStatus(prNumber int, status string, statusContext string) error {
 	//TODO implement me
-	panic("implement me")
+	panic("SetStatus: implement me")
 }
 
 func (gitlabService GitLabService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	//TODO implement me
-	panic("implement me")
+	panic("GetCombinedPullRequestStatus: implement me")
 }
 
 func (gitlabService GitLabService) MergePullRequest(prNumber int) error {
 	//TODO implement me
-	panic("implement me")
+	panic("MergePullRequest: implement me")
 }
 
 func (gitlabService GitLabService) IsMergeable(prNumber int) (bool, string, error) {
 	//TODO implement me
-	panic("implement me")
+	panic("IsMergeable: implement me")
 }
 
 func (gitlabService GitLabService) IsClosed(prNumber int) (bool, error) {
 	//TODO implement me
-	panic("implement me")
+	panic("IsClosed: implement me")
 }
 
 type GitLabEvent struct {
