@@ -153,7 +153,7 @@ func gitLabCI(lock utils.Lock) {
 	println("GitLab event converted to commands successfully")
 
 	for _, v := range commandsToRunPerProject {
-		fmt.Printf("command: %s", v.ProjectName)
+		fmt.Printf("command: %s\n", v.ProjectName)
 	}
 
 	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
