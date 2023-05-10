@@ -114,7 +114,7 @@ runs:
       if: inputs.setup-aws == 'true'
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
+      uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: ${{ inputs.terraform-version }}
         terraform_wrapper: false
