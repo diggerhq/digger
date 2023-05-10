@@ -156,11 +156,15 @@ func gitLabCI(lock utils.Lock) {
 		fmt.Printf("command: %s", v.ProjectName)
 	}
 
-	err = gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, "")
+	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
+	var planStorage utils.PlanStorage
+
+	result, err := gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, planStorage, currentDir)
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
 		os.Exit(8)
 	}
+	print(result)
 
 	println("Commands executed successfully")
 }

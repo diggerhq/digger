@@ -173,7 +173,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 		PlanStage:         &configuration.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
-		ciService:         prManager,
+		CIService:         prManager,
 		ProjectLock:       lock,
 		PlanStorage:       planStorage,
 	}
@@ -215,7 +215,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
-		ciService:         prManager,
+		CIService:         prManager,
 		ProjectLock:       lock,
 		PlanStorage:       planStorage,
 	}
