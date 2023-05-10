@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func NewGithubPullRequestService(ghToken string, repoName string, owner string) PullRequestManager {
+func NewGithubPullRequestService(ghToken string, repoName string, owner string) CIService {
 	client := github.NewTokenClient(context.Background(), ghToken)
 	return &GithubService{
 		Client:   client,
@@ -21,7 +21,7 @@ type GithubService struct {
 	Owner    string
 }
 
-type PullRequestManager interface {
+type CIService interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string)
 	SetStatus(prNumber int, status string, statusContext string) error
