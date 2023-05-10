@@ -538,7 +538,7 @@ func (d DiggerExecutor) Lock(prNumber int) error {
 	return nil
 }
 
-func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr string) string {
+func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr *string) string {
 	var errorStr, start string
 
 	// removes output of terraform -version command that terraform-exec executes on every run
@@ -566,23 +566,24 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 		startPos = 0
 	}
 
-	regex := regexp.MustCompile(regexStr)
-	matches := regex.FindStringSubmatch(stdout)
-	if len(matches) > 0 {
-		endPos = strings.Index(stdout, matches[0]) + len(matches[0])
+	if regexStr != nil {
+		regex := regexp.MustCompile(*regexStr)
+		matches := regex.FindStringSubmatch(stdout)
+		if len(matches) > 0 {
+			endPos = strings.Index(stdout, matches[0]) + len(matches[0])
+		}
 	}
 
 	return stdout[startPos:endPos]
 }
 
 func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
-	regex := `(Apply complete! Resources: [0-9]+ added, [0-9]+ changed, [0-9]+ destroyed.)`
-	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
+	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, nil)
 }
 
 func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
-	regex := `(Plan: [0-9]+ to add, [0-9]+ to change, [0-9]+ to destroy.)`
-	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, regex)
+	regex := `───────────.+`
+	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, &regex)
 }
 
 func issueCommentEventContainsComment(event models.Event, comment string) bool {
