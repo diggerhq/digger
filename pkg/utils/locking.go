@@ -4,8 +4,8 @@ import (
 	"digger/pkg/aws"
 	"digger/pkg/aws/envprovider"
 	"digger/pkg/azure"
+	"digger/pkg/ci"
 	"digger/pkg/gcp"
-	"digger/pkg/github"
 	"errors"
 	"fmt"
 	"log"
@@ -24,7 +24,7 @@ import (
 
 type ProjectLockImpl struct {
 	InternalLock Lock
-	PrManager    github.PullRequestManager
+	PrManager    ci.CIService
 	ProjectName  string
 	RepoName     string
 	RepoOwner    string
