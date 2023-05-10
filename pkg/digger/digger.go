@@ -582,7 +582,7 @@ func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, st
 }
 
 func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
-	regex := `-------`
+	regex := `\-\-\-\-\-\-\-.+`
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, &regex)
 }
 
