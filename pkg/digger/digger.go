@@ -502,6 +502,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					d.prManager.PublishComment(prNumber, comment)
 					if err != nil {
 						d.prManager.PublishComment(prNumber, "Error during applying.")
+						return fmt.Errorf("error executing apply: %v", err)
 					}
 				}
 				if step.Action == "run" {
