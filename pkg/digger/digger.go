@@ -73,16 +73,19 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			}
 
 			var terraformExecutor terraform.TerraformExecutor
-
+			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
 			if projectCommands.Terragrunt {
-				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
+				terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
 			} else {
-				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
+				terraformExecutor = terraform.Terraform{WorkingDir: projectPath, Workspace: projectCommands.ProjectWorkspace}
 			}
 
 			commandRunner := CommandRunner{}
 			diggerExecutor := DiggerExecutor{
+				repoOwner,
+				repoName,
 				projectCommands.ProjectName,
+				projectPath,
 				projectCommands.StateEnvVars,
 				projectCommands.CommandEnvVars,
 				projectCommands.ApplyStage,
@@ -338,7 +341,10 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
+	repoOwner         string
+	repoName          string
 	projectName       string
+	projectPath       string
 	stateEnvVars      map[string]string
 	commandEnvVars    map[string]string
 	applyStage        *configuration.Stage
@@ -378,11 +384,18 @@ func (c CommandRunner) Run(command string) (string, string, error) {
 }
 
 func (d DiggerExecutor) planFileName() string {
-	return d.projectName + ".tfplan"
+	return d.repoName + "#" + d.projectName + ".tfplan"
+}
+
+func (d DiggerExecutor) localPlanFilePath() string {
+	return path.Join(d.projectPath, d.planFileName())
+}
+
+func (d DiggerExecutor) storedPlanFilePath() string {
+	return path.Join(d.repoOwner, d.planFileName())
 }
 
 func (d DiggerExecutor) Plan(prNumber int) error {
-
 	res, err := d.lock.Lock(prNumber)
 	if err != nil {
 		return fmt.Errorf("error locking project: %v", err)
@@ -418,7 +431,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
 				if d.planStorage != nil {
-					err = d.planStorage.StorePlan(d.planFileName())
+					err = d.planStorage.StorePlan(d.localPlanFilePath(), d.storedPlanFilePath())
 					if err != nil {
 						return fmt.Errorf("error storing plan: %v", err)
 					}
@@ -443,7 +456,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 	var plansFilename *string
 	if d.planStorage != nil {
 		var err error
-		plansFilename, err = d.planStorage.RetrievePlan(d.planFileName())
+		plansFilename, err = d.planStorage.RetrievePlan(d.localPlanFilePath(), d.storedPlanFilePath())
 		if err != nil {
 			return fmt.Errorf("error retrieving plan: %v", err)
 		}
@@ -508,6 +521,10 @@ func (d DiggerExecutor) Unlock(prNumber int) error {
 	err := d.lock.ForceUnlock(prNumber)
 	if err != nil {
 		return fmt.Errorf("failed to aquire lock: %s, %v", d.lock.LockId(), err)
+	}
+	err = d.planStorage.DeleteStoredPlan(d.storedPlanFilePath())
+	if err != nil {
+		return fmt.Errorf("failed to delete stored plan file '%v':  %v", d.storedPlanFilePath(), err)
 	}
 	return nil
 }

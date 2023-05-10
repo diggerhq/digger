@@ -77,10 +77,14 @@ func (t MockPullRequestManager) IsClosed(prNumber int) (bool, error) {
 type MockPlanStorage struct {
 }
 
-func (t MockPlanStorage) StorePlan(planfile string) error {
+func (t MockPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
 	return nil
 }
 
-func (t MockPlanStorage) RetrievePlan(planfile string) (*string, error) {
+func (t MockPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
 	return nil, nil
+}
+
+func (t MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
+	return nil
 }
