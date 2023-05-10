@@ -156,14 +156,12 @@ func gitLabCI(lock utils.Lock) {
 		fmt.Printf("command: %s", v.ProjectName)
 	}
 
-	/*
-		err = gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, "")
-		if err != nil {
-			fmt.Printf("failed to execute command, %v", err)
-			os.Exit(8)
-		}
+	err = gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, "")
+	if err != nil {
+		fmt.Printf("failed to execute command, %v", err)
+		os.Exit(8)
+	}
 
-	*/
 	println("Commands executed successfully")
 }
 
