@@ -73,17 +73,21 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			}
 
 			var terraformExecutor terraform.TerraformExecutor
-
+			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
 			if projectCommands.Terragrunt {
-				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
+				terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
 			} else {
-				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
+				terraformExecutor = terraform.Terraform{WorkingDir: projectPath, Workspace: projectCommands.ProjectWorkspace}
 			}
 
 			commandRunner := CommandRunner{}
-
 			diggerExecutor := DiggerExecutor{
+				repoOwner,
+				repoName,
 				projectCommands.ProjectName,
+				projectPath,
+				projectCommands.StateEnvVars,
+				projectCommands.CommandEnvVars,
 				projectCommands.ApplyStage,
 				projectCommands.PlanStage,
 				commandRunner,
@@ -186,6 +190,8 @@ type ProjectCommand struct {
 	Commands         []string
 	ApplyStage       *configuration.Stage
 	PlanStage        *configuration.Stage
+	StateEnvVars     map[string]string
+	CommandEnvVars   map[string]string
 }
 
 func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, error) {
@@ -199,6 +205,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			if !ok {
 				workflow = *defaultWorkflow()
 			}
+
+			stateEnvVars, commandEnvVars := collectEnvVars(workflow.EnvVars)
+
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
 					ProjectName:      project.Name,
@@ -208,6 +217,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					Commands:         workflow.Configuration.OnCommitToDefault,
 					ApplyStage:       workflow.Apply,
 					PlanStage:        workflow.Plan,
+					CommandEnvVars:   commandEnvVars,
+					StateEnvVars:     stateEnvVars,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -218,6 +229,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					Commands:         workflow.Configuration.OnPullRequestPushed,
 					ApplyStage:       workflow.Apply,
 					PlanStage:        workflow.Plan,
+					CommandEnvVars:   commandEnvVars,
+					StateEnvVars:     stateEnvVars,
 				})
 			} else if event.Action == "closed" {
 				commandsPerProject = append(commandsPerProject, ProjectCommand{
@@ -228,6 +241,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					Commands:         workflow.Configuration.OnPullRequestClosed,
 					ApplyStage:       workflow.Apply,
 					PlanStage:        workflow.Plan,
+					CommandEnvVars:   commandEnvVars,
+					StateEnvVars:     stateEnvVars,
 				})
 			}
 		}
@@ -243,6 +258,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					if !ok {
 						workflow = *defaultWorkflow()
 					}
+
+					stateEnvVars, commandEnvVars := collectEnvVars(workflow.EnvVars)
+
 					workspace := project.Workspace
 					workspaceOverride, err := parseWorkspace(event.Comment.Body)
 					if err != nil {
@@ -259,6 +277,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						Commands:         []string{command},
 						ApplyStage:       workflow.Apply,
 						PlanStage:        workflow.Plan,
+						CommandEnvVars:   commandEnvVars,
+						StateEnvVars:     stateEnvVars,
 					})
 				}
 			}
@@ -267,6 +287,29 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 	default:
 		return []ProjectCommand{}, fmt.Errorf("unsupported event type: %T", event)
 	}
+}
+
+func collectEnvVars(envs configuration.EnvVars) (map[string]string, map[string]string) {
+	stateEnvVars := map[string]string{}
+
+	for _, envvar := range envs.State {
+		if envvar.Value != "" {
+			stateEnvVars[envvar.Name] = envvar.Value
+		} else if envvar.ValueFrom != "" {
+			stateEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+		}
+	}
+
+	commandEnvVars := map[string]string{}
+
+	for _, envvar := range envs.Commands {
+		if envvar.Value != "" {
+			commandEnvVars[envvar.Name] = envvar.Value
+		} else if envvar.ValueFrom != "" {
+			commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+		}
+	}
+	return stateEnvVars, commandEnvVars
 }
 
 func parseWorkspace(comment string) (string, error) {
@@ -298,7 +341,12 @@ func parseProjectName(comment string) string {
 }
 
 type DiggerExecutor struct {
+	repoOwner         string
+	repoName          string
 	projectName       string
+	projectPath       string
+	stateEnvVars      map[string]string
+	commandEnvVars    map[string]string
 	applyStage        *configuration.Stage
 	planStage         *configuration.Stage
 	commandRunner     CommandRun
@@ -336,11 +384,18 @@ func (c CommandRunner) Run(command string) (string, string, error) {
 }
 
 func (d DiggerExecutor) planFileName() string {
-	return d.projectName + ".tfplan"
+	return d.repoName + "#" + d.projectName + ".tfplan"
+}
+
+func (d DiggerExecutor) localPlanFilePath() string {
+	return path.Join(d.projectPath, d.planFileName())
+}
+
+func (d DiggerExecutor) storedPlanFilePath() string {
+	return path.Join(d.repoOwner, d.planFileName())
 }
 
 func (d DiggerExecutor) Plan(prNumber int) error {
-
 	res, err := d.lock.Lock(prNumber)
 	if err != nil {
 		return fmt.Errorf("error locking project: %v", err)
@@ -363,7 +418,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 		}
 		for _, step := range planSteps {
 			if step.Action == "init" {
-				_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
+				_, _, err := d.terraformExecutor.Init(step.ExtraArgs, d.stateEnvVars)
 				if err != nil {
 					return fmt.Errorf("error running init: %v", err)
 				}
@@ -371,12 +426,12 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 			if step.Action == "plan" {
 				planArgs := []string{"-out", d.planFileName()}
 				planArgs = append(planArgs, step.ExtraArgs...)
-				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(planArgs)
+				isNonEmptyPlan, stdout, stderr, err := d.terraformExecutor.Plan(planArgs, d.commandEnvVars)
 				if err != nil {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
 				if d.planStorage != nil {
-					err = d.planStorage.StorePlan(d.planFileName())
+					err = d.planStorage.StorePlan(d.localPlanFilePath(), d.storedPlanFilePath())
 					if err != nil {
 						return fmt.Errorf("error storing plan: %v", err)
 					}
@@ -401,7 +456,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 	var plansFilename *string
 	if d.planStorage != nil {
 		var err error
-		plansFilename, err = d.planStorage.RetrievePlan(d.planFileName())
+		plansFilename, err = d.planStorage.RetrievePlan(d.localPlanFilePath(), d.storedPlanFilePath())
 		if err != nil {
 			return fmt.Errorf("error retrieving plan: %v", err)
 		}
@@ -435,13 +490,13 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 
 			for _, step := range applySteps {
 				if step.Action == "init" {
-					_, _, err := d.terraformExecutor.Init(step.ExtraArgs)
+					_, _, err := d.terraformExecutor.Init(step.ExtraArgs, d.stateEnvVars)
 					if err != nil {
 						return fmt.Errorf("error running init: %v", err)
 					}
 				}
 				if step.Action == "apply" {
-					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename)
+					stdout, stderr, err := d.terraformExecutor.Apply(step.ExtraArgs, plansFilename, d.commandEnvVars)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.lock.LockId()+"**", applyOutput)
 					d.prManager.PublishComment(prNumber, comment)
@@ -466,6 +521,10 @@ func (d DiggerExecutor) Unlock(prNumber int) error {
 	err := d.lock.ForceUnlock(prNumber)
 	if err != nil {
 		return fmt.Errorf("failed to aquire lock: %s, %v", d.lock.LockId(), err)
+	}
+	err = d.planStorage.DeleteStoredPlan(d.storedPlanFilePath())
+	if err != nil {
+		return fmt.Errorf("failed to delete stored plan file '%v':  %v", d.storedPlanFilePath(), err)
 	}
 	return nil
 }
