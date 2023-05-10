@@ -3,10 +3,14 @@ package gitlab
 import (
 	"digger/pkg/configuration"
 	"digger/pkg/digger"
+	"digger/pkg/terraform"
+	"digger/pkg/utils"
 	"fmt"
 	"github.com/caarlos0/env/v7"
 	go_gitlab "github.com/xanzy/go-gitlab"
 	"log"
+	"os"
+	"path"
 	"strings"
 )
 
@@ -137,6 +141,31 @@ type CIService interface {
 	PublishComment(prNumber int, comment string)
 }
 
+func (C CIService) SetStatus(prNumber int, status string, statusContext string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (C CIService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (C CIService) MergePullRequest(prNumber int) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (C CIService) IsMergeable(prNumber int) (bool, string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (C CIService) IsClosed(prNumber int) (bool, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 type GitLabEvent struct {
 	EventType GitLabEventType
 }
@@ -242,8 +271,89 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 	}
 }
 
-/*
 func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service CIService, lock utils.Lock, workingDir string) error {
+
+	allAppliesSuccess := true
+	appliesPerProject := make(map[string]bool)
+	for _, projectCommands := range commandsPerProject {
+		appliesPerProject[projectCommands.ProjectName] = false
+		for _, command := range projectCommands.Commands {
+			projectLock := &utils.ProjectLockImpl{
+				InternalLock: lock,
+				PrManager:    service,
+				ProjectName:  projectCommands.ProjectName,
+				RepoName:     repoName,
+				RepoOwner:    repoOwner,
+			}
+
+			var terraformExecutor terraform.TerraformExecutor
+
+			if projectCommands.Terragrunt {
+				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
+			} else {
+				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
+			}
+
+			commandRunner := CommandRunner{}
+
+			diggerExecutor := DiggerExecutor{
+				projectCommands.ProjectName,
+				projectCommands.ApplyStage,
+				projectCommands.PlanStage,
+				commandRunner,
+				terraformExecutor,
+				prManager,
+				projectLock,
+				planStorage,
+			}
+			switch command {
+			case "digger plan":
+				utils.SendUsageRecord(repoOwner, eventName, "plan")
+				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
+				err := diggerExecutor.Plan(prNumber)
+				if err != nil {
+					log.Printf("Failed to run digger plan command. %v", err)
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
+
+					return false, fmt.Errorf("failed to run digger plan command. %v", err)
+				} else {
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
+				}
+			case "digger apply":
+				utils.SendUsageRecord(repoName, eventName, "apply")
+				prManager.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				err := diggerExecutor.Apply(prNumber)
+				if err != nil {
+					log.Printf("Failed to run digger apply command. %v", err)
+					prManager.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+
+					return false, fmt.Errorf("failed to run digger apply command. %v", err)
+				} else {
+					prManager.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+					appliesPerProject[projectCommands.ProjectName] = true
+				}
+			case "digger unlock":
+				utils.SendUsageRecord(repoOwner, eventName, "unlock")
+				err := diggerExecutor.Unlock(prNumber)
+				if err != nil {
+					return false, fmt.Errorf("failed to unlock project. %v", err)
+				}
+			case "digger lock":
+				utils.SendUsageRecord(repoOwner, eventName, "lock")
+				err := diggerExecutor.Lock(prNumber)
+				if err != nil {
+					return false, fmt.Errorf("failed to lock project. %v", err)
+				}
+			}
+		}
+	}
+
+	for _, success := range appliesPerProject {
+		if !success {
+			allAppliesSuccess = false
+		}
+	}
+	return allAppliesSuccess, nil
 
 	lockAcquisitionSuccess := true
 	for _, projectCommands := range commandsPerProject {
@@ -289,4 +399,3 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 	}
 	return nil
 }
-*/
