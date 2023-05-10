@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -228,7 +227,6 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 }
 
 func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
-	fmt.Println("NewDiggerConfig")
 	config := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -391,16 +389,6 @@ func retrieveConfigFile(workingDir string) (string, error) {
 	fileName := "digger"
 	if workingDir != "" {
 		fileName = path.Join(workingDir, fileName)
-	}
-
-	println("list dir files")
-	files, err := os.ReadDir(workingDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, file := range files {
-		fmt.Println(file.Name(), file.IsDir())
 	}
 
 	// Make sure we don't have more than one digger config file
