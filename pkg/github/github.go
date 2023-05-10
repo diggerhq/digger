@@ -2,11 +2,12 @@ package github
 
 import (
 	"context"
+	"digger/pkg/ci"
 	"github.com/google/go-github/v51/github"
 	"log"
 )
 
-func NewGithubPullRequestService(ghToken string, repoName string, owner string) PullRequestManager {
+func NewGithubPullRequestService(ghToken string, repoName string, owner string) ci.CIService {
 	client := github.NewTokenClient(context.Background(), ghToken)
 	return &GithubService{
 		Client:   client,
@@ -19,16 +20,6 @@ type GithubService struct {
 	Client   *github.Client
 	RepoName string
 	Owner    string
-}
-
-type PullRequestManager interface {
-	GetChangedFiles(prNumber int) ([]string, error)
-	PublishComment(prNumber int, comment string)
-	SetStatus(prNumber int, status string, statusContext string) error
-	GetCombinedPullRequestStatus(prNumber int) (string, error)
-	MergePullRequest(prNumber int) error
-	IsMergeable(prNumber int) (bool, string, error)
-	IsClosed(prNumber int) (bool, error)
 }
 
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
