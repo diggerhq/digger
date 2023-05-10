@@ -16,6 +16,22 @@ type DynamoDbLock struct {
 	DynamoDb *dynamodb.DynamoDB
 }
 
+func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
+	input := &dynamodb.DescribeTableInput{
+		TableName: aws.String(TABLE_NAME),
+	}
+	status, err := dynamoDbLock.DynamoDb.DescribeTable(input)
+	for err != nil && *(status.Table.TableStatus) != "ACTIVE" {
+		time.Sleep(1)
+		status, err = dynamoDbLock.DynamoDb.DescribeTable(input)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// TODO: refactor func to return actual error and fail on callers
 func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() {
 	input := &dynamodb.DescribeTableInput{
 		TableName: aws.String(TABLE_NAME),
@@ -55,7 +71,11 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() {
 	if err != nil && os.Getenv("DEBUG") != "" {
 		fmt.Printf("%v\n", err)
 	} else {
-		fmt.Printf("DynamoDB Table %v has ben created\n", TABLE_NAME)
+		err := dynamoDbLock.waitUntilTableCreated()
+		if err != nil {
+			fmt.Printf("%v\n", err)
+		}
+		fmt.Printf("DynamoDB Table %v has been created\n", TABLE_NAME)
 	}
 }
 
