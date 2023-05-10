@@ -24,7 +24,7 @@ import (
 
 type ProjectLockImpl struct {
 	InternalLock Lock
-	PrManager    github.PullRequestManager
+	PrManager    github.CIService
 	ProjectName  string
 	RepoName     string
 	RepoOwner    string
