@@ -138,10 +138,12 @@ func (gitlabService GitLabService) PublishComment(mergeRequest int, comment stri
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
 
-	_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
+	_, response, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 	if err != nil {
+		fmt.Printf("Failed to publish a comment. %v\n", err)
 		print(err.Error())
 	}
+	fmt.Printf("AddMergeRequestDiscussionNote response : %v\n", response)
 	fmt.Printf("PublishComment: mergeRequest: %d, comment: %s\n", mergeRequest, comment)
 }
 
