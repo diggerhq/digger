@@ -135,7 +135,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) {
 
 	discussionId := gitlabService.Context.DiscussionID
-	projectId := gitlabService.Context.ProjectId
+	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
 
