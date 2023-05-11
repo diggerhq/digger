@@ -23,7 +23,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 	status, err := dynamoDbLock.DynamoDb.DescribeTable(input)
 	cnt := 0
 
-	fmt.Printf("checking status, current status is %v", status.Table.TableStatus)
+	fmt.Printf("checking status, current status is %v\n", *(status.Table.TableStatus))
 	for err != nil && *(status.Table.TableStatus) != "ACTIVE" {
 		time.Sleep(1)
 		status, err = dynamoDbLock.DynamoDb.DescribeTable(input)
@@ -33,7 +33,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 				"Rerunning the action may cause creation to succeed\n")
 			os.Exit(1)
 		}
-		fmt.Printf("checking status, current status is %v", status.Table.TableStatus)
+		fmt.Printf("checking status, current status is %v\n", *(status.Table.TableStatus))
 	}
 	if err != nil {
 		return err
