@@ -31,6 +31,7 @@ type GitLabContext struct {
 	ProjectNamespaceId *int            `env:"CI_PROJECT_NAMESPACE_ID"`
 	Token              string          `env:"GITLAB_TOKEN"`
 	DiggerCommand      string          `env:"DIGGER_COMMAND"`
+	DiscussionID       string          `env:"DISCUSSION_ID"`
 }
 
 type PipelineSourceType string
@@ -132,7 +133,15 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 }
 
 func (gitlabService GitLabService) PublishComment(mergeRequest int, comment string) {
-	//TODO implement me
+	discussionId := gitlabService.Context.DiscussionID
+	projectId := gitlabService.Context.ProjectId
+	mergeRequestIID := *gitlabService.Context.MergeRequestIId
+	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
+
+	_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
+	if err != nil {
+		print(err.Error())
+	}
 	fmt.Printf("PublishComment: mergeRequest: %d, comment: %s\n", mergeRequest, comment)
 }
 
