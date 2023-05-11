@@ -16,6 +16,30 @@ type DynamoDbLock struct {
 	DynamoDb *dynamodb.DynamoDB
 }
 
+func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
+	input := &dynamodb.DescribeTableInput{
+		TableName: aws.String(TABLE_NAME),
+	}
+	status, err := dynamoDbLock.DynamoDb.DescribeTable(input)
+	cnt := 0
+
+	for err == nil && *(status.Table.TableStatus) != "ACTIVE" {
+		time.Sleep(1 * time.Second)
+		status, err = dynamoDbLock.DynamoDb.DescribeTable(input)
+		cnt++
+		if cnt > 10 {
+			fmt.Printf("DynamoDB failed to create, timed out during creation.\n" +
+				"Rerunning the action may cause creation to succeed\n")
+			os.Exit(1)
+		}
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// TODO: refactor func to return actual error and fail on callers
 func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() {
 	input := &dynamodb.DescribeTableInput{
 		TableName: aws.String(TABLE_NAME),
@@ -55,7 +79,11 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() {
 	if err != nil && os.Getenv("DEBUG") != "" {
 		fmt.Printf("%v\n", err)
 	} else {
-		fmt.Printf("DynamoDB Table %v has ben created\n", TABLE_NAME)
+		err := dynamoDbLock.waitUntilTableCreated()
+		if err != nil {
+			fmt.Printf("%v\n", err)
+		}
+		fmt.Printf("DynamoDB Table %v has been created\n", TABLE_NAME)
 	}
 }
 
