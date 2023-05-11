@@ -132,11 +132,14 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 	return fileNames, nil
 }
 
-func (gitlabService GitLabService) PublishComment(mergeRequest int, comment string) {
+func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) {
+
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
+
+	fmt.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, \n", mergeRequestID, projectId, mergeRequestIID)
 
 	_, response, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 	if err != nil {
@@ -144,7 +147,7 @@ func (gitlabService GitLabService) PublishComment(mergeRequest int, comment stri
 		print(err.Error())
 	}
 	fmt.Printf("AddMergeRequestDiscussionNote response : %v\n", response)
-	fmt.Printf("PublishComment: mergeRequest: %d, comment: %s\n", mergeRequest, comment)
+	fmt.Printf("PublishComment: mergeRequest: %d, comment: %s\n", mergeRequestID, comment)
 }
 
 func (gitlabService GitLabService) SetStatus(mergeRequest int, status string, statusContext string) error {
