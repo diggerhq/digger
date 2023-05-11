@@ -25,7 +25,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 
 	fmt.Printf("checking status, current status is %v\n", *(status.Table.TableStatus))
 	for err != nil && *(status.Table.TableStatus) != "ACTIVE" {
-		time.Sleep(1)
+		time.Sleep(1 * time.Second)
 		status, err = dynamoDbLock.DynamoDb.DescribeTable(input)
 		cnt++
 		if cnt > 10 {
