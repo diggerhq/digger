@@ -22,7 +22,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 	}
 	status, err := dynamoDbLock.DynamoDb.DescribeTable(input)
 	cnt := 0
-	for err != nil && *(status.Table.TableStatus) == "ACTIVE" {
+	for err != nil && *(status.Table.TableStatus) != "ACTIVE" {
 		time.Sleep(1)
 		status, err = dynamoDbLock.DynamoDb.DescribeTable(input)
 		cnt++
