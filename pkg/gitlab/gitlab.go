@@ -133,7 +133,6 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 }
 
 func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) {
-
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
@@ -150,9 +149,9 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	fmt.Printf("PublishComment: mergeRequest: %d, comment: %s\n", mergeRequestID, comment)
 }
 
-func (gitlabService GitLabService) SetStatus(mergeRequest int, status string, statusContext string) error {
+func (gitlabService GitLabService) SetStatus(mergeRequestID int, status string, statusContext string) error {
 	//TODO implement me
-	fmt.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s\n", mergeRequest, status, statusContext)
+	fmt.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s\n", mergeRequestID, status, statusContext)
 	return nil
 	//panic("SetStatus: implement me")
 }
@@ -163,14 +162,29 @@ func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequest int
 	panic("GetCombinedPullRequestStatus: implement me")
 }
 
-func (gitlabService GitLabService) MergePullRequest(mergeRequest int) error {
+func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 	//TODO implement me
 	panic("MergePullRequest: implement me")
 }
 
-func (gitlabService GitLabService) IsMergeable(mergeRequest int) (bool, string, error) {
-	//TODO implement me
-	panic("IsMergeable: implement me")
+func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, string, error) {
+	projectId := *gitlabService.Context.ProjectId
+	mergeRequestIID := *gitlabService.Context.MergeRequestIId
+
+	fmt.Printf("IsMergeable mergeRequestIID : %d, projectId: %d \n", mergeRequestIID, projectId)
+	opt := &go_gitlab.GetMergeRequestsOptions{}
+
+	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, mergeRequestIID, opt)
+
+	if err != nil {
+		fmt.Printf("Failed to get a MergeRequest: %d, %v \n", mergeRequestIID, err)
+		print(err.Error())
+	}
+
+	if mergeRequest.DetailedMergeStatus == "mergeable" {
+		return true, "", nil
+	}
+	return false, "", nil
 }
 
 func (gitlabService GitLabService) IsClosed(mergeRequest int) (bool, error) {
