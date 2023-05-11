@@ -118,9 +118,12 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	cmd := exec.Command("terraform", args...)
 
 	env := os.Environ()
+	println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 	for k, v := range envs {
+		println(k, v)
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
+	println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 	cmd.Env = env
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
