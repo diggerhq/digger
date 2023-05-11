@@ -21,7 +21,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 		TableName: aws.String(TABLE_NAME),
 	}
 	status, err := dynamoDbLock.DynamoDb.DescribeTable(input)
-	for err != nil && *(status.Table.TableStatus) != "ACTIVE" {
+	for err != nil && *(status.Table.TableStatus) == "CREATING" {
 		time.Sleep(1)
 		status, err = dynamoDbLock.DynamoDb.DescribeTable(input)
 	}
