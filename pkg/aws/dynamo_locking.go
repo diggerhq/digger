@@ -21,9 +21,16 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 		TableName: aws.String(TABLE_NAME),
 	}
 	status, err := dynamoDbLock.DynamoDb.DescribeTable(input)
-	for err != nil && *(status.Table.TableStatus) == "CREATING" {
+	cnt := 0
+	for err != nil && *(status.Table.TableStatus) == "ACTIVE" {
 		time.Sleep(1)
 		status, err = dynamoDbLock.DynamoDb.DescribeTable(input)
+		cnt++
+		if cnt > 10 {
+			fmt.Printf("DynamoDB failed to create, timed out during creation.\n" +
+				"Rerunning the action may cause creation to succeed\n")
+			os.Exit(1)
+		}
 	}
 	if err != nil {
 		return err
