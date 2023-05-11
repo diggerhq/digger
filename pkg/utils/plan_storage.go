@@ -74,6 +74,9 @@ func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFile
 		return nil, fmt.Errorf("unable to write data to file: %v", err)
 	}
 	fileName, err := filepath.Abs(file.Name())
+	if err != nil {
+		return nil, fmt.Errorf("unable to get absolute path for file: %v", err)
+	}
 	return &fileName, nil
 }
 

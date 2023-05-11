@@ -456,7 +456,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 	var plansFilename *string
 	if d.PlanStorage != nil {
 		var err error
-		plansFilename, err = d.PlanStorage.RetrievePlan(d.planFileName(), d.storedPlanFilePath())
+		plansFilename, err = d.PlanStorage.RetrievePlan(d.localPlanFilePath(), d.storedPlanFilePath())
 		if err != nil {
 			return fmt.Errorf("error retrieving plan: %v", err)
 		}
