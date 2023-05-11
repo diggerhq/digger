@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"cloud.google.com/go/storage"
@@ -72,8 +73,11 @@ func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFile
 	if _, err = io.Copy(file, rc); err != nil {
 		return nil, fmt.Errorf("unable to write data to file: %v", err)
 	}
-
-	return &localPlanFilePath, nil
+	fileName, err := filepath.Abs(file.Name())
+	if err != nil {
+		return nil, fmt.Errorf("unable to get absolute path for file: %v", err)
+	}
+	return &fileName, nil
 }
 
 func (psg *PlanStorageGcp) DeleteStoredPlan(storedPlanFilePath string) error {
