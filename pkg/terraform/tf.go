@@ -100,10 +100,7 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 		params = append(params, *plan)
 	}
 	stdout, stderr, _, err := tf.runTerraformCommand("apply", envs, params...)
-	if err != nil {
-		return "", "", err
-	}
-	return stdout, stderr, nil
+	return stdout, stderr, err
 }
 
 func (tf Terraform) runTerraformCommand(command string, envs map[string]string, arg ...string) (string, string, int, error) {
