@@ -253,7 +253,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
 		if requestedProject != nil {
-			coversAllImpactedProjects = len(impactedProjects) == 1
+			coversAllImpactedProjects = len(impactedProjects) == 1 && requestedProject.Name == impactedProjects[0].Name
 			impactedProjects = []configuration.Project{*requestedProject}
 		}
 
