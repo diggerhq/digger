@@ -19,10 +19,10 @@ import (
 	"strings"
 )
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager ci.CIService) ([]configuration.Project, int, bool, error) {
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
-	var mergePrIfCmdSuccessfull = false
+	var requestedProject *configuration.Project
 
 	switch ghEvent.(type) {
 	case models.PullRequestEvent:
@@ -30,33 +30,32 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		changedFiles, err := prManager.GetChangedFiles(prNumber)
 
 		if err != nil {
-			return nil, 0, false, fmt.Errorf("could not get changed files")
+			return nil, nil, 0, fmt.Errorf("could not get changed files")
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 	case models.IssueCommentEvent:
 		prNumber = ghEvent.(models.IssueCommentEvent).Issue.Number
-		requestedProject := parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
-		if requestedProject != "" {
-			newImpactedProjects := diggerConfig.GetProjects(requestedProject)
-			if len(newImpactedProjects) == 0 {
-				prManager.PublishComment(prNumber, "Error: Invalid project name '"+requestedProject+"'. The requested operation cannot be performed.")
-			} else if len(impactedProjects) == 1 && CheckIfApplyComment(ghEvent) {
-				mergePrIfCmdSuccessfull = true
-			}
-			impactedProjects = newImpactedProjects
-		} else {
-			mergePrIfCmdSuccessfull = true
-			changedFiles, err := prManager.GetChangedFiles(prNumber)
-			if err != nil {
-				log.Fatalf("Could not get changed files")
-			}
-			impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+		changedFiles, err := prManager.GetChangedFiles(prNumber)
+
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("could not get changed files")
 		}
+
+		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+
+		requestedProject := parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
+
+		for _, project := range impactedProjects {
+			if project.Name == requestedProject {
+				return impactedProjects, &project, prNumber, nil
+			}
+		}
+
 	default:
-		return nil, 0, false, fmt.Errorf("unsupported event type")
+		return nil, nil, 0, fmt.Errorf("unsupported event type")
 	}
-	return impactedProjects, prNumber, mergePrIfCmdSuccessfull, nil
+	return impactedProjects, requestedProject, prNumber, nil
 }
 
 func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
@@ -195,8 +194,9 @@ type ProjectCommand struct {
 	CommandEnvVars   map[string]string
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, error) {
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, bool, error) {
 	commandsPerProject := make([]ProjectCommand, 0)
+	coversAllImpactedProjects := true
 
 	switch event.(type) {
 	case models.PullRequestEvent:
@@ -247,10 +247,15 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 				})
 			}
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, true, nil
 	case models.IssueCommentEvent:
 		event := event.(models.IssueCommentEvent)
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
+
+		if requestedProject != nil {
+			coversAllImpactedProjects = len(impactedProjects) == 1
+			impactedProjects = []configuration.Project{*requestedProject}
+		}
 
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
@@ -265,7 +270,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					workspace := project.Workspace
 					workspaceOverride, err := parseWorkspace(event.Comment.Body)
 					if err != nil {
-						return []ProjectCommand{}, err
+						return []ProjectCommand{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
@@ -284,9 +289,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 				}
 			}
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, coversAllImpactedProjects, nil
 	default:
-		return []ProjectCommand{}, fmt.Errorf("unsupported event type: %T", event)
+		return []ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
 	}
 }
 
