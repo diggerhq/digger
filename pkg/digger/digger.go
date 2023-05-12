@@ -523,8 +523,6 @@ func (d DiggerExecutor) Unlock(prNumber int) error {
 	if err != nil {
 		return fmt.Errorf("failed to aquire lock: %s, %v", d.ProjectLock.LockId(), err)
 	}
-	err = d.PlanStorage.DeleteStoredPlan(d.storedPlanFilePath())
-
 	if d.PlanStage != nil {
 		err = d.PlanStorage.DeleteStoredPlan(d.storedPlanFilePath())
 		if err != nil {
