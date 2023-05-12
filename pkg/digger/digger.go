@@ -554,10 +554,10 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 	endPos := len(stdout)
 
 	if planError != nil {
-		if stdout != "" {
-			errorStr = stdout
-		} else if stderr != "" {
+		if stderr != "" {
 			errorStr = stderr
+		} else if stdout != "" {
+			errorStr = stdout
 		}
 		return errorStr
 	} else if nonEmptyOutput {
