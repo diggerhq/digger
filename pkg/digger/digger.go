@@ -51,6 +51,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 				return impactedProjects, &project, prNumber, nil
 			}
 		}
+		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
 
 	default:
 		return nil, nil, 0, fmt.Errorf("unsupported event type")
