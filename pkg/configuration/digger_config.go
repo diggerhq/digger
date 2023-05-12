@@ -153,6 +153,7 @@ type Step struct {
 	Action    string
 	Value     string
 	ExtraArgs []string `yaml:"extra_args,omitempty"`
+	Shell     string
 }
 
 func (s *Step) UnmarshalYAML(value *yaml.Node) error {
@@ -165,21 +166,32 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 		return err
 	}
 
-	for k, v := range stepMap {
-		s.Action = k
-		switch v := v.(type) {
-		case string:
-			s.Value = v
-		case map[string]interface{}:
-			var extraArgs []string
-			for _, v := range v["extra_args"].([]interface{}) {
+	if _, ok := stepMap["run"]; ok {
+		s.Action = "run"
+		s.Value = stepMap["run"].(string)
+		if _, ok := stepMap["shell"]; ok {
+			s.Shell = stepMap["shell"].(string)
+		}
+		return nil
+	}
+
+	s.extract(stepMap, "plan")
+	s.extract(stepMap, "apply")
+
+	return nil
+}
+
+func (s *Step) extract(stepMap map[string]interface{}, action string) {
+	if _, ok := stepMap[action]; ok {
+		s.Action = action
+		var extraArgs []string
+		if v, ok := stepMap["extra_args"]; ok {
+			for _, v := range v.([]interface{}) {
 				extraArgs = append(extraArgs, v.(string))
 			}
 			s.ExtraArgs = extraArgs
 		}
-		break
 	}
-	return nil
 }
 
 func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
