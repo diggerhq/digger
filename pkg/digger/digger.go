@@ -357,17 +357,17 @@ type DiggerExecutor struct {
 }
 
 type CommandRun interface {
-	Run(command string) (string, string, error)
+	Run(shell string, command string) (string, string, error)
 }
 
 type CommandRunner struct {
 }
 
-func (c CommandRunner) Run(command string) (string, string, error) {
-	parts := strings.Fields(command)
-	command = parts[0]
-	params := parts[1:]
-	cmd := exec.Command(command, params...)
+func (c CommandRunner) Run(shell string, command string) (string, string, error) {
+	if shell == "" {
+		shell = "bash"
+	}
+	cmd := exec.Command(shell, "-c "+command)
 
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
@@ -441,7 +441,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				d.ciService.PublishComment(prNumber, comment)
 			}
 			if step.Action == "run" {
-				stdout, stderr, err := d.CommandRunner.Run(step.Value)
+				stdout, stderr, err := d.CommandRunner.Run(step.Shell, step.Value)
 				log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
 				if err != nil {
 					return fmt.Errorf("error running command: %v", err)
@@ -506,7 +506,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					}
 				}
 				if step.Action == "run" {
-					stdout, stderr, err := d.CommandRunner.Run(step.Value)
+					stdout, stderr, err := d.CommandRunner.Run(step.Shell, step.Value)
 					log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
 					if err != nil {
 						return fmt.Errorf("error running command: %v", err)
