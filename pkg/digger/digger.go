@@ -444,6 +444,8 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				stdout, stderr, err := d.CommandRunner.Run(step.Value)
 				log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
 				if err != nil {
+					comment := utils.GetTerraformOutputAsCollapsibleComment("Failure running '"+step.Value+"' for **"+d.ProjectLock.LockId()+"**", stdout+stderr)
+					d.ciService.PublishComment(prNumber, comment)
 					return fmt.Errorf("error running command: %v", err)
 				}
 			}
@@ -509,6 +511,8 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					stdout, stderr, err := d.CommandRunner.Run(step.Value)
 					log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
 					if err != nil {
+						comment := utils.GetTerraformOutputAsCollapsibleComment("Failure running '"+step.Value+"' for **"+d.ProjectLock.LockId()+"**", stdout+stderr)
+						d.ciService.PublishComment(prNumber, comment)
 						return fmt.Errorf("error running command: %v", err)
 					}
 				}
