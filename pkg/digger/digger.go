@@ -367,7 +367,7 @@ func (c CommandRunner) Run(shell string, command string) (string, string, error)
 	if shell == "" {
 		shell = "bash"
 	}
-	cmd := exec.Command(shell, "-c "+command)
+	cmd := exec.Command(shell, "-c", command)
 
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
