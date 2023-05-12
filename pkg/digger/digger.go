@@ -46,6 +46,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 			}
 			impactedProjects = newImpactedProjects
 		} else {
+			mergePrIfCmdSuccessfull = true
 			changedFiles, err := prManager.GetChangedFiles(prNumber)
 			if err != nil {
 				log.Fatalf("Could not get changed files")
