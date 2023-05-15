@@ -22,7 +22,7 @@ import (
 func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager ci.CIService) ([]configuration.Project, int, bool, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
-	var mergePrIfCmdSuccessfull = false
+	var mergePrIfCmdSuccessful = false
 
 	switch ghEvent.(type) {
 	case models.PullRequestEvent:
@@ -42,7 +42,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 			if len(newImpactedProjects) == 0 {
 				prManager.PublishComment(prNumber, "Error: Invalid project name '"+requestedProject+"'. The requested operation cannot be performed.")
 			} else if len(impactedProjects) == 1 && CheckIfApplyComment(ghEvent) {
-				mergePrIfCmdSuccessfull = true
+				mergePrIfCmdSuccessful = true
 			}
 			impactedProjects = newImpactedProjects
 		} else {
@@ -56,7 +56,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 	default:
 		return nil, 0, false, fmt.Errorf("unsupported event type")
 	}
-	return impactedProjects, prNumber, mergePrIfCmdSuccessfull, nil
+	return impactedProjects, prNumber, mergePrIfCmdSuccessful, nil
 }
 
 func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
@@ -352,7 +352,7 @@ type DiggerExecutor struct {
 	PlanStage         *configuration.Stage
 	CommandRunner     CommandRun
 	TerraformExecutor terraform.TerraformExecutor
-	ciService         ci.CIService
+	CIService         ci.CIService
 	ProjectLock       utils.ProjectLock
 	PlanStorage       utils.PlanStorage
 }
@@ -439,7 +439,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				}
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+d.ProjectLock.LockId()+"**", plan)
-				d.ciService.PublishComment(prNumber, comment)
+				d.CIService.PublishComment(prNumber, comment)
 			}
 			if step.Action == "run" {
 				stdout, stderr, err := d.CommandRunner.Run(step.Shell, step.Value)
@@ -463,14 +463,14 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 		}
 	}
 
-	isMergeable, _, err := d.ciService.IsMergeable(prNumber)
+	isMergeable, _, err := d.CIService.IsMergeable(prNumber)
 	if err != nil {
 		return fmt.Errorf("error validating is PR is mergeable: %v", err)
 	}
 
 	if !isMergeable {
 		comment := "Cannot perform Apply since the PR is not currently mergeable."
-		d.ciService.PublishComment(prNumber, comment)
+		d.CIService.PublishComment(prNumber, comment)
 	} else {
 
 		if res, _ := d.ProjectLock.Lock(prNumber); res {
@@ -500,9 +500,9 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					stdout, stderr, err := d.TerraformExecutor.Apply(step.ExtraArgs, plansFilename, d.CommandEnvVars)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.ProjectLock.LockId()+"**", applyOutput)
-					d.ciService.PublishComment(prNumber, comment)
+					d.CIService.PublishComment(prNumber, comment)
 					if err != nil {
-						d.ciService.PublishComment(prNumber, "Error during applying.")
+						d.CIService.PublishComment(prNumber, "Error during applying.")
 						return fmt.Errorf("error executing apply: %v", err)
 					}
 				}
@@ -639,4 +639,36 @@ func defaultWorkflow() *configuration.Workflow {
 			},
 		},
 	}
+}
+
+type CIName string
+
+const (
+	None      = CIName("")
+	GitHub    = CIName("github")
+	GitLab    = CIName("gitlab")
+	BitBucket = CIName("bitbucket")
+)
+
+func (ci CIName) String() string {
+	return string(ci)
+}
+
+func DetectCI() CIName {
+
+	notEmpty := func(key string) bool {
+		return os.Getenv(key) != ""
+	}
+
+	if notEmpty("GITHUB_ACTIONS") {
+		return GitHub
+	}
+	if notEmpty("GITLAB_CI") {
+		return GitLab
+	}
+	if notEmpty("BITBUCKET_BUILD_NUMBER") {
+		return BitBucket
+	}
+	return None
+
 }
