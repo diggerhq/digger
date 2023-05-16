@@ -158,14 +158,14 @@ func MergePullRequest(githubPrService ci.CIService, prNumber int) {
 		log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
 	}
 
-	prIsMergeable, mergeableState, err := githubPrService.IsMergeable(prNumber)
+	prIsMergeable, err := githubPrService.IsMergeable(prNumber)
 
 	if err != nil {
 		log.Fatalf("failed to check if PR is mergeable, %v", err)
 	}
 
 	if !prIsMergeable {
-		log.Fatalf("PR is not mergeable. State: %v", mergeableState)
+		log.Fatalf("PR is not mergeable")
 	}
 
 	err = githubPrService.MergePullRequest(prNumber)
@@ -463,11 +463,10 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 		}
 	}
 
-	isMergeable, _, err := d.CIService.IsMergeable(prNumber)
+	isMergeable, err := d.CIService.IsMergeable(prNumber)
 	if err != nil {
 		return fmt.Errorf("error validating is PR is mergeable: %v", err)
 	}
-
 	if !isMergeable {
 		comment := "Cannot perform Apply since the PR is not currently mergeable."
 		d.CIService.PublishComment(prNumber, comment)

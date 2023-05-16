@@ -7,11 +7,12 @@ import (
 	"digger/pkg/terraform"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/caarlos0/env/v7"
-	go_gitlab "github.com/xanzy/go-gitlab"
 	"log"
 	"path"
 	"strings"
+
+	"github.com/caarlos0/env/v7"
+	go_gitlab "github.com/xanzy/go-gitlab"
 )
 
 // based on https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
@@ -175,7 +176,7 @@ func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 	return nil
 }
 
-func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, string, error) {
+func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error) {
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 
@@ -190,9 +191,9 @@ func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, string
 	}
 
 	if mergeRequest.DetailedMergeStatus == "mergeable" {
-		return true, "", nil
+		return true, nil
 	}
-	return false, "", nil
+	return false, nil
 }
 
 func (gitlabService GitLabService) IsClosed(mergeRequestID int) (bool, error) {
