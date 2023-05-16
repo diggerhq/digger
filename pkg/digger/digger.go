@@ -257,9 +257,12 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 
 		coversAllImpactedProjects := true
 
+		runForProjects := impactedProjects
+
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
+				runForProjects = []configuration.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
@@ -267,7 +270,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 
 		for _, command := range supportedCommands {
 			if strings.Contains(event.Comment.Body, command) {
-				for _, project := range impactedProjects {
+				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
 						workflow = *defaultWorkflow()
