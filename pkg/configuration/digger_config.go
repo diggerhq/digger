@@ -106,7 +106,6 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	*p = Project(raw)
 	return nil
-
 }
 
 func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -249,6 +248,7 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 	}
 
 	if fileName == "" {
+		fmt.Println("No digger config found, using default one")
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = defaultProject()
 		config.Workflows = make(map[string]Workflow)
@@ -340,6 +340,8 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 		for _, file := range changedFiles {
 			absoluteFile, _ := filepath.Abs(path.Join("/", file))
 			absoluteDir, _ := filepath.Abs(path.Join("/", project.Dir))
+
+			//fmt.Printf("absoluteFile: %s, absoluteDir: %s \n", absoluteFile, absoluteDir)
 			if strings.HasPrefix(absoluteFile, absoluteDir) {
 				result = append(result, project)
 				break

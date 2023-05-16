@@ -6,6 +6,7 @@ import (
 	"digger/pkg/configuration"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -71,8 +72,12 @@ func sendPayload(payload interface{}) error {
 }
 
 func init() {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Failed to get current dir. %s", err)
+	}
 	walker := configuration.FileSystemDirWalker{}
-	config, err := configuration.NewDiggerConfig("", &walker)
+	config, err := configuration.NewDiggerConfig(currentDir, &walker)
 	if err != nil {
 		return
 	}
