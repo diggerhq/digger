@@ -260,8 +260,6 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
-
-			impactedProjects = []configuration.Project{*requestedProject}
 		}
 
 		for _, command := range supportedCommands {
