@@ -197,7 +197,6 @@ type ProjectCommand struct {
 
 func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, bool, error) {
 	commandsPerProject := make([]ProjectCommand, 0)
-	coversAllImpactedProjects := true
 
 	switch event.(type) {
 	case models.PullRequestEvent:
@@ -253,8 +252,15 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		event := event.(models.IssueCommentEvent)
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
+		coversAllImpactedProjects := true
+
 		if requestedProject != nil {
-			coversAllImpactedProjects = len(impactedProjects) == 1 && requestedProject.Name == impactedProjects[0].Name
+			if len(impactedProjects) > 1 {
+				coversAllImpactedProjects = false
+			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
+				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
+			}
+
 			impactedProjects = []configuration.Project{*requestedProject}
 		}
 
