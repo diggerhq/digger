@@ -22,7 +22,6 @@ import (
 func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, prManager ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
-	var requestedProject *configuration.Project
 
 	switch ghEvent.(type) {
 	case models.PullRequestEvent:
@@ -48,7 +47,6 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		for _, project := range impactedProjects {
 			if project.Name == requestedProject {
 				return impactedProjects, &project, prNumber, nil
-
 			}
 		}
 		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
@@ -56,7 +54,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 	default:
 		return nil, nil, 0, fmt.Errorf("unsupported event type")
 	}
-	return impactedProjects, requestedProject, prNumber, nil
+	return impactedProjects, nil, prNumber, nil
 }
 
 func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, prManager ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
