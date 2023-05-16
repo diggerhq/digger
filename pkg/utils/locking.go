@@ -24,7 +24,7 @@ import (
 
 type ProjectLockImpl struct {
 	InternalLock Lock
-	PrManager    ci.CIService
+	CIService    ci.CIService
 	ProjectName  string
 	RepoName     string
 	RepoOwner    string
@@ -68,7 +68,7 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 		} else {
 			transactionIdStr := strconv.Itoa(*existingLockTransactionId)
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.RepoName + "). The locking plan must be applied or discarded before future plans can execute"
-			projectLock.PrManager.PublishComment(prNumber, comment)
+			projectLock.CIService.PublishComment(prNumber, comment)
 			return false, nil
 		}
 	}
@@ -79,7 +79,7 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 
 	if lockAcquired {
 		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(prNumber)
-		projectLock.PrManager.PublishComment(prNumber, comment)
+		projectLock.CIService.PublishComment(prNumber, comment)
 		println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(prNumber))
 
 	}
@@ -96,7 +96,7 @@ func (projectLock *ProjectLockImpl) verifyNoHangingLocks(prNumber int) (bool, er
 
 	if transactionId != nil {
 		if *transactionId != prNumber {
-			isPrClosed, err := projectLock.PrManager.IsClosed(*transactionId)
+			isPrClosed, err := projectLock.CIService.IsClosed(*transactionId)
 			if err != nil {
 				return false, fmt.Errorf("failed to check if PR holding a lock is closed: %w", err)
 			}
@@ -109,7 +109,7 @@ func (projectLock *ProjectLockImpl) verifyNoHangingLocks(prNumber int) (bool, er
 			}
 			transactionIdStr := strconv.Itoa(*transactionId)
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
-			projectLock.PrManager.PublishComment(prNumber, comment)
+			projectLock.CIService.PublishComment(prNumber, comment)
 			return false, nil
 		}
 		return true, nil
@@ -134,7 +134,7 @@ func (projectLock *ProjectLockImpl) Unlock(prNumber int) (bool, error) {
 			}
 			if lockReleased {
 				comment := "Project unlocked (" + projectLock.projectId() + ")."
-				projectLock.PrManager.PublishComment(prNumber, comment)
+				projectLock.CIService.PublishComment(prNumber, comment)
 				println("Project unlocked")
 				return true, nil
 			}
@@ -158,7 +158,7 @@ func (projectLock *ProjectLockImpl) ForceUnlock(prNumber int) error {
 
 		if lockReleased {
 			comment := "Project unlocked (" + projectLock.projectId() + ")."
-			projectLock.PrManager.PublishComment(prNumber, comment)
+			projectLock.CIService.PublishComment(prNumber, comment)
 			println("Project unlocked")
 		}
 		return nil

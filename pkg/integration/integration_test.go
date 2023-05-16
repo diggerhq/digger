@@ -44,7 +44,7 @@ func getProjectLockForTests() (error, *utils.ProjectLockImpl) {
 
 	projectLock := &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "test_dynamodb_lock",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -403,7 +403,7 @@ func TestHappyPath(t *testing.T) {
 
 	projectLock := &utils.ProjectLockImpl{
 		InternalLock: lock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -444,7 +444,7 @@ func TestHappyPath(t *testing.T) {
 
 	projectLock = &utils.ProjectLockImpl{
 		InternalLock: lock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -468,7 +468,7 @@ func TestHappyPath(t *testing.T) {
 
 	projectLock = &utils.ProjectLockImpl{
 		InternalLock: lock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -555,7 +555,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	projectLock := &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "digger_demo",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -595,7 +595,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	projectLock = &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "digger_demo",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -619,7 +619,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	projectLock = &utils.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "digger_demo",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -770,7 +770,7 @@ workflows:
 
 	projectLock := &utils.ProjectLockImpl{
 		InternalLock: lock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -811,7 +811,7 @@ workflows:
 
 	projectLock = &utils.ProjectLockImpl{
 		InternalLock: lock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
@@ -834,7 +834,7 @@ workflows:
 
 	projectLock = &utils.ProjectLockImpl{
 		InternalLock: lock,
-		PrManager:    githubPrService,
+		CIService:    githubPrService,
 		ProjectName:  "dev",
 		RepoName:     repositoryName,
 		RepoOwner:    repoOwner,
