@@ -44,6 +44,11 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 
 		requestedProject := parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
+
+		if requestedProject == "" {
+			return impactedProjects, nil, prNumber, nil
+		}
+
 		for _, project := range impactedProjects {
 			if project.Name == requestedProject {
 				return impactedProjects, &project, prNumber, nil
