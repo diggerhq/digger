@@ -76,9 +76,9 @@ func (m *MockPRManager) MergePullRequest(prNumber int) error {
 	return nil
 }
 
-func (m *MockPRManager) IsMergeable(prNumber int) (bool, string, error) {
+func (m *MockPRManager) IsMergeable(prNumber int) (bool, error) {
 	m.Commands = append(m.Commands, RunInfo{"IsMergeable", strconv.Itoa(prNumber), time.Now()})
-	return true, "", nil
+	return true, nil
 }
 
 func (m *MockPRManager) DownloadLatestPlans(prNumber int) (string, error) {
