@@ -28,9 +28,9 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) MergePullReque
 	return nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMergeable(prNumber int) (bool, string, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMergeable(prNumber int) (bool, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsMergeable")
-	return true, "", nil
+	return true, nil
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) DownloadLatestPlans(prNumber int) (string, error) {

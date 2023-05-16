@@ -3,8 +3,10 @@ package github
 import (
 	"context"
 	"digger/pkg/ci"
-	"github.com/google/go-github/v51/github"
 	"log"
+	"strings"
+
+	"github.com/google/go-github/v51/github"
 )
 
 func NewGithubPullRequestService(ghToken string, repoName string, owner string) ci.CIService {
@@ -84,13 +86,27 @@ func (svc *GithubService) MergePullRequest(prNumber int) error {
 	return err
 }
 
-func (svc *GithubService) IsMergeable(prNumber int) (bool, string, error) {
+func isMergeableState(mergeableState string) bool {
+	// https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus
+	mergeableStates := map[string]int{
+		"clean":     0,
+		"has_hooks": 1,
+	}
+	_, exists := mergeableStates[strings.ToLower(mergeableState)]
+	if !exists {
+		log.Printf("pr.GetMergeableState() returned: %v", mergeableState)
+	}
+
+	return exists
+}
+
+func (svc *GithubService) IsMergeable(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
 	}
 
-	return pr.GetMergeable(), pr.GetMergeableState(), nil
+	return pr.GetMergeable() && isMergeableState(pr.GetMergeableState()), nil
 }
 
 func (svc *GithubService) IsClosed(prNumber int) (bool, error) {
