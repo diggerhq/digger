@@ -60,7 +60,8 @@ func (svc *GithubService) SetStatus(prNumber int, status string, statusContext s
 }
 
 func (svc *GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
-	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
+	pr, response, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
+	log.Printf("GetCombinedPullRequestStatus response: %v", response)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
 	}
@@ -69,7 +70,7 @@ func (svc *GithubService) GetCombinedPullRequestStatus(prNumber int) (string, er
 	if err != nil {
 		log.Fatalf("error getting combined status: %v", err)
 	}
-
+	log.Printf("GetCombinedPullRequestStatus statuses: %v", statuses)
 	return *statuses.State, nil
 }
 
