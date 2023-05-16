@@ -81,9 +81,9 @@ func init() {
 	if err != nil {
 		return
 	}
-	if config.CollectUsageData != nil && !*config.CollectUsageData {
+	if !config.CollectUsageData {
 		collect_usage_data = false
-	} else if config.CollectUsageData == nil && os.Getenv("COLLECT_USAGE_DATA") == "false" {
+	} else if os.Getenv("COLLECT_USAGE_DATA") == "false" {
 		collect_usage_data = false
 	} else {
 		collect_usage_data = true
