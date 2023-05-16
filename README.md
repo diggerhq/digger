@@ -81,9 +81,11 @@ To contribute to Digger please follow our [Contributing guide](CONTRIBUTING.md)
 
 Q) **Since you're FOSS I assume you plan to monetize by selling support? Or...?**
 
-A) We are a vc-backed startup fully focused on this tool; in terms of monetization not planning to reinvent the wheel - we're just going to introduce an "enterprise tier" later on with things like OPA integration, drift detection, cost control, multi-team dashboards etc etc. And yes - support. Similarly to what Signoz does for monitoring, or Posthog for product metrics.
+A) We are a vc-backed startup fully focused on this tool; in terms of monetization - we are currently in the process of launching Digger Pro. Check out the features [here](https://digger.dev/#plans) and feel free to book a [demo](https://bit.ly/diggerpro) if interested.
 
 ## Links
+- [The case for a 'Headless Terraform IDP' for terraform self service](https://medium.com/@DiggerHQ/the-case-for-headless-terraform-idp-5bc5a873805f)
+- [Can GitHub actions be used as a CI/CD for Terraform?](https://medium.com/@DiggerHQ/can-github-actions-be-used-as-a-ci-cd-for-terraform-e4ac59a38b0)
 - [Why are people using Terraform Cloud?](https://www.reddit.com/r/Terraform/comments/1132qf3/why_are_people_using_terraform_cloud_i_may_be/)
 - [The Pains of Terraform Collaboration](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e)
 - [Four Great Alternatives to HashiCorp’s Terraform Cloud](https://medium.com/@elliotgraebert/four-great-alternatives-to-hashicorps-terraform-cloud-6e0a3a0a5482)
