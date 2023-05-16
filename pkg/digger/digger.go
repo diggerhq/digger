@@ -358,17 +358,18 @@ type DiggerExecutor struct {
 }
 
 type CommandRun interface {
-	Run(shell string, command string) (string, string, error)
+	Run(workingDir string, shell string, command string) (string, string, error)
 }
 
 type CommandRunner struct {
 }
 
-func (c CommandRunner) Run(shell string, command string) (string, string, error) {
+func (c CommandRunner) Run(workingDir string, shell string, command string) (string, string, error) {
 	if shell == "" {
 		shell = "bash"
 	}
 	cmd := exec.Command(shell, "-c", command)
+	cmd.Dir = workingDir
 
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
@@ -442,7 +443,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				d.CIService.PublishComment(prNumber, comment)
 			}
 			if step.Action == "run" {
-				stdout, stderr, err := d.CommandRunner.Run(step.Shell, step.Value)
+				stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, step.Value)
 				log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
 				if err != nil {
 					return fmt.Errorf("error running command: %v", err)
