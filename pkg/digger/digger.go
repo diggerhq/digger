@@ -507,7 +507,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					}
 				}
 				if step.Action == "run" {
-					stdout, stderr, err := d.CommandRunner.Run(step.Shell, step.Value)
+					stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, step.Value)
 					log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
 					if err != nil {
 						return fmt.Errorf("error running command: %v", err)
