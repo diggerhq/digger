@@ -21,7 +21,7 @@ type DiggerConfigYaml struct {
 	Projects               []Project               `yaml:"projects"`
 	AutoMerge              bool                    `yaml:"auto_merge"`
 	Workflows              map[string]Workflow     `yaml:"workflows"`
-	CollectUsageData       *bool                   `yaml:"collect_usage_data"`
+	CollectUsageData       bool                    `yaml:"collect_usage_data"`
 	GenerateProjectsConfig *GenerateProjectsConfig `yaml:"generate_projects"`
 }
 
@@ -34,7 +34,7 @@ type EnvVarConfig struct {
 type DiggerConfig struct {
 	Projects         []Project
 	AutoMerge        bool
-	CollectUsageData *bool
+	CollectUsageData bool
 	Workflows        map[string]Workflow
 }
 
