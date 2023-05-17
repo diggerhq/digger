@@ -136,8 +136,8 @@ runs:
 
     - name: Setup Checkov
       run: |
-        python3 -m venv python_venv
-        source python_venv/bin/activate
+        python3 -m venv .venv
+        source .venv/bin/activate
         pip3 install --upgrade pip
         pip3 install --upgrade setuptools
         pip3 install -U checkov==${{ inputs.checkov-version }}
@@ -149,7 +149,7 @@ runs:
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
-        SETUP_CHECKOV: ${{ inputs.checkov-version }}
+        ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
