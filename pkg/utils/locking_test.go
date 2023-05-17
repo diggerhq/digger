@@ -11,7 +11,7 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 	mockPrManager := github.MockGithubPullrequestManager{}
 	pl := ProjectLockImpl{
 		InternalLock: &mockDynamoDB,
-		PrManager:    &mockPrManager,
+		CIService:    &mockPrManager,
 		ProjectName:  "a",
 		RepoName:     "",
 		RepoOwner:    "",
