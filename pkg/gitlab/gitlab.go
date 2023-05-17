@@ -330,7 +330,7 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 		for _, command := range projectCommands.Commands {
 			projectLock := &utils.ProjectLockImpl{
 				InternalLock: lock,
-				PrManager:    service,
+				CIService:    service,
 				ProjectName:  projectCommands.ProjectName,
 				RepoName:     gitLabContext.ProjectName,
 				RepoOwner:    gitLabContext.ProjectNamespace,
@@ -421,7 +421,7 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 			for _, command := range projectCommands.Commands {
 				projectLock := &utils.ProjectLockImpl{
 					InternalLock: lock,
-					PrManager:    service,
+					CIService:    service,
 					ProjectName:  projectCommands.ProjectName,
 					RepoName:     gitLabContext.ProjectName,
 					RepoOwner:    gitLabContext.ProjectNamespace,
