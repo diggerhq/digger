@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -360,17 +361,31 @@ type DiggerExecutor struct {
 }
 
 type CommandRun interface {
-	Run(workingDir string, shell string, command string) (string, string, error)
+	Run(workingDir string, shell string, commands []string) (string, string, error)
 }
 
 type CommandRunner struct {
 }
 
-func (c CommandRunner) Run(workingDir string, shell string, command string) (string, string, error) {
+func (c CommandRunner) Run(workingDir string, shell string, commands []string) (string, string, error) {
 	if shell == "" {
 		shell = "bash"
 	}
-	cmd := exec.Command(shell, "-c", command)
+
+	scriptFile, err := ioutil.TempFile("", "run-script")
+	if err != nil {
+		return "", "", fmt.Errorf("error creating script file: %v", err)
+	}
+	defer os.Remove(scriptFile.Name())
+
+	for _, command := range commands {
+		_, err := scriptFile.WriteString(command + "\n")
+		if err != nil {
+			return "", "", fmt.Errorf("error writing to script file: %v", err)
+		}
+	}
+
+	cmd := exec.Command(shell, "-eo", "pipefail", scriptFile.Name())
 	cmd.Dir = workingDir
 
 	var stdout, stderr bytes.Buffer
@@ -378,7 +393,7 @@ func (c CommandRunner) Run(workingDir string, shell string, command string) (str
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
-	err := cmd.Run()
+	err = cmd.Run()
 
 	if err != nil {
 		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
@@ -420,12 +435,6 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				},
 			}
 		}
-		if os.Getenv("SETUP_CHECKOV") == "true" && len(planSteps) > 0 {
-			_, _, err := d.CommandRunner.Run(d.RepoPath, planSteps[0].Shell, "source python_venv/bin/activate")
-			if err != nil {
-				return fmt.Errorf("error sourcing python venv for checkov: %v", err)
-			}
-		}
 		for _, step := range planSteps {
 			if step.Action == "init" {
 				_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
@@ -451,7 +460,12 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				d.CIService.PublishComment(prNumber, comment)
 			}
 			if step.Action == "run" {
-				stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, step.Value)
+				var commands []string
+				if os.Getenv("ACTIVATE_VENV") == "true" {
+					commands = append(commands, "source .venv/bin/activate")
+				}
+				commands = append(commands, step.Value)
+				stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 				log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
 				if err != nil {
 					return fmt.Errorf("error running command: %v", err)
@@ -497,12 +511,6 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 				}
 			}
 
-			if os.Getenv("SETUP_CHECKOV") == "true" && len(applySteps) > 0 {
-				_, _, err := d.CommandRunner.Run(d.RepoPath, applySteps[0].Shell, "source python_venv/bin/activate")
-				if err != nil {
-					return fmt.Errorf("error sourcing python venv for checkov: %v", err)
-				}
-			}
 			for _, step := range applySteps {
 				if step.Action == "init" {
 					_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
@@ -521,7 +529,12 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					}
 				}
 				if step.Action == "run" {
-					stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, step.Value)
+					var commands []string
+					if os.Getenv("ACTIVATE_VENV") == "true" {
+						commands = append(commands, "source .venv/bin/activate")
+					}
+					commands = append(commands, step.Value)
+					stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 					log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
 					if err != nil {
 						return fmt.Errorf("error running command: %v", err)
