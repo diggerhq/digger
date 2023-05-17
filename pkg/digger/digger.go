@@ -462,7 +462,7 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 			if step.Action == "run" {
 				var commands []string
 				if os.Getenv("ACTIVATE_VENV") == "true" {
-					commands = append(commands, "source .venv/bin/activate")
+					commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 				}
 				commands = append(commands, step.Value)
 				stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
@@ -531,7 +531,7 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 				if step.Action == "run" {
 					var commands []string
 					if os.Getenv("ACTIVATE_VENV") == "true" {
-						commands = append(commands, "source .venv/bin/activate")
+						commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 					}
 					commands = append(commands, step.Value)
 					stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
