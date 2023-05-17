@@ -368,8 +368,10 @@ type CommandRunner struct {
 }
 
 func (c CommandRunner) Run(workingDir string, shell string, commands []string) (string, string, error) {
+	var args []string
 	if shell == "" {
 		shell = "bash"
+		args = []string{"-eo", "pipefail"}
 	}
 
 	scriptFile, err := ioutil.TempFile("", "run-script")
@@ -384,8 +386,9 @@ func (c CommandRunner) Run(workingDir string, shell string, commands []string) (
 			return "", "", fmt.Errorf("error writing to script file: %v", err)
 		}
 	}
+	args = append(args, scriptFile.Name())
 
-	cmd := exec.Command(shell, "-eo", "pipefail", scriptFile.Name())
+	cmd := exec.Command(shell, args...)
 	cmd.Dir = workingDir
 
 	var stdout, stderr bytes.Buffer
