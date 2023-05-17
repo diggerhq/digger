@@ -61,7 +61,7 @@ func gitHubCI(lock utils.Lock) {
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	impactedProjects, prNumber, mergeIfAllAppliesSuccess, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
@@ -73,7 +73,7 @@ func gitHubCI(lock utils.Lock) {
 		githubPrService.PublishComment(prNumber, reply)
 	}
 
-	commandsToRunPerProject, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, diggerConfig.Workflows)
+	commandsToRunPerProject, coversAllImpactedProjects, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 	}
@@ -87,7 +87,7 @@ func gitHubCI(lock utils.Lock) {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
-	if diggerConfig.AutoMerge && mergeIfAllAppliesSuccess && allAppliesSuccess {
+	if diggerConfig.AutoMerge && allAppliesSuccess && coversAllImpactedProjects {
 		digger.MergePullRequest(githubPrService, prNumber)
 		println("PR merged successfully")
 	}
