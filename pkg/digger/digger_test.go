@@ -182,7 +182,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"RetrievePlan #.tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run   echo", "LockId "}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan #.tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
@@ -224,7 +224,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out #.tfplan", "StorePlan #.tfplan", "LockId ", "PublishComment 1 <details>\n  <summary>Plan for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "Run   echo", "LockId "}, commandStrings)
+	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out #.tfplan", "StorePlan #.tfplan", "LockId ", "PublishComment 1 <details>\n  <summary>Plan for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage) []string {
