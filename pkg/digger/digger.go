@@ -19,7 +19,6 @@ import (
 	"strings"
 )
 
-
 func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
@@ -36,7 +35,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 	case models.IssueCommentEvent:
 		prNumber = ghEvent.(models.IssueCommentEvent).Issue.Number
-		changedFiles, err := prManager.GetChangedFiles(prNumber)
+		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
