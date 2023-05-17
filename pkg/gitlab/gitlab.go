@@ -349,6 +349,7 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 			diggerExecutor := digger.DiggerExecutor{
 				gitLabContext.ProjectNamespace,
 				gitLabContext.ProjectName,
+				workingDir,
 				projectCommands.ProjectName,
 				projectPath,
 				projectCommands.StateEnvVars,
