@@ -85,6 +85,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			diggerExecutor := DiggerExecutor{
 				repoOwner,
 				repoName,
+				workingDir,
 				projectCommands.ProjectName,
 				projectPath,
 				projectCommands.StateEnvVars,
@@ -344,6 +345,7 @@ func parseProjectName(comment string) string {
 type DiggerExecutor struct {
 	RepoOwner         string
 	RepoName          string
+	RepoPath          string
 	ProjectName       string
 	ProjectPath       string
 	StateEnvVars      map[string]string
@@ -418,6 +420,12 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				},
 			}
 		}
+		if os.Getenv("SETUP_CHECKOV") == "true" && len(planSteps) > 0 {
+			_, _, err := d.CommandRunner.Run(d.RepoPath, planSteps[0].Shell, "source python_venv/bin/activate")
+			if err != nil {
+				return fmt.Errorf("error sourcing python venv for checkov: %v", err)
+			}
+		}
 		for _, step := range planSteps {
 			if step.Action == "init" {
 				_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
@@ -489,6 +497,12 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 				}
 			}
 
+			if os.Getenv("SETUP_CHECKOV") == "true" && len(applySteps) > 0 {
+				_, _, err := d.CommandRunner.Run(d.RepoPath, applySteps[0].Shell, "source python_venv/bin/activate")
+				if err != nil {
+					return fmt.Errorf("error sourcing python venv for checkov: %v", err)
+				}
+			}
 			for _, step := range applySteps {
 				if step.Action == "init" {
 					_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
