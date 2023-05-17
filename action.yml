@@ -56,6 +56,14 @@ inputs:
   upload-plan-destination:
     description: Destination to upload the plan to. gcp and github are currently supported
     required: false
+  setup-checkov:
+    description: Setup Checkov
+    required: false
+    default: 'false'
+  checkov-version:
+    description: Checkov version
+    required: false
+    default: '2.3.245'
 
 outputs:
   output:
@@ -126,11 +134,22 @@ runs:
         terragrunt_version: ${{ inputs.terragrunt-version }}
       if: inputs.setup-terragrunt == 'true'
 
+    - name: Setup Checkov
+      run: |
+        python3 -m venv .venv
+        source .venv/bin/activate
+        pip3 install --upgrade pip
+        pip3 install --upgrade setuptools
+        pip3 install -U checkov==${{ inputs.checkov-version }}
+      shell: bash
+      if: inputs.setup-checkov == 'true'
+
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
