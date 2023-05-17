@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -373,17 +374,34 @@ type DiggerExecutor struct {
 }
 
 type CommandRun interface {
-	Run(workingDir string, shell string, command string) (string, string, error)
+	Run(workingDir string, shell string, commands []string) (string, string, error)
 }
 
 type CommandRunner struct {
 }
 
-func (c CommandRunner) Run(workingDir string, shell string, command string) (string, string, error) {
+func (c CommandRunner) Run(workingDir string, shell string, commands []string) (string, string, error) {
+	var args []string
 	if shell == "" {
 		shell = "bash"
+		args = []string{"-eo", "pipefail"}
 	}
-	cmd := exec.Command(shell, "-c", command)
+
+	scriptFile, err := ioutil.TempFile("", "run-script")
+	if err != nil {
+		return "", "", fmt.Errorf("error creating script file: %v", err)
+	}
+	defer os.Remove(scriptFile.Name())
+
+	for _, command := range commands {
+		_, err := scriptFile.WriteString(command + "\n")
+		if err != nil {
+			return "", "", fmt.Errorf("error writing to script file: %v", err)
+		}
+	}
+	args = append(args, scriptFile.Name())
+
+	cmd := exec.Command(shell, args...)
 	cmd.Dir = workingDir
 
 	var stdout, stderr bytes.Buffer
@@ -391,7 +409,7 @@ func (c CommandRunner) Run(workingDir string, shell string, command string) (str
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
-	err := cmd.Run()
+	err = cmd.Run()
 
 	if err != nil {
 		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
@@ -458,8 +476,13 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 				d.CIService.PublishComment(prNumber, comment)
 			}
 			if step.Action == "run" {
-				stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, step.Value)
-				log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
+				var commands []string
+				if os.Getenv("ACTIVATE_VENV") == "true" {
+					commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
+				}
+				commands = append(commands, step.Value)
+				log.Printf("Running %v for **%v**\n", step.Value, d.ProjectLock.LockId())
+				_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 				if err != nil {
 					return fmt.Errorf("error running command: %v", err)
 				}
@@ -522,8 +545,13 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 					}
 				}
 				if step.Action == "run" {
-					stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, step.Value)
-					log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
+					var commands []string
+					if os.Getenv("ACTIVATE_VENV") == "true" {
+						commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
+					}
+					commands = append(commands, step.Value)
+					log.Printf("Running %v for **%v**\n", step.Value, d.ProjectLock.LockId())
+					_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 					if err != nil {
 						return fmt.Errorf("error running command: %v", err)
 					}
