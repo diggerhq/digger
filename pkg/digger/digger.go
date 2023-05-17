@@ -86,7 +86,6 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 			diggerExecutor := DiggerExecutor{
 				repoOwner,
 				repoName,
-				workingDir,
 				projectCommands.ProjectName,
 				projectPath,
 				projectCommands.StateEnvVars,
@@ -346,7 +345,6 @@ func parseProjectName(comment string) string {
 type DiggerExecutor struct {
 	RepoOwner         string
 	RepoName          string
-	RepoPath          string
 	ProjectName       string
 	ProjectPath       string
 	StateEnvVars      map[string]string
