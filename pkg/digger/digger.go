@@ -466,8 +466,8 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 					commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 				}
 				commands = append(commands, step.Value)
-				stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
-				log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
+				log.Printf("Running %v for **%v**\n", step.Value, d.ProjectLock.LockId())
+				_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 				if err != nil {
 					return fmt.Errorf("error running command: %v", err)
 				}
@@ -535,8 +535,8 @@ func (d DiggerExecutor) Apply(prNumber int) error {
 						commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 					}
 					commands = append(commands, step.Value)
-					stdout, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
-					log.Printf("Running %v for **%v**\n%v%v", step.Value, d.ProjectLock.LockId(), stdout, stderr)
+					log.Printf("Running %v for **%v**\n", step.Value, d.ProjectLock.LockId())
+					_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 					if err != nil {
 						return fmt.Errorf("error running command: %v", err)
 					}
