@@ -29,12 +29,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Send Slack notification
-        uses: slackapi/slack@v3
+        uses: slackapi/slack-github-action@v1.24.0
         with:
-          channel: repoanalytics   # Replace with your Slack channel name
-          message: |
-            Repository: ${{ github.repository }}
-            Clones: ${{ steps.clones.outputs.count }}
-            Viewers: ${{ steps.viewers.outputs.count }}
+          payload: |
+            {
+              "Repository": ${{ github.repository }},
+              "Clones": "${{ steps.clones.outputs.count }}"
+              "Viewers": "${{ steps.viewers.outputs.count }}"
+            }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
