@@ -36,5 +36,5 @@ jobs:
             Repository: ${{ github.repository }}
             Clones: ${{ steps.clones.outputs.count }}
             Viewers: ${{ steps.viewers.outputs.count }}
-          env:
-            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
