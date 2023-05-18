@@ -34,9 +34,8 @@ jobs:
         with:
           payload: |
             {
-              "Repository": "${{ github.repository }}",
-              "Clones": "${{ steps.clones.outputs.count }}",
-              "Viewers": "${{ steps.viewers.outputs.count }}"
+              "text": "Repository: ${{ github.repository }}\n Clones: ${{ steps.clones.outputs.count }}\n Viewers: ${{ steps.viewers.outputs.count }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
