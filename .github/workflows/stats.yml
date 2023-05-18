@@ -21,13 +21,13 @@ jobs:
         id: clones
         run: echo "::set-output name=count::$(gh api repos/${{ github.repository }}/traffic/clones --jq '.count')"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
       - name: Count Viewers
         id: viewers
         run: echo "::set-output name=count::$(gh api repos/${{ github.repository }}/traffic/views --jq '.count')"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
       - name: Send Slack notification
         uses: slackapi/slack-github-action@v1.24.0
