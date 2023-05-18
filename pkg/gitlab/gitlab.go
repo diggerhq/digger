@@ -88,8 +88,7 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuratio
 	var impactedProjects []configuration.Project
 
 	if gitlabContext.MergeRequestIId == nil {
-		println("Merge Request ID is not found.")
-		return nil, nil
+		return nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
 	}
 
 	mergeRequestId := gitlabContext.MergeRequestIId
@@ -148,11 +147,13 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	}
 }
 
+// SetStatus GitLab implementation is using https://docs.gitlab.com/15.11/ee/api/status_checks.html (external status checks)
+// https://docs.gitlab.com/ee/user/project/merge_requests/status_checks.html#add-a-status-check-service
+// only supported by 'Ultimate' plan
 func (gitlabService GitLabService) SetStatus(mergeRequestID int, status string, statusContext string) error {
 	//TODO implement me
 	fmt.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s\n", mergeRequestID, status, statusContext)
 	return nil
-	//panic("SetStatus: implement me")
 }
 
 func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequestID int) (string, error) {
@@ -297,13 +298,6 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if strings.Contains(gitLabContext.DiggerCommand, command) {
 				for _, project := range impactedProjects {
 					workspace := project.Workspace
-					//workspaceOverride, err := parseWorkspace(gitLabContext.DiggerCommand)
-					//if err != nil {
-					//	return []digger.ProjectCommand{}, err
-					//}
-					//if workspaceOverride != "" {
-					//	workspace = workspaceOverride
-					//}
 					commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,

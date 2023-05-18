@@ -130,6 +130,11 @@ func gitLabCI(lock utils.Lock) {
 		os.Exit(4)
 	}
 
+	if gitLabContext.MergeRequestIId == nil {
+		fmt.Println("value for CI_MERGE_REQUEST_IID is not found")
+		os.Exit(4)
+	}
+
 	gitlabService, err := gitlab.NewGitLabService(gitlabToken, gitLabContext)
 	if err != nil {
 		fmt.Printf("failed to initialise GitLab service, %v", err)
