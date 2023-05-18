@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
+  push:
+    branches:
+      - feat/stats
 
 jobs:
   notify:
@@ -14,15 +17,15 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v2
 
-      - name: Count Clones
+      - name: Count unique clones
         id: clones
-        run: echo "::set-output name=count::$(gh api repos/${{ github.repository }}/traffic/clones --jq '.count')"
+        run: echo "::set-output name=count::$(gh api repos/${{ github.repository }}/traffic/clones?per=day --jq '.uniques')"
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
-      - name: Count Viewers
+      - name: Count unique viewers
         id: viewers
-        run: echo "::set-output name=count::$(gh api repos/${{ github.repository }}/traffic/views --jq '.count')"
+        run: echo "::set-output name=count::$(gh api repos/${{ github.repository }}/traffic/views?per=day --jq '.uniques')"
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
