@@ -35,7 +35,7 @@ jobs:
           payload: |
             {
               "Repository": ${{ github.repository }},
-              "Clones": "${{ steps.clones.outputs.count }}"
+              "Clones": "${{ steps.clones.outputs.count }}",
               "Viewers": "${{ steps.viewers.outputs.count }}"
             }
         env:
