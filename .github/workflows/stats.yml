@@ -8,10 +8,9 @@ on:
     branches:
       - feat/stats
 
-permissions: read-all
-
 jobs:
   notify:
+    permissions: write-all
     runs-on: ubuntu-latest
 
     steps:
