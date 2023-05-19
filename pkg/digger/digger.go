@@ -466,6 +466,18 @@ func (d DiggerExecutor) Plan(prNumber int) error {
 					return fmt.Errorf("error executing plan: %v", err)
 				}
 				if d.PlanStorage != nil {
+					planExists, err := d.PlanStorage.PlanExists(d.storedPlanFilePath())
+					if err != nil {
+						return fmt.Errorf("error checking if plan exists: %v", err)
+					}
+
+					if planExists {
+						err = d.PlanStorage.DeleteStoredPlan(d.storedPlanFilePath())
+						if err != nil {
+							return fmt.Errorf("error deleting plan: %v", err)
+						}
+					}
+
 					err = d.PlanStorage.StorePlan(d.localPlanFilePath(), d.storedPlanFilePath())
 					if err != nil {
 						return fmt.Errorf("error storing plan: %v", err)
