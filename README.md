@@ -5,13 +5,11 @@
   <a href="https://docs.digger.dev/">Docs</a>
 </h2>
 
-Digger runs Terraform jobs in the CI/CD system you already have, such as Github Actions.
+CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
 
-CI/CD for Terraform is [not easy](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). This is why Terraform Cloud, Spacelift and Atlantis are essentially standalone full-stack CI/CD systems.
+But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
 
-But why have 2 CI systems? Why not reuse the existing CI infrastructure? Digger does just that.
-
-With Digger terraform jobs natively in your CI runners. It takes care of locks, state, outputs etc. [Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
+Digger runs terraform natively in your CI and takes care of the other bits - locks, plan artifacts and so on. [Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
 
 
 ## Features
