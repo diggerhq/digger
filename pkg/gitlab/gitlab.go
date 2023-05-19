@@ -228,9 +228,16 @@ func (e GitLabEventType) String() string {
 }
 
 const (
-	MergeRequestOpened  = GitLabEventType("merge_request_opened")
-	MergeRequestUpdated = GitLabEventType("merge_request_updated")
-	MergeRequestClosed  = GitLabEventType("merge_request_closed")
+	MergeRequestOpened     = GitLabEventType("merge_request_opened")
+	MergeRequestClosed     = GitLabEventType("merge_request_closed")
+	MergeRequestReopened   = GitLabEventType("merge_request_reopened")
+	MergeRequestUpdated    = GitLabEventType("merge_request_updated")
+	MergeRequestApproved   = GitLabEventType("merge_request_approved")
+	MergeRequestUnapproved = GitLabEventType("merge_request_unapproved")
+	MergeRequestApproval   = GitLabEventType("merge_request_approval")
+	MergeRequestUnapproval = GitLabEventType("merge_request_unapproval")
+	MergeRequestMerged     = GitLabEventType("merge_request_merge")
+
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
@@ -239,23 +246,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 
 	switch event.EventType {
 	case MergeRequestOpened:
-		for _, project := range impactedProjects {
-			workflow, ok := workflows[project.Workflow]
-			if !ok {
-				workflow = workflows["default"]
-			}
-
-			commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
-				ProjectName:      project.Name,
-				ProjectDir:       project.Dir,
-				ProjectWorkspace: project.Workspace,
-				Terragrunt:       project.Terragrunt,
-				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
-			})
-		}
-		return commandsPerProject, nil
+	case MergeRequestReopened:
 	case MergeRequestUpdated:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
@@ -275,6 +266,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		}
 		return commandsPerProject, nil
 	case MergeRequestClosed:
+	case MergeRequestMerged:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
@@ -313,6 +305,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 	default:
 		return []digger.ProjectCommand{}, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
+	return nil, nil
 }
 
 func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {

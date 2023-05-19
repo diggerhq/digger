@@ -59,7 +59,7 @@ func gitHubCI(lock utils.Lock) {
 	eventName := parsedGhContext.EventName
 	splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
-	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
 	impactedProjects, requestedProject, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
@@ -131,8 +131,8 @@ func gitLabCI(lock utils.Lock) {
 	}
 
 	if gitLabContext.MergeRequestIId == nil {
-		fmt.Println("value for CI_MERGE_REQUEST_IID is not found")
-		os.Exit(4)
+		fmt.Println("No merge request found.")
+		os.Exit(0)
 	}
 
 	gitlabService, err := gitlab.NewGitLabService(gitlabToken, gitLabContext)
