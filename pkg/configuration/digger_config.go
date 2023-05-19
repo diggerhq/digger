@@ -3,12 +3,13 @@ package configuration
 import (
 	"errors"
 	"fmt"
-	"github.com/bmatcuk/doublestar/v4"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/bmatcuk/doublestar/v4"
+	"gopkg.in/yaml.v3"
 )
 
 type WorkflowConfiguration struct {
@@ -92,7 +93,10 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 	return files, nil
 }
 
-var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
+var (
+	ErrDiggerConfigConflict  = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
+	ErrDiggerInvalidWorkflow = errors.New("invalid configuration, missing init found in `%s`, please ensure that you specify `%s` in your configuration file")
+)
 
 func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawProject Project
@@ -176,6 +180,7 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 
 	s.extract(stepMap, "plan")
 	s.extract(stepMap, "apply")
+	s.extract(stepMap, "init")
 
 	return nil
 }
@@ -191,6 +196,14 @@ func (s *Step) extract(stepMap map[string]interface{}, action string) {
 			s.ExtraArgs = extraArgs
 		}
 	}
+}
+
+func (s *Step) IsEmptyValueAndExtraArgs() error {
+	if (s.Action == "init" || s.Action == "plan") && (s.Value == "" && s.ExtraArgs == nil) {
+		return fmt.Errorf("%s", s.Action)
+	}
+
+	return nil
 }
 
 func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
@@ -281,6 +294,7 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
 		}
+
 		return c, nil
 	}
 
@@ -301,6 +315,12 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 	if err != nil {
 		return nil, err
 	}
+
+	err = c.CheckWorkflowConfiguration()
+	if err != nil {
+		return nil, err
+	}
+
 	return c, nil
 }
 
@@ -382,6 +402,41 @@ func (c *DiggerConfig) GetWorkflowConfiguration(projectName string) WorkflowConf
 		return WorkflowConfiguration{}
 	}
 	return *workflow.Configuration
+}
+
+func checkSteps(steps []Step) error {
+	for _, step := range steps {
+		err := step.IsEmptyValueAndExtraArgs()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *DiggerConfig) CheckWorkflowConfiguration() error {
+	for _, project := range c.Projects {
+		workflows := c.Workflows
+		workflow, ok := workflows[project.Workflow]
+
+		if !ok {
+			return nil
+		}
+
+		err := checkSteps(workflow.Plan.Steps)
+		if err != nil {
+			return fmt.Errorf(ErrDiggerInvalidWorkflow.Error(), project.Workflow, err.Error())
+		}
+
+		err = checkSteps(workflow.Apply.Steps)
+		if err != nil {
+			return fmt.Errorf(ErrDiggerInvalidWorkflow.Error(), project.Workflow, err.Error())
+		}
+	}
+
+	return nil
 }
 
 type File struct {
