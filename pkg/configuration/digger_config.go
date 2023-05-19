@@ -193,11 +193,50 @@ func (s *Step) extract(stepMap map[string]interface{}, action string) {
 	}
 }
 
+// duplicate copied from digger.go
+func defaultWorkflow() *Workflow {
+	return &Workflow{
+		Configuration: &WorkflowConfiguration{
+			OnCommitToDefault:   []string{"digger unlock"},
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+		},
+		Plan: &Stage{
+			Steps: []Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "plan", ExtraArgs: []string{},
+				},
+			},
+		},
+		Apply: &Stage{
+			Steps: []Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "apply", ExtraArgs: []string{},
+				},
+			},
+		},
+	}
+}
+
 func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	var diggerConfig DiggerConfig
 
 	diggerConfig.AutoMerge = diggerYaml.AutoMerge
-	diggerConfig.Workflows = diggerYaml.Workflows
+
+	if diggerYaml.Workflows != nil {
+		diggerConfig.Workflows = diggerYaml.Workflows
+	} else {
+		workflow := *defaultWorkflow()
+		diggerConfig.Workflows = make(map[string]Workflow)
+		diggerConfig.Workflows["default"] = workflow
+	}
+
 	diggerConfig.Projects = diggerYaml.Projects
 	diggerConfig.CollectUsageData = diggerYaml.CollectUsageData
 
