@@ -7,6 +7,7 @@ import (
 	"digger/pkg/terraform"
 	"digger/pkg/utils"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"path"
 	"strings"
@@ -250,6 +251,10 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 	case MergeRequestUpdated:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
+
+			fmt.Printf("ConvertGitLabEventToCommands, project.Workflow\n")
+			spew.Dump(project.Workflow)
+			fmt.Println()
 			if !ok {
 				workflow = workflows["default"]
 			}
