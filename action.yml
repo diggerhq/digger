@@ -64,6 +64,10 @@ inputs:
     description: Checkov version
     required: false
     default: '2.3.245'
+  disable-locking:
+    description: Disable locking
+    required: false
+    default: 'false'
 
 outputs:
   output:
@@ -150,6 +154,7 @@ runs:
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
+        DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -162,6 +167,7 @@ runs:
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
       id: digger
       shell: bash
       run: |
