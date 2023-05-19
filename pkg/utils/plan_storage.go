@@ -18,6 +18,7 @@ type PlanStorage interface {
 	StorePlan(localPlanFilePath string, storedPlanFilePath string) error
 	RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error)
 	DeleteStoredPlan(storedPlanFilePath string) error
+	PlanExists(storedPlanFilePath string) (bool, error)
 }
 
 type PlanStorageGcp struct {
@@ -32,6 +33,18 @@ type GithubPlanStorage struct {
 	RepoName          string
 	PullRequestNumber int
 	ZipManager        Zipper
+}
+
+func (psg *PlanStorageGcp) PlanExists(storedPlanFilePath string) (bool, error) {
+	obj := psg.Bucket.Object(storedPlanFilePath)
+	_, err := obj.Attrs(psg.Context)
+	if err != nil {
+		if err == storage.ErrObjectNotExist {
+			return false, nil
+		}
+		return false, fmt.Errorf("unable to get object attributes: %v", err)
+	}
+	return true, nil
 }
 
 func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
@@ -112,6 +125,23 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanF
 		return nil, fmt.Errorf("error extracting plan: %v", err)
 	}
 	return &plansFilename, nil
+}
+
+func (gps *GithubPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
+	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
+		PerPage: 100,
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, "plans-"+strconv.Itoa(gps.PullRequestNumber))
+
+	if latestPlans == nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (gps *GithubPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
