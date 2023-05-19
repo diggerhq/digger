@@ -7,10 +7,21 @@ import (
 )
 
 type Github struct {
-	Event           Event  `json:"event"`
-	EventName       string `json:"event_name"`
-	Repository      string `json:"repository"`
-	RepositoryOwner string `json:"repository_owner"`
+	Action           string `json:"action"`
+	ActionPath       string `json:"action_path"`
+	ActionRef        string `json:"action_ref"`
+	ActionRepository string `json:"action_repository"`
+	ActionStatus     string `json:"action_status"`
+	Actor            string `json:"actor"`
+	BaseRef          string `json:"base_ref"`
+	Env              string `json:"env"`
+	Event            Event  `json:"event"`
+	EventName        string `json:"event_name"`
+	EventPath        string `json:"event_path"`
+	Path             string `json:"path"`
+	RefType          string `json:"ref_type"`
+	Repository       string `json:"repository"`
+	RepositoryOwner  string `json:"repository_owner"`
 }
 
 type Event interface{}
@@ -70,6 +81,7 @@ type PullRequest struct {
 }
 
 type IssueCommentEvent struct {
+	Action  string  `json:"action"`
 	Comment Comment `json:"comment"`
 	Issue   Issue   `json:"issue"`
 }
