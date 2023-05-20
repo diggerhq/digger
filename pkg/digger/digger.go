@@ -631,7 +631,8 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 		regex := regexp.MustCompile(*regexStr)
 		matches := regex.FindStringSubmatch(stdout)
 		if len(matches) > 0 {
-			endPos = strings.Index(stdout, matches[len(matches)-1]) + len(matches[len(matches)-1])
+			lastMatch := matches[len(matches)-1]
+			endPos = strings.Index(stdout, lastMatch) + len(lastMatch)
 		}
 	}
 
