@@ -129,7 +129,7 @@ runs:
       if: inputs.setup-terraform == 'true'
 
     - name: Setup Terragrunt
-      uses: autero1/action-terragrunt@v1.3.1
+      uses: autero1/action-terragrunt@v1.3.2
       with:
         terragrunt_version: ${{ inputs.terragrunt-version }}
       if: inputs.setup-terragrunt == 'true'
