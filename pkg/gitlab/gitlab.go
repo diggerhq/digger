@@ -10,6 +10,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"log"
 	"path"
+	"runtime/debug"
 	"strings"
 
 	"github.com/caarlos0/env/v7"
@@ -139,8 +140,10 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
 
-	fmt.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, \n", mergeRequestID, projectId, mergeRequestIID)
-
+	fmt.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestID, projectId, mergeRequestIID, discussionId)
+	fmt.Println("+++++")
+	debug.PrintStack()
+	fmt.Println("=====")
 	_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 	if err != nil {
 		fmt.Printf("Failed to publish a comment. %v\n", err)
