@@ -144,6 +144,16 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	fmt.Println("+++++")
 	debug.PrintStack()
 	fmt.Println("=====")
+
+	if discussionId == "" {
+		commentOpt := &go_gitlab.CreateMergeRequestDiscussionOptions{Body: &comment}
+		discussion, _, err := gitlabService.Client.Discussions.CreateMergeRequestDiscussion(projectId, mergeRequestIID, commentOpt)
+		if err != nil {
+			fmt.Printf("Failed to publish a comment. %v\n", err)
+			print(err.Error())
+		}
+		discussionId = discussion.ID
+	}
 	_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 	if err != nil {
 		fmt.Printf("Failed to publish a comment. %v\n", err)
