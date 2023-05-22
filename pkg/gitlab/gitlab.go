@@ -245,6 +245,7 @@ const (
 func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]digger.ProjectCommand, error) {
 	commandsPerProject := make([]digger.ProjectCommand, 0)
 
+	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
 	case MergeRequestOpened:
 	case MergeRequestReopened:
@@ -252,7 +253,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 
-			fmt.Printf("ConvertGitLabEventToCommands, project.Workflow\n")
+			fmt.Printf("ConvertGitLabEventToCommands, project.Workflow: ")
 			spew.Dump(project.Workflow)
 			fmt.Println()
 			if !ok {
