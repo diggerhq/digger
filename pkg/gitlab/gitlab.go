@@ -10,7 +10,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"log"
 	"path"
-	"runtime/debug"
 	"strings"
 
 	"github.com/caarlos0/env/v7"
@@ -141,9 +140,6 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
 
 	fmt.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestID, projectId, mergeRequestIID, discussionId)
-	fmt.Println("+++++")
-	debug.PrintStack()
-	fmt.Println("=====")
 
 	if discussionId == "" {
 		commentOpt := &go_gitlab.CreateMergeRequestDiscussionOptions{Body: &comment}
