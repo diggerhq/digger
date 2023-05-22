@@ -247,9 +247,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
-	case MergeRequestOpened:
-	case MergeRequestReopened:
-	case MergeRequestUpdated:
+	case MergeRequestOpened, MergeRequestReopened, MergeRequestUpdated:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 
@@ -271,9 +269,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			})
 		}
 		return commandsPerProject, nil
-	case MergeRequestClosed:
-		fmt.Println("Merge request closed.")
-	case MergeRequestMerged:
+	case MergeRequestClosed, MergeRequestMerged:
 		fmt.Println("Merge request closed or merged.")
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
