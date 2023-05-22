@@ -272,6 +272,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		}
 		return commandsPerProject, nil
 	case MergeRequestClosed:
+		fmt.Println("Merge request closed.")
 	case MergeRequestMerged:
 		fmt.Println("Merge request closed or merged.")
 		for _, project := range impactedProjects {
