@@ -103,6 +103,7 @@ type Repository struct {
 }
 
 func GetGitHubContext(ghContext string) (Github, error) {
+	println(ghContext)
 	var parsedGhContext Github
 	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
 	if err != nil {
