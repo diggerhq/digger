@@ -10,7 +10,6 @@ import (
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-github/v51/github"
 	"log"
 	"os"
@@ -131,9 +130,6 @@ func gitLabCI(lock utils.Lock) {
 		fmt.Printf("failed to parse GitLab context. %s\n", err.Error())
 		os.Exit(4)
 	}
-
-	fmt.Println("GitlabContext:")
-	spew.Dump(gitLabContext)
 
 	if gitLabContext.MergeRequestIId == nil {
 		fmt.Println("No merge request found.")
