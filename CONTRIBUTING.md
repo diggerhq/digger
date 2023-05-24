@@ -49,7 +49,7 @@ When you have made changes to the codebase that you would like to contribute bac
 ## Release Process
 **NOTE: The default branch `@develop` is not gauranteed to be stable and you should always use published release versions in your usecases.**
 
-- All pull requests are merged to the default devlop branch after initial unit tests and integration tests are passing and required code review requirements are met.
+- All pull requests are merged to the default develop branch after initial unit tests and integration tests are passing and required code review requirements are met.
 - We checkout a pre-release branch out to prepare for an upcoming release.
 - We perform additional manual and automated tests in this branch to make sure there are no regressions.
 - Once we are ready we tag the head of our release branch and perform a release on it.
