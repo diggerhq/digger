@@ -179,10 +179,35 @@ func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 
 	fmt.Printf("MergePullRequest mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, \n", mergeRequestID, projectId, mergeRequestIID)
 
-	_, _, err := gitlabService.Client.MergeRequests.AcceptMergeRequest(projectId, mergeRequestIID, opt)
+	// check if there are any unresolved discussions in the merge request and resolve them
+	/*
+		discussionsOpt := &go_gitlab.ListMergeRequestDiscussionsOptions{}
+		discussions, _, err := gitlabService.Client.Discussions.ListMergeRequestDiscussions(projectId, mergeRequestIID, discussionsOpt)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, d := range discussions {
+			discussion, err := gitlabService.Client.Discussions.UpdateMergeRequestDiscussionNote(projectId, mergeRequestIID, d)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if discussion.
+		}
+	*/
+
+	resolved := true
+	resolveOpt := &go_gitlab.ResolveMergeRequestDiscussionOptions{Resolved: &resolved}
+	_, _, err := gitlabService.Client.Discussions.ResolveMergeRequestDiscussion(projectId, mergeRequestIID, gitlabService.Context.DiscussionID, resolveOpt)
+	if err != nil {
+		fmt.Printf("error resolving discussion %s, \n%v \n", gitlabService.Context.DiscussionID, err)
+		return fmt.Errorf("error resolving discussion %s, \n%v \n", gitlabService.Context.DiscussionID, err)
+	}
+
+	_, _, err = gitlabService.Client.MergeRequests.AcceptMergeRequest(projectId, mergeRequestIID, opt)
 	if err != nil {
 		fmt.Printf("Failed to merge Merge Request. %v\n", err)
-		return err
+		return fmt.Errorf("Failed to merge Merge Request. %v\n", err)
 	}
 	return nil
 }
