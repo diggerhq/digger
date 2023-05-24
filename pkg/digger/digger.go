@@ -429,12 +429,12 @@ func (d DiggerExecutor) storedPlanFilePath() string {
 }
 
 func (d DiggerExecutor) Plan(prNumber int) (bool, error) {
-	res, err := d.ProjectLock.Lock(prNumber)
+	locked, err := d.ProjectLock.Lock(prNumber)
 	if err != nil {
 		return false, fmt.Errorf("error locking project: %v", err)
 	}
-	log.Printf("Lock result: %t\n", res)
-	if res {
+	log.Printf("Lock result: %t\n", locked)
+	if locked {
 		var planSteps []configuration.Step
 
 		if d.PlanStage != nil {
