@@ -90,6 +90,7 @@ func isMergeableState(mergeableState string) bool {
 	// https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus
 	mergeableStates := map[string]int{
 		"clean":     0,
+		"unstable":  0,
 		"has_hooks": 1,
 	}
 	_, exists := mergeableStates[strings.ToLower(mergeableState)]
