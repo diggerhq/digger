@@ -110,8 +110,6 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
 					return false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else if planPerformed {
-					ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
-				} else {
 					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 				}
 			case "digger apply":
@@ -122,9 +120,7 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 					log.Printf("Failed to run digger apply command. %v", err)
 					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
 					return false, fmt.Errorf("failed to run digger apply command. %v", err)
-				} else if !applyPerformed {
-					ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
-				} else {
+				} else if applyPerformed {
 					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
 					appliesPerProject[projectCommands.ProjectName] = true
 				}
