@@ -3,7 +3,7 @@ on:
   release:
     branches:
       - 'go'
-    types: [prereleased]
+    types: [released]
 jobs:
   binary:
     runs-on: ubuntu-latest
