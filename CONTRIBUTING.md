@@ -47,7 +47,7 @@ When you have made changes to the codebase that you would like to contribute bac
    We will review your pull request as soon as possible. Please be patient and open to feedback. We appreciate your contributions!
 
 ## Release Process
-**NOTE: The default branch `@develop` is not gauranteed to be stable and you should always use published release versions in your usecases.**
+**NOTE: The default branch `@develop` is not guaranteed to be stable and you should always use published release versions in your usecases.**
 
 - All pull requests are merged to the default develop branch after initial unit tests and integration tests are passing and required code review requirements are met.
 - We checkout a pre-release branch to prepare for an upcoming release.
