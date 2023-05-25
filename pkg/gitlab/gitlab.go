@@ -170,7 +170,7 @@ func (gitlabService GitLabService) SetStatus(mergeRequestID int, status string, 
 func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequestID int) (string, error) {
 	//TODO implement me
 
-	panic("GetCombinedPullRequestStatus: implement me")
+	return "success", nil
 }
 
 func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
