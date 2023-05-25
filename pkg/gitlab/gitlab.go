@@ -34,6 +34,7 @@ type GitLabContext struct {
 	Token              string          `env:"GITLAB_TOKEN"`
 	DiggerCommand      string          `env:"DIGGER_COMMAND"`
 	DiscussionID       string          `env:"DISCUSSION_ID"`
+	IsMeargeable       bool            `env:"IS_MERGEABLE"`
 }
 
 type PipelineSourceType string
@@ -188,25 +189,30 @@ func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 }
 
 func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error) {
-	projectId := *gitlabService.Context.ProjectId
-	mergeRequestIID := *gitlabService.Context.MergeRequestIId
+	//projectId := *gitlabService.Context.ProjectId
+	//mergeRequestIID := *gitlabService.Context.MergeRequestIId
 
-	fmt.Printf("IsMergeable mergeRequestIID : %d, projectId: %d , discussionId: %s\n", mergeRequestIID, projectId, gitlabService.Context.DiscussionID)
-	opt := &go_gitlab.GetMergeRequestsOptions{}
+	return gitlabService.Context.IsMeargeable, nil
 
-	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, mergeRequestIID, opt)
+	/*
+		fmt.Printf("IsMergeable mergeRequestIID : %d, projectId: %d , discussionId: %s\n", mergeRequestIID, projectId, gitlabService.Context.DiscussionID)
+		opt := &go_gitlab.GetMergeRequestsOptions{}
 
-	if err != nil {
-		fmt.Printf("Failed to get a MergeRequest: %d, %v \n", mergeRequestIID, err)
-		print(err.Error())
-	}
+		mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, mergeRequestIID, opt)
 
-	fmt.Printf("mergeRequest.DetailedMergeStatus: %s\n", mergeRequest.DetailedMergeStatus)
+		if err != nil {
+			fmt.Printf("Failed to get a MergeRequest: %d, %v \n", mergeRequestIID, err)
+			print(err.Error())
+		}
 
-	if mergeRequest.DetailedMergeStatus == "mergeable" {
-		return true, nil
-	}
-	return false, nil
+		fmt.Printf("mergeRequest.DetailedMergeStatus: %s\n", mergeRequest.DetailedMergeStatus)
+
+		if mergeRequest.DetailedMergeStatus == "mergeable" {
+			return true, nil
+		}
+		return false, nil
+
+	*/
 }
 
 func (gitlabService GitLabService) IsClosed(mergeRequestID int) (bool, error) {
