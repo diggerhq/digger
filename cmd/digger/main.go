@@ -164,14 +164,26 @@ func gitLabCI(lock utils.Lock) {
 
 	planStorage := newPlanStorage(gitlabToken, projectNamespace, projectName, *gitLabContext.MergeRequestIId)
 
-	result, err := gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, planStorage, currentDir)
+	allAppliesSuccess, err := gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, planStorage, currentDir)
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
 		os.Exit(8)
 	}
-	print(result)
+
+	if diggerConfig.AutoMerge && allAppliesSuccess {
+		digger.MergePullRequest(gitlabService, *gitLabContext.MergeRequestIId)
+		println("PR merged successfully")
+	}
 
 	println("Commands executed successfully")
+
+	reportErrorAndExit(projectName, "Digger finished successfully", 0)
+
+	defer func() {
+		if r := recover(); r != nil {
+			reportErrorAndExit(projectName, fmt.Sprintf("Panic occurred. %s", r), 1)
+		}
+	}()
 }
 
 /*
