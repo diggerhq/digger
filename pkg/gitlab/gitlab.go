@@ -191,14 +191,16 @@ func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error)
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 
-	// check if there are any unresolved discussions in the merge request and resolve them
-	resolved := true
-	resolveOpt := &go_gitlab.ResolveMergeRequestDiscussionOptions{Resolved: &resolved}
-	_, _, err := gitlabService.Client.Discussions.ResolveMergeRequestDiscussion(projectId, mergeRequestIID, gitlabService.Context.DiscussionID, resolveOpt)
-	if err != nil {
-		fmt.Printf("error resolving discussion %s, \n%v \n", gitlabService.Context.DiscussionID, err)
-		return false, fmt.Errorf("error resolving discussion %s, \n%v \n", gitlabService.Context.DiscussionID, err)
-	}
+	/*
+		// check if there are any unresolved discussions in the merge request and resolve them
+		resolved := true
+		resolveOpt := &go_gitlab.ResolveMergeRequestDiscussionOptions{Resolved: &resolved}
+		_, _, err := gitlabService.Client.Discussions.ResolveMergeRequestDiscussion(projectId, mergeRequestIID, gitlabService.Context.DiscussionID, resolveOpt)
+		if err != nil {
+			fmt.Printf("error resolving discussion %s, \n%v \n", gitlabService.Context.DiscussionID, err)
+			return false, fmt.Errorf("error resolving discussion %s, \n%v \n", gitlabService.Context.DiscussionID, err)
+		}
+	*/
 
 	fmt.Printf("IsMergeable mergeRequestIID : %d, projectId: %d , discussionId: %s\n", mergeRequestIID, projectId, gitlabService.Context.DiscussionID)
 	opt := &go_gitlab.GetMergeRequestsOptions{}
