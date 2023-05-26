@@ -44,11 +44,12 @@ type GenerateProjectsConfig struct {
 }
 
 type Project struct {
-	Name       string `yaml:"name"`
-	Dir        string `yaml:"dir"`
-	Workspace  string `yaml:"workspace"`
-	Terragrunt bool   `yaml:"terragrunt"`
-	Workflow   string `yaml:"workflow"`
+	Name             string   `yaml:"name"`
+	Dir              string   `yaml:"dir"`
+	Workspace        string   `yaml:"workspace"`
+	Terragrunt       bool     `yaml:"terragrunt"`
+	Workflow         string   `yaml:"workflow"`
+	DependentModules []string `yaml:"dependent_modules,omitempty"`
 }
 
 type Stage struct {
@@ -339,16 +340,30 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	for _, project := range c.Projects {
 		for _, file := range changedFiles {
 			absoluteFile, _ := filepath.Abs(path.Join("/", file))
-			absoluteDir, _ := filepath.Abs(path.Join("/", project.Dir))
-
-			//fmt.Printf("absoluteFile: %s, absoluteDir: %s \n", absoluteFile, absoluteDir)
-			if strings.HasPrefix(absoluteFile, absoluteDir) {
+			projectDir, _ := filepath.Abs(path.Join("/", project.Dir))
+			if dirMatchesChangedFile(projectDir, absoluteFile) {
 				result = append(result, project)
 				break
+			}
+
+			// check dependent modules
+			for _, dependentModule := range project.DependentModules {
+				dependentModuleDir, _ := filepath.Abs(path.Join("/", dependentModule))
+				if dirMatchesChangedFile(dependentModuleDir, absoluteFile) {
+					result = append(result, project)
+					break
+				}
 			}
 		}
 	}
 	return result
+}
+
+func dirMatchesChangedFile(projectDir string, absoluteFile string) bool {
+	if strings.HasPrefix(absoluteFile, projectDir) {
+		return true
+	}
+	return false
 }
 
 func (c *DiggerConfig) GetDirectory(projectName string) string {
