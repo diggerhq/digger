@@ -291,7 +291,7 @@ func logCommands(projectCommands []digger.ProjectCommand) {
 }
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {
-	fmt.Printf(message)
+	fmt.Println(message)
 	err := utils.SendLogRecord(repoOwner, message)
 	if err != nil {
 		fmt.Printf("Failed to send log record. %s\n", err)
