@@ -1,0 +1,38 @@
+name: Slack Notification
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  notify:
+    permissions: write-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+
+      - name: Count unique clones
+        id: clones
+        run: echo "::set-output name=count::$(gh api repos/${{ github.repository }}/traffic/clones?per=day --jq '.uniques')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+
+      - name: Count unique viewers
+        id: viewers
+        run: echo "::set-output name=count::$(gh api repos/${{ github.repository }}/traffic/views?per=day --jq '.uniques')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Repository: ${{ github.repository }}\nClones: ${{ steps.clones.outputs.count }}\nViewers: ${{ steps.viewers.outputs.count }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
