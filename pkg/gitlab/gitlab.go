@@ -176,7 +176,8 @@ func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequestID i
 func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
-	opt := &go_gitlab.AcceptMergeRequestOptions{}
+	mergeWhenPipelineSucceeds := true
+	opt := &go_gitlab.AcceptMergeRequestOptions{MergeWhenPipelineSucceeds: &mergeWhenPipelineSucceeds}
 
 	fmt.Printf("MergePullRequest mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, \n", mergeRequestID, projectId, mergeRequestIID)
 
