@@ -172,7 +172,7 @@ func gitLabCI(lock utils.Lock) {
 
 	if diggerConfig.AutoMerge && allAppliesSuccess {
 		digger.MergePullRequest(gitlabService, *gitLabContext.MergeRequestIId)
-		println("PR merged successfully")
+		println("Merge request has been sent successfully")
 	}
 
 	println("Commands executed successfully")
