@@ -105,6 +105,14 @@ func gitHubCI(lock utils.Lock) {
 
 func gitLabCI(lock utils.Lock) {
 	println("Using GitLab.")
+
+	fmt.Println("DEBUG: print env vars")
+	for _, e := range os.Environ() {
+		pair := strings.SplitN(e, "=", 2)
+		fmt.Println(pair[0])
+	}
+	fmt.Println("env vars end")
+
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
 	projectName := os.Getenv("CI_PROJECT_NAME")
 	gitlabToken := os.Getenv("GITLAB_TOKEN")
