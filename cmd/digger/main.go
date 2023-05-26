@@ -108,8 +108,7 @@ func gitLabCI(lock utils.Lock) {
 
 	fmt.Println("DEBUG: print env vars")
 	for _, e := range os.Environ() {
-		pair := strings.SplitN(e, "=", 2)
-		fmt.Println(pair[0])
+		fmt.Println(e)
 	}
 	fmt.Println("env vars end")
 
