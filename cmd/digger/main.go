@@ -159,6 +159,7 @@ func gitLabCI(lock utils.Lock) {
 	}
 	println("GitLab event converted to commands successfully")
 
+	println("Digger commands to be executed:")
 	for _, v := range commandsToRunPerProject {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
@@ -173,7 +174,7 @@ func gitLabCI(lock utils.Lock) {
 
 	if diggerConfig.AutoMerge && allAppliesSuccess {
 		digger.MergePullRequest(gitlabService, *gitLabContext.MergeRequestIId)
-		println("Merge request has been sent successfully")
+		println("Merge request changes has been applied successfully")
 	}
 
 	println("Commands executed successfully")
