@@ -8,11 +8,11 @@ import (
 	"digger/pkg/usage"
 	"digger/pkg/utils"
 	"fmt"
+	"github.com/caarlos0/env/v7"
+	go_gitlab "github.com/xanzy/go-gitlab"
 	"log"
 	"path"
 	"strings"
-
-	go_gitlab "github.com/xanzy/go-gitlab"
 )
 
 // based on https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
