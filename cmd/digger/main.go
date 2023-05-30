@@ -106,12 +106,6 @@ func gitHubCI(lock utils.Lock) {
 func gitLabCI(lock utils.Lock) {
 	println("Using GitLab.")
 
-	fmt.Println("DEBUG: print env vars")
-	for _, e := range os.Environ() {
-		fmt.Println(e)
-	}
-	fmt.Println("env vars end")
-
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
 	projectName := os.Getenv("CI_PROJECT_NAME")
 	gitlabToken := os.Getenv("GITLAB_TOKEN")
@@ -138,7 +132,7 @@ func gitLabCI(lock utils.Lock) {
 		os.Exit(4)
 	}
 
-	if gitLabContext.MergeRequestIId == nil {
+	if gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0 {
 		fmt.Println("No merge request found.")
 		os.Exit(0)
 	}
