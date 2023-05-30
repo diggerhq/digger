@@ -132,7 +132,8 @@ func gitLabCI(lock utils.Lock) {
 		os.Exit(4)
 	}
 
-	if gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0 {
+	// it's ok to not have merge request info if it has been merged
+	if (gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0) && gitLabContext.EventType != "merge_request_merge" {
 		fmt.Println("No merge request found.")
 		os.Exit(0)
 	}
