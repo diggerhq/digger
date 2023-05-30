@@ -357,12 +357,14 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 
 func matchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
 	matching := false
+	fmt.Printf("performing pattern matching %v, %v, %v", fileToMatch, includePatterns, excludePatterns)
 	for _, ipattern := range includePatterns {
-		matching, err := doublestar.PathMatch(ipattern, fileToMatch)
+		isMatched, err := doublestar.PathMatch(ipattern, fileToMatch)
 		if err != nil {
 			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, ipattern, err)
 		}
-		if matching {
+		if isMatched {
+			matching = true
 			break
 		}
 	}
