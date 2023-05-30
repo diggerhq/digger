@@ -1,11 +1,11 @@
 package configuration
 
 import (
+	"digger/pkg/utils"
 	"errors"
 	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -341,46 +341,18 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	for _, project := range c.Projects {
 		for _, changedFile := range changedFiles {
 			// we append ** to make our directory a globable pattern
-			projectDirPattern := project.Dir + "**"
+			projectDirPattern := path.Join(project.Dir, "**")
 			includePatterns := project.IncludePatterns
 			excludePatterns := project.ExcludePatterns
 			// all our patterns are the globale dir pattern + the include patterns specified by user
 			allIncludePatterns := append([]string{projectDirPattern}, includePatterns...)
-			if matchIncludeExcludePatternsToFile(changedFile, allIncludePatterns, excludePatterns) {
+			if utils.MatchIncludeExcludePatternsToFile(changedFile, allIncludePatterns, excludePatterns) {
 				result = append(result, project)
 				break
 			}
 		}
 	}
 	return result
-}
-
-func matchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
-	matching := false
-	fmt.Printf("performing pattern matching %v, %v, %v", fileToMatch, includePatterns, excludePatterns)
-	for _, ipattern := range includePatterns {
-		isMatched, err := doublestar.PathMatch(ipattern, fileToMatch)
-		if err != nil {
-			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, ipattern, err)
-		}
-		if isMatched {
-			matching = true
-			break
-		}
-	}
-
-	for _, epattern := range excludePatterns {
-		excluded, err := doublestar.PathMatch(epattern, fileToMatch)
-		if err != nil {
-			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, epattern, err)
-		}
-		if excluded {
-			matching = false
-			break
-		}
-	}
-
-	return matching
 }
 
 func (c *DiggerConfig) GetDirectory(projectName string) string {

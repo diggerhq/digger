@@ -8,6 +8,7 @@ import (
 	dg_github "digger/pkg/github"
 	"digger/pkg/gitlab"
 	"digger/pkg/models"
+	"digger/pkg/usage"
 	"digger/pkg/utils"
 	"fmt"
 	"github.com/google/go-github/v51/github"
@@ -20,9 +21,9 @@ func gitHubCI(lock utils.Lock) {
 	println("Using GitHub.")
 	githubRepositoryOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
 	if githubRepositoryOwner != "" {
-		utils.SendUsageRecord(githubRepositoryOwner, "log", "initialize")
+		usage.SendUsageRecord(githubRepositoryOwner, "log", "initialize")
 	} else {
-		utils.SendUsageRecord("", "log", "non github initialisation")
+		usage.SendUsageRecord("", "log", "non github initialisation")
 	}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
@@ -265,7 +266,7 @@ func logCommands(projectCommands []digger.ProjectCommand) {
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {
 	fmt.Printf(message)
-	err := utils.SendLogRecord(repoOwner, message)
+	err := usage.SendLogRecord(repoOwner, message)
 	if err != nil {
 		fmt.Printf("Failed to send log record. %s\n", err)
 	}

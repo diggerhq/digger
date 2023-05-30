@@ -77,3 +77,40 @@ func TestGetFileFromZipNoFileExists(t *testing.T) {
 	// Clean up the test files.
 	os.Remove(zipFileName)
 }
+
+func TestNormalizeFileName(t *testing.T) {
+	type NormTest struct {
+		input, expectedOutput string // input and expected normalized output
+	}
+	var normTests = []NormTest{
+		{"my/directory", "/my/directory"},
+		{"./my/directory", "/my/directory"},
+	}
+	for _, tt := range normTests {
+		res := NormalizeFileName(tt.input)
+		assert.Equal(t, tt.expectedOutput, res)
+	}
+}
+
+func TestMatchIncludeExcludePatternsToFile(t *testing.T) {
+	type MatchTest struct {
+		fileToMatch     string
+		includePatterns []string
+		excludePatterns []string
+		expectedResult  bool
+	}
+	var normTests = []MatchTest{
+		{"dev/main.tf", []string{"dev/**"}, []string{}, true},
+		{"dev/main.tf", []string{"./dev/**"}, []string{}, true},
+		{"dev/main.tf", []string{"dev/**"}, []string{"dev/"}, true},
+		{"dev/main.tf", []string{"prod/**"}, []string{"dev/"}, false},
+		{"modules/moduleA/main.tf", []string{"dev**", "modules/**"}, []string{"dev/"}, true},
+		{"modules/moduleA/main.tf", []string{"dev**", "./modules/**"}, []string{"dev/"}, true},
+		{"modules/moduleA/main.tf", []string{"dev**"}, []string{"dev/"}, false},
+		{"modules/moduleA/main.tf", []string{"dev**", "modules/**"}, []string{"modules/moduleA/**"}, false},
+	}
+	for _, tt := range normTests {
+		res := MatchIncludeExcludePatternsToFile(tt.fileToMatch, tt.includePatterns, tt.excludePatterns)
+		assert.Equal(t, tt.expectedResult, res)
+	}
+}
