@@ -5,13 +5,13 @@ import (
 	"digger/pkg/configuration"
 	"digger/pkg/digger"
 	"digger/pkg/terraform"
+	"digger/pkg/usage"
 	"digger/pkg/utils"
 	"fmt"
 	"log"
 	"path"
 	"strings"
 
-	"github.com/caarlos0/env/v7"
 	go_gitlab "github.com/xanzy/go-gitlab"
 )
 
@@ -368,7 +368,7 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 			eventName := ""
 			switch command {
 			case "digger plan":
-				utils.SendUsageRecord(repoOwner, eventName, "plan")
+				usage.SendUsageRecord(repoOwner, eventName, "plan")
 				service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
 				err := diggerExecutor.Plan(prNumber)
 				if err != nil {
@@ -380,7 +380,7 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 					service.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 				}
 			case "digger apply":
-				utils.SendUsageRecord(repoName, eventName, "apply")
+				usage.SendUsageRecord(repoName, eventName, "apply")
 				service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
 				err := diggerExecutor.Apply(prNumber)
 				if err != nil {
@@ -393,13 +393,13 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 					appliesPerProject[projectCommands.ProjectName] = true
 				}
 			case "digger unlock":
-				utils.SendUsageRecord(repoOwner, eventName, "unlock")
+				usage.SendUsageRecord(repoOwner, eventName, "unlock")
 				err := diggerExecutor.Unlock(prNumber)
 				if err != nil {
 					return false, fmt.Errorf("failed to unlock project. %v", err)
 				}
 			case "digger lock":
-				utils.SendUsageRecord(repoOwner, eventName, "lock")
+				usage.SendUsageRecord(repoOwner, eventName, "lock")
 				err := diggerExecutor.Lock(prNumber)
 				if err != nil {
 					return false, fmt.Errorf("failed to lock project. %v", err)
