@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 )
 
 type WorkflowConfiguration struct {
@@ -44,12 +44,13 @@ type GenerateProjectsConfig struct {
 }
 
 type Project struct {
-	Name             string   `yaml:"name"`
-	Dir              string   `yaml:"dir"`
-	Workspace        string   `yaml:"workspace"`
-	Terragrunt       bool     `yaml:"terragrunt"`
-	Workflow         string   `yaml:"workflow"`
-	DependentModules []string `yaml:"dependent_modules,omitempty"`
+	Name            string   `yaml:"name"`
+	Dir             string   `yaml:"dir"`
+	Workspace       string   `yaml:"workspace"`
+	Terragrunt      bool     `yaml:"terragrunt"`
+	Workflow        string   `yaml:"workflow"`
+	IncludePatterns []string `yaml:"include_patterns,omitempty"`
+	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
 }
 
 type Stage struct {
@@ -338,32 +339,46 @@ func (c *DiggerConfig) GetProjects(projectName string) []Project {
 func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	var result []Project
 	for _, project := range c.Projects {
-		for _, file := range changedFiles {
-			absoluteFile, _ := filepath.Abs(path.Join("/", file))
-			projectDir, _ := filepath.Abs(path.Join("/", project.Dir))
-			if dirMatchesChangedFile(projectDir, absoluteFile) {
+		for _, changedFile := range changedFiles {
+			// we append ** to make our directory a globable pattern
+			projectDirPattern := project.Dir + "**"
+			includePatterns := project.IncludePatterns
+			excludePatterns := project.ExcludePatterns
+			// all our patterns are the globale dir pattern + the include patterns specified by user
+			allIncludePatterns := append([]string{projectDirPattern}, includePatterns...)
+			if matchIncludeExcludePatternsToFile(changedFile, allIncludePatterns, excludePatterns) {
 				result = append(result, project)
 				break
-			}
-
-			// check dependent modules
-			for _, dependentModule := range project.DependentModules {
-				dependentModuleDir, _ := filepath.Abs(path.Join("/", dependentModule))
-				if dirMatchesChangedFile(dependentModuleDir, absoluteFile) {
-					result = append(result, project)
-					break
-				}
 			}
 		}
 	}
 	return result
 }
 
-func dirMatchesChangedFile(projectDir string, absoluteFile string) bool {
-	if strings.HasPrefix(absoluteFile, projectDir) {
-		return true
+func matchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
+	matching := false
+	for _, ipattern := range includePatterns {
+		matching, err := doublestar.PathMatch(ipattern, fileToMatch)
+		if err != nil {
+			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, ipattern, err)
+		}
+		if matching {
+			break
+		}
 	}
-	return false
+
+	for _, epattern := range excludePatterns {
+		excluded, err := doublestar.PathMatch(epattern, fileToMatch)
+		if err != nil {
+			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, epattern, err)
+		}
+		if excluded {
+			matching = false
+			break
+		}
+	}
+
+	return matching
 }
 
 func (c *DiggerConfig) GetDirectory(projectName string) string {
