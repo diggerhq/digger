@@ -7,10 +7,10 @@ import (
 	"digger/pkg/digger"
 	"digger/pkg/gcp"
 	dg_github "digger/pkg/github"
-	"digger/pkg/github/models"
+	github_models "digger/pkg/github/models"
 	"digger/pkg/gitlab"
 	"digger/pkg/locking"
-	models2 "digger/pkg/models"
+	"digger/pkg/models"
 	"digger/pkg/storage"
 	"digger/pkg/usage"
 	"digger/pkg/utils"
@@ -40,7 +40,7 @@ func gitHubCI(lock locking.Lock) {
 		reportErrorAndExit(githubRepositoryOwner, "GITHUB_CONTEXT is not defined", 2)
 	}
 
-	parsedGhContext, err := models.GetGitHubContext(ghContext)
+	parsedGhContext, err := github_models.GetGitHubContext(ghContext)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 	}
@@ -325,7 +325,7 @@ func logImpactedProjects(projects []configuration.Project, prNumber int) {
 	log.Print(logMessage)
 }
 
-func logCommands(projectCommands []models2.ProjectCommand) {
+func logCommands(projectCommands []models.ProjectCommand) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)
