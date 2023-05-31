@@ -6,7 +6,7 @@ import (
 	"digger/pkg/configuration"
 	"digger/pkg/digger"
 	"digger/pkg/github/models"
-	models2 "digger/pkg/models"
+	dg_models "digger/pkg/models"
 	"digger/pkg/utils"
 	"encoding/json"
 	"fmt"
@@ -133,8 +133,8 @@ func GetGitHubContext(ghContext string) (*models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models2.ProjectCommand, bool, error) {
-	commandsPerProject := make([]models2.ProjectCommand, 0)
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.ProjectCommand, bool, error) {
+	commandsPerProject := make([]dg_models.ProjectCommand, 0)
 
 	switch event.(type) {
 	case models.PullRequestEvent:
@@ -148,7 +148,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
 
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
-				commandsPerProject = append(commandsPerProject, models2.ProjectCommand{
+				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
@@ -160,7 +160,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					StateEnvVars:     stateEnvVars,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
-				commandsPerProject = append(commandsPerProject, models2.ProjectCommand{
+				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
@@ -172,7 +172,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					StateEnvVars:     stateEnvVars,
 				})
 			} else if event.Action == "closed" {
-				commandsPerProject = append(commandsPerProject, models2.ProjectCommand{
+				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
@@ -216,12 +216,12 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
 					if err != nil {
-						return []models2.ProjectCommand{}, false, err
+						return []dg_models.ProjectCommand{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
-					commandsPerProject = append(commandsPerProject, models2.ProjectCommand{
+					commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
@@ -237,7 +237,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		}
 		return commandsPerProject, coversAllImpactedProjects, nil
 	default:
-		return []models2.ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
+		return []dg_models.ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
 	}
 }
 
