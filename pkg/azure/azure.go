@@ -92,7 +92,7 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	switch a.Event {
+	switch a.EventType {
 	case "git.pullrequest.updated", "git.pullrequest.created", "git.pullrequest.merged", "git.pullrequest.closed", "git.pullrequest.reopened":
 		var event AzurePrEvent
 		if err := json.Unmarshal(rawEvent, &event); err != nil {
