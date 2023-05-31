@@ -261,7 +261,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not get changed files")
+			return nil, nil, 0, fmt.Errorf("could not get changed files: %v", err)
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
