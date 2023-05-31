@@ -87,20 +87,11 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	var rawEvent json.RawMessage
-	auxEvent := struct {
-		Event *json.RawMessage `json:"eventType"`
-	}{
-		Event: &rawEvent,
-	}
-	if err := json.Unmarshal(data, &auxEvent); err != nil {
-		return err
-	}
 
 	switch a.EventType {
 	case "git.pullrequest.updated", "git.pullrequest.created", "git.pullrequest.merged", "git.pullrequest.closed", "git.pullrequest.reopened":
 		var event AzurePrEvent
-		if err := json.Unmarshal(rawEvent, &event); err != nil {
+		if err := json.Unmarshal(data, &event); err != nil {
 			return err
 		}
 		a.Event = event
@@ -108,7 +99,7 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 		a.BaseUrl = event.ResourceContainers.Account.BaseUrl
 	case "ms.vss-code.git-pullrequest-comment-event":
 		var event AzureCommentEvent
-		if err := json.Unmarshal(rawEvent, &event); err != nil {
+		if err := json.Unmarshal(data, &event); err != nil {
 			return err
 		}
 		a.Event = event
