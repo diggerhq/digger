@@ -233,6 +233,8 @@ func azureCI(lock locking.Lock) {
 	if err != nil {
 		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to execute command. %s", err), 8)
 	}
+	print(result)
+
 	println("Commands executed successfully")
 }
 
