@@ -28,16 +28,19 @@ type AzurePrEvent struct {
 	Resource           Resource           `json:"resource"`
 	ResourceContainers ResourceContainers `json:"resourceContainers"`
 }
+
+type Repository struct {
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+	Project struct {
+		Name string `json:"name"`
+	}
+	Status        string `json:"status"`
+	PullRequestId int    `json:"pullRequestId"`
+}
+
 type Resource struct {
-	Repository struct {
-		Id      string `json:"id"`
-		Name    string `json:"name"`
-		Project struct {
-			Name string `json:"name"`
-		}
-		Status        string `json:"status"`
-		PullRequestId int    `json:"pullRequestId"`
-	} `json:"repository"`
+	Repository Repository `json:"repository"`
 }
 
 type ResourceContainers struct {
@@ -52,7 +55,7 @@ type AzureCommentEvent struct {
 			Content string `json:"content"`
 		}
 		PullRequest struct {
-			Resource Resource `json:"resource"`
+			Repository Repository `json:"repository"`
 		}
 	} `json:"resource"`
 	ResourceContainers ResourceContainers `json:"resourceContainers"`
@@ -109,7 +112,7 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		a.Event = event
-		a.ProjectName = event.PullRequest.Resource.Repository.Project.Name
+		a.ProjectName = event.Resource.PullRequest.Repository.Project.Name
 		a.BaseUrl = event.ResourceContainers.Account.BaseUrl
 	default:
 		return errors.New("unknown Azure event: " + a.EventType)
@@ -275,7 +278,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 	case AzureCommentEvent:
-		prNumber = azureEvent.(AzureCommentEvent).PullRequest.Resource.Repository.PullRequestId
+		prNumber = azureEvent.(AzureCommentEvent).Resource.PullRequest.Repository.PullRequestId
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
@@ -283,7 +286,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-		requestedProject := utils.ParseProjectName(azureEvent.(AzureCommentEvent).Comment.Content)
+		requestedProject := utils.ParseProjectName(azureEvent.(AzureCommentEvent).Resource.Comment.Content)
 
 		if requestedProject == "" {
 			return impactedProjects, nil, prNumber, nil
@@ -365,7 +368,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		return commandsPerProject, nil
 	case AzurePrCommented:
 
-		diggerCommand := parseAzureContext.Event.(AzureCommentEvent).Comment.Content
+		diggerCommand := parseAzureContext.Event.(AzureCommentEvent).Resource.Comment.Content
 
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 		for _, command := range supportedCommands {
