@@ -2,7 +2,7 @@ package ci
 
 type CIService interface {
 	GetChangedFiles(prNumber int) ([]string, error)
-	PublishComment(prNumber int, comment string)
+	PublishComment(prNumber int, comment string) error
 	SetStatus(prNumber int, status string, statusContext string) error
 	GetCombinedPullRequestStatus(prNumber int) (string, error)
 	MergePullRequest(prNumber int) error

@@ -3,6 +3,13 @@ package github
 import (
 	"context"
 	"digger/pkg/ci"
+	"digger/pkg/configuration"
+	"digger/pkg/digger"
+	"digger/pkg/github/models"
+	models2 "digger/pkg/models"
+	"digger/pkg/utils"
+	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -38,11 +45,9 @@ func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	return fileNames, nil
 }
 
-func (svc *GithubService) PublishComment(prNumber int, comment string) {
+func (svc *GithubService) PublishComment(prNumber int, comment string) error {
 	_, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
-	if err != nil {
-		log.Fatalf("error publishing comment: %v", err)
-	}
+	return err
 }
 
 func (svc *GithubService) SetStatus(prNumber int, status string, statusContext string) error {
@@ -117,4 +122,182 @@ func (svc *GithubService) IsClosed(prNumber int) (bool, error) {
 	}
 
 	return pr.GetState() == "closed", nil
+}
+
+func GetGitHubContext(ghContext string) (*models.Github, error) {
+	parsedGhContext := new(models.Github)
+	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
+	if err != nil {
+		return &models.Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
+	}
+	return parsedGhContext, nil
+}
+
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models2.ProjectCommand, bool, error) {
+	commandsPerProject := make([]models2.ProjectCommand, 0)
+
+	switch event.(type) {
+	case models.PullRequestEvent:
+		event := event.(models.PullRequestEvent)
+		for _, project := range impactedProjects {
+			workflow, ok := workflows[project.Workflow]
+			if !ok {
+				workflow = *digger.DefaultWorkflow()
+			}
+
+			stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
+
+			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
+				commandsPerProject = append(commandsPerProject, models2.ProjectCommand{
+					ProjectName:      project.Name,
+					ProjectDir:       project.Dir,
+					ProjectWorkspace: project.Workspace,
+					Terragrunt:       project.Terragrunt,
+					Commands:         workflow.Configuration.OnCommitToDefault,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
+					CommandEnvVars:   commandEnvVars,
+					StateEnvVars:     stateEnvVars,
+				})
+			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
+				commandsPerProject = append(commandsPerProject, models2.ProjectCommand{
+					ProjectName:      project.Name,
+					ProjectDir:       project.Dir,
+					ProjectWorkspace: project.Workspace,
+					Terragrunt:       project.Terragrunt,
+					Commands:         workflow.Configuration.OnPullRequestPushed,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
+					CommandEnvVars:   commandEnvVars,
+					StateEnvVars:     stateEnvVars,
+				})
+			} else if event.Action == "closed" {
+				commandsPerProject = append(commandsPerProject, models2.ProjectCommand{
+					ProjectName:      project.Name,
+					ProjectDir:       project.Dir,
+					ProjectWorkspace: project.Workspace,
+					Terragrunt:       project.Terragrunt,
+					Commands:         workflow.Configuration.OnPullRequestClosed,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
+					CommandEnvVars:   commandEnvVars,
+					StateEnvVars:     stateEnvVars,
+				})
+			}
+		}
+		return commandsPerProject, true, nil
+	case models.IssueCommentEvent:
+		event := event.(models.IssueCommentEvent)
+		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
+
+		coversAllImpactedProjects := true
+
+		runForProjects := impactedProjects
+
+		if requestedProject != nil {
+			if len(impactedProjects) > 1 {
+				coversAllImpactedProjects = false
+				runForProjects = []configuration.Project{*requestedProject}
+			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
+				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
+			}
+		}
+
+		for _, command := range supportedCommands {
+			if strings.Contains(event.Comment.Body, command) {
+				for _, project := range runForProjects {
+					workflow, ok := workflows[project.Workflow]
+					if !ok {
+						workflow = *digger.DefaultWorkflow()
+					}
+
+					stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
+
+					workspace := project.Workspace
+					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
+					if err != nil {
+						return []models2.ProjectCommand{}, false, err
+					}
+					if workspaceOverride != "" {
+						workspace = workspaceOverride
+					}
+					commandsPerProject = append(commandsPerProject, models2.ProjectCommand{
+						ProjectName:      project.Name,
+						ProjectDir:       project.Dir,
+						ProjectWorkspace: workspace,
+						Terragrunt:       project.Terragrunt,
+						Commands:         []string{command},
+						ApplyStage:       workflow.Apply,
+						PlanStage:        workflow.Plan,
+						CommandEnvVars:   commandEnvVars,
+						StateEnvVars:     stateEnvVars,
+					})
+				}
+			}
+		}
+		return commandsPerProject, coversAllImpactedProjects, nil
+	default:
+		return []models2.ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
+	}
+}
+
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
+	var impactedProjects []configuration.Project
+	var prNumber int
+
+	switch ghEvent.(type) {
+	case models.PullRequestEvent:
+		prNumber = ghEvent.(models.PullRequestEvent).PullRequest.Number
+		changedFiles, err := ciService.GetChangedFiles(prNumber)
+
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("could not get changed files")
+		}
+
+		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	case models.IssueCommentEvent:
+		prNumber = ghEvent.(models.IssueCommentEvent).Issue.Number
+		changedFiles, err := ciService.GetChangedFiles(prNumber)
+
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("could not get changed files")
+		}
+
+		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+		requestedProject := utils.ParseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
+
+		if requestedProject == "" {
+			return impactedProjects, nil, prNumber, nil
+		}
+
+		for _, project := range impactedProjects {
+			if project.Name == requestedProject {
+				return impactedProjects, &project, prNumber, nil
+			}
+		}
+		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
+
+	default:
+		return nil, nil, 0, fmt.Errorf("unsupported event type")
+	}
+	return impactedProjects, nil, prNumber, nil
+}
+
+func issueCommentEventContainsComment(event models.Event, comment string) bool {
+	switch event.(type) {
+	case models.IssueCommentEvent:
+		event := event.(models.IssueCommentEvent)
+		if strings.Contains(event.Comment.Body, comment) {
+			return true
+		}
+	}
+	return false
+}
+
+func CheckIfHelpComment(event models.Event) bool {
+	return issueCommentEventContainsComment(event, "digger help")
+}
+
+func CheckIfApplyComment(event models.Event) bool {
+	return issueCommentEventContainsComment(event, "digger apply")
 }
