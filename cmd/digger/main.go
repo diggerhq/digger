@@ -200,7 +200,7 @@ func azureCI(lock locking.Lock) {
 
 	parsedAzureContext, err := azure.GetAzureReposContext(azureContext)
 	if err != nil {
-		fmt.Printf("failed to parse GitLab context. %s\n", err.Error())
+		fmt.Printf("failed to parse Azure context. %s\n", err.Error())
 		os.Exit(4)
 	}
 
