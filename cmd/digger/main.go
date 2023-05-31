@@ -206,21 +206,19 @@ func azureCI(lock locking.Lock) {
 
 	azureService, err := azure.NewAzureReposService(azureToken, parsedAzureContext.BaseUrl, parsedAzureContext.ProjectName)
 	if err != nil {
-		fmt.Printf("failed to initialise azure service, %v", err)
-		os.Exit(4)
+		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to initialise azure service. %s", err), 5)
 	}
 
 	impactedProjects, _, prNumber, err := azure.ProcessAzureReposEvent(parsedAzureContext.Event, diggerConfig, azureService)
 	if err != nil {
-		fmt.Printf("failed to process azure event, %v", err)
-		os.Exit(6)
+		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
 	}
 	println("Azure event processed successfully")
 
 	commandsToRunPerProject, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, diggerConfig.Workflows)
 	if err != nil {
-		fmt.Printf("failed to convert event to command, %v", err)
-		os.Exit(7)
+		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
+
 	}
 	println("GitLab event converted to commands successfully")
 
@@ -233,11 +231,8 @@ func azureCI(lock locking.Lock) {
 
 	result, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
 	if err != nil {
-		fmt.Printf("failed to execute command, %v", err)
-		os.Exit(8)
+		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to execute command. %s", err), 8)
 	}
-	print(result)
-
 	println("Commands executed successfully")
 }
 
@@ -338,10 +333,10 @@ func logCommands(projectCommands []models.ProjectCommand) {
 }
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {
-	fmt.Printf(message)
+	println(message)
 	err := usage.SendLogRecord(repoOwner, message)
 	if err != nil {
-		fmt.Printf("Failed to send log record. %s\n", err)
+		println("Failed to send log record. %s\n", err)
 	}
 	os.Exit(exitCode)
 }
