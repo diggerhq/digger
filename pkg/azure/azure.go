@@ -113,10 +113,7 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 }
 
 func NewAzureReposService(patToken string, baseUrl string, projectName string) (*AzureReposService, error) {
-	client, err := git.NewClient(context.Background(), &azuredevops.Connection{
-		AuthorizationString: patToken,
-		BaseUrl:             baseUrl,
-	})
+	client, err := git.NewClient(context.Background(), azuredevops.NewPatConnection(baseUrl, patToken))
 
 	if err != nil {
 		return nil, err
