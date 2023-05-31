@@ -73,6 +73,15 @@ func GetAzureReposContext(azureContext string) (Azure, error) {
 }
 
 func (a *Azure) UnmarshalJSON(data []byte) error {
+	type Alias Azure
+	aux := struct {
+		*Alias
+	}{
+		Alias: (*Alias)(a),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
 	var rawEvent json.RawMessage
 	auxEvent := struct {
 		Event *json.RawMessage `json:"eventType"`
@@ -83,7 +92,7 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	switch a.EventType {
+	switch a.Event {
 	case "git.pullrequest.updated", "git.pullrequest.created", "git.pullrequest.merged", "git.pullrequest.closed", "git.pullrequest.reopened":
 		var event AzurePrEvent
 		if err := json.Unmarshal(rawEvent, &event); err != nil {
@@ -101,7 +110,7 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 		a.ProjectName = event.PullRequest.Resource.Repository.Project.Name
 		a.BaseUrl = event.ResourceContainers.Account.BaseUrl
 	default:
-		return errors.New("unknown GitHub event: " + a.EventType)
+		return errors.New("unknown Azure event: " + a.EventType)
 	}
 
 	return nil
