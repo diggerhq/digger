@@ -34,7 +34,7 @@ type Repository struct {
 	Name    string `json:"name"`
 	Project struct {
 		Name string `json:"name"`
-	}
+	} `json:"project"`
 	Status        string `json:"status"`
 	PullRequestId int    `json:"pullRequestId"`
 }
@@ -46,17 +46,17 @@ type Resource struct {
 type ResourceContainers struct {
 	Account struct {
 		BaseUrl string `json:"baseUrl"`
-	}
+	} `json:"account"`
 }
 type AzureCommentEvent struct {
 	EventType string `json:"eventType"`
 	Resource  struct {
 		Comment struct {
 			Content string `json:"content"`
-		}
+		} `json:"comment"`
 		PullRequest struct {
 			Repository Repository `json:"repository"`
-		}
+		} `json:"pullRequest"`
 	} `json:"resource"`
 	ResourceContainers ResourceContainers `json:"resourceContainers"`
 }
