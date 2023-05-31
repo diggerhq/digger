@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-github/v51/github"
 )
 
-func NewGithubPullRequestService(ghToken string, repoName string, owner string) ci.CIService {
+func NewGitHubService(ghToken string, repoName string, owner string) ci.CIService {
 	client := github.NewTokenClient(context.Background(), ghToken)
 	return &GithubService{
 		Client:   client,
