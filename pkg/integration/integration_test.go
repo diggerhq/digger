@@ -6,6 +6,8 @@ import (
 	"digger/pkg/configuration"
 	"digger/pkg/digger"
 	dg_github "digger/pkg/github"
+	"digger/pkg/locking"
+	"digger/pkg/storage"
 	"digger/pkg/terraform"
 	"digger/pkg/utils"
 	"log"
@@ -27,7 +29,7 @@ func SkipCI(t *testing.T) {
 	}
 }
 
-func getProjectLockForTests() (error, *utils.ProjectLockImpl) {
+func getProjectLockForTests() (error, *locking.ProjectLockImpl) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: "digger-test",
 		Config: awssdk.Config{
@@ -42,7 +44,7 @@ func getProjectLockForTests() (error, *utils.ProjectLockImpl) {
 	ghToken := "token"
 	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
 
-	projectLock := &utils.ProjectLockImpl{
+	projectLock := &locking.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		CIService:    githubPrService,
 		ProjectName:  "test_dynamodb_lock",
@@ -353,7 +355,7 @@ func TestHappyPath(t *testing.T) {
 	diggerConfig, err := configuration.NewDiggerConfig(dir, &configuration.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
-	lock, err := utils.GetLock()
+	lock, err := locking.GetLock()
 	assert.NoError(t, err)
 	assert.NotNil(t, lock, "failed to create lock")
 
@@ -362,19 +364,19 @@ func TestHappyPath(t *testing.T) {
 
 	println("--- new pull request ---")
 	newPullRequestContext := githubContextNewPullRequestMinJson
-	parsedNewPullRequestContext, err := digger.GetGitHubContext(newPullRequestContext)
+	parsedNewPullRequestContext, err := dg_github.GetGitHubContext(newPullRequestContext)
 	assert.NoError(t, err)
 
 	diggerPlanCommentContext := githubContextDiggerPlanCommentMinJson
-	parsedDiggerPlanCommentContext, err := digger.GetGitHubContext(diggerPlanCommentContext)
+	parsedDiggerPlanCommentContext, err := dg_github.GetGitHubContext(diggerPlanCommentContext)
 	assert.NoError(t, err)
 
 	diggerApplyCommentContext := githubContextDiggerApplyCommentMinJson
-	parsedDiggerApplyCommentContext, err := digger.GetGitHubContext(diggerApplyCommentContext)
+	parsedDiggerApplyCommentContext, err := dg_github.GetGitHubContext(diggerApplyCommentContext)
 	assert.NoError(t, err)
 
 	diggerUnlockCommentContext := githubContextDiggerUnlockCommentMinJson
-	parsedDiggerUnlockCommentContext, err := digger.GetGitHubContext(diggerUnlockCommentContext)
+	parsedDiggerUnlockCommentContext, err := dg_github.GetGitHubContext(diggerUnlockCommentContext)
 	assert.NoError(t, err)
 
 	ghEvent := parsedNewPullRequestContext.Event
@@ -386,12 +388,12 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	//  new pr should lock the project
-	impactedProjects, requestedProject, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	zipManager := utils.Zipper{}
-	planStorage := &utils.GithubPlanStorage{
+	planStorage := &storage.GithubPlanStorage{
 		Client:            github.NewTokenClient(context.Background(), ghToken),
 		Owner:             repoOwner,
 		RepoName:          repositoryName,
@@ -401,7 +403,7 @@ func TestHappyPath(t *testing.T) {
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock := &utils.ProjectLockImpl{
+	projectLock := &locking.ProjectLockImpl{
 		InternalLock: lock,
 		CIService:    githubPrService,
 		ProjectName:  "dev",
@@ -421,9 +423,9 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
@@ -435,14 +437,14 @@ func TestHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &utils.ProjectLockImpl{
+	projectLock = &locking.ProjectLockImpl{
 		InternalLock: lock,
 		CIService:    githubPrService,
 		ProjectName:  "dev",
@@ -459,14 +461,14 @@ func TestHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &utils.ProjectLockImpl{
+	projectLock = &locking.ProjectLockImpl{
 		InternalLock: lock,
 		CIService:    githubPrService,
 		ProjectName:  "dev",
@@ -513,19 +515,19 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	println("--- new pull request ---")
 	newPullRequestContext := githubContextNewPullRequestMinJson
-	parsedNewPullRequestContext, err := digger.GetGitHubContext(newPullRequestContext)
+	parsedNewPullRequestContext, err := dg_github.GetGitHubContext(newPullRequestContext)
 	assert.NoError(t, err)
 
 	diggerPlanCommentContext := githubContextDiggerPlanCommentMinJson
-	parsedDiggerPlanCommentContext, err := digger.GetGitHubContext(diggerPlanCommentContext)
+	parsedDiggerPlanCommentContext, err := dg_github.GetGitHubContext(diggerPlanCommentContext)
 	assert.NoError(t, err)
 
 	diggerApplyCommentContext := githubContextDiggerApplyCommentMinJson
-	parsedDiggerApplyCommentContext, err := digger.GetGitHubContext(diggerApplyCommentContext)
+	parsedDiggerApplyCommentContext, err := dg_github.GetGitHubContext(diggerApplyCommentContext)
 	assert.NoError(t, err)
 
 	diggerUnlockCommentContext := githubContextDiggerUnlockCommentMinJson
-	parsedDiggerUnlockCommentContext, err := digger.GetGitHubContext(diggerUnlockCommentContext)
+	parsedDiggerUnlockCommentContext, err := dg_github.GetGitHubContext(diggerUnlockCommentContext)
 	assert.NoError(t, err)
 
 	ghEvent := parsedNewPullRequestContext.Event
@@ -537,13 +539,13 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	// no files changed, no locks
-	impactedProjects, requestedProject, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 
 	zipManager := utils.Zipper{}
-	planStorage := &utils.GithubPlanStorage{
+	planStorage := &storage.GithubPlanStorage{
 		Client:            github.NewTokenClient(context.Background(), ghToken),
 		Owner:             repoOwner,
 		RepoName:          repositoryName,
@@ -553,7 +555,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, &dynamoDbLock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock := &utils.ProjectLockImpl{
+	projectLock := &locking.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		CIService:    githubPrService,
 		ProjectName:  "digger_demo",
@@ -572,9 +574,9 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, &dynamoDbLock, planStorage, dir)
 	assert.NoError(t, err)
@@ -586,14 +588,14 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, &dynamoDbLock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &utils.ProjectLockImpl{
+	projectLock = &locking.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		CIService:    githubPrService,
 		ProjectName:  "digger_demo",
@@ -610,14 +612,14 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, &dynamoDbLock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &utils.ProjectLockImpl{
+	projectLock = &locking.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
 		CIService:    githubPrService,
 		ProjectName:  "digger_demo",
@@ -678,7 +680,7 @@ func TestUnLock(t *testing.T) {
 func TestNonExistentGitHubEvent(t *testing.T) {
 
 	unknownEventContext := githubContextUnknownEventJson
-	_, err := digger.GetGitHubContext(unknownEventContext)
+	_, err := dg_github.GetGitHubContext(unknownEventContext)
 	println(err.Error())
 	assert.Error(t, err)
 	assert.Equal(t, "error parsing GitHub context JSON: unknown GitHub event: non_existent_event", err.Error())
@@ -719,7 +721,7 @@ workflows:
 	assert.NotNil(t, diggerConfig.Workflows["myworkflow"].Configuration)
 	assert.NotNil(t, diggerConfig.Workflows["myworkflow"].Configuration.OnCommitToDefault)
 
-	lock, err := utils.GetLock()
+	lock, err := locking.GetLock()
 	assert.NoError(t, err)
 	assert.NotNil(t, lock, "failed to create lock")
 
@@ -728,19 +730,19 @@ workflows:
 
 	println("--- new pull request ---")
 	newPullRequestContext := githubContextNewPullRequestMinJson
-	parsedNewPullRequestContext, err := digger.GetGitHubContext(newPullRequestContext)
+	parsedNewPullRequestContext, err := dg_github.GetGitHubContext(newPullRequestContext)
 	assert.NoError(t, err)
 
 	diggerPlanCommentContext := githubContextDiggerPlanCommentMinJson
-	parsedDiggerPlanCommentContext, err := digger.GetGitHubContext(diggerPlanCommentContext)
+	parsedDiggerPlanCommentContext, err := dg_github.GetGitHubContext(diggerPlanCommentContext)
 	assert.NoError(t, err)
 
 	diggerApplyCommentContext := githubContextDiggerApplyCommentMinJson
-	parsedDiggerApplyCommentContext, err := digger.GetGitHubContext(diggerApplyCommentContext)
+	parsedDiggerApplyCommentContext, err := dg_github.GetGitHubContext(diggerApplyCommentContext)
 	assert.NoError(t, err)
 
 	diggerUnlockCommentContext := githubContextDiggerUnlockCommentMinJson
-	parsedDiggerUnlockCommentContext, err := digger.GetGitHubContext(diggerUnlockCommentContext)
+	parsedDiggerUnlockCommentContext, err := dg_github.GetGitHubContext(diggerUnlockCommentContext)
 	assert.NoError(t, err)
 
 	ghEvent := parsedNewPullRequestContext.Event
@@ -752,13 +754,13 @@ workflows:
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
 	//  new pr should lock the project
-	impactedProjects, requestedProject, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 
 	zipManager := utils.Zipper{}
-	planStorage := &utils.GithubPlanStorage{
+	planStorage := &storage.GithubPlanStorage{
 		Client:            github.NewTokenClient(context.Background(), ghToken),
 		Owner:             repoOwner,
 		RepoName:          repositoryName,
@@ -768,7 +770,7 @@ workflows:
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock := &utils.ProjectLockImpl{
+	projectLock := &locking.ProjectLockImpl{
 		InternalLock: lock,
 		CIService:    githubPrService,
 		ProjectName:  "dev",
@@ -788,9 +790,9 @@ workflows:
 	repositoryName = parsedDiggerPlanCommentContext.Repository
 
 	// 'digger plan' comment should trigger terraform execution
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
@@ -802,14 +804,14 @@ workflows:
 	repositoryName = parsedDiggerApplyCommentContext.Repository
 
 	// 'digger apply' comment should trigger terraform execution and unlock the project
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &utils.ProjectLockImpl{
+	projectLock = &locking.ProjectLockImpl{
 		InternalLock: lock,
 		CIService:    githubPrService,
 		ProjectName:  "dev",
@@ -825,14 +827,14 @@ workflows:
 	repoOwner = parsedDiggerUnlockCommentContext.RepositoryOwner
 	repositoryName = parsedDiggerUnlockCommentContext.Repository
 
-	impactedProjects, requestedProject, prNumber, err = digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &utils.ProjectLockImpl{
+	projectLock = &locking.ProjectLockImpl{
 		InternalLock: lock,
 		CIService:    githubPrService,
 		ProjectName:  "dev",

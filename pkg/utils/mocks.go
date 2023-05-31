@@ -46,8 +46,8 @@ type MockPullRequestManager struct {
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
 	return t.ChangedFiles, nil
 }
-func (t MockPullRequestManager) PublishComment(prNumber int, comment string) {
-
+func (t MockPullRequestManager) PublishComment(prNumber int, comment string) error {
+	return nil
 }
 
 func (t MockPullRequestManager) SetStatus(prNumber int, status string, statusContext string) error {

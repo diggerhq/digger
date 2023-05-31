@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
+	"digger/pkg/locking"
 	"digger/pkg/models"
+	"digger/pkg/storage"
 	"digger/pkg/terraform"
 	"digger/pkg/usage"
 	"digger/pkg/utils"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,55 +21,13 @@ import (
 	"strings"
 )
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
-	var impactedProjects []configuration.Project
-	var prNumber int
-
-	switch ghEvent.(type) {
-	case models.PullRequestEvent:
-		prNumber = ghEvent.(models.PullRequestEvent).PullRequest.Number
-		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
-		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not get changed files")
-		}
-
-		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-	case models.IssueCommentEvent:
-		prNumber = ghEvent.(models.IssueCommentEvent).Issue.Number
-		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
-		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not get changed files")
-		}
-
-		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-		requestedProject := parseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
-
-		if requestedProject == "" {
-			return impactedProjects, nil, prNumber, nil
-		}
-
-		for _, project := range impactedProjects {
-			if project.Name == requestedProject {
-				return impactedProjects, &project, prNumber, nil
-			}
-		}
-		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
-
-	default:
-		return nil, nil, 0, fmt.Errorf("unsupported event type")
-	}
-	return impactedProjects, nil, prNumber, nil
-}
-
-func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
+func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, error) {
 	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		appliesPerProject[projectCommands.ProjectName] = false
 		for _, command := range projectCommands.Commands {
-			projectLock := &utils.ProjectLockImpl{
+			projectLock := &locking.ProjectLockImpl{
 				InternalLock: lock,
 				CIService:    ciService,
 				ProjectName:  projectCommands.ProjectName,
@@ -176,136 +134,7 @@ func MergePullRequest(githubPrService ci.CIService, prNumber int) {
 	}
 }
 
-func GetGitHubContext(ghContext string) (*models.Github, error) {
-	parsedGhContext := new(models.Github)
-	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
-	if err != nil {
-		return &models.Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
-	}
-	return parsedGhContext, nil
-}
-
-type ProjectCommand struct {
-	ProjectName      string
-	ProjectDir       string
-	ProjectWorkspace string
-	Terragrunt       bool
-	Commands         []string
-	ApplyStage       *configuration.Stage
-	PlanStage        *configuration.Stage
-	StateEnvVars     map[string]string
-	CommandEnvVars   map[string]string
-}
-
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]ProjectCommand, bool, error) {
-	commandsPerProject := make([]ProjectCommand, 0)
-
-	switch event.(type) {
-	case models.PullRequestEvent:
-		event := event.(models.PullRequestEvent)
-		for _, project := range impactedProjects {
-			workflow, ok := workflows[project.Workflow]
-			if !ok {
-				workflow = *defaultWorkflow()
-			}
-
-			stateEnvVars, commandEnvVars := collectEnvVars(workflow.EnvVars)
-
-			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
-				commandsPerProject = append(commandsPerProject, ProjectCommand{
-					ProjectName:      project.Name,
-					ProjectDir:       project.Dir,
-					ProjectWorkspace: project.Workspace,
-					Terragrunt:       project.Terragrunt,
-					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
-					CommandEnvVars:   commandEnvVars,
-					StateEnvVars:     stateEnvVars,
-				})
-			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
-				commandsPerProject = append(commandsPerProject, ProjectCommand{
-					ProjectName:      project.Name,
-					ProjectDir:       project.Dir,
-					ProjectWorkspace: project.Workspace,
-					Terragrunt:       project.Terragrunt,
-					Commands:         workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
-					CommandEnvVars:   commandEnvVars,
-					StateEnvVars:     stateEnvVars,
-				})
-			} else if event.Action == "closed" {
-				commandsPerProject = append(commandsPerProject, ProjectCommand{
-					ProjectName:      project.Name,
-					ProjectDir:       project.Dir,
-					ProjectWorkspace: project.Workspace,
-					Terragrunt:       project.Terragrunt,
-					Commands:         workflow.Configuration.OnPullRequestClosed,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
-					CommandEnvVars:   commandEnvVars,
-					StateEnvVars:     stateEnvVars,
-				})
-			}
-		}
-		return commandsPerProject, true, nil
-	case models.IssueCommentEvent:
-		event := event.(models.IssueCommentEvent)
-		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
-
-		coversAllImpactedProjects := true
-
-		runForProjects := impactedProjects
-
-		if requestedProject != nil {
-			if len(impactedProjects) > 1 {
-				coversAllImpactedProjects = false
-				runForProjects = []configuration.Project{*requestedProject}
-			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
-				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
-			}
-		}
-
-		for _, command := range supportedCommands {
-			if strings.Contains(event.Comment.Body, command) {
-				for _, project := range runForProjects {
-					workflow, ok := workflows[project.Workflow]
-					if !ok {
-						workflow = *defaultWorkflow()
-					}
-
-					stateEnvVars, commandEnvVars := collectEnvVars(workflow.EnvVars)
-
-					workspace := project.Workspace
-					workspaceOverride, err := parseWorkspace(event.Comment.Body)
-					if err != nil {
-						return []ProjectCommand{}, false, err
-					}
-					if workspaceOverride != "" {
-						workspace = workspaceOverride
-					}
-					commandsPerProject = append(commandsPerProject, ProjectCommand{
-						ProjectName:      project.Name,
-						ProjectDir:       project.Dir,
-						ProjectWorkspace: workspace,
-						Terragrunt:       project.Terragrunt,
-						Commands:         []string{command},
-						ApplyStage:       workflow.Apply,
-						PlanStage:        workflow.Plan,
-						CommandEnvVars:   commandEnvVars,
-						StateEnvVars:     stateEnvVars,
-					})
-				}
-			}
-		}
-		return commandsPerProject, coversAllImpactedProjects, nil
-	default:
-		return []ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
-	}
-}
-
-func collectEnvVars(envs configuration.EnvVars) (map[string]string, map[string]string) {
+func CollectEnvVars(envs configuration.EnvVars) (map[string]string, map[string]string) {
 	stateEnvVars := map[string]string{}
 
 	for _, envvar := range envs.State {
@@ -328,34 +157,6 @@ func collectEnvVars(envs configuration.EnvVars) (map[string]string, map[string]s
 	return stateEnvVars, commandEnvVars
 }
 
-func parseWorkspace(comment string) (string, error) {
-	re := regexp.MustCompile(`-w(?:\s+(\S+)|$)`)
-	matches := re.FindAllStringSubmatch(comment, -1)
-
-	if len(matches) == 0 {
-		return "", nil
-	}
-
-	if len(matches) > 1 {
-		return "", errors.New("more than one -w flag found")
-	}
-
-	if len(matches[0]) < 2 || matches[0][1] == "" {
-		return "", errors.New("no value found after -w flag")
-	}
-
-	return matches[0][1], nil
-}
-
-func parseProjectName(comment string) string {
-	re := regexp.MustCompile(`-p ([0-9a-zA-Z\-_]+)`)
-	match := re.FindStringSubmatch(comment)
-	if len(match) > 1 {
-		return match[1]
-	}
-	return ""
-}
-
 type DiggerExecutor struct {
 	RepoOwner         string
 	RepoName          string
@@ -368,8 +169,8 @@ type DiggerExecutor struct {
 	CommandRunner     CommandRun
 	TerraformExecutor terraform.TerraformExecutor
 	CIService         ci.CIService
-	ProjectLock       utils.ProjectLock
-	PlanStorage       utils.PlanStorage
+	ProjectLock       locking.ProjectLock
+	PlanStorage       storage.PlanStorage
 }
 
 type CommandRun interface {
@@ -484,7 +285,10 @@ func (d DiggerExecutor) Plan(prNumber int) (bool, error) {
 				}
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+d.ProjectLock.LockId()+"**", plan)
-				d.CIService.PublishComment(prNumber, comment)
+				err = d.CIService.PublishComment(prNumber, comment)
+				if err != nil {
+					fmt.Printf("error publishing comment: %v", err)
+				}
 			}
 			if step.Action == "run" {
 				var commands []string
@@ -520,7 +324,10 @@ func (d DiggerExecutor) Apply(prNumber int) (bool, error) {
 	}
 	if !isMergeable {
 		comment := "Cannot perform Apply since the PR is not currently mergeable."
-		d.CIService.PublishComment(prNumber, comment)
+		err = d.CIService.PublishComment(prNumber, comment)
+		if err != nil {
+			fmt.Printf("error publishing comment: %v", err)
+		}
 		return false, nil
 	} else {
 		locked, err := d.ProjectLock.Lock(prNumber)
@@ -556,9 +363,15 @@ func (d DiggerExecutor) Apply(prNumber int) (bool, error) {
 					stdout, stderr, err := d.TerraformExecutor.Apply(step.ExtraArgs, plansFilename, d.CommandEnvVars)
 					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.ProjectLock.LockId()+"**", applyOutput)
-					d.CIService.PublishComment(prNumber, comment)
+					commentErr := d.CIService.PublishComment(prNumber, comment)
+					if commentErr != nil {
+						fmt.Printf("error publishing comment: %v", err)
+					}
 					if err != nil {
-						d.CIService.PublishComment(prNumber, "Error during applying.")
+						commentErr = d.CIService.PublishComment(prNumber, "Error during applying.")
+						if commentErr != nil {
+							fmt.Printf("error publishing comment: %v", err)
+						}
 						return false, fmt.Errorf("error executing apply: %v", err)
 					}
 				}
@@ -656,26 +469,7 @@ func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, std
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, &regex)
 }
 
-func issueCommentEventContainsComment(event models.Event, comment string) bool {
-	switch event.(type) {
-	case models.IssueCommentEvent:
-		event := event.(models.IssueCommentEvent)
-		if strings.Contains(event.Comment.Body, comment) {
-			return true
-		}
-	}
-	return false
-}
-
-func CheckIfHelpComment(event models.Event) bool {
-	return issueCommentEventContainsComment(event, "digger help")
-}
-
-func CheckIfApplyComment(event models.Event) bool {
-	return issueCommentEventContainsComment(event, "digger apply")
-}
-
-func defaultWorkflow() *configuration.Workflow {
+func DefaultWorkflow() *configuration.Workflow {
 	return &configuration.Workflow{
 		Configuration: &configuration.WorkflowConfiguration{
 			OnCommitToDefault:   []string{"digger unlock"},
@@ -712,6 +506,7 @@ const (
 	GitHub    = CIName("github")
 	GitLab    = CIName("gitlab")
 	BitBucket = CIName("bitbucket")
+	Azure     = CIName("azure")
 )
 
 func (ci CIName) String() string {
@@ -732,6 +527,9 @@ func DetectCI() CIName {
 	}
 	if notEmpty("BITBUCKET_BUILD_NUMBER") {
 		return BitBucket
+	}
+	if notEmpty("AZURE_CI") {
+		return Azure
 	}
 	return None
 

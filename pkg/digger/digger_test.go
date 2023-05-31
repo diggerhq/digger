@@ -2,6 +2,7 @@ package digger
 
 import (
 	"digger/pkg/configuration"
+	"digger/pkg/utils"
 	"sort"
 	"strconv"
 	"strings"
@@ -57,8 +58,9 @@ func (m *MockPRManager) GetChangedFiles(prNumber int) ([]string, error) {
 	return []string{}, nil
 }
 
-func (m *MockPRManager) PublishComment(prNumber int, comment string) {
+func (m *MockPRManager) PublishComment(prNumber int, comment string) error {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", strconv.Itoa(prNumber) + " " + comment, time.Now()})
+	return nil
 }
 
 func (m *MockPRManager) SetStatus(prNumber int, status string, statusContext string) error {
@@ -275,17 +277,17 @@ func TestParseWorkspace(t *testing.T) {
 	}
 
 	for _, tt := range commentTests {
-		out, err := parseWorkspace(tt.in)
+		out, err := utils.ParseWorkspace(tt.in)
 		if tt.err {
 			if err == nil {
-				t.Errorf("parseWorkspace(%q) = %q, want error", tt.in, out)
+				t.Errorf("ParseWorkspace(%q) = %q, want error", tt.in, out)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("parseWorkspace(%q) = %q, want %q", tt.in, err, tt.out)
+				t.Errorf("ParseWorkspace(%q) = %q, want %q", tt.in, err, tt.out)
 			}
 			if out != tt.out {
-				t.Errorf("parseWorkspace(%q) = %q, want %q", tt.in, out, tt.out)
+				t.Errorf("ParseWorkspace(%q) = %q, want %q", tt.in, out, tt.out)
 			}
 		}
 	}
