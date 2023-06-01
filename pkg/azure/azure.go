@@ -203,7 +203,7 @@ func (a *AzureReposService) SetStatus(prNumber int, status string, statusContext
 		Status: &git.GitPullRequestStatus{
 			State:       &gitStatusState,
 			Context:     &gitStatusContext,
-			Description: &status,
+			Description: &statusContext,
 		},
 	})
 	return err
