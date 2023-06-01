@@ -147,9 +147,6 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 	sourceCommitId := pullRequest.LastMergeSourceCommit.CommitId
 	targetCommitId := pullRequest.LastMergeTargetCommit.CommitId
 
-	println("sourceCommitId: " + *sourceCommitId)
-	println("targetCommitId: " + *targetCommitId)
-	println("repositoryId: " + pullRequest.Repository.Id.String())
 	repositoryId := pullRequest.Repository.Id.String()
 	changes, err := a.Client.GetCommitDiffs(context.Background(), git.GetCommitDiffsArgs{
 		Project:                 &a.ProjectName,
@@ -163,7 +160,6 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 
 	var changedFiles []string
 	for _, change := range *changes.Changes {
-		println("change: " + change.(map[string]interface{})["item"].(map[string]interface{})["path"].(string))
 		if item, ok := change.(map[string]interface{})["item"].(map[string]interface{}); ok {
 			if p, ok := item["path"].(string); ok {
 				changedFiles = append(changedFiles, p)
@@ -193,6 +189,7 @@ func (a *AzureReposService) SetStatus(prNumber int, status string, statusContext
 	_, err := a.Client.CreatePullRequestStatus(context.Background(), git.CreatePullRequestStatusArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
+		RepositoryId:  &a.RepositoryId,
 		Status: &git.GitPullRequestStatus{
 			State:       &gitStatusState,
 			Context:     &gitStatusContext,
@@ -206,6 +203,7 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 	pullRequestStatuses, err := a.Client.GetPullRequestStatuses(context.Background(), git.GetPullRequestStatusesArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
+		RepositoryId:  &a.RepositoryId,
 	})
 	if err != nil {
 		return "", err
@@ -233,6 +231,7 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 func (a *AzureReposService) MergePullRequest(prNumber int) error {
 	_, err := a.Client.UpdatePullRequest(context.Background(), git.UpdatePullRequestArgs{
 		Project:       &a.ProjectName,
+		RepositoryId:  &a.RepositoryId,
 		PullRequestId: &prNumber,
 		GitPullRequestToUpdate: &git.GitPullRequest{
 			Status: &git.PullRequestStatusValues.Completed,
