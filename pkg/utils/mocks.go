@@ -88,3 +88,7 @@ func (t MockPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePa
 func (t MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
 	return nil
 }
+
+func (t MockPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
+	return false, nil
+}
