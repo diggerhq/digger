@@ -339,7 +339,9 @@ func (c *DiggerConfig) GetProjects(projectName string) []Project {
 func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	var result []Project
 	for _, project := range c.Projects {
+		fmt.Printf("DEBUG: detecting for project: %v\n", project.Name)
 		for _, changedFile := range changedFiles {
+			fmt.Printf("    DEBUG: changed file: %v\n", changedFile)
 			// we append ** to make our directory a globable pattern
 			projectDirPattern := path.Join(project.Dir, "**")
 			includePatterns := project.IncludePatterns

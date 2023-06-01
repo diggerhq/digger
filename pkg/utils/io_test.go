@@ -104,10 +104,12 @@ func TestMatchIncludeExcludePatternsToFile(t *testing.T) {
 		{"dev/main.tf", []string{"./dev/**"}, []string{}, true},
 		{"dev/main.tf", []string{"dev/**"}, []string{"dev/"}, true},
 		{"dev/main.tf", []string{"prod/**"}, []string{"dev/"}, false},
-		{"modules/moduleA/main.tf", []string{"dev**", "modules/**"}, []string{"dev/"}, true},
-		{"modules/moduleA/main.tf", []string{"dev**", "./modules/**"}, []string{"dev/"}, true},
-		{"modules/moduleA/main.tf", []string{"dev**"}, []string{"dev/"}, false},
-		{"modules/moduleA/main.tf", []string{"dev**", "modules/**"}, []string{"modules/moduleA/**"}, false},
+		{"modules/moduleA/main.tf", []string{"dev/**", "modules/**"}, []string{"dev/"}, true},
+		{"modules/moduleA/main.tf", []string{"dev/**", "./modules/**"}, []string{"dev/"}, true},
+		{"modules/moduleA/main.tf", []string{"dev/**"}, []string{"dev/"}, false},
+		{"modules/moduleA/main.tf", []string{"dev/**", "modules/**"}, []string{"modules/moduleA/**"}, false},
+		{"modules/moduleA/main.tf", []string{"dev/**", "modules/moduleB/**"}, []string{}, false},
+		{"modules/moduleA/main.tf", []string{"/project_a/dev/**", "modules/moduleB/**"}, []string{}, false},
 	}
 	for _, tt := range normTests {
 		res := MatchIncludeExcludePatternsToFile(tt.fileToMatch, tt.includePatterns, tt.excludePatterns)
