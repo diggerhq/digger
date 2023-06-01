@@ -12,7 +12,7 @@ require (
 	github.com/google/go-github/v51 v51.0.0
 	github.com/google/uuid v1.3.0
 	github.com/stretchr/testify v1.8.3
-	github.com/xanzy/go-gitlab v0.83.0
+	github.com/xanzy/go-gitlab v0.84.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
