@@ -4,7 +4,6 @@ import (
 	"context"
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
-	"digger/pkg/digger"
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"encoding/json"
@@ -351,10 +350,10 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				workflow = *digger.DefaultWorkflow()
+				workflow = *configuration.DefaultWorkflow()
 			}
 
-			stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
@@ -373,10 +372,10 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				workflow = *digger.DefaultWorkflow()
+				workflow = *configuration.DefaultWorkflow()
 			}
 
-			stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
@@ -396,9 +395,9 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 			for _, project := range impactedProjects {
 				workflow, ok := workflows[project.Workflow]
 				if !ok {
-					workflow = *digger.DefaultWorkflow()
+					workflow = *configuration.DefaultWorkflow()
 				}
-				stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
+				stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 
 				commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 					ProjectName:      project.Name,
@@ -446,9 +445,9 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					}
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
-						workflow = *digger.DefaultWorkflow()
+						workflow = *configuration.DefaultWorkflow()
 					}
-					stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,

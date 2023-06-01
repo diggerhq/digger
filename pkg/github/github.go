@@ -4,7 +4,6 @@ import (
 	"context"
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
-	"digger/pkg/digger"
 	"digger/pkg/github/models"
 	dg_models "digger/pkg/models"
 	"digger/pkg/utils"
@@ -142,10 +141,10 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				workflow = *digger.DefaultWorkflow()
+				workflow = *configuration.DefaultWorkflow()
 			}
 
-			stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
@@ -208,10 +207,10 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
-						workflow = *digger.DefaultWorkflow()
+						workflow = *configuration.DefaultWorkflow()
 					}
 
-					stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
