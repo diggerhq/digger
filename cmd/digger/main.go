@@ -229,7 +229,7 @@ func azureCI(lock locking.Lock) {
 	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
 	var planStorage storage.PlanStorage
 
-	result, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
+	result, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.ProjectName, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
 	if err != nil {
 		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to execute command. %s", err), 8)
 	}
