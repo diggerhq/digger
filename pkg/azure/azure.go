@@ -209,6 +209,13 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 		return "", err
 	}
 	for _, status := range *pullRequestStatuses {
+		println(fmt.Sprintf("status: %v", status))
+		println(fmt.Sprintf("status id: %v", status.Id))
+		println(fmt.Sprintf("desc %v", status.Description))
+		println(fmt.Sprintf("created by %v", status.CreatedBy))
+		println(fmt.Sprintf("context %v", status.Context))
+		println(fmt.Sprintf("%s: %s", *status.Context.Name, *status.State))
+
 		if *status.State == git.GitStatusStateValues.Failed || *status.State == git.GitStatusStateValues.Error {
 			return "failure", nil
 		}
