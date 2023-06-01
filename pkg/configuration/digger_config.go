@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"digger/pkg/utils"
 	"errors"
 	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
@@ -8,7 +9,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 )
 
 type WorkflowConfiguration struct {
@@ -44,11 +44,13 @@ type GenerateProjectsConfig struct {
 }
 
 type Project struct {
-	Name       string `yaml:"name"`
-	Dir        string `yaml:"dir"`
-	Workspace  string `yaml:"workspace"`
-	Terragrunt bool   `yaml:"terragrunt"`
-	Workflow   string `yaml:"workflow"`
+	Name            string   `yaml:"name"`
+	Dir             string   `yaml:"dir"`
+	Workspace       string   `yaml:"workspace"`
+	Terragrunt      bool     `yaml:"terragrunt"`
+	Workflow        string   `yaml:"workflow"`
+	IncludePatterns []string `yaml:"include_patterns,omitempty"`
+	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
 }
 
 type Stage struct {
@@ -376,12 +378,14 @@ func (c *DiggerConfig) GetProjects(projectName string) []Project {
 func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	var result []Project
 	for _, project := range c.Projects {
-		for _, file := range changedFiles {
-			absoluteFile, _ := filepath.Abs(path.Join("/", file))
-			absoluteDir, _ := filepath.Abs(path.Join("/", project.Dir))
-
-			//fmt.Printf("absoluteFile: %s, absoluteDir: %s \n", absoluteFile, absoluteDir)
-			if strings.HasPrefix(absoluteFile, absoluteDir) {
+		for _, changedFile := range changedFiles {
+			// we append ** to make our directory a globable pattern
+			projectDirPattern := path.Join(project.Dir, "**")
+			includePatterns := project.IncludePatterns
+			excludePatterns := project.ExcludePatterns
+			// all our patterns are the globale dir pattern + the include patterns specified by user
+			allIncludePatterns := append([]string{projectDirPattern}, includePatterns...)
+			if utils.MatchIncludeExcludePatternsToFile(changedFile, allIncludePatterns, excludePatterns) {
 				result = append(result, project)
 				break
 			}
