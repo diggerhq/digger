@@ -19,6 +19,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, error) {
@@ -108,6 +109,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 }
 
 func MergePullRequest(githubPrService ci.CIService, prNumber int) {
+	time.Sleep(5 * time.Second)
 	combinedStatus, err := githubPrService.GetCombinedPullRequestStatus(prNumber)
 
 	if err != nil {
