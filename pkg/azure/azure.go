@@ -130,6 +130,9 @@ type AzureReposService struct {
 }
 
 func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
+
+	println("prNumber: ", prNumber)
+	println("a.ProjectName: ", a.ProjectName)
 	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
