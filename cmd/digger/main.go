@@ -184,40 +184,39 @@ func azureCI(lock locking.Lock) {
 	if azureToken == "" {
 		fmt.Println("AZURE_TOKEN is empty")
 	}
-
-	walker := configuration.FileSystemDirWalker{}
-	currentDir, err := os.Getwd()
-	if err != nil {
-		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to get current dir. %s", err), 4)
-	}
-	fmt.Printf("main: working dir: %s \n", currentDir)
-
-	diggerConfig, err := configuration.NewDiggerConfig(currentDir, &walker)
-	if err != nil {
-		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
-	}
-	println("Digger config read successfully")
-
 	parsedAzureContext, err := azure.GetAzureReposContext(azureContext)
 	if err != nil {
 		fmt.Printf("failed to parse Azure context. %s\n", err.Error())
 		os.Exit(4)
 	}
 
+	walker := configuration.FileSystemDirWalker{}
+	currentDir, err := os.Getwd()
+	if err != nil {
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+	}
+	fmt.Printf("main: working dir: %s \n", currentDir)
+
+	diggerConfig, err := configuration.NewDiggerConfig(currentDir, &walker)
+	if err != nil {
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+	}
+	println("Digger config read successfully")
+
 	azureService, err := azure.NewAzureReposService(azureToken, parsedAzureContext.BaseUrl, parsedAzureContext.ProjectName, parsedAzureContext.RepositoryId)
 	if err != nil {
-		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to initialise azure service. %s", err), 5)
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to initialise azure service. %s", err), 5)
 	}
 
-	impactedProjects, _, prNumber, err := azure.ProcessAzureReposEvent(parsedAzureContext.Event, diggerConfig, azureService)
+	impactedProjects, requestedProject, prNumber, err := azure.ProcessAzureReposEvent(parsedAzureContext.Event, diggerConfig, azureService)
 	if err != nil {
-		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
 	}
 	println(fmt.Sprintf("Azure event processed successfully. Impacted projects:%v", impactedProjects))
 
-	commandsToRunPerProject, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, diggerConfig.Workflows)
+	commandsToRunPerProject, coversAllImpactedProjects, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
-		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
 
 	}
 	println("Azure event converted to commands successfully")
@@ -226,14 +225,27 @@ func azureCI(lock locking.Lock) {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
-	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
 	var planStorage storage.PlanStorage
 
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.ProjectName, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
+	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.ProjectName, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
 	if err != nil {
-		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to execute command. %s", err), 8)
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
+
+	if diggerConfig.AutoMerge && allAppliesSuccess && coversAllImpactedProjects {
+		digger.MergePullRequest(azureService, prNumber)
+		println("PR merged successfully")
+	}
+
 	println("Commands executed successfully")
+
+	reportErrorAndExit(parsedAzureContext.BaseUrl, "Digger finished successfully", 0)
+
+	defer func() {
+		if r := recover(); r != nil {
+			reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Panic occurred. %s", r), 1)
+		}
+	}()
 }
 
 /*
