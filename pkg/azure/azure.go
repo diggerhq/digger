@@ -305,7 +305,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 	return impactedProjects, nil, prNumber, nil
 }
 
-func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, error) {
+func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]models.ProjectCommand, 0)
 
 	switch parseAzureContext.EventType {
@@ -326,7 +326,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				PlanStage:        workflow.Plan,
 			})
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, true, nil
 	case AzurePrClosed:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
@@ -344,7 +344,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				PlanStage:        workflow.Plan,
 			})
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, true, nil
 	case AzurePrMerged:
 		if parseAzureContext.Event.(AzurePrEvent).Resource.Repository.Status == "completed" {
 			for _, project := range impactedProjects {
@@ -363,21 +363,34 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					PlanStage:        workflow.Plan,
 				})
 			}
-			return commandsPerProject, nil
+			return commandsPerProject, true, nil
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, true, nil
 	case AzurePrCommented:
 
 		diggerCommand := parseAzureContext.Event.(AzureCommentEvent).Resource.Comment.Content
 
+		coversAllImpactedProjects := true
+
+		runForProjects := impactedProjects
+
+		if requestedProject != nil {
+			if len(impactedProjects) > 1 {
+				coversAllImpactedProjects = false
+				runForProjects = []configuration.Project{*requestedProject}
+			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
+				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
+			}
+		}
+
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 		for _, command := range supportedCommands {
 			if strings.Contains(diggerCommand, command) {
-				for _, project := range impactedProjects {
+				for _, project := range runForProjects {
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
 					if err != nil {
-						return []models.ProjectCommand{}, err
+						return []models.ProjectCommand{}, coversAllImpactedProjects, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
@@ -392,9 +405,9 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				}
 			}
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, coversAllImpactedProjects, nil
 
 	default:
-		return []models.ProjectCommand{}, fmt.Errorf("unsupported Azure event type: %v", parseAzureContext.EventType)
+		return []models.ProjectCommand{}, true, fmt.Errorf("unsupported Azure event type: %v", parseAzureContext.EventType)
 	}
 }
