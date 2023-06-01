@@ -132,8 +132,6 @@ type AzureReposService struct {
 
 func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 
-	println("prNumber: ", prNumber)
-	println("a.ProjectName: ", a.ProjectName)
 	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
@@ -143,6 +141,9 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 	}
 	sourceCommitId := pullRequest.LastMergeSourceCommit.CommitId
 	targetCommitId := pullRequest.LastMergeTargetCommit.CommitId
+
+	println("sourceCommitId: " + *sourceCommitId)
+	println("targetCommitId: " + *targetCommitId)
 	repositoryId := pullRequest.Repository.Id.String()
 	changes, err := a.Client.GetCommitDiffs(context.Background(), git.GetCommitDiffsArgs{
 		Project:                 &a.ProjectName,
@@ -157,6 +158,7 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 
 	var changedFiles []string
 	for _, change := range *changes.Changes {
+		println("change: " + change.(map[string]interface{})["item"].(map[string]interface{})["path"].(string))
 		if item, ok := change.(map[string]interface{})["item"].(map[string]interface{}); ok {
 			if p, ok := item["path"].(string); ok {
 				changedFiles = append(changedFiles, p)

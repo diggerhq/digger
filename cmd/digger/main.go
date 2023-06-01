@@ -213,14 +213,14 @@ func azureCI(lock locking.Lock) {
 	if err != nil {
 		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
 	}
-	println("Azure event processed successfully")
+	println(fmt.Sprintf("Azure event processed successfully. Impacted projects:%v", impactedProjects))
 
 	commandsToRunPerProject, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
 
 	}
-	println("GitLab event converted to commands successfully")
+	println("Azure event converted to commands successfully")
 
 	for _, v := range commandsToRunPerProject {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
