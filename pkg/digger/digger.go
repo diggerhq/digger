@@ -136,29 +136,6 @@ func MergePullRequest(githubPrService ci.CIService, prNumber int) {
 	}
 }
 
-func CollectEnvVars(envs configuration.EnvVars) (map[string]string, map[string]string) {
-	stateEnvVars := map[string]string{}
-
-	for _, envvar := range envs.State {
-		if envvar.Value != "" {
-			stateEnvVars[envvar.Name] = envvar.Value
-		} else if envvar.ValueFrom != "" {
-			stateEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
-		}
-	}
-
-	commandEnvVars := map[string]string{}
-
-	for _, envvar := range envs.Commands {
-		if envvar.Value != "" {
-			commandEnvVars[envvar.Name] = envvar.Value
-		} else if envvar.ValueFrom != "" {
-			commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
-		}
-	}
-	return stateEnvVars, commandEnvVars
-}
-
 type DiggerExecutor struct {
 	RepoOwner         string
 	RepoName          string
@@ -469,36 +446,6 @@ func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, st
 func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
 	regex := `───────────.+`
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, &regex)
-}
-
-func DefaultWorkflow() *configuration.Workflow {
-	return &configuration.Workflow{
-		Configuration: &configuration.WorkflowConfiguration{
-			OnCommitToDefault:   []string{"digger unlock"},
-			OnPullRequestPushed: []string{"digger plan"},
-			OnPullRequestClosed: []string{"digger unlock"},
-		},
-		Plan: &configuration.Stage{
-			Steps: []configuration.Step{
-				{
-					Action: "init", ExtraArgs: []string{},
-				},
-				{
-					Action: "plan", ExtraArgs: []string{},
-				},
-			},
-		},
-		Apply: &configuration.Stage{
-			Steps: []configuration.Step{
-				{
-					Action: "init", ExtraArgs: []string{},
-				},
-				{
-					Action: "apply", ExtraArgs: []string{},
-				},
-			},
-		},
-	}
 }
 
 type CIName string
