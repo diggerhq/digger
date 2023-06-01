@@ -153,7 +153,15 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 		TargetVersionDescriptor: &git.GitTargetVersionDescriptor{Version: sourceCommitId, VersionType: &git.GitVersionTypeValues.Commit},
 	})
 
-	println(fmt.Sprintf("changes: %v", changes))
+	println(fmt.Sprintf("changes: %v", changes.Changes))
+	println(fmt.Sprintf("AllChangesIncluded: %v", *changes.AllChangesIncluded))
+	println(fmt.Sprintf("ChangeCounts: %v", changes.ChangeCounts))
+	println(fmt.Sprintf("AheadCount: %v", changes.AheadCount))
+	println(fmt.Sprintf("ChangeCounts: %v", changes.ChangeCounts))
+	println(fmt.Sprintf("CommonCommit: %v", changes.CommonCommit))
+	println(fmt.Sprintf("TargetCommit: %v", changes.TargetCommit))
+	println(fmt.Sprintf("BaseCommit: %v", changes.BaseCommit))
+
 	if err != nil {
 		return nil, err
 	}
