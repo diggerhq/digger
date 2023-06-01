@@ -156,15 +156,6 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 		return nil, err
 	}
 
-	println(fmt.Sprintf("changes: %v", changes.Changes))
-	println(fmt.Sprintf("AllChangesIncluded: %v", *changes.AllChangesIncluded))
-	println(fmt.Sprintf("ChangeCounts: %v", changes.ChangeCounts))
-	println(fmt.Sprintf("AheadCount: %v", changes.AheadCount))
-	println(fmt.Sprintf("ChangeCounts: %v", changes.ChangeCounts))
-	println(fmt.Sprintf("CommonCommit: %v", *changes.CommonCommit))
-	println(fmt.Sprintf("TargetCommit: %v", *changes.TargetCommit))
-	println(fmt.Sprintf("BaseCommit: %v", *changes.BaseCommit))
-
 	var changedFiles []string
 	for _, change := range *changes.Changes {
 		println("change: " + change.(map[string]interface{})["item"].(map[string]interface{})["path"].(string))
