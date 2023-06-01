@@ -184,7 +184,17 @@ func (a *AzureReposService) PublishComment(prNumber int, comment string) error {
 }
 
 func (a *AzureReposService) SetStatus(prNumber int, status string, statusContext string) error {
-	gitStatusState := git.GitStatusState(status)
+	var gitStatusState git.GitStatusState
+	if status == "success" {
+		gitStatusState = git.GitStatusStateValues.Succeeded
+	} else if status == "failure" {
+		gitStatusState = git.GitStatusStateValues.Failed
+	} else if status == "pending" {
+		gitStatusState = git.GitStatusStateValues.Pending
+	} else {
+		gitStatusState = git.GitStatusStateValues.NotSet
+	}
+
 	gitStatusContext := git.GitStatusContext{Name: &statusContext}
 	_, err := a.Client.CreatePullRequestStatus(context.Background(), git.CreatePullRequestStatusArgs{
 		Project:       &a.ProjectName,
