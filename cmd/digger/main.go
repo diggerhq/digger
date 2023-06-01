@@ -204,7 +204,7 @@ func azureCI(lock locking.Lock) {
 		os.Exit(4)
 	}
 
-	azureService, err := azure.NewAzureReposService(azureToken, parsedAzureContext.BaseUrl, parsedAzureContext.ProjectName)
+	azureService, err := azure.NewAzureReposService(azureToken, parsedAzureContext.BaseUrl, parsedAzureContext.ProjectName, parsedAzureContext.RepositoryId)
 	if err != nil {
 		reportErrorAndExit(azureContext, fmt.Sprintf("Failed to initialise azure service. %s", err), 5)
 	}

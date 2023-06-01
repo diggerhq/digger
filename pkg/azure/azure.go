@@ -63,10 +63,11 @@ type AzureCommentEvent struct {
 }
 
 type Azure struct {
-	EventType   string `json:"eventType"`
-	Event       interface{}
-	ProjectName string
-	BaseUrl     string
+	EventType    string `json:"eventType"`
+	Event        interface{}
+	ProjectName  string
+	BaseUrl      string
+	RepositoryId string
 }
 
 func GetAzureReposContext(azureContext string) (Azure, error) {
@@ -98,6 +99,7 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 		a.Event = event
 		a.ProjectName = event.Resource.Repository.Project.Name
 		a.BaseUrl = event.ResourceContainers.Account.BaseUrl
+		a.RepositoryId = event.Resource.Repository.Id
 	case "ms.vss-code.git-pullrequest-comment-event":
 		var event AzureCommentEvent
 		if err := json.Unmarshal(data, &event); err != nil {
@@ -106,6 +108,7 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 		a.Event = event
 		a.ProjectName = event.Resource.PullRequest.Repository.Project.Name
 		a.BaseUrl = event.ResourceContainers.Account.BaseUrl
+		a.RepositoryId = event.Resource.PullRequest.Repository.Id
 	default:
 		return errors.New("unknown Azure event: " + a.EventType)
 	}
@@ -113,21 +116,23 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func NewAzureReposService(patToken string, baseUrl string, projectName string) (*AzureReposService, error) {
+func NewAzureReposService(patToken string, baseUrl string, projectName string, repositoryId string) (*AzureReposService, error) {
 	client, err := git.NewClient(context.Background(), azuredevops.NewPatConnection(baseUrl, patToken))
 
 	if err != nil {
 		return nil, err
 	}
 	return &AzureReposService{
-		Client:      client,
-		ProjectName: projectName,
+		Client:       client,
+		ProjectName:  projectName,
+		RepositoryId: repositoryId,
 	}, nil
 }
 
 type AzureReposService struct {
-	Client      git.Client
-	ProjectName string
+	Client       git.Client
+	ProjectName  string
+	RepositoryId string
 }
 
 func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
@@ -172,6 +177,7 @@ func (a *AzureReposService) PublishComment(prNumber int, comment string) error {
 	_, err := a.Client.CreateThread(context.Background(), git.CreateThreadArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
+		RepositoryId:  &a.RepositoryId,
 		CommentThread: &git.GitPullRequestCommentThread{
 			Comments: &[]git.Comment{{
 				Content: &comment,
