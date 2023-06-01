@@ -222,6 +222,9 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 	latestUniqueRequestStatuses := make(map[string]*git.GitPullRequestStatus)
 
 	for _, status := range *pullRequestStatuses {
+		if status.Context == nil || status.Context.Name == nil || status.Context.Genre == nil {
+			continue
+		}
 		key := fmt.Sprintf("%s/%s", *status.Context.Name, *status.Context.Genre)
 
 		if res, ok := latestUniqueRequestStatuses[key]; !ok {
