@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/caarlos0/env/v7"
 	go_gitlab "github.com/xanzy/go-gitlab"
-	"github.com/davecgh/go-spew/spew"
 	"log"
 	"path"
 	"strings"
@@ -192,30 +191,7 @@ func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 }
 
 func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error) {
-	//projectId := *gitlabService.Context.ProjectId
-	//mergeRequestIID := *gitlabService.Context.MergeRequestIId
-
 	return gitlabService.Context.IsMeargeable, nil
-
-	/*
-		fmt.Printf("IsMergeable mergeRequestIID : %d, projectId: %d , discussionId: %s\n", mergeRequestIID, projectId, gitlabService.Context.DiscussionID)
-		opt := &go_gitlab.GetMergeRequestsOptions{}
-
-		mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, mergeRequestIID, opt)
-
-		if err != nil {
-			fmt.Printf("Failed to get a MergeRequest: %d, %v \n", mergeRequestIID, err)
-			print(err.Error())
-		}
-
-		fmt.Printf("mergeRequest.DetailedMergeStatus: %s\n", mergeRequest.DetailedMergeStatus)
-
-		if mergeRequest.DetailedMergeStatus == "mergeable" {
-			return true, nil
-		}
-		return false, nil
-
-	*/
 }
 
 func (gitlabService GitLabService) IsClosed(mergeRequestID int) (bool, error) {
@@ -271,9 +247,6 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 
-			fmt.Printf("ConvertGitLabEventToCommands, project.Workflow: ")
-			spew.Dump(project.Workflow)
-			fmt.Println()
 			if !ok {
 				workflow = workflows["default"]
 			}
