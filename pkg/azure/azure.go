@@ -263,7 +263,10 @@ func (a *AzureReposService) MergePullRequest(prNumber int) error {
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
 	})
-	_, err := a.Client.UpdatePullRequest(context.Background(), git.UpdatePullRequestArgs{
+	if err != nil {
+		return err
+	}
+	_, err = a.Client.UpdatePullRequest(context.Background(), git.UpdatePullRequestArgs{
 		Project:       &a.ProjectName,
 		RepositoryId:  &a.RepositoryId,
 		PullRequestId: &prNumber,
