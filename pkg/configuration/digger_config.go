@@ -342,6 +342,8 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 		for _, changedFile := range changedFiles {
 			// we append ** to make our directory a globable pattern
 			projectDirPattern := path.Join(project.Dir, "**")
+			println(fmt.Sprintf("project dir: %s", projectDirPattern))
+			println(fmt.Sprintf("changedFile: %s", changedFile))
 			includePatterns := project.IncludePatterns
 			excludePatterns := project.ExcludePatterns
 			// all our patterns are the globale dir pattern + the include patterns specified by user
