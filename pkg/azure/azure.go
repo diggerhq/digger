@@ -35,12 +35,12 @@ type Repository struct {
 	Project struct {
 		Name string `json:"name"`
 	} `json:"project"`
-	Status        string `json:"status"`
-	PullRequestId int    `json:"pullRequestId"`
+	Status string `json:"status"`
 }
 
 type Resource struct {
-	Repository Repository `json:"repository"`
+	Repository    Repository `json:"repository"`
+	PullRequestId int        `json:"pullRequestId"`
 }
 
 type ResourceContainers struct {
@@ -55,7 +55,8 @@ type AzureCommentEvent struct {
 			Content string `json:"content"`
 		} `json:"comment"`
 		PullRequest struct {
-			Repository Repository `json:"repository"`
+			Repository    Repository `json:"repository"`
+			PullRequestId int        `json:"pullRequestId"`
 		} `json:"pullRequest"`
 	} `json:"resource"`
 	ResourceContainers ResourceContainers `json:"resourceContainers"`
@@ -260,7 +261,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 
 	switch azureEvent.(type) {
 	case AzurePrEvent:
-		prNumber = azureEvent.(AzurePrEvent).Resource.Repository.PullRequestId
+		prNumber = azureEvent.(AzurePrEvent).Resource.PullRequestId
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
@@ -269,7 +270,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 	case AzureCommentEvent:
-		prNumber = azureEvent.(AzureCommentEvent).Resource.PullRequest.Repository.PullRequestId
+		prNumber = azureEvent.(AzureCommentEvent).Resource.PullRequest.PullRequestId
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
