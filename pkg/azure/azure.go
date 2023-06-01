@@ -149,8 +149,8 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 	changes, err := a.Client.GetCommitDiffs(context.Background(), git.GetCommitDiffsArgs{
 		Project:                 &a.ProjectName,
 		RepositoryId:            &repositoryId,
-		BaseVersionDescriptor:   &git.GitBaseVersionDescriptor{BaseVersion: targetCommitId, VersionType: &git.GitVersionTypeValues.Commit},
-		TargetVersionDescriptor: &git.GitTargetVersionDescriptor{TargetVersion: sourceCommitId, VersionType: &git.GitVersionTypeValues.Commit},
+		BaseVersionDescriptor:   &git.GitBaseVersionDescriptor{BaseVersion: targetCommitId, BaseVersionType: &git.GitVersionTypeValues.Commit},
+		TargetVersionDescriptor: &git.GitTargetVersionDescriptor{TargetVersion: sourceCommitId, TargetVersionType: &git.GitVersionTypeValues.Commit},
 	})
 	if err != nil {
 		return nil, err
