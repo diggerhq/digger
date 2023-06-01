@@ -142,6 +142,9 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 	sourceCommitId := pullRequest.LastMergeSourceCommit.CommitId
 	targetCommitId := pullRequest.LastMergeTargetCommit.CommitId
 
+	println("sourceCommitId: " + *sourceCommitId)
+	println("targetCommitId: " + *targetCommitId)
+	println("repositoryId: " + pullRequest.Repository.Id.String())
 	repositoryId := pullRequest.Repository.Id.String()
 	changes, err := a.Client.GetCommitDiffs(context.Background(), git.GetCommitDiffsArgs{
 		Project:                 &a.ProjectName,
