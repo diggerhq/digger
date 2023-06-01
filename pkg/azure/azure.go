@@ -4,7 +4,6 @@ import (
 	"context"
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
-	"digger/pkg/digger"
 	"digger/pkg/models"
 	"digger/pkg/utils"
 	"encoding/json"
@@ -351,10 +350,8 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				workflow = *digger.DefaultWorkflow()
+				workflow = workflows["default"]
 			}
-
-			stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
 
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
@@ -364,8 +361,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				Commands:         workflow.Configuration.OnPullRequestPushed,
 				ApplyStage:       workflow.Apply,
 				PlanStage:        workflow.Plan,
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
 			})
 		}
 		return commandsPerProject, true, nil
@@ -373,10 +368,8 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				workflow = *digger.DefaultWorkflow()
+				workflow = workflows["default"]
 			}
-
-			stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
 
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
@@ -386,8 +379,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				Commands:         workflow.Configuration.OnPullRequestClosed,
 				ApplyStage:       workflow.Apply,
 				PlanStage:        workflow.Plan,
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
 			})
 		}
 		return commandsPerProject, true, nil
@@ -396,9 +387,8 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 			for _, project := range impactedProjects {
 				workflow, ok := workflows[project.Workflow]
 				if !ok {
-					workflow = *digger.DefaultWorkflow()
+					workflow = workflows["default"]
 				}
-				stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
 
 				commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 					ProjectName:      project.Name,
@@ -408,8 +398,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					Commands:         workflow.Configuration.OnCommitToDefault,
 					ApplyStage:       workflow.Apply,
 					PlanStage:        workflow.Plan,
-					CommandEnvVars:   commandEnvVars,
-					StateEnvVars:     stateEnvVars,
 				})
 			}
 			return commandsPerProject, true, nil
@@ -444,20 +432,12 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
-					workflow, ok := workflows[project.Workflow]
-					if !ok {
-						workflow = *digger.DefaultWorkflow()
-					}
-					stateEnvVars, commandEnvVars := digger.CollectEnvVars(workflow.EnvVars)
-
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
-						CommandEnvVars:   commandEnvVars,
-						StateEnvVars:     stateEnvVars,
 					})
 				}
 			}
