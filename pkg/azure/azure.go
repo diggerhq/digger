@@ -259,12 +259,17 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 }
 
 func (a *AzureReposService) MergePullRequest(prNumber int) error {
+	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
+		Project:       &a.ProjectName,
+		PullRequestId: &prNumber,
+	})
 	_, err := a.Client.UpdatePullRequest(context.Background(), git.UpdatePullRequestArgs{
 		Project:       &a.ProjectName,
 		RepositoryId:  &a.RepositoryId,
 		PullRequestId: &prNumber,
 		GitPullRequestToUpdate: &git.GitPullRequest{
-			Status: &git.PullRequestStatusValues.Completed,
+			LastMergeSourceCommit: pullRequest.LastMergeSourceCommit,
+			Status:                &git.PullRequestStatusValues.Completed,
 		},
 	})
 	return err
