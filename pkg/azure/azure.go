@@ -158,9 +158,9 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 	println(fmt.Sprintf("ChangeCounts: %v", changes.ChangeCounts))
 	println(fmt.Sprintf("AheadCount: %v", changes.AheadCount))
 	println(fmt.Sprintf("ChangeCounts: %v", changes.ChangeCounts))
-	println(fmt.Sprintf("CommonCommit: %v", &changes.CommonCommit))
-	println(fmt.Sprintf("TargetCommit: %v", &changes.TargetCommit))
-	println(fmt.Sprintf("BaseCommit: %v", &changes.BaseCommit))
+	println(fmt.Sprintf("CommonCommit: %v", *changes.CommonCommit))
+	println(fmt.Sprintf("TargetCommit: %v", *changes.TargetCommit))
+	println(fmt.Sprintf("BaseCommit: %v", *changes.BaseCommit))
 
 	if err != nil {
 		return nil, err
