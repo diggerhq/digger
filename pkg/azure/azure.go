@@ -218,7 +218,22 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 	if err != nil {
 		return "", err
 	}
+
+	latestUniqueRequestStatuses := make(map[string]*git.GitPullRequestStatus)
+
 	for _, status := range *pullRequestStatuses {
+		key := fmt.Sprintf("%s/%s", *status.Context.Name, *status.Context.Genre)
+
+		if res, ok := latestUniqueRequestStatuses[key]; !ok {
+			latestUniqueRequestStatuses[key] = &status
+		} else {
+			if status.CreationDate.Time.After(res.CreationDate.Time) {
+				latestUniqueRequestStatuses[key] = &status
+			}
+		}
+	}
+
+	for _, status := range latestUniqueRequestStatuses {
 		println(*status.Context.Name, status.State)
 
 		if status.State != nil && (*status.State == git.GitStatusStateValues.Failed || *status.State == git.GitStatusStateValues.Error) {
@@ -227,7 +242,7 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 	}
 
 	var allSuccess = true
-	for _, status := range *pullRequestStatuses {
+	for _, status := range latestUniqueRequestStatuses {
 		if status.State != nil || *status.State != git.GitStatusStateValues.Succeeded {
 			allSuccess = false
 			break
