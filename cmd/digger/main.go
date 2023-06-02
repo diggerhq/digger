@@ -178,7 +178,7 @@ func gitLabCI(lock locking.Lock) {
 }
 
 func azureCI(lock locking.Lock) {
-	fmt.Println("Using Azure.")
+	fmt.Println("> Azure CI detected")
 	azureContext := os.Getenv("AZURE_CONTEXT")
 	azureToken := os.Getenv("AZURE_TOKEN")
 	if azureToken == "" {
@@ -201,7 +201,7 @@ func azureCI(lock locking.Lock) {
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
-	println("Digger config read successfully")
+	fmt.Println("Digger config read successfully")
 
 	azureService, err := azure.NewAzureReposService(azureToken, parsedAzureContext.BaseUrl, parsedAzureContext.ProjectName, parsedAzureContext.RepositoryId)
 	if err != nil {
@@ -212,14 +212,14 @@ func azureCI(lock locking.Lock) {
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
 	}
-	println("Azure event processed successfully")
+	fmt.Println("Azure event processed successfully")
 
 	commandsToRunPerProject, coversAllImpactedProjects, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
 
 	}
-	println(fmt.Sprintf("Azure event converted to commands successfully: %v", commandsToRunPerProject))
+	fmt.Println(fmt.Sprintf("Azure event converted to commands successfully: %v", commandsToRunPerProject))
 
 	for _, v := range commandsToRunPerProject {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
@@ -234,7 +234,7 @@ func azureCI(lock locking.Lock) {
 
 	if diggerConfig.AutoMerge && allAppliesSuccess && coversAllImpactedProjects {
 		digger.MergePullRequest(azureService, prNumber)
-		println("PR merged successfully")
+		fmt.Println("PR merged successfully")
 	}
 
 	println("Commands executed successfully")
@@ -345,10 +345,10 @@ func logCommands(projectCommands []models.ProjectCommand) {
 }
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {
-	println(message)
+	fmt.Println(message)
 	err := usage.SendLogRecord(repoOwner, message)
 	if err != nil {
-		println("Failed to send log record. %s\n", err)
+		fmt.Printf("Failed to send log record. %s\n", err)
 	}
 	os.Exit(exitCode)
 }
