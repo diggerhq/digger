@@ -64,7 +64,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 }
 
 func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
-	allAppliesSuccess := true
+
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		appliesPerProject[projectCommands.ProjectName] = false
@@ -141,12 +141,17 @@ func RunCommandsPerProject(commandsPerProject []ProjectCommand, repoOwner string
 		}
 	}
 
+	allAppliesSuccess := true
+
 	for _, success := range appliesPerProject {
 		if !success {
 			allAppliesSuccess = false
 		}
 	}
-	return allAppliesSuccess, nil
+
+	atLeastOneCommandRun := len(commandsPerProject) > 0
+
+	return allAppliesSuccess && atLeastOneCommandRun, nil
 }
 
 func MergePullRequest(githubPrService ci.CIService, prNumber int) {
