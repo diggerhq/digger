@@ -219,7 +219,7 @@ func azureCI(lock locking.Lock) {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
 
 	}
-	println("Azure event converted to commands successfully")
+	println(fmt.Sprintf("Azure event converted to commands successfully: %v", commandsToRunPerProject))
 
 	for _, v := range commandsToRunPerProject {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
