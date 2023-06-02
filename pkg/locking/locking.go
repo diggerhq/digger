@@ -36,6 +36,21 @@ type Lock interface {
 	GetLock(resource string) (*int, error)
 }
 
+type NoOpLock struct {
+}
+
+func (noOpLock *NoOpLock) Lock(transactionId int, resource string) (bool, error) {
+	return true, nil
+}
+
+func (noOpLock *NoOpLock) Unlock(resource string) (bool, error) {
+	return true, nil
+}
+
+func (noOpLock *NoOpLock) GetLock(resource string) (*int, error) {
+	return nil, nil
+}
+
 type ProjectLock interface {
 	Lock(prNumber int) (bool, error)
 	Unlock(prNumber int) (bool, error)
@@ -77,7 +92,9 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 		return false, err
 	}
 
-	if lockAcquired {
+	_, isNoOpLock := projectLock.InternalLock.(*NoOpLock)
+
+	if lockAcquired && !isNoOpLock {
 		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(prNumber)
 		projectLock.CIService.PublishComment(prNumber, comment)
 		println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(prNumber))
@@ -178,6 +195,11 @@ func GetLock() (Lock, error) {
 	awsRegion := strings.ToLower(os.Getenv("AWS_REGION"))
 	awsProfile := strings.ToLower(os.Getenv("AWS_PROFILE"))
 	lockProvider := strings.ToLower(os.Getenv("LOCK_PROVIDER"))
+	disableLocking := strings.ToLower(os.Getenv("DISABLE_LOCKING")) == "true"
+	if disableLocking {
+		log.Println("Using NoOp lock provider.")
+		return &NoOpLock{}, nil
+	}
 	if lockProvider == "" || lockProvider == "aws" {
 		log.Println("Using AWS lock provider.")
 		sess, err := session.NewSessionWithOptions(session.Options{
