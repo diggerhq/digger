@@ -74,6 +74,10 @@ func gitHubCI(lock utils.Lock) {
 		githubPrService.PublishComment(prNumber, reply)
 	}
 
+	if len(impactedProjects) == 0 {
+		reportErrorAndExit(githubRepositoryOwner, "No projects impacted", 0)
+	}
+
 	commandsToRunPerProject, coversAllImpactedProjects, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
@@ -83,12 +87,12 @@ func gitHubCI(lock utils.Lock) {
 
 	planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
 
-	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, "")
+	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, "")
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
-	if diggerConfig.AutoMerge && allAppliesSuccess && coversAllImpactedProjects {
+	if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
 		digger.MergePullRequest(githubPrService, prNumber)
 		println("PR merged successfully")
 	}
