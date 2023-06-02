@@ -237,8 +237,6 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 	}
 
 	for _, status := range latestUniqueRequestStatuses {
-		println(*status.Context.Name, status.State)
-
 		if status.State != nil && (*status.State == git.GitStatusStateValues.Failed || *status.State == git.GitStatusStateValues.Error) {
 			return "failure", nil
 		}

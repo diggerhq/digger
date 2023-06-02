@@ -178,7 +178,7 @@ func gitLabCI(lock locking.Lock) {
 }
 
 func azureCI(lock locking.Lock) {
-	println("Using Azure.")
+	fmt.Println("Using Azure.")
 	azureContext := os.Getenv("AZURE_CONTEXT")
 	azureToken := os.Getenv("AZURE_TOKEN")
 	if azureToken == "" {
@@ -212,7 +212,7 @@ func azureCI(lock locking.Lock) {
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
 	}
-	println(fmt.Sprintf("Azure event processed successfully. Impacted projects:%v", impactedProjects))
+	println("Azure event processed successfully")
 
 	commandsToRunPerProject, coversAllImpactedProjects, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
