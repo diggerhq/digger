@@ -23,12 +23,8 @@ import (
 )
 
 func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, error) {
-	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
-	println(fmt.Sprintf("appliesPerProject: %v", appliesPerProject))
 	for _, projectCommands := range commandsPerProject {
-		appliesPerProject[projectCommands.ProjectName] = false
-		println(fmt.Sprintf("appliesPerProject: %v", appliesPerProject))
 		for _, command := range projectCommands.Commands {
 			projectLock := &locking.ProjectLockImpl{
 				InternalLock: lock,
@@ -102,14 +98,13 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 		}
 	}
 
-	println(fmt.Sprintf("appliesPerProject: %v", appliesPerProject))
-
+	allAppliesSuccess := true
 	for _, success := range appliesPerProject {
 		if !success {
 			allAppliesSuccess = false
 		}
 	}
-	return allAppliesSuccess, nil
+	return allAppliesSuccess && len(appliesPerProject) > 0, nil
 }
 
 func MergePullRequest(githubPrService ci.CIService, prNumber int) {
