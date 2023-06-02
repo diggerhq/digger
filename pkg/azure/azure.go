@@ -344,8 +344,6 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 
 func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]models.ProjectCommand, 0)
-	println(parseAzureContext.EventType)
-	println(fmt.Sprintf("%+v", impactedProjects))
 	switch parseAzureContext.EventType {
 	case AzurePrCreated, AzurePrUpdated, AzurePrReopened:
 		for _, project := range impactedProjects {
@@ -368,7 +366,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				StateEnvVars:     stateEnvVars,
 			})
 		}
-		println(fmt.Sprintf("%+v", commandsPerProject))
 		return commandsPerProject, true, nil
 	case AzurePrClosed:
 		for _, project := range impactedProjects {
