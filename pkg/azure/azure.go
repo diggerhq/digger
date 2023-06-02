@@ -297,7 +297,7 @@ func (a *AzureReposService) IsClosed(prNumber int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return *pullRequest.Status == git.PullRequestStatusValues.Completed, nil
+	return *pullRequest.Status == git.PullRequestStatusValues.Completed || *pullRequest.Status == git.PullRequestStatusValues.Abandoned, nil
 }
 
 func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
