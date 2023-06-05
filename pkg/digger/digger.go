@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, error) {
+func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
@@ -66,18 +66,19 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
 					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
-					return false, fmt.Errorf("failed to run digger plan command. %v", err)
+					return false, false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else if planPerformed {
 					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 				}
 			case "digger apply":
+				appliesPerProject[projectCommands.ProjectName] = false
 				usage.SendUsageRecord(repoName, eventName, "apply")
 				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
 				applyPerformed, err := diggerExecutor.Apply(prNumber)
 				if err != nil {
 					log.Printf("Failed to run digger apply command. %v", err)
 					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
-					return false, fmt.Errorf("failed to run digger apply command. %v", err)
+					return false, false, fmt.Errorf("failed to run digger apply command. %v", err)
 				} else if applyPerformed {
 					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
 					appliesPerProject[projectCommands.ProjectName] = true
@@ -86,13 +87,13 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 				usage.SendUsageRecord(repoOwner, eventName, "unlock")
 				err := diggerExecutor.Unlock(prNumber)
 				if err != nil {
-					return false, fmt.Errorf("failed to unlock project. %v", err)
+					return false, false, fmt.Errorf("failed to unlock project. %v", err)
 				}
 			case "digger lock":
 				usage.SendUsageRecord(repoOwner, eventName, "lock")
 				err := diggerExecutor.Lock(prNumber)
 				if err != nil {
-					return false, fmt.Errorf("failed to lock project. %v", err)
+					return false, false, fmt.Errorf("failed to lock project. %v", err)
 				}
 			}
 		}
@@ -104,7 +105,10 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 			allAppliesSuccess = false
 		}
 	}
-	return allAppliesSuccess && len(appliesPerProject) > 0, nil
+
+	atLeastOneApply := len(appliesPerProject) > 0
+
+	return allAppliesSuccess, atLeastOneApply, nil
 }
 
 func MergePullRequest(githubPrService ci.CIService, prNumber int) {
