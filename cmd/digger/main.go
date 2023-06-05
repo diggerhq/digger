@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"digger/pkg/azure"
 	"digger/pkg/configuration"
 	"digger/pkg/digger"
 	"digger/pkg/gcp"
 	dg_github "digger/pkg/github"
+	github_models "digger/pkg/github/models"
 	"digger/pkg/gitlab"
+	"digger/pkg/locking"
 	"digger/pkg/models"
+	"digger/pkg/storage"
 	"digger/pkg/usage"
 	"digger/pkg/utils"
 	"fmt"
@@ -17,7 +21,7 @@ import (
 	"strings"
 )
 
-func gitHubCI(lock utils.Lock) {
+func gitHubCI(lock locking.Lock) {
 	println("Using GitHub.")
 	githubRepositoryOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
 	if githubRepositoryOwner != "" {
@@ -36,7 +40,7 @@ func gitHubCI(lock utils.Lock) {
 		reportErrorAndExit(githubRepositoryOwner, "GITHUB_CONTEXT is not defined", 2)
 	}
 
-	parsedGhContext, err := models.GetGitHubContext(ghContext)
+	parsedGhContext, err := github_models.GetGitHubContext(ghContext)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 	}
@@ -50,7 +54,7 @@ func gitHubCI(lock utils.Lock) {
 	}
 	println("Digger config read successfully")
 
-	lock, err = utils.GetLock()
+	lock, err = locking.GetLock()
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to create lock provider. %s", err), 5)
 	}
@@ -62,23 +66,26 @@ func gitHubCI(lock utils.Lock) {
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
-	impactedProjects, requestedProject, prNumber, err := digger.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
+	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
 	logImpactedProjects(impactedProjects, prNumber)
 	println("GitHub event processed successfully")
 
-	if digger.CheckIfHelpComment(ghEvent) {
+	if dg_github.CheckIfHelpComment(ghEvent) {
 		reply := utils.GetCommands()
-		githubPrService.PublishComment(prNumber, reply)
+		err := githubPrService.PublishComment(prNumber, reply)
+		if err != nil {
+			reportErrorAndExit(githubRepositoryOwner, "Failed to publish help command output", 1)
+		}
 	}
 
 	if len(impactedProjects) == 0 {
 		reportErrorAndExit(githubRepositoryOwner, "No projects impacted", 0)
 	}
 
-	commandsToRunPerProject, coversAllImpactedProjects, err := digger.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+	commandsToRunPerProject, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 	}
@@ -108,7 +115,7 @@ func gitHubCI(lock utils.Lock) {
 	}()
 }
 
-func gitLabCI(lock utils.Lock) {
+func gitLabCI(lock locking.Lock) {
 	println("Using GitLab.")
 
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
@@ -170,6 +177,7 @@ func gitLabCI(lock utils.Lock) {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
+	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
 	planStorage := newPlanStorage(gitlabToken, projectNamespace, projectName, *gitLabContext.MergeRequestIId)
 
 	allAppliesSuccess, err := gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, planStorage, currentDir)
@@ -190,6 +198,77 @@ func gitLabCI(lock utils.Lock) {
 	defer func() {
 		if r := recover(); r != nil {
 			reportErrorAndExit(projectName, fmt.Sprintf("Panic occurred. %s", r), 1)
+		}
+	}()
+}
+
+func azureCI(lock locking.Lock) {
+	fmt.Println("> Azure CI detected")
+	azureContext := os.Getenv("AZURE_CONTEXT")
+	azureToken := os.Getenv("AZURE_TOKEN")
+	if azureToken == "" {
+		fmt.Println("AZURE_TOKEN is empty")
+	}
+	parsedAzureContext, err := azure.GetAzureReposContext(azureContext)
+	if err != nil {
+		fmt.Printf("failed to parse Azure context. %s\n", err.Error())
+		os.Exit(4)
+	}
+
+	walker := configuration.FileSystemDirWalker{}
+	currentDir, err := os.Getwd()
+	if err != nil {
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+	}
+	fmt.Printf("main: working dir: %s \n", currentDir)
+
+	diggerConfig, err := configuration.NewDiggerConfig(currentDir, &walker)
+	if err != nil {
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+	}
+	fmt.Println("Digger config read successfully")
+
+	azureService, err := azure.NewAzureReposService(azureToken, parsedAzureContext.BaseUrl, parsedAzureContext.ProjectName, parsedAzureContext.RepositoryId)
+	if err != nil {
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to initialise azure service. %s", err), 5)
+	}
+
+	impactedProjects, requestedProject, prNumber, err := azure.ProcessAzureReposEvent(parsedAzureContext.Event, diggerConfig, azureService)
+	if err != nil {
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
+	}
+	fmt.Println("Azure event processed successfully")
+
+	commandsToRunPerProject, coversAllImpactedProjects, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	if err != nil {
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
+
+	}
+	fmt.Println(fmt.Sprintf("Azure event converted to commands successfully: %v", commandsToRunPerProject))
+
+	for _, v := range commandsToRunPerProject {
+		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
+	}
+
+	var planStorage storage.PlanStorage
+
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.ProjectName, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
+	if err != nil {
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
+	}
+
+	if diggerConfig.AutoMerge && allAppliesSuccess && atLeastOneApply && coversAllImpactedProjects {
+		digger.MergePullRequest(azureService, prNumber)
+		fmt.Println("PR merged successfully")
+	}
+
+	println("Commands executed successfully")
+
+	reportErrorAndExit(parsedAzureContext.BaseUrl, "Digger finished successfully", 0)
+
+	defer func() {
+		if r := recover(); r != nil {
+			reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Panic occurred. %s", r), 1)
 		}
 	}()
 }
@@ -219,7 +298,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	lock, err := utils.GetLock()
+	lock, err := locking.GetLock()
 	if err != nil {
 		fmt.Printf("Failed to create lock provider. %s\n", err)
 		os.Exit(2)
@@ -232,6 +311,8 @@ func main() {
 		gitHubCI(lock)
 	case digger.GitLab:
 		gitLabCI(lock)
+	case digger.Azure:
+		azureCI(lock)
 	case digger.BitBucket:
 	case digger.None:
 		print("No CI detected.")
@@ -239,13 +320,13 @@ func main() {
 	}
 }
 
-func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prNumber int) utils.PlanStorage {
-	var planStorage utils.PlanStorage
+func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prNumber int) storage.PlanStorage {
+	var planStorage storage.PlanStorage
 
 	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
 	if uploadDestination == "github" {
 		zipManager := utils.Zipper{}
-		planStorage = &utils.GithubPlanStorage{
+		planStorage = &storage.GithubPlanStorage{
 			Client:            github.NewTokenClient(context.Background(), ghToken),
 			Owner:             repoOwner,
 			RepoName:          repositoryName,
@@ -259,7 +340,7 @@ func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prN
 			reportErrorAndExit(repoOwner, fmt.Sprintf("GOOGLE_STORAGE_BUCKET is not defined"), 9)
 		}
 		bucket := client.Bucket(bucketName)
-		planStorage = &utils.PlanStorageGcp{
+		planStorage = &storage.PlanStorageGcp{
 			Client:  client,
 			Bucket:  bucket,
 			Context: ctx,
@@ -279,7 +360,7 @@ func logImpactedProjects(projects []configuration.Project, prNumber int) {
 	log.Print(logMessage)
 }
 
-func logCommands(projectCommands []digger.ProjectCommand) {
+func logCommands(projectCommands []models.ProjectCommand) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)
@@ -292,7 +373,7 @@ func logCommands(projectCommands []digger.ProjectCommand) {
 }
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {
-	fmt.Printf(message)
+	fmt.Println(message)
 	err := usage.SendLogRecord(repoOwner, message)
 	if err != nil {
 		fmt.Printf("Failed to send log record. %s\n", err)

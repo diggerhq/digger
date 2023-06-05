@@ -1,7 +1,8 @@
-package utils
+package storage
 
 import (
 	"context"
+	"digger/pkg/utils"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,7 +33,7 @@ type GithubPlanStorage struct {
 	Owner             string
 	RepoName          string
 	PullRequestNumber int
-	ZipManager        Zipper
+	ZipManager        utils.Zipper
 }
 
 func (psg *PlanStorageGcp) PlanExists(storedPlanFilePath string) (bool, error) {

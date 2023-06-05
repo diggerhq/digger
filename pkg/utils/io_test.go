@@ -108,6 +108,7 @@ func TestMatchIncludeExcludePatternsToFile(t *testing.T) {
 		{"modules/moduleA/main.tf", []string{"dev**", "./modules/**"}, []string{"dev/"}, true},
 		{"modules/moduleA/main.tf", []string{"dev**"}, []string{"dev/"}, false},
 		{"modules/moduleA/main.tf", []string{"dev**", "modules/**"}, []string{"modules/moduleA/**"}, false},
+		{"modules/moduleA/main.tf", []string{""}, []string{""}, false},
 	}
 	for _, tt := range normTests {
 		res := MatchIncludeExcludePatternsToFile(tt.fileToMatch, tt.includePatterns, tt.excludePatterns)

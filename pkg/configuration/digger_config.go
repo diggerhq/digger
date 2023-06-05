@@ -466,3 +466,56 @@ func retrieveConfigFile(workingDir string) (string, error) {
 	// missing which is a non-error
 	return "", nil
 }
+
+func CollectEnvVars(envs EnvVars) (map[string]string, map[string]string) {
+	stateEnvVars := map[string]string{}
+
+	for _, envvar := range envs.State {
+		if envvar.Value != "" {
+			stateEnvVars[envvar.Name] = envvar.Value
+		} else if envvar.ValueFrom != "" {
+			stateEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+		}
+	}
+
+	commandEnvVars := map[string]string{}
+
+	for _, envvar := range envs.Commands {
+		if envvar.Value != "" {
+			commandEnvVars[envvar.Name] = envvar.Value
+		} else if envvar.ValueFrom != "" {
+			commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+		}
+	}
+	return stateEnvVars, commandEnvVars
+}
+
+func DefaultWorkflow() *Workflow {
+	return &Workflow{
+		Configuration: &WorkflowConfiguration{
+			OnCommitToDefault:   []string{"digger unlock"},
+			OnPullRequestPushed: []string{"digger plan"},
+			OnPullRequestClosed: []string{"digger unlock"},
+		},
+		Plan: &Stage{
+			Steps: []Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "plan", ExtraArgs: []string{},
+				},
+			},
+		},
+		Apply: &Stage{
+			Steps: []Step{
+				{
+					Action: "init", ExtraArgs: []string{},
+				},
+				{
+					Action: "apply", ExtraArgs: []string{},
+				},
+			},
+		},
+	}
+}

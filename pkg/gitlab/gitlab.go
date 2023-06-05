@@ -4,9 +4,11 @@ import (
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
 	"digger/pkg/digger"
+	"digger/pkg/locking"
+	"digger/pkg/models"
+	"digger/pkg/storage"
 	"digger/pkg/terraform"
 	"digger/pkg/usage"
-	"digger/pkg/utils"
 	"fmt"
 	"github.com/caarlos0/env/v7"
 	go_gitlab "github.com/xanzy/go-gitlab"
@@ -134,7 +136,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 	return fileNames, nil
 }
 
-func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) {
+func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) error {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
@@ -150,12 +152,14 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 			print(err.Error())
 		}
 		discussionId = discussion.ID
+		return err
 	} else {
 		_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 		if err != nil {
 			fmt.Printf("Failed to publish a comment. %v\n", err)
 			print(err.Error())
 		}
+		return err
 	}
 }
 
@@ -238,8 +242,8 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]digger.ProjectCommand, error) {
-	commandsPerProject := make([]digger.ProjectCommand, 0)
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, error) {
+	commandsPerProject := make([]models.ProjectCommand, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
@@ -251,7 +255,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				workflow = workflows["default"]
 			}
 
-			commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
+			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
@@ -263,13 +267,12 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		}
 		return commandsPerProject, nil
 	case MergeRequestClosed, MergeRequestMerged:
-		fmt.Println("Merge request closed or merged.")
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
 				workflow = workflows["default"]
 			}
-			commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
+			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
@@ -287,7 +290,14 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if strings.Contains(gitLabContext.DiggerCommand, command) {
 				for _, project := range impactedProjects {
 					workspace := project.Workspace
-					commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
+					//workspaceOverride, err := parseWorkspace(gitLabContext.DiggerCommand)
+					//if err != nil {
+					//	return []digger.ProjectCommand{}, err
+					//}
+					//if workspaceOverride != "" {
+					//	workspace = workspaceOverride
+					//}
+					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
@@ -300,19 +310,19 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		return commandsPerProject, nil
 
 	default:
-		return []digger.ProjectCommand{}, fmt.Errorf("unsupported GitLab event type: %v", event)
+		return []models.ProjectCommand{}, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
 	return nil, nil
 }
 
-func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
+func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, error) {
 
 	allAppliesSuccess := true
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		appliesPerProject[projectCommands.ProjectName] = false
 		for _, command := range projectCommands.Commands {
-			projectLock := &utils.ProjectLockImpl{
+			projectLock := &locking.ProjectLockImpl{
 				InternalLock: lock,
 				CIService:    service,
 				ProjectName:  projectCommands.ProjectName,
