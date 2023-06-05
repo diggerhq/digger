@@ -30,9 +30,11 @@ type GitLabContext struct {
 	ProjectNamespace   string          `env:"CI_PROJECT_NAMESPACE"`
 	ProjectId          *int            `env:"CI_PROJECT_ID"`
 	ProjectNamespaceId *int            `env:"CI_PROJECT_NAMESPACE_ID"`
+	OpenMergeRequests  []string        `env:"CI_OPEN_MERGE_REQUESTS"`
 	Token              string          `env:"GITLAB_TOKEN"`
 	DiggerCommand      string          `env:"DIGGER_COMMAND"`
 	DiscussionID       string          `env:"DISCUSSION_ID"`
+	IsMeargeable       bool            `env:"IS_MERGEABLE"`
 }
 
 type PipelineSourceType string
@@ -88,8 +90,7 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuratio
 	var impactedProjects []configuration.Project
 
 	if gitlabContext.MergeRequestIId == nil {
-		println("Merge Request ID is not found.")
-		return nil, nil
+		return nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
 	}
 
 	mergeRequestId := gitlabContext.MergeRequestIId
@@ -139,61 +140,58 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
 
-	fmt.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, \n", mergeRequestID, projectId, mergeRequestIID)
+	fmt.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestID, projectId, mergeRequestIID, discussionId)
 
-	_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
-	if err != nil {
-		fmt.Printf("Failed to publish a comment. %v\n", err)
-		print(err.Error())
+	if discussionId == "" {
+		commentOpt := &go_gitlab.CreateMergeRequestDiscussionOptions{Body: &comment}
+		discussion, _, err := gitlabService.Client.Discussions.CreateMergeRequestDiscussion(projectId, mergeRequestIID, commentOpt)
+		if err != nil {
+			fmt.Printf("Failed to publish a comment. %v\n", err)
+			print(err.Error())
+		}
+		discussionId = discussion.ID
+	} else {
+		_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
+		if err != nil {
+			fmt.Printf("Failed to publish a comment. %v\n", err)
+			print(err.Error())
+		}
 	}
 }
 
+// SetStatus GitLab implementation is using https://docs.gitlab.com/15.11/ee/api/status_checks.html (external status checks)
+// https://docs.gitlab.com/ee/user/project/merge_requests/status_checks.html#add-a-status-check-service
+// only supported by 'Ultimate' plan
 func (gitlabService GitLabService) SetStatus(mergeRequestID int, status string, statusContext string) error {
 	//TODO implement me
 	fmt.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s\n", mergeRequestID, status, statusContext)
 	return nil
-	//panic("SetStatus: implement me")
 }
 
 func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequestID int) (string, error) {
 	//TODO implement me
 
-	panic("GetCombinedPullRequestStatus: implement me")
+	return "success", nil
 }
 
 func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
-	opt := &go_gitlab.AcceptMergeRequestOptions{}
+	mergeWhenPipelineSucceeds := true
+	opt := &go_gitlab.AcceptMergeRequestOptions{MergeWhenPipelineSucceeds: &mergeWhenPipelineSucceeds}
 
 	fmt.Printf("MergePullRequest mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, \n", mergeRequestID, projectId, mergeRequestIID)
 
 	_, _, err := gitlabService.Client.MergeRequests.AcceptMergeRequest(projectId, mergeRequestIID, opt)
 	if err != nil {
 		fmt.Printf("Failed to merge Merge Request. %v\n", err)
-		return err
+		return fmt.Errorf("Failed to merge Merge Request. %v\n", err)
 	}
 	return nil
 }
 
 func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error) {
-	projectId := *gitlabService.Context.ProjectId
-	mergeRequestIID := *gitlabService.Context.MergeRequestIId
-
-	fmt.Printf("IsMergeable mergeRequestIID : %d, projectId: %d \n", mergeRequestIID, projectId)
-	opt := &go_gitlab.GetMergeRequestsOptions{}
-
-	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, mergeRequestIID, opt)
-
-	if err != nil {
-		fmt.Printf("Failed to get a MergeRequest: %d, %v \n", mergeRequestIID, err)
-		print(err.Error())
-	}
-
-	if mergeRequest.DetailedMergeStatus == "mergeable" {
-		return true, nil
-	}
-	return false, nil
+	return gitlabService.Context.IsMeargeable, nil
 }
 
 func (gitlabService GitLabService) IsClosed(mergeRequestID int) (bool, error) {
@@ -227,19 +225,28 @@ func (e GitLabEventType) String() string {
 }
 
 const (
-	MergeRequestOpened  = GitLabEventType("merge_request_opened")
-	MergeRequestUpdated = GitLabEventType("merge_request_updated")
-	MergeRequestClosed  = GitLabEventType("merge_request_closed")
+	MergeRequestOpened     = GitLabEventType("merge_request_opened")
+	MergeRequestClosed     = GitLabEventType("merge_request_closed")
+	MergeRequestReopened   = GitLabEventType("merge_request_reopened")
+	MergeRequestUpdated    = GitLabEventType("merge_request_updated")
+	MergeRequestApproved   = GitLabEventType("merge_request_approved")
+	MergeRequestUnapproved = GitLabEventType("merge_request_unapproved")
+	MergeRequestApproval   = GitLabEventType("merge_request_approval")
+	MergeRequestUnapproval = GitLabEventType("merge_request_unapproval")
+	MergeRequestMerged     = GitLabEventType("merge_request_merge")
+
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
 func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]digger.ProjectCommand, error) {
 	commandsPerProject := make([]digger.ProjectCommand, 0)
 
+	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
-	case MergeRequestOpened:
+	case MergeRequestOpened, MergeRequestReopened, MergeRequestUpdated:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
+
 			if !ok {
 				workflow = workflows["default"]
 			}
@@ -255,25 +262,8 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			})
 		}
 		return commandsPerProject, nil
-	case MergeRequestUpdated:
-		for _, project := range impactedProjects {
-			workflow, ok := workflows[project.Workflow]
-			if !ok {
-				workflow = workflows["default"]
-			}
-
-			commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
-				ProjectName:      project.Name,
-				ProjectDir:       project.Dir,
-				ProjectWorkspace: project.Workspace,
-				Terragrunt:       project.Terragrunt,
-				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
-			})
-		}
-		return commandsPerProject, nil
-	case MergeRequestClosed:
+	case MergeRequestClosed, MergeRequestMerged:
+		fmt.Println("Merge request closed or merged.")
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
@@ -297,13 +287,6 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if strings.Contains(gitLabContext.DiggerCommand, command) {
 				for _, project := range impactedProjects {
 					workspace := project.Workspace
-					//workspaceOverride, err := parseWorkspace(gitLabContext.DiggerCommand)
-					//if err != nil {
-					//	return []digger.ProjectCommand{}, err
-					//}
-					//if workspaceOverride != "" {
-					//	workspace = workspaceOverride
-					//}
 					commandsPerProject = append(commandsPerProject, digger.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
@@ -319,6 +302,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 	default:
 		return []digger.ProjectCommand{}, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
+	return nil, nil
 }
 
 func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service ci.CIService, lock utils.Lock, planStorage utils.PlanStorage, workingDir string) (bool, error) {
@@ -338,7 +322,6 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 
 			var terraformExecutor terraform.TerraformExecutor
 			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
-			fmt.Printf("pprojectPath: %s\n\n", projectPath)
 			if projectCommands.Terragrunt {
 				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
 			} else {
@@ -417,52 +400,4 @@ func RunCommandsPerProject(commandsPerProject []digger.ProjectCommand, gitLabCon
 		}
 	}
 	return allAppliesSuccess, nil
-	/*
-
-		lockAcquisitionSuccess := true
-		for _, projectCommands := range commandsPerProject {
-			for _, command := range projectCommands.Commands {
-				projectLock := &utils.ProjectLockImpl{
-					InternalLock: lock,
-					CIService:    service,
-					ProjectName:  projectCommands.ProjectName,
-					RepoName:     gitLabContext.ProjectName,
-					RepoOwner:    gitLabContext.ProjectNamespace,
-				}
-				diggerExecutor := digger.DiggerExecutor{
-					workingDir,
-					projectCommands.ProjectWorkspace,
-					gitLabContext.ProjectNamespace,
-					projectCommands.ProjectName,
-					projectCommands.ProjectDir,
-					gitLabContext.ProjectName,
-					projectCommands.Terragrunt,
-					service,
-					projectLock,
-					diggerConfig,
-				}
-				switch command {
-				case "digger plan":
-					utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "plan")
-					diggerExecutor.Plan(*gitLabContext.MergeRequestIId)
-				case "digger apply":
-					utils.SendUsageRecord(gitLabContext.ProjectName, gitLabContext.EventType.String(), "apply")
-					diggerExecutor.Apply(*gitLabContext.MergeRequestIId)
-				case "digger unlock":
-					utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "unlock")
-					diggerExecutor.Unlock(*gitLabContext.MergeRequestIId)
-				case "digger lock":
-					utils.SendUsageRecord(gitLabContext.ProjectNamespace, gitLabContext.EventType.String(), "lock")
-					lockAcquisitionSuccess = diggerExecutor.Lock(*gitLabContext.MergeRequestIId)
-				}
-			}
-		}
-
-		if !lockAcquisitionSuccess {
-			os.Exit(1)
-		}
-		return nil
-
-	*/
-
 }
