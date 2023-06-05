@@ -195,7 +195,6 @@ func (s *Step) extract(stepMap map[string]interface{}, action string) {
 	}
 }
 
-// duplicate copied from digger.go
 func defaultWorkflow() *Workflow {
 	return &Workflow{
 		Configuration: &WorkflowConfiguration{
@@ -228,18 +227,37 @@ func defaultWorkflow() *Workflow {
 
 func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	var diggerConfig DiggerConfig
+	const defaultWorkflowName = "default"
 
 	diggerConfig.AutoMerge = diggerYaml.AutoMerge
 
+	// if workflow block is not specified in yaml we create a default one, and add it to every project
 	if diggerYaml.Workflows != nil {
 		diggerConfig.Workflows = diggerYaml.Workflows
 	} else {
 		workflow := *defaultWorkflow()
 		diggerConfig.Workflows = make(map[string]Workflow)
-		diggerConfig.Workflows["default"] = workflow
+		diggerConfig.Workflows[defaultWorkflowName] = workflow
 	}
 
 	diggerConfig.Projects = diggerYaml.Projects
+
+	// update project's workflows if needed
+	for _, project := range diggerConfig.Projects {
+		if project.Workflow == "" {
+			project.Workflow = defaultWorkflowName
+		}
+	}
+
+	// check for project name duplicates
+	projectNames := make(map[string]bool)
+	for _, project := range diggerConfig.Projects {
+		if projectNames[project.Name] {
+			return nil, fmt.Errorf("project name '%s' is duplicated", project.Name)
+		}
+		projectNames[project.Name] = true
+	}
+
 	diggerConfig.CollectUsageData = diggerYaml.CollectUsageData
 
 	if diggerYaml.GenerateProjectsConfig != nil {
@@ -266,16 +284,6 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			}
 		}
 	}
-
-	projectNames := make(map[string]bool)
-
-	for _, project := range diggerConfig.Projects {
-		if projectNames[project.Name] {
-			return nil, fmt.Errorf("project name '%s' is duplicated", project.Name)
-		}
-		projectNames[project.Name] = true
-	}
-
 	return &diggerConfig, nil
 }
 

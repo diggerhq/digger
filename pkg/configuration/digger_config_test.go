@@ -72,6 +72,27 @@ projects:
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
 }
 
+func TestDiggerConfigDefaultWorkflow(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: prod
+  branch: /main/
+  dir: path/to/module/test
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "default", dg.Projects[0].Workflow)
+	_, ok := dg.Workflows["default"]
+	assert.True(t, ok)
+}
+
 func TestDiggerConfigWhenOnlyYmlExists(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
