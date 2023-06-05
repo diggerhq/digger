@@ -81,6 +81,10 @@ func gitHubCI(lock locking.Lock) {
 		}
 	}
 
+	if len(impactedProjects) == 0 {
+		reportErrorAndExit(githubRepositoryOwner, "No projects impacted", 0)
+	}
+
 	commandsToRunPerProject, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
@@ -90,12 +94,12 @@ func gitHubCI(lock locking.Lock) {
 
 	planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
 
-	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, "")
+	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, "")
 	if err != nil {
 		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
-	if diggerConfig.AutoMerge && allAppliesSuccess && coversAllImpactedProjects {
+	if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
 		digger.MergePullRequest(githubPrService, prNumber)
 		println("PR merged successfully")
 	}
@@ -227,12 +231,12 @@ func azureCI(lock locking.Lock) {
 
 	var planStorage storage.PlanStorage
 
-	allAppliesSuccess, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.ProjectName, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.ProjectName, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
-	if diggerConfig.AutoMerge && allAppliesSuccess && coversAllImpactedProjects {
+	if diggerConfig.AutoMerge && allAppliesSuccess && atLeastOneApply && coversAllImpactedProjects {
 		digger.MergePullRequest(azureService, prNumber)
 		fmt.Println("PR merged successfully")
 	}

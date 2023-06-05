@@ -880,7 +880,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -903,9 +903,9 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
 
-	_, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
 
 	assert.NoError(t, err)
 	if err != nil {
