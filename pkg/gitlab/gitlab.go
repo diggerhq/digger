@@ -82,28 +82,40 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 	}, nil
 }
 
-func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.Project, error) {
+func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.Project, *configuration.Project, error) {
 	var impactedProjects []configuration.Project
 
 	if gitlabContext.MergeRequestIId == nil {
-		return nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
+		return nil, nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
 	}
 
 	mergeRequestId := gitlabContext.MergeRequestIId
 	changedFiles, err := service.GetChangedFiles(*mergeRequestId)
 
 	if err != nil {
-		return nil, fmt.Errorf("could not get changed files")
+		return nil, nil, fmt.Errorf("could not get changed files")
 	}
 
 	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 
-	fmt.Println("Impacted projects:")
-	for _, v := range impactedProjects {
-		fmt.Printf("%s\n", v.Name)
-	}
+	switch gitlabContext.EventType {
+	case MergeRequestComment:
+		requestedProject := utils.ParseProjectName(gitlabContext.DiggerCommand)
 
-	return impactedProjects, nil
+		if requestedProject == "" {
+			return impactedProjects, nil, nil
+		}
+
+		for _, project := range impactedProjects {
+			if project.Name == requestedProject {
+				return impactedProjects, &project, nil
+			}
+		}
+		return nil, nil, fmt.Errorf("requested project not found in modified projects")
+	default:
+		return impactedProjects, nil, nil
+
+	}
 }
 
 type GitLabService struct {
@@ -236,7 +248,7 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, error) {
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]models.ProjectCommand, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
@@ -249,6 +261,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				workflow = workflows["default"]
 			}
 
+			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
@@ -257,15 +270,18 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				Commands:         workflow.Configuration.OnPullRequestPushed,
 				ApplyStage:       workflow.Apply,
 				PlanStage:        workflow.Plan,
+				CommandEnvVars:   commandEnvVars,
+				StateEnvVars:     stateEnvVars,
 			})
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, true, nil
 	case MergeRequestClosed, MergeRequestMerged:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
 				workflow = workflows["default"]
 			}
+			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
@@ -274,36 +290,60 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				Commands:         workflow.Configuration.OnPullRequestClosed,
 				ApplyStage:       workflow.Apply,
 				PlanStage:        workflow.Plan,
+				CommandEnvVars:   commandEnvVars,
+				StateEnvVars:     stateEnvVars,
 			})
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, true, nil
 	case MergeRequestComment:
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
+		coversAllImpactedProjects := true
+
+		runForProjects := impactedProjects
+
+		if requestedProject != nil {
+			if len(impactedProjects) > 1 {
+				coversAllImpactedProjects = false
+				runForProjects = []configuration.Project{*requestedProject}
+			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
+				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
+			}
+		}
+
 		for _, command := range supportedCommands {
 			if strings.Contains(gitLabContext.DiggerCommand, command) {
-				for _, project := range impactedProjects {
+				for _, project := range runForProjects {
+					workflow, ok := workflows[project.Workflow]
+					if !ok {
+						workflow = workflows["default"]
+					}
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(gitLabContext.DiggerCommand)
 					if err != nil {
-						return []models.ProjectCommand{}, err
+						return []models.ProjectCommand{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
+					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
+						ApplyStage:       workflow.Apply,
+						PlanStage:        workflow.Plan,
+						CommandEnvVars:   commandEnvVars,
+						StateEnvVars:     stateEnvVars,
 					})
 				}
 			}
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, coversAllImpactedProjects, nil
 
 	default:
-		return []models.ProjectCommand{}, fmt.Errorf("unsupported GitLab event type: %v", event)
+		return []models.ProjectCommand{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
 }

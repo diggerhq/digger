@@ -158,14 +158,14 @@ func gitLabCI(lock locking.Lock) {
 
 	gitlabEvent := gitlab.GitLabEvent{EventType: gitLabContext.EventType}
 
-	impactedProjects, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
+	impactedProjects, requestedProject, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
 	if err != nil {
 		fmt.Printf("failed to process GitLab event, %v", err)
 		os.Exit(6)
 	}
 	println("GitLab event processed successfully")
 
-	commandsToRunPerProject, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects, diggerConfig.Workflows)
+	commandsToRunPerProject, coversAllImpactedProjects, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		fmt.Printf("failed to convert event to command, %v", err)
 		os.Exit(7)
@@ -180,13 +180,13 @@ func gitLabCI(lock locking.Lock) {
 	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
 	planStorage := newPlanStorage(gitlabToken, projectNamespace, projectName, *gitLabContext.MergeRequestIId)
 
-	allAppliesSuccess, _, err := digger.RunCommandsPerProject(commandsToRunPerProject, gitLabContext.ProjectNamespace, gitLabContext.ProjectName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, planStorage, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, gitLabContext.ProjectNamespace, gitLabContext.ProjectName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, planStorage, currentDir)
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
 		os.Exit(8)
 	}
 
-	if diggerConfig.AutoMerge && allAppliesSuccess {
+	if diggerConfig.AutoMerge && atLeastOneApply && allAppliesSuccess && coversAllImpactedProjects {
 		digger.MergePullRequest(gitlabService, *gitLabContext.MergeRequestIId)
 		println("Merge request changes has been applied successfully")
 	}
