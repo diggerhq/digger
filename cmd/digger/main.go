@@ -180,7 +180,7 @@ func gitLabCI(lock locking.Lock) {
 	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
 	planStorage := newPlanStorage(gitlabToken, projectNamespace, projectName, *gitLabContext.MergeRequestIId)
 
-	allAppliesSuccess, err := gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, planStorage, currentDir)
+	allAppliesSuccess, _, err := digger.RunCommandsPerProject(commandsToRunPerProject, gitLabContext.ProjectNamespace, gitLabContext.ProjectName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, planStorage, currentDir)
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
 		os.Exit(8)

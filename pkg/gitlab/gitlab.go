@@ -1,19 +1,13 @@
 package gitlab
 
 import (
-	"digger/pkg/ci"
 	"digger/pkg/configuration"
-	"digger/pkg/digger"
-	"digger/pkg/locking"
 	"digger/pkg/models"
-	"digger/pkg/storage"
-	"digger/pkg/terraform"
-	"digger/pkg/usage"
+	"digger/pkg/utils"
 	"fmt"
 	"github.com/caarlos0/env/v7"
 	go_gitlab "github.com/xanzy/go-gitlab"
 	"log"
-	"path"
 	"strings"
 )
 
@@ -290,13 +284,13 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if strings.Contains(gitLabContext.DiggerCommand, command) {
 				for _, project := range impactedProjects {
 					workspace := project.Workspace
-					//workspaceOverride, err := parseWorkspace(gitLabContext.DiggerCommand)
-					//if err != nil {
-					//	return []digger.ProjectCommand{}, err
-					//}
-					//if workspaceOverride != "" {
-					//	workspace = workspaceOverride
-					//}
+					workspaceOverride, err := utils.ParseWorkspace(gitLabContext.DiggerCommand)
+					if err != nil {
+						return []models.ProjectCommand{}, err
+					}
+					if workspaceOverride != "" {
+						workspace = workspaceOverride
+					}
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
@@ -312,102 +306,4 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 	default:
 		return []models.ProjectCommand{}, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
-	return nil, nil
-}
-
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, error) {
-
-	allAppliesSuccess := true
-	appliesPerProject := make(map[string]bool)
-	for _, projectCommands := range commandsPerProject {
-		appliesPerProject[projectCommands.ProjectName] = false
-		for _, command := range projectCommands.Commands {
-			projectLock := &locking.ProjectLockImpl{
-				InternalLock: lock,
-				CIService:    service,
-				ProjectName:  projectCommands.ProjectName,
-				RepoName:     gitLabContext.ProjectName,
-				RepoOwner:    gitLabContext.ProjectNamespace,
-			}
-
-			var terraformExecutor terraform.TerraformExecutor
-			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
-			if projectCommands.Terragrunt {
-				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
-			} else {
-				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
-			}
-			commandRunner := digger.CommandRunner{}
-
-			diggerExecutor := digger.DiggerExecutor{
-				gitLabContext.ProjectNamespace,
-				gitLabContext.ProjectName,
-				projectCommands.ProjectName,
-				projectPath,
-				projectCommands.StateEnvVars,
-				projectCommands.CommandEnvVars,
-				projectCommands.ApplyStage,
-				projectCommands.PlanStage,
-				commandRunner,
-				terraformExecutor,
-				service,
-				projectLock,
-				planStorage,
-			}
-
-			repoOwner := gitLabContext.ProjectNamespace
-			repoName := gitLabContext.ProjectName
-			prNumber := *gitLabContext.MergeRequestIId
-			eventName := ""
-			switch command {
-			case "digger plan":
-				usage.SendUsageRecord(repoOwner, eventName, "plan")
-				service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
-				planPerformed, err := diggerExecutor.Plan(prNumber)
-				if err != nil {
-					log.Printf("Failed to run digger plan command. %v", err)
-					service.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
-
-					return false, fmt.Errorf("failed to run digger plan command. %v", err)
-				} else if !planPerformed {
-					service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
-				} else {
-					service.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
-				}
-			case "digger apply":
-				usage.SendUsageRecord(repoName, eventName, "apply")
-				service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
-				applyPerformed, err := diggerExecutor.Apply(prNumber)
-				if err != nil {
-					log.Printf("Failed to run digger apply command. %v", err)
-					service.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
-					return false, fmt.Errorf("failed to run digger apply command. %v", err)
-				} else if !applyPerformed {
-					service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
-				} else {
-					service.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
-					appliesPerProject[projectCommands.ProjectName] = true
-				}
-			case "digger unlock":
-				usage.SendUsageRecord(repoOwner, eventName, "unlock")
-				err := diggerExecutor.Unlock(prNumber)
-				if err != nil {
-					return false, fmt.Errorf("failed to unlock project. %v", err)
-				}
-			case "digger lock":
-				usage.SendUsageRecord(repoOwner, eventName, "lock")
-				err := diggerExecutor.Lock(prNumber)
-				if err != nil {
-					return false, fmt.Errorf("failed to lock project. %v", err)
-				}
-			}
-		}
-	}
-
-	for _, success := range appliesPerProject {
-		if !success {
-			allAppliesSuccess = false
-		}
-	}
-	return allAppliesSuccess, nil
 }
