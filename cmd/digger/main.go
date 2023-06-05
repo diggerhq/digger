@@ -64,7 +64,7 @@ func gitHubCI(lock locking.Lock) {
 	eventName := parsedGhContext.EventName
 	splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
-	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
@@ -117,7 +117,9 @@ func gitHubCI(lock locking.Lock) {
 
 func gitLabCI(lock locking.Lock) {
 	println("Using GitLab.")
+
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
+	projectName := os.Getenv("CI_PROJECT_NAME")
 	gitlabToken := os.Getenv("GITLAB_TOKEN")
 	if gitlabToken == "" {
 		fmt.Println("GITLAB_TOKEN is empty")
@@ -142,6 +144,12 @@ func gitLabCI(lock locking.Lock) {
 		os.Exit(4)
 	}
 
+	// it's ok to not have merge request info if it has been merged
+	if (gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0) && gitLabContext.EventType != "merge_request_merge" {
+		fmt.Println("No merge request found.")
+		os.Exit(0)
+	}
+
 	gitlabService, err := gitlab.NewGitLabService(gitlabToken, gitLabContext)
 	if err != nil {
 		fmt.Printf("failed to initialise GitLab service, %v", err)
@@ -164,21 +172,34 @@ func gitLabCI(lock locking.Lock) {
 	}
 	println("GitLab event converted to commands successfully")
 
+	println("Digger commands to be executed:")
 	for _, v := range commandsToRunPerProject {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
 	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
-	var planStorage storage.PlanStorage
+	planStorage := newPlanStorage(gitlabToken, projectNamespace, projectName, *gitLabContext.MergeRequestIId)
 
-	result, err := gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, planStorage, currentDir)
+	allAppliesSuccess, err := gitlab.RunCommandsPerProject(commandsToRunPerProject, *gitLabContext, diggerConfig, gitlabService, lock, planStorage, currentDir)
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
 		os.Exit(8)
 	}
-	print(result)
+
+	if diggerConfig.AutoMerge && allAppliesSuccess {
+		digger.MergePullRequest(gitlabService, *gitLabContext.MergeRequestIId)
+		println("Merge request changes has been applied successfully")
+	}
 
 	println("Commands executed successfully")
+
+	reportErrorAndExit(projectName, "Digger finished successfully", 0)
+
+	defer func() {
+		if r := recover(); r != nil {
+			reportErrorAndExit(projectName, fmt.Sprintf("Panic occurred. %s", r), 1)
+		}
+	}()
 }
 
 func azureCI(lock locking.Lock) {
@@ -302,7 +323,8 @@ func main() {
 func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prNumber int) storage.PlanStorage {
 	var planStorage storage.PlanStorage
 
-	if os.Getenv("PLAN_UPLOAD_DESTINATION") == "github" {
+	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
+	if uploadDestination == "github" {
 		zipManager := utils.Zipper{}
 		planStorage = &storage.GithubPlanStorage{
 			Client:            github.NewTokenClient(context.Background(), ghToken),
@@ -311,9 +333,8 @@ func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prN
 			PullRequestNumber: prNumber,
 			ZipManager:        zipManager,
 		}
-	} else if os.Getenv("PLAN_UPLOAD_DESTINATION") == "gcp" {
+	} else if uploadDestination == "gcp" {
 		ctx, client := gcp.GetGoogleStorageClient()
-
 		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
 		if bucketName == "" {
 			reportErrorAndExit(repoOwner, fmt.Sprintf("GOOGLE_STORAGE_BUCKET is not defined"), 9)
@@ -324,7 +345,10 @@ func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prN
 			Bucket:  bucket,
 			Context: ctx,
 		}
+	} else if uploadDestination == "gitlab" {
+		//TODO implement me
 	}
+
 	return planStorage
 }
 
