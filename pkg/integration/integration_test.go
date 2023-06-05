@@ -352,7 +352,7 @@ func TestHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateSingleEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := configuration.NewDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	lock, err := locking.GetLock()
@@ -496,7 +496,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateMultiEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := configuration.NewDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -713,7 +713,7 @@ workflows:
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateCustomDiggerYmlFile(dir, diggerCfg)
 
-	diggerConfig, err := configuration.NewDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	assert.NotNil(t, diggerConfig.Workflows)
