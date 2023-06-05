@@ -42,7 +42,7 @@ func getProjectLockForTests() (error, *locking.ProjectLockImpl) {
 	repoOwner := "diggerhq"
 	repositoryName := "test_dynamodb_lock"
 	ghToken := "token"
-	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
 	projectLock := &locking.ProjectLockImpl{
 		InternalLock: &dynamoDbLock,
@@ -383,7 +383,7 @@ func TestHappyPath(t *testing.T) {
 	eventName := parsedNewPullRequestContext.EventName
 	repoOwner := parsedNewPullRequestContext.RepositoryOwner
 	repositoryName := parsedNewPullRequestContext.Repository
-	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
@@ -534,7 +534,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	eventName := parsedNewPullRequestContext.EventName
 	repoOwner := parsedNewPullRequestContext.RepositoryOwner
 	repositoryName := parsedNewPullRequestContext.Repository
-	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
@@ -749,7 +749,7 @@ workflows:
 	eventName := parsedNewPullRequestContext.EventName
 	repoOwner := parsedNewPullRequestContext.RepositoryOwner
 	repositoryName := parsedNewPullRequestContext.Repository
-	githubPrService := dg_github.NewGithubPullRequestService(ghToken, repositoryName, repoOwner)
+	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
