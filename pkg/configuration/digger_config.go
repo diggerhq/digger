@@ -242,7 +242,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 
 	diggerConfig.Projects = diggerYaml.Projects
 
-	// update project's workflows if needed
+	// update project's workflow if needed
 	for _, project := range diggerConfig.Projects {
 		if project.Workflow == "" {
 			project.Workflow = defaultWorkflowName
