@@ -250,9 +250,8 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 	case MergeRequestOpened, MergeRequestReopened, MergeRequestUpdated:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
-
 			if !ok {
-				workflow = workflows["default"]
+				return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
@@ -270,7 +269,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				workflow = workflows["default"]
+				return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,

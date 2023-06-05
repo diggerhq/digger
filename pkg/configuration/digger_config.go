@@ -279,7 +279,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 	return &diggerConfig, nil
 }
 
-func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
+func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	config := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -341,6 +341,13 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 	c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, p := range c.Projects {
+		_, ok := c.Workflows[p.Workflow]
+		if !ok {
+			return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
+		}
 	}
 	return c, nil
 }
@@ -413,20 +420,6 @@ func (c *DiggerConfig) GetWorkflow(workflowName string) *Workflow {
 
 }
 
-func (c *DiggerConfig) GetWorkflowConfiguration(projectName string) WorkflowConfiguration {
-	project := c.GetProject(projectName)
-	workflows := c.Workflows
-	if project == nil {
-		return WorkflowConfiguration{}
-	}
-	workflow, ok := workflows[project.Workflow]
-
-	if !ok {
-		return WorkflowConfiguration{}
-	}
-	return *workflow.Configuration
-}
-
 type File struct {
 	Filename string
 }
@@ -488,34 +481,4 @@ func CollectEnvVars(envs EnvVars) (map[string]string, map[string]string) {
 		}
 	}
 	return stateEnvVars, commandEnvVars
-}
-
-func DefaultWorkflow() *Workflow {
-	return &Workflow{
-		Configuration: &WorkflowConfiguration{
-			OnCommitToDefault:   []string{"digger unlock"},
-			OnPullRequestPushed: []string{"digger plan"},
-			OnPullRequestClosed: []string{"digger unlock"},
-		},
-		Plan: &Stage{
-			Steps: []Step{
-				{
-					Action: "init", ExtraArgs: []string{},
-				},
-				{
-					Action: "plan", ExtraArgs: []string{},
-				},
-			},
-		},
-		Apply: &Stage{
-			Steps: []Step{
-				{
-					Action: "init", ExtraArgs: []string{},
-				},
-				{
-					Action: "apply", ExtraArgs: []string{},
-				},
-			},
-		},
-	}
 }
