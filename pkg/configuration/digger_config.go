@@ -279,7 +279,8 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 				return nil, err
 			}
 			if includeMatch && !excludeMatch {
-				project := Project{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir)}
+				// generate a new project using default workflow
+				project := Project{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir), Workflow: defaultWorkflowName}
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
