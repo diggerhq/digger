@@ -141,7 +141,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				workflow = *configuration.DefaultWorkflow()
+				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
@@ -207,7 +207,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
-						workflow = *configuration.DefaultWorkflow()
+						return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 					}
 
 					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)

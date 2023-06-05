@@ -195,7 +195,6 @@ func (s *Step) extract(stepMap map[string]interface{}, action string) {
 	}
 }
 
-// duplicate copied from digger.go
 func defaultWorkflow() *Workflow {
 	return &Workflow{
 		Configuration: &WorkflowConfiguration{
@@ -228,18 +227,37 @@ func defaultWorkflow() *Workflow {
 
 func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	var diggerConfig DiggerConfig
+	const defaultWorkflowName = "default"
 
 	diggerConfig.AutoMerge = diggerYaml.AutoMerge
 
+	// if workflow block is not specified in yaml we create a default one, and add it to every project
 	if diggerYaml.Workflows != nil {
 		diggerConfig.Workflows = diggerYaml.Workflows
 	} else {
 		workflow := *defaultWorkflow()
 		diggerConfig.Workflows = make(map[string]Workflow)
-		diggerConfig.Workflows["default"] = workflow
+		diggerConfig.Workflows[defaultWorkflowName] = workflow
 	}
 
 	diggerConfig.Projects = diggerYaml.Projects
+
+	// update project's workflow if needed
+	for _, project := range diggerConfig.Projects {
+		if project.Workflow == "" {
+			project.Workflow = defaultWorkflowName
+		}
+	}
+
+	// check for project name duplicates
+	projectNames := make(map[string]bool)
+	for _, project := range diggerConfig.Projects {
+		if projectNames[project.Name] {
+			return nil, fmt.Errorf("project name '%s' is duplicated", project.Name)
+		}
+		projectNames[project.Name] = true
+	}
+
 	diggerConfig.CollectUsageData = diggerYaml.CollectUsageData
 
 	if diggerYaml.GenerateProjectsConfig != nil {
@@ -261,25 +279,16 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 				return nil, err
 			}
 			if includeMatch && !excludeMatch {
-				project := Project{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir)}
+				// generate a new project using default workflow
+				project := Project{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir), Workflow: defaultWorkflowName}
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
 	}
-
-	projectNames := make(map[string]bool)
-
-	for _, project := range diggerConfig.Projects {
-		if projectNames[project.Name] {
-			return nil, fmt.Errorf("project name '%s' is duplicated", project.Name)
-		}
-		projectNames[project.Name] = true
-	}
-
 	return &diggerConfig, nil
 }
 
-func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
+func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	config := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -341,6 +350,13 @@ func NewDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error)
 	c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, p := range c.Projects {
+		_, ok := c.Workflows[p.Workflow]
+		if !ok {
+			return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
+		}
 	}
 	return c, nil
 }
@@ -413,20 +429,6 @@ func (c *DiggerConfig) GetWorkflow(workflowName string) *Workflow {
 
 }
 
-func (c *DiggerConfig) GetWorkflowConfiguration(projectName string) WorkflowConfiguration {
-	project := c.GetProject(projectName)
-	workflows := c.Workflows
-	if project == nil {
-		return WorkflowConfiguration{}
-	}
-	workflow, ok := workflows[project.Workflow]
-
-	if !ok {
-		return WorkflowConfiguration{}
-	}
-	return *workflow.Configuration
-}
-
 type File struct {
 	Filename string
 }
@@ -488,34 +490,4 @@ func CollectEnvVars(envs EnvVars) (map[string]string, map[string]string) {
 		}
 	}
 	return stateEnvVars, commandEnvVars
-}
-
-func DefaultWorkflow() *Workflow {
-	return &Workflow{
-		Configuration: &WorkflowConfiguration{
-			OnCommitToDefault:   []string{"digger unlock"},
-			OnPullRequestPushed: []string{"digger plan"},
-			OnPullRequestClosed: []string{"digger unlock"},
-		},
-		Plan: &Stage{
-			Steps: []Step{
-				{
-					Action: "init", ExtraArgs: []string{},
-				},
-				{
-					Action: "plan", ExtraArgs: []string{},
-				},
-			},
-		},
-		Apply: &Stage{
-			Steps: []Step{
-				{
-					Action: "init", ExtraArgs: []string{},
-				},
-				{
-					Action: "apply", ExtraArgs: []string{},
-				},
-			},
-		},
-	}
 }
