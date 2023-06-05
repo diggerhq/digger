@@ -111,42 +111,10 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawWorkflow Workflow
-	raw := rawWorkflow{
-		Configuration: &WorkflowConfiguration{
-			OnCommitToDefault:   []string{"digger unlock"},
-			OnPullRequestPushed: []string{"digger plan"},
-			OnPullRequestClosed: []string{"digger unlock"},
-		},
-		Plan: &Stage{
-			Steps: []Step{
-				{
-					Action: "init", ExtraArgs: []string{},
-				},
-				{
-					Action: "plan", ExtraArgs: []string{},
-				},
-			},
-		},
-		Apply: &Stage{
-			Steps: []Step{
-				{
-					Action: "init", ExtraArgs: []string{},
-				},
-				{
-					Action: "apply", ExtraArgs: []string{},
-				},
-			},
-		},
-		EnvVars: EnvVars{
-			State:    []EnvVarConfig{},
-			Commands: []EnvVarConfig{},
-		},
-	}
+	raw := *defaultWorkflow()
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}
-	*w = Workflow(raw)
 	return nil
 }
 
@@ -302,31 +270,7 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = defaultProject()
 		config.Workflows = make(map[string]Workflow)
-		config.Workflows["default"] = Workflow{
-			Plan: &Stage{
-				Steps: []Step{{
-					Action:    "init",
-					ExtraArgs: []string{},
-				}, {
-					Action:    "plan",
-					ExtraArgs: []string{},
-				}},
-			},
-			Apply: &Stage{
-				Steps: []Step{{
-					Action:    "init",
-					ExtraArgs: []string{},
-				}, {
-					Action:    "apply",
-					ExtraArgs: []string{},
-				}},
-			},
-			Configuration: &WorkflowConfiguration{
-				OnPullRequestPushed: []string{"digger plan"},
-				OnPullRequestClosed: []string{"digger unlock"},
-				OnCommitToDefault:   []string{"digger apply"},
-			},
-		}
+		config.Workflows["default"] = *defaultWorkflow()
 		c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
