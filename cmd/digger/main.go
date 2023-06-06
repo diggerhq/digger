@@ -11,6 +11,7 @@ import (
 	"digger/pkg/gitlab"
 	"digger/pkg/locking"
 	"digger/pkg/models"
+	"digger/pkg/reporting"
 	"digger/pkg/storage"
 	"digger/pkg/usage"
 	"digger/pkg/utils"
@@ -94,7 +95,12 @@ func gitHubCI(lock locking.Lock) {
 
 	planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, prNumber)
 
-	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, planStorage, "")
+	reporter := &reporting.CiReporter{
+		CiService: githubPrService,
+		PrNumber:  prNumber,
+	}
+
+	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, reporter, planStorage, "")
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -179,8 +185,11 @@ func gitLabCI(lock locking.Lock) {
 
 	diggerProjectNamespace := gitLabContext.ProjectNamespace + "/" + gitLabContext.ProjectName
 	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, *gitLabContext.MergeRequestIId)
-
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, planStorage, currentDir)
+	reporter := &reporting.CiReporter{
+		CiService: gitlabService,
+		PrNumber:  *gitLabContext.MergeRequestIId,
+	}
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, reporter, planStorage, currentDir)
 
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
@@ -254,7 +263,11 @@ func azureCI(lock locking.Lock) {
 	var planStorage storage.PlanStorage
 	diggerProjectNamespace := parsedAzureContext.BaseUrl + "/" + parsedAzureContext.ProjectName
 
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
+	reporter := &reporting.CiReporter{
+		CiService: azureService,
+		PrNumber:  prNumber,
+	}
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, reporter, planStorage, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
