@@ -4,8 +4,8 @@ import (
 	"context"
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
+	dg_models "digger/pkg/core/models"
 	"digger/pkg/github/models"
-	dg_models "digger/pkg/models"
 	"digger/pkg/utils"
 	"encoding/json"
 	"fmt"
@@ -145,7 +145,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-
+			coreApplyStage := workflow.Apply.ToCoreStage()
+			corePlanStage := workflow.Plan.ToCoreStage()
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
 					ProjectName:      project.Name,
@@ -153,8 +154,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
+					ApplyStage:       &coreApplyStage,
+					PlanStage:        &corePlanStage,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -165,8 +166,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
+					ApplyStage:       &coreApplyStage,
+					PlanStage:        &corePlanStage,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -177,8 +178,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnPullRequestClosed,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
+					ApplyStage:       &coreApplyStage,
+					PlanStage:        &corePlanStage,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -211,7 +212,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					}
 
 					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-
+					coreApplyStage := workflow.Apply.ToCoreStage()
+					corePlanStage := workflow.Plan.ToCoreStage()
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
 					if err != nil {
@@ -226,8 +228,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
-						ApplyStage:       workflow.Apply,
-						PlanStage:        workflow.Plan,
+						ApplyStage:       &coreApplyStage,
+						PlanStage:        &corePlanStage,
 						CommandEnvVars:   commandEnvVars,
 						StateEnvVars:     stateEnvVars,
 					})

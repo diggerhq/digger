@@ -4,7 +4,7 @@ import (
 	"context"
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
-	"digger/pkg/models"
+	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"encoding/json"
 	"errors"
@@ -351,15 +351,22 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-
+			var coreApplyStage models.Stage
+			if workflow.Apply != nil {
+				coreApplyStage = workflow.Apply.ToCoreStage()
+			}
+			var corePlanStage models.Stage
+			if workflow.Plan != nil {
+				corePlanStage = workflow.Plan.ToCoreStage()
+			}
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
+				ApplyStage:       &coreApplyStage,
+				PlanStage:        &corePlanStage,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -373,15 +380,22 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-
+			var coreApplyStage models.Stage
+			if workflow.Apply != nil {
+				coreApplyStage = workflow.Apply.ToCoreStage()
+			}
+			var corePlanStage models.Stage
+			if workflow.Plan != nil {
+				corePlanStage = workflow.Plan.ToCoreStage()
+			}
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
+				ApplyStage:       &coreApplyStage,
+				PlanStage:        &corePlanStage,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -395,15 +409,22 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 				}
 				stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-
+				var coreApplyStage models.Stage
+				if workflow.Apply != nil {
+					coreApplyStage = workflow.Apply.ToCoreStage()
+				}
+				var corePlanStage models.Stage
+				if workflow.Plan != nil {
+					corePlanStage = workflow.Plan.ToCoreStage()
+				}
 				commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
+					ApplyStage:       &coreApplyStage,
+					PlanStage:        &corePlanStage,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})

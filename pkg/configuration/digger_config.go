@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"errors"
 	"fmt"
@@ -55,6 +56,14 @@ type Project struct {
 
 type Stage struct {
 	Steps []Step `yaml:"steps"`
+}
+
+func (s *Stage) ToCoreStage() models.Stage {
+	var steps []models.Step
+	for _, step := range s.Steps {
+		steps = append(steps, step.ToCoreStep())
+	}
+	return models.Stage{Steps: steps}
 }
 
 type Workflow struct {
@@ -155,6 +164,15 @@ type Step struct {
 	Value     string
 	ExtraArgs []string `yaml:"extra_args,omitempty"`
 	Shell     string
+}
+
+func (s *Step) ToCoreStep() models.Step {
+	return models.Step{
+		Action:    s.Action,
+		Value:     s.Value,
+		ExtraArgs: s.ExtraArgs,
+		Shell:     s.Shell,
+	}
 }
 
 func (s *Step) UnmarshalYAML(value *yaml.Node) error {
