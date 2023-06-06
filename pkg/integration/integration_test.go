@@ -29,7 +29,7 @@ func SkipCI(t *testing.T) {
 	}
 }
 
-func getProjectLockForTests() (error, *locking.CiProjectLock) {
+func getProjectLockForTests() (error, *locking.PullRequestLock) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: "digger-test",
 		Config: awssdk.Config{
@@ -44,7 +44,7 @@ func getProjectLockForTests() (error, *locking.CiProjectLock) {
 	ghToken := "token"
 	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
-	projectLock := &locking.CiProjectLock{
+	projectLock := &locking.PullRequestLock{
 		InternalLock:     &dynamoDbLock,
 		CIService:        githubPrService,
 		ProjectName:      "test_dynamodb_lock",
@@ -405,7 +405,7 @@ func TestHappyPath(t *testing.T) {
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock := &locking.CiProjectLock{
+	projectLock := &locking.PullRequestLock{
 		InternalLock:     lock,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
@@ -445,7 +445,7 @@ func TestHappyPath(t *testing.T) {
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &locking.CiProjectLock{
+	projectLock = &locking.PullRequestLock{
 		InternalLock:     lock,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
@@ -468,7 +468,7 @@ func TestHappyPath(t *testing.T) {
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &locking.CiProjectLock{
+	projectLock = &locking.PullRequestLock{
 		InternalLock:     lock,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
@@ -555,7 +555,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock := &locking.CiProjectLock{
+	projectLock := &locking.PullRequestLock{
 		InternalLock:     &dynamoDbLock,
 		CIService:        githubPrService,
 		ProjectName:      "digger_demo",
@@ -594,7 +594,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &locking.CiProjectLock{
+	projectLock = &locking.PullRequestLock{
 		InternalLock:     &dynamoDbLock,
 		CIService:        githubPrService,
 		ProjectName:      "digger_demo",
@@ -617,7 +617,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &locking.CiProjectLock{
+	projectLock = &locking.PullRequestLock{
 		InternalLock:     &dynamoDbLock,
 		CIService:        githubPrService,
 		ProjectName:      "digger_demo",
@@ -768,7 +768,7 @@ workflows:
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock := &locking.CiProjectLock{
+	projectLock := &locking.PullRequestLock{
 		InternalLock:     lock,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
@@ -808,7 +808,7 @@ workflows:
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &locking.CiProjectLock{
+	projectLock = &locking.PullRequestLock{
 		InternalLock:     lock,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
@@ -830,7 +830,7 @@ workflows:
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, planStorage, dir)
 	assert.NoError(t, err)
 
-	projectLock = &locking.CiProjectLock{
+	projectLock = &locking.PullRequestLock{
 		InternalLock:     lock,
 		CIService:        githubPrService,
 		ProjectName:      "dev",

@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-type CiProjectLock struct {
+type PullRequestLock struct {
 	InternalLock     Lock
 	CIService        ci.CIService
 	ProjectName      string
@@ -58,7 +58,7 @@ type ProjectLock interface {
 	LockId() string
 }
 
-func (projectLock *CiProjectLock) Lock() (bool, error) {
+func (projectLock *PullRequestLock) Lock() (bool, error) {
 	lockId := projectLock.LockId()
 	fmt.Printf("Lock %s\n", lockId)
 
@@ -103,7 +103,7 @@ func (projectLock *CiProjectLock) Lock() (bool, error) {
 	return lockAcquired, nil
 }
 
-func (projectLock *CiProjectLock) verifyNoHangingLocks() (bool, error) {
+func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 	lockId := projectLock.LockId()
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 
@@ -134,7 +134,7 @@ func (projectLock *CiProjectLock) verifyNoHangingLocks() (bool, error) {
 	return true, nil
 }
 
-func (projectLock *CiProjectLock) Unlock() (bool, error) {
+func (projectLock *PullRequestLock) Unlock() (bool, error) {
 	lockId := projectLock.LockId()
 	fmt.Printf("Unlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
@@ -160,7 +160,7 @@ func (projectLock *CiProjectLock) Unlock() (bool, error) {
 	return false, nil
 }
 
-func (projectLock *CiProjectLock) ForceUnlock() error {
+func (projectLock *PullRequestLock) ForceUnlock() error {
 	lockId := projectLock.LockId()
 	fmt.Printf("ForceUnlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
@@ -183,11 +183,11 @@ func (projectLock *CiProjectLock) ForceUnlock() error {
 	return nil
 }
 
-func (projectLock *CiProjectLock) projectId() string {
+func (projectLock *PullRequestLock) projectId() string {
 	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 
-func (projectLock *CiProjectLock) LockId() string {
+func (projectLock *PullRequestLock) LockId() string {
 	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 

@@ -9,7 +9,7 @@ import (
 func TestLockingTwiceThrowsError(t *testing.T) {
 	mockDynamoDB := utils.MockLock{make(map[string]int)}
 	mockPrManager := utils.MockGithubPullrequestManager{}
-	pl := CiProjectLock{
+	pl := PullRequestLock{
 		InternalLock:     &mockDynamoDB,
 		CIService:        &mockPrManager,
 		ProjectName:      "a",
@@ -20,7 +20,7 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 	assert.True(t, state1)
 	assert.NoError(t, err1)
 
-	pl2 := CiProjectLock{
+	pl2 := PullRequestLock{
 		InternalLock:     &mockDynamoDB,
 		CIService:        &mockPrManager,
 		ProjectName:      "a",
