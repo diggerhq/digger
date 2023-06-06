@@ -48,7 +48,7 @@ func gitHubCI(lock locking.Lock) {
 
 	walker := configuration.FileSystemDirWalker{}
 
-	diggerConfig, err := configuration.NewDiggerConfig("./", &walker)
+	diggerConfig, err := configuration.LoadDiggerConfig("./", &walker)
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -132,7 +132,7 @@ func gitLabCI(lock locking.Lock) {
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, err := configuration.NewDiggerConfig(currentDir, &walker)
+	diggerConfig, err := configuration.LoadDiggerConfig(currentDir, &walker)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -181,6 +181,7 @@ func gitLabCI(lock locking.Lock) {
 	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, *gitLabContext.MergeRequestIId)
 
 	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, planStorage, currentDir)
+
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
 		os.Exit(8)
@@ -222,7 +223,7 @@ func azureCI(lock locking.Lock) {
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, err := configuration.NewDiggerConfig(currentDir, &walker)
+	diggerConfig, err := configuration.LoadDiggerConfig(currentDir, &walker)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
