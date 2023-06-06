@@ -9,16 +9,25 @@ import (
 func TestLockingTwiceThrowsError(t *testing.T) {
 	mockDynamoDB := utils.MockLock{make(map[string]int)}
 	mockPrManager := utils.MockGithubPullrequestManager{}
-	pl := ProjectLockImpl{
+	pl := CiProjectLock{
 		InternalLock:     &mockDynamoDB,
 		CIService:        &mockPrManager,
 		ProjectName:      "a",
 		ProjectNamespace: "",
+		PrNumber:         1,
 	}
-	state1, err1 := pl.Lock(1)
+	state1, err1 := pl.Lock()
 	assert.True(t, state1)
 	assert.NoError(t, err1)
-	state2, err2 := pl.Lock(2)
+
+	pl2 := CiProjectLock{
+		InternalLock:     &mockDynamoDB,
+		CIService:        &mockPrManager,
+		ProjectName:      "a",
+		ProjectNamespace: "",
+		PrNumber:         2,
+	}
+	state2, err2 := pl2.Lock()
 	assert.False(t, state2)
 	// No error because the lock was not aquired
 	assert.NoError(t, err2)
