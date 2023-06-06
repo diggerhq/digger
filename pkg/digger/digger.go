@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
+func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
@@ -33,10 +33,6 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 				ProjectName:      projectCommands.ProjectName,
 				ProjectNamespace: projectNamespace,
 				PrNumber:         prNumber,
-			}
-			reporter := &reporting.CiReporter{
-				CiService: ciService,
-				PrNumber:  prNumber,
 			}
 
 			var terraformExecutor terraform.TerraformExecutor

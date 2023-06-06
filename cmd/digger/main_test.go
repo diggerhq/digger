@@ -5,6 +5,7 @@ import (
 	"digger/pkg/digger"
 	"digger/pkg/github"
 	"digger/pkg/github/models"
+	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
 	"testing"
@@ -879,8 +880,12 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
+	reporter := &reporting.CiReporter{
+		CiService: prManager,
+		PrNumber:  prNumber,
+	}
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -901,11 +906,14 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
 	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
-
+	reporter := &reporting.CiReporter{
+		CiService: prManager,
+		PrNumber:  prNumber,
+	}
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
 
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, planStorage, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
 
 	assert.NoError(t, err)
 	if err != nil {
