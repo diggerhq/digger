@@ -22,11 +22,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-type ProjectLockImpl struct {
+type PullRequestLock struct {
 	InternalLock     Lock
 	CIService        ci.CIService
 	ProjectName      string
 	ProjectNamespace string
+	PrNumber         int
 }
 
 type Lock interface {
@@ -51,17 +52,17 @@ func (noOpLock *NoOpLock) GetLock(resource string) (*int, error) {
 }
 
 type ProjectLock interface {
-	Lock(prNumber int) (bool, error)
-	Unlock(prNumber int) (bool, error)
-	ForceUnlock(prNumber int) error
+	Lock() (bool, error)
+	Unlock() (bool, error)
+	ForceUnlock() error
 	LockId() string
 }
 
-func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
+func (projectLock *PullRequestLock) Lock() (bool, error) {
 	lockId := projectLock.LockId()
 	fmt.Printf("Lock %s\n", lockId)
 
-	noHangingLocks, err := projectLock.verifyNoHangingLocks(prNumber)
+	noHangingLocks, err := projectLock.verifyNoHangingLocks()
 
 	if err != nil {
 		return false, err
@@ -77,16 +78,16 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 		return false, err
 	}
 	if existingLockTransactionId != nil {
-		if *existingLockTransactionId == prNumber {
+		if *existingLockTransactionId == projectLock.PrNumber {
 			return true, nil
 		} else {
 			transactionIdStr := strconv.Itoa(*existingLockTransactionId)
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.ProjectNamespace + "). The locking plan must be applied or discarded before future plans can execute"
-			projectLock.CIService.PublishComment(prNumber, comment)
+			projectLock.CIService.PublishComment(projectLock.PrNumber, comment)
 			return false, nil
 		}
 	}
-	lockAcquired, err := projectLock.InternalLock.Lock(prNumber, lockId)
+	lockAcquired, err := projectLock.InternalLock.Lock(projectLock.PrNumber, lockId)
 	if err != nil {
 		return false, err
 	}
@@ -94,15 +95,15 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 	_, isNoOpLock := projectLock.InternalLock.(*NoOpLock)
 
 	if lockAcquired && !isNoOpLock {
-		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(prNumber)
-		projectLock.CIService.PublishComment(prNumber, comment)
-		println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(prNumber))
+		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(projectLock.PrNumber)
+		projectLock.CIService.PublishComment(projectLock.PrNumber, comment)
+		println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(projectLock.PrNumber))
 
 	}
 	return lockAcquired, nil
 }
 
-func (projectLock *ProjectLockImpl) verifyNoHangingLocks(prNumber int) (bool, error) {
+func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 	lockId := projectLock.LockId()
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 
@@ -111,7 +112,7 @@ func (projectLock *ProjectLockImpl) verifyNoHangingLocks(prNumber int) (bool, er
 	}
 
 	if transactionId != nil {
-		if *transactionId != prNumber {
+		if *transactionId != projectLock.PrNumber {
 			isPrClosed, err := projectLock.CIService.IsClosed(*transactionId)
 			if err != nil {
 				return false, fmt.Errorf("failed to check if PR holding a lock is closed: %w", err)
@@ -125,7 +126,7 @@ func (projectLock *ProjectLockImpl) verifyNoHangingLocks(prNumber int) (bool, er
 			}
 			transactionIdStr := strconv.Itoa(*transactionId)
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
-			projectLock.CIService.PublishComment(prNumber, comment)
+			projectLock.CIService.PublishComment(projectLock.PrNumber, comment)
 			return false, nil
 		}
 		return true, nil
@@ -133,7 +134,7 @@ func (projectLock *ProjectLockImpl) verifyNoHangingLocks(prNumber int) (bool, er
 	return true, nil
 }
 
-func (projectLock *ProjectLockImpl) Unlock(prNumber int) (bool, error) {
+func (projectLock *PullRequestLock) Unlock() (bool, error) {
 	lockId := projectLock.LockId()
 	fmt.Printf("Unlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
@@ -143,14 +144,14 @@ func (projectLock *ProjectLockImpl) Unlock(prNumber int) (bool, error) {
 
 	if lock != nil {
 		transactionId := *lock
-		if prNumber == transactionId {
+		if projectLock.PrNumber == transactionId {
 			lockReleased, err := projectLock.InternalLock.Unlock(lockId)
 			if err != nil {
 				return false, err
 			}
 			if lockReleased {
 				comment := "Project unlocked (" + projectLock.projectId() + ")."
-				projectLock.CIService.PublishComment(prNumber, comment)
+				projectLock.CIService.PublishComment(projectLock.PrNumber, comment)
 				println("Project unlocked")
 				return true, nil
 			}
@@ -159,7 +160,7 @@ func (projectLock *ProjectLockImpl) Unlock(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (projectLock *ProjectLockImpl) ForceUnlock(prNumber int) error {
+func (projectLock *PullRequestLock) ForceUnlock() error {
 	lockId := projectLock.LockId()
 	fmt.Printf("ForceUnlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
@@ -174,7 +175,7 @@ func (projectLock *ProjectLockImpl) ForceUnlock(prNumber int) error {
 
 		if lockReleased {
 			comment := "Project unlocked (" + projectLock.projectId() + ")."
-			projectLock.CIService.PublishComment(prNumber, comment)
+			projectLock.CIService.PublishComment(projectLock.PrNumber, comment)
 			println("Project unlocked")
 		}
 		return nil
@@ -182,11 +183,11 @@ func (projectLock *ProjectLockImpl) ForceUnlock(prNumber int) error {
 	return nil
 }
 
-func (projectLock *ProjectLockImpl) projectId() string {
+func (projectLock *PullRequestLock) projectId() string {
 	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 
-func (projectLock *ProjectLockImpl) LockId() string {
+func (projectLock *PullRequestLock) LockId() string {
 	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 
