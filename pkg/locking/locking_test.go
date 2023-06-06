@@ -10,11 +10,10 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 	mockDynamoDB := utils.MockLock{make(map[string]int)}
 	mockPrManager := utils.MockGithubPullrequestManager{}
 	pl := ProjectLockImpl{
-		InternalLock: &mockDynamoDB,
-		CIService:    &mockPrManager,
-		ProjectName:  "a",
-		RepoName:     "",
-		RepoOwner:    "",
+		InternalLock:     &mockDynamoDB,
+		CIService:        &mockPrManager,
+		ProjectName:      "a",
+		ProjectNamespace: "",
 	}
 	state1, err1 := pl.Lock(1)
 	assert.True(t, state1)

@@ -28,6 +28,7 @@ type GitLabContext struct {
 	ProjectNamespaceId *int            `env:"CI_PROJECT_NAMESPACE_ID"`
 	OpenMergeRequests  []string        `env:"CI_OPEN_MERGE_REQUESTS"`
 	Token              string          `env:"GITLAB_TOKEN"`
+	GitlabUserName     string          `env:"GITLAB_USER_NAME"`
 	DiggerCommand      string          `env:"DIGGER_COMMAND"`
 	DiscussionID       string          `env:"DISCUSSION_ID"`
 	IsMeargeable       bool            `env:"IS_MERGEABLE"`
@@ -257,7 +258,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
@@ -278,7 +279,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{

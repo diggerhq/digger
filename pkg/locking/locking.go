@@ -23,11 +23,10 @@ import (
 )
 
 type ProjectLockImpl struct {
-	InternalLock Lock
-	CIService    ci.CIService
-	ProjectName  string
-	RepoName     string
-	RepoOwner    string
+	InternalLock     Lock
+	CIService        ci.CIService
+	ProjectName      string
+	ProjectNamespace string
 }
 
 type Lock interface {
@@ -82,7 +81,7 @@ func (projectLock *ProjectLockImpl) Lock(prNumber int) (bool, error) {
 			return true, nil
 		} else {
 			transactionIdStr := strconv.Itoa(*existingLockTransactionId)
-			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.RepoName + "). The locking plan must be applied or discarded before future plans can execute"
+			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.ProjectNamespace + "). The locking plan must be applied or discarded before future plans can execute"
 			projectLock.CIService.PublishComment(prNumber, comment)
 			return false, nil
 		}
@@ -184,11 +183,11 @@ func (projectLock *ProjectLockImpl) ForceUnlock(prNumber int) error {
 }
 
 func (projectLock *ProjectLockImpl) projectId() string {
-	return projectLock.RepoOwner + "/" + projectLock.RepoName + "#" + projectLock.ProjectName
+	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 
 func (projectLock *ProjectLockImpl) LockId() string {
-	return projectLock.RepoOwner + "/" + projectLock.RepoName + "#" + projectLock.ProjectName
+	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 
 func GetLock() (Lock, error) {
