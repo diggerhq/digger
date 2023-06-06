@@ -315,7 +315,7 @@ func main() {
 		azureCI(lock)
 	case digger.BitBucket:
 	case digger.None:
-		print("No CI detected.")
+		println("No CI detected.")
 		os.Exit(10)
 	}
 }
