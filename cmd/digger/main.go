@@ -23,26 +23,26 @@ import (
 
 func gitHubCI(lock locking.Lock) {
 	println("Using GitHub.")
-	githubRepositoryOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
-	if githubRepositoryOwner != "" {
-		usage.SendUsageRecord(githubRepositoryOwner, "log", "initialize")
+	githubActor := os.Getenv("GITHUB_ACTOR")
+	if githubActor != "" {
+		usage.SendUsageRecord(githubActor, "log", "initialize")
 	} else {
 		usage.SendUsageRecord("", "log", "non github initialisation")
 	}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
-		reportErrorAndExit(githubRepositoryOwner, "GITHUB_TOKEN is not defined", 1)
+		reportErrorAndExit(githubActor, "GITHUB_TOKEN is not defined", 1)
 	}
 
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 	if ghContext == "" {
-		reportErrorAndExit(githubRepositoryOwner, "GITHUB_CONTEXT is not defined", 2)
+		reportErrorAndExit(githubActor, "GITHUB_CONTEXT is not defined", 2)
 	}
 
 	parsedGhContext, err := github_models.GetGitHubContext(ghContext)
 	if err != nil {
-		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 	}
 	println("GitHub context parsed successfully")
 
@@ -50,13 +50,13 @@ func gitHubCI(lock locking.Lock) {
 
 	diggerConfig, err := configuration.LoadDiggerConfig("./", &walker)
 	if err != nil {
-		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
 	println("Digger config read successfully")
 
 	lock, err = locking.GetLock()
 	if err != nil {
-		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to create lock provider. %s", err), 5)
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to create lock provider. %s", err), 5)
 	}
 	println("Lock provider has been created successfully")
 
@@ -68,7 +68,7 @@ func gitHubCI(lock locking.Lock) {
 
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
 	if err != nil {
-		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 	}
 	logImpactedProjects(impactedProjects, prNumber)
 	println("GitHub event processed successfully")
@@ -77,26 +77,26 @@ func gitHubCI(lock locking.Lock) {
 		reply := utils.GetCommands()
 		err := githubPrService.PublishComment(prNumber, reply)
 		if err != nil {
-			reportErrorAndExit(githubRepositoryOwner, "Failed to publish help command output", 1)
+			reportErrorAndExit(githubActor, "Failed to publish help command output", 1)
 		}
 	}
 
 	if len(impactedProjects) == 0 {
-		reportErrorAndExit(githubRepositoryOwner, "No projects impacted", 0)
+		reportErrorAndExit(githubActor, "No projects impacted", 0)
 	}
 
 	commandsToRunPerProject, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
-		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 	}
 	println("GitHub event converted to commands successfully")
 	logCommands(commandsToRunPerProject)
 
-	planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
+	planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, prNumber)
 
-	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, repoOwner, repositoryName, eventName, prNumber, githubPrService, lock, planStorage, "")
+	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, planStorage, "")
 	if err != nil {
-		reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
 	if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
@@ -106,11 +106,11 @@ func gitHubCI(lock locking.Lock) {
 
 	println("Commands executed successfully")
 
-	reportErrorAndExit(githubRepositoryOwner, "Digger finished successfully", 0)
+	reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 
 	defer func() {
 		if r := recover(); r != nil {
-			reportErrorAndExit(githubRepositoryOwner, fmt.Sprintf("Panic occurred. %s", r), 1)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Panic occurred. %s", r), 1)
 		}
 	}()
 }
@@ -177,10 +177,11 @@ func gitLabCI(lock locking.Lock) {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
-	//planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, prNumber)
-	planStorage := newPlanStorage(gitlabToken, projectNamespace, projectName, *gitLabContext.MergeRequestIId)
+	diggerProjectNamespace := gitLabContext.ProjectNamespace + "/" + gitLabContext.ProjectName
+	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, *gitLabContext.MergeRequestIId)
 
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, gitLabContext.ProjectNamespace, gitLabContext.ProjectName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, planStorage, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, planStorage, currentDir)
+
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
 		os.Exit(8)
@@ -251,8 +252,9 @@ func azureCI(lock locking.Lock) {
 	}
 
 	var planStorage storage.PlanStorage
+	diggerProjectNamespace := parsedAzureContext.BaseUrl + "/" + parsedAzureContext.ProjectName
 
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedAzureContext.ProjectName, parsedAzureContext.ProjectName, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, planStorage, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -320,7 +322,7 @@ func main() {
 	}
 }
 
-func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prNumber int) storage.PlanStorage {
+func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber int) storage.PlanStorage {
 	var planStorage storage.PlanStorage
 
 	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
@@ -328,8 +330,8 @@ func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prN
 		zipManager := utils.Zipper{}
 		planStorage = &storage.GithubPlanStorage{
 			Client:            github.NewTokenClient(context.Background(), ghToken),
-			Owner:             repoOwner,
-			RepoName:          repositoryName,
+			Owner:             ghRepoOwner,
+			RepoName:          ghRepositoryName,
 			PullRequestNumber: prNumber,
 			ZipManager:        zipManager,
 		}
@@ -337,7 +339,7 @@ func newPlanStorage(ghToken string, repoOwner string, repositoryName string, prN
 		ctx, client := gcp.GetGoogleStorageClient()
 		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
 		if bucketName == "" {
-			reportErrorAndExit(repoOwner, fmt.Sprintf("GOOGLE_STORAGE_BUCKET is not defined"), 9)
+			reportErrorAndExit(requestedBy, fmt.Sprintf("GOOGLE_STORAGE_BUCKET is not defined"), 9)
 		}
 		bucket := client.Bucket(bucketName)
 		planStorage = &storage.PlanStorageGcp{
