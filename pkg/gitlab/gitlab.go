@@ -28,6 +28,7 @@ type GitLabContext struct {
 	ProjectNamespaceId *int            `env:"CI_PROJECT_NAMESPACE_ID"`
 	OpenMergeRequests  []string        `env:"CI_OPEN_MERGE_REQUESTS"`
 	Token              string          `env:"GITLAB_TOKEN"`
+	GitlabUserName     string          `env:"GITLAB_USER_NAME"`
 	DiggerCommand      string          `env:"DIGGER_COMMAND"`
 	DiscussionID       string          `env:"DISCUSSION_ID"`
 	IsMeargeable       bool            `env:"IS_MERGEABLE"`

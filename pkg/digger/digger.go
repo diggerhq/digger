@@ -22,16 +22,15 @@ import (
 	"time"
 )
 
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
+func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
 			projectLock := &locking.ProjectLockImpl{
-				InternalLock: lock,
-				CIService:    ciService,
-				ProjectName:  projectCommands.ProjectName,
-				RepoName:     repoName,
-				RepoOwner:    repoOwner,
+				InternalLock:     lock,
+				CIService:        ciService,
+				ProjectName:      projectCommands.ProjectName,
+				ProjectNamespace: projectNamespace,
 			}
 
 			var terraformExecutor terraform.TerraformExecutor
@@ -44,8 +43,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 
 			commandRunner := CommandRunner{}
 			diggerExecutor := DiggerExecutor{
-				repoOwner,
-				repoName,
+				projectNamespace,
 				projectCommands.ProjectName,
 				projectPath,
 				projectCommands.StateEnvVars,
@@ -60,7 +58,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 			}
 			switch command {
 			case "digger plan":
-				usage.SendUsageRecord(repoOwner, eventName, "plan")
+				usage.SendUsageRecord(requestedBy, eventName, "plan")
 				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
 				planPerformed, err := diggerExecutor.Plan(prNumber)
 				if err != nil {
@@ -72,7 +70,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 				}
 			case "digger apply":
 				appliesPerProject[projectCommands.ProjectName] = false
-				usage.SendUsageRecord(repoName, eventName, "apply")
+				usage.SendUsageRecord(requestedBy, eventName, "apply")
 				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
 				applyPerformed, err := diggerExecutor.Apply(prNumber)
 				if err != nil {
@@ -84,13 +82,13 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 					appliesPerProject[projectCommands.ProjectName] = true
 				}
 			case "digger unlock":
-				usage.SendUsageRecord(repoOwner, eventName, "unlock")
+				usage.SendUsageRecord(requestedBy, eventName, "unlock")
 				err := diggerExecutor.Unlock(prNumber)
 				if err != nil {
 					return false, false, fmt.Errorf("failed to unlock project. %v", err)
 				}
 			case "digger lock":
-				usage.SendUsageRecord(repoOwner, eventName, "lock")
+				usage.SendUsageRecord(requestedBy, eventName, "lock")
 				err := diggerExecutor.Lock(prNumber)
 				if err != nil {
 					return false, false, fmt.Errorf("failed to lock project. %v", err)
@@ -140,8 +138,7 @@ func MergePullRequest(githubPrService ci.CIService, prNumber int) {
 }
 
 type DiggerExecutor struct {
-	RepoOwner         string
-	RepoName          string
+	ProjectNamespace  string
 	ProjectName       string
 	ProjectPath       string
 	StateEnvVars      map[string]string
@@ -201,7 +198,7 @@ func (c CommandRunner) Run(workingDir string, shell string, commands []string) (
 }
 
 func (d DiggerExecutor) planFileName() string {
-	return d.RepoName + "#" + d.ProjectName + ".tfplan"
+	return d.ProjectNamespace + "#" + d.ProjectName + ".tfplan"
 }
 
 func (d DiggerExecutor) localPlanFilePath() string {
@@ -209,7 +206,7 @@ func (d DiggerExecutor) localPlanFilePath() string {
 }
 
 func (d DiggerExecutor) storedPlanFilePath() string {
-	return path.Join(d.RepoOwner, d.planFileName())
+	return path.Join(d.ProjectNamespace, d.planFileName())
 }
 
 func (d DiggerExecutor) Plan(prNumber int) (bool, error) {
