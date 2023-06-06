@@ -1,19 +1,13 @@
 package gitlab
 
 import (
-	"digger/pkg/ci"
 	"digger/pkg/configuration"
-	"digger/pkg/digger"
-	"digger/pkg/locking"
 	"digger/pkg/models"
-	"digger/pkg/storage"
-	"digger/pkg/terraform"
-	"digger/pkg/usage"
+	"digger/pkg/utils"
 	"fmt"
 	"github.com/caarlos0/env/v7"
 	go_gitlab "github.com/xanzy/go-gitlab"
 	"log"
-	"path"
 	"strings"
 )
 
@@ -88,28 +82,40 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 	}, nil
 }
 
-func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.Project, error) {
+func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.Project, *configuration.Project, error) {
 	var impactedProjects []configuration.Project
 
 	if gitlabContext.MergeRequestIId == nil {
-		return nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
+		return nil, nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
 	}
 
 	mergeRequestId := gitlabContext.MergeRequestIId
 	changedFiles, err := service.GetChangedFiles(*mergeRequestId)
 
 	if err != nil {
-		return nil, fmt.Errorf("could not get changed files")
+		return nil, nil, fmt.Errorf("could not get changed files")
 	}
 
 	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 
-	fmt.Println("Impacted projects:")
-	for _, v := range impactedProjects {
-		fmt.Printf("%s\n", v.Name)
-	}
+	switch gitlabContext.EventType {
+	case MergeRequestComment:
+		requestedProject := utils.ParseProjectName(gitlabContext.DiggerCommand)
 
-	return impactedProjects, nil
+		if requestedProject == "" {
+			return impactedProjects, nil, nil
+		}
+
+		for _, project := range impactedProjects {
+			if project.Name == requestedProject {
+				return impactedProjects, &project, nil
+			}
+		}
+		return nil, nil, fmt.Errorf("requested project not found in modified projects")
+	default:
+		return impactedProjects, nil, nil
+
+	}
 }
 
 type GitLabService struct {
@@ -242,7 +248,7 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, error) {
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]models.ProjectCommand, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
@@ -254,6 +260,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
+			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
@@ -262,15 +269,18 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				Commands:         workflow.Configuration.OnPullRequestPushed,
 				ApplyStage:       workflow.Apply,
 				PlanStage:        workflow.Plan,
+				CommandEnvVars:   commandEnvVars,
+				StateEnvVars:     stateEnvVars,
 			})
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, true, nil
 	case MergeRequestClosed, MergeRequestMerged:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
 				return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
+			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
@@ -279,134 +289,60 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				Commands:         workflow.Configuration.OnPullRequestClosed,
 				ApplyStage:       workflow.Apply,
 				PlanStage:        workflow.Plan,
+				CommandEnvVars:   commandEnvVars,
+				StateEnvVars:     stateEnvVars,
 			})
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, true, nil
 	case MergeRequestComment:
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
+		coversAllImpactedProjects := true
+
+		runForProjects := impactedProjects
+
+		if requestedProject != nil {
+			if len(impactedProjects) > 1 {
+				coversAllImpactedProjects = false
+				runForProjects = []configuration.Project{*requestedProject}
+			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
+				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
+			}
+		}
+
 		for _, command := range supportedCommands {
 			if strings.Contains(gitLabContext.DiggerCommand, command) {
-				for _, project := range impactedProjects {
+				for _, project := range runForProjects {
+					workflow, ok := workflows[project.Workflow]
+					if !ok {
+						workflow = workflows["default"]
+					}
 					workspace := project.Workspace
-					//workspaceOverride, err := parseWorkspace(gitLabContext.DiggerCommand)
-					//if err != nil {
-					//	return []digger.ProjectCommand{}, err
-					//}
-					//if workspaceOverride != "" {
-					//	workspace = workspaceOverride
-					//}
+					workspaceOverride, err := utils.ParseWorkspace(gitLabContext.DiggerCommand)
+					if err != nil {
+						return []models.ProjectCommand{}, false, err
+					}
+					if workspaceOverride != "" {
+						workspace = workspaceOverride
+					}
+					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
+						ApplyStage:       workflow.Apply,
+						PlanStage:        workflow.Plan,
+						CommandEnvVars:   commandEnvVars,
+						StateEnvVars:     stateEnvVars,
 					})
 				}
 			}
 		}
-		return commandsPerProject, nil
+		return commandsPerProject, coversAllImpactedProjects, nil
 
 	default:
-		return []models.ProjectCommand{}, fmt.Errorf("unsupported GitLab event type: %v", event)
+		return []models.ProjectCommand{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
-	return nil, nil
-}
-
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, gitLabContext GitLabContext, diggerConfig *configuration.DiggerConfig, service ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, error) {
-
-	allAppliesSuccess := true
-	appliesPerProject := make(map[string]bool)
-	for _, projectCommands := range commandsPerProject {
-		appliesPerProject[projectCommands.ProjectName] = false
-		for _, command := range projectCommands.Commands {
-			projectLock := &locking.ProjectLockImpl{
-				InternalLock: lock,
-				CIService:    service,
-				ProjectName:  projectCommands.ProjectName,
-				RepoName:     gitLabContext.ProjectName,
-				RepoOwner:    gitLabContext.ProjectNamespace,
-			}
-
-			var terraformExecutor terraform.TerraformExecutor
-			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
-			if projectCommands.Terragrunt {
-				terraformExecutor = terraform.Terragrunt{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir)}
-			} else {
-				terraformExecutor = terraform.Terraform{WorkingDir: path.Join(workingDir, projectCommands.ProjectDir), Workspace: projectCommands.ProjectWorkspace}
-			}
-			commandRunner := digger.CommandRunner{}
-
-			diggerExecutor := digger.DiggerExecutor{
-				gitLabContext.ProjectNamespace,
-				gitLabContext.ProjectName,
-				projectCommands.ProjectName,
-				projectPath,
-				projectCommands.StateEnvVars,
-				projectCommands.CommandEnvVars,
-				projectCommands.ApplyStage,
-				projectCommands.PlanStage,
-				commandRunner,
-				terraformExecutor,
-				service,
-				projectLock,
-				planStorage,
-			}
-
-			repoOwner := gitLabContext.ProjectNamespace
-			repoName := gitLabContext.ProjectName
-			prNumber := *gitLabContext.MergeRequestIId
-			eventName := ""
-			switch command {
-			case "digger plan":
-				usage.SendUsageRecord(repoOwner, eventName, "plan")
-				service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
-				planPerformed, err := diggerExecutor.Plan(prNumber)
-				if err != nil {
-					log.Printf("Failed to run digger plan command. %v", err)
-					service.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
-
-					return false, fmt.Errorf("failed to run digger plan command. %v", err)
-				} else if !planPerformed {
-					service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
-				} else {
-					service.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
-				}
-			case "digger apply":
-				usage.SendUsageRecord(repoName, eventName, "apply")
-				service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
-				applyPerformed, err := diggerExecutor.Apply(prNumber)
-				if err != nil {
-					log.Printf("Failed to run digger apply command. %v", err)
-					service.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
-					return false, fmt.Errorf("failed to run digger apply command. %v", err)
-				} else if !applyPerformed {
-					service.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
-				} else {
-					service.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
-					appliesPerProject[projectCommands.ProjectName] = true
-				}
-			case "digger unlock":
-				usage.SendUsageRecord(repoOwner, eventName, "unlock")
-				err := diggerExecutor.Unlock(prNumber)
-				if err != nil {
-					return false, fmt.Errorf("failed to unlock project. %v", err)
-				}
-			case "digger lock":
-				usage.SendUsageRecord(repoOwner, eventName, "lock")
-				err := diggerExecutor.Lock(prNumber)
-				if err != nil {
-					return false, fmt.Errorf("failed to lock project. %v", err)
-				}
-			}
-		}
-	}
-
-	for _, success := range appliesPerProject {
-		if !success {
-			allAppliesSuccess = false
-		}
-	}
-	return allAppliesSuccess, nil
 }
