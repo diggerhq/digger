@@ -21,7 +21,7 @@ type DiggerConfigYaml struct {
 	Projects               []Project               `yaml:"projects"`
 	AutoMerge              bool                    `yaml:"auto_merge"`
 	Workflows              map[string]Workflow     `yaml:"workflows"`
-	CollectUsageData       bool                    `yaml:"collect_usage_data"`
+	CollectUsageData       *bool                   `yaml:"collect_usage_data,omitempty"`
 	GenerateProjectsConfig *GenerateProjectsConfig `yaml:"generate_projects"`
 }
 
@@ -257,8 +257,11 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		}
 		projectNames[project.Name] = true
 	}
-
-	diggerConfig.CollectUsageData = diggerYaml.CollectUsageData
+	if diggerYaml.CollectUsageData != nil {
+		diggerConfig.CollectUsageData = *diggerYaml.CollectUsageData
+	} else {
+		diggerConfig.CollectUsageData = true
+	}
 
 	if diggerYaml.GenerateProjectsConfig != nil {
 		dirs, err := walker.GetDirs(workingDir)
