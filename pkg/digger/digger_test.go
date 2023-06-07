@@ -163,8 +163,8 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 		PrNumber:  1,
 	}
 	executor := DiggerExecutor{
-		ApplyStage: &configuration.Stage{
-			Steps: []configuration.Step{
+		ApplyStage: &configuration.StageConfig{
+			Steps: []configuration.StepConfig{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -182,7 +182,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 				},
 			},
 		},
-		PlanStage:         &configuration.Stage{},
+		PlanStage:         &configuration.StageConfig{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
@@ -208,9 +208,9 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		PrNumber:  1,
 	}
 	executor := DiggerExecutor{
-		ApplyStage: &configuration.Stage{},
-		PlanStage: &configuration.Stage{
-			Steps: []configuration.Step{
+		ApplyStage: &configuration.StageConfig{},
+		PlanStage: &configuration.StageConfig{
+			Steps: []configuration.StepConfig{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
