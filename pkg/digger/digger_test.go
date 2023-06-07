@@ -2,6 +2,7 @@ package digger
 
 import (
 	"digger/pkg/configuration"
+	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"sort"
 	"strconv"
@@ -97,18 +98,18 @@ type MockProjectLock struct {
 	Commands []RunInfo
 }
 
-func (m *MockProjectLock) Lock(prNumber int) (bool, error) {
-	m.Commands = append(m.Commands, RunInfo{"Lock", strconv.Itoa(prNumber), time.Now()})
+func (m *MockProjectLock) Lock() (bool, error) {
+	m.Commands = append(m.Commands, RunInfo{"Lock", "", time.Now()})
 	return true, nil
 }
 
-func (m *MockProjectLock) Unlock(prNumber int) (bool, error) {
-	m.Commands = append(m.Commands, RunInfo{"Unlock", strconv.Itoa(prNumber), time.Now()})
+func (m *MockProjectLock) Unlock() (bool, error) {
+	m.Commands = append(m.Commands, RunInfo{"Unlock", "", time.Now()})
 	return true, nil
 }
 
-func (m *MockProjectLock) ForceUnlock(prNumber int) error {
-	m.Commands = append(m.Commands, RunInfo{"ForceUnlock", strconv.Itoa(prNumber), time.Now()})
+func (m *MockProjectLock) ForceUnlock() error {
+	m.Commands = append(m.Commands, RunInfo{"ForceUnlock", "", time.Now()})
 	return nil
 }
 
@@ -157,6 +158,10 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	prManager := &MockPRManager{}
 	lock := &MockProjectLock{}
 	planStorage := &MockPlanStorage{}
+	reporter := &reporting.CiReporter{
+		CiService: prManager,
+		PrNumber:  1,
+	}
 	executor := DiggerExecutor{
 		ApplyStage: &configuration.Stage{
 			Steps: []configuration.Step{
@@ -180,16 +185,16 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 		PlanStage:         &configuration.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
-		CIService:         prManager,
+		Reporter:          reporter,
 		ProjectLock:       lock,
 		PlanStorage:       planStorage,
 	}
 
-	executor.Apply(1)
+	executor.Apply()
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"RetrievePlan #.tfplan", "IsMergeable 1", "Lock 1", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan #.tfplan", "Lock ", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
@@ -198,7 +203,10 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 	prManager := &MockPRManager{}
 	lock := &MockProjectLock{}
 	planStorage := &MockPlanStorage{}
-
+	reporter := &reporting.CiReporter{
+		CiService: prManager,
+		PrNumber:  1,
+	}
 	executor := DiggerExecutor{
 		ApplyStage: &configuration.Stage{},
 		PlanStage: &configuration.Stage{
@@ -222,16 +230,16 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
-		CIService:         prManager,
+		Reporter:          reporter,
 		ProjectLock:       lock,
 		PlanStorage:       planStorage,
 	}
 
-	executor.Plan(1)
+	executor.Plan()
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"Lock 1", "Init ", "Plan -out #.tfplan", "PlanExists #.tfplan", "StorePlan #.tfplan", "LockId ", "PublishComment 1 <details>\n  <summary>Plan for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Lock ", "Init ", "Plan -out #.tfplan", "PlanExists #.tfplan", "StorePlan #.tfplan", "LockId ", "PublishComment 1 <details>\n  <summary>Plan for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage) []string {

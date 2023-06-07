@@ -6,6 +6,7 @@ import (
 	"digger/pkg/configuration"
 	"digger/pkg/locking"
 	"digger/pkg/models"
+	"digger/pkg/reporting"
 	"digger/pkg/storage"
 	"digger/pkg/terraform"
 	"digger/pkg/usage"
@@ -22,16 +23,16 @@ import (
 	"time"
 )
 
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner string, repoName string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
+func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
-			projectLock := &locking.ProjectLockImpl{
-				InternalLock: lock,
-				CIService:    ciService,
-				ProjectName:  projectCommands.ProjectName,
-				RepoName:     repoName,
-				RepoOwner:    repoOwner,
+			projectLock := &locking.PullRequestLock{
+				InternalLock:     lock,
+				CIService:        ciService,
+				ProjectName:      projectCommands.ProjectName,
+				ProjectNamespace: projectNamespace,
+				PrNumber:         prNumber,
 			}
 
 			var terraformExecutor terraform.TerraformExecutor
@@ -44,8 +45,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 
 			commandRunner := CommandRunner{}
 			diggerExecutor := DiggerExecutor{
-				repoOwner,
-				repoName,
+				projectNamespace,
 				projectCommands.ProjectName,
 				projectPath,
 				projectCommands.StateEnvVars,
@@ -54,15 +54,15 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 				projectCommands.PlanStage,
 				commandRunner,
 				terraformExecutor,
-				ciService,
+				reporter,
 				projectLock,
 				planStorage,
 			}
 			switch command {
 			case "digger plan":
-				usage.SendUsageRecord(repoOwner, eventName, "plan")
+				usage.SendUsageRecord(requestedBy, eventName, "plan")
 				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
-				planPerformed, err := diggerExecutor.Plan(prNumber)
+				planPerformed, err := diggerExecutor.Plan()
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
 					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
@@ -72,26 +72,41 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, repoOwner
 				}
 			case "digger apply":
 				appliesPerProject[projectCommands.ProjectName] = false
-				usage.SendUsageRecord(repoName, eventName, "apply")
+				usage.SendUsageRecord(requestedBy, eventName, "apply")
 				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
-				applyPerformed, err := diggerExecutor.Apply(prNumber)
+
+				// this might go into some sort of "appliability" plugin later
+				isMergeable, err := ciService.IsMergeable(prNumber)
 				if err != nil {
-					log.Printf("Failed to run digger apply command. %v", err)
-					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
-					return false, false, fmt.Errorf("failed to run digger apply command. %v", err)
-				} else if applyPerformed {
-					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
-					appliesPerProject[projectCommands.ProjectName] = true
+					return false, false, fmt.Errorf("error validating is PR is mergeable: %v", err)
+				}
+				if !isMergeable {
+					comment := "Cannot perform Apply since the PR is not currently mergeable."
+					err = ciService.PublishComment(prNumber, comment)
+					if err != nil {
+						fmt.Printf("error publishing comment: %v", err)
+					}
+					return false, false, nil
+				} else {
+					applyPerformed, err := diggerExecutor.Apply()
+					if err != nil {
+						log.Printf("Failed to run digger apply command. %v", err)
+						ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+						return false, false, fmt.Errorf("failed to run digger apply command. %v", err)
+					} else if applyPerformed {
+						ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+						appliesPerProject[projectCommands.ProjectName] = true
+					}
 				}
 			case "digger unlock":
-				usage.SendUsageRecord(repoOwner, eventName, "unlock")
-				err := diggerExecutor.Unlock(prNumber)
+				usage.SendUsageRecord(requestedBy, eventName, "unlock")
+				err := diggerExecutor.Unlock()
 				if err != nil {
 					return false, false, fmt.Errorf("failed to unlock project. %v", err)
 				}
 			case "digger lock":
-				usage.SendUsageRecord(repoOwner, eventName, "lock")
-				err := diggerExecutor.Lock(prNumber)
+				usage.SendUsageRecord(requestedBy, eventName, "lock")
+				err := diggerExecutor.Lock()
 				if err != nil {
 					return false, false, fmt.Errorf("failed to lock project. %v", err)
 				}
@@ -140,8 +155,7 @@ func MergePullRequest(githubPrService ci.CIService, prNumber int) {
 }
 
 type DiggerExecutor struct {
-	RepoOwner         string
-	RepoName          string
+	ProjectNamespace  string
 	ProjectName       string
 	ProjectPath       string
 	StateEnvVars      map[string]string
@@ -150,7 +164,7 @@ type DiggerExecutor struct {
 	PlanStage         *configuration.Stage
 	CommandRunner     CommandRun
 	TerraformExecutor terraform.TerraformExecutor
-	CIService         ci.CIService
+	Reporter          reporting.Reporter
 	ProjectLock       locking.ProjectLock
 	PlanStorage       storage.PlanStorage
 }
@@ -201,7 +215,7 @@ func (c CommandRunner) Run(workingDir string, shell string, commands []string) (
 }
 
 func (d DiggerExecutor) planFileName() string {
-	return d.RepoName + "#" + d.ProjectName + ".tfplan"
+	return d.ProjectNamespace + "#" + d.ProjectName + ".tfplan"
 }
 
 func (d DiggerExecutor) localPlanFilePath() string {
@@ -209,11 +223,11 @@ func (d DiggerExecutor) localPlanFilePath() string {
 }
 
 func (d DiggerExecutor) storedPlanFilePath() string {
-	return path.Join(d.RepoOwner, d.planFileName())
+	return path.Join(d.ProjectNamespace, d.planFileName())
 }
 
-func (d DiggerExecutor) Plan(prNumber int) (bool, error) {
-	locked, err := d.ProjectLock.Lock(prNumber)
+func (d DiggerExecutor) Plan() (bool, error) {
+	locked, err := d.ProjectLock.Lock()
 	if err != nil {
 		return false, fmt.Errorf("error locking project: %v", err)
 	}
@@ -267,7 +281,7 @@ func (d DiggerExecutor) Plan(prNumber int) (bool, error) {
 				}
 				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+d.ProjectLock.LockId()+"**", plan)
-				err = d.CIService.PublishComment(prNumber, comment)
+				err = d.Reporter.Report(comment)
 				if err != nil {
 					fmt.Printf("error publishing comment: %v", err)
 				}
@@ -290,7 +304,7 @@ func (d DiggerExecutor) Plan(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (d DiggerExecutor) Apply(prNumber int) (bool, error) {
+func (d DiggerExecutor) Apply() (bool, error) {
 	var plansFilename *string
 	if d.PlanStorage != nil {
 		var err error
@@ -300,85 +314,72 @@ func (d DiggerExecutor) Apply(prNumber int) (bool, error) {
 		}
 	}
 
-	isMergeable, err := d.CIService.IsMergeable(prNumber)
+	locked, err := d.ProjectLock.Lock()
+
 	if err != nil {
-		return false, fmt.Errorf("error validating is PR is mergeable: %v", err)
+		return false, fmt.Errorf("error locking project: %v", err)
 	}
-	if !isMergeable {
-		comment := "Cannot perform Apply since the PR is not currently mergeable."
-		err = d.CIService.PublishComment(prNumber, comment)
-		if err != nil {
-			fmt.Printf("error publishing comment: %v", err)
+
+	if locked {
+		var applySteps []configuration.Step
+
+		if d.ApplyStage != nil {
+			applySteps = d.ApplyStage.Steps
+		} else {
+			applySteps = []configuration.Step{
+				{
+					Action: "init",
+				},
+				{
+					Action: "apply",
+				},
+			}
 		}
-		return false, nil
-	} else {
-		locked, err := d.ProjectLock.Lock(prNumber)
 
-		if err != nil {
-			return false, fmt.Errorf("error locking project: %v", err)
-		}
-
-		if locked {
-			var applySteps []configuration.Step
-
-			if d.ApplyStage != nil {
-				applySteps = d.ApplyStage.Steps
-			} else {
-				applySteps = []configuration.Step{
-					{
-						Action: "init",
-					},
-					{
-						Action: "apply",
-					},
+		for _, step := range applySteps {
+			if step.Action == "init" {
+				_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
+				if err != nil {
+					return false, fmt.Errorf("error running init: %v", err)
 				}
 			}
-
-			for _, step := range applySteps {
-				if step.Action == "init" {
-					_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
-					if err != nil {
-						return false, fmt.Errorf("error running init: %v", err)
-					}
+			if step.Action == "apply" {
+				stdout, stderr, err := d.TerraformExecutor.Apply(step.ExtraArgs, plansFilename, d.CommandEnvVars)
+				applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
+				comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.ProjectLock.LockId()+"**", applyOutput)
+				commentErr := d.Reporter.Report(comment)
+				if commentErr != nil {
+					fmt.Printf("error publishing comment: %v", err)
 				}
-				if step.Action == "apply" {
-					stdout, stderr, err := d.TerraformExecutor.Apply(step.ExtraArgs, plansFilename, d.CommandEnvVars)
-					applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-					comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.ProjectLock.LockId()+"**", applyOutput)
-					commentErr := d.CIService.PublishComment(prNumber, comment)
+				if err != nil {
+					commentErr = d.Reporter.Report("Error during applying.")
 					if commentErr != nil {
 						fmt.Printf("error publishing comment: %v", err)
 					}
-					if err != nil {
-						commentErr = d.CIService.PublishComment(prNumber, "Error during applying.")
-						if commentErr != nil {
-							fmt.Printf("error publishing comment: %v", err)
-						}
-						return false, fmt.Errorf("error executing apply: %v", err)
-					}
-				}
-				if step.Action == "run" {
-					var commands []string
-					if os.Getenv("ACTIVATE_VENV") == "true" {
-						commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
-					}
-					commands = append(commands, step.Value)
-					log.Printf("Running %v for **%v**\n", step.Value, d.ProjectLock.LockId())
-					_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
-					if err != nil {
-						return false, fmt.Errorf("error running command: %v", err)
-					}
+					return false, fmt.Errorf("error executing apply: %v", err)
 				}
 			}
-			return true, nil
-		} else {
-			return false, nil
+			if step.Action == "run" {
+				var commands []string
+				if os.Getenv("ACTIVATE_VENV") == "true" {
+					commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
+				}
+				commands = append(commands, step.Value)
+				log.Printf("Running %v for **%v**\n", step.Value, d.ProjectLock.LockId())
+				_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
+				if err != nil {
+					return false, fmt.Errorf("error running command: %v", err)
+				}
+			}
 		}
+		return true, nil
+	} else {
+		return false, nil
 	}
 }
 
-func (d DiggerExecutor) Unlock(prNumber int) error {
-	err := d.ProjectLock.ForceUnlock(prNumber)
+func (d DiggerExecutor) Unlock() error {
+	err := d.ProjectLock.ForceUnlock()
 	if err != nil {
 		return fmt.Errorf("failed to aquire lock: %s, %v", d.ProjectLock.LockId(), err)
 	}
@@ -394,8 +395,8 @@ func (d DiggerExecutor) Unlock(prNumber int) error {
 	return nil
 }
 
-func (d DiggerExecutor) Lock(prNumber int) error {
-	_, err := d.ProjectLock.Lock(prNumber)
+func (d DiggerExecutor) Lock() error {
+	_, err := d.ProjectLock.Lock()
 	if err != nil {
 		return fmt.Errorf("failed to aquire lock: %s, %v", d.ProjectLock.LockId(), err)
 	}
