@@ -4,7 +4,7 @@ import (
 	"context"
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
-	"digger/pkg/models"
+	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"encoding/json"
 	"errors"
@@ -351,7 +351,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
@@ -373,7 +372,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
@@ -395,7 +393,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 				}
 				stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-
 				commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,

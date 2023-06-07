@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"errors"
 	"fmt"
@@ -16,7 +17,7 @@ type DiggerConfigYaml struct {
 	Projects               []ProjectYaml               `yaml:"projects"`
 	AutoMerge              bool                        `yaml:"auto_merge"`
 	Workflows              map[string]WorkflowYaml     `yaml:"workflows"`
-	CollectUsageData       bool                        `yaml:"collect_usage_data"`
+	CollectUsageData       *bool                       `yaml:"collect_usage_data,omitempty"`
 	GenerateProjectsConfig *GenerateProjectsConfigYaml `yaml:"generate_projects"`
 }
 
@@ -41,6 +42,14 @@ type WorkflowConfigurationYaml struct {
 	OnPullRequestPushed []string `yaml:"on_pull_request_pushed"`
 	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
 	OnCommitToDefault   []string `yaml:"on_commit_to_default"`
+}
+
+func (s *StageYaml) ToCoreStage() models.Stage {
+	var steps []models.Step
+	for _, step := range s.Steps {
+		steps = append(steps, step.ToCoreStep())
+	}
+	return models.Stage{Steps: steps}
 }
 
 type StageYaml struct {
@@ -89,8 +98,8 @@ type ProjectConfig struct {
 
 type WorkflowConfig struct {
 	EnvVars       *EnvVarsConfig
-	Plan          *StageConfig
-	Apply         *StageConfig
+	Plan          *models.Stage
+	Apply         *models.Stage
 	Configuration *WorkflowConfigurationConfig
 }
 
@@ -98,17 +107,6 @@ type WorkflowConfigurationConfig struct {
 	OnPullRequestPushed []string
 	OnPullRequestClosed []string
 	OnCommitToDefault   []string
-}
-
-type StageConfig struct {
-	Steps []StepConfig
-}
-
-type StepConfig struct {
-	Action    string
-	Value     string
-	ExtraArgs []string
-	Shell     string
 }
 
 type EnvVarsConfig struct {
@@ -204,6 +202,7 @@ func (w *WorkflowYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 func (s *StepYaml) UnmarshalYAML(value *yaml.Node) error {
+
 	if value.Kind == yaml.ScalarNode {
 		return value.Decode(&s.Action)
 	}
@@ -228,6 +227,15 @@ func (s *StepYaml) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+func (s *StepYaml) ToCoreStep() models.Step {
+	return models.Step{
+		Action:    s.Action,
+		Value:     s.Value,
+		ExtraArgs: s.ExtraArgs,
+		Shell:     s.Shell,
+	}
+}
+
 func (s *StepYaml) extract(stepMap map[string]interface{}, action string) {
 	if _, ok := stepMap[action]; ok {
 		s.Action = action
@@ -248,8 +256,8 @@ func defaultWorkflow() *WorkflowConfig {
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},
 		},
-		Plan: &StageConfig{
-			Steps: []StepConfig{
+		Plan: &models.Stage{
+			Steps: []models.Step{
 				{
 					Action: "init", ExtraArgs: []string{},
 				},
@@ -258,8 +266,8 @@ func defaultWorkflow() *WorkflowConfig {
 				},
 			},
 		},
-		Apply: &StageConfig{
-			Steps: []StepConfig{
+		Apply: &models.Stage{
+			Steps: []models.Step{
 				{
 					Action: "init", ExtraArgs: []string{},
 				},
@@ -312,16 +320,16 @@ func copyEnvVars(envVars *EnvVarsYaml) *EnvVarsConfig {
 	return &result
 }
 
-func copyStage(stage *StageYaml) *StageConfig {
-	result := StageConfig{}
-	result.Steps = make([]StepConfig, len(stage.Steps))
+func copyStage(stage *StageYaml) *models.Stage {
+	result := models.Stage{}
+	result.Steps = make([]models.Step, len(stage.Steps))
 
 	for i, s := range stage.Steps {
-		item := StepConfig{
-			s.Action,
-			s.Value,
-			s.ExtraArgs,
-			s.Shell,
+		item := models.Step{
+			Action:    s.Action,
+			Value:     s.Value,
+			ExtraArgs: s.ExtraArgs,
+			Shell:     s.Shell,
 		}
 		result.Steps[i] = item
 	}
@@ -394,8 +402,11 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		}
 		projectNames[project.Name] = true
 	}
-
-	diggerConfig.CollectUsageData = diggerYaml.CollectUsageData
+	if diggerYaml.CollectUsageData != nil {
+		diggerConfig.CollectUsageData = *diggerYaml.CollectUsageData
+	} else {
+		diggerConfig.CollectUsageData = true
+	}
 
 	if diggerYaml.GenerateProjectsConfig != nil {
 		dirs, err := walker.GetDirs(workingDir)
@@ -582,22 +593,25 @@ func retrieveConfigFile(workingDir string) (string, error) {
 func CollectEnvVars(envs *EnvVarsConfig) (map[string]string, map[string]string) {
 	stateEnvVars := map[string]string{}
 
-	for _, envvar := range envs.State {
-		if envvar.Value != "" {
-			stateEnvVars[envvar.Name] = envvar.Value
-		} else if envvar.ValueFrom != "" {
-			stateEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
-		}
-	}
-
 	commandEnvVars := map[string]string{}
 
-	for _, envvar := range envs.Commands {
-		if envvar.Value != "" {
-			commandEnvVars[envvar.Name] = envvar.Value
-		} else if envvar.ValueFrom != "" {
-			commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+	if envs != nil {
+		for _, envvar := range envs.State {
+			if envvar.Value != "" {
+				stateEnvVars[envvar.Name] = envvar.Value
+			} else if envvar.ValueFrom != "" {
+				stateEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+			}
+		}
+
+		for _, envvar := range envs.Commands {
+			if envvar.Value != "" {
+				commandEnvVars[envvar.Name] = envvar.Value
+			} else if envvar.ValueFrom != "" {
+				commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+			}
 		}
 	}
+
 	return stateEnvVars, commandEnvVars
 }

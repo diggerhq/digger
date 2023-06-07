@@ -1,7 +1,8 @@
 package digger
 
 import (
-	"digger/pkg/configuration"
+	"digger/pkg/core/execution"
+	"digger/pkg/core/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"sort"
@@ -162,9 +163,9 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  1,
 	}
-	executor := DiggerExecutor{
-		ApplyStage: &configuration.StageConfig{
-			Steps: []configuration.StepConfig{
+	executor := execution.DiggerExecutor{
+		ApplyStage: &models.Stage{
+			Steps: []models.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -182,7 +183,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 				},
 			},
 		},
-		PlanStage:         &configuration.StageConfig{},
+		PlanStage:         &models.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
@@ -207,10 +208,11 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  1,
 	}
-	executor := DiggerExecutor{
-		ApplyStage: &configuration.StageConfig{},
-		PlanStage: &configuration.StageConfig{
-			Steps: []configuration.StepConfig{
+
+	executor := execution.DiggerExecutor{
+		ApplyStage: &models.Stage{},
+		PlanStage: &models.Stage{
+			Steps: []models.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,

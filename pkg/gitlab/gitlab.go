@@ -2,7 +2,7 @@ package gitlab
 
 import (
 	"digger/pkg/configuration"
-	"digger/pkg/models"
+	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"fmt"
 	"github.com/caarlos0/env/v7"
