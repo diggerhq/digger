@@ -2,9 +2,10 @@ package main
 
 import (
 	"digger/pkg/configuration"
+	"digger/pkg/core/models"
 	"digger/pkg/digger"
 	"digger/pkg/github"
-	"digger/pkg/github/models"
+	gh_models "digger/pkg/github/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
@@ -894,7 +895,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 }
 
 func TestGitHubNewCommentContext(t *testing.T) {
-	context, err := models.GetGitHubContext(githubContextCommentJson)
+	context, err := gh_models.GetGitHubContext(githubContextCommentJson)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -922,7 +923,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 }
 
 func TestInvalidGitHubContext(t *testing.T) {
-	_, err := models.GetGitHubContext(githubInvalidContextJson)
+	_, err := gh_models.GetGitHubContext(githubInvalidContextJson)
 	require.Error(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -938,11 +939,11 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	prod := configuration.ProjectConfig{Name: "prod", Dir: "prod", Workflow: "prod"}
 	workflows := map[string]configuration.WorkflowConfig{
 		"dev": {
-			Plan: &configuration.StageConfig{Steps: []configuration.StepConfig{
+			Plan: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &configuration.StageConfig{Steps: []configuration.StepConfig{
+			Apply: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
@@ -953,11 +954,11 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 			},
 		},
 		"prod": {
-			Plan: &configuration.StageConfig{Steps: []configuration.StepConfig{
+			Plan: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &configuration.StageConfig{Steps: []configuration.StepConfig{
+			Apply: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},

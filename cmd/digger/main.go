@@ -4,13 +4,15 @@ import (
 	"context"
 	"digger/pkg/azure"
 	"digger/pkg/configuration"
+	core_locking "digger/pkg/core/locking"
+	"digger/pkg/core/models"
+	core_storage "digger/pkg/core/storage"
 	"digger/pkg/digger"
 	"digger/pkg/gcp"
 	dg_github "digger/pkg/github"
 	github_models "digger/pkg/github/models"
 	"digger/pkg/gitlab"
 	"digger/pkg/locking"
-	"digger/pkg/models"
 	"digger/pkg/reporting"
 	"digger/pkg/storage"
 	"digger/pkg/usage"
@@ -22,7 +24,7 @@ import (
 	"strings"
 )
 
-func gitHubCI(lock locking.Lock) {
+func gitHubCI(lock core_locking.Lock) {
 	println("Using GitHub.")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -121,7 +123,7 @@ func gitHubCI(lock locking.Lock) {
 	}()
 }
 
-func gitLabCI(lock locking.Lock) {
+func gitLabCI(lock core_locking.Lock) {
 	println("Using GitLab.")
 
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
@@ -212,7 +214,7 @@ func gitLabCI(lock locking.Lock) {
 	}()
 }
 
-func azureCI(lock locking.Lock) {
+func azureCI(lock core_locking.Lock) {
 	fmt.Println("> Azure CI detected")
 	azureContext := os.Getenv("AZURE_CONTEXT")
 	azureToken := os.Getenv("AZURE_TOKEN")
@@ -260,7 +262,7 @@ func azureCI(lock locking.Lock) {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
-	var planStorage storage.PlanStorage
+	var planStorage core_storage.PlanStorage
 	diggerProjectNamespace := parsedAzureContext.BaseUrl + "/" + parsedAzureContext.ProjectName
 
 	reporter := &reporting.CiReporter{
@@ -335,8 +337,8 @@ func main() {
 	}
 }
 
-func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber int) storage.PlanStorage {
-	var planStorage storage.PlanStorage
+func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber int) core_storage.PlanStorage {
+	var planStorage core_storage.PlanStorage
 
 	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
 	if uploadDestination == "github" {

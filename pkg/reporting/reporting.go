@@ -2,10 +2,6 @@ package reporting
 
 import "digger/pkg/ci"
 
-type Reporter interface {
-	Report(report string) error
-}
-
 type CiReporter struct {
 	CiService ci.CIService
 	PrNumber  int
