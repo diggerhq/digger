@@ -10,7 +10,6 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/caarlos0/env/v7 v7.1.0
 	github.com/google/go-github/v51 v51.0.0
-	github.com/google/go-github/v53 v53.0.0
 	github.com/google/uuid v1.3.0
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/stretchr/testify v1.8.4
