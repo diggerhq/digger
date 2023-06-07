@@ -151,8 +151,14 @@ workflows:
 	deleteFile = createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, err = LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
-	assert.Error(t, err, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'")
+	diggerConfig, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	assert.Equal(t, "my_custom_workflow", diggerConfig.Projects[0].Workflow)
+	workflows, ok := diggerConfig.Workflows["my_custom_workflow"]
+	assert.True(t, ok)
+	assert.NotNil(t, workflows)
+	assert.NotNil(t, workflows.Plan)
+	assert.NotNil(t, workflows.Apply)
+
 }
 
 func TestDiggerConfigWhenOnlyYmlExists(t *testing.T) {

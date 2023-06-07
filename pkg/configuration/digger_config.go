@@ -111,10 +111,12 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	raw := *defaultWorkflow()
-	if err := unmarshal(&raw); err != nil {
+	// implementation based on https://abhinavg.net/2021/02/24/flexible-yaml/
+	type rawWorkflow Workflow
+	if err := unmarshal((*rawWorkflow)(w)); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -253,6 +255,17 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			}
 		}
 	}
+
+	for _, w := range diggerConfig.Workflows {
+		defaultWorkflow := *defaultWorkflow()
+		if w.Plan == nil {
+			w.Plan = defaultWorkflow.Plan
+		}
+		if w.Apply == nil {
+			w.Apply = defaultWorkflow.Apply
+		}
+	}
+
 	return &diggerConfig, nil
 }
 
