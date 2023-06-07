@@ -2,7 +2,7 @@ package gitlab
 
 import (
 	"digger/pkg/configuration"
-	"digger/pkg/models"
+	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"fmt"
 	"github.com/caarlos0/env/v7"
@@ -262,14 +262,16 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+			coreApplyStage := workflow.Apply.ToCoreStage()
+			corePlanStage := workflow.Plan.ToCoreStage()
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
+				ApplyStage:       &coreApplyStage,
+				PlanStage:        &corePlanStage,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -282,14 +284,22 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+			var coreApplyStage models.Stage
+			if workflow.Apply != nil {
+				coreApplyStage = workflow.Apply.ToCoreStage()
+			}
+			var corePlanStage models.Stage
+			if workflow.Plan != nil {
+				corePlanStage = workflow.Plan.ToCoreStage()
+			}
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
+				ApplyStage:       &coreApplyStage,
+				PlanStage:        &corePlanStage,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -327,14 +337,22 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 						workspace = workspaceOverride
 					}
 					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+					var coreApplyStage models.Stage
+					if workflow.Apply != nil {
+						coreApplyStage = workflow.Apply.ToCoreStage()
+					}
+					var corePlanStage models.Stage
+					if workflow.Plan != nil {
+						corePlanStage = workflow.Plan.ToCoreStage()
+					}
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
-						ApplyStage:       workflow.Apply,
-						PlanStage:        workflow.Plan,
+						ApplyStage:       &coreApplyStage,
+						PlanStage:        &corePlanStage,
 						CommandEnvVars:   commandEnvVars,
 						StateEnvVars:     stateEnvVars,
 					})
