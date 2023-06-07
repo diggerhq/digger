@@ -884,7 +884,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  prNumber,
 	}
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.WorkflowConfig{})
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
 
 	assert.NoError(t, err)
@@ -910,7 +910,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  prNumber,
 	}
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.WorkflowConfig{})
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
 
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
@@ -934,41 +934,41 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	assert.NoError(t, err)
 	ghEvent := context.Event
 	pullRequestNumber := 11
-	dev := configuration.Project{Name: "dev", Dir: "dev", Workflow: "dev"}
-	prod := configuration.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
-	workflows := map[string]configuration.Workflow{
+	dev := configuration.ProjectConfig{Name: "dev", Dir: "dev", Workflow: "dev"}
+	prod := configuration.ProjectConfig{Name: "prod", Dir: "prod", Workflow: "prod"}
+	workflows := map[string]configuration.WorkflowConfig{
 		"dev": {
-			Plan: &configuration.Stage{Steps: []configuration.Step{
+			Plan: &configuration.StageConfig{Steps: []configuration.StepConfig{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &configuration.Stage{Steps: []configuration.Step{
+			Apply: &configuration.StageConfig{Steps: []configuration.StepConfig{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Configuration: &configuration.WorkflowConfiguration{
+			Configuration: &configuration.WorkflowConfigurationConfig{
 				OnPullRequestPushed: []string{"digger plan"},
 				OnPullRequestClosed: []string{"digger unlock"},
 				OnCommitToDefault:   []string{"digger apply"},
 			},
 		},
 		"prod": {
-			Plan: &configuration.Stage{Steps: []configuration.Step{
+			Plan: &configuration.StageConfig{Steps: []configuration.StepConfig{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &configuration.Stage{Steps: []configuration.Step{
+			Apply: &configuration.StageConfig{Steps: []configuration.StepConfig{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Configuration: &configuration.WorkflowConfiguration{
+			Configuration: &configuration.WorkflowConfigurationConfig{
 				OnPullRequestPushed: []string{"digger plan"},
 				OnPullRequestClosed: []string{"digger unlock"},
 				OnCommitToDefault:   []string{"digger apply"},
 			},
 		},
 	}
-	projects := []configuration.Project{dev, prod}
+	projects := []configuration.ProjectConfig{dev, prod}
 	diggerConfig := configuration.DiggerConfig{Projects: projects}
 
 	// PullRequestManager Mock

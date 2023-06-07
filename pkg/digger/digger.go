@@ -160,8 +160,8 @@ type DiggerExecutor struct {
 	ProjectPath       string
 	StateEnvVars      map[string]string
 	CommandEnvVars    map[string]string
-	ApplyStage        *configuration.Stage
-	PlanStage         *configuration.Stage
+	ApplyStage        *configuration.StageConfig
+	PlanStage         *configuration.StageConfig
 	CommandRunner     CommandRun
 	TerraformExecutor terraform.TerraformExecutor
 	Reporter          reporting.Reporter
@@ -233,12 +233,13 @@ func (d DiggerExecutor) Plan() (bool, error) {
 	}
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
-		var planSteps []configuration.Step
+		var planSteps []configuration.StepConfig
 
+		// move default values to config init
 		if d.PlanStage != nil {
 			planSteps = d.PlanStage.Steps
 		} else {
-			planSteps = []configuration.Step{
+			planSteps = []configuration.StepConfig{
 				{
 					Action: "init",
 				},
@@ -321,12 +322,13 @@ func (d DiggerExecutor) Apply() (bool, error) {
 	}
 
 	if locked {
-		var applySteps []configuration.Step
+		var applySteps []configuration.StepConfig
 
+		// move default values to config init
 		if d.ApplyStage != nil {
 			applySteps = d.ApplyStage.Steps
 		} else {
-			applySteps = []configuration.Step{
+			applySteps = []configuration.StepConfig{
 				{
 					Action: "init",
 				},

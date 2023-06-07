@@ -8,8 +8,8 @@ type ProjectCommand struct {
 	ProjectWorkspace string
 	Terragrunt       bool
 	Commands         []string
-	ApplyStage       *configuration.Stage
-	PlanStage        *configuration.Stage
+	ApplyStage       *configuration.StageConfig
+	PlanStage        *configuration.StageConfig
 	StateEnvVars     map[string]string
 	CommandEnvVars   map[string]string
 }

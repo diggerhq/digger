@@ -298,8 +298,8 @@ func (a *AzureReposService) IsClosed(prNumber int) (bool, error) {
 	return *pullRequest.Status == git.PullRequestStatusValues.Completed || *pullRequest.Status == git.PullRequestStatusValues.Abandoned, nil
 }
 
-func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
-	var impactedProjects []configuration.Project
+func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.ProjectConfig, *configuration.ProjectConfig, int, error) {
+	var impactedProjects []configuration.ProjectConfig
 	var prNumber int
 
 	switch azureEvent.(type) {
@@ -340,7 +340,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 	return impactedProjects, nil, prNumber, nil
 }
 
-func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
+func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.ProjectConfig, requestedProject *configuration.ProjectConfig, workflows map[string]configuration.WorkflowConfig) ([]models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]models.ProjectCommand, 0)
 	switch parseAzureContext.EventType {
 	case AzurePrCreated, AzurePrUpdated, AzurePrReopened:
@@ -422,7 +422,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
-				runForProjects = []configuration.Project{*requestedProject}
+				runForProjects = []configuration.ProjectConfig{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}

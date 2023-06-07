@@ -5,45 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
+	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
 	"path/filepath"
 )
 
-type WorkflowConfiguration struct {
-	OnPullRequestPushed []string `yaml:"on_pull_request_pushed"`
-	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
-	OnCommitToDefault   []string `yaml:"on_commit_to_default"`
-}
-
 type DiggerConfigYaml struct {
-	Projects               []Project               `yaml:"projects"`
-	AutoMerge              bool                    `yaml:"auto_merge"`
-	Workflows              map[string]Workflow     `yaml:"workflows"`
-	CollectUsageData       bool                    `yaml:"collect_usage_data"`
-	GenerateProjectsConfig *GenerateProjectsConfig `yaml:"generate_projects"`
+	Projects               []ProjectYaml               `yaml:"projects"`
+	AutoMerge              bool                        `yaml:"auto_merge"`
+	Workflows              map[string]WorkflowYaml     `yaml:"workflows"`
+	CollectUsageData       bool                        `yaml:"collect_usage_data"`
+	GenerateProjectsConfig *GenerateProjectsConfigYaml `yaml:"generate_projects"`
 }
 
-type EnvVarConfig struct {
-	Name      string `yaml:"name"`
-	ValueFrom string `yaml:"value_from"`
-	Value     string `yaml:"value"`
-}
-
-type DiggerConfig struct {
-	Projects         []Project
-	AutoMerge        bool
-	CollectUsageData bool
-	Workflows        map[string]Workflow
-}
-
-type GenerateProjectsConfig struct {
-	Include string `yaml:"include"`
-	Exclude string `yaml:"exclude"`
-}
-
-type Project struct {
+type ProjectYaml struct {
 	Name            string   `yaml:"name"`
 	Dir             string   `yaml:"dir"`
 	Workspace       string   `yaml:"workspace"`
@@ -53,20 +30,96 @@ type Project struct {
 	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
 }
 
-type Stage struct {
-	Steps []Step `yaml:"steps"`
+type WorkflowYaml struct {
+	EnvVars       *EnvVarsYaml               `yaml:"env_vars"`
+	Plan          *StageYaml                 `yaml:"plan,omitempty"`
+	Apply         *StageYaml                 `yaml:"apply,omitempty"`
+	Configuration *WorkflowConfigurationYaml `yaml:"workflow_configuration"`
 }
 
-type Workflow struct {
-	EnvVars       EnvVars                `yaml:"env_vars"`
-	Plan          *Stage                 `yaml:"plan,omitempty"`
-	Apply         *Stage                 `yaml:"apply,omitempty"`
-	Configuration *WorkflowConfiguration `yaml:"workflow_configuration"`
+type WorkflowConfigurationYaml struct {
+	OnPullRequestPushed []string `yaml:"on_pull_request_pushed"`
+	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
+	OnCommitToDefault   []string `yaml:"on_commit_to_default"`
 }
 
-type EnvVars struct {
-	State    []EnvVarConfig `yaml:"state"`
-	Commands []EnvVarConfig `yaml:"commands"`
+type StageYaml struct {
+	Steps []StepYaml `yaml:"steps"`
+}
+
+type StepYaml struct {
+	Action    string
+	Value     string
+	ExtraArgs []string `yaml:"extra_args,omitempty"`
+	Shell     string
+}
+
+type EnvVarsYaml struct {
+	State    []EnvVarConfigYaml `yaml:"state"`
+	Commands []EnvVarConfigYaml `yaml:"commands"`
+}
+
+type EnvVarConfigYaml struct {
+	Name      string `yaml:"name"`
+	ValueFrom string `yaml:"value_from"`
+	Value     string `yaml:"value"`
+}
+
+type GenerateProjectsConfigYaml struct {
+	Include string `yaml:"include"`
+	Exclude string `yaml:"exclude"`
+}
+
+type DiggerConfig struct {
+	Projects         []ProjectConfig
+	AutoMerge        bool
+	CollectUsageData bool
+	Workflows        map[string]WorkflowConfig
+}
+
+type ProjectConfig struct {
+	Name            string
+	Dir             string
+	Workspace       string
+	Terragrunt      bool
+	Workflow        string
+	IncludePatterns []string
+	ExcludePatterns []string
+}
+
+type WorkflowConfig struct {
+	EnvVars       *EnvVarsConfig
+	Plan          *StageConfig
+	Apply         *StageConfig
+	Configuration *WorkflowConfigurationConfig
+}
+
+type WorkflowConfigurationConfig struct {
+	OnPullRequestPushed []string
+	OnPullRequestClosed []string
+	OnCommitToDefault   []string
+}
+
+type StageConfig struct {
+	Steps []StepConfig
+}
+
+type StepConfig struct {
+	Action    string
+	Value     string
+	ExtraArgs []string
+	Shell     string
+}
+
+type EnvVarsConfig struct {
+	State    []EnvVarConfigConfig
+	Commands []EnvVarConfigConfig
+}
+
+type EnvVarConfigConfig struct {
+	Name      string
+	ValueFrom string
+	Value     string
 }
 
 type DirWalker interface {
@@ -96,8 +149,8 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
-func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawProject Project
+func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type rawProject ProjectYaml
 	raw := rawProject{
 		Workspace:  "default",
 		Terragrunt: false,
@@ -106,20 +159,20 @@ func (p *Project) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}
-	*p = Project(raw)
+	*p = ProjectYaml(raw)
 	return nil
 }
 
-func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawWorkflow Workflow
+func (w *WorkflowYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type rawWorkflow WorkflowYaml
 	raw := rawWorkflow{
-		Configuration: &WorkflowConfiguration{
+		Configuration: &WorkflowConfigurationYaml{
 			OnCommitToDefault:   []string{"digger unlock"},
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},
 		},
-		Plan: &Stage{
-			Steps: []Step{
+		Plan: &StageYaml{
+			Steps: []StepYaml{
 				{
 					Action: "init", ExtraArgs: []string{},
 				},
@@ -128,8 +181,8 @@ func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				},
 			},
 		},
-		Apply: &Stage{
-			Steps: []Step{
+		Apply: &StageYaml{
+			Steps: []StepYaml{
 				{
 					Action: "init", ExtraArgs: []string{},
 				},
@@ -138,26 +191,19 @@ func (w *Workflow) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				},
 			},
 		},
-		EnvVars: EnvVars{
-			State:    []EnvVarConfig{},
-			Commands: []EnvVarConfig{},
+		EnvVars: &EnvVarsYaml{
+			State:    []EnvVarConfigYaml{},
+			Commands: []EnvVarConfigYaml{},
 		},
 	}
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}
-	*w = Workflow(raw)
+	*w = WorkflowYaml(raw)
 	return nil
 }
 
-type Step struct {
-	Action    string
-	Value     string
-	ExtraArgs []string `yaml:"extra_args,omitempty"`
-	Shell     string
-}
-
-func (s *Step) UnmarshalYAML(value *yaml.Node) error {
+func (s *StepYaml) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.ScalarNode {
 		return value.Decode(&s.Action)
 	}
@@ -182,7 +228,7 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (s *Step) extract(stepMap map[string]interface{}, action string) {
+func (s *StepYaml) extract(stepMap map[string]interface{}, action string) {
 	if _, ok := stepMap[action]; ok {
 		s.Action = action
 		var extraArgs []string
@@ -195,15 +241,15 @@ func (s *Step) extract(stepMap map[string]interface{}, action string) {
 	}
 }
 
-func defaultWorkflow() *Workflow {
-	return &Workflow{
-		Configuration: &WorkflowConfiguration{
+func defaultWorkflow() *WorkflowConfig {
+	return &WorkflowConfig{
+		Configuration: &WorkflowConfigurationConfig{
 			OnCommitToDefault:   []string{"digger unlock"},
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},
 		},
-		Plan: &Stage{
-			Steps: []Step{
+		Plan: &StageConfig{
+			Steps: []StepConfig{
 				{
 					Action: "init", ExtraArgs: []string{},
 				},
@@ -212,8 +258,8 @@ func defaultWorkflow() *Workflow {
 				},
 			},
 		},
-		Apply: &Stage{
-			Steps: []Step{
+		Apply: &StageConfig{
+			Steps: []StepConfig{
 				{
 					Action: "init", ExtraArgs: []string{},
 				},
@@ -225,6 +271,94 @@ func defaultWorkflow() *Workflow {
 	}
 }
 
+func copyProjects(projects []ProjectYaml) []ProjectConfig {
+	result := make([]ProjectConfig, len(projects))
+	for i, p := range projects {
+		item := ProjectConfig{p.Name,
+			p.Dir,
+			p.Workspace,
+			p.Terragrunt,
+			p.Workflow,
+			p.IncludePatterns,
+			p.ExcludePatterns,
+		}
+		result[i] = item
+	}
+	return result
+}
+
+func copyEnvVars(envVars *EnvVarsYaml) *EnvVarsConfig {
+	result := EnvVarsConfig{}
+	result.State = make([]EnvVarConfigConfig, len(envVars.State))
+	result.Commands = make([]EnvVarConfigConfig, len(envVars.Commands))
+
+	for i, s := range envVars.State {
+		item := EnvVarConfigConfig{
+			s.Name,
+			s.ValueFrom,
+			s.Value,
+		}
+		result.State[i] = item
+	}
+	for i, s := range envVars.Commands {
+		item := EnvVarConfigConfig{
+			s.Name,
+			s.ValueFrom,
+			s.Value,
+		}
+		result.Commands[i] = item
+	}
+
+	return &result
+}
+
+func copyStage(stage *StageYaml) *StageConfig {
+	result := StageConfig{}
+	result.Steps = make([]StepConfig, len(stage.Steps))
+
+	for i, s := range stage.Steps {
+		item := StepConfig{
+			s.Action,
+			s.Value,
+			s.ExtraArgs,
+			s.Shell,
+		}
+		result.Steps[i] = item
+	}
+	return &result
+}
+
+func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfigurationConfig {
+	result := WorkflowConfigurationConfig{}
+	result.OnPullRequestClosed = make([]string, len(config.OnPullRequestClosed))
+	result.OnPullRequestPushed = make([]string, len(config.OnPullRequestPushed))
+	result.OnCommitToDefault = make([]string, len(config.OnCommitToDefault))
+
+	result.OnPullRequestClosed = config.OnPullRequestClosed
+	result.OnPullRequestPushed = config.OnPullRequestPushed
+	result.OnCommitToDefault = config.OnCommitToDefault
+	return &result
+}
+
+func copyWorkflows(workflows map[string]WorkflowYaml) map[string]WorkflowConfig {
+	result := make(map[string]WorkflowConfig, len(workflows))
+	for i, w := range workflows {
+		envVars := copyEnvVars(w.EnvVars)
+		plan := copyStage(w.Plan)
+		apply := copyStage(w.Apply)
+		configuration := copyWorkflowConfiguration(w.Configuration)
+		item := WorkflowConfig{
+			envVars,
+			plan,
+			apply,
+			configuration,
+		}
+		copier.Copy(&w, &item)
+		result[i] = item
+	}
+	return result
+}
+
 func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	var diggerConfig DiggerConfig
 	const defaultWorkflowName = "default"
@@ -233,14 +367,17 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 
 	// if workflow block is not specified in yaml we create a default one, and add it to every project
 	if diggerYaml.Workflows != nil {
-		diggerConfig.Workflows = diggerYaml.Workflows
+		workflows := copyWorkflows(diggerYaml.Workflows)
+		diggerConfig.Workflows = workflows
+
 	} else {
 		workflow := *defaultWorkflow()
-		diggerConfig.Workflows = make(map[string]Workflow)
+		diggerConfig.Workflows = make(map[string]WorkflowConfig)
 		diggerConfig.Workflows[defaultWorkflowName] = workflow
 	}
 
-	diggerConfig.Projects = diggerYaml.Projects
+	projects := copyProjects(diggerYaml.Projects)
+	diggerConfig.Projects = projects
 
 	// update project's workflow if needed
 	for _, project := range diggerConfig.Projects {
@@ -280,7 +417,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			}
 			if includeMatch && !excludeMatch {
 				// generate a new project using default workflow
-				project := Project{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir), Workflow: defaultWorkflowName}
+				project := ProjectConfig{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir), Workflow: defaultWorkflowName}
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
@@ -289,7 +426,8 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 }
 
 func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
-	config := &DiggerConfigYaml{}
+	configYaml := &DiggerConfigYaml{}
+	config := &DiggerConfig{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
 		if errors.Is(err, ErrDiggerConfigConflict) {
@@ -299,39 +437,11 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error
 
 	if fileName == "" {
 		fmt.Println("No digger config found, using default one")
-		config.Projects = make([]Project, 1)
+		config.Projects = make([]ProjectConfig, 1)
 		config.Projects[0] = defaultProject()
-		config.Workflows = make(map[string]Workflow)
-		config.Workflows["default"] = Workflow{
-			Plan: &Stage{
-				Steps: []Step{{
-					Action:    "init",
-					ExtraArgs: []string{},
-				}, {
-					Action:    "plan",
-					ExtraArgs: []string{},
-				}},
-			},
-			Apply: &Stage{
-				Steps: []Step{{
-					Action:    "init",
-					ExtraArgs: []string{},
-				}, {
-					Action:    "apply",
-					ExtraArgs: []string{},
-				}},
-			},
-			Configuration: &WorkflowConfiguration{
-				OnPullRequestPushed: []string{"digger plan"},
-				OnPullRequestClosed: []string{"digger unlock"},
-				OnCommitToDefault:   []string{"digger apply"},
-			},
-		}
-		c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
-		}
-		return c, nil
+		config.Workflows = make(map[string]WorkflowConfig)
+		config.Workflows["default"] = *defaultWorkflow()
+		return config, nil
 	}
 
 	data, err := os.ReadFile(fileName)
@@ -339,15 +449,15 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error
 		return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
 	}
 
-	if err := yaml.Unmarshal(data, config); err != nil {
+	if err := yaml.Unmarshal(data, configYaml); err != nil {
 		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 	}
 
-	if (config.Projects == nil || len(config.Projects) == 0) && config.GenerateProjectsConfig == nil {
+	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
 		return nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
 
-	c, err := ConvertDiggerYamlToConfig(config, workingDir, walker)
+	c, err := ConvertDiggerYamlToConfig(configYaml, workingDir, walker)
 	if err != nil {
 		return nil, err
 	}
@@ -361,8 +471,8 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error
 	return c, nil
 }
 
-func defaultProject() Project {
-	return Project{
+func defaultProject() ProjectConfig {
+	return ProjectConfig{
 		Name:       "default",
 		Dir:        ".",
 		Workspace:  "default",
@@ -371,7 +481,7 @@ func defaultProject() Project {
 	}
 }
 
-func (c *DiggerConfig) GetProject(projectName string) *Project {
+func (c *DiggerConfig) GetProject(projectName string) *ProjectConfig {
 	for _, project := range c.Projects {
 		if projectName == project.Name {
 			return &project
@@ -380,7 +490,7 @@ func (c *DiggerConfig) GetProject(projectName string) *Project {
 	return nil
 }
 
-func (c *DiggerConfig) GetProjects(projectName string) []Project {
+func (c *DiggerConfig) GetProjects(projectName string) []ProjectConfig {
 	if projectName == "" {
 		return c.Projects
 	}
@@ -388,11 +498,11 @@ func (c *DiggerConfig) GetProjects(projectName string) []Project {
 	if project == nil {
 		return nil
 	}
-	return []Project{*project}
+	return []ProjectConfig{*project}
 }
 
-func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
-	var result []Project
+func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []ProjectConfig {
+	var result []ProjectConfig
 	for _, project := range c.Projects {
 		for _, changedFile := range changedFiles {
 			// we append ** to make our directory a globable pattern
@@ -418,7 +528,7 @@ func (c *DiggerConfig) GetDirectory(projectName string) string {
 	return project.Dir
 }
 
-func (c *DiggerConfig) GetWorkflow(workflowName string) *Workflow {
+func (c *DiggerConfig) GetWorkflow(workflowName string) *WorkflowConfig {
 	workflows := c.Workflows
 
 	workflow, ok := workflows[workflowName]
@@ -469,7 +579,7 @@ func retrieveConfigFile(workingDir string) (string, error) {
 	return "", nil
 }
 
-func CollectEnvVars(envs EnvVars) (map[string]string, map[string]string) {
+func CollectEnvVars(envs *EnvVarsConfig) (map[string]string, map[string]string) {
 	stateEnvVars := map[string]string{}
 
 	for _, envvar := range envs.State {
