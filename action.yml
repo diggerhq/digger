@@ -90,6 +90,11 @@ inputs:
     description: Post plans as one comment
     required: false
     default: 'false'
+  perform-drif-detection:
+    description: Perform Drift Detection when the workflow if triggered by a Github schedule event
+    required: false
+    default: false
+
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -185,6 +190,7 @@ runs:
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PERFORM_DRIFT_DETECTION: ${{ inputs.perform-drif-detection }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
         POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
@@ -205,10 +211,14 @@ runs:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+<<<<<<< HEAD
         POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
         DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
         DIGGER_CLOUD_HOSTNAME: ${{ inputs.digger-cloud-hostname }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
+=======
+        PERFORM_DRIFT_DETECTION: ${{ inputs.perform-drif-detection }}
+>>>>>>> action.yml
       id: digger
       shell: bash
       run: |
