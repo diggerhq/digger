@@ -5,6 +5,7 @@ import (
 	"digger/pkg/aws/envprovider"
 	"digger/pkg/azure"
 	"digger/pkg/ci"
+	"digger/pkg/core/locking"
 	"digger/pkg/gcp"
 	"errors"
 	"fmt"
@@ -23,17 +24,11 @@ import (
 )
 
 type PullRequestLock struct {
-	InternalLock     Lock
+	InternalLock     locking.Lock
 	CIService        ci.CIService
 	ProjectName      string
 	ProjectNamespace string
 	PrNumber         int
-}
-
-type Lock interface {
-	Lock(transactionId int, resource string) (bool, error)
-	Unlock(resource string) (bool, error)
-	GetLock(resource string) (*int, error)
 }
 
 type NoOpLock struct {
@@ -49,13 +44,6 @@ func (noOpLock *NoOpLock) Unlock(resource string) (bool, error) {
 
 func (noOpLock *NoOpLock) GetLock(resource string) (*int, error) {
 	return nil, nil
-}
-
-type ProjectLock interface {
-	Lock() (bool, error)
-	Unlock() (bool, error)
-	ForceUnlock() error
-	LockId() string
 }
 
 func (projectLock *PullRequestLock) Lock() (bool, error) {
@@ -191,7 +179,7 @@ func (projectLock *PullRequestLock) LockId() string {
 	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 
-func GetLock() (Lock, error) {
+func GetLock() (locking.Lock, error) {
 	awsRegion := strings.ToLower(os.Getenv("AWS_REGION"))
 	awsProfile := strings.ToLower(os.Getenv("AWS_PROFILE"))
 	lockProvider := strings.ToLower(os.Getenv("LOCK_PROVIDER"))
