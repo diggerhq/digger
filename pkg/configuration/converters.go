@@ -26,7 +26,7 @@ func copyProjects(projects []*ProjectYaml) []ProjectConfig {
 
 func copyTerraformEnvConfig(terraformEnvConfig *TerraformEnvConfigYaml) *TerraformEnvConfig {
 	if terraformEnvConfig == nil {
-		return nil
+		return &TerraformEnvConfig{}
 	}
 	result := TerraformEnvConfig{}
 	result.State = make([]EnvVar, len(terraformEnvConfig.State))
@@ -109,6 +109,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		diggerConfig.AutoMerge = false
 	}
 
+	if diggerYaml.CollectUsageData != nil {
+		diggerConfig.CollectUsageData = *diggerYaml.CollectUsageData
+	} else {
+		diggerConfig.CollectUsageData = true
+	}
+
 	// if workflow block is not specified in yaml we create a default one, and add it to every project
 	if diggerYaml.Workflows != nil {
 		workflows := copyWorkflows(diggerYaml.Workflows)
@@ -142,11 +148,6 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			return nil, fmt.Errorf("project name '%s' is duplicated", project.Name)
 		}
 		projectNames[project.Name] = true
-	}
-	if diggerYaml.CollectUsageData != nil {
-		diggerConfig.CollectUsageData = *diggerYaml.CollectUsageData
-	} else {
-		diggerConfig.CollectUsageData = true
 	}
 
 	if diggerYaml.GenerateProjectsConfig != nil {
