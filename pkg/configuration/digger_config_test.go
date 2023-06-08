@@ -275,8 +275,8 @@ generate_projects:
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "test1", dg.Projects[0].Name)
 	assert.Equal(t, "test2", dg.Projects[1].Name)
-	assert.Equal(t, tempDir+"/dev/test1", dg.Projects[0].Dir)
-	assert.Equal(t, tempDir+"/dev/test2", dg.Projects[1].Dir)
+	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
+	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, 2, len(dg.Projects))
 }
 
@@ -305,8 +305,8 @@ generate_projects:
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "test1", dg.Projects[0].Name)
 	assert.Equal(t, "test2", dg.Projects[1].Name)
-	assert.Equal(t, tempDir+"/dev/test1", dg.Projects[0].Dir)
-	assert.Equal(t, tempDir+"/dev/test2", dg.Projects[1].Dir)
+	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
+	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, 2, len(dg.Projects))
 }
 

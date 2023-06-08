@@ -2,16 +2,16 @@ package configuration
 
 import (
 	"digger/pkg/core/models"
+	"digger/pkg/utils"
 	"fmt"
-	"github.com/bmatcuk/doublestar/v4"
 	"github.com/jinzhu/copier"
 	"path/filepath"
 )
 
-func copyProjects(projects []*ProjectYaml) []ProjectConfig {
-	result := make([]ProjectConfig, len(projects))
+func copyProjects(projects []*ProjectYaml) []Project {
+	result := make([]Project, len(projects))
 	for i, p := range projects {
-		item := ProjectConfig{p.Name,
+		item := Project{p.Name,
 			p.Dir,
 			p.Workspace,
 			p.Terragrunt,
@@ -159,18 +159,8 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		for _, dir := range dirs {
 			includePattern := diggerYaml.GenerateProjectsConfig.Include
 			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
-			includeMatch, err := doublestar.PathMatch(includePattern, dir)
-			if err != nil {
-				return nil, err
-			}
-
-			excludeMatch, err := doublestar.PathMatch(excludePattern, dir)
-			if err != nil {
-				return nil, err
-			}
-			if includeMatch && !excludeMatch {
-				// generate a new project using default workflow
-				project := ProjectConfig{Name: filepath.Base(dir), Dir: filepath.Join(workingDir, dir), Workflow: defaultWorkflowName}
+			if utils.MatchIncludeExcludePatternsToFile(dir, []string{includePattern}, []string{excludePattern}) {
+				project := Project{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}

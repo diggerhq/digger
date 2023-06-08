@@ -3,13 +3,13 @@ package configuration
 import "digger/pkg/core/models"
 
 type DiggerConfig struct {
-	Projects         []ProjectConfig
+	Projects         []Project
 	AutoMerge        bool
 	CollectUsageData bool
 	Workflows        map[string]WorkflowConfig
 }
 
-type ProjectConfig struct {
+type Project struct {
 	Name            string
 	Dir             string
 	Workspace       string

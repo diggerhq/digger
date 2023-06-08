@@ -935,8 +935,8 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	assert.NoError(t, err)
 	ghEvent := context.Event
 	pullRequestNumber := 11
-	dev := configuration.ProjectConfig{Name: "dev", Dir: "dev", Workflow: "dev"}
-	prod := configuration.ProjectConfig{Name: "prod", Dir: "prod", Workflow: "prod"}
+	dev := configuration.Project{Name: "dev", Dir: "dev", Workflow: "dev"}
+	prod := configuration.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
 	workflows := map[string]configuration.WorkflowConfig{
 		"dev": {
 			Plan: &models.Stage{Steps: []models.Step{
@@ -969,7 +969,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 			},
 		},
 	}
-	projects := []configuration.ProjectConfig{dev, prod}
+	projects := []configuration.Project{dev, prod}
 	diggerConfig := configuration.DiggerConfig{Projects: projects}
 
 	// PullRequestManager Mock

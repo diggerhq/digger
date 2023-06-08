@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 )
 
 type DirWalker interface {
@@ -17,22 +18,45 @@ type DirWalker interface {
 type FileSystemDirWalker struct {
 }
 
-func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	var files []string
+	listOfFiles, err := os.ReadDir(workingDir)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("error reading directory %s: %v", workingDir, err))
+	}
+	for _, f := range listOfFiles {
+		if !f.IsDir() {
+			r, err := regexp.MatchString(ext, f.Name())
+			if err == nil && r {
+				files = append(files, f.Name())
+			}
+		}
+	}
+
+	return files, nil
+}
+
+func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
+
 			if err != nil {
 				return err
 			}
 			if info.IsDir() {
-				files = append(files, path)
+				terraformFiles, _ := GetFilesWithExtension(path, ".tf")
+				if len(terraformFiles) > 0 {
+					dirs = append(dirs, path)
+					return filepath.SkipDir
+				}
 			}
 			return nil
 		})
 	if err != nil {
 		return nil, err
 	}
-	return files, nil
+	return dirs, nil
 }
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
@@ -49,7 +73,7 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error
 
 	if fileName == "" {
 		fmt.Println("No digger config found, using default one")
-		config.Projects = make([]ProjectConfig, 1)
+		config.Projects = make([]Project, 1)
 		config.Projects[0] = defaultProject()
 		config.Workflows = make(map[string]WorkflowConfig)
 		config.Workflows["default"] = *defaultWorkflow()
@@ -83,8 +107,8 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error
 	return c, nil
 }
 
-func defaultProject() ProjectConfig {
-	return ProjectConfig{
+func defaultProject() Project {
+	return Project{
 		Name:       "default",
 		Dir:        ".",
 		Workspace:  "default",
@@ -93,7 +117,7 @@ func defaultProject() ProjectConfig {
 	}
 }
 
-func (c *DiggerConfig) GetProject(projectName string) *ProjectConfig {
+func (c *DiggerConfig) GetProject(projectName string) *Project {
 	for _, project := range c.Projects {
 		if projectName == project.Name {
 			return &project
@@ -102,7 +126,7 @@ func (c *DiggerConfig) GetProject(projectName string) *ProjectConfig {
 	return nil
 }
 
-func (c *DiggerConfig) GetProjects(projectName string) []ProjectConfig {
+func (c *DiggerConfig) GetProjects(projectName string) []Project {
 	if projectName == "" {
 		return c.Projects
 	}
@@ -110,11 +134,11 @@ func (c *DiggerConfig) GetProjects(projectName string) []ProjectConfig {
 	if project == nil {
 		return nil
 	}
-	return []ProjectConfig{*project}
+	return []Project{*project}
 }
 
-func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []ProjectConfig {
-	var result []ProjectConfig
+func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
+	var result []Project
 	for _, project := range c.Projects {
 		for _, changedFile := range changedFiles {
 			// we append ** to make our directory a globable pattern
