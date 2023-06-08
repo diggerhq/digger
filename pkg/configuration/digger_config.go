@@ -89,7 +89,7 @@ type FileSystemDirWalker struct {
 
 func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	var files []string
-	listOfFiles, err := filepath.readDir(workingDir)
+	listOfFiles, err := os.ReadDir(workingDir)
 	if err != nil {
 		log.Fatalf("Could not list files %v", err)
 	}
