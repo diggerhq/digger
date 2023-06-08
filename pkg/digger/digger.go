@@ -2,9 +2,9 @@ package digger
 
 import (
 	"digger/pkg/ci"
+	digger_config "digger/pkg/core/config"
 	"digger/pkg/core/execution"
 	core_locking "digger/pkg/core/locking"
-	"digger/pkg/core/models"
 	"digger/pkg/core/reporting"
 	"digger/pkg/core/runners"
 	"digger/pkg/core/storage"
@@ -54,7 +54,7 @@ func DetectCI() CIName {
 
 }
 
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
+func RunCommandsPerProject(commandsPerProject []digger_config.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {

@@ -3,7 +3,7 @@ package integration
 import (
 	"context"
 	"digger/pkg/aws"
-	"digger/pkg/configuration"
+	digger_config "digger/pkg/core/config"
 	"digger/pkg/core/terraform"
 	"digger/pkg/digger"
 	dg_github "digger/pkg/github"
@@ -352,7 +352,7 @@ func TestHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateSingleEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, err := digger_config.LoadDiggerConfig(dir, &digger_config.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	lock, err := locking.GetLock()
@@ -501,7 +501,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateMultiEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, err := digger_config.LoadDiggerConfig(dir, &digger_config.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -721,7 +721,7 @@ workflows:
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateCustomDiggerYmlFile(dir, diggerCfg)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, err := digger_config.LoadDiggerConfig(dir, &digger_config.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	assert.NotNil(t, diggerConfig.Workflows)

@@ -3,8 +3,7 @@ package azure
 import (
 	"context"
 	"digger/pkg/ci"
-	"digger/pkg/configuration"
-	"digger/pkg/core/models"
+	digger_config "digger/pkg/core/config"
 	"digger/pkg/utils"
 	"encoding/json"
 	"errors"
@@ -298,8 +297,8 @@ func (a *AzureReposService) IsClosed(prNumber int) (bool, error) {
 	return *pullRequest.Status == git.PullRequestStatusValues.Completed || *pullRequest.Status == git.PullRequestStatusValues.Abandoned, nil
 }
 
-func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
-	var impactedProjects []configuration.Project
+func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config.DiggerConfig, ciService ci.CIService) ([]digger_config.Project, *digger_config.Project, int, error) {
+	var impactedProjects []digger_config.Project
 	var prNumber int
 
 	switch azureEvent.(type) {
@@ -340,8 +339,8 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 	return impactedProjects, nil, prNumber, nil
 }
 
-func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
-	commandsPerProject := make([]models.ProjectCommand, 0)
+func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]digger_config.ProjectCommand, bool, error) {
+	commandsPerProject := make([]digger_config.ProjectCommand, 0)
 	switch parseAzureContext.EventType {
 	case AzurePrCreated, AzurePrUpdated, AzurePrReopened:
 		for _, project := range impactedProjects {
@@ -350,23 +349,15 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			var coreApplyStage models.Stage
-			if workflow.Apply != nil {
-				coreApplyStage = workflow.Apply.ToCoreStage()
-			}
-			var corePlanStage models.Stage
-			if workflow.Plan != nil {
-				corePlanStage = workflow.Plan.ToCoreStage()
-			}
-			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
+			stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
+			commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       &coreApplyStage,
-				PlanStage:        &corePlanStage,
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -379,23 +370,16 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			var coreApplyStage models.Stage
-			if workflow.Apply != nil {
-				coreApplyStage = workflow.Apply.ToCoreStage()
-			}
-			var corePlanStage models.Stage
-			if workflow.Plan != nil {
-				corePlanStage = workflow.Plan.ToCoreStage()
-			}
-			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
+			stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
+
+			commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:       &coreApplyStage,
-				PlanStage:        &corePlanStage,
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -408,23 +392,15 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				if !ok {
 					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 				}
-				stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-				var coreApplyStage models.Stage
-				if workflow.Apply != nil {
-					coreApplyStage = workflow.Apply.ToCoreStage()
-				}
-				var corePlanStage models.Stage
-				if workflow.Plan != nil {
-					corePlanStage = workflow.Plan.ToCoreStage()
-				}
-				commandsPerProject = append(commandsPerProject, models.ProjectCommand{
+				stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
+				commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       &coreApplyStage,
-					PlanStage:        &corePlanStage,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -443,7 +419,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
-				runForProjects = []configuration.Project{*requestedProject}
+				runForProjects = []digger_config.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
@@ -456,7 +432,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
 					if err != nil {
-						return []models.ProjectCommand{}, coversAllImpactedProjects, err
+						return []digger_config.ProjectCommand{}, coversAllImpactedProjects, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
@@ -465,9 +441,9 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					if !ok {
 						return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 					}
-					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
 
-					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
+					commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
@@ -482,6 +458,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		return commandsPerProject, coversAllImpactedProjects, nil
 
 	default:
-		return []models.ProjectCommand{}, true, fmt.Errorf("unsupported Azure event type: %v", parseAzureContext.EventType)
+		return []digger_config.ProjectCommand{}, true, fmt.Errorf("unsupported Azure event type: %v", parseAzureContext.EventType)
 	}
 }

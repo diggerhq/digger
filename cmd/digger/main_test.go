@@ -1,7 +1,7 @@
 package main
 
 import (
-	"digger/pkg/configuration"
+	digger_config "digger/pkg/core/config"
 	"digger/pkg/digger"
 	"digger/pkg/github"
 	"digger/pkg/github/models"
@@ -873,7 +873,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 
-	diggerConfig := configuration.DiggerConfig{}
+	diggerConfig := digger_config.DiggerConfig{}
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
@@ -884,7 +884,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  prNumber,
 	}
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]digger_config.Workflow{})
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
 
 	assert.NoError(t, err)
@@ -901,7 +901,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	}
 	ghEvent := context.Event
 	eventName := context.EventName
-	diggerConfig := configuration.DiggerConfig{}
+	diggerConfig := digger_config.DiggerConfig{}
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
@@ -910,7 +910,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  prNumber,
 	}
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]digger_config.Workflow{})
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
 
 	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
@@ -934,42 +934,42 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	assert.NoError(t, err)
 	ghEvent := context.Event
 	pullRequestNumber := 11
-	dev := configuration.Project{Name: "dev", Dir: "dev", Workflow: "dev"}
-	prod := configuration.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
-	workflows := map[string]configuration.Workflow{
+	dev := digger_config.Project{Name: "dev", Dir: "dev", Workflow: "dev"}
+	prod := digger_config.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
+	workflows := map[string]digger_config.Workflow{
 		"dev": {
-			Plan: &configuration.Stage{Steps: []configuration.Step{
+			Plan: &digger_config.Stage{Steps: []digger_config.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &configuration.Stage{Steps: []configuration.Step{
+			Apply: &digger_config.Stage{Steps: []digger_config.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Configuration: &configuration.WorkflowConfiguration{
+			Configuration: &digger_config.WorkflowConfiguration{
 				OnPullRequestPushed: []string{"digger plan"},
 				OnPullRequestClosed: []string{"digger unlock"},
 				OnCommitToDefault:   []string{"digger apply"},
 			},
 		},
 		"prod": {
-			Plan: &configuration.Stage{Steps: []configuration.Step{
+			Plan: &digger_config.Stage{Steps: []digger_config.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &configuration.Stage{Steps: []configuration.Step{
+			Apply: &digger_config.Stage{Steps: []digger_config.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Configuration: &configuration.WorkflowConfiguration{
+			Configuration: &digger_config.WorkflowConfiguration{
 				OnPullRequestPushed: []string{"digger plan"},
 				OnPullRequestClosed: []string{"digger unlock"},
 				OnCommitToDefault:   []string{"digger apply"},
 			},
 		},
 	}
-	projects := []configuration.Project{dev, prod}
-	diggerConfig := configuration.DiggerConfig{Projects: projects}
+	projects := []digger_config.Project{dev, prod}
+	diggerConfig := digger_config.DiggerConfig{Projects: projects}
 
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}

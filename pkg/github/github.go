@@ -3,8 +3,7 @@ package github
 import (
 	"context"
 	"digger/pkg/ci"
-	"digger/pkg/configuration"
-	dg_models "digger/pkg/core/models"
+	digger_config "digger/pkg/core/config"
 	"digger/pkg/github/models"
 	"digger/pkg/utils"
 	"encoding/json"
@@ -132,8 +131,8 @@ func GetGitHubContext(ghContext string) (*models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.ProjectCommand, bool, error) {
-	commandsPerProject := make([]dg_models.ProjectCommand, 0)
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]digger_config.ProjectCommand, bool, error) {
+	commandsPerProject := make([]digger_config.ProjectCommand, 0)
 
 	switch event.(type) {
 	case models.PullRequestEvent:
@@ -143,43 +142,40 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			if !ok {
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
-
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			coreApplyStage := workflow.Apply.ToCoreStage()
-			corePlanStage := workflow.Plan.ToCoreStage()
+			stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
-				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
+				commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       &coreApplyStage,
-					PlanStage:        &corePlanStage,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
-				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
+				commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:       &coreApplyStage,
-					PlanStage:        &corePlanStage,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
 			} else if event.Action == "closed" {
-				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
+				commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnPullRequestClosed,
-					ApplyStage:       &coreApplyStage,
-					PlanStage:        &corePlanStage,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -197,7 +193,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
-				runForProjects = []configuration.Project{*requestedProject}
+				runForProjects = []digger_config.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
@@ -211,25 +207,23 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 					}
 
-					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-					coreApplyStage := workflow.Apply.ToCoreStage()
-					corePlanStage := workflow.Plan.ToCoreStage()
+					stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
 					if err != nil {
-						return []dg_models.ProjectCommand{}, false, err
+						return []digger_config.ProjectCommand{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
-					commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
+					commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
-						ApplyStage:       &coreApplyStage,
-						PlanStage:        &corePlanStage,
+						ApplyStage:       workflow.Apply,
+						PlanStage:        workflow.Plan,
 						CommandEnvVars:   commandEnvVars,
 						StateEnvVars:     stateEnvVars,
 					})
@@ -238,12 +232,12 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		}
 		return commandsPerProject, coversAllImpactedProjects, nil
 	default:
-		return []dg_models.ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
+		return []digger_config.ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
 	}
 }
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
-	var impactedProjects []configuration.Project
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *digger_config.DiggerConfig, ciService ci.CIService) ([]digger_config.Project, *digger_config.Project, int, error) {
+	var impactedProjects []digger_config.Project
 	var prNumber int
 
 	switch ghEvent.(type) {
