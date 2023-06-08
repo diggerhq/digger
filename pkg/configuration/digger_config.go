@@ -119,6 +119,7 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 				if len(terraformFiles) > 0 {
 					fmt.Printf("    DEBUG: Appending dir to result: %v\n", path)
 					dirs = append(dirs, path)
+					return filepath.SkipDir
 				}
 			}
 			return nil
@@ -318,7 +319,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			includePattern := diggerYaml.GenerateProjectsConfig.Include
 			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
 			if utils.MatchIncludeExcludePatternsToFile(dir, []string{includePattern}, []string{excludePattern}) {
-				project := Project{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName}
+				project := Project{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
