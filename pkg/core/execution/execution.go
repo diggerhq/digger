@@ -1,8 +1,8 @@
 package execution
 
 import (
+	digger_config "digger/pkg/core/config"
 	"digger/pkg/core/locking"
-	"digger/pkg/core/models"
 	"digger/pkg/core/reporting"
 	"digger/pkg/core/runners"
 	"digger/pkg/core/storage"
@@ -22,8 +22,8 @@ type DiggerExecutor struct {
 	ProjectPath       string
 	StateEnvVars      map[string]string
 	CommandEnvVars    map[string]string
-	ApplyStage        *models.Stage
-	PlanStage         *models.Stage
+	ApplyStage        *digger_config.Stage
+	PlanStage         *digger_config.Stage
 	CommandRunner     runners.CommandRun
 	TerraformExecutor terraform.TerraformExecutor
 	Reporter          reporting.Reporter
@@ -50,12 +50,12 @@ func (d DiggerExecutor) Plan() (bool, error) {
 	}
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
-		var planSteps []models.Step
+		var planSteps []digger_config.Step
 
 		if d.PlanStage != nil {
 			planSteps = d.PlanStage.Steps
 		} else {
-			planSteps = []models.Step{
+			planSteps = []digger_config.Step{
 				{
 					Action: "init",
 				},
@@ -138,12 +138,12 @@ func (d DiggerExecutor) Apply() (bool, error) {
 	}
 
 	if locked {
-		var applySteps []models.Step
+		var applySteps []digger_config.Step
 
 		if d.ApplyStage != nil {
 			applySteps = d.ApplyStage.Steps
 		} else {
-			applySteps = []models.Step{
+			applySteps = []digger_config.Step{
 				{
 					Action: "init",
 				},

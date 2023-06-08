@@ -1,8 +1,7 @@
 package gitlab
 
 import (
-	"digger/pkg/configuration"
-	"digger/pkg/core/models"
+	digger_config "digger/pkg/core/config"
 	"digger/pkg/utils"
 	"fmt"
 	"github.com/caarlos0/env/v7"
@@ -83,8 +82,8 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 	}, nil
 }
 
-func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.Project, *configuration.Project, error) {
-	var impactedProjects []configuration.Project
+func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *digger_config.DiggerConfig, service *GitLabService) ([]digger_config.Project, *digger_config.Project, error) {
+	var impactedProjects []digger_config.Project
 
 	if gitlabContext.MergeRequestIId == nil {
 		return nil, nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
@@ -249,8 +248,8 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
-	commandsPerProject := make([]models.ProjectCommand, 0)
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]digger_config.ProjectCommand, bool, error) {
+	commandsPerProject := make([]digger_config.ProjectCommand, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
@@ -261,17 +260,15 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			coreApplyStage := workflow.Apply.ToCoreStage()
-			corePlanStage := workflow.Plan.ToCoreStage()
-			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
+			stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
+			commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       &coreApplyStage,
-				PlanStage:        &corePlanStage,
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -283,23 +280,15 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if !ok {
 				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			var coreApplyStage models.Stage
-			if workflow.Apply != nil {
-				coreApplyStage = workflow.Apply.ToCoreStage()
-			}
-			var corePlanStage models.Stage
-			if workflow.Plan != nil {
-				corePlanStage = workflow.Plan.ToCoreStage()
-			}
-			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
+			stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
+			commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:       &coreApplyStage,
-				PlanStage:        &corePlanStage,
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -315,7 +304,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
-				runForProjects = []configuration.Project{*requestedProject}
+				runForProjects = []digger_config.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
@@ -331,28 +320,20 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(gitLabContext.DiggerCommand)
 					if err != nil {
-						return []models.ProjectCommand{}, false, err
+						return []digger_config.ProjectCommand{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
-					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-					var coreApplyStage models.Stage
-					if workflow.Apply != nil {
-						coreApplyStage = workflow.Apply.ToCoreStage()
-					}
-					var corePlanStage models.Stage
-					if workflow.Plan != nil {
-						corePlanStage = workflow.Plan.ToCoreStage()
-					}
-					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
+					stateEnvVars, commandEnvVars := digger_config.CollectEnvVars(workflow.EnvVars)
+					commandsPerProject = append(commandsPerProject, digger_config.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
-						ApplyStage:       &coreApplyStage,
-						PlanStage:        &corePlanStage,
+						ApplyStage:       workflow.Apply,
+						PlanStage:        workflow.Plan,
 						CommandEnvVars:   commandEnvVars,
 						StateEnvVars:     stateEnvVars,
 					})
@@ -362,6 +343,6 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		return commandsPerProject, coversAllImpactedProjects, nil
 
 	default:
-		return []models.ProjectCommand{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
+		return []digger_config.ProjectCommand{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
 }

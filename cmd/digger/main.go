@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"digger/pkg/azure"
-	"digger/pkg/configuration"
+	digger_config "digger/pkg/core/config"
 	core_locking "digger/pkg/core/locking"
-	"digger/pkg/core/models"
 	core_storage "digger/pkg/core/storage"
 	"digger/pkg/digger"
 	"digger/pkg/gcp"
@@ -49,9 +48,9 @@ func gitHubCI(lock core_locking.Lock) {
 	}
 	println("GitHub context parsed successfully")
 
-	walker := configuration.FileSystemDirWalker{}
+	walker := digger_config.FileSystemDirWalker{}
 
-	diggerConfig, err := configuration.LoadDiggerConfig("./", &walker)
+	diggerConfig, err := digger_config.LoadDiggerConfig("./", &walker)
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -133,14 +132,14 @@ func gitLabCI(lock core_locking.Lock) {
 		fmt.Println("GITLAB_TOKEN is empty")
 	}
 
-	walker := configuration.FileSystemDirWalker{}
+	walker := digger_config.FileSystemDirWalker{}
 	currentDir, err := os.Getwd()
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(currentDir, &walker)
+	diggerConfig, err := digger_config.LoadDiggerConfig(currentDir, &walker)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -227,14 +226,14 @@ func azureCI(lock core_locking.Lock) {
 		os.Exit(4)
 	}
 
-	walker := configuration.FileSystemDirWalker{}
+	walker := digger_config.FileSystemDirWalker{}
 	currentDir, err := os.Getwd()
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(currentDir, &walker)
+	diggerConfig, err := digger_config.LoadDiggerConfig(currentDir, &walker)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -369,7 +368,7 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 	return planStorage
 }
 
-func logImpactedProjects(projects []configuration.Project, prNumber int) {
+func logImpactedProjects(projects []digger_config.Project, prNumber int) {
 	logMessage := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
 	for _, p := range projects {
 		logMessage += fmt.Sprintf("%s\n", p.Name)
@@ -377,7 +376,7 @@ func logImpactedProjects(projects []configuration.Project, prNumber int) {
 	log.Print(logMessage)
 }
 
-func logCommands(projectCommands []models.ProjectCommand) {
+func logCommands(projectCommands []digger_config.ProjectCommand) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)

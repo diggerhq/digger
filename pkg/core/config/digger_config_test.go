@@ -1,4 +1,4 @@
-package configuration
+package config
 
 import (
 	"log"
@@ -179,10 +179,10 @@ workflows:
 
 	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
-	assert.Equal(t, []EnvVarConfig{
+	assert.Equal(t, []EnvVar{
 		{Name: "TF_VAR_state", Value: "s3://mybucket/terraform.tfstate"},
 	}, dg.Workflows["myworkflow"].EnvVars.State, "parsed struct does not match expected struct")
-	assert.Equal(t, []EnvVarConfig{
+	assert.Equal(t, []EnvVar{
 		{Name: "TF_VAR_command", Value: "plan"},
 	}, dg.Workflows["myworkflow"].EnvVars.Commands, "parsed struct does not match expected struct")
 }

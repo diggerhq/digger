@@ -1,0 +1,150 @@
+package config
+
+import (
+	config_yaml "digger/pkg/config/yaml"
+	"errors"
+	"fmt"
+	"gopkg.in/yaml.v3"
+	"os"
+	"path"
+	"path/filepath"
+)
+
+type DirWalker interface {
+	GetDirs(workingDir string) ([]string, error)
+}
+
+type FileSystemDirWalker struct {
+}
+
+func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(workingDir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				files = append(files, path)
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
+}
+
+var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
+
+func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
+	configYaml := &config_yaml.DiggerConfigYaml{}
+	config := &DiggerConfig{}
+	fileName, err := retrieveConfigFile(workingDir)
+	if err != nil {
+		if errors.Is(err, ErrDiggerConfigConflict) {
+			return nil, fmt.Errorf("error while retrieving config file: %v", err)
+		}
+	}
+
+	if fileName == "" {
+		fmt.Println("No digger config found, using default one")
+		config.Projects = make([]Project, 1)
+		config.Projects[0] = defaultProject()
+		config.Workflows = make(map[string]Workflow)
+		config.Workflows["default"] = *defaultWorkflow()
+		return config, nil
+	}
+
+	data, err := os.ReadFile(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
+	}
+
+	if err := yaml.Unmarshal(data, configYaml); err != nil {
+		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+	}
+
+	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
+		return nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
+	}
+
+	c, err := ConvertDiggerYamlToConfig(configYaml, workingDir, walker)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range c.Projects {
+		_, ok := c.Workflows[p.Workflow]
+		if !ok {
+			return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
+		}
+	}
+	return c, nil
+}
+
+type File struct {
+	Filename string
+}
+
+func isFileExists(path string) bool {
+	fi, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	// file exists make sure it's not a directory
+	return !fi.IsDir()
+}
+
+func retrieveConfigFile(workingDir string) (string, error) {
+	fileName := "digger"
+	if workingDir != "" {
+		fileName = path.Join(workingDir, fileName)
+	}
+
+	// Make sure we don't have more than one digger config file
+	ymlCfg := isFileExists(fileName + ".yml")
+	yamlCfg := isFileExists(fileName + ".yaml")
+	if ymlCfg && yamlCfg {
+		return "", ErrDiggerConfigConflict
+	}
+
+	// At this point we know there are no duplicates
+	// Return the first one that exists
+	if ymlCfg {
+		return path.Join(workingDir, "digger.yml"), nil
+	}
+	if yamlCfg {
+		return path.Join(workingDir, "digger.yaml"), nil
+	}
+
+	// Passing this point means digger config file is
+	// missing which is a non-error
+	return "", nil
+}
+
+func CollectEnvVars(envs *TerraformEnvConfig) (map[string]string, map[string]string) {
+	stateEnvVars := map[string]string{}
+
+	commandEnvVars := map[string]string{}
+
+	if envs != nil {
+		for _, envvar := range envs.State {
+			if envvar.Value != "" {
+				stateEnvVars[envvar.Name] = envvar.Value
+			} else if envvar.ValueFrom != "" {
+				stateEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+			}
+		}
+
+		for _, envvar := range envs.Commands {
+			if envvar.Value != "" {
+				commandEnvVars[envvar.Name] = envvar.Value
+			} else if envvar.ValueFrom != "" {
+				commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+			}
+		}
+	}
+
+	return stateEnvVars, commandEnvVars
+}

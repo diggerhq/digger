@@ -3,7 +3,7 @@ package usage
 import (
 	"bytes"
 	"crypto/sha256"
-	"digger/pkg/configuration"
+	digger_config "digger/pkg/core/config"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -76,8 +76,8 @@ func init() {
 	if err != nil {
 		fmt.Printf("Failed to get current dir. %s", err)
 	}
-	walker := configuration.FileSystemDirWalker{}
-	config, err := configuration.LoadDiggerConfig(currentDir, &walker)
+	walker := digger_config.FileSystemDirWalker{}
+	config, err := digger_config.LoadDiggerConfig(currentDir, &walker)
 	if err != nil {
 		return
 	}
