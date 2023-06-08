@@ -314,7 +314,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			return nil, err
 		}
 
-		fmt.Printf("DEBUG: Generated projects: %v\n", dirs)
+		fmt.Printf("DEBUG: Found walked dirs: %v\n", dirs)
 		for _, dir := range dirs {
 			includePattern := diggerYaml.GenerateProjectsConfig.Include
 			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
@@ -327,12 +327,14 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			if err != nil {
 				return nil, err
 			}
+			fmt.Printf("    DEBUG: Dirname: %v, IncludeMatch: %v, ExcludeMatch: %v\n", dir, includeMatch, excludeMatch)
 			if includeMatch && !excludeMatch {
 				// generate a new project using default workflow
 				project := Project{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName}
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
+		fmt.Printf("DEBUG: Generated projects %v", diggerConfig.Projects)
 	}
 	return &diggerConfig, nil
 }
