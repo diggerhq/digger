@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"digger/pkg/core/models"
 	"log"
 	"os"
 	"path"
@@ -134,7 +135,7 @@ workflows:
 
 	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
-	assert.Equal(t, Step{Action: "run", Value: "echo \"hello\"", Shell: ""}, dg.Workflows["myworkflow"].Plan.Steps[0], "parsed struct does not match expected struct")
+	assert.Equal(t, models.Step{Action: "run", Value: "echo \"hello\"", Shell: ""}, dg.Workflows["myworkflow"].Plan.Steps[0], "parsed struct does not match expected struct")
 }
 
 func TestEnvVarsConfiguration(t *testing.T) {
@@ -179,10 +180,10 @@ workflows:
 
 	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
-	assert.Equal(t, []EnvVarConfig{
+	assert.Equal(t, []EnvVar{
 		{Name: "TF_VAR_state", Value: "s3://mybucket/terraform.tfstate"},
 	}, dg.Workflows["myworkflow"].EnvVars.State, "parsed struct does not match expected struct")
-	assert.Equal(t, []EnvVarConfig{
+	assert.Equal(t, []EnvVar{
 		{Name: "TF_VAR_command", Value: "plan"},
 	}, dg.Workflows["myworkflow"].EnvVars.Commands, "parsed struct does not match expected struct")
 }
@@ -209,9 +210,9 @@ workflows:
 
 	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
-	assert.Equal(t, Step{Action: "init", ExtraArgs: nil, Shell: ""}, dg.Workflows["default"].Plan.Steps[0], "parsed struct does not match expected struct")
-	assert.Equal(t, Step{Action: "plan", ExtraArgs: []string{"-var-file=terraform.tfvars"}, Shell: ""}, dg.Workflows["default"].Plan.Steps[1], "parsed struct does not match expected struct")
-	assert.Equal(t, Step{Action: "run", Value: "echo \"hello\"", Shell: "zsh"}, dg.Workflows["default"].Plan.Steps[2], "parsed struct does not match expected struct")
+	assert.Equal(t, models.Step{Action: "init", ExtraArgs: nil, Shell: ""}, dg.Workflows["default"].Plan.Steps[0], "parsed struct does not match expected struct")
+	assert.Equal(t, models.Step{Action: "plan", ExtraArgs: []string{"-var-file=terraform.tfvars"}, Shell: ""}, dg.Workflows["default"].Plan.Steps[1], "parsed struct does not match expected struct")
+	assert.Equal(t, models.Step{Action: "run", Value: "echo \"hello\"", Shell: "zsh"}, dg.Workflows["default"].Plan.Steps[2], "parsed struct does not match expected struct")
 }
 
 func TestDiggerGenerateProjects(t *testing.T) {

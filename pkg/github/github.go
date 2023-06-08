@@ -132,7 +132,7 @@ func GetGitHubContext(ghContext string) (*models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.ProjectCommand, bool, error) {
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.ProjectConfig, requestedProject *configuration.ProjectConfig, workflows map[string]configuration.WorkflowConfig) ([]dg_models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]dg_models.ProjectCommand, 0)
 
 	switch event.(type) {
@@ -144,9 +144,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			coreApplyStage := workflow.Apply.ToCoreStage()
-			corePlanStage := workflow.Plan.ToCoreStage()
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
 					ProjectName:      project.Name,
@@ -154,8 +153,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       &coreApplyStage,
-					PlanStage:        &corePlanStage,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -166,8 +165,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:       &coreApplyStage,
-					PlanStage:        &corePlanStage,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -178,8 +177,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnPullRequestClosed,
-					ApplyStage:       &coreApplyStage,
-					PlanStage:        &corePlanStage,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -197,7 +196,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
-				runForProjects = []configuration.Project{*requestedProject}
+				runForProjects = []configuration.ProjectConfig{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
@@ -211,9 +210,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 					}
 
-					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-					coreApplyStage := workflow.Apply.ToCoreStage()
-					corePlanStage := workflow.Plan.ToCoreStage()
+					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
 					if err != nil {
@@ -228,8 +226,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
-						ApplyStage:       &coreApplyStage,
-						PlanStage:        &corePlanStage,
+						ApplyStage:       workflow.Apply,
+						PlanStage:        workflow.Plan,
 						CommandEnvVars:   commandEnvVars,
 						StateEnvVars:     stateEnvVars,
 					})
@@ -242,8 +240,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 	}
 }
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
-	var impactedProjects []configuration.Project
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.ProjectConfig, *configuration.ProjectConfig, int, error) {
+	var impactedProjects []configuration.ProjectConfig
 	var prNumber int
 
 	switch ghEvent.(type) {
