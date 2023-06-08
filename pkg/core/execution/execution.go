@@ -32,7 +32,7 @@ type DiggerExecutor struct {
 }
 
 func (d DiggerExecutor) planFileName() string {
-	return d.ProjectNamespace + "#" + d.ProjectName + ".tfplan"
+	return strings.ReplaceAll(d.ProjectNamespace, "/", ":") + "#" + d.ProjectName + ".tfplan"
 }
 
 func (d DiggerExecutor) localPlanFilePath() string {
