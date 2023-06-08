@@ -68,7 +68,6 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 
 			var terraformExecutor terraform.TerraformExecutor
 			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
-			fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!! Project path: %s\n", projectPath)
 			if projectCommands.Terragrunt {
 				terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
 			} else {

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"gopkg.in/yaml.v3"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -90,7 +89,7 @@ func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	var files []string
 	listOfFiles, err := os.ReadDir(workingDir)
 	if err != nil {
-		log.Fatalf("Could not list files %v", err)
+		return nil, errors.New(fmt.Sprintf("error reading directory %s: %v", workingDir, err))
 	}
 	for _, f := range listOfFiles {
 		if !f.IsDir() {
@@ -311,9 +310,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			return nil, err
 		}
 
-		fmt.Printf("DEBUG: Found walked dirs: %v\n", dirs)
 		for _, dir := range dirs {
-			fmt.Printf("!!!!!!!!!!!!!!!!! Checking dir %s\n", dir)
 			includePattern := diggerYaml.GenerateProjectsConfig.Include
 			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
 			if utils.MatchIncludeExcludePatternsToFile(dir, []string{includePattern}, []string{excludePattern}) {
@@ -321,7 +318,6 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
-		fmt.Printf("DEBUG: Generated projects %v", diggerConfig.Projects)
 	}
 	return &diggerConfig, nil
 }
