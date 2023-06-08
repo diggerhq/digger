@@ -36,6 +36,24 @@ func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	return files, nil
 }
 
+func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
+	var files []string
+	listOfFiles, err := os.ReadDir(workingDir)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("error reading directory %s: %v", workingDir, err))
+	}
+	for _, f := range listOfFiles {
+		if !f.IsDir() {
+			r, err := regexp.MatchString(ext, f.Name())
+			if err == nil && r {
+				files = append(files, f.Name())
+			}
+		}
+	}
+
+	return files, nil
+}
+
 func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
 	var dirs []string
 	err := filepath.Walk(workingDir,
@@ -60,6 +78,7 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 }
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
+
 
 func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
 	configYaml := &DiggerConfigYaml{}
