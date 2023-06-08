@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 )
 
 type WorkflowConfiguration struct {
@@ -85,22 +86,39 @@ type DirWalker interface {
 type FileSystemDirWalker struct {
 }
 
-func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	var files []string
+	filepath.Walk(workingDir, func(path string, f os.FileInfo, _ error) error {
+		if !f.IsDir() {
+			r, err := regexp.MatchString(ext, f.Name())
+			if err == nil && r {
+				files = append(files, f.Name())
+			}
+		}
+		return nil
+	})
+	return files, nil
+}
+
+func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 			if info.IsDir() {
-				files = append(files, path)
+				terraformFiles, _ := GetFilesWithExtension(path, ".tf")
+				if len(terraformFiles) > 0 {
+					dirs = append(dirs, path)
+				}
 			}
 			return nil
 		})
 	if err != nil {
 		return nil, err
 	}
-	return files, nil
+	return dirs, nil
 }
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
