@@ -104,12 +104,16 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
+
 			if err != nil {
 				return err
 			}
 			if info.IsDir() {
+				fmt.Printf("    DEBUG: Walking dir: %v\n", workingDir)
 				terraformFiles, _ := GetFilesWithExtension(path, ".tf")
+				fmt.Printf("    DEBUG: found tf files: %v\n", terraformFiles)
 				if len(terraformFiles) > 0 {
+					fmt.Printf("    DEBUG: Appending dir to result: %v\n", workingDir)
 					dirs = append(dirs, path)
 				}
 			}
@@ -305,6 +309,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			return nil, err
 		}
 
+		fmt.Printf("DEBUG: Generated projects: %v\n", dirs)
 		for _, dir := range dirs {
 			includePattern := diggerYaml.GenerateProjectsConfig.Include
 			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
