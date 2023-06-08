@@ -5,7 +5,6 @@ import (
 	"digger/pkg/utils"
 	"errors"
 	"fmt"
-	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -318,18 +317,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		for _, dir := range dirs {
 			includePattern := diggerYaml.GenerateProjectsConfig.Include
 			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
-			includeMatch, err := doublestar.PathMatch(includePattern, dir)
-			if err != nil {
-				return nil, err
-			}
-
-			excludeMatch, err := doublestar.PathMatch(excludePattern, dir)
-			if err != nil {
-				return nil, err
-			}
-			fmt.Printf("    DEBUG: Dirname: %v, IncludeMatch: %v, ExcludeMatch: %v\n", dir, includeMatch, excludeMatch)
-			if includeMatch && !excludeMatch {
-				// generate a new project using default workflow
+			if utils.MatchIncludeExcludePatternsToFile(dir, []string{includePattern}, []string{excludePattern}) {
 				project := Project{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName}
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
