@@ -132,7 +132,7 @@ func GetGitHubContext(ghContext string) (*models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.ProjectConfig, requestedProject *configuration.ProjectConfig, workflows map[string]configuration.WorkflowConfig) ([]dg_models.ProjectCommand, bool, error) {
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.WorkflowConfig) ([]dg_models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]dg_models.ProjectCommand, 0)
 
 	switch event.(type) {
@@ -196,7 +196,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
-				runForProjects = []configuration.ProjectConfig{*requestedProject}
+				runForProjects = []configuration.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
@@ -240,8 +240,8 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 	}
 }
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.ProjectConfig, *configuration.ProjectConfig, int, error) {
-	var impactedProjects []configuration.ProjectConfig
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
+	var impactedProjects []configuration.Project
 	var prNumber int
 
 	switch ghEvent.(type) {

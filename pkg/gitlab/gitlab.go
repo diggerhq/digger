@@ -83,8 +83,8 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 	}, nil
 }
 
-func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.ProjectConfig, *configuration.ProjectConfig, error) {
-	var impactedProjects []configuration.ProjectConfig
+func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.Project, *configuration.Project, error) {
+	var impactedProjects []configuration.Project
 
 	if gitlabContext.MergeRequestIId == nil {
 		return nil, nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
@@ -249,7 +249,7 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.ProjectConfig, requestedProject *configuration.ProjectConfig, workflows map[string]configuration.WorkflowConfig) ([]models.ProjectCommand, bool, error) {
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.WorkflowConfig) ([]models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]models.ProjectCommand, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
@@ -305,7 +305,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
-				runForProjects = []configuration.ProjectConfig{*requestedProject}
+				runForProjects = []configuration.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
