@@ -70,5 +70,6 @@ func defaultWorkflow() *WorkflowConfig {
 				},
 			},
 		},
+		EnvVars: &TerraformEnvConfig{},
 	}
 }
