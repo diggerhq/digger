@@ -249,7 +249,7 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.WorkflowConfig) ([]models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]models.ProjectCommand, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
@@ -261,17 +261,15 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			coreApplyStage := workflow.Apply.ToCoreStage()
-			corePlanStage := workflow.Plan.ToCoreStage()
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       &coreApplyStage,
-				PlanStage:        &corePlanStage,
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -283,23 +281,15 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if !ok {
 				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			var coreApplyStage models.Stage
-			if workflow.Apply != nil {
-				coreApplyStage = workflow.Apply.ToCoreStage()
-			}
-			var corePlanStage models.Stage
-			if workflow.Plan != nil {
-				corePlanStage = workflow.Plan.ToCoreStage()
-			}
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:       &coreApplyStage,
-				PlanStage:        &corePlanStage,
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -336,23 +326,15 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
-					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-					var coreApplyStage models.Stage
-					if workflow.Apply != nil {
-						coreApplyStage = workflow.Apply.ToCoreStage()
-					}
-					var corePlanStage models.Stage
-					if workflow.Plan != nil {
-						corePlanStage = workflow.Plan.ToCoreStage()
-					}
+					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,
 						ProjectDir:       project.Dir,
 						ProjectWorkspace: workspace,
 						Terragrunt:       project.Terragrunt,
 						Commands:         []string{command},
-						ApplyStage:       &coreApplyStage,
-						PlanStage:        &corePlanStage,
+						ApplyStage:       workflow.Apply,
+						PlanStage:        workflow.Plan,
 						CommandEnvVars:   commandEnvVars,
 						StateEnvVars:     stateEnvVars,
 					})
