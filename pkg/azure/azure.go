@@ -350,7 +350,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
@@ -371,7 +371,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
@@ -392,7 +392,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				if !ok {
 					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 				}
-				stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 				commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
@@ -441,7 +441,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					if !ok {
 						return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 					}
-					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,

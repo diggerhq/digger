@@ -144,7 +144,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
 				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
@@ -210,7 +210,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 						return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 					}
 
-					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
