@@ -109,11 +109,11 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 				return err
 			}
 			if info.IsDir() {
-				fmt.Printf("    DEBUG: Walking dir: %v\n", workingDir)
+				fmt.Printf("    DEBUG: Walking dir: %v\n", path)
 				terraformFiles, _ := GetFilesWithExtension(path, ".tf")
 				fmt.Printf("    DEBUG: found tf files: %v\n", terraformFiles)
 				if len(terraformFiles) > 0 {
-					fmt.Printf("    DEBUG: Appending dir to result: %v\n", workingDir)
+					fmt.Printf("    DEBUG: Appending dir to result: %v\n", path)
 					dirs = append(dirs, path)
 				}
 			}
