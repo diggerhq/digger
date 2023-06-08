@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
 	"gopkg.in/yaml.v3"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -88,15 +89,19 @@ type FileSystemDirWalker struct {
 
 func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	var files []string
-	filepath.Walk(workingDir, func(path string, f os.FileInfo, _ error) error {
+	listOfFiles, err := filepath.readDir(workingDir)
+	if err != nil {
+		log.Fatalf("Could not list files %v", err)
+	}
+	for _, f := range listOfFiles {
 		if !f.IsDir() {
 			r, err := regexp.MatchString(ext, f.Name())
 			if err == nil && r {
 				files = append(files, f.Name())
 			}
 		}
-		return nil
-	})
+	}
+
 	return files, nil
 }
 
