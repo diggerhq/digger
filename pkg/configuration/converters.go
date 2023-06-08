@@ -107,6 +107,11 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		workflows := copyWorkflows(diggerYaml.Workflows)
 		diggerConfig.Workflows = workflows
 
+		// provide default workflow if not specified
+		if _, ok := diggerConfig.Workflows[defaultWorkflowName]; !ok {
+			workflow := *defaultWorkflow()
+			diggerConfig.Workflows[defaultWorkflowName] = workflow
+		}
 	} else {
 		workflow := *defaultWorkflow()
 		diggerConfig.Workflows = make(map[string]WorkflowConfig)
