@@ -14,7 +14,7 @@ Terraform detected the following changes made outside of Terraform since the
 last "terraform apply" which may have affected this plan:
 
   # docker_image.xxxx has been deleted
-  - resource "docker_image" "ac2ical" {
+  - resource "docker_image" "aaa" {
 
     }
 
