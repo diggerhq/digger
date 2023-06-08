@@ -101,8 +101,11 @@ func gitHubCI(lock core_locking.Lock) {
 		CiService: githubPrService,
 		PrNumber:  prNumber,
 	}
-
-	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, reporter, planStorage, "")
+	currentDir, err := os.Getwd()
+	if err != nil {
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+	}
+	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, reporter, planStorage, currentDir)
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
