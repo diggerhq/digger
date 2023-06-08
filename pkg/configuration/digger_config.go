@@ -313,6 +313,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 
 		fmt.Printf("DEBUG: Found walked dirs: %v\n", dirs)
 		for _, dir := range dirs {
+			fmt.Printf("!!!!!!!!!!!!!!!!! Checking dir %s\n", dir)
 			includePattern := diggerYaml.GenerateProjectsConfig.Include
 			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
 			if utils.MatchIncludeExcludePatternsToFile(dir, []string{includePattern}, []string{excludePattern}) {
