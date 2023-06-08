@@ -947,7 +947,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Configuration: &configuration.WorkflowConfigurationConfig{
+			Configuration: &configuration.WorkflowConfiguration{
 				OnPullRequestPushed: []string{"digger plan"},
 				OnPullRequestClosed: []string{"digger unlock"},
 				OnCommitToDefault:   []string{"digger apply"},
@@ -962,7 +962,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Configuration: &configuration.WorkflowConfigurationConfig{
+			Configuration: &configuration.WorkflowConfiguration{
 				OnPullRequestPushed: []string{"digger plan"},
 				OnPullRequestClosed: []string{"digger unlock"},
 				OnCommitToDefault:   []string{"digger apply"},

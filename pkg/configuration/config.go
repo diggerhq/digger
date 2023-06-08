@@ -23,10 +23,10 @@ type WorkflowConfig struct {
 	EnvVars       *TerraformEnvConfig
 	Plan          *models.Stage
 	Apply         *models.Stage
-	Configuration *WorkflowConfigurationConfig
+	Configuration *WorkflowConfiguration
 }
 
-type WorkflowConfigurationConfig struct {
+type WorkflowConfiguration struct {
 	OnPullRequestPushed []string
 	OnPullRequestClosed []string
 	OnCommitToDefault   []string
@@ -45,7 +45,7 @@ type EnvVar struct {
 
 func defaultWorkflow() *WorkflowConfig {
 	return &WorkflowConfig{
-		Configuration: &WorkflowConfigurationConfig{
+		Configuration: &WorkflowConfiguration{
 			OnCommitToDefault:   []string{"digger unlock"},
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},

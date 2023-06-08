@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func copyProjects(projects []ProjectYaml) []ProjectConfig {
+func copyProjects(projects []*ProjectYaml) []ProjectConfig {
 	result := make([]ProjectConfig, len(projects))
 	for i, p := range projects {
 		item := ProjectConfig{p.Name,
@@ -24,12 +24,15 @@ func copyProjects(projects []ProjectYaml) []ProjectConfig {
 	return result
 }
 
-func copyTerraformEnvConfig(envVars *TerraformEnvConfigYaml) *TerraformEnvConfig {
+func copyTerraformEnvConfig(terraformEnvConfig *TerraformEnvConfigYaml) *TerraformEnvConfig {
+	if terraformEnvConfig == nil {
+		return nil
+	}
 	result := TerraformEnvConfig{}
-	result.State = make([]EnvVar, len(envVars.State))
-	result.Commands = make([]EnvVar, len(envVars.Commands))
+	result.State = make([]EnvVar, len(terraformEnvConfig.State))
+	result.Commands = make([]EnvVar, len(terraformEnvConfig.Commands))
 
-	for i, s := range envVars.State {
+	for i, s := range terraformEnvConfig.State {
 		item := EnvVar{
 			s.Name,
 			s.ValueFrom,
@@ -37,7 +40,7 @@ func copyTerraformEnvConfig(envVars *TerraformEnvConfigYaml) *TerraformEnvConfig
 		}
 		result.State[i] = item
 	}
-	for i, s := range envVars.Commands {
+	for i, s := range terraformEnvConfig.Commands {
 		item := EnvVar{
 			s.Name,
 			s.ValueFrom,
@@ -65,8 +68,8 @@ func copyStage(stage *StageYaml) *models.Stage {
 	return &result
 }
 
-func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfigurationConfig {
-	result := WorkflowConfigurationConfig{}
+func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfiguration {
+	result := WorkflowConfiguration{}
 	result.OnPullRequestClosed = make([]string, len(config.OnPullRequestClosed))
 	result.OnPullRequestPushed = make([]string, len(config.OnPullRequestPushed))
 	result.OnCommitToDefault = make([]string, len(config.OnCommitToDefault))
@@ -77,7 +80,7 @@ func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfi
 	return &result
 }
 
-func copyWorkflows(workflows map[string]WorkflowYaml) map[string]WorkflowConfig {
+func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]WorkflowConfig {
 	result := make(map[string]WorkflowConfig, len(workflows))
 	for i, w := range workflows {
 		envVars := copyTerraformEnvConfig(w.EnvVars)
@@ -100,7 +103,11 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 	var diggerConfig DiggerConfig
 	const defaultWorkflowName = "default"
 
-	diggerConfig.AutoMerge = diggerYaml.AutoMerge
+	if diggerYaml.AutoMerge != nil {
+		diggerConfig.AutoMerge = *diggerYaml.AutoMerge
+	} else {
+		diggerConfig.AutoMerge = false
+	}
 
 	// if workflow block is not specified in yaml we create a default one, and add it to every project
 	if diggerYaml.Workflows != nil {
