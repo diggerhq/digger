@@ -257,6 +257,10 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 		}
 	}
 
+	// This should not happen but in case we get here we avoid slice bounds out of range exception by resetting endPos
+	if endPos <= startPos {
+		endPos = len(stdout)
+	}
 	return stdout[startPos:endPos]
 }
 
