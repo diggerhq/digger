@@ -43,14 +43,18 @@ func (d DiggerExecutor) storedPlanFilePath() string {
 	return path.Join(d.ProjectNamespace, d.planFileName())
 }
 
-func (d DiggerExecutor) Plan() (bool, string, error) {
+func (d DiggerExecutor) Plan(isDriftDetection bool) (bool, string, error) {
 	plan := ""
-	locked, err := d.ProjectLock.Lock()
-	if err != nil {
-		return false, "", fmt.Errorf("error locking project: %v", err)
+	locked := false
+
+	if !isDriftDetection {
+		locked, err := d.ProjectLock.Lock()
+		if err != nil {
+			return false, "", fmt.Errorf("error locking project: %v", err)
+		}
+		log.Printf("Lock result: %t\n", locked)
 	}
-	log.Printf("Lock result: %t\n", locked)
-	if locked {
+	if locked || !isDriftDetection {
 		var planSteps []models.Step
 
 		if d.PlanStage != nil {
@@ -102,7 +106,7 @@ func (d DiggerExecutor) Plan() (bool, string, error) {
 					fmt.Printf("error publishing comment: %v", err)
 				}
 			}
-			if step.Action == "run" {
+			if step.Action == "run" && !isDriftDetection {
 				var commands []string
 				if os.Getenv("ACTIVATE_VENV") == "true" {
 					commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))

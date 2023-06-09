@@ -33,7 +33,7 @@ type GithubService struct {
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	files, _, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Fatalf("error getting pull request 1: %v", err)
 	}
 
 	fileNames := make([]string, len(files))
@@ -52,7 +52,7 @@ func (svc *GithubService) PublishComment(prNumber int, comment string) error {
 func (svc *GithubService) SetStatus(prNumber int, status string, statusContext string) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Fatalf("error getting pull request 2: %v", err)
 	}
 
 	_, _, err = svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
@@ -66,7 +66,7 @@ func (svc *GithubService) SetStatus(prNumber int, status string, statusContext s
 func (svc *GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Fatalf("error getting pull request 3: %v", err)
 	}
 
 	statuses, _, err := svc.Client.Repositories.GetCombinedStatus(context.Background(), svc.Owner, svc.RepoName, pr.Head.GetSHA(), nil)
@@ -80,7 +80,7 @@ func (svc *GithubService) GetCombinedPullRequestStatus(prNumber int) (string, er
 func (svc *GithubService) MergePullRequest(prNumber int) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Fatalf("error getting pull request 4: %v", err)
 	}
 
 	_, _, err = svc.Client.PullRequests.Merge(context.Background(), svc.Owner, svc.RepoName, prNumber, "auto-merge", &github.PullRequestOptions{
@@ -108,7 +108,7 @@ func isMergeableState(mergeableState string) bool {
 func (svc *GithubService) IsMergeable(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Fatalf("error getting pull request 5: %v", err)
 	}
 
 	return pr.GetMergeable() && isMergeableState(pr.GetMergeableState()), nil
@@ -117,7 +117,7 @@ func (svc *GithubService) IsMergeable(prNumber int) (bool, error) {
 func (svc *GithubService) IsClosed(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Fatalf("error getting pull request 6: %v", err)
 	}
 
 	return pr.GetState() == "closed", nil
@@ -237,6 +237,28 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			}
 		}
 		return commandsPerProject, coversAllImpactedProjects, nil
+	case models.ScheduleEvent:
+		for _, project := range impactedProjects {
+			workflow, ok := workflows[project.Workflow]
+			if !ok {
+				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+			}
+
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
+			commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
+				ProjectName:      project.Name,
+				ProjectDir:       project.Dir,
+				ProjectWorkspace: project.Workspace,
+				Terragrunt:       project.Terragrunt,
+				Commands:         []string{"digger plan"},
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
+				CommandEnvVars:   commandEnvVars,
+				StateEnvVars:     stateEnvVars,
+			})
+		}
+		return commandsPerProject, true, nil
 	default:
 		return []dg_models.ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
 	}
@@ -277,6 +299,10 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 			}
 		}
 		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
+
+	case models.ScheduleEvent:
+		// fetch all projects
+		impactedProjects = diggerConfig.GetProjects("")
 
 	default:
 		return nil, nil, 0, fmt.Errorf("unsupported event type")

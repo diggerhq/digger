@@ -127,8 +127,11 @@ func RunCommandsPerProject(
 			switch command {
 			case "digger plan":
 				usage.SendUsageRecord(requestedBy, eventName, "plan")
-				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
-				planPerformed, plan, err := diggerExecutor.Plan()
+				_, isDriftDetection := os.LookupEnv("WORKFLOW_IS_DRIFT_DETECTION")
+				if !isDriftDetection {
+					ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
+				}
+				planPerformed, plan, err := diggerExecutor.Plan(isDriftDetection)
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
 					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")

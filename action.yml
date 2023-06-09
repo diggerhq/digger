@@ -211,14 +211,11 @@ runs:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
-<<<<<<< HEAD
         POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
         DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
         DIGGER_CLOUD_HOSTNAME: ${{ inputs.digger-cloud-hostname }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
-=======
         PERFORM_DRIFT_DETECTION: ${{ inputs.perform-drif-detection }}
->>>>>>> action.yml
       id: digger
       shell: bash
       run: |

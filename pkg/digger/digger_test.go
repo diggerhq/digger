@@ -237,7 +237,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		PlanStorage:       planStorage,
 	}
 
-	executor.Plan()
+	executor.Plan(true)
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 

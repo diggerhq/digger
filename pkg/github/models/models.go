@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 )
 
 type Github struct {
@@ -61,12 +62,16 @@ func (g *Github) UnmarshalJSON(data []byte) error {
 		}
 		g.Event = event
 	case "schedule":
-		var event ScheduleEvent
-		fmt.Printf("ScheduleEvent rawEvent: %v", string(rawEvent[:]))
-		if err := json.Unmarshal(rawEvent, &event); err != nil {
-			return err
+		fmt.Printf("processing ScheduleEvent")
+		if os.Getenv("PERFORM_DRIFT_DETECTION") == "true" {
+			os.Setenv("WORKFLOW_IS_DRIFT_DETECTION", "1")
+			var event ScheduleEvent
+			// fmt.Printf("ScheduleEvent rawEvent: %v", string(rawEvent[:]))
+			if err := json.Unmarshal(rawEvent, &event); err != nil {
+				return err
+			}
+			g.Event = event
 		}
-		g.Event = event
 	default:
 		return errors.New("unknown GitHub event: " + g.EventName)
 	}
@@ -88,9 +93,7 @@ type PullRequest struct {
 }
 
 type ScheduleEvent struct {
-	Action  string  `json:"action"`
-	Comment Comment `json:"comment"`
-	Issue   Issue   `json:"issue"`
+	Schedule string `json:"schedule"`
 }
 
 type IssueCommentEvent struct {
