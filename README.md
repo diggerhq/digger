@@ -39,7 +39,7 @@ Need a feature that's not listed? Book a [community feedback call](https://calen
 
 This is demo flow with a sample repo using local state - for real world scenario you'll need to configure remote backend (S3 + DynamoDB) and add a [workflow file](https://github.com/diggerhq/digger_demo/blob/main/.github/workflows/plan.yml) to the root of the repo.
 
-1. Fork the [demo repository](https://github.com/diggerhq/digger_demo)
+1. Fork the [demo repository]([https://github.com/diggerhq/digger_demo](https://github.com/diggerhq/digger_demo_multienv))
 2. Enable Actions (by default workflows won't trigger in a fork)
 
 <img width="1441" alt="Screenshot 2023-02-24 at 20 24 08" src="https://user-images.githubusercontent.com/1280498/221291130-6831d45a-008f-452f-91d3-37ba133d7cbb.png">
