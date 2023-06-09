@@ -58,6 +58,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
+
 			projectLock := &locking.PullRequestLock{
 				InternalLock:     lock,
 				CIService:        ciService,
