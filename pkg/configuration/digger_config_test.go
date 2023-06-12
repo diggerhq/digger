@@ -192,36 +192,20 @@ func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
 	defer teardown()
 
 	diggerCfg := `
-workflows:
-  shared:
-    plan:
-      steps:
-        - run: rm -rf .terraform
-        - init
-        - plan:
-            extra_args: ["-var-file=vars/shared.tfvars"]
+projects:
+- name: dev
+  dir: .
+  workspace: dev
 
+workflows:
   dev:
     plan:
       steps:
         - run: rm -rf .terraform
         - init
         - plan:
-            extra_args: ["-var-file=vars/dev.tfvars"]
+          extra_args: ["-var-file=vars/dev.tfvars"]
 
-projects:
-- name: shared
-  branch: /digger-test1/
-  dir: ./terraform/
-  workspace: shared
-  terraform_version: v1.2.0
-  workflow: shared
-- name: dev
-  branch: /digger-test1/
-  dir: ./terraform/
-  workspace: dev
-  terraform_version: v1.2.0
-  workflow: dev
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
