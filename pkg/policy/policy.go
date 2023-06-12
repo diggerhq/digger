@@ -9,7 +9,7 @@ import (
 )
 
 type PolicyProvider interface {
-	GetPolicy() (string, error)
+	GetPolicy(namespace string, projectname string) (string, error)
 }
 
 type DiggerHttpPolicyProvider struct {
@@ -18,9 +18,16 @@ type DiggerHttpPolicyProvider struct {
 	HttpClient *http.Client
 }
 
-func (p *DiggerHttpPolicyProvider) GetPolicy() (string, error) {
+type NoOpPolicyChecker struct {
+}
+
+func (p NoOpPolicyChecker) Check(_ string, _ string, _ interface{}) (bool, error) {
+	return true, nil
+}
+
+func (p *DiggerHttpPolicyProvider) GetPolicy(namespace string, projectName string) (string, error) {
 	// fetch RBAC policies from Digger API
-	req, err := http.NewRequest("GET", p.DiggerHost+"/policies", nil)
+	req, err := http.NewRequest("GET", p.DiggerHost+"/repos/"+namespace+"/projects/"+projectName+"/policies", nil)
 	if err != nil {
 		return "", err
 	}
@@ -43,10 +50,10 @@ type DiggerPolicyChecker struct {
 	PolicyProvider PolicyProvider
 }
 
-func (p *DiggerPolicyChecker) Check(input interface{}) (bool, []string, error) {
-	policy, err := p.PolicyProvider.GetPolicy()
+func (p DiggerPolicyChecker) Check(namespace string, projectName string, input interface{}) (bool, error) {
+	policy, err := p.PolicyProvider.GetPolicy(namespace, projectName)
 	if err != nil {
-		return false, nil, err
+		return false, err
 	}
 	ctx := context.Background()
 	// Create a new query that uses the compiled policy from above.
@@ -57,30 +64,27 @@ func (p *DiggerPolicyChecker) Check(input interface{}) (bool, []string, error) {
 
 	if err != nil {
 		// handle error
-		return false, nil, err
+		return false, err
 	}
 
 	results, err := query.Eval(ctx, rego.EvalInput(input))
 	// Process result
 	if len(results) == 0 || len(results[0].Expressions) == 0 {
-		return false, nil, fmt.Errorf("no result found")
+		return false, fmt.Errorf("no result found")
 	}
 
 	// Assuming the decision is a boolean
 	expressions := results[0].Expressions
 
-	allTrue := true
-	messages := make([]string, 0)
 	for _, expression := range expressions {
 		decision, ok := expression.Value.(bool)
 		if !ok {
-			return false, nil, fmt.Errorf("decision is not a boolean")
+			return false, fmt.Errorf("decision is not a boolean")
 		}
 		if !decision {
-			messages = append(messages, expression.Text)
+			return false, nil
 		}
-		allTrue = allTrue && decision
 	}
 
-	return allTrue, messages, nil
+	return true, nil
 }

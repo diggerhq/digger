@@ -5,6 +5,7 @@ import (
 	"digger/pkg/core/execution"
 	core_locking "digger/pkg/core/locking"
 	"digger/pkg/core/models"
+	"digger/pkg/core/policy"
 	"digger/pkg/core/reporting"
 	"digger/pkg/core/runners"
 	"digger/pkg/core/storage"
@@ -54,10 +55,25 @@ func DetectCI() CIName {
 
 }
 
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
+type PolicyInput struct {
+	user   string
+	action string
+}
+
+func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
+
+			allowedToPerformCommand, err := policyChecker.Check(projectNamespace, projectCommands.ProjectName, PolicyInput{user: requestedBy, action: command})
+
+			if err != nil {
+				return false, false, fmt.Errorf("error checking policy: %v", err)
+			}
+
+			if !allowedToPerformCommand {
+				return false, false, fmt.Errorf("user %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
+			}
 
 			projectLock := &locking.PullRequestLock{
 				InternalLock:     lock,

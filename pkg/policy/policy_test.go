@@ -1,14 +1,13 @@
 package policy
 
 import (
-	"reflect"
 	"testing"
 )
 
 type OpaExamplePolicyProvider struct {
 }
 
-func (s *OpaExamplePolicyProvider) GetPolicy() (string, error) {
+func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"# user-role assignments\n" +
@@ -44,8 +43,20 @@ func (s *OpaExamplePolicyProvider) GetPolicy() (string, error) {
 type DiggerExamplePolicyProvider struct {
 }
 
-func (s *DiggerExamplePolicyProvider) GetPolicy() (string, error) {
-	return "package digger\n\nuser_permissions := {\n    \"motatoes\": [\"digger plan\"], \"Spartakovic\": [\"digger plan\", \"digger apply\"]\n}\n\ndefault allow = false\nallow {\n    permissions := user_permissions[input.user]\n    p := permissions[_]\n    p == {\"action\": input.action}\n}\n", nil
+func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error) {
+	return "package digger\n" +
+		"\n" +
+		"user_permissions := {\n" +
+		"    \"motatoes\": [\"digger plan\"], \"Spartakovic\": [\"digger plan\", \"digger apply\"]\n" +
+		"}\n" +
+		"\n" +
+		"default allow = false\n" +
+		"allow {\n" +
+		"    permissions := user_permissions[input.user]\n" +
+		"    p := permissions[_]\n" +
+		"    p == input.action\n" +
+		"}\n" +
+		"", nil
 }
 
 func TestDiggerPolicyChecker_Check(t *testing.T) {
@@ -60,7 +71,6 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 		fields  fields
 		args    args
 		want    bool
-		want1   []string
 		wantErr bool
 	}{
 		{
@@ -76,7 +86,6 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 				},
 			},
 			want:    true,
-			want1:   []string{},
 			wantErr: false,
 		},
 		{
@@ -91,7 +100,34 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 				},
 			},
 			want:    true,
-			want1:   []string{},
+			wantErr: false,
+		},
+		{
+			name: "test digger example 2",
+			fields: fields{
+				PolicyProvider: &DiggerExamplePolicyProvider{},
+			},
+			args: args{
+				input: map[string]interface{}{
+					"user":   "Spartakovic",
+					"action": "digger unlock",
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "test digger example 3",
+			fields: fields{
+				PolicyProvider: &DiggerExamplePolicyProvider{},
+			},
+			args: args{
+				input: map[string]interface{}{
+					"user":   "rando",
+					"action": "digger apply",
+				},
+			},
+			want:    false,
 			wantErr: false,
 		},
 	}
@@ -101,16 +137,13 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 			p := &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
-			got, got1, err := p.Check(tt.args.input)
+			got, err := p.Check(tt.name, tt.name, tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.Check() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
 				t.Errorf("DiggerPolicyChecker.Check() got = %v, want %v", got, tt.want)
-			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("DiggerPolicyChecker.Check() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
