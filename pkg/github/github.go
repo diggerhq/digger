@@ -145,6 +145,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+			fmt.Printf("Plan stage: %v\n", workflow.Plan)
 			coreApplyStage := workflow.Apply.ToCoreStage()
 			corePlanStage := workflow.Plan.ToCoreStage()
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
