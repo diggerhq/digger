@@ -148,6 +148,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 
 			coreApplyStage := workflow.Apply.ToCoreStage()
 			corePlanStage := workflow.Plan.ToCoreStage()
+			fmt.Printf("project workflow name: %v\n", project.Workflow)
 			fmt.Printf("project workflow: %v\n", workflows[project.Workflow])
 			fmt.Printf("workflow: %v\n", workflow)
 			fmt.Printf("workflos: %v\n", workflows)
