@@ -71,6 +71,13 @@ inputs:
     description: Disable locking
     required: false
     default: 'false'
+  policy-check-enabled:
+    description: Enable policy check
+    required: false
+    default: 'false'
+  digger-cloud-token:
+    description: Digger cloud token
+    required: false
 
 outputs:
   output:
@@ -165,6 +172,8 @@ runs:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
+        DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -179,6 +188,8 @@ runs:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
+        DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
       id: digger
       shell: bash
       run: |
