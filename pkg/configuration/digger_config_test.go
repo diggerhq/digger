@@ -195,7 +195,7 @@ func TestDefaultValuesForWorkflowConfiguration(t *testing.T) {
 projects:
 - name: dev
   dir: .
-  workspace: dev
+  workflow: dev
 
 workflows:
   dev:
@@ -204,7 +204,14 @@ workflows:
         - run: rm -rf .terraform
         - init
         - plan:
-          extra_args: ["-var-file=vars/dev.tfvars"]
+          extra_args: ["-var-file=vars/dev.tfvars"]  
+  default:
+    plan:
+      steps:
+        - run: rm -rf .terraform
+        - init
+        - plan:
+            extra_args: ["-var-file=vars/dev.tfvars"]
 
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
@@ -215,6 +222,10 @@ workflows:
 	assert.Equal(t, Step{Action: "run", Value: "rm -rf .terraform", Shell: ""}, dg.Workflows["dev"].Plan.Steps[0], "parsed struct does not match expected struct")
 	assert.Equal(t, Step{Action: "init", ExtraArgs: nil, Shell: ""}, dg.Workflows["dev"].Plan.Steps[1], "parsed struct does not match expected struct")
 	assert.Equal(t, Step{Action: "plan", ExtraArgs: []string{"-var-file=vars/dev.tfvars"}, Shell: ""}, dg.Workflows["dev"].Plan.Steps[2], "parsed struct does not match expected struct")
+
+	assert.Equal(t, Step{Action: "run", Value: "rm -rf .terraform", Shell: ""}, dg.Workflows["default"].Plan.Steps[0], "parsed struct does not match expected struct")
+	assert.Equal(t, Step{Action: "init", ExtraArgs: nil, Shell: ""}, dg.Workflows["default"].Plan.Steps[1], "parsed struct does not match expected struct")
+	assert.Equal(t, Step{Action: "plan", ExtraArgs: []string{"-var-file=vars/dev.tfvars"}, Shell: ""}, dg.Workflows["default"].Plan.Steps[2], "parsed struct does not match expected struct")
 }
 
 func TestDiggerGenerateProjects(t *testing.T) {
