@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/google/go-github/v51/github"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -325,7 +326,7 @@ func main() {
 			PolicyProvider: &policy.DiggerHttpPolicyProvider{
 				DiggerHost: "https://digger.dev",
 				AuthToken:  os.Getenv("DIGGER_CLOUD_TOKEN"),
-				HttpClient: nil,
+				HttpClient: http.DefaultClient,
 			}}
 	} else {
 		policyChecker = policy.NoOpPolicyChecker{}
