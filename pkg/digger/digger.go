@@ -55,17 +55,13 @@ func DetectCI() CIName {
 
 }
 
-type PolicyInput struct {
-	user   string
-	action string
-}
-
 func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
+			policyInput := map[string]interface{}{"user": requestedBy, "action": command}
 
-			allowedToPerformCommand, err := policyChecker.Check(projectNamespace, projectCommands.ProjectName, PolicyInput{user: requestedBy, action: command})
+			allowedToPerformCommand, err := policyChecker.Check(projectNamespace, projectCommands.ProjectName, policyInput)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
