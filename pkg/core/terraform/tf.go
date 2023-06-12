@@ -112,8 +112,6 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	mwout := io.MultiWriter(os.Stdout, &stdout)
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
 
-	fmt.Printf("terraform %s", strings.Join(args, " "))
-
 	cmd := exec.Command("terraform", args...)
 
 	env := os.Environ()
