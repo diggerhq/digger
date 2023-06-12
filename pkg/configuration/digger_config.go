@@ -227,13 +227,12 @@ func (s *Step) extract(stepMap map[string]interface{}, action string) {
 	if _, ok := stepMap[action]; ok {
 		s.Action = action
 		var extraArgs []string
-		if v, ok := stepMap["extra_args"]; ok {
+		if v, ok2 := stepMap["extra_args"]; ok2 {
 			for _, v := range v.([]interface{}) {
 				extraArgs = append(extraArgs, v.(string))
 			}
 			s.ExtraArgs = extraArgs
-		}
-		if !ok {
+		} else {
 			if v, ok := stepMap[action].(map[string]interface{})["extra_args"]; ok {
 				for _, v := range v.([]interface{}) {
 					extraArgs = append(extraArgs, v.(string))
