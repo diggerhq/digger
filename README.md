@@ -23,7 +23,7 @@ Digger runs terraform natively in your CI and takes care of the other bits - loc
 
 ## Roadmap
 
-Need a feature that's not listed? Book a [community feedback call](https://calendly.com/diggerdev/digger-community-feedback) - we ship fast ✅
+Need a feature that's not listed? Book a [community feedback call](https://calendly.com/diggerdev/community-feedback) - we ship fast ✅
 
 - ✅ GCP support. Store PR locks in GCP storage buckets. Shipped in [#50](https://github.com/diggerhq/digger/pull/50)
 - ✅ Workspaces support. Allow usage of Terraform CLI Workspaces. Shipped in [#72](https://github.com/diggerhq/digger/pull/72)
