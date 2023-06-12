@@ -56,24 +56,20 @@ func (p DiggerPolicyChecker) Check(namespace string, projectName string, input i
 		return false, err
 	}
 	ctx := context.Background()
-	// Create a new query that uses the compiled policy from above.
 	query, err := rego.New(
 		rego.Query("data.digger.allow"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
 
 	if err != nil {
-		// handle error
 		return false, err
 	}
 
 	results, err := query.Eval(ctx, rego.EvalInput(input))
-	// Process result
 	if len(results) == 0 || len(results[0].Expressions) == 0 {
 		return false, fmt.Errorf("no result found")
 	}
 
-	// Assuming the decision is a boolean
 	expressions := results[0].Expressions
 
 	for _, expression := range expressions {
