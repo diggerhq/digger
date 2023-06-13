@@ -39,6 +39,13 @@ func (lock *MockLock) GetLock(resource string) (*int, error) {
 	return nil, nil
 }
 
+type MockPolicyChecker struct {
+}
+
+func (t MockPolicyChecker) Check(_ string, _ string, _ interface{}) (bool, error) {
+	return false, nil
+}
+
 type MockPullRequestManager struct {
 	ChangedFiles []string
 }
