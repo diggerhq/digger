@@ -59,6 +59,28 @@ func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string) (string, err
 		"", nil
 }
 
+type DiggerExamplePolicyProvider2 struct {
+}
+
+func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string) (string, error) {
+	return "package digger\n" +
+		"\n" +
+		"user_permissions := {\n" +
+		"    \"motatoes\": [\"digger plan\"], \"Spartakovic\": [\"digger plan\", \"digger apply\"]\n" +
+		"}\n" +
+		"\n" +
+		"default allow = false\n" +
+		"allow {\n" +
+		"    permissions := user_permissions[input.user]\n" +
+		"    p := permissions[_]\n" +
+		"    p == input.action\n" +
+		"}\n" +
+		"allow {\n" +
+		"    1 == 1\n" +
+		"}\n" +
+		"", nil
+}
+
 func TestDiggerPolicyChecker_Check(t *testing.T) {
 	type fields struct {
 		PolicyProvider PolicyProvider
@@ -128,6 +150,20 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 				},
 			},
 			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "test digger example 4",
+			fields: fields{
+				PolicyProvider: &DiggerExamplePolicyProvider2{},
+			},
+			args: args{
+				input: map[string]interface{}{
+					"user":   "motatoes",
+					"action": "digger plan",
+				},
+			},
+			want:    true,
 			wantErr: false,
 		},
 	}
