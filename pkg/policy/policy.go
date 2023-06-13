@@ -54,9 +54,7 @@ type DiggerPolicyChecker struct {
 
 func (p DiggerPolicyChecker) Check(namespace string, projectName string, input interface{}) (bool, error) {
 	policy, err := p.PolicyProvider.GetPolicy(namespace, projectName)
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	fmt.Println(policy)
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 	if err != nil {
 		return false, err
 	}
