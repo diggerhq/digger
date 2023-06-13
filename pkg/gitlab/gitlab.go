@@ -249,7 +249,7 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.WorkflowConfig) ([]models.ProjectCommand, bool, error) {
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]models.ProjectCommand, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)

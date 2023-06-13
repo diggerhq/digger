@@ -941,7 +941,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	pullRequestNumber := 11
 	dev := configuration.Project{Name: "dev", Dir: "dev", Workflow: "dev"}
 	prod := configuration.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
-	workflows := map[string]configuration.WorkflowConfig{
+	workflows := map[string]configuration.Workflow{
 		"dev": {
 			Plan: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
