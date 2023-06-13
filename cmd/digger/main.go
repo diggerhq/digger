@@ -6,6 +6,7 @@ import (
 	"digger/pkg/configuration"
 	core_locking "digger/pkg/core/locking"
 	"digger/pkg/core/models"
+	core_policy "digger/pkg/core/policy"
 	core_storage "digger/pkg/core/storage"
 	"digger/pkg/digger"
 	"digger/pkg/gcp"
@@ -13,6 +14,7 @@ import (
 	github_models "digger/pkg/github/models"
 	"digger/pkg/gitlab"
 	"digger/pkg/locking"
+	"digger/pkg/policy"
 	"digger/pkg/reporting"
 	"digger/pkg/storage"
 	"digger/pkg/usage"
@@ -20,11 +22,12 @@ import (
 	"fmt"
 	"github.com/google/go-github/v51/github"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 )
 
-func gitHubCI(lock core_locking.Lock) {
+func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	println("Using GitHub.")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -105,7 +108,7 @@ func gitHubCI(lock core_locking.Lock) {
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
-	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, reporter, planStorage, currentDir)
+	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, reporter, planStorage, policyChecker, currentDir)
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -126,7 +129,7 @@ func gitHubCI(lock core_locking.Lock) {
 	}()
 }
 
-func gitLabCI(lock core_locking.Lock) {
+func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	println("Using GitLab.")
 
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
@@ -194,7 +197,7 @@ func gitLabCI(lock core_locking.Lock) {
 		CiService: gitlabService,
 		PrNumber:  *gitLabContext.MergeRequestIId,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, reporter, planStorage, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, reporter, planStorage, policyChecker, currentDir)
 
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
@@ -217,7 +220,7 @@ func gitLabCI(lock core_locking.Lock) {
 	}()
 }
 
-func azureCI(lock core_locking.Lock) {
+func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	fmt.Println("> Azure CI detected")
 	azureContext := os.Getenv("AZURE_CONTEXT")
 	azureToken := os.Getenv("AZURE_TOKEN")
@@ -272,7 +275,7 @@ func azureCI(lock core_locking.Lock) {
 		CiService: azureService,
 		PrNumber:  prNumber,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, reporter, planStorage, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, reporter, planStorage, policyChecker, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -317,7 +320,17 @@ func main() {
 		utils.DisplayCommands()
 		os.Exit(0)
 	}
-
+	var policyChecker core_policy.Checker
+	if os.Getenv("POLICY_CHECK_ENABLED") == "true" {
+		policyChecker = policy.DiggerPolicyChecker{
+			PolicyProvider: &policy.DiggerHttpPolicyProvider{
+				DiggerHost: os.Getenv("DIGGER_CLOUD_HOSTNAME"),
+				AuthToken:  os.Getenv("DIGGER_CLOUD_TOKEN"),
+				HttpClient: http.DefaultClient,
+			}}
+	} else {
+		policyChecker = policy.NoOpPolicyChecker{}
+	}
 	lock, err := locking.GetLock()
 	if err != nil {
 		fmt.Printf("Failed to create lock provider. %s\n", err)
@@ -328,11 +341,11 @@ func main() {
 	ci := digger.DetectCI()
 	switch ci {
 	case digger.GitHub:
-		gitHubCI(lock)
+		gitHubCI(lock, policyChecker)
 	case digger.GitLab:
-		gitLabCI(lock)
+		gitLabCI(lock, policyChecker)
 	case digger.Azure:
-		azureCI(lock)
+		azureCI(lock, policyChecker)
 	case digger.BitBucket:
 	case digger.None:
 		print("No CI detected.")
