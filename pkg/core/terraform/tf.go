@@ -47,8 +47,8 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool
 func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[string]string, arg ...string) (string, string, error) {
 	args := []string{command}
 	args = append(args, arg...)
-	args = append(args, "--terragrunt-working-dir", terragrunt.WorkingDir)
 	cmd := exec.Command("terragrunt", args...)
+	cmd.Dir = terragrunt.WorkingDir
 
 	env := os.Environ()
 	env = append(env, "TF_CLI_ARGS=-no-color")
@@ -104,8 +104,7 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 }
 
 func (tf Terraform) runTerraformCommand(command string, envs map[string]string, arg ...string) (string, string, int, error) {
-	args := []string{"-chdir=" + tf.WorkingDir}
-	args = append(args, command)
+	args := []string{command}
 	args = append(args, arg...)
 
 	var stdout, stderr bytes.Buffer
@@ -113,6 +112,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
 
 	cmd := exec.Command("terraform", args...)
+	cmd.Dir = tf.WorkingDir
 
 	env := os.Environ()
 	for k, v := range envs {

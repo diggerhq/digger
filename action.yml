@@ -71,7 +71,10 @@ inputs:
     description: Disable locking
     required: false
     default: 'false'
-
+  setup-tfenv:
+    description: Setup tfenv
+    required: false
+    default: 'false'
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -141,6 +144,10 @@ runs:
         terraform_version: ${{ inputs.terraform-version }}
         terraform_wrapper: false
       if: inputs.setup-terraform == 'true'
+
+    - name: Setup tfenv
+      uses: rhythmictech/actions-setup-tfenv@v0.0.2
+      if: inputs.setup-tfenv == 'true'
 
     - name: Setup Terragrunt
       uses: autero1/action-terragrunt@v1.3.2
