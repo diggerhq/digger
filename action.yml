@@ -78,6 +78,10 @@ inputs:
   digger-cloud-token:
     description: Digger cloud token
     required: false
+  digger-cloud-hostname:
+    description: Digger cloud hostname
+    required: false
+    default: 'https://cloud.digger.dev'
   setup-tfenv:
     description: Setup tfenv
     required: false
@@ -181,6 +185,7 @@ runs:
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
         POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
         DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
+        DIGGER_CLOUD_HOSTNAME: ${{ inputs.digger-cloud-hostname }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -197,6 +202,7 @@ runs:
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
         POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
         DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
+        DIGGER_CLOUD_HOSTNAME: ${{ inputs.digger-cloud-hostname }}
       id: digger
       shell: bash
       run: |
