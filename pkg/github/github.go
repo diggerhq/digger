@@ -132,7 +132,7 @@ func GetGitHubContext(ghContext string) (*models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.WorkflowConfig) ([]dg_models.ProjectCommand, bool, error) {
+func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.ProjectCommand, bool, error) {
 	commandsPerProject := make([]dg_models.ProjectCommand, 0)
 
 	switch event.(type) {
