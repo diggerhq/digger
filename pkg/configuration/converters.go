@@ -4,7 +4,6 @@ import (
 	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/jinzhu/copier"
 	"path/filepath"
 )
 
@@ -93,7 +92,6 @@ func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 			apply,
 			configuration,
 		}
-		copier.Copy(&w, &item)
 		result[i] = item
 	}
 	return result
