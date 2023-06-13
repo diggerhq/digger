@@ -12,6 +12,7 @@ import (
 	"digger/pkg/core/terraform"
 	"digger/pkg/locking"
 	"digger/pkg/usage"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -68,7 +69,12 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 			}
 
 			if !allowedToPerformCommand {
-				return false, false, fmt.Errorf("user %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
+				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
+				err := ciService.PublishComment(prNumber, msg)
+				if err != nil {
+					log.Printf("Error publishing comment: %v", err)
+				}
+				return false, false, errors.New(msg)
 			}
 
 			projectLock := &locking.PullRequestLock{
