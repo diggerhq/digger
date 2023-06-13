@@ -69,10 +69,6 @@ func copyStage(stage *StageYaml) *models.Stage {
 
 func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfiguration {
 	result := WorkflowConfiguration{}
-	result.OnPullRequestClosed = make([]string, len(config.OnPullRequestClosed))
-	result.OnPullRequestPushed = make([]string, len(config.OnPullRequestPushed))
-	result.OnCommitToDefault = make([]string, len(config.OnCommitToDefault))
-
 	result.OnPullRequestClosed = config.OnPullRequestClosed
 	result.OnPullRequestPushed = config.OnPullRequestPushed
 	result.OnCommitToDefault = config.OnCommitToDefault
