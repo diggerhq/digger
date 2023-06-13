@@ -6,7 +6,7 @@ type DiggerConfig struct {
 	Projects         []Project
 	AutoMerge        bool
 	CollectUsageData bool
-	Workflows        map[string]WorkflowConfig
+	Workflows        map[string]Workflow
 }
 
 type Project struct {
@@ -19,7 +19,7 @@ type Project struct {
 	ExcludePatterns []string
 }
 
-type WorkflowConfig struct {
+type Workflow struct {
 	EnvVars       *TerraformEnvConfig
 	Plan          *models.Stage
 	Apply         *models.Stage
@@ -43,8 +43,8 @@ type EnvVar struct {
 	Value     string
 }
 
-func defaultWorkflow() *WorkflowConfig {
-	return &WorkflowConfig{
+func defaultWorkflow() *Workflow {
+	return &Workflow{
 		Configuration: &WorkflowConfiguration{
 			OnCommitToDefault:   []string{"digger unlock"},
 			OnPullRequestPushed: []string{"digger plan"},

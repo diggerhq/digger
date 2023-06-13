@@ -80,14 +80,14 @@ func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfi
 	return &result
 }
 
-func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]WorkflowConfig {
-	result := make(map[string]WorkflowConfig, len(workflows))
+func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
+	result := make(map[string]Workflow, len(workflows))
 	for i, w := range workflows {
 		envVars := copyTerraformEnvConfig(w.EnvVars)
 		plan := copyStage(w.Plan)
 		apply := copyStage(w.Apply)
 		configuration := copyWorkflowConfiguration(w.Configuration)
-		item := WorkflowConfig{
+		item := Workflow{
 			envVars,
 			plan,
 			apply,
@@ -127,7 +127,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		}
 	} else {
 		workflow := *defaultWorkflow()
-		diggerConfig.Workflows = make(map[string]WorkflowConfig)
+		diggerConfig.Workflows = make(map[string]Workflow)
 		diggerConfig.Workflows[defaultWorkflowName] = workflow
 	}
 

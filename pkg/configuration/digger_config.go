@@ -75,7 +75,7 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error
 		fmt.Println("No digger config found, using default one")
 		config.Projects = make([]Project, 1)
 		config.Projects[0] = defaultProject()
-		config.Workflows = make(map[string]WorkflowConfig)
+		config.Workflows = make(map[string]Workflow)
 		config.Workflows["default"] = *defaultWorkflow()
 		return config, nil
 	}
@@ -164,7 +164,7 @@ func (c *DiggerConfig) GetDirectory(projectName string) string {
 	return project.Dir
 }
 
-func (c *DiggerConfig) GetWorkflow(workflowName string) *WorkflowConfig {
+func (c *DiggerConfig) GetWorkflow(workflowName string) *Workflow {
 	workflows := c.Workflows
 
 	workflow, ok := workflows[workflowName]
