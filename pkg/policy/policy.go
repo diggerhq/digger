@@ -6,6 +6,7 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 type PolicyProvider interface {
@@ -27,7 +28,8 @@ func (p NoOpPolicyChecker) Check(_ string, _ string, _ interface{}) (bool, error
 
 func (p *DiggerHttpPolicyProvider) GetPolicy(namespace string, projectName string) (string, error) {
 	// fetch RBAC policies from Digger API
-	req, err := http.NewRequest("GET", p.DiggerHost+"/repos/"+namespace+"/projects/"+projectName+"/policies", nil)
+	namespace = strings.ReplaceAll(namespace, "/", "-")
+	req, err := http.NewRequest("GET", p.DiggerHost+"/repos/"+namespace+"/projects/"+projectName+"/access-policy", nil)
 	if err != nil {
 		return "", err
 	}
