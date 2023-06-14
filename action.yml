@@ -157,7 +157,7 @@ runs:
       if: inputs.setup-terraform == 'true'
 
     - name: Setup tfenv
-      uses: rhythmictech/actions-setup-tfenv@v0.0.2
+      uses: rhythmictech/actions-setup-tfenv@v0.1.2
       if: inputs.setup-tfenv == 'true'
 
     - name: Setup Terragrunt
