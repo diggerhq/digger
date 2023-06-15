@@ -7,7 +7,7 @@ import (
 type OpaExamplePolicyProvider struct {
 }
 
-func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error) {
+func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"# user-role assignments\n" +
@@ -43,7 +43,7 @@ func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error)
 type DiggerExamplePolicyProvider struct {
 }
 
-func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"user_permissions := {\n" +
@@ -62,7 +62,7 @@ func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string) (string, err
 type DiggerExamplePolicyProvider2 struct {
 }
 
-func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"user_permissions := {\n" +
