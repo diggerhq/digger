@@ -17,6 +17,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -58,9 +59,19 @@ func DetectCI() CIName {
 
 func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
+	organisation := strings.Split(projectNamespace, "/")[0]
+	teams, err := ciService.GetUserTeams(organisation, requestedBy)
+	if err != nil {
+		fmt.Printf("Error while fetching user teams for CI service: %v", err)
+	}
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
-			policyInput := map[string]interface{}{"user": requestedBy, "action": command}
+			policyInput := map[string]interface{}{
+				"user":         requestedBy,
+				"organisation": organisation,
+				"teams":        teams,
+				"action":       command,
+			}
 
 			allowedToPerformCommand, err := policyChecker.Check(projectNamespace, projectCommands.ProjectName, policyInput)
 
