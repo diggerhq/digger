@@ -74,7 +74,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 				"project":      projectCommands.ProjectName,
 			}
 
-			allowedToPerformCommand, err := policyChecker.Check(projectNamespace, projectCommands.ProjectName, policyInput)
+			allowedToPerformCommand, err := policyChecker.Check(organisation, projectNamespace, projectCommands.ProjectName, policyInput)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
