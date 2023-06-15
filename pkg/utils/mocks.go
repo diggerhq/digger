@@ -51,7 +51,7 @@ type MockPullRequestManager struct {
 }
 
 func (t MockPullRequestManager) GetUserTeams(organisation string, user string) ([]string, error) {
-	return nil, nil
+	return []string{}, nil
 }
 
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
