@@ -100,8 +100,8 @@ type DiggerPolicyChecker struct {
 	PolicyProvider PolicyProvider
 }
 
-func (p DiggerPolicyChecker) Check(namespace string, projectName string, input interface{}) (bool, error) {
-	policy, err := p.PolicyProvider.GetPolicy("", namespace, projectName)
+func (p DiggerPolicyChecker) Check(organisation string, namespace string, projectName string, input interface{}) (bool, error) {
+	policy, err := p.PolicyProvider.GetPolicy(organisation, namespace, projectName)
 
 	if err != nil {
 		return false, err
