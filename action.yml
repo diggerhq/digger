@@ -71,6 +71,17 @@ inputs:
     description: Disable locking
     required: false
     default: 'false'
+  policy-check-enabled:
+    description: Enable policy check
+    required: false
+    default: 'false'
+  digger-cloud-token:
+    description: Digger cloud token
+    required: false
+  digger-cloud-hostname:
+    description: Digger cloud hostname
+    required: false
+    default: 'https://cloud.digger.dev'
   setup-tfenv:
     description: Setup tfenv
     required: false
@@ -146,7 +157,7 @@ runs:
       if: inputs.setup-terraform == 'true'
 
     - name: Setup tfenv
-      uses: rhythmictech/actions-setup-tfenv@v0.0.2
+      uses: rhythmictech/actions-setup-tfenv@v0.1.2
       if: inputs.setup-tfenv == 'true'
 
     - name: Setup Terragrunt
@@ -172,6 +183,9 @@ runs:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
+        DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
+        DIGGER_CLOUD_HOSTNAME: ${{ inputs.digger-cloud-hostname }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -186,6 +200,9 @@ runs:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
+        DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
+        DIGGER_CLOUD_HOSTNAME: ${{ inputs.digger-cloud-hostname }}
       id: digger
       shell: bash
       run: |

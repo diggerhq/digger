@@ -350,23 +350,15 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			var coreApplyStage models.Stage
-			if workflow.Apply != nil {
-				coreApplyStage = workflow.Apply.ToCoreStage()
-			}
-			var corePlanStage models.Stage
-			if workflow.Plan != nil {
-				corePlanStage = workflow.Plan.ToCoreStage()
-			}
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       &coreApplyStage,
-				PlanStage:        &corePlanStage,
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -379,23 +371,15 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-			var coreApplyStage models.Stage
-			if workflow.Apply != nil {
-				coreApplyStage = workflow.Apply.ToCoreStage()
-			}
-			var corePlanStage models.Stage
-			if workflow.Plan != nil {
-				corePlanStage = workflow.Plan.ToCoreStage()
-			}
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 				ProjectName:      project.Name,
 				ProjectDir:       project.Dir,
 				ProjectWorkspace: project.Workspace,
 				Terragrunt:       project.Terragrunt,
 				Commands:         workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:       &coreApplyStage,
-				PlanStage:        &corePlanStage,
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			})
@@ -408,23 +392,15 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				if !ok {
 					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 				}
-				stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
-				var coreApplyStage models.Stage
-				if workflow.Apply != nil {
-					coreApplyStage = workflow.Apply.ToCoreStage()
-				}
-				var corePlanStage models.Stage
-				if workflow.Plan != nil {
-					corePlanStage = workflow.Plan.ToCoreStage()
-				}
+				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 				commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 					ProjectName:      project.Name,
 					ProjectDir:       project.Dir,
 					ProjectWorkspace: project.Workspace,
 					Terragrunt:       project.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       &coreApplyStage,
-					PlanStage:        &corePlanStage,
+					ApplyStage:       workflow.Apply,
+					PlanStage:        workflow.Plan,
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 				})
@@ -465,7 +441,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					if !ok {
 						return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 					}
-					stateEnvVars, commandEnvVars := configuration.CollectEnvVars(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
 					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
 						ProjectName:      project.Name,

@@ -2,9 +2,10 @@ package main
 
 import (
 	"digger/pkg/configuration"
+	"digger/pkg/core/models"
 	"digger/pkg/digger"
 	"digger/pkg/github"
-	"digger/pkg/github/models"
+	gh_models "digger/pkg/github/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
@@ -877,6 +878,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
+	policyChecker := &utils.MockPolicyChecker{}
 
 	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
@@ -885,7 +887,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		PrNumber:  prNumber,
 	}
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -894,7 +896,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 }
 
 func TestGitHubNewCommentContext(t *testing.T) {
-	context, err := models.GetGitHubContext(githubContextCommentJson)
+	context, err := gh_models.GetGitHubContext(githubContextCommentJson)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -910,10 +912,13 @@ func TestGitHubNewCommentContext(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  prNumber,
 	}
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
 
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, "")
+	policyChecker := &utils.MockPolicyChecker{}
+
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
+
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -922,7 +927,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 }
 
 func TestInvalidGitHubContext(t *testing.T) {
-	_, err := models.GetGitHubContext(githubInvalidContextJson)
+	_, err := gh_models.GetGitHubContext(githubInvalidContextJson)
 	require.Error(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -938,11 +943,11 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	prod := configuration.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
 	workflows := map[string]configuration.Workflow{
 		"dev": {
-			Plan: &configuration.Stage{Steps: []configuration.Step{
+			Plan: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &configuration.Stage{Steps: []configuration.Step{
+			Apply: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
@@ -953,11 +958,11 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 			},
 		},
 		"prod": {
-			Plan: &configuration.Stage{Steps: []configuration.Step{
+			Plan: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &configuration.Stage{Steps: []configuration.Step{
+			Apply: &models.Stage{Steps: []models.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},

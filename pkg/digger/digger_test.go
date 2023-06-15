@@ -208,6 +208,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  1,
 	}
+
 	executor := execution.DiggerExecutor{
 		ApplyStage: &models.Stage{},
 		PlanStage: &models.Stage{

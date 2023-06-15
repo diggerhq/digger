@@ -5,12 +5,14 @@ import (
 	"digger/pkg/core/execution"
 	core_locking "digger/pkg/core/locking"
 	"digger/pkg/core/models"
+	"digger/pkg/core/policy"
 	"digger/pkg/core/reporting"
 	"digger/pkg/core/runners"
 	"digger/pkg/core/storage"
 	"digger/pkg/core/terraform"
 	"digger/pkg/locking"
 	"digger/pkg/usage"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -54,10 +56,26 @@ func DetectCI() CIName {
 
 }
 
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, workingDir string) (bool, bool, error) {
+func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, workingDir string) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
+			policyInput := map[string]interface{}{"user": requestedBy, "action": command}
+
+			allowedToPerformCommand, err := policyChecker.Check(projectNamespace, projectCommands.ProjectName, policyInput)
+
+			if err != nil {
+				return false, false, fmt.Errorf("error checking policy: %v", err)
+			}
+
+			if !allowedToPerformCommand {
+				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
+				err := ciService.PublishComment(prNumber, msg)
+				if err != nil {
+					log.Printf("Error publishing comment: %v", err)
+				}
+				return false, false, errors.New(msg)
+			}
 
 			projectLock := &locking.PullRequestLock{
 				InternalLock:     lock,
