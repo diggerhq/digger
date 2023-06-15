@@ -75,6 +75,7 @@ func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfi
 	return &result
 }
 
+// converts dict of WorkflowYaml's to dict of Workflow's
 func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 	result := make(map[string]Workflow, len(workflows))
 	for i, w := range workflows {
