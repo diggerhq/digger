@@ -55,6 +55,10 @@ type MockPRManager struct {
 	Commands []RunInfo
 }
 
+func (m *MockPRManager) GetUserTeams(organisation string, user string) ([]string, error) {
+	return []string{}, nil
+}
+
 func (m *MockPRManager) GetChangedFiles(prNumber int) ([]string, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetChangedFiles", strconv.Itoa(prNumber), time.Now()})
 	return []string{}, nil
