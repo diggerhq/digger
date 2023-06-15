@@ -33,12 +33,15 @@ type GithubService struct {
 func (svc *GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
 
 	teamsResponse, _, _ := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
+	fmt.Printf("	DEBUG: list of teams!! %v", teamsResponse)
 	var teams []string
 	for _, team := range teamsResponse {
 		teamMembers, _, _ := svc.Client.Teams.ListTeamMembersBySlug(context.Background(), organisation, *team.Slug, nil)
+		fmt.Printf("		DEBUG: Team members for team %v!! %v", *team.Slug, teamMembers)
 		for _, member := range teamMembers {
 			if *member.Login == user {
 				teams = append(teams, *team.Slug)
+				break
 			}
 		}
 	}

@@ -89,11 +89,12 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 		input interface{}
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    bool
-		wantErr bool
+		name         string
+		organisation string
+		fields       fields
+		args         args
+		want         bool
+		wantErr      bool
 	}{
 		{
 			name: "test opa example",
@@ -102,9 +103,10 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 			},
 			args: args{
 				input: map[string]interface{}{
-					"user":   "alice",
-					"action": "read",
-					"object": "server123",
+					"organisation": "diggerhq",
+					"user":         "alice",
+					"action":       "read",
+					"object":       "server123",
 				},
 			},
 			want:    true,
@@ -173,7 +175,7 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 			p := &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
-			got, err := p.Check(tt.name, tt.name, tt.args.input)
+			got, err := p.Check(tt.organisation, tt.name, tt.name, tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.Check() error = %v, wantErr %v", err, tt.wantErr)
 				return
