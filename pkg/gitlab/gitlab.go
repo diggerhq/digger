@@ -143,6 +143,10 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 	return fileNames, nil
 }
 
+func (gitlabService GitLabService) GetUserTeams(organisation string, user string) ([]string, error) {
+	return make([]string, 0), nil
+}
+
 func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) error {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
