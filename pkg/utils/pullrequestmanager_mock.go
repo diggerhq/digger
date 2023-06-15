@@ -5,7 +5,7 @@ type MockGithubPullrequestManager struct {
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetUserTeams(organisation string, user string) ([]string, error) {
-	return nil, nil
+	return []string{}, nil
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetChangedFiles(prNumber int) ([]string, error) {
