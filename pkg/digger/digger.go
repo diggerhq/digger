@@ -66,6 +66,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 	}
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
+
 			policyInput := map[string]interface{}{
 				"user":         requestedBy,
 				"organisation": organisation,

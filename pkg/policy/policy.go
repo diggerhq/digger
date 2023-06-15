@@ -107,6 +107,7 @@ func (p DiggerPolicyChecker) Check(organisation string, namespace string, projec
 		return false, err
 	}
 	ctx := context.Background()
+	fmt.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
 	query, err := rego.New(
 		rego.Query("data.digger.allow"),
 		rego.Module("digger", policy),
