@@ -71,6 +71,7 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 				"organisation": organisation,
 				"teams":        teams,
 				"action":       command,
+				"project":      projectCommands.ProjectName,
 			}
 
 			allowedToPerformCommand, err := policyChecker.Check(projectNamespace, projectCommands.ProjectName, policyInput)
