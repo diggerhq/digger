@@ -32,8 +32,8 @@ type GithubService struct {
 
 func (svc *GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
 
-	teamsResponse, _, _ := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
-	fmt.Printf("	DEBUG: list of teams!! for org %s and user %s --> %v", organisation, user, teamsResponse)
+	teamsResponse, response, _ := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
+	fmt.Printf("	DEBUG: list of teams!! for org %s and user %s --> %v ||| resposne %v", organisation, user, teamsResponse, response)
 	var teams []string
 	for _, team := range teamsResponse {
 		teamMembers, _, _ := svc.Client.Teams.ListTeamMembersBySlug(context.Background(), organisation, *team.Slug, nil)
