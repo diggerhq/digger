@@ -450,11 +450,12 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		}
 
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
+		inputCommands := strings.ToLower(diggerCommand)
 		for _, command := range supportedCommands {
-			if strings.Contains(diggerCommand, command) {
+			if strings.Contains(inputCommands, command) {
 				for _, project := range runForProjects {
 					workspace := project.Workspace
-					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
+					workspaceOverride, err := utils.ParseWorkspace(inputCommands)
 					if err != nil {
 						return []models.ProjectCommand{}, coversAllImpactedProjects, err
 					}

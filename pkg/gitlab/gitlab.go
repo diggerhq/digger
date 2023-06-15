@@ -320,16 +320,16 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
 		}
-
+        inputCommands := strings.ToLower(gitLabContext.DiggerCommand)
 		for _, command := range supportedCommands {
-			if strings.Contains(gitLabContext.DiggerCommand, command) {
+			if strings.Contains(inputCommands, command) {
 				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
 						workflow = workflows["default"]
 					}
 					workspace := project.Workspace
-					workspaceOverride, err := utils.ParseWorkspace(gitLabContext.DiggerCommand)
+					workspaceOverride, err := utils.ParseWorkspace(inputCommands)
 					if err != nil {
 						return []models.ProjectCommand{}, false, err
 					}

@@ -202,9 +202,9 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
 		}
-
+		inputCommands := strings.ToLower(event.Comment.Body)
 		for _, command := range supportedCommands {
-			if strings.Contains(event.Comment.Body, command) {
+			if strings.Contains(inputCommands, command) {
 				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
@@ -215,7 +215,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					coreApplyStage := workflow.Apply.ToCoreStage()
 					corePlanStage := workflow.Plan.ToCoreStage()
 					workspace := project.Workspace
-					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
+					workspaceOverride, err := utils.ParseWorkspace(inputCommands)
 					if err != nil {
 						return []dg_models.ProjectCommand{}, false, err
 					}
@@ -285,10 +285,11 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 }
 
 func issueCommentEventContainsComment(event models.Event, comment string) bool {
+	inputCommands := strings.ToLower(event.Comment.Body)
 	switch event.(type) {
 	case models.IssueCommentEvent:
 		event := event.(models.IssueCommentEvent)
-		if strings.Contains(event.Comment.Body, comment) {
+		if strings.Contains(inputCommands, comment) {
 			return true
 		}
 	}
