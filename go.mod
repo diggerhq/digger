@@ -8,7 +8,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.1
 	github.com/aws/aws-sdk-go v1.44.282
 	github.com/bmatcuk/doublestar/v4 v4.6.0
-	github.com/caarlos0/env/v7 v7.1.0
+	github.com/caarlos0/env/v8 v8.0.0
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/google/go-github/v53 v53.1.0
 	github.com/google/go-github/v53 v53.1.0
