@@ -202,8 +202,10 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			}
 		}
 
+		diggerCommand := strings.ToLower(event.Comment.Body)
+
 		for _, command := range supportedCommands {
-			if strings.Contains(event.Comment.Body, command) {
+			if strings.Contains(diggerCommand, command) {
 				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {

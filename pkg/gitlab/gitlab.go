@@ -101,7 +101,8 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuratio
 
 	switch gitlabContext.EventType {
 	case MergeRequestComment:
-		requestedProject := utils.ParseProjectName(gitlabContext.DiggerCommand)
+		diggerCommand := strings.ToLower(gitlabContext.DiggerCommand)
+		requestedProject := utils.ParseProjectName(diggerCommand)
 
 		if requestedProject == "" {
 			return impactedProjects, nil, nil
@@ -311,15 +312,16 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			}
 		}
 
+		diggerCommand := strings.ToLower(gitLabContext.DiggerCommand)
 		for _, command := range supportedCommands {
-			if strings.Contains(gitLabContext.DiggerCommand, command) {
+			if strings.Contains(diggerCommand, command) {
 				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
 						workflow = workflows["default"]
 					}
 					workspace := project.Workspace
-					workspaceOverride, err := utils.ParseWorkspace(gitLabContext.DiggerCommand)
+					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
 					if err != nil {
 						return []models.ProjectCommand{}, false, err
 					}
