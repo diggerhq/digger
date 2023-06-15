@@ -75,20 +75,26 @@ func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfi
 	return &result
 }
 
+// converts dict of WorkflowYaml's to dict of Workflow's
 func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 	result := make(map[string]Workflow, len(workflows))
 	for i, w := range workflows {
-		envVars := copyTerraformEnvConfig(w.EnvVars)
-		plan := copyStage(w.Plan)
-		apply := copyStage(w.Apply)
-		configuration := copyWorkflowConfiguration(w.Configuration)
-		item := Workflow{
-			envVars,
-			plan,
-			apply,
-			configuration,
+		if w == nil {
+			item := *defaultWorkflow()
+			result[i] = item
+		} else {
+			envVars := copyTerraformEnvConfig(w.EnvVars)
+			plan := copyStage(w.Plan)
+			apply := copyStage(w.Apply)
+			configuration := copyWorkflowConfiguration(w.Configuration)
+			item := Workflow{
+				envVars,
+				plan,
+				apply,
+				configuration,
+			}
+			result[i] = item
 		}
-		result[i] = item
 	}
 	return result
 }
@@ -159,5 +165,17 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 			}
 		}
 	}
+
+	// if one of the workflows is missing Plan or Apply we copy default values
+	for _, w := range diggerConfig.Workflows {
+		defaultWorkflow := *defaultWorkflow()
+		if w.Plan == nil {
+			w.Plan = defaultWorkflow.Plan
+		}
+		if w.Apply == nil {
+			w.Apply = defaultWorkflow.Apply
+		}
+	}
+
 	return &diggerConfig, nil
 }
