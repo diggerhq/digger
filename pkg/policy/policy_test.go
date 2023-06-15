@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -180,6 +181,9 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("DiggerPolicyChecker.Check() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("DiggerPolicyChecker.Check() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
