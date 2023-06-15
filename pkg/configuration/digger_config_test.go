@@ -422,11 +422,11 @@ workflows:
 
 	diggerConfig, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.Equal(t, "my_custom_workflow", diggerConfig.Projects[0].Workflow)
-	workflows, ok := diggerConfig.Workflows["my_custom_workflow"]
+	workflow, ok := diggerConfig.Workflows["my_custom_workflow"]
 	assert.True(t, ok)
-	assert.NotNil(t, workflows)
-	assert.NotNil(t, workflows.Plan)
-	assert.NotNil(t, workflows.Apply)
+	assert.NotNil(t, workflow)
+	assert.NotNil(t, workflow.Plan)
+	assert.NotNil(t, workflow.Apply)
 
 }
 
