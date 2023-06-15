@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.30.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.1
-	github.com/aws/aws-sdk-go v1.44.279
+	github.com/aws/aws-sdk-go v1.44.282
 	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/caarlos0/env/v7 v7.1.0
 	github.com/google/go-github/v51 v51.0.0
@@ -15,7 +15,7 @@ require (
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/open-policy-agent/opa v0.53.1
 	github.com/stretchr/testify v1.8.4
-	github.com/xanzy/go-gitlab v0.84.0
+	github.com/xanzy/go-gitlab v0.85.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
