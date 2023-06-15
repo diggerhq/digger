@@ -232,6 +232,13 @@ func (s *Step) extract(stepMap map[string]interface{}, action string) {
 				extraArgs = append(extraArgs, v.(string))
 			}
 			s.ExtraArgs = extraArgs
+		} else {
+			if v, ok := stepMap[action].(map[string]interface{})["extra_args"]; ok {
+				for _, v := range v.([]interface{}) {
+					extraArgs = append(extraArgs, v.(string))
+				}
+				s.ExtraArgs = extraArgs
+			}
 		}
 	}
 }
