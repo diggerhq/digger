@@ -50,6 +50,10 @@ type MockPullRequestManager struct {
 	ChangedFiles []string
 }
 
+func (t MockPullRequestManager) GetUserTeams(organisation string, user string) ([]string, error) {
+	return nil, nil
+}
+
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
 	return t.ChangedFiles, nil
 }
