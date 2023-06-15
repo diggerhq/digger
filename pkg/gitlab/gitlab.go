@@ -320,7 +320,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
 		}
-        inputCommands := strings.ToLower(gitLabContext.DiggerCommand)
+        	inputCommands := strings.ToLower(gitLabContext.DiggerCommand)
 		for _, command := range supportedCommands {
 			if strings.Contains(inputCommands, command) {
 				for _, project := range runForProjects {
