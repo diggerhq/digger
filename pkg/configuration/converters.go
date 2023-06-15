@@ -165,6 +165,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		}
 	}
 
+	// if one of the workflows is missing Plan or Apply we copy default values
 	for _, w := range diggerConfig.Workflows {
 		defaultWorkflow := *defaultWorkflow()
 		if w.Plan == nil {
