@@ -86,6 +86,10 @@ inputs:
     description: Setup tfenv
     required: false
     default: 'false'
+  post-plans-as-one-comment:
+    description: Post plans as one comment
+    required: false
+    default: 'false'
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -186,6 +190,7 @@ runs:
         POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
         DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
         DIGGER_CLOUD_HOSTNAME: ${{ inputs.digger-cloud-hostname }}
+        ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -203,6 +208,7 @@ runs:
         POLICY_CHECK_ENABLED: ${{ inputs.policy-check-enabled == 'true' }}
         DIGGER_CLOUD_TOKEN: ${{ inputs.digger-cloud-token }}
         DIGGER_CLOUD_HOSTNAME: ${{ inputs.digger-cloud-hostname }}
+        ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
       id: digger
       shell: bash
       run: |
