@@ -12,6 +12,7 @@ But why have 2 CI systems? Why not reuse the async jobs infrastructure with comp
 Digger runs terraform natively in your CI and takes care of the other bits - locks, plan artifacts and so on. [Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
 
 ## Features
+- See terraform plan and run apply as pull request comments
 - Runs in any CI - Github Actions, Gitlab, Azure DevOps, etc
 - Multiple VCS support - Github, Gitlab, Azure Repos, etc
 - Private runners - thanks to the fact that there are no separate runners! Your existing CI's compute environment is used
