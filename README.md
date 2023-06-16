@@ -69,7 +69,7 @@ A) We are a vc-backed startup fully focused on this tool; in terms of monetizati
 
 ## Resources
 
-- [Docs](https://docs.digger.dev/)for comprehensive documentation and guides
+- [Docs](https://docs.digger.dev/) for comprehensive documentation and guides
 - [Slack](https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q) for discussion with the community and Infisical team.
 - [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull request
 - [Medium](https://medium.com/@DiggerHQ) for terraform automation and collaboration insights, articles, tutorials, and updates.
