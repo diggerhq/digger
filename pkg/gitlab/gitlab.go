@@ -5,10 +5,11 @@ import (
 	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/caarlos0/env/v7"
-	go_gitlab "github.com/xanzy/go-gitlab"
 	"log"
 	"strings"
+
+	"github.com/caarlos0/env/v8"
+	go_gitlab "github.com/xanzy/go-gitlab"
 )
 
 // based on https://docs.gitlab.com/ee/ci/variables/predefined_variables.html

@@ -12,7 +12,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/go-github/v51/github"
+	"github.com/google/go-github/v53/github"
 )
 
 func NewGitHubService(ghToken string, repoName string, owner string) ci.CIService {
