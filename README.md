@@ -13,13 +13,14 @@ Digger runs terraform natively in your CI and takes care of the other bits - loc
 
 
 ## Features
-- 👟 Runner-less. Terraform runs in the compute environment of your existing CI such as Github Actions, Gitlab, Argo etc.
-- 🪶 Minimal / no backend. Digger's own backend is a serverless function; it is only needed for certain CI environments (eg Gitlab)
-- 🔒 Code-level locks. Avoid race conditions across multiple PRs. Similar to Atlantis workflow.
-- ☁️ Multi-cloud. At the moment Digger supports AWS and GCP; Azure support coming in April 2023 (yes, in a few weeks).
-- 💥 Projects. Allow to isolate terraform runs and locks to a specific directory
-- 💥 Terragrunt support
-- 💥 Workspaces support
+- Runs in any CI - Github Actions, Gitlab, Azure DevOps, etc
+- Multiple VCS support - Github, Gitlab, Azure Repos, etc
+- Private runners - thanks to the fact that there are no separate runners! Your existing CI's compute environment is used
+- Open Policy Agent (OPA) support for RBAC
+- PR-level locks (on top of Terraform native state locks, similar to Atlantis) to avoid race conditions across multiple PRs
+- Terragrunt, Workspaces, multiple Terraform versions, static analysis via Checkov, plan persistence, ...
+- Drift detection - coming soon
+- Cost estimation - coming soon
 
 ## Roadmap
 
