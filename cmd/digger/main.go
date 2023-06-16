@@ -20,11 +20,12 @@ import (
 	"digger/pkg/usage"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/google/go-github/v51/github"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/google/go-github/v53/github"
 )
 
 func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
