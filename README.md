@@ -48,7 +48,7 @@ Digger does not interfere with your remote backend setup. You could be using [S3
 
 Digger also doesn't differentiate locks based on statefiles - if a PR is locked, it's locked for all "instances" of state (aka [Terraform CLI Workspaces](https://developer.hashicorp.com/terraform/cloud-docs/workspaces#terraform-cloud-vs-terraform-cli-workspaces))
 
-state-level locks will keep working normally because are handled by terraform itself ([same as in Atlantis](https://www.runatlantis.io/docs/locking.html#relationship-to-terraform-state-locking))
+State-level locks will keep working normally because are handled by terraform itself ([same as in Atlantis](https://www.runatlantis.io/docs/locking.html#relationship-to-terraform-state-locking))
 
 
 ## Notes
@@ -66,8 +66,14 @@ Q) **Since you're FOSS I assume you plan to monetize by selling support? Or...?*
 
 A) We are a vc-backed startup fully focused on this tool; in terms of monetization - we are currently in the process of launching Digger Pro. Check out the features [here](https://digger.dev/#plans) and feel free to book a [demo](https://bit.ly/diggerpro) if interested.
 
-# Resources
--
+
+## Resources
+
+- [Docs](https://docs.digger.dev/)for comprehensive documentation and guides
+- [Slack](https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q) for discussion with the community and Infisical team.
+- [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull request
+- [Medium](https://medium.com/@DiggerHQ) for terraform automation and collaboration insights, articles, tutorials, and updates.
+- [Roadmap](https://diggerdev.notion.site/Digger-Roadmap-845a90fb17954afca80431580e1b3958?pvs=4) for planned features
 
 ## Links
 - [The case for a 'Headless Terraform IDP' for terraform self service](https://medium.com/@DiggerHQ/the-case-for-headless-terraform-idp-5bc5a873805f)
