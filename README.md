@@ -11,7 +11,6 @@ But why have 2 CI systems? Why not reuse the async jobs infrastructure with comp
 
 Digger runs terraform natively in your CI and takes care of the other bits - locks, plan artifacts and so on. [Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
 
-
 ## Features
 - Runs in any CI - Github Actions, Gitlab, Azure DevOps, etc
 - Multiple VCS support - Github, Gitlab, Azure Repos, etc
@@ -21,20 +20,6 @@ Digger runs terraform natively in your CI and takes care of the other bits - loc
 - Terragrunt, Workspaces, multiple Terraform versions, static analysis via Checkov, plan persistence, ...
 - Drift detection - coming soon
 - Cost estimation - coming soon
-
-## Roadmap
-
-Need a feature that's not listed? Book a [community feedback call](https://calendly.com/diggerdev/community-feedback) - we ship fast ✅
-
-- ✅ GCP support. Store PR locks in GCP storage buckets. Shipped in [#50](https://github.com/diggerhq/digger/pull/50)
-- ✅ Workspaces support. Allow usage of Terraform CLI Workspaces. Shipped in [#72](https://github.com/diggerhq/digger/pull/72)
-- ✅ Terragrunt support. Config option to run terragrunt wrapper. Shipped in [#76](https://github.com/diggerhq/digger/pull/76)
-- ✅ Azure support using Storage Account Tables WIP: [#122](https://github.com/diggerhq/digger/pull/122)
-- ⌚ AWS CodeBuild support
-- ⌛ Gitlab Support
-- ⌛ Configurable workflows. In addition to Atlantis-style (apply, then merge) also support "apply-only" and "no-lock"
-- ⌛ Bitbucket Support
-- ⌛ Jenkins Support
 
 ## How to use
 
@@ -80,6 +65,9 @@ To contribute to Digger please follow our [Contributing guide](CONTRIBUTING.md)
 Q) **Since you're FOSS I assume you plan to monetize by selling support? Or...?**
 
 A) We are a vc-backed startup fully focused on this tool; in terms of monetization - we are currently in the process of launching Digger Pro. Check out the features [here](https://digger.dev/#plans) and feel free to book a [demo](https://bit.ly/diggerpro) if interested.
+
+# Resources
+-
 
 ## Links
 - [The case for a 'Headless Terraform IDP' for terraform self service](https://medium.com/@DiggerHQ/the-case-for-headless-terraform-idp-5bc5a873805f)
