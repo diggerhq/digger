@@ -43,10 +43,11 @@ func (d DiggerExecutor) storedPlanFilePath() string {
 	return path.Join(d.ProjectNamespace, d.planFileName())
 }
 
-func (d DiggerExecutor) Plan() (bool, error) {
+func (d DiggerExecutor) Plan() (bool, string, error) {
+	plan := ""
 	locked, err := d.ProjectLock.Lock()
 	if err != nil {
-		return false, fmt.Errorf("error locking project: %v", err)
+		return false, "", fmt.Errorf("error locking project: %v", err)
 	}
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
@@ -68,7 +69,7 @@ func (d DiggerExecutor) Plan() (bool, error) {
 			if step.Action == "init" {
 				_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 				if err != nil {
-					return false, fmt.Errorf("error running init: %v", err)
+					return false, "", fmt.Errorf("error running init: %v", err)
 				}
 			}
 			if step.Action == "plan" {
@@ -76,29 +77,27 @@ func (d DiggerExecutor) Plan() (bool, error) {
 				planArgs = append(planArgs, step.ExtraArgs...)
 				isNonEmptyPlan, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
 				if err != nil {
-					return false, fmt.Errorf("error executing plan: %v", err)
+					return false, "", fmt.Errorf("error executing plan: %v", err)
 				}
 				if d.PlanStorage != nil {
 					planExists, err := d.PlanStorage.PlanExists(d.storedPlanFilePath())
 					if err != nil {
-						return false, fmt.Errorf("error checking if plan exists: %v", err)
+						return false, "", fmt.Errorf("error checking if plan exists: %v", err)
 					}
 
 					if planExists {
 						err = d.PlanStorage.DeleteStoredPlan(d.storedPlanFilePath())
 						if err != nil {
-							return false, fmt.Errorf("error deleting plan: %v", err)
+							return false, "", fmt.Errorf("error deleting plan: %v", err)
 						}
 					}
 
 					err = d.PlanStorage.StorePlan(d.localPlanFilePath(), d.storedPlanFilePath())
 					if err != nil {
-						return false, fmt.Errorf("error storing plan: %v", err)
+						return false, "", fmt.Errorf("error storing plan: %v", err)
 					}
 				}
-				plan := cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
-				comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+d.ProjectLock.LockId()+"**", plan)
-				err = d.Reporter.Report(comment)
+				plan = cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 				if err != nil {
 					fmt.Printf("error publishing comment: %v", err)
 				}
@@ -112,13 +111,13 @@ func (d DiggerExecutor) Plan() (bool, error) {
 				log.Printf("Running %v for **%v**\n", step.Value, d.ProjectLock.LockId())
 				_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 				if err != nil {
-					return false, fmt.Errorf("error running command: %v", err)
+					return false, "", fmt.Errorf("error running command: %v", err)
 				}
 			}
 		}
-		return true, nil
+		return true, plan, nil
 	}
-	return false, nil
+	return false, plan, nil
 }
 
 func (d DiggerExecutor) Apply() (bool, error) {
