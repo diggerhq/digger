@@ -10,7 +10,9 @@ CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaborati
 
 But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
 
-Digger runs terraform natively in your CI and takes care of the other bits - locks, plan artifacts and so on.
+Digger runs terraform natively in your CI. Thi is:
+- Secure, because cloud access secrets aren't shared with a third-party
+- Cost-effective, because you are not paying for additional compute just to run your terraform
 
 ## Features
 - Terraform plan and apply in pull request comments
