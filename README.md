@@ -3,13 +3,14 @@
 <h2 align="center">
   <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a> |
   <a href="https://docs.digger.dev/">Docs</a>
+  <a href="https://www.loom.com/share/51f27994d95f4dc5bb6eea579e1fa8dc?sid=403f161a-6c0b-44ac-af57-cc9b56190f64">Demo Video</a>
 </h2>
 
 CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
 
 But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
 
-Digger runs terraform natively in your CI and takes care of the other bits - locks, plan artifacts and so on. [Demo video](https://www.loom.com/share/e201e639a73941e0b5508710377a6106)
+Digger runs terraform natively in your CI and takes care of the other bits - locks, plan artifacts and so on.
 
 ## Features
 - See terraform plan and run apply as pull request comments
