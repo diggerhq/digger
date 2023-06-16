@@ -10,7 +10,8 @@ CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaborati
 
 But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
 
-Digger runs terraform natively in your CI. Thi is:
+Digger runs terraform natively in your CI. This is:
+
 - Secure, because cloud access secrets aren't shared with a third-party
 - Cost-effective, because you are not paying for additional compute just to run your terraform
 
@@ -45,10 +46,14 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 No sensitive or personal / identifyable data is logged. You can see what is tracked in [`pkg/utils/usage.go`](https://github.com/diggerhq/digger/blob/main/pkg/utils/usage.go)
 
 ## Contributing
-**If you are considering using digger within your organisation
-please [reach out to us](https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA).**
 
-To contribute to Digger please follow our [Contributing guide](CONTRIBUTING.md)
+We love contributions. Check out our [contribiting guide](CONTRIBUTING.md) to get started. 
+
+Not sure where to get started? You can:
+
+-   [Book a free, non-pressure pairing session / code walkthrough with one of our teammates](https://calendly.com/diggerdev/digger-pro-demo-clone)!
+-   Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
+
 
 ## Resources
 
