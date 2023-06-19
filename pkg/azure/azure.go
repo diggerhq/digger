@@ -135,6 +135,10 @@ type AzureReposService struct {
 	RepositoryId string
 }
 
+func (a *AzureReposService) GetUserTeams(organisation string, user string) ([]string, error) {
+	return make([]string, 0), nil
+}
+
 func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 
 	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
