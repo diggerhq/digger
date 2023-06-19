@@ -42,6 +42,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 		reportErrorAndExit(githubActor, "GITHUB_TOKEN is not defined", 1)
 	}
 
+	diggerGitHubToken := os.Getenv("DIGGER_GITHUB_TOKEN")
+	if ghToken != "" {
+		fmt.Println("GITHUB_TOKEN has been overridden with DIGGER_GITHUB_TOKEN")
+		ghToken = diggerGitHubToken
+	}
+
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 	if ghContext == "" {
 		reportErrorAndExit(githubActor, "GITHUB_CONTEXT is not defined", 2)
