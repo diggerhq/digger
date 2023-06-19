@@ -42,7 +42,7 @@ func (lock *MockLock) GetLock(resource string) (*int, error) {
 type MockPolicyChecker struct {
 }
 
-func (t MockPolicyChecker) Check(_ string, _ string, _ interface{}) (bool, error) {
+func (t MockPolicyChecker) Check(organisation string, namespace string, projectname string, input interface{}) (bool, error) {
 	return false, nil
 }
 

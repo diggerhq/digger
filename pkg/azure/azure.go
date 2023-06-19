@@ -413,11 +413,8 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		}
 		return commandsPerProject, true, nil
 	case AzurePrCommented:
-
-		diggerCommand := parseAzureContext.Event.(AzureCommentEvent).Resource.Comment.Content
-
+		diggerCommand := strings.ToLower(parseAzureContext.Event.(AzureCommentEvent).Resource.Comment.Content)
 		coversAllImpactedProjects := true
-
 		runForProjects := impactedProjects
 
 		if requestedProject != nil {
