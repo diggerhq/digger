@@ -11,6 +11,7 @@ require (
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/google/go-github/v53 v53.1.0
 	github.com/google/uuid v1.3.0
+	github.com/jinzhu/copier v0.3.5
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/open-policy-agent/opa v0.53.1
 	github.com/stretchr/testify v1.8.4
