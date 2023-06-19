@@ -987,3 +987,22 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	assert.Equal(t, 1, len(commandsToRunPerProject))
 	assert.NoError(t, err)
 }
+
+func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
+	ghEvent := gh_models.IssueCommentEvent{}
+	ghEvent.Comment.Body = "DiGGeR PlAn"
+
+	project := configuration.Project{Name: "test project", Workflow: "default"}
+	var impactedProjects []configuration.Project
+	impactedProjects = make([]configuration.Project, 1)
+	impactedProjects[0] = project
+	var requestedProject = project
+	workflows := make(map[string]configuration.Workflow, 1)
+	workflows["default"] = configuration.Workflow{}
+
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, &requestedProject, workflows)
+
+	assert.Equal(t, 1, len(commandsToRunPerProject))
+	assert.Equal(t, "digger plan", commandsToRunPerProject[0].Commands[0])
+	assert.NoError(t, err)
+}

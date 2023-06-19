@@ -10,6 +10,7 @@ import (
 	"digger/pkg/core/runners"
 	"digger/pkg/core/storage"
 	"digger/pkg/core/terraform"
+	"digger/pkg/core/utils"
 	"digger/pkg/locking"
 	"digger/pkg/usage"
 	"errors"
@@ -57,13 +58,29 @@ func DetectCI() CIName {
 
 }
 
-func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNamespace string, requestedBy string, eventName string, prNumber int, ciService ci.CIService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, workingDir string) (bool, bool, error) {
+func RunCommandsPerProject(
+	commandsPerProject []models.ProjectCommand,
+	projectNamespace string,
+	requestedBy string,
+	eventName string,
+	prNumber int,
+	ciService ci.CIService,
+	lock core_locking.Lock,
+	reporter reporting.Reporter,
+	planStorage storage.PlanStorage,
+	policyChecker policy.Checker,
+	workingDir string,
+) (bool, bool, error) {
+	accumulatePlans := os.Getenv("ACCUMULATE_PLANS") == "true"
 	appliesPerProject := make(map[string]bool)
+	plansToPublish := make([]string, 0)
+
 	organisation := strings.Split(projectNamespace, "/")[0]
 	teams, err := ciService.GetUserTeams(organisation, requestedBy)
 	if err != nil {
 		fmt.Printf("Error while fetching user teams for CI service: %v", err)
 	}
+  
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
 
@@ -125,12 +142,21 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 			case "digger plan":
 				usage.SendUsageRecord(requestedBy, eventName, "plan")
 				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
-				planPerformed, err := diggerExecutor.Plan()
+				planPerformed, plan, err := diggerExecutor.Plan()
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
 					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
 					return false, false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else if planPerformed {
+					comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+projectLock.LockId()+"**", plan)
+					if accumulatePlans {
+						plansToPublish = append(plansToPublish, comment)
+					} else {
+						err = reporter.Report(comment)
+						if err != nil {
+							log.Printf("Failed to report plan. %v", err)
+						}
+					}
 					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 				}
 			case "digger apply":
@@ -174,6 +200,13 @@ func RunCommandsPerProject(commandsPerProject []models.ProjectCommand, projectNa
 					return false, false, fmt.Errorf("failed to lock project. %v", err)
 				}
 			}
+		}
+	}
+
+	if len(plansToPublish) > 0 {
+		err := reporter.Report(strings.Join(plansToPublish, "\n"))
+		if err != nil {
+			log.Printf("Failed to report plans. %v", err)
 		}
 	}
 
