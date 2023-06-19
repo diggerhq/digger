@@ -148,13 +148,15 @@ func RunCommandsPerProject(
 					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
 					return false, false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else if planPerformed {
-					comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+projectLock.LockId()+"**", plan)
-					if accumulatePlans {
-						plansToPublish = append(plansToPublish, comment)
-					} else {
-						err = reporter.Report(comment)
-						if err != nil {
-							log.Printf("Failed to report plan. %v", err)
+					if plan != "" {
+						comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+projectLock.LockId()+"**", plan)
+						if accumulatePlans {
+							plansToPublish = append(plansToPublish, comment)
+						} else {
+							err = reporter.Report(comment)
+							if err != nil {
+								log.Printf("Failed to report plan. %v", err)
+							}
 						}
 					}
 					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
