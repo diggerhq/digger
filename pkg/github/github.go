@@ -17,6 +17,7 @@ import (
 
 func NewGitHubService(ghToken string, repoName string, owner string) ci.CIService {
 	client := github.NewTokenClient(context.Background(), ghToken)
+	log.Printf("client: %v\n", client.Client)
 	return &GithubService{
 		Client:   client,
 		RepoName: repoName,
@@ -48,6 +49,7 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 }
 
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
+	log.Printf("client: %v\n", svc.Client)
 	currentUser, _, err := svc.Client.Users.Get(context.Background(), "")
 	if err != nil {
 		log.Fatalf("Failed to get current user info %v", err)
