@@ -222,9 +222,10 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		}
 
 		diggerCommand := strings.ToLower(event.Comment.Body)
+		diggerCommand = strings.TrimSpace(diggerCommand)
 
 		for _, command := range supportedCommands {
-			if strings.Contains(diggerCommand, command) {
+			if strings.HasPrefix(diggerCommand, command) {
 				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
