@@ -44,7 +44,7 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 	}
 
 	for _, v := range teams {
-		fmt.Printf("team: %s", v)
+		fmt.Printf("team: %s\n", v)
 	}
 	return teams, nil
 }
