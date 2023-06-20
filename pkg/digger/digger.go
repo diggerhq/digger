@@ -100,10 +100,10 @@ func RunCommandsPerProject(
 
 			if !allowedToPerformCommand {
 				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
-				//err := ciService.PublishComment(prNumber, msg)
-				//if err != nil {
-				//	log.Printf("Error publishing comment: %v", err)
-				//}
+				err := ciService.PublishComment(prNumber, msg)
+				if err != nil {
+					log.Printf("Error publishing comment: %v", err)
+				}
 				log.Println(msg)
 				return false, false, errors.New(msg)
 			}
