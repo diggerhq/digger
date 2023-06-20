@@ -80,7 +80,7 @@ func RunCommandsPerProject(
 	if err != nil {
 		fmt.Printf("Error while fetching user teams for CI service: %v", err)
 	}
-  
+
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
 
@@ -100,10 +100,11 @@ func RunCommandsPerProject(
 
 			if !allowedToPerformCommand {
 				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
-				err := ciService.PublishComment(prNumber, msg)
-				if err != nil {
-					log.Printf("Error publishing comment: %v", err)
-				}
+				//err := ciService.PublishComment(prNumber, msg)
+				//if err != nil {
+				//	log.Printf("Error publishing comment: %v", err)
+				//}
+				log.Println(msg)
 				return false, false, errors.New(msg)
 			}
 
