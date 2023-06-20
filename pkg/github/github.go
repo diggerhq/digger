@@ -48,9 +48,9 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 }
 
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
-	files, _, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
+	files, response, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
 	if err != nil {
-		log.Fatalf("error getting pull request files: %v", err)
+		log.Fatalf("error getting pull request files: %v, response: %v", err, response)
 	}
 
 	fileNames := make([]string, len(files))
