@@ -27,7 +27,7 @@ func (p NoOpPolicyChecker) Check(_ string, _ string, _ string, _ interface{}) (b
 	return true, nil
 }
 
-func (p *DiggerHttpPolicyProvider) getPolicyForOrganisation(organisation string, projectName string) (string, *http.Response, error) {
+func (p *DiggerHttpPolicyProvider) getPolicyForOrganisation(organisation string) (string, *http.Response, error) {
 
 	req, err := http.NewRequest("GET", p.DiggerHost+"/orgs/"+organisation+"/access-policy", nil)
 	if err != nil {
@@ -75,7 +75,7 @@ func (p *DiggerHttpPolicyProvider) getPolicyForNamespace(namespace string, proje
 
 // GetPolicy fetches policy for entire organisation, if not found for organisation then it will fetch it for project
 func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, namespace string, projectName string) (string, error) {
-	content, resp, err := p.getPolicyForOrganisation(organisation, projectName)
+	content, resp, err := p.getPolicyForOrganisation(organisation)
 	if err != nil {
 		return "", err
 	}
