@@ -103,6 +103,7 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuratio
 	switch gitlabContext.EventType {
 	case MergeRequestComment:
 		diggerCommand := strings.ToLower(gitlabContext.DiggerCommand)
+		diggerCommand = strings.TrimSpace(diggerCommand)
 		requestedProject := utils.ParseProjectName(diggerCommand)
 
 		if requestedProject == "" {
@@ -318,6 +319,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		}
 
 		diggerCommand := strings.ToLower(gitLabContext.DiggerCommand)
+		diggerCommand = strings.TrimSpace(diggerCommand)
 		for _, command := range supportedCommands {
 			if strings.Contains(diggerCommand, command) {
 				for _, project := range runForProjects {
