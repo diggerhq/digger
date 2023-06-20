@@ -17,7 +17,7 @@ import (
 
 func NewGitHubService(ghToken string, repoName string, owner string) ci.CIService {
 	client := github.NewTokenClient(context.Background(), ghToken)
-	log.Printf("client: %v\n", client.Client)
+	log.Printf("client: %v\n", client)
 	return &GithubService{
 		Client:   client,
 		RepoName: repoName,
