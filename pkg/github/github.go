@@ -37,7 +37,7 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 		teamMembers, _, _ := svc.Client.Teams.ListTeamMembersBySlug(context.Background(), organisation, *team.Slug, nil)
 		for _, member := range teamMembers {
 			if *member.Login == user {
-				teams = append(teams, *team.Slug)
+				teams = append(teams, *team.Name)
 				break
 			}
 		}
