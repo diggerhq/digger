@@ -9,4 +9,5 @@ type CIService interface {
 	MergePullRequest(prNumber int) error
 	IsMergeable(prNumber int) (bool, error)
 	IsClosed(prNumber int) (bool, error)
+	GetUserTeams(organisation string, user string) ([]string, error)
 }
