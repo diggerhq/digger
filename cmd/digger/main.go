@@ -43,7 +43,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	}
 
 	diggerGitHubToken := os.Getenv("DIGGER_GITHUB_TOKEN")
-	if ghToken != "" {
+	if diggerGitHubToken != "" {
 		fmt.Println("GITHUB_TOKEN has been overridden with DIGGER_GITHUB_TOKEN")
 		ghToken = diggerGitHubToken
 	}
