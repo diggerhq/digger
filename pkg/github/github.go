@@ -35,13 +35,16 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 	var teams []string
 	for _, team := range teamsResponse {
 		teamMembers, _, _ := svc.Client.Teams.ListTeamMembersBySlug(context.Background(), organisation, *team.Slug, nil)
-		fmt.Printf("		DEBUG: Team members for team %v!! %v", *team.Slug, teamMembers)
 		for _, member := range teamMembers {
 			if *member.Login == user {
 				teams = append(teams, *team.Slug)
 				break
 			}
 		}
+	}
+
+	for _, v := range teams {
+		fmt.Printf("team: %s", v)
 	}
 	return teams, nil
 }
