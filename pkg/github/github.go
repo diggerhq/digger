@@ -31,7 +31,10 @@ type GithubService struct {
 }
 
 func (svc *GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
-	teamsResponse, _, _ := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
+	teamsResponse, _, err := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
+	if err != nil {
+		log.Fatalf("Failed to list github teams: %v", err)
+	}
 	var teams []string
 	for _, team := range teamsResponse {
 		teamMembers, _, _ := svc.Client.Teams.ListTeamMembersBySlug(context.Background(), organisation, *team.Slug, nil)
@@ -43,16 +46,13 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 		}
 	}
 
-	for _, v := range teams {
-		fmt.Printf("team: %s\n", v)
-	}
 	return teams, nil
 }
 
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
-	files, response, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
+	files, _, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
 	if err != nil {
-		log.Fatalf("error getting pull request files: %v, response: %v", err, response)
+		log.Fatalf("error getting pull request files: %v", err)
 	}
 
 	fileNames := make([]string, len(files))
