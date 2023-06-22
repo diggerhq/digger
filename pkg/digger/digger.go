@@ -76,6 +76,8 @@ func RunCommandsPerProject(
 	plansToPublish := make([]string, 0)
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
+			fmt.Printf("Running '%s' for project '%s'", command, projectCommands.ProjectName)
+
 			policyInput := map[string]interface{}{"user": requestedBy, "action": command}
 
 			allowedToPerformCommand, err := policyChecker.Check(projectNamespace, projectCommands.ProjectName, policyInput)
