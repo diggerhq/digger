@@ -103,6 +103,7 @@ func RunCommandsPerProject(
 				PrNumber:         prNumber,
 			}
 
+			fmt.Println("var terraformExecutor terraform.TerraformExecutor")
 			var terraformExecutor terraform.TerraformExecutor
 			projectPath := path.Join(workingDir, projectCommands.ProjectDir)
 			if projectCommands.Terragrunt {
@@ -126,6 +127,8 @@ func RunCommandsPerProject(
 				projectLock,
 				planStorage,
 			}
+
+			fmt.Println("switch command {")
 			switch command {
 			case "digger plan":
 				usage.SendUsageRecord(requestedBy, eventName, "plan")
@@ -150,6 +153,7 @@ func RunCommandsPerProject(
 					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 				}
 			case "digger apply":
+				fmt.Println("digger apply")
 				appliesPerProject[projectCommands.ProjectName] = false
 				usage.SendUsageRecord(requestedBy, eventName, "apply")
 				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
@@ -160,6 +164,7 @@ func RunCommandsPerProject(
 					return false, false, fmt.Errorf("error validating is PR is mergeable: %v", err)
 				}
 				if !isMergeable {
+					fmt.Println("Nor mergeable")
 					comment := "Cannot perform Apply since the PR is not currently mergeable."
 					err = ciService.PublishComment(prNumber, comment)
 					if err != nil {
@@ -167,6 +172,7 @@ func RunCommandsPerProject(
 					}
 					return false, false, nil
 				} else {
+					fmt.Println("mergeable")
 					applyPerformed, err := diggerExecutor.Apply()
 					if err != nil {
 						log.Printf("Failed to run digger apply command. %v", err)
