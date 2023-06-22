@@ -155,8 +155,14 @@ func RunCommandsPerProject(
 			case "digger apply":
 				fmt.Println("digger apply")
 				appliesPerProject[projectCommands.ProjectName] = false
-				usage.SendUsageRecord(requestedBy, eventName, "apply")
-				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				err := usage.SendUsageRecord(requestedBy, eventName, "apply")
+				if err != nil {
+					return false, false, fmt.Errorf("failed to send usage report. %v", err)
+				}
+				err = ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				if err != nil {
+					return false, false, fmt.Errorf("failed to set PR status. %v", err)
+				}
 
 				// this might go into some sort of "appliability" plugin later
 				isMergeable, err := ciService.IsMergeable(prNumber)
