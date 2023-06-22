@@ -183,6 +183,7 @@ func RunCommandsPerProject(
 				if err != nil {
 					return false, false, fmt.Errorf("error validating is PR is mergeable: %v", err)
 				}
+				fmt.Printf("PR status, mergeable: %v, closed: %v\n", isMergeable, isClosed)
 				if !isMergeable && !isClosed {
 					comment := "Cannot perform Apply since the PR is not currently mergeable."
 					fmt.Println(comment)
@@ -192,7 +193,6 @@ func RunCommandsPerProject(
 					}
 					return false, false, nil
 				} else {
-					fmt.Println("mergeable")
 					applyPerformed, err := diggerExecutor.Apply()
 					if err != nil {
 						log.Printf("Failed to run digger apply command. %v", err)
