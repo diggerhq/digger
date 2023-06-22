@@ -8,5 +8,6 @@ type CIService interface {
 	GetCombinedPullRequestStatus(prNumber int) (string, error)
 	MergePullRequest(prNumber int) error
 	IsMergeable(prNumber int) (bool, error)
+	IsMerged(prNumber int) (bool, error)
 	IsClosed(prNumber int) (bool, error)
 }
