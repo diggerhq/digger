@@ -173,9 +173,9 @@ func RunCommandsPerProject(
 					return false, false, fmt.Errorf("failed to set PR status. %v", err)
 				}
 
-				isClosed, err := ciService.IsClosed(prNumber)
+				isMerged, err := ciService.IsMerged(prNumber)
 				if err != nil {
-					return false, false, fmt.Errorf("error validating is PR is closed: %v", err)
+					return false, false, fmt.Errorf("error checking if PR is merged: %v", err)
 				}
 
 				// this might go into some sort of "appliability" plugin later
@@ -183,8 +183,8 @@ func RunCommandsPerProject(
 				if err != nil {
 					return false, false, fmt.Errorf("error validating is PR is mergeable: %v", err)
 				}
-				fmt.Printf("PR status, mergeable: %v, closed: %v\n", isMergeable, isClosed)
-				if !isMergeable && !isClosed {
+				fmt.Printf("PR status, mergeable: %v, merged: %v\n", isMergeable, isMerged)
+				if !isMergeable && !isMerged {
 					comment := "Cannot perform Apply since the PR is not currently mergeable."
 					fmt.Println(comment)
 					err = ciService.PublishComment(prNumber, comment)
