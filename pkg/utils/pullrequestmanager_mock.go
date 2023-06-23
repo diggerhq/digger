@@ -47,3 +47,8 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsClosed(prNum
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsClosed")
 	return false, nil
 }
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMerged(prNumber int) (bool, error) {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsClosed")
+	return false, nil
+}

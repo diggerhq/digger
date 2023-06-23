@@ -213,23 +213,32 @@ func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error)
 }
 
 func (gitlabService GitLabService) IsClosed(mergeRequestID int) (bool, error) {
+	mergeRequest := getMergeRequest(gitlabService)
+	if mergeRequest.State == "closed" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (gitlabService GitLabService) IsMerged(mergeRequestID int) (bool, error) {
+	mergeRequest := getMergeRequest(gitlabService)
+	if mergeRequest.State == "merged" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func getMergeRequest(gitlabService GitLabService) *go_gitlab.MergeRequest {
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
-
-	fmt.Printf("IsClosed mergeRequestIID : %d, projectId: %d \n", mergeRequestIID, projectId)
+	fmt.Printf("getMergeRequest mergeRequestIID : %d, projectId: %d \n", mergeRequestIID, projectId)
 	opt := &go_gitlab.GetMergeRequestsOptions{}
-
 	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, mergeRequestIID, opt)
-
 	if err != nil {
 		fmt.Printf("Failed to get a MergeRequest: %d, %v \n", mergeRequestIID, err)
 		print(err.Error())
 	}
-
-	if mergeRequest.State == "closed" || mergeRequest.State == "merged" {
-		return true, nil
-	}
-	return false, nil
+	return mergeRequest
 }
 
 type GitLabEvent struct {

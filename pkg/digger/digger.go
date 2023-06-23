@@ -83,6 +83,7 @@ func RunCommandsPerProject(
 
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
+			fmt.Printf("Running '%s' for project '%s'\n", command, projectCommands.ProjectName)
 
 			policyInput := map[string]interface{}{
 				"user":         requestedBy,
@@ -139,14 +140,24 @@ func RunCommandsPerProject(
 				projectLock,
 				planStorage,
 			}
+
 			switch command {
 			case "digger plan":
-				usage.SendUsageRecord(requestedBy, eventName, "plan")
-				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
+				err := usage.SendUsageRecord(requestedBy, eventName, "plan")
+				if err != nil {
+					return false, false, fmt.Errorf("failed to send usage report. %v", err)
+				}
+				err = ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
+				if err != nil {
+					return false, false, fmt.Errorf("failed to set PR status. %v", err)
+				}
 				planPerformed, plan, err := diggerExecutor.Plan()
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
-					ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
+					err := ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
+					if err != nil {
+						return false, false, fmt.Errorf("failed to set PR status. %v", err)
+					}
 					return false, false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else if planPerformed {
 					if plan != "" {
@@ -160,45 +171,73 @@ func RunCommandsPerProject(
 							}
 						}
 					}
-					ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
+					err := ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
+					if err != nil {
+						return false, false, fmt.Errorf("failed to set PR status. %v", err)
+					}
 				}
 			case "digger apply":
 				appliesPerProject[projectCommands.ProjectName] = false
-				usage.SendUsageRecord(requestedBy, eventName, "apply")
-				ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				err := usage.SendUsageRecord(requestedBy, eventName, "apply")
+				if err != nil {
+					return false, false, fmt.Errorf("failed to send usage report. %v", err)
+				}
+				err = ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				if err != nil {
+					return false, false, fmt.Errorf("failed to set PR status. %v", err)
+				}
+
+				isMerged, err := ciService.IsMerged(prNumber)
+				if err != nil {
+					return false, false, fmt.Errorf("error checking if PR is merged: %v", err)
+				}
 
 				// this might go into some sort of "appliability" plugin later
 				isMergeable, err := ciService.IsMergeable(prNumber)
 				if err != nil {
 					return false, false, fmt.Errorf("error validating is PR is mergeable: %v", err)
 				}
-				if !isMergeable {
+				fmt.Printf("PR status, mergeable: %v, merged: %v\n", isMergeable, isMerged)
+				if !isMergeable && !isMerged {
 					comment := "Cannot perform Apply since the PR is not currently mergeable."
+					fmt.Println(comment)
 					err = ciService.PublishComment(prNumber, comment)
 					if err != nil {
-						fmt.Printf("error publishing comment: %v", err)
+						fmt.Printf("error publishing comment: %v\n", err)
 					}
 					return false, false, nil
 				} else {
 					applyPerformed, err := diggerExecutor.Apply()
 					if err != nil {
 						log.Printf("Failed to run digger apply command. %v", err)
-						ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+						err := ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+						if err != nil {
+							return false, false, fmt.Errorf("failed to set PR status. %v", err)
+						}
 						return false, false, fmt.Errorf("failed to run digger apply command. %v", err)
 					} else if applyPerformed {
-						ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+						err := ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+						if err != nil {
+							return false, false, fmt.Errorf("failed to set PR status. %v", err)
+						}
 						appliesPerProject[projectCommands.ProjectName] = true
 					}
 				}
 			case "digger unlock":
-				usage.SendUsageRecord(requestedBy, eventName, "unlock")
-				err := diggerExecutor.Unlock()
+				err := usage.SendUsageRecord(requestedBy, eventName, "unlock")
+				if err != nil {
+					return false, false, fmt.Errorf("failed to send usage report. %v", err)
+				}
+				err = diggerExecutor.Unlock()
 				if err != nil {
 					return false, false, fmt.Errorf("failed to unlock project. %v", err)
 				}
 			case "digger lock":
-				usage.SendUsageRecord(requestedBy, eventName, "lock")
-				err := diggerExecutor.Lock()
+				err := usage.SendUsageRecord(requestedBy, eventName, "lock")
+				if err != nil {
+					return false, false, fmt.Errorf("failed to send usage report. %v", err)
+				}
+				err = diggerExecutor.Lock()
 				if err != nil {
 					return false, false, fmt.Errorf("failed to lock project. %v", err)
 				}
