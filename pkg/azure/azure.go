@@ -295,7 +295,18 @@ func (a *AzureReposService) IsClosed(prNumber int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return *pullRequest.Status == git.PullRequestStatusValues.Completed || *pullRequest.Status == git.PullRequestStatusValues.Abandoned, nil
+	return *pullRequest.Status == git.PullRequestStatusValues.Abandoned, nil
+}
+
+func (a *AzureReposService) IsMerged(prNumber int) (bool, error) {
+	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
+		Project:       &a.ProjectName,
+		PullRequestId: &prNumber,
+	})
+	if err != nil {
+		return false, err
+	}
+	return *pullRequest.Status == git.PullRequestStatusValues.Completed, nil
 }
 
 func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
