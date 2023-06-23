@@ -13,4 +13,5 @@ type CIService interface {
 	IsMerged(prNumber int) (bool, error)
 	// IsClosed closed without merging
 	IsClosed(prNumber int) (bool, error)
+	GetUserTeams(organisation string, user string) ([]string, error)
 }

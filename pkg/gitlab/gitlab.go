@@ -103,6 +103,7 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuratio
 	switch gitlabContext.EventType {
 	case MergeRequestComment:
 		diggerCommand := strings.ToLower(gitlabContext.DiggerCommand)
+		diggerCommand = strings.TrimSpace(diggerCommand)
 		requestedProject := utils.ParseProjectName(diggerCommand)
 
 		if requestedProject == "" {
@@ -143,6 +144,10 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 		//fmt.Printf("changed file: %s \n", change.NewPath)
 	}
 	return fileNames, nil
+}
+
+func (gitlabService GitLabService) GetUserTeams(organisation string, user string) ([]string, error) {
+	return make([]string, 0), nil
 }
 
 func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) error {
@@ -323,6 +328,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		}
 
 		diggerCommand := strings.ToLower(gitLabContext.DiggerCommand)
+		diggerCommand = strings.TrimSpace(diggerCommand)
 		for _, command := range supportedCommands {
 			if strings.Contains(diggerCommand, command) {
 				for _, project := range runForProjects {

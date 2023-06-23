@@ -4,6 +4,10 @@ type MockGithubPullrequestManager struct {
 	commands []string
 }
 
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetUserTeams(organisation string, user string) ([]string, error) {
+	return []string{}, nil
+}
+
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetChangedFiles(prNumber int) ([]string, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetChangedFiles")
 	return nil, nil
