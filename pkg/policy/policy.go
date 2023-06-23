@@ -73,7 +73,7 @@ func (p *DiggerHttpPolicyProvider) getPolicyForNamespace(namespace string, proje
 
 }
 
-// GetPolicy fetches policy for entire organisation, if not found for organisation then it will fetch it for project
+// GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
 func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, namespace string, projectName string) (string, error) {
 	content, resp, err := p.getPolicyForNamespace(namespace, projectName)
 	if err != nil {
