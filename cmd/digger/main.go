@@ -328,11 +328,11 @@ func main() {
 		os.Exit(0)
 	}
 	var policyChecker core_policy.Checker
-	if os.Getenv("POLICY_CHECK_ENABLED") == "true" {
+	if os.Getenv("DIGGER_TOKEN") != "" {
 		policyChecker = policy.DiggerPolicyChecker{
 			PolicyProvider: &policy.DiggerHttpPolicyProvider{
-				DiggerHost: os.Getenv("DIGGER_CLOUD_HOSTNAME"),
-				AuthToken:  os.Getenv("DIGGER_CLOUD_TOKEN"),
+				DiggerHost: os.Getenv("DIGGER_HOSTNAME"),
+				AuthToken:  os.Getenv("DIGGER_TOKEN"),
 				HttpClient: http.DefaultClient,
 			}}
 	} else {
