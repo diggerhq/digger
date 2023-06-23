@@ -109,15 +109,26 @@ func (svc *GithubService) IsMergeable(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
+		return false, err
 	}
 
 	return pr.GetMergeable() && isMergeableState(pr.GetMergeableState()), nil
+}
+
+func (svc *GithubService) IsMerged(prNumber int) (bool, error) {
+	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
+	if err != nil {
+		log.Fatalf("error getting pull request: %v", err)
+		return false, err
+	}
+	return *pr.Merged, nil
 }
 
 func (svc *GithubService) IsClosed(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
+		return false, err
 	}
 
 	return pr.GetState() == "closed", nil
