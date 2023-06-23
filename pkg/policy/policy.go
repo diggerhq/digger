@@ -73,23 +73,25 @@ func (p *DiggerHttpPolicyProvider) getPolicyForNamespace(namespace string, proje
 
 }
 
-// GetPolicy fetches policy for entire organisation, if not found for organisation then it will fetch it for project
+// GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
 func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, namespace string, projectName string) (string, error) {
-	content, resp, err := p.getPolicyForOrganisation(organisation)
+	content, resp, err := p.getPolicyForNamespace(namespace, projectName)
 	if err != nil {
 		return "", err
 	}
 	if resp.StatusCode == 200 {
 		return content, nil
 	} else if resp.StatusCode == 404 {
-		content, resp, err := p.getPolicyForNamespace(namespace, projectName)
+		content, resp, err := p.getPolicyForOrganisation(organisation)
 		if err != nil {
 			return "", err
 		}
 		if resp.StatusCode == 200 {
 			return content, nil
+		} else if resp.StatusCode == 404 {
+			return "", nil
 		} else {
-			return "", errors.New(fmt.Sprintf("unexpected response while fetching namespace policy: %v, code %v", content, resp.StatusCode))
+			return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
 		}
 	} else {
 		return "", errors.New(fmt.Sprintf("unexpected response while fetching org policy: %v code %v", content, resp.StatusCode))
@@ -106,6 +108,11 @@ func (p DiggerPolicyChecker) Check(organisation string, namespace string, projec
 	if err != nil {
 		return false, err
 	}
+
+	if policy == "" {
+		return true, nil
+	}
+
 	ctx := context.Background()
 	fmt.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
 	query, err := rego.New(
