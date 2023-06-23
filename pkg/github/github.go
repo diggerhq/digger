@@ -30,10 +30,29 @@ type GithubService struct {
 	Owner    string
 }
 
+func (svc *GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
+	teamsResponse, _, err := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
+	if err != nil {
+		log.Fatalf("Failed to list github teams: %v", err)
+	}
+	var teams []string
+	for _, team := range teamsResponse {
+		teamMembers, _, _ := svc.Client.Teams.ListTeamMembersBySlug(context.Background(), organisation, *team.Slug, nil)
+		for _, member := range teamMembers {
+			if *member.Login == user {
+				teams = append(teams, *team.Name)
+				break
+			}
+		}
+	}
+
+	return teams, nil
+}
+
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	files, _, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Fatalf("error getting pull request files: %v", err)
 	}
 
 	fileNames := make([]string, len(files))
@@ -214,9 +233,10 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 		}
 
 		diggerCommand := strings.ToLower(event.Comment.Body)
+		diggerCommand = strings.TrimSpace(diggerCommand)
 
 		for _, command := range supportedCommands {
-			if strings.Contains(diggerCommand, command) {
+			if strings.HasPrefix(diggerCommand, command) {
 				for _, project := range runForProjects {
 					workflow, ok := workflows[project.Workflow]
 					if !ok {

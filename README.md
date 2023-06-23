@@ -42,7 +42,7 @@ Digger has 2 main components:
 
 Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB + S3 on AWS, equivalents in other cloud providers)
 
-## Telementry
+## Telemetry
 No sensitive or personal / identifyable data is logged. You can see what is tracked in [`pkg/utils/usage.go`](https://github.com/diggerhq/digger/blob/main/pkg/utils/usage.go)
 
 ## Contributing
