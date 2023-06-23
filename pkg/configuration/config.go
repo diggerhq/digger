@@ -10,13 +10,14 @@ type DiggerConfig struct {
 }
 
 type Project struct {
-	Name            string
-	Dir             string
-	Workspace       string
-	Terragrunt      bool
-	Workflow        string
-	IncludePatterns []string
-	ExcludePatterns []string
+	Name               string
+	Dir                string
+	Workspace          string
+	Terragrunt         bool
+	Workflow           string
+	IncludePatterns    []string
+	ExcludePatterns    []string
+	DependencyProjects []string
 }
 
 type Workflow struct {

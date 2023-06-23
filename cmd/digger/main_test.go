@@ -9,6 +9,7 @@ import (
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
+	"github.com/dominikbraun/graph"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -875,6 +876,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	eventName := context.EventName
 
 	diggerConfig := configuration.DiggerConfig{}
+	depGraph := graph.New(graph.StringHash)
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
@@ -887,7 +889,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		PrNumber:  prNumber,
 	}
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -904,6 +906,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 	diggerConfig := configuration.DiggerConfig{}
+	depGraph := graph.New(graph.StringHash)
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
@@ -916,9 +919,9 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	policyChecker := &utils.MockPolicyChecker{}
 
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
 
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.RepositoryOwner, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
 
 	assert.NoError(t, err)
 	if err != nil {

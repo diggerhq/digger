@@ -352,7 +352,7 @@ func TestHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateSingleEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, depGraph, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	lock, err := locking.GetLock()
@@ -408,7 +408,7 @@ func TestHappyPath(t *testing.T) {
 
 	diggerProjectNamespace := repoOwner + "/" + repositoryName
 
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock := &locking.PullRequestLock{
@@ -434,7 +434,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -448,7 +448,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -471,7 +471,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -501,7 +501,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateMultiEnvDiggerYmlFile(dir)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, depGraph, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -563,7 +563,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		CiService: githubPrService,
 		PrNumber:  prNumber,
 	}
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock := &locking.PullRequestLock{
@@ -588,7 +588,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -602,7 +602,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -625,7 +625,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, &dynamoDbLock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -721,7 +721,7 @@ workflows:
 	terraform.CreateValidTerraformTestFile(dir)
 	terraform.CreateCustomDiggerYmlFile(dir, diggerCfg)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
+	diggerConfig, depGraph, err := configuration.LoadDiggerConfig(dir, &configuration.FileSystemDirWalker{})
 	assert.NoError(t, err)
 
 	assert.NotNil(t, diggerConfig.Workflows)
@@ -782,7 +782,7 @@ workflows:
 		PrNumber:  prNumber,
 	}
 
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock := &locking.PullRequestLock{
@@ -808,7 +808,7 @@ workflows:
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -822,7 +822,7 @@ workflows:
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -844,7 +844,7 @@ workflows:
 	assert.NoError(t, err)
 	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, diggerProjectNamespace, repoOwner, eventName, prNumber, githubPrService, lock, reporter, planStorage, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{

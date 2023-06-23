@@ -15,6 +15,7 @@ import (
 	"digger/pkg/usage"
 	"errors"
 	"fmt"
+	"github.com/dominikbraun/graph"
 	"log"
 	"os"
 	"path"
@@ -60,6 +61,7 @@ func DetectCI() CIName {
 
 func RunCommandsPerProject(
 	commandsPerProject []models.ProjectCommand,
+	dependencyGraph *graph.Graph[string, string],
 	projectNamespace string,
 	requestedBy string,
 	eventName string,
@@ -80,6 +82,8 @@ func RunCommandsPerProject(
 	if err != nil {
 		fmt.Printf("Error while fetching user teams for CI service: %v", err)
 	}
+
+	commandsPerProject = SortedCommandByDependency(commandsPerProject, dependencyGraph)
 
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
@@ -262,6 +266,22 @@ func RunCommandsPerProject(
 	atLeastOneApply := len(appliesPerProject) > 0
 
 	return allAppliesSuccess, atLeastOneApply, nil
+}
+
+func SortedCommandByDependency(project []models.ProjectCommand, dependencyGraph *graph.Graph[string, string]) []models.ProjectCommand {
+	var sortedCommands []models.ProjectCommand
+	sortedGraph, err := graph.TopologicalSort(*dependencyGraph)
+	if err != nil {
+		log.Fatalf("failed to sort commands by dependency, %v", err)
+	}
+	for _, node := range sortedGraph {
+		for _, command := range project {
+			if command.ProjectName == node {
+				sortedCommands = append(sortedCommands, command)
+			}
+		}
+	}
+	return sortedCommands
 }
 
 func MergePullRequest(ciService ci.CIService, prNumber int) {

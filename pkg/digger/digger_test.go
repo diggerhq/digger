@@ -283,6 +283,10 @@ func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, comm
 	return commandStrings
 }
 
+func TestSortedCommandByDependency(t *testing.T) {
+
+}
+
 func TestParseWorkspace(t *testing.T) {
 	var commentTests = []struct {
 		in  string
