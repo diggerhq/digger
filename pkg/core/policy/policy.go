@@ -5,5 +5,5 @@ type Provider interface {
 }
 
 type Checker interface {
-	Check(namespace string, projectname string, input interface{}) (bool, error)
+	Check(organisation string, namespace string, projectname string, input interface{}) (bool, error)
 }
