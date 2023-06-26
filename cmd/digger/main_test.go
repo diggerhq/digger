@@ -876,7 +876,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	eventName := context.EventName
 
 	diggerConfig := configuration.DiggerConfig{}
-	depGraph := graph.New(graph.StringHash)
+	depGraph := graph.New(graph.StringHash, graph.Directed())
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
@@ -906,7 +906,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	ghEvent := context.Event
 	eventName := context.EventName
 	diggerConfig := configuration.DiggerConfig{}
-	depGraph := graph.New(graph.StringHash)
+	depGraph := graph.New(graph.StringHash, graph.Directed())
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
