@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"digger/pkg/ci"
 	"errors"
 	"fmt"
 	"github.com/open-policy-agent/opa/rego"
@@ -23,7 +24,7 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) Check(_ string, _ string, _ string, _ interface{}) (bool, error) {
+func (p NoOpPolicyChecker) Check(_ string, _ string, _ string, _ string, _ string) (bool, error) {
 	return true, nil
 }
 
@@ -100,13 +101,24 @@ func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, namespace stri
 
 type DiggerPolicyChecker struct {
 	PolicyProvider PolicyProvider
+	ciService      ci.CIService
 }
 
-func (p DiggerPolicyChecker) Check(organisation string, namespace string, projectName string, input interface{}) (bool, error) {
+func (p DiggerPolicyChecker) Check(organisation string, namespace string, projectName string, command string, requestedBy string) (bool, error) {
 	policy, err := p.PolicyProvider.GetPolicy(organisation, namespace, projectName)
 
+	teams, err := p.ciService.GetUserTeams(organisation, requestedBy)
 	if err != nil {
+		fmt.Printf("Error while fetching user teams for CI service: %v", err)
 		return false, err
+	}
+
+	input := map[string]interface{}{
+		"user":         requestedBy,
+		"organisation": organisation,
+		"teams":        teams,
+		"action":       command,
+		"project":      projectName,
 	}
 
 	if policy == "" {

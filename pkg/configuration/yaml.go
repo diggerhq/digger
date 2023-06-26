@@ -14,13 +14,14 @@ type DiggerConfigYaml struct {
 }
 
 type ProjectYaml struct {
-	Name            string   `yaml:"name"`
-	Dir             string   `yaml:"dir"`
-	Workspace       string   `yaml:"workspace"`
-	Terragrunt      bool     `yaml:"terragrunt"`
-	Workflow        string   `yaml:"workflow"`
-	IncludePatterns []string `yaml:"include_patterns,omitempty"`
-	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
+	Name               string   `yaml:"name"`
+	Dir                string   `yaml:"dir"`
+	Workspace          string   `yaml:"workspace"`
+	Terragrunt         bool     `yaml:"terragrunt"`
+	Workflow           string   `yaml:"workflow"`
+	IncludePatterns    []string `yaml:"include_patterns,omitempty"`
+	ExcludePatterns    []string `yaml:"exclude_patterns,omitempty"`
+	DependencyProjects []string `yaml:"depends_on,omitempty"`
 }
 
 type WorkflowYaml struct {

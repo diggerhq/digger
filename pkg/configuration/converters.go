@@ -4,6 +4,7 @@ import (
 	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"fmt"
+	"github.com/dominikbraun/graph"
 	"path/filepath"
 )
 
@@ -17,6 +18,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.Workflow,
 			p.IncludePatterns,
 			p.ExcludePatterns,
+			p.DependencyProjects,
 		}
 		result[i] = item
 	}
@@ -99,7 +101,7 @@ func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 	return result
 }
 
-func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, error) {
+func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, graph.Graph[string, string], error) {
 	var diggerConfig DiggerConfig
 	const defaultWorkflowName = "default"
 
@@ -145,15 +147,30 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 	projectNames := make(map[string]bool)
 	for _, project := range diggerConfig.Projects {
 		if projectNames[project.Name] {
-			return nil, fmt.Errorf("project name '%s' is duplicated", project.Name)
+			return nil, nil, fmt.Errorf("project name '%s' is duplicated", project.Name)
 		}
 		projectNames[project.Name] = true
+	}
+
+	// check project dependencies exist
+	for _, project := range diggerConfig.Projects {
+		for _, dependency := range project.DependencyProjects {
+			if !projectNames[dependency] {
+				return nil, nil, fmt.Errorf("project '%s' depends on '%s' which does not exist", project.Name, dependency)
+			}
+		}
+	}
+
+	dependencyGraph, err := CreateProjectDependencyGraph(diggerConfig.Projects)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create project dependency graph: %s", err.Error())
 	}
 
 	if diggerYaml.GenerateProjectsConfig != nil {
 		dirs, err := walker.GetDirs(workingDir)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		for _, dir := range dirs {
@@ -177,5 +194,36 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		}
 	}
 
-	return &diggerConfig, nil
+	return &diggerConfig, dependencyGraph, nil
+}
+
+func CreateProjectDependencyGraph(projects []Project) (graph.Graph[string, string], error) {
+	g := graph.New(graph.StringHash, graph.Directed(), graph.PreventCycles())
+	for _, project := range projects {
+		v, _ := g.Vertex(project.Name)
+
+		if v == "" {
+			err := g.AddVertex(project.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		for _, dependency := range project.DependencyProjects {
+			v, _ := g.Vertex(dependency)
+
+			if v == "" {
+				err := g.AddVertex(dependency)
+
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			err := g.AddEdge(dependency, project.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return g, nil
 }
