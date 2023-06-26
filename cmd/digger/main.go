@@ -61,7 +61,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 
 	walker := configuration.FileSystemDirWalker{}
 
-	diggerConfig, err := configuration.LoadDiggerConfig("./", &walker)
+	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig("./", &walker)
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -115,7 +115,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
-	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, reporter, planStorage, policyChecker, currentDir)
+	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, reporter, planStorage, policyChecker, currentDir)
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -153,7 +153,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(currentDir, &walker)
+	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir, &walker)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -204,7 +204,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 		CiService: gitlabService,
 		PrNumber:  *gitLabContext.MergeRequestIId,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, reporter, planStorage, policyChecker, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, reporter, planStorage, policyChecker, currentDir)
 
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
@@ -247,7 +247,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, err := configuration.LoadDiggerConfig(currentDir, &walker)
+	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir, &walker)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -282,7 +282,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 		CiService: azureService,
 		PrNumber:  prNumber,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, reporter, planStorage, policyChecker, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, reporter, planStorage, policyChecker, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}

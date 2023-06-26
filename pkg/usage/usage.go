@@ -77,7 +77,7 @@ func init() {
 		fmt.Printf("Failed to get current dir. %s", err)
 	}
 	walker := configuration.FileSystemDirWalker{}
-	config, err := configuration.LoadDiggerConfig(currentDir, &walker)
+	config, _, err := configuration.LoadDiggerConfig(currentDir, &walker)
 	if err != nil {
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"digger/pkg/utils"
 	"errors"
 	"fmt"
+	"github.com/dominikbraun/graph"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
@@ -61,50 +62,53 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
-func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, error) {
+func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, graph.Graph[string, string], error) {
 	configYaml := &DiggerConfigYaml{}
 	config := &DiggerConfig{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
 		if errors.Is(err, ErrDiggerConfigConflict) {
-			return nil, fmt.Errorf("error while retrieving config file: %v", err)
+			return nil, nil, fmt.Errorf("error while retrieving config file: %v", err)
 		}
 	}
 
 	if fileName == "" {
 		fmt.Println("No digger config found, using default one")
 		config.Projects = make([]Project, 1)
-		config.Projects[0] = defaultProject()
+		project := defaultProject()
+		config.Projects[0] = project
 		config.Workflows = make(map[string]Workflow)
 		config.Workflows["default"] = *defaultWorkflow()
-		return config, nil
+		g := graph.New(graph.StringHash)
+		g.AddVertex(project.Name)
+		return config, g, nil
 	}
 
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
+		return nil, nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
 	}
 
 	if err := yaml.Unmarshal(data, configYaml); err != nil {
-		return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+		return nil, nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 	}
 
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
-		return nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
+		return nil, nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
 
-	c, err := ConvertDiggerYamlToConfig(configYaml, workingDir, walker)
+	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml, workingDir, walker)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	for _, p := range c.Projects {
-		_, ok := c.Workflows[p.Workflow]
+	for _, p := range config.Projects {
+		_, ok := config.Workflows[p.Workflow]
 		if !ok {
-			return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
+			return nil, nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
 		}
 	}
-	return c, nil
+	return config, projectDependencyGraph, nil
 }
 
 func defaultProject() Project {

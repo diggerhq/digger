@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"digger/pkg/core/models"
+	"github.com/dominikbraun/graph"
 	"log"
 	"os"
 	"path"
@@ -27,7 +28,7 @@ func setUp() (string, func()) {
 }
 
 func TestDiggerConfigFileDoesNotExist(t *testing.T) {
-	dg, err := LoadDiggerConfig("", &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig("", &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be not nil")
 	assert.Equal(t, dg.Projects[0].Name, "default", "expected default project to have name 'default'")
 	assert.Equal(t, dg.Projects[0].Dir, ".", "expected default project dir to be '.'")
@@ -47,7 +48,7 @@ func TestDiggerConfigWhenMultipleConfigExist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.Error(t, err, "expected error to be returned")
 	assert.ErrorContains(t, err, ErrDiggerConfigConflict.Error(), "expected error to match target error")
 	assert.Nil(t, dg, "expected diggerConfig to be nil")
@@ -67,7 +68,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
@@ -87,7 +88,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
@@ -122,7 +123,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "default", dg.Projects[0].Workflow)
@@ -144,7 +145,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
 	defer deleteFile()
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "path/to/module", dg.GetDirectory("dev"))
@@ -169,7 +170,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, models.Step{Action: "run", Value: "echo \"hello\"", Shell: ""}, dg.Workflows["myworkflow"].Plan.Steps[0], "parsed struct does not match expected struct")
 }
@@ -214,7 +215,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, []EnvVar{
 		{Name: "TF_VAR_state", Value: "s3://mybucket/terraform.tfstate"},
@@ -254,7 +255,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, models.Step{Action: "run", Value: "rm -rf .terraform", Shell: ""}, dg.Workflows["dev"].Plan.Steps[0], "parsed struct does not match expected struct")
 	assert.Equal(t, models.Step{Action: "init", ExtraArgs: nil, Shell: ""}, dg.Workflows["dev"].Plan.Steps[1], "parsed struct does not match expected struct")
@@ -284,7 +285,7 @@ generate_projects:
 	walker.Files = append(walker.Files, "dev/project")
 	walker.Files = append(walker.Files, "testtt")
 
-	dg, err := LoadDiggerConfig(tempDir, walker)
+	dg, _, err := LoadDiggerConfig(tempDir, walker)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "test1", dg.Projects[0].Name)
@@ -314,7 +315,7 @@ generate_projects:
 	walker.Files = append(walker.Files, "dev/project")
 	walker.Files = append(walker.Files, "testtt")
 
-	dg, err := LoadDiggerConfig(tempDir, walker)
+	dg, _, err := LoadDiggerConfig(tempDir, walker)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "test1", dg.Projects[0].Name)
@@ -343,7 +344,7 @@ generate_projects:
 	walker.Files = append(walker.Files, "dev/project")
 	walker.Files = append(walker.Files, "testtt")
 
-	dg, err := LoadDiggerConfig(tempDir, walker)
+	dg, _, err := LoadDiggerConfig(tempDir, walker)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "dev", dg.Projects[0].Name)
@@ -360,7 +361,7 @@ func TestMissingProjectsReturnsError(t *testing.T) {
 	defer deleteFile()
 	walker := &MockDirWalker{}
 
-	_, err := LoadDiggerConfig(tempDir, walker)
+	_, _, err := LoadDiggerConfig(tempDir, walker)
 	assert.ErrorContains(t, err, "no projects configuration found")
 }
 
@@ -383,7 +384,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	dg, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "my_custom_workflow", dg.Projects[0].Workflow)
@@ -405,7 +406,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	_, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.Error(t, err, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'")
 
 	// steps block is missing for workflows
@@ -420,7 +421,7 @@ workflows:
 	deleteFile = createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	diggerConfig, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	diggerConfig, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.Equal(t, "my_custom_workflow", diggerConfig.Projects[0].Workflow)
 	workflow, ok := diggerConfig.Workflows["my_custom_workflow"]
 	assert.True(t, ok)
@@ -449,9 +450,117 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	_, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
 	assert.Equal(t, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'", err.Error())
 
+}
+
+func TestDiggerConfigDependencyGraph(t *testing.T) {
+	p1 := Project{
+		Name:               "A",
+		DependencyProjects: []string{"B", "C"},
+	}
+
+	p2 := Project{
+		Name:               "B",
+		DependencyProjects: []string{"C"},
+	}
+
+	p3 := Project{
+		Name: "C",
+	}
+
+	p4 := Project{
+		Name: "D",
+	}
+
+	p5 := Project{
+		Name:               "E",
+		DependencyProjects: []string{"A"},
+	}
+
+	p6 := Project{
+		Name:               "F",
+		DependencyProjects: []string{"A", "B"},
+	}
+
+	projects := []Project{p1, p2, p3, p4, p5, p6}
+
+	g, err := CreateProjectDependencyGraph(projects)
+
+	assert.NoError(t, err, "expected error to be nil")
+
+	orderedProjects, _ := graph.StableTopologicalSort(g, func(s string, s2 string) bool {
+		return s < s2
+	})
+
+	assert.Equal(t, 6, len(orderedProjects))
+	assert.Equal(t, []string{"C", "D", "B", "A", "E", "F"}, orderedProjects)
+}
+
+func TestDiggerConfigDependencyGraph2(t *testing.T) {
+	p1 := Project{
+		Name:               "A",
+		DependencyProjects: []string{"B", "C", "D"},
+	}
+
+	p2 := Project{
+		Name:               "B",
+		DependencyProjects: []string{"E", "F"},
+	}
+
+	p3 := Project{
+		Name: "C",
+		DependencyProjects: []string{
+			"G",
+		},
+	}
+
+	p4 := Project{
+		Name: "D",
+		DependencyProjects: []string{
+			"H", "I",
+		},
+	}
+
+	projects := []Project{p1, p2, p3, p4}
+
+	g, err := CreateProjectDependencyGraph(projects)
+
+	assert.NoError(t, err, "expected error to be nil")
+
+	orderedProjects, _ := graph.StableTopologicalSort(g, func(s string, s2 string) bool {
+		return s > s2
+	})
+
+	assert.Equal(t, 9, len(orderedProjects))
+	assert.Equal(t, []string{"I", "H", "G", "F", "E", "D", "C", "B", "A"}, orderedProjects)
+}
+
+func TestDiggerConfigDependencyGraphWithCyclesFails(t *testing.T) {
+	p1 := Project{
+		Name:               "A",
+		DependencyProjects: []string{"B"},
+	}
+
+	p2 := Project{
+		Name:               "B",
+		DependencyProjects: []string{"C"},
+	}
+
+	p3 := Project{
+		Name: "C",
+		DependencyProjects: []string{
+			"A",
+		},
+	}
+
+	projects := []Project{p1, p2, p3}
+
+	_, err := CreateProjectDependencyGraph(projects)
+
+	assert.Error(t, err, "expected error on cycle")
+	assert.Equal(t, "edge would create a cycle", err.Error())
 }
 
 func createTempDir() string {
