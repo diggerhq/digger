@@ -83,7 +83,7 @@ func RunCommandsPerProject(
 		fmt.Printf("Error while fetching user teams for CI service: %v", err)
 	}
 
-	commandsPerProject = SortedCommandByDependency(commandsPerProject, dependencyGraph)
+	commandsPerProject = SortedCommandsByDependency(commandsPerProject, dependencyGraph)
 
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
@@ -268,7 +268,7 @@ func RunCommandsPerProject(
 	return allAppliesSuccess, atLeastOneApply, nil
 }
 
-func SortedCommandByDependency(project []models.ProjectCommand, dependencyGraph *graph.Graph[string, string]) []models.ProjectCommand {
+func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph *graph.Graph[string, string]) []models.ProjectCommand {
 	var sortedCommands []models.ProjectCommand
 	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s string, s2 string) bool {
 		return s < s2

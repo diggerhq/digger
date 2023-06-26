@@ -326,7 +326,7 @@ func TestSortedCommandByDependency(t *testing.T) {
 	dependencyGraph.AddEdge("project3", "project2")
 	dependencyGraph.AddEdge("project4", "project1")
 
-	sortedCommands := SortedCommandByDependency(commandsPerProject, &dependencyGraph)
+	sortedCommands := SortedCommandsByDependency(commandsPerProject, &dependencyGraph)
 
 	assert.Equal(t, "project3", sortedCommands[0].ProjectName)
 	assert.Equal(t, "project4", sortedCommands[1].ProjectName)
