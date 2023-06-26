@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"digger/pkg/utils"
 	"testing"
 )
 
@@ -95,87 +96,58 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 		args         args
 		want         bool
 		wantErr      bool
+		command      string
+		requestedBy  string
 	}{
-		{
-			name: "test opa example",
-			fields: fields{
-				PolicyProvider: &OpaExamplePolicyProvider{},
-			},
-			args: args{
-				input: map[string]interface{}{
-					"organisation": "diggerhq",
-					"user":         "alice",
-					"action":       "read",
-					"object":       "server123",
-				},
-			},
-			want:    true,
-			wantErr: false,
-		},
 		{
 			name: "test digger example",
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider{},
 			},
-			args: args{
-				input: map[string]interface{}{
-					"user":   "motatoes",
-					"action": "digger plan",
-				},
-			},
-			want:    true,
-			wantErr: false,
+			want:        true,
+			wantErr:     false,
+			command:     "digger plan",
+			requestedBy: "motatoes",
 		},
 		{
 			name: "test digger example 2",
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider{},
 			},
-			args: args{
-				input: map[string]interface{}{
-					"user":   "Spartakovic",
-					"action": "digger unlock",
-				},
-			},
-			want:    false,
-			wantErr: false,
+			want:        false,
+			wantErr:     false,
+			command:     "digger unlock",
+			requestedBy: "Spartakovic",
 		},
 		{
 			name: "test digger example 3",
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider{},
 			},
-			args: args{
-				input: map[string]interface{}{
-					"user":   "rando",
-					"action": "digger apply",
-				},
-			},
-			want:    false,
-			wantErr: false,
+			want:        false,
+			wantErr:     false,
+			command:     "digger apply",
+			requestedBy: "rando",
 		},
 		{
 			name: "test digger example 4",
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider2{},
 			},
-			args: args{
-				input: map[string]interface{}{
-					"user":   "motatoes",
-					"action": "digger plan",
-				},
-			},
-			want:    true,
-			wantErr: false,
+			want:        true,
+			wantErr:     false,
+			command:     "digger plan",
+			requestedBy: "motatoes",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &DiggerPolicyChecker{
+			var p = &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
+				ciService:      utils.MockPullRequestManager{Teams: []string{"engineering"}},
 			}
-			got, err := p.Check(tt.organisation, tt.name, tt.name, tt.args.input)
+			got, err := p.Check(tt.organisation, tt.name, tt.name, tt.command, tt.requestedBy)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.Check() error = %v, wantErr %v", err, tt.wantErr)
 				return
