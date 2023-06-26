@@ -21,7 +21,7 @@ type ProjectYaml struct {
 	Workflow           string   `yaml:"workflow"`
 	IncludePatterns    []string `yaml:"include_patterns,omitempty"`
 	ExcludePatterns    []string `yaml:"exclude_patterns,omitempty"`
-	DependencyProjects []string `yaml:"dependency_projects,omitempty"`
+	DependencyProjects []string `yaml:"depends_on,omitempty"`
 }
 
 type WorkflowYaml struct {
