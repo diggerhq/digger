@@ -42,16 +42,17 @@ func (lock *MockLock) GetLock(resource string) (*int, error) {
 type MockPolicyChecker struct {
 }
 
-func (t MockPolicyChecker) Check(organisation string, namespace string, projectname string, input interface{}) (bool, error) {
+func (t MockPolicyChecker) Check(organisation string, namespace string, projectname string, command string, requestedBy string) (bool, error) {
 	return false, nil
 }
 
 type MockPullRequestManager struct {
 	ChangedFiles []string
+	Teams        []string
 }
 
 func (t MockPullRequestManager) GetUserTeams(organisation string, user string) ([]string, error) {
-	return []string{}, nil
+	return t.Teams, nil
 }
 
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
