@@ -134,8 +134,8 @@ runs:
       uses: google-github-actions/setup-gcloud@v1
       if: inputs.setup-google-cloud == 'true'
 
-    - name: Configure Test AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
       with:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
