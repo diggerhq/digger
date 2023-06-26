@@ -76,24 +76,12 @@ func RunCommandsPerProject(
 	plansToPublish := make([]string, 0)
 
 	organisation := strings.Split(projectNamespace, "/")[0]
-	teams, err := ciService.GetUserTeams(organisation, requestedBy)
-	if err != nil {
-		fmt.Printf("Error while fetching user teams for CI service: %v", err)
-	}
 
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
 			fmt.Printf("Running '%s' for project '%s'\n", command, projectCommands.ProjectName)
 
-			policyInput := map[string]interface{}{
-				"user":         requestedBy,
-				"organisation": organisation,
-				"teams":        teams,
-				"action":       command,
-				"project":      projectCommands.ProjectName,
-			}
-
-			allowedToPerformCommand, err := policyChecker.Check(organisation, projectNamespace, projectCommands.ProjectName, policyInput)
+			allowedToPerformCommand, err := policyChecker.Check(organisation, projectNamespace, projectCommands.ProjectName, command, requestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
