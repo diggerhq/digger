@@ -15,6 +15,7 @@ import (
 	"digger/pkg/usage"
 	"errors"
 	"fmt"
+	"github.com/dominikbraun/graph"
 	"log"
 	"os"
 	"path"
@@ -60,6 +61,7 @@ func DetectCI() CIName {
 
 func RunCommandsPerProject(
 	commandsPerProject []models.ProjectCommand,
+	dependencyGraph *graph.Graph[string, string],
 	projectNamespace string,
 	requestedBy string,
 	eventName string,
@@ -76,24 +78,14 @@ func RunCommandsPerProject(
 	plansToPublish := make([]string, 0)
 
 	organisation := strings.Split(projectNamespace, "/")[0]
-	teams, err := ciService.GetUserTeams(organisation, requestedBy)
-	if err != nil {
-		fmt.Printf("Error while fetching user teams for CI service: %v", err)
-	}
+
+	commandsPerProject = SortedCommandsByDependency(commandsPerProject, dependencyGraph)
 
 	for _, projectCommands := range commandsPerProject {
 		for _, command := range projectCommands.Commands {
 			fmt.Printf("Running '%s' for project '%s'\n", command, projectCommands.ProjectName)
 
-			policyInput := map[string]interface{}{
-				"user":         requestedBy,
-				"organisation": organisation,
-				"teams":        teams,
-				"action":       command,
-				"project":      projectCommands.ProjectName,
-			}
-
-			allowedToPerformCommand, err := policyChecker.Check(organisation, projectNamespace, projectCommands.ProjectName, policyInput)
+			allowedToPerformCommand, err := policyChecker.Check(organisation, projectNamespace, projectCommands.ProjectName, command, requestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
@@ -262,6 +254,24 @@ func RunCommandsPerProject(
 	atLeastOneApply := len(appliesPerProject) > 0
 
 	return allAppliesSuccess, atLeastOneApply, nil
+}
+
+func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph *graph.Graph[string, string]) []models.ProjectCommand {
+	var sortedCommands []models.ProjectCommand
+	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s string, s2 string) bool {
+		return s < s2
+	})
+	if err != nil {
+		log.Fatalf("failed to sort commands by dependency, %v", err)
+	}
+	for _, node := range sortedGraph {
+		for _, command := range project {
+			if command.ProjectName == node {
+				sortedCommands = append(sortedCommands, command)
+			}
+		}
+	}
+	return sortedCommands
 }
 
 func MergePullRequest(ciService ci.CIService, prNumber int) {
