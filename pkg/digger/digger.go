@@ -270,7 +270,9 @@ func RunCommandsPerProject(
 
 func SortedCommandByDependency(project []models.ProjectCommand, dependencyGraph *graph.Graph[string, string]) []models.ProjectCommand {
 	var sortedCommands []models.ProjectCommand
-	sortedGraph, err := graph.TopologicalSort(*dependencyGraph)
+	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s string, s2 string) bool {
+		return s < s2
+	})
 	if err != nil {
 		log.Fatalf("failed to sort commands by dependency, %v", err)
 	}

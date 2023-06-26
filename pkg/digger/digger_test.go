@@ -5,6 +5,7 @@ import (
 	"digger/pkg/core/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
+	"github.com/dominikbraun/graph"
 	"sort"
 	"strconv"
 	"strings"
@@ -284,6 +285,53 @@ func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, comm
 }
 
 func TestSortedCommandByDependency(t *testing.T) {
+	//	commandsPerProject []models.ProjectCommand,
+	//	dependencyGraph *graph.Graph[string, string],
+
+	commandsPerProject := []models.ProjectCommand{
+		{
+			ProjectName: "project1",
+			Commands: []string{
+				"command1", "command2",
+			},
+		},
+		{
+			ProjectName: "project2",
+			Commands: []string{
+				"command3", "command4",
+			},
+		},
+		{
+			ProjectName: "project3",
+			Commands: []string{
+				"command5",
+			},
+		},
+		{
+			ProjectName: "project4",
+			Commands: []string{
+				"command6",
+			},
+		},
+	}
+
+	dependencyGraph := graph.New(graph.StringHash, graph.PreventCycles(), graph.Directed())
+
+	dependencyGraph.AddVertex("project1")
+	dependencyGraph.AddVertex("project2")
+	dependencyGraph.AddVertex("project3")
+	dependencyGraph.AddVertex("project4")
+
+	dependencyGraph.AddEdge("project2", "project1")
+	dependencyGraph.AddEdge("project3", "project2")
+	dependencyGraph.AddEdge("project4", "project1")
+
+	sortedCommands := SortedCommandByDependency(commandsPerProject, &dependencyGraph)
+
+	assert.Equal(t, "project3", sortedCommands[0].ProjectName)
+	assert.Equal(t, "project4", sortedCommands[1].ProjectName)
+	assert.Equal(t, "project2", sortedCommands[2].ProjectName)
+	assert.Equal(t, "project1", sortedCommands[3].ProjectName)
 
 }
 
