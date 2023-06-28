@@ -20,5 +20,5 @@ type CIService interface {
 
 type Comment struct {
 	Id   interface{}
-	Body string
+	Body *string
 }

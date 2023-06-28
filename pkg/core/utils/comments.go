@@ -3,10 +3,9 @@ package utils
 func GetTerraformOutputAsCollapsibleComment(summary string) func(string) string {
 
 	return func(comment string) string {
-		return `<details>
-  <summary>` + summary + `</summary>
-
-  ` + "```terraform" + `
+		return `<details><summary>` + summary + `</summary>
+  
+` + "```terraform" + `
 ` + comment + `
   ` + "```" + `
 </details>`
@@ -16,8 +15,7 @@ func GetTerraformOutputAsCollapsibleComment(summary string) func(string) string 
 func AsCollapsibleComment(summary string) func(string) string {
 
 	return func(comment string) string {
-		return `<details>
-  <summary>` + summary + `</summary>
+		return `<details><summary>` + summary + `</summary>
   ` + comment + `
 </details>`
 	}

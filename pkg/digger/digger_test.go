@@ -217,7 +217,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
 
-	assert.Equal(t, []string{"RetrievePlan #.tfplan", "Lock ", "Init ", "Apply ", "LockId ", "PublishComment 1 <details>\n  <summary>Apply for ****</summary>\n\n  ```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan #.tfplan", "Lock ", "Init ", "Apply ", "LockId ", "PublishComment 1 <details><summary>Apply for ****</summary>\n  \n```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {

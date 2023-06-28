@@ -74,7 +74,7 @@ func (svc *GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 	for i, comment := range comments {
 		commentBodies[i] = ci.Comment{
 			Id:   *comment.ID,
-			Body: *comment.Body,
+			Body: comment.Body,
 		}
 	}
 	return commentBodies, err
