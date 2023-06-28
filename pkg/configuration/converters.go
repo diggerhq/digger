@@ -161,12 +161,6 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 		}
 	}
 
-	dependencyGraph, err := CreateProjectDependencyGraph(diggerConfig.Projects)
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create project dependency graph: %s", err.Error())
-	}
-
 	if diggerYaml.GenerateProjectsConfig != nil {
 		dirs, err := walker.GetDirs(workingDir)
 		if err != nil {
@@ -181,6 +175,11 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
+	}
+
+	dependencyGraph, err := CreateProjectDependencyGraph(diggerConfig.Projects)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create project dependency graph: %s", err.Error())
 	}
 
 	// if one of the workflows is missing Plan or Apply we copy default values

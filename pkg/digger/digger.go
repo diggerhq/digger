@@ -135,6 +135,7 @@ func RunCommandsPerProject(
 
 			switch command {
 			case "digger plan":
+				fmt.Printf("!!!PERFORMING DIGGER PLAN!!! %v", projectCommands.ProjectName)
 				err := usage.SendUsageRecord(requestedBy, eventName, "plan")
 				if err != nil {
 					return false, false, fmt.Errorf("failed to send usage report. %v", err)
