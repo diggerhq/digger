@@ -101,6 +101,7 @@ func RunCommandsPerProject(
 
 			projectLock := &locking.PullRequestLock{
 				InternalLock:     lock,
+				Reporter:         reporter,
 				CIService:        ciService,
 				ProjectName:      projectCommands.ProjectName,
 				ProjectNamespace: projectNamespace,
@@ -187,7 +188,7 @@ func RunCommandsPerProject(
 				if !isMergeable && !isMerged {
 					comment := "Cannot perform Apply since the PR is not currently mergeable."
 					fmt.Println(comment)
-					err = ciService.PublishComment(prNumber, comment)
+					err = reporter.Report(comment, utils.AsCollapsibleComment("Apply error"))
 					if err != nil {
 						fmt.Printf("error publishing comment: %v\n", err)
 					}
