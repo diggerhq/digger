@@ -103,7 +103,7 @@ func TestLatestCommentStrategyReport(t *testing.T) {
 	}
 
 	assert.Equal(t, 2, len(ciService.CommentsPerPr[prNumber]))
-	assert.Equal(t, "<details><summary>Digger latest run report</summary>\n  <details><summary>run4</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n</details>", *ciService.CommentsPerPr[prNumber][1].Body)
+	assert.Equal(t, "<details><summary>Digger latest run report</summary>\n  <details><summary>Digger latest run report</summary>\n  <details><summary>Digger latest run report</summary>\n  <details><summary>Digger latest run report</summary>\n  <details><summary>run1</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n</details>\n\n<details><summary>run2</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n</details>\n\n<details><summary>run3</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n</details>\n\n<details><summary>run4</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n</details>", *ciService.CommentsPerPr[prNumber][1].Body)
 }
 
 func TestMultipleCommentStrategyReport(t *testing.T) {
