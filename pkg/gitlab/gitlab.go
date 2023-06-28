@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"digger/pkg/ci"
 	"digger/pkg/configuration"
 	"digger/pkg/core/models"
 	"digger/pkg/utils"
@@ -226,6 +227,16 @@ func (gitlabService GitLabService) IsMerged(mergeRequestID int) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+func (gitlabService GitLabService) EditComment(id interface{}, comment string) error {
+	//TODO implement me
+	return nil
+}
+
+func (gitlabService GitLabService) GetComments(prNumber int) ([]ci.Comment, error) {
+	//TODO implement me
+	return nil, nil
 }
 
 func getMergeRequest(gitlabService GitLabService) *go_gitlab.MergeRequest {

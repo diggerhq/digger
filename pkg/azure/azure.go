@@ -313,6 +313,16 @@ func (a *AzureReposService) IsMerged(prNumber int) (bool, error) {
 	return *pullRequest.Status == git.PullRequestStatusValues.Completed, nil
 }
 
+func (a *AzureReposService) EditComment(id interface{}, comment string) error {
+	//TODO implement me
+	return nil
+}
+
+func (a *AzureReposService) GetComments(prNumber int) ([]ci.Comment, error) {
+	//TODO implement me
+	return nil, nil
+}
+
 func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
