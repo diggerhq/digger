@@ -29,6 +29,10 @@ func (strategy *CommentPerRunStrategy) Report(ciService ci.CIService, PrNumber i
 	}
 
 	reportTitle := "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05")
+	return upsertComment(ciService, PrNumber, report, reportFormatter, comments, reportTitle, err)
+}
+
+func upsertComment(ciService ci.CIService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, err error) error {
 	report = reportFormatter(report)
 	var commentIdForThisRun interface{}
 	var commentBody string
@@ -77,36 +81,7 @@ func (strategy *LatestRunCommentStrategy) Report(ciService ci.CIService, prNumbe
 	}
 
 	reportTitle := "Digger latest run report"
-	comment = commentFormatting(comment)
-	var commentBody string
-	var commentIdForThisRun interface{}
-	for _, comment := range comments {
-		if strings.Contains(*comment.Body, reportTitle) {
-			commentIdForThisRun = comment.Id
-			commentBody = *comment.Body
-			break
-		}
-	}
-
-	if commentIdForThisRun == nil {
-		collapsibleComment := utils.AsCollapsibleComment(reportTitle)(comment)
-		err := ciService.PublishComment(prNumber, collapsibleComment)
-		if err != nil {
-			return fmt.Errorf("error publishing comment: %v", err)
-		}
-		return nil
-	}
-
-	comment = commentBody + "\n\n" + comment + "\n"
-
-	completeComment := utils.AsCollapsibleComment(reportTitle)(comment)
-
-	err = ciService.EditComment(commentIdForThisRun, completeComment)
-
-	if err != nil {
-		return fmt.Errorf("error editing comment: %v", err)
-	}
-	return nil
+	return upsertComment(ciService, prNumber, comment, commentFormatting, comments, reportTitle, err)
 }
 
 type MultipleCommentsStrategy struct{}
