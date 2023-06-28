@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"digger/pkg/ci"
 	"digger/pkg/core/execution"
 	"digger/pkg/core/models"
 	"digger/pkg/reporting"
@@ -105,6 +106,16 @@ func (m *MockPRManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
+func (m *MockPRManager) GetComments(prNumber int) ([]ci.Comment, error) {
+	m.Commands = append(m.Commands, RunInfo{"GetComments", strconv.Itoa(prNumber), time.Now()})
+	return []ci.Comment{}, nil
+}
+
+func (m *MockPRManager) EditComment(id interface{}, comment string) error {
+	m.Commands = append(m.Commands, RunInfo{"EditComment", strconv.Itoa(id.(int)) + " " + comment, time.Now()})
+	return nil
+}
+
 type MockProjectLock struct {
 	Commands []RunInfo
 }
@@ -170,8 +181,9 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	lock := &MockProjectLock{}
 	planStorage := &MockPlanStorage{}
 	reporter := &reporting.CiReporter{
-		CiService: prManager,
-		PrNumber:  1,
+		CiService:      prManager,
+		PrNumber:       1,
+		ReportStrategy: &reporting.MultipleCommentsStrategy{},
 	}
 	executor := execution.DiggerExecutor{
 		ApplyStage: &models.Stage{
