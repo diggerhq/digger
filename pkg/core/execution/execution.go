@@ -162,7 +162,7 @@ func (d DiggerExecutor) Apply() (bool, error) {
 			if step.Action == "apply" {
 				stdout, stderr, err := d.TerraformExecutor.Apply(step.ExtraArgs, plansFilename, d.CommandEnvVars)
 				applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-				formatter := utils.GetTerraformOutputAsCollapsibleComment("Apply for **" + d.ProjectLock.LockId() + "**")
+				formatter := utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + d.ProjectLock.LockId() + "</b>")
 
 				commentErr := d.Reporter.Report(applyOutput, formatter)
 				if commentErr != nil {
