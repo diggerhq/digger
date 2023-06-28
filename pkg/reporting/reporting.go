@@ -2,6 +2,7 @@ package reporting
 
 import (
 	"digger/pkg/ci"
+	"digger/pkg/core/utils"
 	"fmt"
 	"strings"
 	"time"
@@ -32,15 +33,15 @@ func (strategy *CommentPerRunStrategy) Report(ciService ci.CIService, PrNumber i
 	var commentIdForThisRun interface{}
 	var commentBody string
 	for _, comment := range comments {
-		if strings.Contains(comment.Body, reportTitle) {
+		if strings.Contains(*comment.Body, reportTitle) {
 			commentIdForThisRun = comment.Id
-			commentBody = comment.Body
+			commentBody = *comment.Body
 			break
 		}
 	}
 
 	if commentIdForThisRun == nil {
-		collapsibleComment := CollapsibleComment(reportTitle, report)
+		collapsibleComment := utils.AsCollapsibleComment(reportTitle)(report)
 		err := ciService.PublishComment(PrNumber, collapsibleComment)
 		if err != nil {
 			return fmt.Errorf("error publishing comment: %v", err)
@@ -55,7 +56,7 @@ func (strategy *CommentPerRunStrategy) Report(ciService ci.CIService, PrNumber i
 
 	commentBody = commentBody + "\n\n" + report + "\n"
 
-	completeComment := CollapsibleComment(reportTitle, commentBody)
+	completeComment := utils.AsCollapsibleComment(reportTitle)(commentBody)
 
 	err = ciService.EditComment(commentIdForThisRun, completeComment)
 
@@ -79,14 +80,14 @@ func (strategy *LatestRunCommentStrategy) Report(ciService ci.CIService, prNumbe
 	comment = commentFormatting(comment)
 	var commentIdForThisRun interface{}
 	for _, comment := range comments {
-		if strings.Contains(comment.Body, reportTitle) {
+		if strings.Contains(*comment.Body, reportTitle) {
 			commentIdForThisRun = comment.Id
 			break
 		}
 	}
 
 	if commentIdForThisRun == nil {
-		collapsibleComment := CollapsibleComment(reportTitle, comment)
+		collapsibleComment := utils.AsCollapsibleComment(reportTitle)(comment)
 		err := ciService.PublishComment(prNumber, collapsibleComment)
 		if err != nil {
 			return fmt.Errorf("error publishing comment: %v", err)
@@ -94,7 +95,7 @@ func (strategy *LatestRunCommentStrategy) Report(ciService ci.CIService, prNumbe
 		return nil
 	}
 
-	completeComment := CollapsibleComment(reportTitle, comment)
+	completeComment := utils.AsCollapsibleComment(reportTitle)(comment)
 
 	err = ciService.EditComment(commentIdForThisRun, completeComment)
 
@@ -112,12 +113,4 @@ func (strategy *MultipleCommentsStrategy) Report(ciService ci.CIService, PrNumbe
 
 func (ciReporter *CiReporter) Report(report string, reportFormatter func(report string) string) error {
 	return ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatter)
-}
-
-func CollapsibleComment(summary string, collapsedComment string) string {
-	str := `<details><summary>` + summary + `</summary>
-` + collapsedComment + `
-
-</details>`
-	return str
 }
