@@ -78,10 +78,12 @@ func (strategy *LatestRunCommentStrategy) Report(ciService ci.CIService, prNumbe
 
 	reportTitle := "Digger latest run report"
 	comment = commentFormatting(comment)
+	var commentBody string
 	var commentIdForThisRun interface{}
 	for _, comment := range comments {
 		if strings.Contains(*comment.Body, reportTitle) {
 			commentIdForThisRun = comment.Id
+			commentBody = *comment.Body
 			break
 		}
 	}
@@ -94,6 +96,8 @@ func (strategy *LatestRunCommentStrategy) Report(ciService ci.CIService, prNumbe
 		}
 		return nil
 	}
+
+	comment = commentBody + "\n\n" + comment + "\n"
 
 	completeComment := utils.AsCollapsibleComment(reportTitle)(comment)
 
