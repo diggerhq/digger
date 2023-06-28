@@ -152,7 +152,7 @@ func RunCommandsPerProject(
 					return false, false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else if planPerformed {
 					if plan != "" {
-						formatter := utils.GetTerraformOutputAsCollapsibleComment("Plan for **" + projectLock.LockId() + "**")
+						formatter := utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
 						err = reporter.Report(plan, formatter)
 						if err != nil {
 							log.Printf("Failed to report plan. %v", err)
