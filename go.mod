@@ -8,7 +8,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.1
 	github.com/aws/aws-sdk-go v1.44.291
 	github.com/bmatcuk/doublestar/v4 v4.6.0
-	github.com/caarlos0/env/v8 v8.0.0
+	github.com/caarlos0/env/v9 v9.0.0
 	github.com/google/go-github/v53 v53.2.0
 	github.com/google/uuid v1.3.0
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
@@ -18,7 +18,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/dominikbraun/graph v0.22.3
+require (
+	github.com/caarlos0/env/v8 v8.0.0
+	github.com/dominikbraun/graph v0.22.3
+)
 
 require (
 	cloud.google.com/go v0.110.0 // indirect
