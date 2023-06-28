@@ -2,6 +2,15 @@ package utils
 
 import "digger/pkg/ci"
 
+type MockReporter struct {
+	commands []string
+}
+
+func (mockReporter *MockReporter) Report(report string, formatter func(string) string) error {
+	mockReporter.commands = append(mockReporter.commands, "Report")
+	return nil
+}
+
 type MockGithubPullrequestManager struct {
 	commands []string
 }
