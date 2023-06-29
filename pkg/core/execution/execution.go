@@ -162,13 +162,14 @@ func (d DiggerExecutor) Apply() (bool, error) {
 			if step.Action == "apply" {
 				stdout, stderr, err := d.TerraformExecutor.Apply(step.ExtraArgs, plansFilename, d.CommandEnvVars)
 				applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
-				comment := utils.GetTerraformOutputAsCollapsibleComment("Apply for **"+d.ProjectLock.LockId()+"**", applyOutput)
-				commentErr := d.Reporter.Report(comment)
+				formatter := utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + d.ProjectLock.LockId() + "</b>")
+
+				commentErr := d.Reporter.Report(applyOutput, formatter)
 				if commentErr != nil {
 					fmt.Printf("error publishing comment: %v", err)
 				}
 				if err != nil {
-					commentErr = d.Reporter.Report("Error during applying.")
+					commentErr = d.Reporter.Report(err.Error(), utils.AsCollapsibleComment("Error during applying."))
 					if commentErr != nil {
 						fmt.Printf("error publishing comment: %v", err)
 					}

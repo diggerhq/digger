@@ -68,6 +68,24 @@ func (svc *GithubService) PublishComment(prNumber int, comment string) error {
 	return err
 }
 
+func (svc *GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
+	comments, _, err := svc.Client.Issues.ListComments(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueListCommentsOptions{ListOptions: github.ListOptions{PerPage: 100}})
+	commentBodies := make([]ci.Comment, len(comments))
+	for i, comment := range comments {
+		commentBodies[i] = ci.Comment{
+			Id:   *comment.ID,
+			Body: comment.Body,
+		}
+	}
+	return commentBodies, err
+}
+
+func (svc *GithubService) EditComment(id interface{}, comment string) error {
+	commentId := id.(int64)
+	_, _, err := svc.Client.Issues.EditComment(context.Background(), svc.Owner, svc.RepoName, commentId, &github.IssueComment{Body: &comment})
+	return err
+}
+
 func (svc *GithubService) SetStatus(prNumber int, status string, statusContext string) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {

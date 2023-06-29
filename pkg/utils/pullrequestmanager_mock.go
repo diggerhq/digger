@@ -1,5 +1,16 @@
 package utils
 
+import "digger/pkg/ci"
+
+type MockReporter struct {
+	commands []string
+}
+
+func (mockReporter *MockReporter) Report(report string, formatter func(string) string) error {
+	mockReporter.commands = append(mockReporter.commands, "Report")
+	return nil
+}
+
 type MockGithubPullrequestManager struct {
 	commands []string
 }
@@ -51,4 +62,14 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsClosed(prNum
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMerged(prNumber int) (bool, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsClosed")
 	return false, nil
+}
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetComments(prNumber int) ([]ci.Comment, error) {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetComments")
+	return []ci.Comment{}, nil
+}
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(commentId interface{}, comment string) error {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "EditComment")
+	return nil
 }
