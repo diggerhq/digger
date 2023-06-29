@@ -13,6 +13,7 @@ import (
 
 type PolicyProvider interface {
 	GetPolicy(namespace string, projectname string) (string, error)
+	GetOrganisation() string
 }
 
 type DiggerHttpPolicyProvider struct {
@@ -29,7 +30,7 @@ func (p NoOpPolicyChecker) Check(_ string, _ string, _ string, _ string, _ strin
 	return true, nil
 }
 
-func (p *DiggerHttpPolicyProvider) getPolicyForOrganisation() (string, *http.Response, error) {
+func getPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Response, error) {
 	organisation := p.DiggerOrganisation
 	req, err := http.NewRequest("GET", p.DiggerHost+"/orgs/"+organisation+"/access-policy", nil)
 	if err != nil {
@@ -50,7 +51,7 @@ func (p *DiggerHttpPolicyProvider) getPolicyForOrganisation() (string, *http.Res
 	return string(body), resp, nil
 }
 
-func (p *DiggerHttpPolicyProvider) getPolicyForNamespace(namespace string, projectName string) (string, *http.Response, error) {
+func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
 
 	// fetch RBAC policies for projectfrom Digger API
 	namespace = strings.ReplaceAll(namespace, "/", "-")
@@ -77,14 +78,14 @@ func (p *DiggerHttpPolicyProvider) getPolicyForNamespace(namespace string, proje
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
 func (p *DiggerHttpPolicyProvider) GetPolicy(namespace string, projectName string) (string, error) {
-	content, resp, err := p.getPolicyForNamespace(namespace, projectName)
+	content, resp, err := getPolicyForNamespace(p, namespace, projectName)
 	if err != nil {
 		return "", err
 	}
 	if resp.StatusCode == 200 {
 		return content, nil
 	} else if resp.StatusCode == 404 {
-		content, resp, err := p.getPolicyForOrganisation()
+		content, resp, err := getPolicyForOrganisation(p)
 		if err != nil {
 			return "", err
 		}
@@ -100,15 +101,19 @@ func (p *DiggerHttpPolicyProvider) GetPolicy(namespace string, projectName strin
 	}
 }
 
+func (p *DiggerHttpPolicyProvider) GetOrganisation() string {
+	return p.DiggerOrganisation
+}
+
 type DiggerPolicyChecker struct {
-	PolicyProvider DiggerHttpPolicyProvider
+	PolicyProvider PolicyProvider
 	ciService      ci.CIService
 }
 
-func (p DiggerPolicyChecker) Check(githubOrganisation string, namespace string, projectName string, command string, requestedBy string) (bool, error) {
-	organisation := p.PolicyProvider.DiggerOrganisation
+func (p DiggerPolicyChecker) Check(SCMOrganisation string, namespace string, projectName string, command string, requestedBy string) (bool, error) {
+	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(namespace, projectName)
-	teams, err := p.ciService.GetUserTeams(githubOrganisation, requestedBy)
+	teams, err := p.ciService.GetUserTeams(SCMOrganisation, requestedBy)
 	if err != nil {
 		fmt.Printf("Error while fetching user teams for CI service: %v", err)
 		return false, err
