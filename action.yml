@@ -89,7 +89,7 @@ inputs:
   reporting-strategy:
     description: 'comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments'
     required: false
-    default: 'multiple-comments'
+    default: 'comments_per_run'
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
