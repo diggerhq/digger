@@ -101,12 +101,12 @@ func (p *DiggerHttpPolicyProvider) GetPolicy(namespace string, projectName strin
 }
 
 type DiggerPolicyChecker struct {
-	PolicyProvider PolicyProvider
+	PolicyProvider DiggerHttpPolicyProvider
 	ciService      ci.CIService
 }
 
 func (p DiggerPolicyChecker) Check(githubOrganisation string, namespace string, projectName string, command string, requestedBy string) (bool, error) {
-	organisation := p.PolicyProvider.(*DiggerHttpPolicyProvider).DiggerOrganisation
+	organisation := p.PolicyProvider.DiggerOrganisation
 	policy, err := p.PolicyProvider.GetPolicy(namespace, projectName)
 	teams, err := p.ciService.GetUserTeams(githubOrganisation, requestedBy)
 	if err != nil {
