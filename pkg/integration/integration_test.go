@@ -44,9 +44,15 @@ func getProjectLockForTests() (error, *locking.PullRequestLock) {
 	repositoryName := "test_dynamodb_lock"
 	ghToken := "token"
 	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
+	reporter := reporting.CiReporter{
+		CiService:      githubPrService,
+		PrNumber:       1,
+		ReportStrategy: &reporting.MultipleCommentsStrategy{},
+	}
 
 	projectLock := &locking.PullRequestLock{
 		InternalLock:     &dynamoDbLock,
+		Reporter:         &reporter,
 		CIService:        githubPrService,
 		ProjectName:      "test_dynamodb_lock",
 		ProjectNamespace: repoOwner + "/" + repositoryName,
@@ -413,6 +419,7 @@ func TestHappyPath(t *testing.T) {
 
 	projectLock := &locking.PullRequestLock{
 		InternalLock:     lock,
+		Reporter:         reporter,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
 		ProjectNamespace: diggerProjectNamespace,
@@ -453,6 +460,7 @@ func TestHappyPath(t *testing.T) {
 
 	projectLock = &locking.PullRequestLock{
 		InternalLock:     lock,
+		Reporter:         reporter,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
 		ProjectNamespace: diggerProjectNamespace,
@@ -476,6 +484,7 @@ func TestHappyPath(t *testing.T) {
 
 	projectLock = &locking.PullRequestLock{
 		InternalLock:     lock,
+		Reporter:         reporter,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
 		ProjectNamespace: diggerProjectNamespace,
@@ -568,6 +577,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	projectLock := &locking.PullRequestLock{
 		InternalLock:     &dynamoDbLock,
+		Reporter:         reporter,
 		CIService:        githubPrService,
 		ProjectName:      "digger_demo",
 		ProjectNamespace: diggerProjectNamespace,
@@ -607,6 +617,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	projectLock = &locking.PullRequestLock{
 		InternalLock:     &dynamoDbLock,
+		Reporter:         reporter,
 		CIService:        githubPrService,
 		ProjectName:      "digger_demo",
 		ProjectNamespace: diggerProjectNamespace,
@@ -630,6 +641,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	projectLock = &locking.PullRequestLock{
 		InternalLock:     &dynamoDbLock,
+		Reporter:         reporter,
 		CIService:        githubPrService,
 		ProjectName:      "digger_demo",
 		ProjectNamespace: diggerProjectNamespace,
@@ -827,6 +839,7 @@ workflows:
 
 	projectLock = &locking.PullRequestLock{
 		InternalLock:     lock,
+		Reporter:         reporter,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
 		ProjectNamespace: diggerProjectNamespace,
@@ -849,6 +862,7 @@ workflows:
 
 	projectLock = &locking.PullRequestLock{
 		InternalLock:     lock,
+		Reporter:         reporter,
 		CIService:        githubPrService,
 		ProjectName:      "dev",
 		ProjectNamespace: diggerProjectNamespace,

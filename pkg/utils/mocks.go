@@ -1,5 +1,7 @@
 package utils
 
+import "digger/pkg/ci"
+
 type MockTerraform struct {
 	commands []string
 }
@@ -88,6 +90,14 @@ func (t MockPullRequestManager) DownloadLatestPlans(prNumber int) (string, error
 
 func (t MockPullRequestManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
+}
+
+func (t MockPullRequestManager) GetComments(prNumber int) ([]ci.Comment, error) {
+	return []ci.Comment{}, nil
+}
+
+func (t MockPullRequestManager) EditComment(commentId interface{}, comment string) error {
+	return nil
 }
 
 type MockPlanStorage struct {
