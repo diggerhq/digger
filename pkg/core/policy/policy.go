@@ -5,5 +5,5 @@ type Provider interface {
 }
 
 type Checker interface {
-	Check(organisation string, namespace string, projectname string, command string, requestedBy string) (bool, error)
+	Check(githubOrganisation string, namespace string, projectname string, command string, requestedBy string) (bool, error)
 }
