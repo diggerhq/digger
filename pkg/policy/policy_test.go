@@ -41,6 +41,10 @@ func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error)
 		"}", nil
 }
 
+func (s *OpaExamplePolicyProvider) GetOrganisation() string {
+	return "ORGANISATIONDIGGER"
+}
+
 type DiggerExamplePolicyProvider struct {
 }
 
@@ -58,6 +62,10 @@ func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string) (string, err
 		"    p == input.action\n" +
 		"}\n" +
 		"", nil
+}
+
+func (s *DiggerExamplePolicyProvider) GetOrganisation() string {
+	return "ORGANISATIONDIGGER"
 }
 
 type DiggerExamplePolicyProvider2 struct {
@@ -80,6 +88,10 @@ func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string) (string, er
 		"    1 == 1\n" +
 		"}\n" +
 		"", nil
+}
+
+func (s *DiggerExamplePolicyProvider2) GetOrganisation() string {
+	return "ORGANISATIONDIGGER"
 }
 
 func TestDiggerPolicyChecker_Check(t *testing.T) {
