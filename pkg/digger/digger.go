@@ -297,5 +297,7 @@ func MergePullRequest(ciService ci.CIService, prNumber int) {
 		if err != nil {
 			log.Fatalf("failed to merge PR, %v", err)
 		}
+	} else {
+	   log.Printf("PR is already merged, skipping merge step")
 	}
 }
