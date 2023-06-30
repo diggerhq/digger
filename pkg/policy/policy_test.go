@@ -48,7 +48,7 @@ func (s *OpaExamplePolicyProvider) GetOrganisation() string {
 type DiggerExamplePolicyProvider struct {
 }
 
-func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"user_permissions := {\n" +
@@ -71,7 +71,7 @@ func (s *DiggerExamplePolicyProvider) GetOrganisation() string {
 type DiggerExamplePolicyProvider2 struct {
 }
 
-func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"user_permissions := {\n" +

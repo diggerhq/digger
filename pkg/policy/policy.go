@@ -12,7 +12,7 @@ import (
 )
 
 type PolicyProvider interface {
-	GetPolicy(namespace string, projectname string) (string, error)
+	GetPolicy(organisation string, repository string, projectname string) (string, error)
 	GetOrganisation() string
 }
 
@@ -77,7 +77,8 @@ func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projec
 }
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
-func (p *DiggerHttpPolicyProvider) GetPolicy(namespace string, projectName string) (string, error) {
+func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, projectName string) (string, error) {
+	namespace := fmt.Sprintf("%v-%v", organisation)
 	content, resp, err := getPolicyForNamespace(p, namespace, projectName)
 	if err != nil {
 		return "", err
@@ -109,9 +110,9 @@ type DiggerPolicyChecker struct {
 	PolicyProvider PolicyProvider
 }
 
-func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, namespace string, projectName string, command string, requestedBy string) (bool, error) {
+func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
 	organisation := p.PolicyProvider.GetOrganisation()
-	policy, err := p.PolicyProvider.GetPolicy(namespace, projectName)
+	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
 	teams, err := ciService.GetUserTeams(SCMOrganisation, requestedBy)
 	if err != nil {
 		fmt.Printf("Error while fetching user teams for CI service: %v", err)
