@@ -15,12 +15,13 @@ import (
 	"digger/pkg/usage"
 	"errors"
 	"fmt"
-	"github.com/dominikbraun/graph"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/dominikbraun/graph"
 )
 
 type CIName string
@@ -264,28 +265,39 @@ func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph
 
 func MergePullRequest(ciService ci.CIService, prNumber int) {
 	time.Sleep(5 * time.Second)
-	combinedStatus, err := ciService.GetCombinedPullRequestStatus(prNumber)
 
+	// Check if it was manually merged
+	isMerged, err := ciService.IsMerged(prNumber)
 	if err != nil {
-		log.Fatalf("failed to get combined status, %v", err)
+		log.Fatalf("error checking if PR is merged: %v", err)
 	}
 
-	if combinedStatus != "success" {
-		log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
-	}
+	if !isMerged {
+		combinedStatus, err := ciService.GetCombinedPullRequestStatus(prNumber)
 
-	prIsMergeable, err := ciService.IsMergeable(prNumber)
+		if err != nil {
+			log.Fatalf("failed to get combined status, %v", err)
+		}
 
-	if err != nil {
-		log.Fatalf("failed to check if PR is mergeable, %v", err)
-	}
+		if combinedStatus != "success" {
+			log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
+		}
 
-	if !prIsMergeable {
-		log.Fatalf("PR is not mergeable")
-	}
+		prIsMergeable, err := ciService.IsMergeable(prNumber)
 
-	err = ciService.MergePullRequest(prNumber)
-	if err != nil {
-		log.Fatalf("failed to merge PR, %v", err)
+		if err != nil {
+			log.Fatalf("failed to check if PR is mergeable, %v", err)
+		}
+
+		if !prIsMergeable {
+			log.Fatalf("PR is not mergeable")
+		}
+
+		err = ciService.MergePullRequest(prNumber)
+		if err != nil {
+			log.Fatalf("failed to merge PR, %v", err)
+		}
+	} else {
+	   log.Printf("PR is already merged, skipping merge step")
 	}
 }
