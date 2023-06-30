@@ -225,7 +225,7 @@ func CollectTerraformEnvConfig(envs *TerraformEnvConfig) (map[string]string, map
 
 	if envs != nil {
 		for _, envvar := range envs.State {
-			fmt.Printf("state env var: %s", envvar.Name)
+			fmt.Printf("state env var: %s\n", envvar.Name)
 			if envvar.Value != "" {
 
 				stateEnvVars[envvar.Name] = envvar.Value
