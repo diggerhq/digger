@@ -26,7 +26,7 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) Check(_ string, _ string, _ string, _ string, _ string) (bool, error) {
+func (p NoOpPolicyChecker) Check(_ ci.CIService, _ string, _ string, _ string, _ string, _ string) (bool, error) {
 	return true, nil
 }
 
