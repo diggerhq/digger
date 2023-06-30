@@ -31,7 +31,6 @@ type GithubService struct {
 }
 
 func (svc *GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
-	println("!!IN GetUserTEAMS !!!")
 	teamsResponse, _, err := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
 	if err != nil {
 		log.Fatalf("Failed to list github teams: %v", err)
