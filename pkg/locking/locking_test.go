@@ -2,8 +2,10 @@ package locking
 
 import (
 	"digger/pkg/utils"
-	"github.com/stretchr/testify/assert"
+	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLockingTwiceThrowsError(t *testing.T) {
@@ -32,6 +34,5 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 	}
 	state2, err2 := pl2.Lock()
 	assert.False(t, state2)
-	// No error because the lock was not aquired
-	assert.NoError(t, err2)
+	assert.Equal(t, err2, errors.New("Project #a locked by another PR #1 (failed to acquire lock a). The locking plan must be applied or discarded before future plans can execute"))
 }

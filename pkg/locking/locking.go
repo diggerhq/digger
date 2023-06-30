@@ -120,9 +120,9 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 				return true, nil
 			}
 			transactionIdStr := strconv.Itoa(*transactionId)
-			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
-			err = projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Locking failed"))
-			return false, nil
+			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
+			_ = projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Locking failed"))
+			return false, errors.New(comment)
 		}
 		return true, nil
 	}
