@@ -75,7 +75,9 @@ func RunCommandsPerProject(
 ) (bool, bool, error) {
 	appliesPerProject := make(map[string]bool)
 
-	SCMOrganisation := strings.Split(projectNamespace, "/")[0]
+	splits := strings.Split(projectNamespace, "/")
+	SCMOrganisation := splits[0]
+	SCMrepository := splits[1]
 
 	commandsPerProject = SortedCommandsByDependency(commandsPerProject, dependencyGraph)
 
@@ -83,7 +85,7 @@ func RunCommandsPerProject(
 		for _, command := range projectCommands.Commands {
 			fmt.Printf("Running '%s' for project '%s'\n", command, projectCommands.ProjectName)
 
-			allowedToPerformCommand, err := policyChecker.Check(ciService, SCMOrganisation, projectNamespace, projectCommands.ProjectName, command, requestedBy)
+			allowedToPerformCommand, err := policyChecker.Check(ciService, SCMOrganisation, SCMrepository, projectCommands.ProjectName, command, requestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
