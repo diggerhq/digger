@@ -107,14 +107,12 @@ func (p *DiggerHttpPolicyProvider) GetOrganisation() string {
 
 type DiggerPolicyChecker struct {
 	PolicyProvider PolicyProvider
-	ciService      ci.CIService
 }
 
-func (p DiggerPolicyChecker) Check(SCMOrganisation string, namespace string, projectName string, command string, requestedBy string) (bool, error) {
+func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, namespace string, projectName string, command string, requestedBy string) (bool, error) {
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(namespace, projectName)
-	fmt.Printf("inside Check function !! %v", p.ciService)
-	teams, err := p.ciService.GetUserTeams(SCMOrganisation, requestedBy)
+	teams, err := ciService.GetUserTeams(SCMOrganisation, requestedBy)
 	if err != nil {
 		fmt.Printf("Error while fetching user teams for CI service: %v", err)
 		return false, err
