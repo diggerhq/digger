@@ -83,7 +83,7 @@ func RunCommandsPerProject(
 		for _, command := range projectCommands.Commands {
 			fmt.Printf("Running '%s' for project '%s'\n", command, projectCommands.ProjectName)
 
-			allowedToPerformCommand, err := policyChecker.Check(SCMOrganisation, projectNamespace, projectCommands.ProjectName, command, requestedBy)
+			allowedToPerformCommand, err := policyChecker.Check(ciService, SCMOrganisation, projectNamespace, projectCommands.ProjectName, command, requestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
