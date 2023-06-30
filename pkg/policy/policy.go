@@ -82,7 +82,7 @@ func (p *DiggerHttpPolicyProvider) GetPolicy(namespace string, projectName strin
 	if err != nil {
 		return "", err
 	}
-	if resp.StatusCode == 200 {
+	if resp.StatusCode == 200 && content != "" {
 		return content, nil
 	} else if resp.StatusCode == 404 {
 		content, resp, err := getPolicyForOrganisation(p)
