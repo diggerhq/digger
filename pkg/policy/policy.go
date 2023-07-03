@@ -8,7 +8,6 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 	"io"
 	"net/http"
-	"strings"
 )
 
 type PolicyProvider interface {
@@ -52,9 +51,8 @@ func getPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Respon
 }
 
 func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
-
-	// fetch RBAC policies for projectfrom Digger API
-	namespace = strings.ReplaceAll(namespace, "/", "-")
+	println("!!!Getting namespace policy for " + namespace)
+	// fetch RBAC policies for project from Digger API
 	req, err := http.NewRequest("GET", p.DiggerHost+"/repos/"+namespace+"/projects/"+projectName+"/access-policy", nil)
 
 	if err != nil {
@@ -83,6 +81,7 @@ func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, p
 	if err != nil {
 		return "", err
 	}
+	fmt.Sprintf("result from namespace policy get: %v", resp.StatusCode)
 	if resp.StatusCode == 200 && content != "" {
 		return content, nil
 	} else if resp.StatusCode == 404 {
