@@ -78,7 +78,7 @@ func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projec
 func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, projectName string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 	content, resp, err := getPolicyForNamespace(p, namespace, projectName)
-	fmt.Sprintf("result from namespace policy get: %v || err: %v\n", resp.StatusCode, err)
+	fmt.Printf("result from namespace policy get: %v || err: %v\n", resp.StatusCode, err)
 	if err != nil {
 		return "", err
 	}
