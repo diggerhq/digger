@@ -111,6 +111,7 @@ type DiggerPolicyChecker struct {
 }
 
 func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+	println("!!!! Performing a policy check now")
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
 	teams, err := ciService.GetUserTeams(SCMOrganisation, requestedBy)
