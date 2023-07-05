@@ -24,11 +24,12 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v53/github"
 )
 
-func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
+func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy) {
 	println("Using GitHub.")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -108,8 +109,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, prNumber)
 
 	reporter := &reporting.CiReporter{
-		CiService: githubPrService,
-		PrNumber:  prNumber,
+		CiService:      githubPrService,
+		PrNumber:       prNumber,
+		ReportStrategy: reportingStrategy,
 	}
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -136,7 +138,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	}()
 }
 
-func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
+func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy) {
 	println("Using GitLab.")
 
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
@@ -201,8 +203,9 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	diggerProjectNamespace := gitLabContext.ProjectNamespace + "/" + gitLabContext.ProjectName
 	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, *gitLabContext.MergeRequestIId)
 	reporter := &reporting.CiReporter{
-		CiService: gitlabService,
-		PrNumber:  *gitLabContext.MergeRequestIId,
+		CiService:      gitlabService,
+		PrNumber:       *gitLabContext.MergeRequestIId,
+		ReportStrategy: reportingStrategy,
 	}
 	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, reporter, planStorage, policyChecker, currentDir)
 
@@ -227,7 +230,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	}()
 }
 
-func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
+func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy) {
 	fmt.Println("> Azure CI detected")
 	azureContext := os.Getenv("AZURE_CONTEXT")
 	azureToken := os.Getenv("AZURE_TOKEN")
@@ -279,8 +282,9 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker) {
 	diggerProjectNamespace := parsedAzureContext.BaseUrl + "/" + parsedAzureContext.ProjectName
 
 	reporter := &reporting.CiReporter{
-		CiService: azureService,
-		PrNumber:  prNumber,
+		CiService:      azureService,
+		PrNumber:       prNumber,
+		ReportStrategy: reportingStrategy,
 	}
 	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, reporter, planStorage, policyChecker, currentDir)
 	if err != nil {
@@ -329,15 +333,34 @@ func main() {
 	}
 	var policyChecker core_policy.Checker
 	if os.Getenv("DIGGER_TOKEN") != "" {
+		if os.Getenv("DIGGER_ORGANISATION") == "" {
+			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action configuration.")
+		}
 		policyChecker = policy.DiggerPolicyChecker{
 			PolicyProvider: &policy.DiggerHttpPolicyProvider{
-				DiggerHost: os.Getenv("DIGGER_HOSTNAME"),
-				AuthToken:  os.Getenv("DIGGER_TOKEN"),
-				HttpClient: http.DefaultClient,
+				DiggerHost:         os.Getenv("DIGGER_HOSTNAME"),
+				DiggerOrganisation: os.Getenv("DIGGER_ORGANISATION"),
+				AuthToken:          os.Getenv("DIGGER_TOKEN"),
+				HttpClient:         http.DefaultClient,
 			}}
 	} else {
 		policyChecker = policy.NoOpPolicyChecker{}
 	}
+
+	var reportStrategy reporting.ReportStrategy
+
+	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
+		reportStrategy = &reporting.CommentPerRunStrategy{
+			TimeOfRun: time.Now(),
+		}
+	} else if os.Getenv("REPORTING_STRATEGY") == "latest_run_comment" {
+		reportStrategy = &reporting.LatestRunCommentStrategy{
+			TimeOfRun: time.Now(),
+		}
+	} else {
+		reportStrategy = &reporting.MultipleCommentsStrategy{}
+	}
+
 	lock, err := locking.GetLock()
 	if err != nil {
 		fmt.Printf("Failed to create lock provider. %s\n", err)
@@ -348,11 +371,11 @@ func main() {
 	ci := digger.DetectCI()
 	switch ci {
 	case digger.GitHub:
-		gitHubCI(lock, policyChecker)
+		gitHubCI(lock, policyChecker, reportStrategy)
 	case digger.GitLab:
-		gitLabCI(lock, policyChecker)
+		gitLabCI(lock, policyChecker, reportStrategy)
 	case digger.Azure:
-		azureCI(lock, policyChecker)
+		azureCI(lock, policyChecker, reportStrategy)
 	case digger.BitBucket:
 	case digger.None:
 		print("No CI detected.")

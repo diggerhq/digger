@@ -15,12 +15,13 @@ import (
 	"digger/pkg/usage"
 	"errors"
 	"fmt"
-	"github.com/dominikbraun/graph"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/dominikbraun/graph"
 )
 
 type CIName string
@@ -73,11 +74,11 @@ func RunCommandsPerProject(
 	policyChecker policy.Checker,
 	workingDir string,
 ) (bool, bool, error) {
-	accumulatePlans := os.Getenv("ACCUMULATE_PLANS") == "true"
 	appliesPerProject := make(map[string]bool)
-	plansToPublish := make([]string, 0)
 
-	organisation := strings.Split(projectNamespace, "/")[0]
+	splits := strings.Split(projectNamespace, "/")
+	SCMOrganisation := splits[0]
+	SCMrepository := splits[1]
 
 	commandsPerProject = SortedCommandsByDependency(commandsPerProject, dependencyGraph)
 
@@ -85,7 +86,7 @@ func RunCommandsPerProject(
 		for _, command := range projectCommands.Commands {
 			fmt.Printf("Running '%s' for project '%s'\n", command, projectCommands.ProjectName)
 
-			allowedToPerformCommand, err := policyChecker.Check(organisation, projectNamespace, projectCommands.ProjectName, command, requestedBy)
+			allowedToPerformCommand, err := policyChecker.Check(ciService, SCMOrganisation, SCMrepository, projectCommands.ProjectName, command, requestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
@@ -93,7 +94,7 @@ func RunCommandsPerProject(
 
 			if !allowedToPerformCommand {
 				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
-				err := ciService.PublishComment(prNumber, msg)
+				err := reporter.Report(msg, utils.AsCollapsibleComment("Policy violation"))
 				if err != nil {
 					log.Printf("Error publishing comment: %v", err)
 				}
@@ -103,6 +104,7 @@ func RunCommandsPerProject(
 
 			projectLock := &locking.PullRequestLock{
 				InternalLock:     lock,
+				Reporter:         reporter,
 				CIService:        ciService,
 				ProjectName:      projectCommands.ProjectName,
 				ProjectNamespace: projectNamespace,
@@ -153,14 +155,10 @@ func RunCommandsPerProject(
 					return false, false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else if planPerformed {
 					if plan != "" {
-						comment := utils.GetTerraformOutputAsCollapsibleComment("Plan for **"+projectLock.LockId()+"**", plan)
-						if accumulatePlans {
-							plansToPublish = append(plansToPublish, comment)
-						} else {
-							err = reporter.Report(comment)
-							if err != nil {
-								log.Printf("Failed to report plan. %v", err)
-							}
+						formatter := utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
+						err = reporter.Report(plan, formatter)
+						if err != nil {
+							log.Printf("Failed to report plan. %v", err)
 						}
 					}
 					err := ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
@@ -193,7 +191,7 @@ func RunCommandsPerProject(
 				if !isMergeable && !isMerged {
 					comment := "Cannot perform Apply since the PR is not currently mergeable."
 					fmt.Println(comment)
-					err = ciService.PublishComment(prNumber, comment)
+					err = reporter.Report(comment, utils.AsCollapsibleComment("Apply error"))
 					if err != nil {
 						fmt.Printf("error publishing comment: %v\n", err)
 					}
@@ -237,13 +235,6 @@ func RunCommandsPerProject(
 		}
 	}
 
-	if len(plansToPublish) > 0 {
-		err := reporter.Report(strings.Join(plansToPublish, "\n"))
-		if err != nil {
-			log.Printf("Failed to report plans. %v", err)
-		}
-	}
-
 	allAppliesSuccess := true
 	for _, success := range appliesPerProject {
 		if !success {
@@ -276,28 +267,39 @@ func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph
 
 func MergePullRequest(ciService ci.CIService, prNumber int) {
 	time.Sleep(5 * time.Second)
-	combinedStatus, err := ciService.GetCombinedPullRequestStatus(prNumber)
 
+	// Check if it was manually merged
+	isMerged, err := ciService.IsMerged(prNumber)
 	if err != nil {
-		log.Fatalf("failed to get combined status, %v", err)
+		log.Fatalf("error checking if PR is merged: %v", err)
 	}
 
-	if combinedStatus != "success" {
-		log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
-	}
+	if !isMerged {
+		combinedStatus, err := ciService.GetCombinedPullRequestStatus(prNumber)
 
-	prIsMergeable, err := ciService.IsMergeable(prNumber)
+		if err != nil {
+			log.Fatalf("failed to get combined status, %v", err)
+		}
 
-	if err != nil {
-		log.Fatalf("failed to check if PR is mergeable, %v", err)
-	}
+		if combinedStatus != "success" {
+			log.Fatalf("PR is not mergeable. Status: %v", combinedStatus)
+		}
 
-	if !prIsMergeable {
-		log.Fatalf("PR is not mergeable")
-	}
+		prIsMergeable, err := ciService.IsMergeable(prNumber)
 
-	err = ciService.MergePullRequest(prNumber)
-	if err != nil {
-		log.Fatalf("failed to merge PR, %v", err)
+		if err != nil {
+			log.Fatalf("failed to check if PR is mergeable, %v", err)
+		}
+
+		if !prIsMergeable {
+			log.Fatalf("PR is not mergeable")
+		}
+
+		err = ciService.MergePullRequest(prNumber)
+		if err != nil {
+			log.Fatalf("failed to merge PR, %v", err)
+		}
+	} else {
+	   log.Printf("PR is already merged, skipping merge step")
 	}
 }

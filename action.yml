@@ -78,6 +78,9 @@ inputs:
     description: Digger hostname
     required: false
     default: 'https://cloud.digger.dev'
+  digger-organisation:
+    description: The name of your digger organisation
+    required: false
   setup-tfenv:
     description: Setup tfenv
     required: false
@@ -86,6 +89,10 @@ inputs:
     description: Post plans as one comment
     required: false
     default: 'false'
+  reporting-strategy:
+    description: 'comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments'
+    required: false
+    default: 'comments_per_run'
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -184,8 +191,10 @@ runs:
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
         DIGGER_TOKEN: ${{ inputs.digger-token }}
+        DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
+        REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -203,6 +212,7 @@ runs:
         DIGGER_TOKEN: ${{ inputs.digger-token }}
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
+        REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
       id: digger
       shell: bash
       run: |

@@ -8,7 +8,7 @@ import (
 type OpaExamplePolicyProvider struct {
 }
 
-func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string, _ string) (string, error) {
+func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"# user-role assignments\n" +
@@ -41,6 +41,10 @@ func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string, _ string) (stri
 		"}", nil
 }
 
+func (s *OpaExamplePolicyProvider) GetOrganisation() string {
+	return "ORGANISATIONDIGGER"
+}
+
 type DiggerExamplePolicyProvider struct {
 }
 
@@ -58,6 +62,10 @@ func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string, _ string) (s
 		"    p == input.action\n" +
 		"}\n" +
 		"", nil
+}
+
+func (s *DiggerExamplePolicyProvider) GetOrganisation() string {
+	return "ORGANISATIONDIGGER"
 }
 
 type DiggerExamplePolicyProvider2 struct {
@@ -80,6 +88,10 @@ func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string, _ string) (
 		"    1 == 1\n" +
 		"}\n" +
 		"", nil
+}
+
+func (s *DiggerExamplePolicyProvider2) GetOrganisation() string {
+	return "ORGANISATIONDIGGER"
 }
 
 func TestDiggerPolicyChecker_Check(t *testing.T) {
@@ -145,9 +157,9 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var p = &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
-				ciService:      utils.MockPullRequestManager{Teams: []string{"engineering"}},
 			}
-			got, err := p.Check(tt.organisation, tt.name, tt.name, tt.command, tt.requestedBy)
+			ciService := utils.MockPullRequestManager{Teams: []string{"engineering"}}
+			got, err := p.Check(ciService, tt.organisation, tt.name, tt.name, tt.command, tt.requestedBy)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.Check() error = %v, wantErr %v", err, tt.wantErr)
 				return

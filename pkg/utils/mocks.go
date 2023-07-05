@@ -1,5 +1,7 @@
 package utils
 
+import "digger/pkg/ci"
+
 type MockTerraform struct {
 	commands []string
 }
@@ -42,7 +44,7 @@ func (lock *MockLock) GetLock(resource string) (*int, error) {
 type MockPolicyChecker struct {
 }
 
-func (t MockPolicyChecker) Check(organisation string, namespace string, projectname string, command string, requestedBy string) (bool, error) {
+func (t MockPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
 	return false, nil
 }
 
@@ -88,6 +90,14 @@ func (t MockPullRequestManager) DownloadLatestPlans(prNumber int) (string, error
 
 func (t MockPullRequestManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
+}
+
+func (t MockPullRequestManager) GetComments(prNumber int) ([]ci.Comment, error) {
+	return []ci.Comment{}, nil
+}
+
+func (t MockPullRequestManager) EditComment(commentId interface{}, comment string) error {
+	return nil
 }
 
 type MockPlanStorage struct {

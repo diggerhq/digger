@@ -313,6 +313,44 @@ func (a *AzureReposService) IsMerged(prNumber int) (bool, error) {
 	return *pullRequest.Status == git.PullRequestStatusValues.Completed, nil
 }
 
+func (a *AzureReposService) EditComment(id interface{}, comment string) error {
+	threadId := id.(int)
+	comments := []git.Comment{
+		{
+			Content: &comment,
+		},
+	}
+	_, err := a.Client.UpdateThread(context.Background(), git.UpdateThreadArgs{
+		Project:      &a.ProjectName,
+		RepositoryId: &a.RepositoryId,
+		ThreadId:     &threadId,
+		CommentThread: &git.GitPullRequestCommentThread{
+			Comments: &comments,
+		},
+	})
+	return err
+}
+
+func (a *AzureReposService) GetComments(prNumber int) ([]ci.Comment, error) {
+	comments, err := a.Client.GetComments(context.Background(), git.GetCommentsArgs{
+		Project:       &a.ProjectName,
+		RepositoryId:  &a.RepositoryId,
+		PullRequestId: &prNumber,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var result []ci.Comment
+	for _, comment := range *comments {
+		result = append(result, ci.Comment{
+			Id:   *comment.Id,
+			Body: comment.Content,
+		})
+	}
+	return result, nil
+
+}
+
 func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
