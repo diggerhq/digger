@@ -18,7 +18,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/dominikbraun/graph v0.22.3
+require github.com/dominikbraun/graph v0.23.0
 
 require (
 	cloud.google.com/go v0.110.0 // indirect
