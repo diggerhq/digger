@@ -44,7 +44,7 @@ func (lock *MockLock) GetLock(resource string) (*int, error) {
 type MockPolicyChecker struct {
 }
 
-func (t MockPolicyChecker) Check(organisation string, namespace string, projectname string, command string, requestedBy string) (bool, error) {
+func (t MockPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
 	return false, nil
 }
 
