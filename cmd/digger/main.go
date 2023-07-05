@@ -333,11 +333,15 @@ func main() {
 	}
 	var policyChecker core_policy.Checker
 	if os.Getenv("DIGGER_TOKEN") != "" {
+		if os.Getenv("DIGGER_ORGANISATION") == "" {
+			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action configuration.")
+		}
 		policyChecker = policy.DiggerPolicyChecker{
 			PolicyProvider: &policy.DiggerHttpPolicyProvider{
-				DiggerHost: os.Getenv("DIGGER_HOSTNAME"),
-				AuthToken:  os.Getenv("DIGGER_TOKEN"),
-				HttpClient: http.DefaultClient,
+				DiggerHost:         os.Getenv("DIGGER_HOSTNAME"),
+				DiggerOrganisation: os.Getenv("DIGGER_ORGANISATION"),
+				AuthToken:          os.Getenv("DIGGER_TOKEN"),
+				HttpClient:         http.DefaultClient,
 			}}
 	} else {
 		policyChecker = policy.NoOpPolicyChecker{}
