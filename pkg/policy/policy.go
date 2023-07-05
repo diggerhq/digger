@@ -51,7 +51,6 @@ func getPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Respon
 }
 
 func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
-	println("!!!Getting namespace policy for " + namespace + " URL: " + p.DiggerHost + "/repos/" + namespace + "/projects/" + projectName + "/access-policy")
 	// fetch RBAC policies for project from Digger API
 	req, err := http.NewRequest("GET", p.DiggerHost+"/repos/"+namespace+"/projects/"+projectName+"/access-policy", nil)
 
@@ -78,7 +77,6 @@ func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projec
 func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, projectName string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 	content, resp, err := getPolicyForNamespace(p, namespace, projectName)
-	fmt.Printf("result from namespace policy get: %v || err: %v\n", resp.StatusCode, err)
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +109,6 @@ type DiggerPolicyChecker struct {
 }
 
 func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
-	println("!!!! Performing a policy check now")
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
 	teams, err := ciService.GetUserTeams(SCMOrganisation, requestedBy)
