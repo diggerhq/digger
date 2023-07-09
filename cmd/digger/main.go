@@ -377,7 +377,7 @@ func main() {
 	case digger.Azure:
 		azureCI(lock, policyChecker, reportStrategy)
 	case digger.BitBucket:
-		fallthrough
+		print("Bitbucket support is currently in progress. If you would like to prioritise it, give this issue a bump: https://github.com/diggerhq/digger/issues/81")
 	case digger.None:
 		print("No CI detected.")
 		os.Exit(10)
