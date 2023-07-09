@@ -377,6 +377,7 @@ func main() {
 	case digger.Azure:
 		azureCI(lock, policyChecker, reportStrategy)
 	case digger.BitBucket:
+		fallthrough
 	case digger.None:
 		print("No CI detected.")
 		os.Exit(10)
