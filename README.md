@@ -31,7 +31,7 @@ Digger runs terraform natively in your CI. This is:
 
 - [Github Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
 - [Github Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
-- [Gitlab Pipelines + GCP](https://docs.digger.dev/getting-started/gitlab-pipelines-+-aws)
+- [Gitlab Pipelines + AWS](https://docs.digger.dev/getting-started/gitlab-pipelines-+-aws)
 - [Azure DevOps](https://docs.digger.dev/getting-started/azure-devops)
 
 ## How it works
