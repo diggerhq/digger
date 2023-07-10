@@ -2,8 +2,10 @@
 
 <h2 align="center">
   <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a> |
+  <a href="https://calendly.com/diggerdev/digger-open-source-terraform-cloud-alternativ-clone?month=2023-07">Schedule a call</a> |
   <a href="https://docs.digger.dev/">Docs</a> | 
   <a href="https://www.loom.com/share/51f27994d95f4dc5bb6eea579e1fa8dc?sid=403f161a-6c0b-44ac-af57-cc9b56190f64">Demo Video</a>
+
 </h2>
 
 CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
