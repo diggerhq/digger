@@ -79,7 +79,7 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, graph
 		config.Projects[0] = project
 		config.Workflows = make(map[string]Workflow)
 		config.Workflows["default"] = *defaultWorkflow()
-		g := graph.New(graph.StringHash)
+		g := graph.New(graph.StringHash, graph.PreventCycles(), graph.Directed())
 		g.AddVertex(project.Name)
 		return config, g, nil
 	}
