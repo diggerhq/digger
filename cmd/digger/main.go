@@ -60,9 +60,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	}
 	println("GitHub context parsed successfully")
 
-	walker := configuration.FileSystemDirWalker{}
-
-	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig("./", &walker)
+	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig("./")
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -148,14 +146,13 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 		fmt.Println("GITLAB_TOKEN is empty")
 	}
 
-	walker := configuration.FileSystemDirWalker{}
 	currentDir, err := os.Getwd()
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir, &walker)
+	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -243,14 +240,13 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportin
 		os.Exit(4)
 	}
 
-	walker := configuration.FileSystemDirWalker{}
 	currentDir, err := os.Getwd()
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir, &walker)
+	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
