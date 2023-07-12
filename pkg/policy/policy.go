@@ -111,6 +111,12 @@ type DiggerPolicyChecker struct {
 func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
+
+	if err != nil {
+		fmt.Printf("Error while fetching policy: %v", err)
+		return false, err
+	}
+
 	teams, err := ciService.GetUserTeams(SCMOrganisation, requestedBy)
 	if err != nil {
 		fmt.Printf("Error while fetching user teams for CI service: %v", err)
