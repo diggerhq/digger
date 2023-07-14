@@ -190,6 +190,13 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 	tfVars, _ := copyTFEnvVars()
 	fmt.Printf("tf_vars: %v\n", tfVars)
 
+	// merge envs maps
+	if tfVars != nil {
+		for k, v := range tfVars {
+			envs[k] = v
+		}
+	}
+
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
 	if err != nil {
 		return false, "", "", err
