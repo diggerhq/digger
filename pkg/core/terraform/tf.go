@@ -97,7 +97,7 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 		_, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
 		if err != nil {
 			return "", "", err
-		}		
+		}
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
 	if plan != nil {
@@ -155,7 +155,7 @@ func (sw *StdWriter) GetString() string {
 	return s
 }
 
-func (tf Terraform) formatTerraformWorkspaces(list string) (string) {
+func (tf Terraform) formatTerraformWorkspaces(list string) string {
 
 	list = strings.TrimSpace(list)
 	char_replace := strings.NewReplacer("*", "", "\n", ",", " ", "")
@@ -164,6 +164,10 @@ func (tf Terraform) formatTerraformWorkspaces(list string) (string) {
 }
 
 func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+
+	println("envs")
+	fmt.Printf("%v\n", envs)
+
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
 	if err != nil {
 		return false, "", "", err
@@ -178,7 +182,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 		_, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
 		if err != nil {
 			return false, "", "", err
-		}		
+		}
 	}
 	params = append(append(params, "-input=false"), "-no-color")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
