@@ -173,14 +173,16 @@ func copyTFEnvVars() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		fmt.Printf("parsed json: %v\n", c)
 		k := make([]string, len(c))
+
 		i := 0
 		for s, _ := range c {
 			k[i] = s
 			i++
 		}
 
-		// output result to STDOUT
 		fmt.Printf("%#v\n", k)
 
 		/*
