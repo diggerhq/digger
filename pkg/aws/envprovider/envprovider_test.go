@@ -8,7 +8,7 @@ import (
 )
 
 func TestRetrieve(t *testing.T) {
-
+	t.Parallel()
 	tests := map[string]struct {
 		key    string
 		secret string
