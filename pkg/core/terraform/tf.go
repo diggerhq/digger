@@ -208,7 +208,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 
 	fmt.Printf("merged tf_vars: %v\n", envs)
 
-	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
+	workspaces, _, _, err := tf.runTerraformCommand("workspace", nil, "list")
 	if err != nil {
 		return false, "", "", err
 	}
