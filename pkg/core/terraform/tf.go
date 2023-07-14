@@ -164,35 +164,21 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 	return list
 }
 
-func copyTFEnvVars() ([]string, error) {
+func copyTFEnvVars() (map[string]string, error) {
 	githubVars := os.Getenv("GITHUB_VARS")
-	var result []string
+	var result = make(map[string]string)
 	if githubVars != "" {
-		c := make(map[string]string)
-		err := json.Unmarshal([]byte(githubVars), &c)
+		parsedJson := make(map[string]string)
+		err := json.Unmarshal([]byte(githubVars), &parsedJson)
 		if err != nil {
 			return nil, err
 		}
 
-		fmt.Printf("parsed json: %v\n", c)
-		k := make([]string, len(c))
-
-		i := 0
-		for s, _ := range c {
-			k[i] = s
-			i++
-		}
-
-		fmt.Printf("%#v\n", k)
-
-		/*
-			for _, env := range all_envs {
-				if strings.HasPrefix(env, "TF_VAR_") {
-					result = append(result, env)
-				}
+		for k, v := range parsedJson {
+			if strings.HasPrefix(k, "TF_VAR_") {
+				result[k] = v
 			}
-		*/
-
+		}
 	}
 	return result, nil
 }
@@ -201,8 +187,8 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 
 	println("envs")
 	fmt.Printf("%v\n", envs)
-	tf_vars, _ := copyTFEnvVars()
-	fmt.Printf("tf_vars: %v\n", tf_vars)
+	tfVars, _ := copyTFEnvVars()
+	fmt.Printf("tf_vars: %v\n", tfVars)
 
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
 	if err != nil {
