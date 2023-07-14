@@ -1,6 +1,7 @@
 package envprovider
 
 import (
+	"errors"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -36,31 +37,17 @@ type EnvProvider struct {
 func (e *EnvProvider) Retrieve() (credentials.Value, error) {
 	e.retrieved = false
 
-	id := os.Getenv("DIGGER_AWS_ACCESS_KEY_ID")
-
-	if id == "" {
-		id = os.Getenv("AWS_ACCESS_KEY_ID")
-	}
-
-	if id == "" {
-		id = os.Getenv("AWS_ACCESS_KEY")
-	}
-
-	secret := os.Getenv("DIGGER_AWS_SECRET_ACCESS_KEY")
-
-	if secret == "" {
-		secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	}
-
-	if secret == "" {
-		secret = os.Getenv("AWS_SECRET_KEY")
-	}
-
-	if id == "" {
+	//assign id from env vars
+	idEnvVars := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID"}
+	id, err := assignEnv(idEnvVars)
+	if err != nil {
 		return credentials.Value{ProviderName: EnvProviderName}, ErrAccessKeyIDNotFound
 	}
 
-	if secret == "" {
+	//assign secret from env vars
+	secretEnvVars := []string{"DIGGER_AWS_SECRET_ACCESS_KEY", "AWS_SECRET_KEY"}
+	secret, err := assignEnv(secretEnvVars)
+	if err != nil {
 		return credentials.Value{ProviderName: EnvProviderName}, ErrSecretAccessKeyNotFound
 	}
 
@@ -71,6 +58,18 @@ func (e *EnvProvider) Retrieve() (credentials.Value, error) {
 		SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
 		ProviderName:    EnvProviderName,
 	}, nil
+}
+
+// Assign first non-nil env var
+func assignEnv(envVars []string) (string, error) {
+	var v string
+	for _, envVar := range envVars {
+		if value, ok := os.LookupEnv(envVar); ok {
+			v = value
+			return v, nil
+		}
+	}
+	return "", errors.New("not found")
 }
 
 // IsExpired returns if the credentials have been retrieved.
