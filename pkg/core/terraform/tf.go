@@ -214,12 +214,12 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 	}
 	workspaces = tf.formatTerraformWorkspaces(workspaces)
 	if strings.Contains(workspaces, tf.Workspace) {
-		_, _, _, err := tf.runTerraformCommand("workspace", envs, "select", tf.Workspace)
+		_, _, _, err := tf.runTerraformCommand("workspace", nil, "select", tf.Workspace)
 		if err != nil {
 			return false, "", "", err
 		}
 	} else {
-		_, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
+		_, _, _, err := tf.runTerraformCommand("workspace", nil, "new", tf.Workspace)
 		if err != nil {
 			return false, "", "", err
 		}
