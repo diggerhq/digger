@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -163,15 +164,35 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 	return list
 }
 
-func copyTFEnvVars() []string {
-	all_envs := os.Environ()
+func copyTFEnvVars() ([]string, error) {
+	githubVars := os.Getenv("GITHUB_VARS")
 	var result []string
-	for _, env := range all_envs {
-		if strings.HasPrefix(env, "TF_VAR_") {
-			result = append(result, env)
+	if githubVars != "" {
+		c := make(map[string]json.RawMessage)
+		err := json.Unmarshal([]byte(githubVars), &c)
+		if err != nil {
+			return nil, err
 		}
+		k := make([]string, len(c))
+		i := 0
+		for s, _ := range c {
+			k[i] = s
+			i++
+		}
+
+		// output result to STDOUT
+		fmt.Printf("%#v\n", k)
+
+		/*
+			for _, env := range all_envs {
+				if strings.HasPrefix(env, "TF_VAR_") {
+					result = append(result, env)
+				}
+			}
+		*/
+
 	}
-	return result
+	return result, nil
 }
 
 func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
