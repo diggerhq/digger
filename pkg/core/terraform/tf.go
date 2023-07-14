@@ -168,7 +168,7 @@ func copyTFEnvVars() ([]string, error) {
 	githubVars := os.Getenv("GITHUB_VARS")
 	var result []string
 	if githubVars != "" {
-		c := make(map[string]json.RawMessage)
+		c := make(map[string]string)
 		err := json.Unmarshal([]byte(githubVars), &c)
 		if err != nil {
 			return nil, err
