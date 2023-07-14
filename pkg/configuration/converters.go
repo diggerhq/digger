@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 )
 
+const defaultWorkflowName = "default"
+
 func copyProjects(projects []*ProjectYaml) []Project {
 	result := make([]Project, len(projects))
 	for i, p := range projects {
@@ -101,9 +103,8 @@ func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 	return result
 }
 
-func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, walker DirWalker) (*DiggerConfig, graph.Graph[string, string], error) {
+func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string) (*DiggerConfig, graph.Graph[string, string], error) {
 	var diggerConfig DiggerConfig
-	const defaultWorkflowName = "default"
 
 	if diggerYaml.AutoMerge != nil {
 		diggerConfig.AutoMerge = *diggerYaml.AutoMerge
@@ -162,7 +163,13 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string, 
 	}
 
 	if diggerYaml.GenerateProjectsConfig != nil {
-		dirs, err := walker.GetDirs(workingDir)
+		var dirWalker DirWalker
+		if diggerYaml.GenerateProjectsConfig.Terragrunt {
+			dirWalker = &FileSystemTerragruntDirWalker{}
+		} else {
+			dirWalker = &FileSystemTopLevelTerraformDirWalker{}
+		}
+		dirs, err := dirWalker.GetDirs(workingDir)
 		if err != nil {
 			return nil, nil, err
 		}
