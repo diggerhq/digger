@@ -163,10 +163,23 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 	return list
 }
 
+func copyTFEnvVars() []string {
+	all_envs := os.Environ()
+	var result []string
+	for _, env := range all_envs {
+		if strings.HasPrefix(env, "TF_VAR_") {
+			result = append(result, env)
+		}
+	}
+	return result
+}
+
 func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
 
 	println("envs")
 	fmt.Printf("%v\n", envs)
+	tf_vars := copyTFEnvVars()
+	fmt.Printf("tf_vars: %v\n", tf_vars)
 
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
 	if err != nil {
