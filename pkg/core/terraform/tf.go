@@ -199,7 +199,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 
 	println("envs")
 	fmt.Printf("%v\n", envs)
-	tf_vars := copyTFEnvVars()
+	tf_vars, _ := copyTFEnvVars()
 	fmt.Printf("tf_vars: %v\n", tf_vars)
 
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
