@@ -115,7 +115,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	args = append(args, arg...)
 
 	for k, v := range envs {
-		args = append(args, fmt.Sprintf("-var='%s=%s'", k, v))
+		args = append(args, fmt.Sprintf("-var=\"%s=%s\"", k, v))
 	}
 
 	var stdout, stderr bytes.Buffer
