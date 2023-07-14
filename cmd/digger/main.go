@@ -40,7 +40,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
-		reportErrorAndExit(githubActor, "GITHUB_TOKEN is not defined", 1)
+		println("GITHUB_TOKEN is not defined")
 	}
 
 	diggerGitHubToken := os.Getenv("DIGGER_GITHUB_TOKEN")
