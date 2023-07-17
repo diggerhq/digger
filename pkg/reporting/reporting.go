@@ -9,20 +9,31 @@ import (
 )
 
 type CiReporter struct {
-	CiService      ci.CIService
+	CiService      ci.PullRequestService
 	PrNumber       int
 	ReportStrategy ReportStrategy
 }
 
+func (ciReporter *CiReporter) Report(report string, reportFormatter func(report string) string) error {
+	return ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatter)
+}
+
+type StdOutReporter struct{}
+
+func (reporter *StdOutReporter) Report(report string, reportFormatter func(report string) string) error {
+	fmt.Println(reportFormatter(report))
+	return nil
+}
+
 type ReportStrategy interface {
-	Report(ciService ci.CIService, PrNumber int, report string, reportFormatter func(report string) string) error
+	Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string) error
 }
 
 type CommentPerRunStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy *CommentPerRunStrategy) Report(ciService ci.CIService, PrNumber int, report string, reportFormatter func(report string) string) error {
+func (strategy *CommentPerRunStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string) error {
 	comments, err := ciService.GetComments(PrNumber)
 	if err != nil {
 		return fmt.Errorf("error getting comments: %v", err)
@@ -32,7 +43,7 @@ func (strategy *CommentPerRunStrategy) Report(ciService ci.CIService, PrNumber i
 	return upsertComment(ciService, PrNumber, report, reportFormatter, comments, reportTitle, err)
 }
 
-func upsertComment(ciService ci.CIService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, err error) error {
+func upsertComment(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, err error) error {
 	report = reportFormatter(report)
 	var commentIdForThisRun interface{}
 	var commentBody string
@@ -74,7 +85,7 @@ type LatestRunCommentStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy *LatestRunCommentStrategy) Report(ciService ci.CIService, prNumber int, comment string, commentFormatting func(comment string) string) error {
+func (strategy *LatestRunCommentStrategy) Report(ciService ci.PullRequestService, prNumber int, comment string, commentFormatting func(comment string) string) error {
 	comments, err := ciService.GetComments(prNumber)
 	if err != nil {
 		return fmt.Errorf("error getting comments: %v", err)
@@ -86,10 +97,6 @@ func (strategy *LatestRunCommentStrategy) Report(ciService ci.CIService, prNumbe
 
 type MultipleCommentsStrategy struct{}
 
-func (strategy *MultipleCommentsStrategy) Report(ciService ci.CIService, PrNumber int, report string, formatter func(string) string) error {
+func (strategy *MultipleCommentsStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, formatter func(string) string) error {
 	return ciService.PublishComment(PrNumber, formatter(report))
-}
-
-func (ciReporter *CiReporter) Report(report string, reportFormatter func(report string) string) error {
-	return ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatter)
 }
