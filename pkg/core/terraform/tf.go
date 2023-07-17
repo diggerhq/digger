@@ -182,6 +182,7 @@ func copyTFEnvVars() (map[string]string, error) {
 		}
 
 		for k, v := range parsedJson {
+			os.Setenv(k, v)
 			if strings.HasPrefix(k, "TF_VAR_") {
 				clean_key := strings.Replace(k, "TF_VAR_", "", 1)
 				clean_key = strings.ToLower(clean_key)
