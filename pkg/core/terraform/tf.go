@@ -206,6 +206,12 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 		}
 	}
 
+	expandedParams := make([]string, len(params))
+	for _, p := range params {
+		s := os.ExpandEnv(p)
+		expandedParams = append(expandedParams, s)
+	}
+
 	fmt.Printf("merged tf_vars: %v\n", envs)
 
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", nil, "list")
