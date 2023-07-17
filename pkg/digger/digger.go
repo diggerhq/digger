@@ -6,12 +6,13 @@ import (
 	core_locking "digger/pkg/core/locking"
 	"digger/pkg/core/models"
 	"digger/pkg/core/policy"
-	"digger/pkg/core/reporting"
+	core_reporting "digger/pkg/core/reporting"
 	"digger/pkg/core/runners"
 	"digger/pkg/core/storage"
 	"digger/pkg/core/terraform"
 	"digger/pkg/core/utils"
 	"digger/pkg/locking"
+	"digger/pkg/reporting"
 	"digger/pkg/usage"
 	"errors"
 	"fmt"
@@ -67,9 +68,10 @@ func RunCommandsPerProject(
 	requestedBy string,
 	eventName string,
 	prNumber int,
-	ciService ci.CIService,
+	prService ci.PullRequestService,
+	orgService ci.OrgService,
 	lock core_locking.Lock,
-	reporter reporting.Reporter,
+	reporter core_reporting.Reporter,
 	planStorage storage.PlanStorage,
 	policyChecker policy.Checker,
 	workingDir string,
@@ -86,7 +88,7 @@ func RunCommandsPerProject(
 		for _, command := range projectCommands.Commands {
 			fmt.Printf("Running '%s' for project '%s'\n", command, projectCommands.ProjectName)
 
-			allowedToPerformCommand, err := policyChecker.Check(ciService, SCMOrganisation, SCMrepository, projectCommands.ProjectName, command, requestedBy)
+			allowedToPerformCommand, err := policyChecker.Check(orgService, SCMOrganisation, SCMrepository, projectCommands.ProjectName, command, requestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
@@ -105,7 +107,7 @@ func RunCommandsPerProject(
 			projectLock := &locking.PullRequestLock{
 				InternalLock:     lock,
 				Reporter:         reporter,
-				CIService:        ciService,
+				CIService:        prService,
 				ProjectName:      projectCommands.ProjectName,
 				ProjectNamespace: projectNamespace,
 				PrNumber:         prNumber,
@@ -120,19 +122,27 @@ func RunCommandsPerProject(
 			}
 
 			commandRunner := runners.CommandRunner{}
-			diggerExecutor := execution.DiggerExecutor{
-				projectNamespace,
-				projectCommands.ProjectName,
-				projectPath,
-				projectCommands.StateEnvVars,
-				projectCommands.CommandEnvVars,
-				projectCommands.ApplyStage,
-				projectCommands.PlanStage,
-				commandRunner,
-				terraformExecutor,
-				reporter,
-				projectLock,
-				planStorage,
+			planPathProvider := execution.ProjectPathProvider{
+				ProjectPath:      projectPath,
+				ProjectNamespace: projectNamespace,
+				ProjectName:      projectCommands.ProjectName,
+			}
+			diggerExecutor := execution.LockingExecutorWrapper{
+				ProjectLock: projectLock,
+				Executor: execution.DiggerExecutor{
+					projectNamespace,
+					projectCommands.ProjectName,
+					projectPath,
+					projectCommands.StateEnvVars,
+					projectCommands.CommandEnvVars,
+					projectCommands.ApplyStage,
+					projectCommands.PlanStage,
+					commandRunner,
+					terraformExecutor,
+					reporter,
+					planStorage,
+					planPathProvider,
+				},
 			}
 
 			switch command {
@@ -141,14 +151,14 @@ func RunCommandsPerProject(
 				if err != nil {
 					return false, false, fmt.Errorf("failed to send usage report. %v", err)
 				}
-				err = ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
+				err = prService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/plan")
 				if err != nil {
 					return false, false, fmt.Errorf("failed to set PR status. %v", err)
 				}
 				planPerformed, plan, err := diggerExecutor.Plan()
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
-					err := ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
+					err := prService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
 					if err != nil {
 						return false, false, fmt.Errorf("failed to set PR status. %v", err)
 					}
@@ -161,7 +171,7 @@ func RunCommandsPerProject(
 							log.Printf("Failed to report plan. %v", err)
 						}
 					}
-					err := ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
+					err := prService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
 					if err != nil {
 						return false, false, fmt.Errorf("failed to set PR status. %v", err)
 					}
@@ -172,18 +182,18 @@ func RunCommandsPerProject(
 				if err != nil {
 					return false, false, fmt.Errorf("failed to send usage report. %v", err)
 				}
-				err = ciService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
+				err = prService.SetStatus(prNumber, "pending", projectCommands.ProjectName+"/apply")
 				if err != nil {
 					return false, false, fmt.Errorf("failed to set PR status. %v", err)
 				}
 
-				isMerged, err := ciService.IsMerged(prNumber)
+				isMerged, err := prService.IsMerged(prNumber)
 				if err != nil {
 					return false, false, fmt.Errorf("error checking if PR is merged: %v", err)
 				}
 
 				// this might go into some sort of "appliability" plugin later
-				isMergeable, err := ciService.IsMergeable(prNumber)
+				isMergeable, err := prService.IsMergeable(prNumber)
 				if err != nil {
 					return false, false, fmt.Errorf("error validating is PR is mergeable: %v", err)
 				}
@@ -200,13 +210,13 @@ func RunCommandsPerProject(
 					applyPerformed, err := diggerExecutor.Apply()
 					if err != nil {
 						log.Printf("Failed to run digger apply command. %v", err)
-						err := ciService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
+						err := prService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/apply")
 						if err != nil {
 							return false, false, fmt.Errorf("failed to set PR status. %v", err)
 						}
 						return false, false, fmt.Errorf("failed to run digger apply command. %v", err)
 					} else if applyPerformed {
-						err := ciService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
+						err := prService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/apply")
 						if err != nil {
 							return false, false, fmt.Errorf("failed to set PR status. %v", err)
 						}
@@ -221,6 +231,13 @@ func RunCommandsPerProject(
 				err = diggerExecutor.Unlock()
 				if err != nil {
 					return false, false, fmt.Errorf("failed to unlock project. %v", err)
+				}
+
+				if planStorage != nil {
+					err = planStorage.DeleteStoredPlan(planPathProvider.StoredPlanFilePath())
+					if err != nil {
+						log.Printf("failed to delete stored plan file '%v':  %v", planPathProvider.StoredPlanFilePath(), err)
+					}
 				}
 			case "digger lock":
 				err := usage.SendUsageRecord(requestedBy, eventName, "lock")
@@ -247,6 +264,94 @@ func RunCommandsPerProject(
 	return allAppliesSuccess, atLeastOneApply, nil
 }
 
+func RunCommandForProject(
+	commands models.ProjectCommand,
+	projectNamespace string,
+	requestedBy string,
+	eventName string,
+	orgService ci.OrgService,
+	policyChecker policy.Checker,
+	planStorage storage.PlanStorage,
+	workingDir string,
+) error {
+	splits := strings.Split(projectNamespace, "/")
+	SCMOrganisation := splits[0]
+	SCMrepository := splits[1]
+	fmt.Printf("Running '%s' for project '%s'\n", commands.Commands, commands.ProjectName)
+
+	for _, command := range commands.Commands {
+
+		allowedToPerformCommand, err := policyChecker.Check(orgService, SCMOrganisation, SCMrepository, commands.ProjectName, command, requestedBy)
+
+		if err != nil {
+			return fmt.Errorf("error checking policy: %v", err)
+		}
+
+		if !allowedToPerformCommand {
+			msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
+			if err != nil {
+				log.Printf("Error publishing comment: %v", err)
+			}
+			log.Println(msg)
+			return errors.New(msg)
+		}
+		var terraformExecutor terraform.TerraformExecutor
+		projectPath := path.Join(workingDir, commands.ProjectDir)
+		if commands.Terragrunt {
+			terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
+		} else {
+			terraformExecutor = terraform.Terraform{WorkingDir: projectPath, Workspace: commands.ProjectWorkspace}
+		}
+
+		commandRunner := runners.CommandRunner{}
+
+		planPathProvider := execution.ProjectPathProvider{
+			ProjectPath:      projectPath,
+			ProjectNamespace: projectNamespace,
+			ProjectName:      commands.ProjectName,
+		}
+
+		diggerExecutor := execution.DiggerExecutor{
+			ProjectNamespace:  projectNamespace,
+			ProjectName:       commands.ProjectName,
+			ProjectPath:       projectPath,
+			StateEnvVars:      commands.StateEnvVars,
+			CommandEnvVars:    commands.CommandEnvVars,
+			ApplyStage:        commands.ApplyStage,
+			PlanStage:         commands.PlanStage,
+			CommandRunner:     commandRunner,
+			Reporter:          &reporting.StdOutReporter{},
+			TerraformExecutor: terraformExecutor,
+			PlanStorage:       planStorage,
+			PlanPathProvider:  planPathProvider,
+		}
+
+		switch command {
+		case "digger plan":
+			err := usage.SendUsageRecord(requestedBy, eventName, "plan")
+			if err != nil {
+				log.Printf("Failed to send usage report. %v", err)
+			}
+			_, _, err = diggerExecutor.Plan()
+			if err != nil {
+				log.Printf("Failed to run digger plan command. %v", err)
+				return fmt.Errorf("failed to run digger plan command. %v", err)
+			}
+		case "digger apply":
+			err := usage.SendUsageRecord(requestedBy, eventName, "apply")
+			if err != nil {
+				log.Printf("Failed to send usage report. %v", err)
+			}
+			_, err = diggerExecutor.Apply()
+			if err != nil {
+				log.Printf("Failed to run digger apply command. %v", err)
+				return fmt.Errorf("failed to run digger apply command. %v", err)
+			}
+		}
+	}
+	return nil
+}
+
 func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph *graph.Graph[string, string]) []models.ProjectCommand {
 	var sortedCommands []models.ProjectCommand
 	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s string, s2 string) bool {
@@ -265,7 +370,7 @@ func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph
 	return sortedCommands
 }
 
-func MergePullRequest(ciService ci.CIService, prNumber int) {
+func MergePullRequest(ciService ci.PullRequestService, prNumber int) {
 	time.Sleep(5 * time.Second)
 
 	// Check if it was manually merged
@@ -300,6 +405,6 @@ func MergePullRequest(ciService ci.CIService, prNumber int) {
 			log.Fatalf("failed to merge PR, %v", err)
 		}
 	} else {
-	   log.Printf("PR is already merged, skipping merge step")
+		log.Printf("PR is already merged, skipping merge step")
 	}
 }

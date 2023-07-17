@@ -1,6 +1,6 @@
 package ci
 
-type CIService interface {
+type PullRequestService interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string) error
 	EditComment(id interface{}, comment string) error
@@ -15,6 +15,9 @@ type CIService interface {
 	IsMerged(prNumber int) (bool, error)
 	// IsClosed closed without merging
 	IsClosed(prNumber int) (bool, error)
+}
+
+type OrgService interface {
 	GetUserTeams(organisation string, user string) ([]string, error)
 }
 
