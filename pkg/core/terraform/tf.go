@@ -123,7 +123,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 
 	fmt.Printf("terraform args:\n")
 	for _, a := range args {
-		fmt.Printf("arg: %v\n", a)
+		fmt.Printf("arg: %v, len: %d\n", a, len(a))
 	}
 
 	cmd := exec.Command("terraform", args...)
