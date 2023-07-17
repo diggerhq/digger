@@ -122,6 +122,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
 
 	fmt.Printf("terraform args:\n")
+
 	for _, a := range args {
 		fmt.Printf("arg: %v, len: %d\n", a, len(a))
 	}
@@ -174,7 +175,7 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 	return list
 }
 
-func copyTFEnvVars() (map[string]string, error) {
+func copyGitHubVars() (map[string]string, error) {
 	githubVars := os.Getenv("GITHUB_VARS")
 	var result = make(map[string]string)
 	if githubVars != "" {
@@ -185,11 +186,9 @@ func copyTFEnvVars() (map[string]string, error) {
 		}
 
 		for k, v := range parsedJson {
-			os.Setenv(k, v)
-			if strings.HasPrefix(k, "TF_VAR_") {
-				clean_key := strings.Replace(k, "TF_VAR_", "", 1)
-				clean_key = strings.ToLower(clean_key)
-				result[clean_key] = v
+			err := os.Setenv(k, v)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -200,7 +199,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 
 	println("envs")
 	fmt.Printf("%v\n", envs)
-	tfVars, _ := copyTFEnvVars()
+	tfVars, _ := copyGitHubVars()
 	fmt.Printf("tf_vars: %v\n", tfVars)
 
 	// merge envs maps
