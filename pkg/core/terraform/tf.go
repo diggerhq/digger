@@ -214,6 +214,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 	for _, p := range params {
 		fmt.Printf("original param: %s\n", p)
 		s := os.ExpandEnv(p)
+		s = strings.TrimSpace(s)
 		fmt.Printf("expanded param: %s\n", s)
 		if s != "" {
 			expandedParams = append(expandedParams, s)
