@@ -215,7 +215,9 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 		fmt.Printf("original param: %s\n", p)
 		s := os.ExpandEnv(p)
 		fmt.Printf("expanded param: %s\n", s)
-		expandedParams = append(expandedParams, s)
+		if s != "" {
+			expandedParams = append(expandedParams, s)
+		}
 	}
 
 	fmt.Printf("merged tf_vars: %v\n", envs)
