@@ -199,17 +199,17 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 
 	println("envs")
 	fmt.Printf("%v\n", envs)
-	tfVars, _ := copyGitHubVars()
-	fmt.Printf("tf_vars: %v\n", tfVars)
+	githubVars, _ := copyGitHubVars()
+	fmt.Printf("guthub vars: %v\n", githubVars)
 
 	// merge envs maps
-	if tfVars != nil {
-		for k, v := range tfVars {
+	if githubVars != nil {
+		for k, v := range githubVars {
 			envs[k] = v
 		}
 	}
 
-	expandedParams := make([]string, len(params))
+	expandedParams := make([]string, 0)
 	for _, p := range params {
 		fmt.Printf("original param: %s\n", p)
 		s := os.ExpandEnv(p)
