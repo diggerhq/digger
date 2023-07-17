@@ -121,7 +121,10 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	mwout := io.MultiWriter(os.Stdout, &stdout)
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
 
-	fmt.Printf("terraform args: %v\n", args)
+	fmt.Printf("terraform args:\n")
+	for _, a := range args {
+		fmt.Printf("arg: %v\n", a)
+	}
 
 	cmd := exec.Command("terraform", args...)
 	cmd.Dir = tf.WorkingDir
