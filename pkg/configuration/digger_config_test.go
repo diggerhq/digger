@@ -467,16 +467,21 @@ projects:
 workflows:
   default:
     steps:
-      - run: echo "run"
       - init:
       - plan: terraform plan
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
-	assert.Equal(t, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'", err.Error())
-
+	config, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	assert.Nil(t, err)
+	assert.NotNil(t, config)
+	assert.NotNil(t, config.Workflows["default"])
+	assert.NotNil(t, config.Workflows["default"].Plan)
+	assert.NotNil(t, config.Workflows["default"].Plan.Steps)
+	assert.Equal(t, "init", config.Workflows["default"].Plan.Steps[0].Action)
+	assert.Equal(t, "", config.Workflows["default"].Plan.Steps[0].Value)
+	assert.Equal(t, "plan", config.Workflows["default"].Plan.Steps[1].Action)
 }
 
 func TestDiggerConfigDependencyGraph(t *testing.T) {

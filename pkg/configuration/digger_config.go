@@ -80,7 +80,10 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, graph
 		config.Workflows = make(map[string]Workflow)
 		config.Workflows["default"] = *defaultWorkflow()
 		g := graph.New(graph.StringHash, graph.PreventCycles(), graph.Directed())
-		g.AddVertex(project.Name)
+		err := g.AddVertex(project.Name)
+		if err != nil {
+			return nil, nil, err
+		}
 		return config, g, nil
 	}
 
@@ -107,6 +110,10 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, graph
 		if !ok {
 			return nil, nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
 		}
+	}
+
+	for _, w := range config.Workflows {
+		print(w.Plan.Steps)
 	}
 	return config, projectDependencyGraph, nil
 }
