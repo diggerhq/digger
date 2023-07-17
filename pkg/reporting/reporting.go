@@ -28,7 +28,7 @@ func (strategy *CommentPerRunStrategy) Report(ciService ci.CIService, PrNumber i
 		return fmt.Errorf("error getting comments: %v", err)
 	}
 
-	reportTitle := "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05")
+	reportTitle := "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
 	return upsertComment(ciService, PrNumber, report, reportFormatter, comments, reportTitle, err)
 }
 
