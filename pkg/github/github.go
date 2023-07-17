@@ -15,9 +15,9 @@ import (
 	"github.com/google/go-github/v53/github"
 )
 
-func NewGitHubService(ghToken string, repoName string, owner string) ci.CIService {
+func NewGitHubService(ghToken string, repoName string, owner string) GithubService {
 	client := github.NewTokenClient(context.Background(), ghToken)
-	return &GithubService{
+	return GithubService{
 		Client:   client,
 		RepoName: repoName,
 		Owner:    owner,
@@ -291,7 +291,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 	}
 }
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.CIService) ([]configuration.Project, *configuration.Project, int, error) {
+func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.PullRequestService) ([]configuration.Project, *configuration.Project, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
 
