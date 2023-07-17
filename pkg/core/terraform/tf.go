@@ -110,7 +110,6 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 
 // runTerraformCommand
 func (tf Terraform) runTerraformCommand(command string, envs map[string]string, arg ...string) (string, string, int, error) {
-	// TODO: envs parameter is being ignored
 	args := []string{command}
 	args = append(args, arg...)
 
