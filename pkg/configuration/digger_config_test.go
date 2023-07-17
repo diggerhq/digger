@@ -455,6 +455,30 @@ workflows:
 
 }
 
+func TestDiggerConfigWithEmptyInitBlock(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: my-first-app
+  dir: app-one
+  workflow: default
+workflows:
+  default:
+    steps:
+      - run: echo "run"
+      - init:
+      - plan: terraform plan
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	_, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	assert.Equal(t, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'", err.Error())
+
+}
+
 func TestDiggerConfigDependencyGraph(t *testing.T) {
 	p1 := Project{
 		Name:               "A",
