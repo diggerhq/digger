@@ -208,7 +208,9 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 
 	expandedParams := make([]string, len(params))
 	for _, p := range params {
+		fmt.Printf("original param: %s\n", p)
 		s := os.ExpandEnv(p)
+		fmt.Printf("expanded param: %s\n", s)
 		expandedParams = append(expandedParams, s)
 	}
 
@@ -230,8 +232,8 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 			return false, "", "", err
 		}
 	}
-	params = append(append(params, "-input=false"), "-no-color")
-	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
+	expandedParams = append(append(expandedParams, "-input=false"), "-no-color")
+	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, expandedParams...)
 	if err != nil {
 		return false, "", "", err
 	}
