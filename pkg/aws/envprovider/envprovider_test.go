@@ -1,6 +1,7 @@
 package envprovider
 
 import (
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -20,8 +21,8 @@ func TestRetrieve(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			t.Setenv(tc.key, "key")
-			t.Setenv(tc.secret, "secret")
+			os.Setenv(tc.key, "key")
+			os.Setenv(tc.secret, "secret")
 			e := EnvProvider{}
 			act, _ := e.Retrieve()
 			exp := credentials.Value(credentials.Value{AccessKeyID: "key", SecretAccessKey: "secret", SessionToken: "", ProviderName: "DiggerEnvProvider"})
