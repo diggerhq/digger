@@ -65,7 +65,6 @@ func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projec
 	}
 	u.Path = "/repos/" + namespace + "/projects/" + projectName + "/access-policy"
 	req, err := http.NewRequest("GET", u.String(), nil)
-	fmt.Printf(u.String() + "\n\n\n\n")
 
 	if err != nil {
 		return "", nil, err
@@ -89,10 +88,7 @@ func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projec
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
 func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, projectName string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
-	fmt.Printf("getting policy for organisation: %v - repo: %v\n", organisation, repo)
 	content, resp, err := getPolicyForNamespace(p, namespace, projectName)
-	fmt.Printf("content: %v\n", content)
-
 	if err != nil {
 		return "", err
 	}
@@ -131,8 +127,6 @@ type DiggerPolicyChecker struct {
 func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
-
-	fmt.Printf("policy was: %v | error was: %v\n", policy, err)
 
 	if err != nil {
 		fmt.Printf("Error while fetching policy: %v", err)
