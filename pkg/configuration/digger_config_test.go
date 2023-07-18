@@ -177,13 +177,13 @@ workflows:
       steps:
       - init:
           extra_args: ["-lock=false"]
-      - plan:
+      - plan: 
           extra_args: ["-lock=false"]
       - run: echo "hello"
     apply:
       steps:
       - apply:
-          extra_args: ["-lock=false"]
+        extra_args: ["-lock=false"]
     workflow_configuration:
       on_pull_request_pushed: [digger plan]
       on_pull_request_closed: [digger unlock]
@@ -473,6 +473,30 @@ workflows:
 	_, _, err := LoadDiggerConfig(tempDir)
 	assert.Equal(t, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'", err.Error())
 
+}
+
+func TestDiggerConfigWithEmptyInitBlock(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: my-first-app
+  dir: app-one
+  workflow: default
+workflows:
+  default:
+    plan:
+      steps:
+      - init: 
+      - plan:
+        extra_args: ["-var-file=$ENV_NAME"]
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	_, _, err := LoadDiggerConfig(tempDir)
+	assert.Nil(t, err)
 }
 
 func TestDiggerConfigDependencyGraph(t *testing.T) {

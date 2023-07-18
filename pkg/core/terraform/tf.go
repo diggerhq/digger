@@ -97,7 +97,7 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 		_, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
 		if err != nil {
 			return "", "", err
-		}		
+		}
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
 	if plan != nil {
@@ -107,6 +107,7 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 	return stdout, stderr, err
 }
 
+// runTerraformCommand
 func (tf Terraform) runTerraformCommand(command string, envs map[string]string, arg ...string) (string, string, int, error) {
 	args := []string{command}
 	args = append(args, arg...)
@@ -155,7 +156,7 @@ func (sw *StdWriter) GetString() string {
 	return s
 }
 
-func (tf Terraform) formatTerraformWorkspaces(list string) (string) {
+func (tf Terraform) formatTerraformWorkspaces(list string) string {
 
 	list = strings.TrimSpace(list)
 	char_replace := strings.NewReplacer("*", "", "\n", ",", " ", "")
@@ -164,6 +165,15 @@ func (tf Terraform) formatTerraformWorkspaces(list string) (string) {
 }
 
 func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+	expandedParams := make([]string, 0)
+	for _, p := range params {
+		s := os.ExpandEnv(p)
+		s = strings.TrimSpace(s)
+		if s != "" {
+			expandedParams = append(expandedParams, s)
+		}
+	}
+
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
 	if err != nil {
 		return false, "", "", err
@@ -178,10 +188,10 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 		_, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
 		if err != nil {
 			return false, "", "", err
-		}		
+		}
 	}
-	params = append(append(params, "-input=false"), "-no-color")
-	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
+	expandedParams = append(append(expandedParams, "-input=false"), "-no-color")
+	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, expandedParams...)
 	if err != nil {
 		return false, "", "", err
 	}
