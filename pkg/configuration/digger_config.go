@@ -113,7 +113,19 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, graph
 	}
 
 	for _, w := range config.Workflows {
-		print(w.Plan.Steps)
+		for _, s := range w.Plan.Steps {
+			if s.Action == "" {
+				return nil, nil, fmt.Errorf("plan step's action can't be empty")
+			}
+		}
+	}
+
+	for _, w := range config.Workflows {
+		for _, s := range w.Apply.Steps {
+			if s.Action == "" {
+				return nil, nil, fmt.Errorf("apply step's action can't be empty")
+			}
+		}
 	}
 	return config, projectDependencyGraph, nil
 }
