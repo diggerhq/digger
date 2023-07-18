@@ -495,7 +495,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	_, _, err := LoadDiggerConfig(tempDir)
 	assert.Nil(t, err)
 }
 
