@@ -186,13 +186,8 @@ func copyGitHubVars() (map[string]string, error) {
 }
 
 func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
-
-	println("envs")
-	fmt.Printf("%v\n", envs)
 	githubVars, _ := copyGitHubVars()
-	fmt.Printf("guthub vars: %v\n", githubVars)
-
-	// merge envs maps
+	// merge envs and github vars maps
 	if githubVars != nil {
 		for k, v := range githubVars {
 			envs[k] = v
@@ -201,16 +196,12 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 
 	expandedParams := make([]string, 0)
 	for _, p := range params {
-		fmt.Printf("original param: %s\n", p)
 		s := os.ExpandEnv(p)
 		s = strings.TrimSpace(s)
-		fmt.Printf("expanded param: %s\n", s)
 		if s != "" {
 			expandedParams = append(expandedParams, s)
 		}
 	}
-
-	fmt.Printf("merged tf_vars: %v\n", envs)
 
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", nil, "list")
 	if err != nil {
