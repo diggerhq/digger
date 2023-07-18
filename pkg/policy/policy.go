@@ -76,7 +76,10 @@ func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projec
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
 func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, projectName string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
+	fmt.Printf("getting policy for organisation: %v - repo: %v\n", organisation, repo)
 	content, resp, err := getPolicyForNamespace(p, namespace, projectName)
+	fmt.Printf("content: %v\n", content)
+
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +115,7 @@ func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation strin
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
 
-	fmt.Printf("policy was: %v | error was: %v|", policy, err)
+	fmt.Printf("policy was: %v | error was: %v\n", policy, err)
 
 	if err != nil {
 		fmt.Printf("Error while fetching policy: %v", err)
