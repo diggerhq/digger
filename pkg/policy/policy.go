@@ -53,6 +53,7 @@ func getPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Respon
 func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
 	// fetch RBAC policies for project from Digger API
 	req, err := http.NewRequest("GET", p.DiggerHost+"/repos/"+namespace+"/projects/"+projectName+"/access-policy", nil)
+	fmt.Printf(p.DiggerHost + "/repos/" + namespace + "/projects/" + projectName + "/access-policy\n\n\n\n")
 
 	if err != nil {
 		return "", nil, err
