@@ -54,7 +54,7 @@ func TestCommentPerRunStrategyReport(t *testing.T) {
 	}
 
 	assert.Equal(t, 2, len(ciService.CommentsPerPr[prNumber]))
-	assert.Equal(t, "<details><summary>Digger run report at "+timeOfRun.Format("2006-01-02 15:04:05")+"</summary>\n        <details><summary>run1</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n<details><summary>run2</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n\n<details><summary>run3</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n\n<details><summary>run4</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n</details>", *ciService.CommentsPerPr[prNumber][1].Body)
+	assert.Equal(t, "<details><summary>Digger run report at "+timeOfRun.Format("2006-01-02 15:04:05 (MST)")+"</summary>\n        <details><summary>run1</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n<details><summary>run2</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n\n<details><summary>run3</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n\n<details><summary>run4</summary>\n  \n```terraform\nresource \"null_resource\" \"test\" {}\n  ```\n</details>\n\n</details>", *ciService.CommentsPerPr[prNumber][1].Body)
 }
 
 func TestLatestCommentStrategyReport(t *testing.T) {
