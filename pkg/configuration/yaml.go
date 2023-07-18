@@ -146,6 +146,7 @@ func (s *StepYaml) UnmarshalYAML(value *yaml.Node) error {
 		return nil
 	}
 
+	s.extract(stepMap, "init")
 	s.extract(stepMap, "plan")
 	s.extract(stepMap, "apply")
 
@@ -171,11 +172,13 @@ func (s *StepYaml) extract(stepMap map[string]interface{}, action string) {
 			}
 			s.ExtraArgs = extraArgs
 		} else {
-			if v, ok := stepMap[action].(map[string]interface{})["extra_args"]; ok {
-				for _, v := range v.([]interface{}) {
-					extraArgs = append(extraArgs, v.(string))
+			if stepMap[action] != nil {
+				if v, ok := stepMap[action].(map[string]interface{})["extra_args"]; ok {
+					for _, v := range v.([]interface{}) {
+						extraArgs = append(extraArgs, v.(string))
+					}
+					s.ExtraArgs = extraArgs
 				}
-				s.ExtraArgs = extraArgs
 			}
 		}
 	}
