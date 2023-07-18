@@ -6,17 +6,25 @@ import (
 	"fmt"
 	"github.com/dominikbraun/graph"
 	"gopkg.in/yaml.v3"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 type DirWalker interface {
 	GetDirs(workingDir string) ([]string, error)
 }
 
-type FileSystemDirWalker struct {
+type FileSystemTopLevelTerraformDirWalker struct {
+}
+
+type FileSystemTerragruntDirWalker struct {
+}
+
+type FileSystemModuleDirWalker struct {
 }
 
 func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
@@ -37,7 +45,7 @@ func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	return files, nil
 }
 
-func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) {
+func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string) ([]string, error) {
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
@@ -46,10 +54,68 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 				return err
 			}
 			if info.IsDir() {
+				if info.Name() == "modules" {
+					return filepath.SkipDir
+				}
 				terraformFiles, _ := GetFilesWithExtension(path, ".tf")
 				if len(terraformFiles) > 0 {
-					dirs = append(dirs, path)
+					dirs = append(dirs, strings.ReplaceAll(path, workingDir+string(os.PathSeparator), ""))
 					return filepath.SkipDir
+				}
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	return dirs, nil
+}
+
+func (walker *FileSystemModuleDirWalker) GetDirs(workingDir string) ([]string, error) {
+	var dirs []string
+	err := filepath.Walk(workingDir,
+		func(path string, info os.FileInfo, err error) error {
+
+			if err != nil {
+				return err
+			}
+			if info.IsDir() && info.Name() == "modules" {
+				dirs = append(dirs, strings.ReplaceAll(path, workingDir+string(os.PathSeparator), ""))
+				return filepath.SkipDir
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	return dirs, nil
+}
+
+func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string) ([]string, error) {
+	var dirs []string
+	err := filepath.Walk(workingDir,
+		func(path string, info os.FileInfo, err error) error {
+
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				if info.Name() == "modules" {
+					return filepath.SkipDir
+				}
+				terragruntFiles, _ := GetFilesWithExtension(path, "terragrunt.hcl")
+				if len(terragruntFiles) > 0 {
+					for _, f := range terragruntFiles {
+						terragruntFile := path + string(os.PathSeparator) + f
+						fileContent, err := os.ReadFile(terragruntFile)
+						if err != nil {
+							return err
+						}
+						if strings.Contains(string(fileContent), "include \"root\"") {
+							dirs = append(dirs, strings.ReplaceAll(path, workingDir+string(os.PathSeparator), ""))
+							return filepath.SkipDir
+						}
+					}
 				}
 			}
 			return nil
@@ -62,7 +128,7 @@ func (walker *FileSystemDirWalker) GetDirs(workingDir string) ([]string, error) 
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
-func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, graph.Graph[string, string], error) {
+func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, string], error) {
 	configYaml := &DiggerConfigYaml{}
 	config := &DiggerConfig{}
 	fileName, err := retrieveConfigFile(workingDir)
@@ -73,34 +139,32 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, graph
 	}
 
 	if fileName == "" {
-		fmt.Println("No digger config found, using default one")
-		config.Projects = make([]Project, 1)
-		project := defaultProject()
-		config.Projects[0] = project
-		config.Workflows = make(map[string]Workflow)
-		config.Workflows["default"] = *defaultWorkflow()
-		g := graph.New(graph.StringHash, graph.PreventCycles(), graph.Directed())
-		err := g.AddVertex(project.Name)
+		configYaml, err = AutoDetectDiggerConfig(workingDir)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to auto detect digger config: %v", err)
 		}
-		return config, g, nil
-	}
+		marshalledConfig, err := yaml.Marshal(configYaml)
+		if err != nil {
+			log.Printf("failed to marshal auto detected digger config: %v", err)
+		} else {
+			log.Printf("Auto detected digger config: \n%v", marshalledConfig)
+		}
+	} else {
+		data, err := os.ReadFile(fileName)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
+		}
 
-	data, err := os.ReadFile(fileName)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
-	}
-
-	if err := yaml.Unmarshal(data, configYaml); err != nil {
-		return nil, nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+		if err := yaml.Unmarshal(data, configYaml); err != nil {
+			return nil, nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+		}
 	}
 
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
 		return nil, nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
 
-	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml, workingDir, walker)
+	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml, workingDir)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -130,13 +194,52 @@ func LoadDiggerConfig(workingDir string, walker DirWalker) (*DiggerConfig, graph
 	return config, projectDependencyGraph, nil
 }
 
-func defaultProject() Project {
-	return Project{
-		Name:       "default",
-		Dir:        ".",
-		Workspace:  "default",
-		Terragrunt: false,
-		Workflow:   "default",
+func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
+	configYaml := &DiggerConfigYaml{}
+	collectUsageData := true
+	configYaml.CollectUsageData = &collectUsageData
+
+	terragruntDirWalker := &FileSystemTerragruntDirWalker{}
+	terraformDirWalker := &FileSystemTopLevelTerraformDirWalker{}
+	moduleDirWalker := &FileSystemModuleDirWalker{}
+
+	terragruntDirs, err := terragruntDirWalker.GetDirs(workingDir)
+
+	if err != nil {
+		return nil, err
+	}
+
+	terraformDirs, err := terraformDirWalker.GetDirs(workingDir)
+
+	if err != nil {
+		return nil, err
+	}
+
+	moduleDirs, err := moduleDirWalker.GetDirs(workingDir)
+
+	modulePatterns := []string{}
+	for _, dir := range moduleDirs {
+		modulePatterns = append(modulePatterns, dir+"/**")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	if len(terragruntDirs) > 0 {
+		// TODO: add support for dependency graph when parsing terragrunt config
+		for _, dir := range terragruntDirs {
+			project := ProjectYaml{Name: dir, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: true, IncludePatterns: modulePatterns}
+			configYaml.Projects = append(configYaml.Projects, &project)
+		}
+		return configYaml, nil
+	} else if len(terraformDirs) > 0 {
+		for _, dir := range terraformDirs {
+			project := ProjectYaml{Name: dir, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
+			configYaml.Projects = append(configYaml.Projects, &project)
+		}
+		return configYaml, nil
+	} else {
+		return nil, fmt.Errorf("no terragrunt or terraform project detected in the repository")
 	}
 }
 
