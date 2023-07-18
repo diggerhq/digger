@@ -27,7 +27,7 @@ import (
 
 type PullRequestLock struct {
 	InternalLock     locking.Lock
-	CIService        ci.CIService
+	CIService        ci.PullRequestService
 	Reporter         reporting.Reporter
 	ProjectName      string
 	ProjectNamespace string

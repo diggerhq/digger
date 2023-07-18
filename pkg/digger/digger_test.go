@@ -173,6 +173,25 @@ func (m *MockPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
 	return false, nil
 }
 
+type MockPlanPathProvider struct {
+	Commands []RunInfo
+}
+
+func (m MockPlanPathProvider) PlanFileName() string {
+	m.Commands = append(m.Commands, RunInfo{"PlanFileName", "", time.Now()})
+	return "plan"
+}
+
+func (m MockPlanPathProvider) LocalPlanFilePath() string {
+	m.Commands = append(m.Commands, RunInfo{"LocalPlanFilePath", "", time.Now()})
+	return "plan"
+}
+
+func (m MockPlanPathProvider) StoredPlanFilePath() string {
+	m.Commands = append(m.Commands, RunInfo{"StoredPlanFilePath", "", time.Now()})
+	return "plan"
+}
+
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandRunner := &MockCommandRunner{}
@@ -185,6 +204,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 		PrNumber:       1,
 		ReportStrategy: &reporting.MultipleCommentsStrategy{},
 	}
+	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{
 		ApplyStage: &models.Stage{
 			Steps: []models.Step{
@@ -209,15 +229,15 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
-		ProjectLock:       lock,
 		PlanStorage:       planStorage,
+		PlanPathProvider:  planPathProvider,
 	}
 
 	executor.Apply()
 
-	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
+	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"RetrievePlan #.tfplan", "Lock ", "Init ", "Apply ", "LockId ", "PublishComment 1 <details><summary>Apply for <b></b></summary>\n  \n```terraform\n\n  ```\n</details>", "LockId ", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply ", "PublishComment 1 <details><summary>Apply for <b>#</b></summary>\n  \n```terraform\n\n  ```\n</details>", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
@@ -230,6 +250,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  1,
 	}
+	planPathProvider := &MockPlanPathProvider{}
 
 	executor := execution.DiggerExecutor{
 		ApplyStage: &models.Stage{},
@@ -255,18 +276,18 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
-		ProjectLock:       lock,
 		PlanStorage:       planStorage,
+		PlanPathProvider:  planPathProvider,
 	}
 
 	executor.Plan()
 
-	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage)
+	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Lock ", "Init ", "Plan -out #.tfplan", "PlanExists #.tfplan", "StorePlan #.tfplan", "LockId ", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan -out plan", "PlanExists plan", "StorePlan plan", "Run   echo"}, commandStrings)
 }
 
-func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage) []string {
+func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {
 	var commands []RunInfo
 	for _, command := range terraformExecutor.Commands {
 		commands = append(commands, command)
@@ -281,6 +302,9 @@ func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, comm
 		commands = append(commands, command)
 	}
 	for _, command := range planStorage.Commands {
+		commands = append(commands, command)
+	}
+	for _, command := range planPathProvider.Commands {
 		commands = append(commands, command)
 	}
 

@@ -7,5 +7,5 @@ type Provider interface {
 }
 
 type Checker interface {
-	Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectname string, command string, requestedBy string) (bool, error)
+	Check(ciService ci.OrgService, SCMOrganisation string, SCMrepository string, projectname string, command string, requestedBy string) (bool, error)
 }
