@@ -97,9 +97,13 @@ func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, p
 		return "", err
 	}
 
+	// project policy found
 	if resp.StatusCode == 200 && content != "" {
 		return content, nil
-	} else if resp.StatusCode == 404 {
+	}
+
+	// check if project policy was empty or not found (retrieve org policy if so)
+	if (resp.StatusCode == 200 && content == "") || resp.StatusCode == 404 {
 		content, resp, err := getPolicyForOrganisation(p)
 		if err != nil {
 			return "", err
@@ -112,7 +116,7 @@ func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, p
 			return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
 		}
 	} else {
-		return "", errors.New(fmt.Sprintf("unexpected response while fetching org policy: %v code %v", content, resp.StatusCode))
+		return "", errors.New(fmt.Sprintf("unexpected response while fetching project policy: %v code %v", content, resp.StatusCode))
 	}
 }
 
