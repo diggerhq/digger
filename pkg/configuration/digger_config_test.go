@@ -476,8 +476,7 @@ workflows:
 	defer deleteFile()
 
 	_, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
-	//assert.Errorf(t, err, "plan step's action can't be empty")
-	print(err)
+	assert.Nil(t, err)
 }
 
 func TestDiggerConfigDependencyGraph(t *testing.T) {
