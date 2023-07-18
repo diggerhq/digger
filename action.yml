@@ -93,6 +93,19 @@ inputs:
     description: 'comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments'
     required: false
     default: 'comments_per_run'
+  mode:
+    description: 'manual or otherwise'
+    required: false
+    default: ''
+  command:
+    description: 'digger plan or digger apply in case of manual mode'
+    required: false
+    default: ''
+  project:
+    description: 'project name for digger to run in case of manual mode'
+    required: false
+    default: ''
+
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -195,6 +208,9 @@ runs:
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
         REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
+        INPUT_DIGGER_PROJECT: ${{ inputs.project }}
+        INPUT_DIGGER_MODE: ${{ inputs.mode }}
+        INPUT_DIGGER_COMMAND: ${{ inputs.command }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -213,6 +229,9 @@ runs:
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
         REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
+        INPUT_DIGGER_PROJECT: ${{ inputs.project }}
+        INPUT_DIGGER_MODE: ${{ inputs.mode }}
+        INPUT_DIGGER_COMMAND: ${{ inputs.command }}
       id: digger
       shell: bash
       run: |

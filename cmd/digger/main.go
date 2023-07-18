@@ -53,13 +53,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	if ghContext == "" {
 		reportErrorAndExit(githubActor, "GITHUB_CONTEXT is not defined", 2)
 	}
-
-	parsedGhContext, err := github_models.GetGitHubContext(ghContext)
-	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
-	}
-	println("GitHub context parsed successfully")
-
 	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig("./")
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
@@ -72,60 +65,114 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	}
 	println("Lock provider has been created successfully")
 
-	ghEvent := parsedGhContext.Event
-	eventName := parsedGhContext.EventName
-	splitRepositoryName := strings.Split(parsedGhContext.Repository, "/")
+	ghRepository := os.Getenv("GITHUB_REPOSITORY")
+
+	if ghRepository == "" {
+		reportErrorAndExit(githubActor, "GITHUB_REPOSITORY is not defined", 3)
+	}
+
+	splitRepositoryName := strings.Split(ghRepository, "/")
 	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
 	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
-	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, githubPrService)
-	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
-	}
-	logImpactedProjects(impactedProjects, prNumber)
-	println("GitHub event processed successfully")
-
-	if dg_github.CheckIfHelpComment(ghEvent) {
-		reply := utils.GetCommands()
-		err := githubPrService.PublishComment(prNumber, reply)
-		if err != nil {
-			reportErrorAndExit(githubActor, "Failed to publish help command output", 1)
-		}
-	}
-
-	if len(impactedProjects) == 0 {
-		reportErrorAndExit(githubActor, "No projects impacted", 0)
-	}
-
-	commandsToRunPerProject, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
-	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
-	}
-	println("GitHub event converted to commands successfully")
-	logCommands(commandsToRunPerProject)
-
-	planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, prNumber)
-
-	reporter := &reporting.CiReporter{
-		CiService:      githubPrService,
-		PrNumber:       prNumber,
-		ReportStrategy: reportingStrategy,
-	}
 	currentDir, err := os.Getwd()
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
-	allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, parsedGhContext.Repository, githubActor, eventName, prNumber, githubPrService, lock, reporter, planStorage, policyChecker, currentDir)
-	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
-	}
 
-	if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
-		digger.MergePullRequest(githubPrService, prNumber)
-		println("PR merged successfully")
-	}
+	runningMode := os.Getenv("INPUT_DIGGER_MODE")
 
-	println("Commands executed successfully")
+	if runningMode == "manual" {
+		command := os.Getenv("INPUT_DIGGER_COMMAND")
+		if command == "" {
+			reportErrorAndExit(githubActor, "provide 'command' to run in 'manual' mode", 1)
+		}
+		project := os.Getenv("INPUT_DIGGER_PROJECT")
+		if project == "" {
+			reportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
+		}
+
+		var projectConfig configuration.Project
+		for _, projectConfig = range diggerConfig.Projects {
+			if projectConfig.Name == project {
+				break
+			}
+		}
+		workflow := diggerConfig.Workflows[projectConfig.Workflow]
+
+		stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
+		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
+
+		projectCommand := models.ProjectCommand{
+			ProjectName:      project,
+			ProjectDir:       projectConfig.Dir,
+			ProjectWorkspace: projectConfig.Workspace,
+			Terragrunt:       projectConfig.Terragrunt,
+			Commands:         []string{command},
+			ApplyStage:       workflow.Apply,
+			PlanStage:        workflow.Plan,
+			CommandEnvVars:   commandEnvVars,
+			StateEnvVars:     stateEnvVars,
+		}
+		err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, "manual_invocation", &githubPrService, policyChecker, planStorage, currentDir)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		}
+	} else {
+		parsedGhContext, err := github_models.GetGitHubContext(ghContext)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
+		}
+		println("GitHub context parsed successfully")
+
+		ghEvent := parsedGhContext.Event
+		eventName := parsedGhContext.EventName
+		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
+		}
+		logImpactedProjects(impactedProjects, prNumber)
+		println("GitHub event processed successfully")
+
+		if dg_github.CheckIfHelpComment(ghEvent) {
+			reply := utils.GetCommands()
+			err := githubPrService.PublishComment(prNumber, reply)
+			if err != nil {
+				reportErrorAndExit(githubActor, "Failed to publish help command output", 1)
+			}
+		}
+
+		if len(impactedProjects) == 0 {
+			reportErrorAndExit(githubActor, "No projects impacted", 0)
+		}
+
+		commandsToRunPerProject, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
+		}
+		println("GitHub event converted to commands successfully")
+		logCommands(commandsToRunPerProject)
+
+		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
+
+		reporter := &reporting.CiReporter{
+			CiService:      &githubPrService,
+			PrNumber:       prNumber,
+			ReportStrategy: reportingStrategy,
+		}
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, parsedGhContext.Repository, githubActor, eventName, prNumber, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, currentDir)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		}
+
+		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
+			digger.MergePullRequest(&githubPrService, prNumber)
+			println("PR merged successfully")
+		}
+
+		println("Commands executed successfully")
+	}
 
 	reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 
@@ -198,13 +245,13 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	}
 
 	diggerProjectNamespace := gitLabContext.ProjectNamespace + "/" + gitLabContext.ProjectName
-	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, *gitLabContext.MergeRequestIId)
+	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, gitLabContext.MergeRequestIId)
 	reporter := &reporting.CiReporter{
 		CiService:      gitlabService,
 		PrNumber:       *gitLabContext.MergeRequestIId,
 		ReportStrategy: reportingStrategy,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, lock, reporter, planStorage, policyChecker, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, currentDir)
 
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
@@ -282,7 +329,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportin
 		PrNumber:       prNumber,
 		ReportStrategy: reportingStrategy,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, lock, reporter, planStorage, policyChecker, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, azureService, lock, reporter, planStorage, policyChecker, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -380,7 +427,7 @@ func main() {
 	}
 }
 
-func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber int) core_storage.PlanStorage {
+func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber *int) core_storage.PlanStorage {
 	var planStorage core_storage.PlanStorage
 
 	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
@@ -390,7 +437,7 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			Client:            github.NewTokenClient(context.Background(), ghToken),
 			Owner:             ghRepoOwner,
 			RepoName:          ghRepositoryName,
-			PullRequestNumber: prNumber,
+			PullRequestNumber: *prNumber,
 			ZipManager:        zipManager,
 		}
 	} else if uploadDestination == "gcp" {
