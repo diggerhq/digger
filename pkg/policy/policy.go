@@ -27,7 +27,7 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) Check(_ ci.CIService, _ string, _ string, _ string, _ string, _ string) (bool, error) {
+func (p NoOpPolicyChecker) Check(_ ci.OrgService, _ string, _ string, _ string, _ string, _ string) (bool, error) {
 	return true, nil
 }
 
@@ -124,7 +124,7 @@ type DiggerPolicyChecker struct {
 	PolicyProvider PolicyProvider
 }
 
-func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+func (p DiggerPolicyChecker) Check(ciService ci.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
 

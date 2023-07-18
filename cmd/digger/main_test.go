@@ -889,7 +889,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		PrNumber:  prNumber,
 	}
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, prManager, lock, reporter, planStorage, policyChecker, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -919,7 +919,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	policyChecker := &utils.MockPolicyChecker{}
 
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, lock, reporter, planStorage, policyChecker, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, prManager, lock, reporter, planStorage, policyChecker, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)

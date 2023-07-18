@@ -60,6 +60,12 @@ func (g *Github) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		g.Event = event
+	case "push":
+		var event PushEvent
+		if err := json.Unmarshal(rawEvent, &event); err != nil {
+			return err
+		}
+		g.Event = event
 	default:
 		return errors.New("unknown GitHub event: " + g.EventName)
 	}
@@ -78,6 +84,9 @@ type PullRequest struct {
 	Number int  `json:"number"`
 	Merged bool `json:"merged"`
 	Base   Base `json:"base"`
+}
+
+type PushEvent struct {
 }
 
 type IssueCommentEvent struct {
