@@ -68,8 +68,9 @@ type EnvVarYaml struct {
 }
 
 type GenerateProjectsConfigYaml struct {
-	Include string `yaml:"include"`
-	Exclude string `yaml:"exclude"`
+	Include    string `yaml:"include"`
+	Exclude    string `yaml:"exclude"`
+	Terragrunt bool   `yaml:"terragrunt"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
