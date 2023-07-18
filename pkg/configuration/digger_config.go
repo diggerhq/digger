@@ -175,6 +175,22 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 			return nil, nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
 		}
 	}
+
+	for _, w := range config.Workflows {
+		for _, s := range w.Plan.Steps {
+			if s.Action == "" {
+				return nil, nil, fmt.Errorf("plan step's action can't be empty")
+			}
+		}
+	}
+
+	for _, w := range config.Workflows {
+		for _, s := range w.Apply.Steps {
+			if s.Action == "" {
+				return nil, nil, fmt.Errorf("apply step's action can't be empty")
+			}
+		}
+	}
 	return config, projectDependencyGraph, nil
 }
 
