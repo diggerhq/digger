@@ -112,6 +112,8 @@ func (p DiggerPolicyChecker) Check(ciService ci.CIService, SCMOrganisation strin
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
 
+	fmt.Printf("policy was: %v | error was: %v|", policy, err)
+
 	if err != nil {
 		fmt.Printf("Error while fetching policy: %v", err)
 		return false, err
