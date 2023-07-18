@@ -466,22 +466,17 @@ projects:
   workflow: default
 workflows:
   default:
-    steps:
-      - init:
-      - plan: terraform plan
+    plan:
+      steps:
+      - init: 
+      - plan:
+        extra_args: ["-var-file=$ENV_NAME"]
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	config, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
-	assert.Nil(t, err)
-	assert.NotNil(t, config)
-	assert.NotNil(t, config.Workflows["default"])
-	assert.NotNil(t, config.Workflows["default"].Plan)
-	assert.NotNil(t, config.Workflows["default"].Plan.Steps)
-	assert.Equal(t, "init", config.Workflows["default"].Plan.Steps[0].Action)
-	assert.Equal(t, "", config.Workflows["default"].Plan.Steps[0].Value)
-	assert.Equal(t, "plan", config.Workflows["default"].Plan.Steps[1].Action)
+	_, _, err := LoadDiggerConfig(tempDir, &FileSystemDirWalker{})
+	assert.Errorf(t, err, "plan step's action can't be empty")
 }
 
 func TestDiggerConfigDependencyGraph(t *testing.T) {
