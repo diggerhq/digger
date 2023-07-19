@@ -4,6 +4,7 @@ import (
 	"context"
 	"digger/pkg/ci"
 	"digger/pkg/core/policy"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/open-policy-agent/opa/rego"
@@ -192,9 +193,17 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 	// TODO: Get rid of organisation if its not needed
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPlanPolicy(organisation, SCMrepository, projectName)
+	if err != nil {
+		return false, fmt.Errorf("failed get plan policy: %v", err)
+	}
+	var parsedPlanOutput map[string]interface{}
+	err = json.Unmarshal([]byte(planOutput), &parsedPlanOutput)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse json terraform output to map: %v", err)
+	}
 
 	input := map[string]interface{}{
-		"terraform": planOutput,
+		"terraform": parsedPlanOutput,
 	}
 
 	if policy == "" {
@@ -220,12 +229,12 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 	expressions := results[0].Expressions
 
 	for _, expression := range expressions {
-		decision, ok := expression.Value.([]string)
+		decisions, ok := expression.Value.([]interface{})
 		if !ok {
-			return false, fmt.Errorf("decision is not a boolean")
+			return false, fmt.Errorf("decision is not a slice of strings")
 		}
-		if len(decision) > 0 {
-			for _, d := range decision {
+		if len(decisions) > 0 {
+			for _, d := range decisions {
 				fmt.Printf("denied: %v\n", d)
 			}
 			return false, nil
