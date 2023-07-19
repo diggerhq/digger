@@ -13,6 +13,7 @@ type TerraformExecutor interface {
 	Init([]string, map[string]string) (string, string, error)
 	Apply([]string, *string, map[string]string) (string, string, error)
 	Plan([]string, map[string]string) (bool, string, string, error)
+	Show([]string, map[string]string) (string, string, error)
 }
 
 type Terragrunt struct {
@@ -42,6 +43,11 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, error) {
 	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", envs, params...)
 	return true, stdout, stderr, err
+}
+
+func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (string, string, error) {
+	stdout, stderr, err := terragrunt.runTerragruntCommand("show", envs, params...)
+	return stdout, stderr, err
 }
 
 func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[string]string, arg ...string) (string, string, error) {
@@ -197,4 +203,12 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 		return false, "", "", err
 	}
 	return statusCode != 2, stdout, stderr, nil
+}
+
+func (tf Terraform) Show(params []string, envs map[string]string) (string, string, error) {
+	stdout, stderr, _, err := tf.runTerraformCommand("show", envs, params...)
+	if err != nil {
+		return "", "", err
+	}
+	return stdout, stderr, nil
 }
