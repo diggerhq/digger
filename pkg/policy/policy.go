@@ -3,6 +3,7 @@ package policy
 import (
 	"context"
 	"digger/pkg/ci"
+	"digger/pkg/core/policy"
 	"errors"
 	"fmt"
 	"github.com/open-policy-agent/opa/rego"
@@ -11,11 +12,6 @@ import (
 	"net/http"
 	"net/url"
 )
-
-type PolicyProvider interface {
-	GetPolicy(organisation string, repository string, projectname string) (string, error)
-	GetOrganisation() string
-}
 
 type DiggerHttpPolicyProvider struct {
 	DiggerHost         string
@@ -27,7 +23,11 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) Check(_ ci.OrgService, _ string, _ string, _ string, _ string, _ string) (bool, error) {
+func (p NoOpPolicyChecker) CheckAccessPolicy(_ ci.OrgService, _ string, _ string, _ string, _ string, _ string) (bool, error) {
+	return true, nil
+}
+
+func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string) (bool, error) {
 	return true, nil
 }
 
@@ -86,7 +86,7 @@ func getPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projec
 }
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
-func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, projectName string) (string, error) {
+func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo string, projectName string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 	content, resp, err := getPolicyForNamespace(p, namespace, projectName)
 	if err != nil {
@@ -116,17 +116,23 @@ func (p *DiggerHttpPolicyProvider) GetPolicy(organisation string, repo string, p
 	}
 }
 
+func (p *DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo string, projectName string) (string, error) {
+	planPolicy := "package digger\n\ndeny[sprintf(message, [resource.address])] {\n  message := \"Cannot create EC2 instances!\"\n  resource := input.terraform.resource_changes[_]\n  resource.change.actions[_] == \"create\"\n  resource[type] == \"aws_instance\"\n}\n"
+	return planPolicy, nil
+}
+
 func (p *DiggerHttpPolicyProvider) GetOrganisation() string {
 	return p.DiggerOrganisation
 }
 
 type DiggerPolicyChecker struct {
-	PolicyProvider PolicyProvider
+	PolicyProvider policy.Provider
 }
 
-func (p DiggerPolicyChecker) Check(ciService ci.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+	// TODO: Get rid of organisation if its not needed
 	organisation := p.PolicyProvider.GetOrganisation()
-	policy, err := p.PolicyProvider.GetPolicy(organisation, SCMrepository, projectName)
+	policy, err := p.PolicyProvider.GetAccessPolicy(organisation, SCMrepository, projectName)
 
 	if err != nil {
 		fmt.Printf("Error while fetching policy: %v", err)
@@ -141,7 +147,7 @@ func (p DiggerPolicyChecker) Check(ciService ci.OrgService, SCMOrganisation stri
 
 	input := map[string]interface{}{
 		"user":         requestedBy,
-		"organisation": organisation,
+		"organisation": SCMOrganisation,
 		"teams":        teams,
 		"action":       command,
 		"project":      projectName,
@@ -175,6 +181,53 @@ func (p DiggerPolicyChecker) Check(ciService ci.OrgService, SCMOrganisation stri
 			return false, fmt.Errorf("decision is not a boolean")
 		}
 		if !decision {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName string, planOutput string) (bool, error) {
+	// TODO: Get rid of organisation if its not needed
+	organisation := p.PolicyProvider.GetOrganisation()
+	policy, err := p.PolicyProvider.GetPlanPolicy(organisation, SCMrepository, projectName)
+
+	input := map[string]interface{}{
+		"terraform": planOutput,
+	}
+
+	if policy == "" {
+		return true, nil
+	}
+
+	ctx := context.Background()
+	fmt.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
+	query, err := rego.New(
+		rego.Query("data.digger.deny"),
+		rego.Module("digger", policy),
+	).PrepareForEval(ctx)
+
+	if err != nil {
+		return false, err
+	}
+
+	results, err := query.Eval(ctx, rego.EvalInput(input))
+	if len(results) == 0 || len(results[0].Expressions) == 0 {
+		return false, fmt.Errorf("no result found")
+	}
+
+	expressions := results[0].Expressions
+
+	for _, expression := range expressions {
+		decision, ok := expression.Value.([]string)
+		if !ok {
+			return false, fmt.Errorf("decision is not a boolean")
+		}
+		if len(decision) > 0 {
+			for _, d := range decision {
+				fmt.Printf("denied: %v\n", d)
+			}
 			return false, nil
 		}
 	}

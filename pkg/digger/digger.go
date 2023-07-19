@@ -88,14 +88,14 @@ func RunCommandsPerProject(
 		for _, command := range projectCommands.Commands {
 			fmt.Printf("Running '%s' for project '%s'\n", command, projectCommands.ProjectName)
 
-			allowedToPerformCommand, err := policyChecker.Check(orgService, SCMOrganisation, SCMrepository, projectCommands.ProjectName, command, requestedBy)
+			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, projectCommands.ProjectName, command, requestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
 			}
 
 			if !allowedToPerformCommand {
-				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
+				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. CheckAccessPolicy your policies", requestedBy, command)
 				err := reporter.Report(msg, utils.AsCollapsibleComment("Policy violation"))
 				if err != nil {
 					log.Printf("Error publishing comment: %v", err)
@@ -155,7 +155,8 @@ func RunCommandsPerProject(
 				if err != nil {
 					return false, false, fmt.Errorf("failed to set PR status. %v", err)
 				}
-				planPerformed, plan, err := diggerExecutor.Plan()
+				planPerformed, plan, planJsonOutput, err := diggerExecutor.Plan()
+
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
 					err := prService.SetStatus(prNumber, "failure", projectCommands.ProjectName+"/plan")
@@ -169,6 +170,15 @@ func RunCommandsPerProject(
 						err = reporter.Report(plan, formatter)
 						if err != nil {
 							log.Printf("Failed to report plan. %v", err)
+						}
+						planIsAllowed, err := policyChecker.CheckPlanPolicy(SCMrepository, projectCommands.ProjectName, planJsonOutput)
+						if err != nil {
+							log.Printf("failed to validate plan %v", err)
+							return false, false, fmt.Errorf("failed to validated plan %v", err)
+						}
+						if !planIsAllowed {
+							log.Printf("Plan is not allowed")
+							return false, false, fmt.Errorf("Plan is not allowed")
 						}
 					}
 					err := prService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
@@ -281,14 +291,14 @@ func RunCommandForProject(
 
 	for _, command := range commands.Commands {
 
-		allowedToPerformCommand, err := policyChecker.Check(orgService, SCMOrganisation, SCMrepository, commands.ProjectName, command, requestedBy)
+		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, commands.ProjectName, command, requestedBy)
 
 		if err != nil {
 			return fmt.Errorf("error checking policy: %v", err)
 		}
 
 		if !allowedToPerformCommand {
-			msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
+			msg := fmt.Sprintf("User %s is not allowed to perform action: %s. CheckAccessPolicy your policies", requestedBy, command)
 			if err != nil {
 				log.Printf("Error publishing comment: %v", err)
 			}
@@ -332,11 +342,21 @@ func RunCommandForProject(
 			if err != nil {
 				log.Printf("Failed to send usage report. %v", err)
 			}
-			_, _, err = diggerExecutor.Plan()
+			_, _, planJsonOutput, err := diggerExecutor.Plan()
 			if err != nil {
 				log.Printf("Failed to run digger plan command. %v", err)
 				return fmt.Errorf("failed to run digger plan command. %v", err)
 			}
+			planIsAllowed, err := policyChecker.CheckPlanPolicy(SCMrepository, commands.ProjectName, planJsonOutput)
+			if err != nil {
+				log.Printf("failed to validate plan %v", err)
+				return fmt.Errorf("failed to validated plan %v", err)
+			}
+			if !planIsAllowed {
+				log.Printf("Plan is not allowed")
+				return fmt.Errorf("Plan is not allowed")
+			}
+
 		case "digger apply":
 			err := usage.SendUsageRecord(requestedBy, eventName, "apply")
 			if err != nil {
@@ -373,7 +393,7 @@ func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph
 func MergePullRequest(ciService ci.PullRequestService, prNumber int) {
 	time.Sleep(5 * time.Second)
 
-	// Check if it was manually merged
+	// CheckAccessPolicy if it was manually merged
 	isMerged, err := ciService.IsMerged(prNumber)
 	if err != nil {
 		log.Fatalf("error checking if PR is merged: %v", err)

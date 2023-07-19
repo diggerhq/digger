@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"digger/pkg/core/policy"
 	"digger/pkg/utils"
 	"testing"
 )
@@ -8,7 +9,7 @@ import (
 type OpaExamplePolicyProvider struct {
 }
 
-func (s *OpaExamplePolicyProvider) GetPolicy(_ string, _ string) (string, error) {
+func (s *OpaExamplePolicyProvider) GetAccessPolicy(_ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"# user-role assignments\n" +
@@ -48,7 +49,7 @@ func (s *OpaExamplePolicyProvider) GetOrganisation() string {
 type DiggerExamplePolicyProvider struct {
 }
 
-func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider) GetAccessPolicy(_ string, _ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"user_permissions := {\n" +
@@ -64,6 +65,10 @@ func (s *DiggerExamplePolicyProvider) GetPolicy(_ string, _ string, _ string) (s
 		"", nil
 }
 
+func (s *DiggerExamplePolicyProvider) GetPlanPolicy(_ string, _ string, _ string) (string, error) {
+	return "package digger\n", nil
+}
+
 func (s *DiggerExamplePolicyProvider) GetOrganisation() string {
 	return "ORGANISATIONDIGGER"
 }
@@ -71,7 +76,7 @@ func (s *DiggerExamplePolicyProvider) GetOrganisation() string {
 type DiggerExamplePolicyProvider2 struct {
 }
 
-func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider2) GetAccessPolicy(_ string, _ string, _ string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"user_permissions := {\n" +
@@ -90,13 +95,17 @@ func (s *DiggerExamplePolicyProvider2) GetPolicy(_ string, _ string, _ string) (
 		"", nil
 }
 
+func (s *DiggerExamplePolicyProvider2) GetPlanPolicy(_ string, _ string, _ string) (string, error) {
+	return "package digger", nil
+}
+
 func (s *DiggerExamplePolicyProvider2) GetOrganisation() string {
 	return "ORGANISATIONDIGGER"
 }
 
 func TestDiggerPolicyChecker_Check(t *testing.T) {
 	type fields struct {
-		PolicyProvider PolicyProvider
+		PolicyProvider policy.Provider
 	}
 	type args struct {
 		input interface{}
@@ -159,13 +168,13 @@ func TestDiggerPolicyChecker_Check(t *testing.T) {
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
 			ciService := utils.MockPullRequestManager{Teams: []string{"engineering"}}
-			got, err := p.Check(ciService, tt.organisation, tt.name, tt.name, tt.command, tt.requestedBy)
+			got, err := p.CheckAccessPolicy(ciService, tt.organisation, tt.name, tt.name, tt.command, tt.requestedBy)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("DiggerPolicyChecker.Check() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DiggerPolicyChecker.CheckAccessPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("DiggerPolicyChecker.Check() got = %v, want %v", got, tt.want)
+				t.Errorf("DiggerPolicyChecker.CheckAccessPolicy() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
