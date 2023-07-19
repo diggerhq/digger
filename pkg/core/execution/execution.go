@@ -162,7 +162,7 @@ func (d DiggerExecutor) Plan() (bool, string, string, error) {
 				fmt.Printf("error publishing comment: %v", err)
 			}
 
-			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.PlanFileName()}
+			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
 			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
 			// perform a rego check of plan policy and terraform json output
 
