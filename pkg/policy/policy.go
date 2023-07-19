@@ -231,7 +231,7 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 	for _, expression := range expressions {
 		decisions, ok := expression.Value.([]interface{})
 		if !ok {
-			return false, fmt.Errorf("decision is not a slice of strings")
+			return false, fmt.Errorf("decision is not a slice of interfaces")
 		}
 		if len(decisions) > 0 {
 			for _, d := range decisions {
