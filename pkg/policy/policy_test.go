@@ -190,12 +190,10 @@ func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 	tests := []struct {
 		name           string
 		planJsonOutput string
-		organisation   string
 		fields         fields
 		args           args
 		want           bool
 		wantErr        bool
-		requestedBy    string
 	}{
 		{
 			name:           "test digger disallow aws instance",
@@ -203,9 +201,8 @@ func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider2{},
 			},
-			want:        false,
-			wantErr:     false,
-			requestedBy: "motatoes",
+			want:    false,
+			wantErr: false,
 		},
 		{
 			name:           "test digger allow when there is no aws instance",
@@ -213,9 +210,8 @@ func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider2{},
 			},
-			want:        true,
-			wantErr:     false,
-			requestedBy: "motatoes",
+			want:    true,
+			wantErr: false,
 		},
 	}
 
@@ -230,7 +226,7 @@ func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 				return
 			}
 			if got != tt.want {
-				t.Errorf("DiggerPolicyChecker.CheckAccessPolicy() got = %v, want %v", got, tt.want)
+				t.Errorf("DiggerPolicyChecker.CheckPlanPolicy() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
