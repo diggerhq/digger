@@ -177,6 +177,11 @@ func RunCommandsPerProject(
 							return false, false, fmt.Errorf("failed to validated plan %v", err)
 						}
 						if !planIsAllowed {
+							formatter := utils.AsCollapsibleComment("Terraform plan failed validation checks")
+							err = reporter.Report("Terraform plan failed validation checks", formatter)
+							if err != nil {
+								log.Printf("Failed to report plan. %v", err)
+							}
 							log.Printf("Plan is not allowed")
 							return false, false, fmt.Errorf("Plan is not allowed")
 						}
