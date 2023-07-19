@@ -112,11 +112,20 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	args := []string{command}
 	args = append(args, arg...)
 
+	expandedArgs := make([]string, 0)
+	for _, p := range args {
+		s := os.ExpandEnv(p)
+		s = strings.TrimSpace(s)
+		if s != "" {
+			expandedArgs = append(expandedArgs, s)
+		}
+	}
+
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
 
-	cmd := exec.Command("terraform", args...)
+	cmd := exec.Command("terraform", expandedArgs...)
 	cmd.Dir = tf.WorkingDir
 
 	env := os.Environ()
@@ -165,14 +174,6 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 }
 
 func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
-	expandedParams := make([]string, 0)
-	for _, p := range params {
-		s := os.ExpandEnv(p)
-		s = strings.TrimSpace(s)
-		if s != "" {
-			expandedParams = append(expandedParams, s)
-		}
-	}
 
 	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
 	if err != nil {
@@ -190,8 +191,8 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 			return false, "", "", err
 		}
 	}
-	expandedParams = append(append(expandedParams, "-input=false"), "-no-color")
-	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, expandedParams...)
+	params = append(append(params, "-input=false"), "-no-color")
+	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
 	if err != nil {
 		return false, "", "", err
 	}
