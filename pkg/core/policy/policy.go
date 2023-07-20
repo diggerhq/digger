@@ -10,5 +10,5 @@ type Provider interface {
 
 type Checker interface {
 	CheckAccessPolicy(ciService ci.OrgService, SCMOrganisation string, SCMrepository string, projectname string, command string, requestedBy string) (bool, error)
-	CheckPlanPolicy(SCMrepository string, projectname string, planOutput string) (bool, error)
+	CheckPlanPolicy(SCMrepository string, projectname string, planOutput string) (bool, []string, error)
 }

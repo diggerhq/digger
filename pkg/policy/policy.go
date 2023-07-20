@@ -28,8 +28,8 @@ func (p NoOpPolicyChecker) CheckAccessPolicy(_ ci.OrgService, _ string, _ string
 	return true, nil
 }
 
-func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string) (bool, error) {
-	return true, nil
+func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string) (bool, []string, error) {
+	return true, nil, nil
 }
 
 func getAccessPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Response, error) {
@@ -267,17 +267,17 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, SCMOrgan
 	return true, nil
 }
 
-func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName string, planOutput string) (bool, error) {
+func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName string, planOutput string) (bool, []string, error) {
 	// TODO: Get rid of organisation if its not needed
 	organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetPlanPolicy(organisation, SCMrepository, projectName)
 	if err != nil {
-		return false, fmt.Errorf("failed get plan policy: %v", err)
+		return false, nil, fmt.Errorf("failed get plan policy: %v", err)
 	}
 	var parsedPlanOutput map[string]interface{}
 	err = json.Unmarshal([]byte(planOutput), &parsedPlanOutput)
 	if err != nil {
-		return false, fmt.Errorf("failed to parse json terraform output to map: %v", err)
+		return false, nil, fmt.Errorf("failed to parse json terraform output to map: %v", err)
 	}
 
 	input := map[string]interface{}{
@@ -285,7 +285,7 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 	}
 
 	if policy == "" {
-		return true, nil
+		return true, nil, nil
 	}
 
 	ctx := context.Background()
@@ -296,28 +296,36 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 	).PrepareForEval(ctx)
 
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	results, err := query.Eval(ctx, rego.EvalInput(input))
 	if len(results) == 0 || len(results[0].Expressions) == 0 {
-		return false, fmt.Errorf("no result found")
+		return false, nil, fmt.Errorf("no result found")
 	}
 
 	expressions := results[0].Expressions
 
+	decisionsResult := make([]string, 0)
 	for _, expression := range expressions {
 		decisions, ok := expression.Value.([]interface{})
+
 		if !ok {
-			return false, fmt.Errorf("decision is not a slice of interfaces")
+			return false, nil, fmt.Errorf("decision is not a slice of interfaces")
 		}
 		if len(decisions) > 0 {
 			for _, d := range decisions {
+				decisionsResult = append(decisionsResult, d.(string))
 				fmt.Printf("denied: %v\n", d)
 			}
-			return false, nil
+
 		}
+
 	}
 
-	return true, nil
+	if len(decisionsResult) > 0 {
+		return false, decisionsResult, nil
+	}
+
+	return true, []string{}, nil
 }
