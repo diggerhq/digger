@@ -171,19 +171,24 @@ func RunCommandsPerProject(
 						if err != nil {
 							log.Printf("Failed to report plan. %v", err)
 						}
-						planIsAllowed, err := policyChecker.CheckPlanPolicy(SCMrepository, projectCommands.ProjectName, planJsonOutput)
+						planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, projectCommands.ProjectName, planJsonOutput)
 						if err != nil {
 							log.Printf("failed to validate plan %v", err)
 							return false, false, fmt.Errorf("failed to validated plan %v", err)
 						}
+						planPolicyFormatter := utils.AsCollapsibleComment(fmt.Sprintf("Terraform plan validation check (%v)", projectCommands.ProjectName))
 						if !planIsAllowed {
-							formatter := utils.AsCollapsibleComment("Terraform plan failed validation checks")
-							err = reporter.Report("Terraform plan failed validation checks", formatter)
+							planReportMessage := "Terraform plan failed validation checks :x:\n"
+							planReportMessage = planReportMessage + "    " + strings.Join(messages, "   \n")
+							err = reporter.Report(planReportMessage, planPolicyFormatter)
+
 							if err != nil {
 								log.Printf("Failed to report plan. %v", err)
 							}
 							log.Printf("Plan is not allowed")
 							return false, false, fmt.Errorf("Plan is not allowed")
+						} else {
+							reporter.Report("Terraform plan validation checks succeeded :white_check_mark:", planPolicyFormatter)
 						}
 					}
 					err := prService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
@@ -352,7 +357,8 @@ func RunCommandForProject(
 				log.Printf("Failed to run digger plan command. %v", err)
 				return fmt.Errorf("failed to run digger plan command. %v", err)
 			}
-			planIsAllowed, err := policyChecker.CheckPlanPolicy(SCMrepository, commands.ProjectName, planJsonOutput)
+			planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, commands.ProjectName, planJsonOutput)
+			fmt.Printf(strings.Join(messages, "\n"))
 			if err != nil {
 				log.Printf("failed to validate plan %v", err)
 				return fmt.Errorf("failed to validated plan %v", err)
