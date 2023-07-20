@@ -95,7 +95,7 @@ func RunCommandsPerProject(
 			}
 
 			if !allowedToPerformCommand {
-				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. CheckAccessPolicy your policies", requestedBy, command)
+				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
 				err := reporter.Report(msg, utils.AsCollapsibleComment("Policy violation"))
 				if err != nil {
 					log.Printf("Error publishing comment: %v", err)
@@ -303,7 +303,7 @@ func RunCommandForProject(
 		}
 
 		if !allowedToPerformCommand {
-			msg := fmt.Sprintf("User %s is not allowed to perform action: %s. CheckAccessPolicy your policies", requestedBy, command)
+			msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
 			if err != nil {
 				log.Printf("Error publishing comment: %v", err)
 			}
