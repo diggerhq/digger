@@ -178,8 +178,12 @@ func RunCommandsPerProject(
 						}
 						planPolicyFormatter := utils.AsCollapsibleComment(fmt.Sprintf("Terraform plan validation check (%v)", projectCommands.ProjectName))
 						if !planIsAllowed {
-							planReportMessage := "Terraform plan failed validation checks :x:\n"
-							planReportMessage = planReportMessage + "    " + strings.Join(messages, "   \n")
+							planReportMessage := "Terraform plan failed validation checks :x:<br>"
+							preformattedMessaged := make([]string, 0)
+							for _, message := range messages {
+								preformattedMessaged = append(preformattedMessaged, fmt.Sprintf("    %v", message))
+							}
+							planReportMessage = planReportMessage + strings.Join(preformattedMessaged, "<br>")
 							err = reporter.Report(planReportMessage, planPolicyFormatter)
 
 							if err != nil {
