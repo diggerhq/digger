@@ -285,6 +285,7 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 	}
 
 	if policy == "" {
+		fmt.Printf("No plan policies found, succeeding")
 		return true, nil, nil
 	}
 
