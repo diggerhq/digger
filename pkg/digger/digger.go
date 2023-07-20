@@ -178,14 +178,14 @@ func RunCommandsPerProject(
 						}
 						planPolicyFormatter := utils.AsCollapsibleComment(fmt.Sprintf("Terraform plan validation check (%v)", projectCommands.ProjectName))
 						if !planIsAllowed {
-							err = reporter.Report(":x: Terraform plan failed validation checks", planPolicyFormatter)
+							err = reporter.Report("Terraform plan failed validation checks :x:", planPolicyFormatter)
 							if err != nil {
 								log.Printf("Failed to report plan. %v", err)
 							}
 							log.Printf("Plan is not allowed")
 							return false, false, fmt.Errorf("Plan is not allowed")
 						} else {
-							reporter.Report(":white_check_mark: Terraform plan validation checks succeeded", planPolicyFormatter)
+							reporter.Report("Terraform plan validation checks succeeded :white_check_mark:", planPolicyFormatter)
 						}
 					}
 					err := prService.SetStatus(prNumber, "success", projectCommands.ProjectName+"/plan")
