@@ -113,7 +113,6 @@ func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, 
 }
 
 func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
-	// fetch RBAC policies for project from Digger API
 	u, err := url.Parse(p.DiggerHost)
 	if err != nil {
 		log.Fatalf("Not able to parse digger cloud url: %v", err)
