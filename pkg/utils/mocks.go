@@ -48,8 +48,8 @@ func (t MockPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, SCMOrganis
 	return false, nil
 }
 
-func (t MockPolicyChecker) CheckPlanPolicy(projectName string, command string, requestedBy string) (bool, error) {
-	return false, nil
+func (t MockPolicyChecker) CheckPlanPolicy(projectName string, command string, requestedBy string) (bool, []string, error) {
+	return false, nil, nil
 }
 
 type MockPullRequestManager struct {
