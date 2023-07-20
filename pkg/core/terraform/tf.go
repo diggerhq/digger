@@ -126,7 +126,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 			expandedArgs = append(expandedArgs, s)
 		}
 	}
-
+	os.Stdout = os.DevNull
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
 	mwerr := io.MultiWriter(os.Stderr, &stderr)
