@@ -48,6 +48,11 @@ func (m *MockTerraformExecutor) Apply(params []string, plan *string, envs map[st
 	return "", "", nil
 }
 
+func (m *MockTerraformExecutor) Show(params []string, envs map[string]string) (string, string, error) {
+	m.Commands = append(m.Commands, RunInfo{"Show", strings.Join(params, " "), time.Now()})
+	return "", "", nil
+}
+
 func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string) (bool, string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Plan", strings.Join(params, " "), time.Now()})
 	return true, "", "", nil
@@ -284,7 +289,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Init ", "Plan -out plan", "PlanExists plan", "StorePlan plan", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan -out plan", "PlanExists plan", "StorePlan plan", "Show -no-color -json plan", "Run   echo"}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {
