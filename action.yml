@@ -226,6 +226,7 @@ runs:
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
         DIGGER_TOKEN: ${{ inputs.digger-token }}
+        DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
         REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
