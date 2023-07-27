@@ -143,7 +143,8 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 
 	err := cmd.Run()
 
-	if err != nil {
+	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
+	if err != nil && cmd.ProcessState.ExitCode() != 2 {
 		fmt.Println("Error:", err)
 	}
 
