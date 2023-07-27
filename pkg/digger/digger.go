@@ -428,7 +428,7 @@ func runDriftDetection(requestedBy string, eventName string, diggerExecutor exec
 			Text string `json:"text"`
 		}
 		slackMessage := SlackMessage{
-			Text: plan,
+			Text: fmt.Sprintf(":bangbang: Drift detected in digger project dev details below: \n```%v```", plan),
 		}
 
 		jsonData, err := json.Marshal(slackMessage)
