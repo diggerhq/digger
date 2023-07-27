@@ -18,6 +18,7 @@ type Project struct {
 	IncludePatterns    []string
 	ExcludePatterns    []string
 	DependencyProjects []string
+	DriftDetection     bool
 }
 
 type Workflow struct {
