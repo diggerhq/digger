@@ -393,7 +393,7 @@ func RunCommandForProject(
 		case "digger drift-detect":
 			err = runDriftDetection(requestedBy, eventName, diggerExecutor)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to run digger drift-detect command. %v", err)
 			}
 		}
 
