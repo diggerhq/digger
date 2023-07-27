@@ -17,7 +17,7 @@ import (
 )
 
 type Executor interface {
-	Plan() (bool, string, string, error)
+	Plan() (bool, bool, string, string, error)
 	Apply() (bool, error)
 }
 
@@ -26,17 +26,17 @@ type LockingExecutorWrapper struct {
 	Executor    Executor
 }
 
-func (l LockingExecutorWrapper) Plan() (bool, string, string, error) {
+func (l LockingExecutorWrapper) Plan() (bool, bool, string, string, error) {
 	plan := ""
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
-		return false, "", "", fmt.Errorf("error locking project: %v", err)
+		return false, false, "", "", fmt.Errorf("error locking project: %v", err)
 	}
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
 		return l.Executor.Plan()
 	} else {
-		return false, plan, "", nil
+		return false, false, plan, "", nil
 	}
 }
 
@@ -108,7 +108,7 @@ func (d ProjectPathProvider) StoredPlanFilePath() string {
 	return path.Join(d.ProjectNamespace, d.PlanFileName())
 }
 
-func (d DiggerExecutor) Plan() (bool, string, string, error) {
+func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 	plan := ""
 	terraformPlanOutput := ""
 	isNonEmptyPlan := false
@@ -130,7 +130,7 @@ func (d DiggerExecutor) Plan() (bool, string, string, error) {
 		if step.Action == "init" {
 			_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				return false, "", "", fmt.Errorf("error running init: %v", err)
+				return false, false, "", "", fmt.Errorf("error running init: %v", err)
 			}
 		}
 		if step.Action == "plan" {
@@ -139,24 +139,24 @@ func (d DiggerExecutor) Plan() (bool, string, string, error) {
 			nonEmptyPlan, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
 			isNonEmptyPlan = nonEmptyPlan
 			if err != nil {
-				return false, "", "", fmt.Errorf("error executing plan: %v", err)
+				return false, false, "", "", fmt.Errorf("error executing plan: %v", err)
 			}
 			if d.PlanStorage != nil {
 				planExists, err := d.PlanStorage.PlanExists(d.PlanPathProvider.StoredPlanFilePath())
 				if err != nil {
-					return false, "", "", fmt.Errorf("error checking if plan exists: %v", err)
+					return false, false, "", "", fmt.Errorf("error checking if plan exists: %v", err)
 				}
 
 				if planExists {
 					err = d.PlanStorage.DeleteStoredPlan(d.PlanPathProvider.StoredPlanFilePath())
 					if err != nil {
-						return false, "", "", fmt.Errorf("error deleting plan: %v", err)
+						return false, false, "", "", fmt.Errorf("error deleting plan: %v", err)
 					}
 				}
 
 				err = d.PlanStorage.StorePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
 				if err != nil {
-					return false, "", "", fmt.Errorf("error storing plan: %v", err)
+					return false, false, "", "", fmt.Errorf("error storing plan: %v", err)
 				}
 			}
 			plan = cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
@@ -178,11 +178,11 @@ func (d DiggerExecutor) Plan() (bool, string, string, error) {
 			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
 			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 			if err != nil {
-				return false, "", "", fmt.Errorf("error running command: %v", err)
+				return false, false, "", "", fmt.Errorf("error running command: %v", err)
 			}
 		}
 	}
-	return isNonEmptyPlan, plan, terraformPlanOutput, nil
+	return true, isNonEmptyPlan, plan, terraformPlanOutput, nil
 }
 
 func (d DiggerExecutor) Apply() (bool, error) {
