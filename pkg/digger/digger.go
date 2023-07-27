@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -449,7 +450,12 @@ func runDriftDetection(requestedBy string, eventName string, diggerExecutor exec
 			return fmt.Errorf("failed to send drift detection request. %v", err)
 		}
 		if resp.StatusCode != 200 {
-			log.Printf("Failed to send drift detection request. %v", resp.Status)
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("Failed to read response body. %v", err)
+				return fmt.Errorf("failed to read response body. %v", err)
+			}
+			log.Printf("Failed to send drift detection request. %v. Message: %v", resp.Status, body)
 			return fmt.Errorf("failed to send drift detection request. %v", resp.Status)
 		}
 		defer resp.Body.Close()
