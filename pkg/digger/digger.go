@@ -278,7 +278,7 @@ func RunCommandsPerProject(
 				}
 
 			case "digger drift-detect":
-				err := runDriftDetection(requestedBy, eventName, diggerExecutor)
+				err := runDriftDetection(projectCommands.ProjectName, requestedBy, eventName, diggerExecutor)
 				if err != nil {
 					return false, false, fmt.Errorf("failed to run drift detection. %v", err)
 				}
@@ -393,7 +393,7 @@ func RunCommandForProject(
 				return fmt.Errorf("failed to run digger apply command. %v", err)
 			}
 		case "digger drift-detect":
-			err = runDriftDetection(requestedBy, eventName, diggerExecutor)
+			err = runDriftDetection(commands.ProjectName, requestedBy, eventName, diggerExecutor)
 			if err != nil {
 				return fmt.Errorf("failed to run digger drift-detect command. %v", err)
 			}
@@ -403,7 +403,7 @@ func RunCommandForProject(
 	return nil
 }
 
-func runDriftDetection(requestedBy string, eventName string, diggerExecutor execution.Executor) error {
+func runDriftDetection(projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor) error {
 	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
 	if err != nil {
 		log.Printf("Failed to send usage report. %v", err)
@@ -428,7 +428,7 @@ func runDriftDetection(requestedBy string, eventName string, diggerExecutor exec
 			Text string `json:"text"`
 		}
 		slackMessage := SlackMessage{
-			Text: fmt.Sprintf(":bangbang: Drift detected in digger project dev details below: \n```%v```", plan),
+			Text: fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n```%v```", projectName, plan),
 		}
 
 		jsonData, err := json.Marshal(slackMessage)
