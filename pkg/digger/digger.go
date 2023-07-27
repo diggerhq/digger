@@ -414,6 +414,9 @@ func runDriftDetection(requestedBy string, eventName string, diggerExecutor exec
 	}
 
 	if planPerformed && nonEmptyPlan {
+		log.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		log.Printf(plan)
+		log.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		var jsonData = []byte(`{"text": "` + plan + `"}`)
 		httpClient := &http.Client{}
 		slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
