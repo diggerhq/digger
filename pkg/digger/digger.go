@@ -15,6 +15,7 @@ import (
 	"digger/pkg/locking"
 	"digger/pkg/reporting"
 	"digger/pkg/usage"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -414,16 +415,25 @@ func runDriftDetection(requestedBy string, eventName string, diggerExecutor exec
 	}
 
 	if planPerformed && nonEmptyPlan {
-		log.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-		log.Printf(plan)
-		log.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-		var jsonData = []byte(`{"text": "` + plan + `"}`)
 		httpClient := &http.Client{}
 		slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
 
 		if slackNotificationUrl == "" {
 			log.Printf("No INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL set, not sending notification")
 			return fmt.Errorf("no INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL set, not sending notification")
+		}
+
+		type SlackMessage struct {
+			Text string `json:"text"`
+		}
+		slackMessage := SlackMessage{
+			Text: plan,
+		}
+
+		jsonData, err := json.Marshal(slackMessage)
+		if err != nil {
+			log.Printf("Failed to marshal slack message. %v", err)
+			return fmt.Errorf("failed to marshal slack message. %v", err)
 		}
 
 		request, err := http.NewRequest("POST", slackNotificationUrl, bytes.NewBuffer(jsonData))
