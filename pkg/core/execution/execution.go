@@ -133,7 +133,7 @@ func (d DiggerExecutor) Plan() (bool, string, string, error) {
 			}
 		}
 		if step.Action == "plan" {
-			planArgs := []string{"-out", d.PlanPathProvider.PlanFileName()}
+			planArgs := []string{"-out", d.PlanPathProvider.PlanFileName(), "-refresh-only", "-lock-timeout=3m"}
 			planArgs = append(planArgs, step.ExtraArgs...)
 			isNonEmptyPlan, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
 			if err != nil {
@@ -216,7 +216,9 @@ func (d DiggerExecutor) Apply() (bool, error) {
 			}
 		}
 		if step.Action == "apply" {
-			stdout, stderr, err := d.TerraformExecutor.Apply(step.ExtraArgs, plansFilename, d.CommandEnvVars)
+			applyArgs := []string{"-lock-timeout=3m"}
+			applyArgs = append(applyArgs, step.ExtraArgs...)
+			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
 			formatter := utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + d.ProjectNamespace + "#" + d.ProjectName + "</b>")
 
