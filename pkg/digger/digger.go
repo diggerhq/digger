@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"bytes"
 	"digger/pkg/ci"
 	"digger/pkg/core/execution"
 	core_locking "digger/pkg/core/locking"
@@ -17,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -272,6 +274,12 @@ func RunCommandsPerProject(
 				if err != nil {
 					return false, false, fmt.Errorf("failed to lock project. %v", err)
 				}
+
+			case "digger drift-detect":
+				err := runDriftDetection(requestedBy, eventName, diggerExecutor)
+				if err != nil {
+					return false, false, fmt.Errorf("failed to run drift detection. %v", err)
+				}
 			}
 		}
 	}
@@ -382,7 +390,54 @@ func RunCommandForProject(
 				log.Printf("Failed to run digger apply command. %v", err)
 				return fmt.Errorf("failed to run digger apply command. %v", err)
 			}
+		case "digger drift-detect":
+			err = runDriftDetection(requestedBy, eventName, diggerExecutor)
+			if err != nil {
+				return err
+			}
 		}
+
+	}
+	return nil
+}
+
+func runDriftDetection(requestedBy string, eventName string, diggerExecutor execution.Executor) error {
+	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
+	if err != nil {
+		log.Printf("Failed to send usage report. %v", err)
+	}
+
+	nonEmptyPlan, plan, _, err := diggerExecutor.Plan()
+	if err != nil {
+		log.Printf("Failed to run digger plan command. %v", err)
+		return fmt.Errorf("failed to run digger plan command. %v", err)
+	}
+
+	if nonEmptyPlan {
+		var jsonData = []byte(`{"text": "` + plan + `"}`)
+		httpClient := &http.Client{}
+		slackNotificationUrl := os.Getenv("INPUT_SLACK_NOTIFICATION_URL")
+
+		if slackNotificationUrl == "" {
+			log.Printf("No SLACK_NOTIFICATION_URL set, not sending notification")
+			return fmt.Errorf("no SLACK_NOTIFICATION_URL set, not sending notification")
+		}
+
+		request, err := http.NewRequest("POST", slackNotificationUrl, bytes.NewBuffer(jsonData))
+		if err != nil {
+			log.Printf("Failed to create drift detection request. %v", err)
+			return fmt.Errorf("failed to create drift detection request. %v", err)
+		}
+
+		request.Header.Set("Content-Type", "application/json")
+		resp, err := httpClient.Do(request)
+		if err != nil {
+			log.Printf("Failed to send drift detection request. %v", err)
+			return fmt.Errorf("failed to send drift detection request. %v", err)
+		}
+		defer resp.Body.Close()
+	} else {
+		log.Printf("No drift detected")
 	}
 	return nil
 }
