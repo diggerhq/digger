@@ -197,7 +197,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 			return false, "", "", err
 		}
 	}
-	params = append(append(params, "-input=false"), "-no-color")
+	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
 	if err != nil {
 		return false, "", "", err
