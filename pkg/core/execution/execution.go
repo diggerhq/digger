@@ -111,6 +111,7 @@ func (d ProjectPathProvider) StoredPlanFilePath() string {
 func (d DiggerExecutor) Plan() (bool, string, string, error) {
 	plan := ""
 	terraformPlanOutput := ""
+	isNonEmptyPlan := false
 	var planSteps []models.Step
 
 	if d.PlanStage != nil {
@@ -180,7 +181,7 @@ func (d DiggerExecutor) Plan() (bool, string, string, error) {
 			}
 		}
 	}
-	return true, plan, terraformPlanOutput, nil
+	return isNonEmptyPlan, plan, terraformPlanOutput, nil
 }
 
 func (d DiggerExecutor) Apply() (bool, error) {
