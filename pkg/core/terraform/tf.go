@@ -202,7 +202,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 	if err != nil {
 		return false, "", "", err
 	}
-	return statusCode != 2, stdout, stderr, nil
+	return statusCode == 2, stdout, stderr, nil
 }
 
 func (tf Terraform) Show(params []string, envs map[string]string) (string, string, error) {
