@@ -119,6 +119,32 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
+	} else if runningMode == "drift-detection" {
+
+		for _, projectConfig := range diggerConfig.Projects {
+			if !projectConfig.DriftDetection {
+				continue
+			}
+			workflow := diggerConfig.Workflows[projectConfig.Workflow]
+
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
+			projectCommand := models.ProjectCommand{
+				ProjectName:      projectConfig.Name,
+				ProjectDir:       projectConfig.Dir,
+				ProjectWorkspace: projectConfig.Workspace,
+				Terragrunt:       projectConfig.Terragrunt,
+				Commands:         []string{"digger drift-detect"},
+				ApplyStage:       workflow.Apply,
+				PlanStage:        workflow.Plan,
+				CommandEnvVars:   commandEnvVars,
+				StateEnvVars:     stateEnvVars,
+			}
+			err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, "drift-detect", &githubPrService, policyChecker, nil, currentDir)
+			if err != nil {
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			}
+		}
 	} else {
 		parsedGhContext, err := github_models.GetGitHubContext(ghContext)
 		if err != nil {

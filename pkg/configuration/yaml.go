@@ -22,6 +22,7 @@ type ProjectYaml struct {
 	IncludePatterns    []string `yaml:"include_patterns,omitempty"`
 	ExcludePatterns    []string `yaml:"exclude_patterns,omitempty"`
 	DependencyProjects []string `yaml:"depends_on,omitempty"`
+	DriftDetection     *bool    `yaml:"drift_detection,omitempty"`
 }
 
 type WorkflowYaml struct {
