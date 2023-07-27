@@ -94,7 +94,7 @@ inputs:
     required: false
     default: 'comments_per_run'
   mode:
-    description: 'manual or otherwise'
+    description: 'manual, drift-detection or otherwise'
     required: false
     default: ''
   command:
