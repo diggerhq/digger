@@ -1,4 +1,4 @@
-name: Latest Release
+name: Update latest tag for every new latest release
 
 on:
   release:
@@ -11,6 +11,7 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
+        
       - name: Check if the latest release
         id: check_latest_release
         run: |
@@ -22,7 +23,7 @@ jobs:
           fi
 
       - name: Update latest tag
-        if: steps.check_latest.outputs.latest == 'true'
+        if: steps.check_latest_release.outputs.is_latest == 'true'
         uses: EndBug/latest-tag@latest
         with:
           ref: latest
