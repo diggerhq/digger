@@ -1,0 +1,28 @@
+name: Latest Release
+
+on:
+  release:
+    types:
+      - released
+
+jobs:
+  check_latest_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if the release is marked as "latest"
+        id: check_latest
+        run: |
+          if [ "${{ github.event.release.prerelease }}" == "false" ] && [ "${{ github.event.release.name }}" == "latest" ]; then
+            echo "Latest release detected."
+            echo "::set-output name=latest::true"
+          else
+            echo "Not the latest release or a pre-release."
+            echo "::set-output name=latest::false"
+          fi
+
+      - name: Update latest tag
+        uses: EndBug/latest-tag@latest
+        with:
+          ref: latest
+          description: Latest tag
+          force-branch: false
