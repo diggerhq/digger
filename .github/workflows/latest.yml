@@ -21,6 +21,7 @@ jobs:
           fi
 
       - name: Update latest tag
+        if: steps.check_latest.outputs.latest == 'true'
         uses: EndBug/latest-tag@latest
         with:
           ref: latest
