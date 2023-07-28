@@ -13,6 +13,10 @@ const defaultWorkflowName = "default"
 func copyProjects(projects []*ProjectYaml) []Project {
 	result := make([]Project, len(projects))
 	for i, p := range projects {
+		driftDetection := true
+		if p.DriftDetection != nil {
+			driftDetection = *p.DriftDetection
+		}
 		item := Project{p.Name,
 			p.Dir,
 			p.Workspace,
@@ -21,6 +25,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.IncludePatterns,
 			p.ExcludePatterns,
 			p.DependencyProjects,
+			driftDetection,
 		}
 		result[i] = item
 	}

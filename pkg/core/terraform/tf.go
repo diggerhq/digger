@@ -113,7 +113,6 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 	return stdout, stderr, err
 }
 
-// runTerraformCommand
 func (tf Terraform) runTerraformCommand(command string, envs map[string]string, arg ...string) (string, string, int, error) {
 	args := []string{command}
 	args = append(args, arg...)
@@ -144,7 +143,8 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 
 	err := cmd.Run()
 
-	if err != nil {
+	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
+	if err != nil && cmd.ProcessState.ExitCode() != 2 {
 		fmt.Println("Error:", err)
 	}
 
@@ -197,12 +197,12 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 			return false, "", "", err
 		}
 	}
-	params = append(append(params, "-input=false"), "-no-color")
+	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
-	if err != nil {
+	if err != nil && statusCode != 2 {
 		return false, "", "", err
 	}
-	return statusCode != 2, stdout, stderr, nil
+	return statusCode == 2, stdout, stderr, nil
 }
 
 func (tf Terraform) Show(params []string, envs map[string]string) (string, string, error) {
