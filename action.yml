@@ -94,7 +94,7 @@ inputs:
     required: false
     default: 'comments_per_run'
   mode:
-    description: 'manual or otherwise'
+    description: 'manual, drift-detection or otherwise'
     required: false
     default: ''
   command:
@@ -103,6 +103,10 @@ inputs:
     default: ''
   project:
     description: 'project name for digger to run in case of manual mode'
+    required: false
+    default: ''
+  drift-detection-slack-notification-url:
+    description: 'drift-detection slack notification url'
     required: false
     default: ''
 
@@ -211,6 +215,7 @@ runs:
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
+        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -233,6 +238,7 @@ runs:
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
+        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
       id: digger
       shell: bash
       run: |

@@ -242,7 +242,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply ", "PublishComment 1 <details><summary>Apply for <b>#</b></summary>\n  \n```terraform\n\n  ```\n</details>", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply -lock-timeout=3m", "PublishComment 1 <details><summary>Apply for <b>#</b></summary>\n  \n```terraform\n\n  ```\n</details>", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
@@ -289,7 +289,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Init ", "Plan -out plan", "PlanExists plan", "StorePlan plan", "Show -no-color -json plan", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan -out plan -lock-timeout=3m", "PlanExists plan", "StorePlan plan", "Show -no-color -json plan", "Run   echo"}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {
