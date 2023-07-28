@@ -417,27 +417,33 @@ func runDriftDetection(projectName string, requestedBy string, eventName string,
 
 	if planPerformed && nonEmptyPlan {
 		httpClient := &http.Client{}
-		slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
+		NotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_NOTIFICATION_URL")
+		NotificationType := os.Getenv("INPUT_DRIFT_DETECTION_NOTIFICATION_URL_TYPE")
 
-		if slackNotificationUrl == "" {
-			log.Printf("No INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL set, not sending notification")
-			return fmt.Errorf("no INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL set, not sending notification")
+		notificationPrefix := ""
+		if NotificationType == "slack" {
+			notificationPrefix = ":bangbang:"
 		}
 
-		type SlackMessage struct {
+		if NotificationUrl == "" {
+			log.Printf("No INPUT_DRIFT_DETECTION_NOTIFICATION_URL set, not sending notification")
+			return fmt.Errorf("no INPUT_DRIFT_DETECTION_NOTIFICATION_URL set, not sending notification")
+		}
+
+		type NotificationMessage struct {
 			Text string `json:"text"`
 		}
-		slackMessage := SlackMessage{
-			Text: fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n```%v```", projectName, plan),
+		notificationMessage := NotificationMessage{
+			Text: fmt.Sprintf("%v Drift detected in digger project %v details below: \n```%v```", notificationPrefix, projectName, plan),
 		}
 
-		jsonData, err := json.Marshal(slackMessage)
+		jsonData, err := json.Marshal(notificationMessage)
 		if err != nil {
 			log.Printf("Failed to marshal slack message. %v", err)
 			return fmt.Errorf("failed to marshal slack message. %v", err)
 		}
 
-		request, err := http.NewRequest("POST", slackNotificationUrl, bytes.NewBuffer(jsonData))
+		request, err := http.NewRequest("POST", NotificationUrl, bytes.NewBuffer(jsonData))
 		if err != nil {
 			log.Printf("Failed to create drift detection request. %v", err)
 			return fmt.Errorf("failed to create drift detection request. %v", err)
