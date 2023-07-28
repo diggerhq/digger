@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3    
+        uses: actions/checkout@v3
       - name: Check if the latest release
         id: check_latest_release
         run: |
           latest_release=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name')
-          if [[ "$latest_release" == "${{ github.ref }}" ]]; then
+          if [[ "refs/tags/$latest_release" == "${{ github.ref }}" ]]; then
             echo "::set-output name=is_latest::true"
           else
             echo "::set-output name=is_latest::false"
