@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"bytes"
 	"digger/pkg/ci"
 	"digger/pkg/core/execution"
 	core_locking "digger/pkg/core/locking"
@@ -14,9 +15,12 @@ import (
 	"digger/pkg/locking"
 	"digger/pkg/reporting"
 	"digger/pkg/usage"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -155,7 +159,7 @@ func RunCommandsPerProject(
 				if err != nil {
 					return false, false, fmt.Errorf("failed to set PR status. %v", err)
 				}
-				planPerformed, plan, planJsonOutput, err := diggerExecutor.Plan()
+				planPerformed, isNonEmptyPlan, plan, planJsonOutput, err := diggerExecutor.Plan()
 
 				if err != nil {
 					log.Printf("Failed to run digger plan command. %v", err)
@@ -165,7 +169,7 @@ func RunCommandsPerProject(
 					}
 					return false, false, fmt.Errorf("failed to run digger plan command. %v", err)
 				} else if planPerformed {
-					if plan != "" {
+					if isNonEmptyPlan {
 						formatter := utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
 						err = reporter.Report(plan, formatter)
 						if err != nil {
@@ -272,6 +276,12 @@ func RunCommandsPerProject(
 				if err != nil {
 					return false, false, fmt.Errorf("failed to lock project. %v", err)
 				}
+
+			case "digger drift-detect":
+				err := runDriftDetection(projectCommands.ProjectName, requestedBy, eventName, diggerExecutor)
+				if err != nil {
+					return false, false, fmt.Errorf("failed to run drift detection. %v", err)
+				}
 			}
 		}
 	}
@@ -356,7 +366,7 @@ func RunCommandForProject(
 			if err != nil {
 				log.Printf("Failed to send usage report. %v", err)
 			}
-			_, _, planJsonOutput, err := diggerExecutor.Plan()
+			_, _, _, planJsonOutput, err := diggerExecutor.Plan()
 			if err != nil {
 				log.Printf("Failed to run digger plan command. %v", err)
 				return fmt.Errorf("failed to run digger plan command. %v", err)
@@ -382,7 +392,77 @@ func RunCommandForProject(
 				log.Printf("Failed to run digger apply command. %v", err)
 				return fmt.Errorf("failed to run digger apply command. %v", err)
 			}
+		case "digger drift-detect":
+			err = runDriftDetection(commands.ProjectName, requestedBy, eventName, diggerExecutor)
+			if err != nil {
+				return fmt.Errorf("failed to run digger drift-detect command. %v", err)
+			}
 		}
+
+	}
+	return nil
+}
+
+func runDriftDetection(projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor) error {
+	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
+	if err != nil {
+		log.Printf("Failed to send usage report. %v", err)
+	}
+
+	planPerformed, nonEmptyPlan, plan, _, err := diggerExecutor.Plan()
+	if err != nil {
+		log.Printf("Failed to run digger plan command. %v", err)
+		return fmt.Errorf("failed to run digger plan command. %v", err)
+	}
+
+	if planPerformed && nonEmptyPlan {
+		httpClient := &http.Client{}
+		slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
+
+		if slackNotificationUrl == "" {
+			log.Printf("No INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL set, not sending notification")
+			return fmt.Errorf("no INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL set, not sending notification")
+		}
+
+		type SlackMessage struct {
+			Text string `json:"text"`
+		}
+		slackMessage := SlackMessage{
+			Text: fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n```%v```", projectName, plan),
+		}
+
+		jsonData, err := json.Marshal(slackMessage)
+		if err != nil {
+			log.Printf("Failed to marshal slack message. %v", err)
+			return fmt.Errorf("failed to marshal slack message. %v", err)
+		}
+
+		request, err := http.NewRequest("POST", slackNotificationUrl, bytes.NewBuffer(jsonData))
+		if err != nil {
+			log.Printf("Failed to create drift detection request. %v", err)
+			return fmt.Errorf("failed to create drift detection request. %v", err)
+		}
+
+		request.Header.Set("Content-Type", "application/json")
+		resp, err := httpClient.Do(request)
+		if err != nil {
+			log.Printf("Failed to send drift detection request. %v", err)
+			return fmt.Errorf("failed to send drift detection request. %v", err)
+		}
+		if resp.StatusCode != 200 {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("Failed to read response body. %v", err)
+				return fmt.Errorf("failed to read response body. %v", err)
+			}
+			log.Printf("Failed to send drift detection request. %v. Message: %v", resp.Status, body)
+			return fmt.Errorf("failed to send drift detection request. %v", resp.Status)
+		}
+		defer resp.Body.Close()
+	} else if planPerformed && !nonEmptyPlan {
+		log.Printf("No drift detected")
+	} else {
+		log.Printf("No plan performed")
 	}
 	return nil
 }
