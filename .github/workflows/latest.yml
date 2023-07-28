@@ -6,9 +6,11 @@ on:
       - released
 
 jobs:
-  check_latest_release:
+  update_latest_tag:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v3    
       - name: Check if the release is marked as "latest"
         id: check_latest
         run: |
