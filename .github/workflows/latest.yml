@@ -11,15 +11,14 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v3    
-      - name: Check if the release is marked as "latest"
-        id: check_latest
+      - name: Check if the latest release
+        id: check_latest_release
         run: |
-          if [ "${{ github.event.release.prerelease }}" == "false" ] && [ "${{ github.event.release.name }}" == "latest" ]; then
-            echo "Latest release detected."
-            echo "::set-output name=latest::true"
+          latest_release=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name')
+          if [[ "$latest_release" == "${{ github.ref }}" ]]; then
+            echo "::set-output name=is_latest::true"
           else
-            echo "Not the latest release or a pre-release."
-            echo "::set-output name=latest::false"
+            echo "::set-output name=is_latest::false"
           fi
 
       - name: Update latest tag
