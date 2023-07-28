@@ -105,10 +105,14 @@ inputs:
     description: 'project name for digger to run in case of manual mode'
     required: false
     default: ''
-  drift-detection-slack-notification-url:
-    description: 'drift-detection slack notification url'
+  drift-detection-notification-url:
+    description: 'drift-detection notification url'
     required: false
     default: ''
+  drift-detection-notification-url-type:
+    description: 'slack, or other. "other" type will not include any emoji in the notification message'
+    required: false
+    default: 'other'
 
 outputs:
   output:
@@ -215,7 +219,8 @@ runs:
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
-        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_NOTIFICATION_URL: ${{ inputs.drift-detection-notification-url }}
+        INPUT_DRIFT_DETECTION_NOTIFICATION_URL_TYPE: ${{ inputs.drift-detection-notification-url-type }}
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
@@ -238,7 +243,7 @@ runs:
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
-        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
       id: digger
       shell: bash
       run: |
