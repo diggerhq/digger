@@ -4,9 +4,6 @@ on:
     branches:
       - 'go'
     types: [released]
-  push:
-    tags:
-      - "latest"
 jobs:
   binary:
     runs-on: ubuntu-latest
