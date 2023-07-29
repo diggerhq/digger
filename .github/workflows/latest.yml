@@ -29,3 +29,9 @@ jobs:
           ref: latest
           description: Latest tag
           force-branch: false
+
+      - name: Upload release asset
+        if: steps.check_latest_release.outputs.is_latest == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: LICENSE
