@@ -32,6 +32,10 @@ func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string) (bool, 
 	return true, nil, nil
 }
 
+func (p NoOpPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectname string) (bool, error) {
+	return true, nil
+}
+
 func getAccessPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Response, error) {
 	organisation := p.DiggerOrganisation
 	u, err := url.Parse(p.DiggerHost)
