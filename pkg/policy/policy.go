@@ -344,7 +344,7 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	//	return false, err
 	//}
 
-	policy := "package digger\n\ndefault allow=false\nallow {\n  startswith(input.project_name, \"prod\")\n}"
+	policy := "package digger\n\ndefault allow=false\nallow {\n  startswith(input.project, \"prod\")\n}"
 
 	input := map[string]interface{}{
 		"organisation": SCMOrganisation,
