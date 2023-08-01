@@ -26,11 +26,12 @@ type Terraform struct {
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
+	fmt.Println("terragrunt init.....")
 	return terragrunt.runTerragruntCommand("init", envs, params...)
-
 }
 
 func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
+	fmt.Println("terragrunt apply.....")
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
 	if plan != nil {
@@ -41,6 +42,7 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 }
 
 func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+	fmt.Println("terragrunt plan.....")
 	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", envs, params...)
 	return true, stdout, stderr, err
 }
@@ -51,6 +53,7 @@ func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (stri
 }
 
 func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[string]string, arg ...string) (string, string, error) {
+	fmt.Println("runTerragruntCommand .....")
 	args := []string{command}
 	args = append(args, arg...)
 	cmd := exec.Command("terragrunt", args...)
