@@ -52,6 +52,10 @@ func (t MockPolicyChecker) CheckPlanPolicy(projectName string, command string, r
 	return false, nil, nil
 }
 
+func (t MockPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectname string) (bool, error) {
+	return true, nil
+}
+
 type MockPullRequestManager struct {
 	ChangedFiles []string
 	Teams        []string
