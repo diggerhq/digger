@@ -278,7 +278,7 @@ func RunCommandsPerProject(
 				}
 
 			case "digger drift-detect":
-				err := runDriftDetection(projectCommands.ProjectName, requestedBy, eventName, diggerExecutor)
+				err := runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, projectCommands.ProjectName, requestedBy, eventName, diggerExecutor)
 				if err != nil {
 					return false, false, fmt.Errorf("failed to run drift detection. %v", err)
 				}
@@ -393,7 +393,7 @@ func RunCommandForProject(
 				return fmt.Errorf("failed to run digger apply command. %v", err)
 			}
 		case "digger drift-detect":
-			err = runDriftDetection(commands.ProjectName, requestedBy, eventName, diggerExecutor)
+			err = runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, commands.ProjectName, requestedBy, eventName, diggerExecutor)
 			if err != nil {
 				return fmt.Errorf("failed to run digger drift-detect command. %v", err)
 			}
@@ -403,11 +403,12 @@ func RunCommandForProject(
 	return nil
 }
 
-func runDriftDetection(projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor) error {
+func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor) error {
 	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
 	if err != nil {
 		log.Printf("Failed to send usage report. %v", err)
 	}
+	policyChecker.CheckDriftPolicy(SCMOrganisation, SCMrepository, projectName)
 
 	planPerformed, nonEmptyPlan, plan, _, err := diggerExecutor.Plan()
 	if err != nil {
