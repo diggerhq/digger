@@ -69,6 +69,10 @@ func (s *DiggerExamplePolicyProvider) GetPlanPolicy(_ string, _ string, _ string
 	return "package digger\n", nil
 }
 
+func (s *DiggerExamplePolicyProvider) GetDriftPolicy() (string, error) {
+	return "package digger\n", nil
+}
+
 func (s *DiggerExamplePolicyProvider) GetOrganisation() string {
 	return "ORGANISATIONDIGGER"
 }
@@ -97,6 +101,10 @@ func (s *DiggerExamplePolicyProvider2) GetAccessPolicy(_ string, _ string, _ str
 
 func (s *DiggerExamplePolicyProvider2) GetPlanPolicy(_ string, _ string, _ string) (string, error) {
 	return "package digger\n\ndeny[sprintf(message, [resource.address])] {\n  message := \"Cannot create EC2 instances!\"\n  resource := input.terraform.resource_changes[_]\n  resource.change.actions[_] == \"create\"\n  resource[type] == \"aws_instance\"\n}\n", nil
+}
+
+func (s *DiggerExamplePolicyProvider2) GetDriftPolicy() (string, error) {
+	return "package digger\n", nil
 }
 
 func (s *DiggerExamplePolicyProvider2) GetOrganisation() string {
