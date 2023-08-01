@@ -88,6 +88,32 @@ func getPlanPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Re
 	return string(body), resp, nil
 }
 
+func getDriftPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Response, error) {
+	organisation := p.DiggerOrganisation
+	u, err := url.Parse(p.DiggerHost)
+	if err != nil {
+		log.Fatalf("Not able to parse digger cloud url: %v", err)
+	}
+	u.Path = "/orgs/" + organisation + "/drift-policy"
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return "", nil, err
+	}
+	req.Header.Add("Authorization", "Bearer "+p.AuthToken)
+
+	resp, err := p.HttpClient.Do(req)
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", resp, nil
+	}
+	return string(body), resp, nil
+}
+
 func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
 	// fetch RBAC policies for project from Digger API
 	u, err := url.Parse(p.DiggerHost)
@@ -201,6 +227,20 @@ func (p *DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo strin
 		}
 	} else {
 		return "", errors.New(fmt.Sprintf("unexpected response while fetching project policy: %v code %v", content, resp.StatusCode))
+	}
+}
+
+func (p *DiggerHttpPolicyProvider) GetDriftPolicy() (string, error) {
+	content, resp, err := getDriftPolicyForOrganisation(p)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode == 200 {
+		return content, nil
+	} else if resp.StatusCode == 404 {
+		return "", nil
+	} else {
+		return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
 	}
 }
 
@@ -338,13 +378,11 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectName string) (bool, error) {
 	// TODO: Get rid of organisation if its not needed
 	//organisation := p.PolicyProvider.GetOrganisation()
-	//policy, err := p.PolicyProvider.GetDriftPolicy(organisation, SCMrepository, projectName)
-	//if err != nil {
-	//	fmt.Printf("Error while fetching drift policy: %v", err)
-	//	return false, err
-	//}
-
-	policy := "package digger\n\ndefault allow=false\nallow {\n  startswith(input.project, \"prod\")\n}"
+	policy, err := p.PolicyProvider.GetDriftPolicy()
+	if err != nil {
+		fmt.Printf("Error while fetching drift policy: %v", err)
+		return false, err
+	}
 
 	input := map[string]interface{}{
 		"organisation": SCMOrganisation,
