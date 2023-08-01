@@ -32,6 +32,10 @@ func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string) (bool, 
 	return true, nil, nil
 }
 
+func (p NoOpPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectname string) (bool, error) {
+	return true, nil
+}
+
 func getAccessPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Response, error) {
 	organisation := p.DiggerOrganisation
 	u, err := url.Parse(p.DiggerHost)
@@ -65,6 +69,32 @@ func getPlanPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Re
 		log.Fatalf("Not able to parse digger cloud url: %v", err)
 	}
 	u.Path = "/orgs/" + organisation + "/plan-policy"
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return "", nil, err
+	}
+	req.Header.Add("Authorization", "Bearer "+p.AuthToken)
+
+	resp, err := p.HttpClient.Do(req)
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", resp, nil
+	}
+	return string(body), resp, nil
+}
+
+func getDriftPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Response, error) {
+	organisation := p.DiggerOrganisation
+	u, err := url.Parse(p.DiggerHost)
+	if err != nil {
+		log.Fatalf("Not able to parse digger cloud url: %v", err)
+	}
+	u.Path = "/orgs/" + organisation + "/drift-policy"
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return "", nil, err
@@ -200,6 +230,20 @@ func (p *DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo strin
 	}
 }
 
+func (p *DiggerHttpPolicyProvider) GetDriftPolicy() (string, error) {
+	content, resp, err := getDriftPolicyForOrganisation(p)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode == 200 {
+		return content, nil
+	} else if resp.StatusCode == 404 {
+		return "", nil
+	} else {
+		return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
+	}
+}
+
 func (p *DiggerHttpPolicyProvider) GetOrganisation() string {
 	return p.DiggerOrganisation
 }
@@ -329,4 +373,53 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 	}
 
 	return true, []string{}, nil
+}
+
+func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectName string) (bool, error) {
+	// TODO: Get rid of organisation if its not needed
+	//organisation := p.PolicyProvider.GetOrganisation()
+	policy, err := p.PolicyProvider.GetDriftPolicy()
+	if err != nil {
+		fmt.Printf("Error while fetching drift policy: %v", err)
+		return false, err
+	}
+
+	input := map[string]interface{}{
+		"organisation": SCMOrganisation,
+		"project":      projectName,
+	}
+
+	if policy == "" {
+		return true, nil
+	}
+
+	ctx := context.Background()
+	fmt.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
+	query, err := rego.New(
+		rego.Query("data.digger.allow"),
+		rego.Module("digger", policy),
+	).PrepareForEval(ctx)
+
+	if err != nil {
+		return false, err
+	}
+
+	results, err := query.Eval(ctx, rego.EvalInput(input))
+	if len(results) == 0 || len(results[0].Expressions) == 0 {
+		return false, fmt.Errorf("no result found")
+	}
+
+	expressions := results[0].Expressions
+
+	for _, expression := range expressions {
+		decision, ok := expression.Value.(bool)
+		if !ok {
+			return false, fmt.Errorf("decision is not a boolean")
+		}
+		if !decision {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
