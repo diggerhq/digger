@@ -5,6 +5,7 @@ import "digger/pkg/ci"
 type Provider interface {
 	GetAccessPolicy(organisation string, repository string, projectname string) (string, error)
 	GetPlanPolicy(organisation string, repository string, projectname string) (string, error)
+	GetDriftPolicy() (string, error)
 	GetOrganisation() string
 }
 
