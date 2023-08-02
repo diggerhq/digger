@@ -396,7 +396,7 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	ctx := context.Background()
 	fmt.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
 	query, err := rego.New(
-		rego.Query("data.digger.allow"),
+		rego.Query("data.digger.enable"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
 
