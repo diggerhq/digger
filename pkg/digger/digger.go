@@ -408,14 +408,14 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 	if err != nil {
 		log.Printf("Failed to send usage report. %v", err)
 	}
-	policyAllowed, err := policyChecker.CheckDriftPolicy(SCMOrganisation, SCMrepository, projectName)
+	policyEnabled, err := policyChecker.CheckDriftPolicy(SCMOrganisation, SCMrepository, projectName)
 	if err != nil {
 		log.Printf("failed to check drift policy. %v", err)
 		return err
 	}
 
-	if !policyAllowed {
-		log.Printf("skipping this drift application since drift policy does not allow it")
+	if !policyEnabled {
+		log.Printf("skipping this drift application since it is not enabled for this project")
 		return nil
 	}
 	planPerformed, nonEmptyPlan, plan, _, err := diggerExecutor.Plan()
