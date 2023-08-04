@@ -1,6 +1,9 @@
 package utils
 
-import "digger/pkg/ci"
+import (
+	"digger/pkg/ci"
+	"time"
+)
 
 type MockTerraform struct {
 	commands []string
@@ -125,4 +128,15 @@ func (t MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
 
 func (t MockPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
 	return false, nil
+}
+
+type MockBackendApi struct {
+}
+
+func (t MockBackendApi) ReportProject(namespace string, projectName string, configuration string) error {
+	return nil
+}
+
+func (t MockBackendApi) ReportProjectRun(namespace string, projectName string, startedAt time.Time, endedAt time.Time, status string, command string, output string) error {
+	return nil
 }
