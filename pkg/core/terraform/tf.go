@@ -53,6 +53,17 @@ func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (stri
 func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[string]string, arg ...string) (string, string, error) {
 	args := []string{command}
 	args = append(args, arg...)
+
+	terragruntCommandLine := "terragrunt "
+	for _, p := range args {
+		trimmedArg := strings.TrimSpace(p)
+		if trimmedArg != "" {
+			terragruntCommandLine += trimmedArg + " "
+		}
+	}
+	fmt.Println("terragrunt command:")
+	fmt.Println(terragruntCommandLine)
+
 	cmd := exec.Command("terragrunt", args...)
 	cmd.Dir = terragrunt.WorkingDir
 
@@ -118,13 +129,17 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 	args = append(args, arg...)
 
 	expandedArgs := make([]string, 0)
+	terraformCommandLine := "terraform "
 	for _, p := range args {
 		s := os.ExpandEnv(p)
 		s = strings.TrimSpace(s)
 		if s != "" {
 			expandedArgs = append(expandedArgs, s)
+			terraformCommandLine += s + " "
 		}
 	}
+	fmt.Println("terraform command:")
+	fmt.Println(terraformCommandLine)
 
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)

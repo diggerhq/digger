@@ -487,6 +487,9 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 
 func logImpactedProjects(projects []configuration.Project, prNumber int) {
 	logMessage := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
+	if len(projects) == 0 {
+		logMessage += "None\n"
+	}
 	for _, p := range projects {
 		logMessage += fmt.Sprintf("%s\n", p.Name)
 	}
