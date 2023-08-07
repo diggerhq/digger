@@ -61,7 +61,7 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[strin
 			terragruntCommandLine += trimmedArg + " "
 		}
 	}
-	fmt.Println("terragrunt command:")
+	fmt.Print("terragrunt command:")
 	fmt.Println(terragruntCommandLine)
 
 	cmd := exec.Command("terragrunt", args...)
@@ -138,7 +138,7 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 			terraformCommandLine += s + " "
 		}
 	}
-	fmt.Println("terraform command:")
+	fmt.Print("terraform command:")
 	fmt.Println(terraformCommandLine)
 
 	var stdout, stderr bytes.Buffer
