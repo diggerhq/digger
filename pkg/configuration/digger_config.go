@@ -211,6 +211,9 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 
 	terraformDirs, err := terraformDirWalker.GetDirs(workingDir)
 
+	fmt.Printf("terragruntDirs: %v\n", terragruntDirs)
+	fmt.Printf("terraformDirs: %v\n", terraformDirs)
+
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +222,6 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 
 	var modulePatterns []string
 	for _, dir := range moduleDirs {
-		fmt.Printf("moduleDirs: %s", dir)
 		modulePatterns = append(modulePatterns, dir+"/**")
 	}
 
