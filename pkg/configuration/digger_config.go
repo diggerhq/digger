@@ -147,7 +147,7 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 		if err != nil {
 			log.Printf("failed to marshal auto detected digger config: %v", err)
 		} else {
-			log.Printf("Auto detected digger config: \n%v", marshalledConfig)
+			log.Printf("Auto detected digger config: \n%v", string(marshalledConfig))
 		}
 	} else {
 		data, err := os.ReadFile(fileName)
