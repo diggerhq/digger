@@ -482,6 +482,7 @@ func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph
 		return s < s2
 	})
 	if err != nil {
+		fmt.Printf("dependencyGraph: %v", dependencyGraph)
 		log.Fatalf("failed to sort commands by dependency, %v", err)
 	}
 	for _, node := range sortedGraph {
