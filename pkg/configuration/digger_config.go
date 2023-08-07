@@ -231,13 +231,21 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	if len(terragruntDirs) > 0 {
 		// TODO: add support for dependency graph when parsing terragrunt config
 		for _, dir := range terragruntDirs {
-			project := ProjectYaml{Name: dir, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: true, IncludePatterns: modulePatterns}
+			projectName := dir
+			if dir == "./" {
+				projectName = "default"
+			}
+			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: true, IncludePatterns: modulePatterns}
 			configYaml.Projects = append(configYaml.Projects, &project)
 		}
 		return configYaml, nil
 	} else if len(terraformDirs) > 0 {
 		for _, dir := range terraformDirs {
-			project := ProjectYaml{Name: dir, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
+			projectName := dir
+			if dir == "./" {
+				projectName = "default"
+			}
+			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
 			configYaml.Projects = append(configYaml.Projects, &project)
 		}
 		return configYaml, nil
