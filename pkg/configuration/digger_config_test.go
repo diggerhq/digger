@@ -125,6 +125,42 @@ projects:
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
 }
 
+func TestFinDiggerConfig(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: prod
+  branch: /main/
+  dir: path/to/module/test
+  workspace: default
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	dg, _, err := LoadDiggerConfig(tempDir)
+
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, 1, len(dg.Projects))
+	assert.Equal(t, false, dg.AutoMerge)
+	assert.Equal(t, true, dg.CollectUsageData)
+	assert.Equal(t, 1, len(dg.Workflows))
+
+	workflow := dg.Workflows["default"]
+	assert.NotNil(t, workflow, "expected workflow to be not nil")
+	assert.NotNil(t, workflow.Plan)
+	assert.NotNil(t, workflow.Plan.Steps)
+
+	assert.NotNil(t, workflow.Apply)
+	assert.NotNil(t, workflow.Apply.Steps)
+	assert.NotNil(t, workflow.EnvVars)
+	assert.NotNil(t, workflow.Configuration)
+
+	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
+}
+
 func TestDiggerConfigDefaultWorkflow(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
