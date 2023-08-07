@@ -147,7 +147,7 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 		if err != nil {
 			log.Printf("failed to marshal auto detected digger config: %v", err)
 		} else {
-			log.Printf("Auto detected digger config: \n%v", marshalledConfig)
+			log.Printf("Auto detected digger config: \n%v", string(marshalledConfig))
 		}
 	} else {
 		data, err := os.ReadFile(fileName)
@@ -210,14 +210,13 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	}
 
 	terraformDirs, err := terraformDirWalker.GetDirs(workingDir)
-
 	if err != nil {
 		return nil, err
 	}
 
 	moduleDirs, err := moduleDirWalker.GetDirs(workingDir)
 
-	modulePatterns := []string{}
+	var modulePatterns []string
 	for _, dir := range moduleDirs {
 		modulePatterns = append(modulePatterns, dir+"/**")
 	}
@@ -228,13 +227,21 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	if len(terragruntDirs) > 0 {
 		// TODO: add support for dependency graph when parsing terragrunt config
 		for _, dir := range terragruntDirs {
-			project := ProjectYaml{Name: dir, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: true, IncludePatterns: modulePatterns}
+			projectName := dir
+			if dir == "./" {
+				projectName = "default"
+			}
+			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: true, IncludePatterns: modulePatterns}
 			configYaml.Projects = append(configYaml.Projects, &project)
 		}
 		return configYaml, nil
 	} else if len(terraformDirs) > 0 {
 		for _, dir := range terraformDirs {
-			project := ProjectYaml{Name: dir, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
+			projectName := dir
+			if dir == "./" {
+				projectName = "default"
+			}
+			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
 			configYaml.Projects = append(configYaml.Projects, &project)
 		}
 		return configYaml, nil
