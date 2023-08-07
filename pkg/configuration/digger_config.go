@@ -217,8 +217,9 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 
 	moduleDirs, err := moduleDirWalker.GetDirs(workingDir)
 
-	modulePatterns := []string{}
+	var modulePatterns []string
 	for _, dir := range moduleDirs {
+		fmt.Printf("moduleDirs: %s", dir)
 		modulePatterns = append(modulePatterns, dir+"/**")
 	}
 
