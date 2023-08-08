@@ -224,7 +224,10 @@ func hydrateDiggerConfig(configYaml *DiggerConfigYaml) {
 	if err != nil {
 		log.Printf("failed to autogenerate config: %v", err)
 	}
-	log.Printf("Auto generated config projects: \n%v", atlantisConfig.Projects)
+
+	for _, project := range atlantisConfig.Projects {
+		log.Printf("Auto detected project: %v, dir: %v, deps: %v", project.Name, project.Dir, project.Autoplan.WhenModified)
+	}
 
 	configYaml.AutoMerge = &atlantisConfig.AutoMerge
 	for _, atlantisProject := range atlantisConfig.Projects {
