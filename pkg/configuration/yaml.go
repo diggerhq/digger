@@ -69,9 +69,36 @@ type EnvVarYaml struct {
 }
 
 type GenerateProjectsConfigYaml struct {
-	Include    string `yaml:"include"`
-	Exclude    string `yaml:"exclude"`
-	Terragrunt bool   `yaml:"terragrunt"`
+	Include                 string                   `yaml:"include"`
+	Exclude                 string                   `yaml:"exclude"`
+	Terragrunt              bool                     `yaml:"terragrunt"`
+	TerragruntParsingConfig *TerragruntParsingConfig `yaml:"terragrunt_parsing,omitempty"`
+}
+
+type TerragruntParsingConfig struct {
+	GitRoot                  string   `yaml:"gitRoot"`
+	AutoPlan                 bool     `yaml:"autoPlan"`
+	AutoMerge                bool     `yaml:"autoMerge"`
+	IgnoreParentTerragrunt   bool     `yaml:"ignoreParentTerragrunt"`
+	CreateParentProject      bool     `yaml:"createParentProject"`
+	IgnoreDependencyBlocks   bool     `yaml:"ignoreDependencyBlocks"`
+	Parallel                 bool     `yaml:"parallel"`
+	CreateWorkspace          bool     `yaml:"createWorkspace"`
+	CreateProjectName        bool     `yaml:"createProjectName"`
+	DefaultTerraformVersion  string   `yaml:"defaultTerraformVersion"`
+	DefaultWorkflow          string   `yaml:"defaultWorkflow"`
+	FilterPath               string   `yaml:"filterPath"`
+	OutputPath               string   `yaml:"outputPath"`
+	PreserveWorkflows        bool     `yaml:"preserveWorkflows"`
+	PreserveProjects         bool     `yaml:"preserveProjects"`
+	CascadeDependencies      bool     `yaml:"cascadeDependencies"`
+	DefaultApplyRequirements []string `yaml:"defaultApplyRequirements"`
+	//NumExecutors                   int64	`yaml:"numExecutors"`
+	ProjectHclFiles                []string `yaml:"projectHclFiles"`
+	CreateHclProjectChilds         bool     `yaml:"createHclProjectChilds"`
+	CreateHclProjectExternalChilds bool     `yaml:"createHclProjectExternalChilds"`
+	UseProjectMarkers              bool     `yaml:"useProjectMarkers"`
+	//ExecutionOrderGroups           bool	`yaml:"executionOrderGroups"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {

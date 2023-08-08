@@ -167,13 +167,8 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string) 
 		}
 	}
 
-	if diggerYaml.GenerateProjectsConfig != nil {
-		var dirWalker DirWalker
-		if diggerYaml.GenerateProjectsConfig.Terragrunt {
-			dirWalker = &FileSystemTerragruntDirWalker{}
-		} else {
-			dirWalker = &FileSystemTopLevelTerraformDirWalker{}
-		}
+	if diggerYaml.GenerateProjectsConfig != nil && !diggerYaml.GenerateProjectsConfig.Terragrunt {
+		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
 		dirs, err := dirWalker.GetDirs(workingDir)
 		if err != nil {
 			return nil, nil, err
@@ -187,6 +182,8 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string) 
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
+	} else if diggerYaml.GenerateProjectsConfig != nil && diggerYaml.GenerateProjectsConfig.Terragrunt {
+
 	}
 
 	dependencyGraph, err := CreateProjectDependencyGraph(diggerConfig.Projects)
