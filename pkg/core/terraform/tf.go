@@ -12,7 +12,7 @@ import (
 type TerraformExecutor interface {
 	Init([]string, map[string]string) (string, string, error)
 	Apply([]string, *string, map[string]string) (string, string, error)
-	//Destroy([]string, *string, map[string]string) (string, string, error)
+	Destroy([]string, *string, map[string]string) (string, string, error)
 	Plan([]string, map[string]string) (bool, string, string, error)
 	Show([]string, map[string]string) (string, string, error)
 }
