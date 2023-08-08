@@ -867,7 +867,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	//	})
 	//}
 
-	var depends_on map[string][]string
+	depends_on := make(map[string][]string)
 
 	for _, projDps := range potentialProjectDependencies {
 		project, ok := projects[projDps]
