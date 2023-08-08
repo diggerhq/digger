@@ -53,6 +53,9 @@ type AutoplanConfig struct {
 	// Relative paths from this modules directory to modules it depends on
 	WhenModified []string `json:"when_modified"`
 
+	// Absolute paths from this modules directory to modules it depends on
+	WhenModifiedAbsolute []string `json:"when_modified_abs"`
+
 	// If autoplan should be enabled for this dir
 	Enabled bool `json:"enabled"`
 }
