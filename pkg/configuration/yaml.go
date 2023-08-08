@@ -76,27 +76,27 @@ type GenerateProjectsConfigYaml struct {
 }
 
 type TerragruntParsingConfig struct {
-	GitRoot                  string   `yaml:"gitRoot"`
+	GitRoot                  *string  `yaml:"gitRoot,omitempty"`
 	AutoPlan                 bool     `yaml:"autoPlan"`
 	AutoMerge                bool     `yaml:"autoMerge"`
-	IgnoreParentTerragrunt   bool     `yaml:"ignoreParentTerragrunt"`
+	IgnoreParentTerragrunt   *bool    `yaml:"ignoreParentTerragrunt,omitempty"`
 	CreateParentProject      bool     `yaml:"createParentProject"`
 	IgnoreDependencyBlocks   bool     `yaml:"ignoreDependencyBlocks"`
-	Parallel                 bool     `yaml:"parallel"`
+	Parallel                 *bool    `yaml:"parallel,omitempty"`
 	CreateWorkspace          bool     `yaml:"createWorkspace"`
 	CreateProjectName        bool     `yaml:"createProjectName"`
 	DefaultTerraformVersion  string   `yaml:"defaultTerraformVersion"`
 	DefaultWorkflow          string   `yaml:"defaultWorkflow"`
 	FilterPath               string   `yaml:"filterPath"`
 	OutputPath               string   `yaml:"outputPath"`
-	PreserveWorkflows        bool     `yaml:"preserveWorkflows"`
+	PreserveWorkflows        *bool    `yaml:"preserveWorkflows,omitempty"`
 	PreserveProjects         bool     `yaml:"preserveProjects"`
-	CascadeDependencies      bool     `yaml:"cascadeDependencies"`
+	CascadeDependencies      *bool    `yaml:"cascadeDependencies,omitempty"`
 	DefaultApplyRequirements []string `yaml:"defaultApplyRequirements"`
 	//NumExecutors                   int64	`yaml:"numExecutors"`
 	ProjectHclFiles                []string `yaml:"projectHclFiles"`
 	CreateHclProjectChilds         bool     `yaml:"createHclProjectChilds"`
-	CreateHclProjectExternalChilds bool     `yaml:"createHclProjectExternalChilds"`
+	CreateHclProjectExternalChilds *bool    `yaml:"createHclProjectExternalChilds,omitempty"`
 	UseProjectMarkers              bool     `yaml:"useProjectMarkers"`
 	//ExecutionOrderGroups           bool	`yaml:"executionOrderGroups"`
 }

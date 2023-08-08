@@ -201,17 +201,47 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 
 func hydrateDiggerConfig(configYaml *DiggerConfigYaml) {
 	parsingConfig := configYaml.GenerateProjectsConfig.TerragruntParsingConfig
+	root := ""
+	if parsingConfig.GitRoot == nil {
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Printf("failed to get working directory: %v", err)
+		} else {
+			root = wd
+		}
+	}
+	projectExternalChilds := true
+
+	if parsingConfig.CreateHclProjectExternalChilds != nil {
+		projectExternalChilds = *parsingConfig.CreateHclProjectExternalChilds
+	}
+
+	parallel := true
+	if parsingConfig.Parallel != nil {
+		parallel = *parsingConfig.Parallel
+	}
+
+	ignoreParentTerragrunt := true
+	if parsingConfig.IgnoreParentTerragrunt != nil {
+		ignoreParentTerragrunt = *parsingConfig.IgnoreParentTerragrunt
+	}
+
+	cascadeDependencies := true
+	if parsingConfig.CascadeDependencies != nil {
+		cascadeDependencies = *parsingConfig.CascadeDependencies
+	}
+
 	atlantisConfig, err := atlantis.Parse(
-		parsingConfig.GitRoot,
+		root,
 		parsingConfig.ProjectHclFiles,
-		parsingConfig.CreateHclProjectExternalChilds,
+		projectExternalChilds,
 		parsingConfig.AutoMerge,
-		parsingConfig.Parallel,
+		parallel,
 		parsingConfig.FilterPath,
 		parsingConfig.CreateHclProjectChilds,
-		parsingConfig.IgnoreParentTerragrunt,
+		ignoreParentTerragrunt,
 		parsingConfig.IgnoreDependencyBlocks,
-		parsingConfig.CascadeDependencies,
+		cascadeDependencies,
 		parsingConfig.DefaultWorkflow,
 		parsingConfig.DefaultApplyRequirements,
 		parsingConfig.AutoPlan,
