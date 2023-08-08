@@ -350,12 +350,15 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		"*.tf*",
 	}
 
+	var absDependencies []string
+
 	// Add other dependencies based on their relative paths. We always want to output with Unix path separators
 	for _, dependencyPath := range dependencies {
 		absolutePath := dependencyPath
 		if !filepath.IsAbs(absolutePath) {
 			absolutePath = makePathAbsolute(gitRoot, dependencyPath, sourcePath)
 		}
+		absDependencies := append(absDependencies, absolutePath)
 		relativePath, err := filepath.Rel(absoluteSourceDir, absolutePath)
 		if err != nil {
 			return nil, err
@@ -400,8 +403,9 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		TerraformVersion:  terraformVersion,
 		ApplyRequirements: applyRequirements,
 		Autoplan: AutoplanConfig{
-			Enabled:      resolvedAutoPlan,
-			WhenModified: uniqueStrings(relativeDependencies),
+			Enabled:              resolvedAutoPlan,
+			WhenModified:         uniqueStrings(relativeDependencies),
+			WhenModifiedAbsolute: uniqueStrings(absDependencies),
 		},
 	}
 

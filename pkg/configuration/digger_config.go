@@ -256,7 +256,7 @@ func hydrateDiggerConfig(configYaml *DiggerConfigYaml) {
 	}
 
 	for _, project := range atlantisConfig.Projects {
-		log.Printf("Auto detected project: %v, dir: %v, deps: %v", project.Name, project.Dir, project.Autoplan.WhenModified)
+		log.Printf("Auto detected project: %v, dir: %v, deps: %v, abs deps: %v", project.Name, project.Dir, project.Autoplan.WhenModified, project.Autoplan.WhenModifiedAbsolute)
 	}
 
 	configYaml.AutoMerge = &atlantisConfig.AutoMerge
