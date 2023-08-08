@@ -19,6 +19,7 @@ import (
 type Executor interface {
 	Plan() (bool, bool, string, string, error)
 	Apply() (bool, error)
+	Destroy() (bool, error)
 }
 
 type LockingExecutorWrapper struct {
@@ -48,6 +49,19 @@ func (l LockingExecutorWrapper) Apply() (bool, error) {
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
 		return l.Executor.Apply()
+	} else {
+		return false, nil
+	}
+}
+
+func (l LockingExecutorWrapper) Destroy() (bool, error) {
+	locked, err := l.ProjectLock.Lock()
+	if err != nil {
+		return false, fmt.Errorf("error locking project: %v", err)
+	}
+	log.Printf("Lock result: %t\n", locked)
+	if locked {
+		return l.Executor.Destroy()
 	} else {
 		return false, nil
 	}
@@ -244,6 +258,59 @@ func (d DiggerExecutor) Apply() (bool, error) {
 				}
 				return false, fmt.Errorf("error executing apply: %v", err)
 			}
+		}
+		if step.Action == "run" {
+			var commands []string
+			if os.Getenv("ACTIVATE_VENV") == "true" {
+				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", d.ProjectPath))
+			}
+			commands = append(commands, step.Value)
+			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
+			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
+			if err != nil {
+				return false, fmt.Errorf("error running command: %v", err)
+			}
+		}
+	}
+	return true, nil
+}
+
+func (d DiggerExecutor) Destroy() (bool, error) {
+	var plansFilename *string
+	if d.PlanStorage != nil {
+		var err error
+		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
+		if err != nil {
+			return false, fmt.Errorf("error retrieving plan: %v", err)
+		}
+	}
+
+	var applySteps []models.Step
+
+	if d.ApplyStage != nil {
+		applySteps = d.ApplyStage.Steps
+	} else {
+		applySteps = []models.Step{
+			{
+				Action: "init",
+			},
+			{
+				Action: "destroy",
+			},
+		}
+	}
+
+	for _, step := range applySteps {
+		if step.Action == "init" {
+			_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
+			if err != nil {
+				return false, fmt.Errorf("error running init: %v", err)
+			}
+		}
+		if step.Action == "destroy" {
+			applyArgs := []string{"-lock-timeout=3m"}
+			applyArgs = append(applyArgs, step.ExtraArgs...)
+			d.TerraformExecutor.Destroy(applyArgs, plansFilename, d.CommandEnvVars)
 		}
 		if step.Action == "run" {
 			var commands []string

@@ -48,6 +48,14 @@ func (m *MockTerraformExecutor) Apply(params []string, plan *string, envs map[st
 	return "", "", nil
 }
 
+func (m *MockTerraformExecutor) Destroy(params []string, plan *string, envs map[string]string) (string, string, error) {
+	if plan != nil {
+		params = append(params, *plan)
+	}
+	m.Commands = append(m.Commands, RunInfo{"Destroy", strings.Join(params, " "), time.Now()})
+	return "", "", nil
+}
+
 func (m *MockTerraformExecutor) Show(params []string, envs map[string]string) (string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Show", strings.Join(params, " "), time.Now()})
 	return "", "", nil
