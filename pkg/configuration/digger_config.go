@@ -231,7 +231,7 @@ func hydrateDiggerConfig(configYaml *DiggerConfigYaml) {
 		cascadeDependencies = *parsingConfig.CascadeDependencies
 	}
 
-	atlantisConfig, err := atlantis.Parse(
+	atlantisConfig, depsByProject, err := atlantis.Parse(
 		root,
 		parsingConfig.ProjectHclFiles,
 		projectExternalChilds,
@@ -256,18 +256,19 @@ func hydrateDiggerConfig(configYaml *DiggerConfigYaml) {
 	}
 
 	for _, project := range atlantisConfig.Projects {
-		log.Printf("Auto detected project: %v, dir: %v, deps: %v, abs deps: %v", project.Name, project.Dir, project.Autoplan.WhenModified, project.Autoplan.WhenModifiedAbsolute)
+		log.Printf("Auto detected project: %v, dir: %v, deps: %v, abs deps: %v", project.Name, project.Dir, project.Autoplan.WhenModified, depsByProject[project.Name])
 	}
 
 	configYaml.AutoMerge = &atlantisConfig.AutoMerge
 	for _, atlantisProject := range atlantisConfig.Projects {
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
-			Name:            atlantisProject.Name,
-			Dir:             atlantisProject.Dir,
-			Workspace:       atlantisProject.Workspace,
-			Terragrunt:      true,
-			Workflow:        atlantisProject.Workflow,
-			IncludePatterns: atlantisProject.Autoplan.WhenModified,
+			Name:               atlantisProject.Name,
+			Dir:                atlantisProject.Dir,
+			Workspace:          atlantisProject.Workspace,
+			Terragrunt:         true,
+			Workflow:           atlantisProject.Workflow,
+			IncludePatterns:    atlantisProject.Autoplan.WhenModified,
+			DependencyProjects: depsByProject[atlantisProject.Name],
 		})
 	}
 }
