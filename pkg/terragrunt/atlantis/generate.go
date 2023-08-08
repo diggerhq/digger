@@ -694,8 +694,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	ctx := context.Background()
 	errGroup, _ := errgroup.WithContext(ctx)
 	sem := semaphore.NewWeighted(10)
-	potentialProjectDependencies := make(map[string]string)
-	projects := make(map[string]*AtlantisProject)
+	potentialProjectDependencies := make(map[string][]string)
 	for _, workingDir := range workingDirs {
 		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
 		if err != nil {
@@ -736,10 +735,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						return nil
 					}
 
-					projects[project.Name] = project
-					for _, projDep := range projDeps {
-						potentialProjectDependencies[projDep] = project.Name
-					}
+					potentialProjectDependencies[project.Name] = projDeps
 
 					// Lock the list as only one goroutine should be writing to atlantisConfig.Projects at a time
 					lock.Lock()
@@ -867,14 +863,21 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	//	})
 	//}
 
-	depends_on := make(map[string][]string)
+	dependsOn := make(map[string][]string)
 
-	for _, projDps := range potentialProjectDependencies {
-		project, ok := projects[projDps]
-		if ok {
-			depends_on[project.Name] = append(depends_on[project.Name], projDps)
+	for projectName, dependencies := range potentialProjectDependencies {
+		for _, dep := range dependencies {
+			_, ok := potentialProjectDependencies[dep]
+			if ok {
+				deps, ok := dependsOn[projectName]
+				if ok {
+					dependsOn[projectName] = append(deps, dep)
+				} else {
+					dependsOn[projectName] = []string{dep}
+				}
+			}
 		}
 	}
 
-	return &atlantisConfig, depends_on, nil
+	return &atlantisConfig, dependsOn, nil
 }
