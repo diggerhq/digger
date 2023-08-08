@@ -358,7 +358,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		if !filepath.IsAbs(absolutePath) {
 			absolutePath = makePathAbsolute(gitRoot, dependencyPath, sourcePath)
 		}
-		absDependencies := append(absDependencies, absolutePath)
+		absDependencies = append(absDependencies, absolutePath)
 		relativePath, err := filepath.Rel(absoluteSourceDir, absolutePath)
 		if err != nil {
 			return nil, err
