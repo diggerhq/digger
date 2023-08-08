@@ -694,8 +694,8 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	ctx := context.Background()
 	errGroup, _ := errgroup.WithContext(ctx)
 	sem := semaphore.NewWeighted(10)
-	var potentialProjectDependencies map[string]string
-	var projects map[string]*AtlantisProject
+	potentialProjectDependencies := make(map[string]string)
+	projects := make(map[string]*AtlantisProject)
 	for _, workingDir := range workingDirs {
 		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
 		if err != nil {
