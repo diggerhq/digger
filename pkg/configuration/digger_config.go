@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"digger/pkg/terragrunt/atlantis"
 	"digger/pkg/utils"
 	"errors"
 	"fmt"
@@ -160,6 +161,10 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 		}
 	}
 
+	if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.TerragruntParsingConfig != nil {
+		hydrateDiggerConfig(configYaml)
+	}
+
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
 		return nil, nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
@@ -192,6 +197,45 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 		}
 	}
 	return config, projectDependencyGraph, nil
+}
+
+func hydrateDiggerConfig(configYaml *DiggerConfigYaml) {
+	parsingConfig := configYaml.GenerateProjectsConfig.TerragruntParsingConfig
+	atlantisConfig, err := atlantis.Parse(
+		parsingConfig.GitRoot,
+		parsingConfig.ProjectHclFiles,
+		parsingConfig.CreateHclProjectExternalChilds,
+		parsingConfig.AutoMerge,
+		parsingConfig.Parallel,
+		parsingConfig.FilterPath,
+		parsingConfig.CreateHclProjectChilds,
+		parsingConfig.IgnoreParentTerragrunt,
+		parsingConfig.IgnoreDependencyBlocks,
+		parsingConfig.CascadeDependencies,
+		parsingConfig.DefaultWorkflow,
+		parsingConfig.DefaultApplyRequirements,
+		parsingConfig.AutoPlan,
+		parsingConfig.DefaultTerraformVersion,
+		parsingConfig.CreateProjectName,
+		parsingConfig.CreateWorkspace,
+		parsingConfig.PreserveProjects,
+		parsingConfig.UseProjectMarkers,
+	)
+	if err != nil {
+		log.Printf("failed to autogenerate config: %v", err)
+	}
+
+	configYaml.AutoMerge = &atlantisConfig.AutoMerge
+	for _, atlantisProject := range atlantisConfig.Projects {
+		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
+			Name:            atlantisProject.Name,
+			Dir:             atlantisProject.Dir,
+			Workspace:       atlantisProject.Workspace,
+			Terragrunt:      true,
+			Workflow:        atlantisProject.Workflow,
+			IncludePatterns: atlantisProject.Autoplan.WhenModified,
+		})
+	}
 }
 
 func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
