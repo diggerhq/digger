@@ -51,7 +51,7 @@ inputs:
   terraform-version:
     description: Terraform version
     required: false
-    default: v1.4.5
+    default: v1.5.5
   configure-checkout:
     description: Configure checkout. Beware that this will overwrite any changes in the working directory
     required: false
