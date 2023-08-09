@@ -134,7 +134,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			}
 		}
 		if step.Action == "plan" {
-			planArgs := []string{"-out", d.PlanPathProvider.PlanFileName(), "-lock-timeout=3m"}
+			planArgs := []string{"-out", d.PlanPathProvider.LocalPlanFilePath(), "-lock-timeout=3m"}
 			planArgs = append(planArgs, step.ExtraArgs...)
 			nonEmptyPlan, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
 			isNonEmptyPlan = nonEmptyPlan
