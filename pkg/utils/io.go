@@ -3,6 +3,7 @@ package utils
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	"github.com/bmatcuk/doublestar/v4"
 	"io"
 	"io/ioutil"
@@ -81,6 +82,7 @@ func NormalizeFileName(fileName string) string {
 
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
 	fileToMatch = NormalizeFileName(fileToMatch)
+	fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!! fileToMatch %v", fileToMatch)
 	for i, _ := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])
 	}
@@ -90,7 +92,9 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 
 	matching := false
 	for _, ipattern := range includePatterns {
+		fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ipattern %v", ipattern)
 		isMatched, err := doublestar.PathMatch(ipattern, fileToMatch)
+		fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!! isMatched %v", isMatched)
 		if err != nil {
 			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, ipattern, err)
 		}
