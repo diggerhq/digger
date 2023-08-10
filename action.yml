@@ -36,6 +36,9 @@ inputs:
   google-service-account:
       description: Service account to be used when the 'google-workload-identity-provider' input is specified)
       required: false
+  gcloud-commands:
+    description: Gcloud commands to run
+    required: false
   setup-terragrunt:
     description: Setup terragrunt
     required: false
@@ -157,6 +160,11 @@ runs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
       if: inputs.setup-google-cloud == 'true'
+
+    - name: Run gcloud commands
+      shell: bash
+      run: ${{ inputs.gcloud-commands }}
+      if: inputs.setup-google-cloud == 'true' && inputs.gcloud-commands != ''
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
