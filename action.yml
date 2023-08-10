@@ -158,6 +158,12 @@ runs:
       uses: google-github-actions/setup-gcloud@v1
       if: inputs.setup-google-cloud == 'true'
 
+    - name: Print gcloud auth list
+      shell: bash
+      run: |
+        gcloud auth list
+        if: inputs.setup-google-cloud == 'true'
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
