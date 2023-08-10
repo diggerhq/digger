@@ -182,8 +182,6 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string) 
 				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
-	} else if diggerYaml.GenerateProjectsConfig != nil && diggerYaml.GenerateProjectsConfig.Terragrunt {
-
 	}
 
 	dependencyGraph, err := CreateProjectDependencyGraph(diggerConfig.Projects)
