@@ -19,6 +19,7 @@ import (
 type Executor interface {
 	Plan() (bool, bool, string, string, error)
 	Apply() (bool, error)
+	Destroy() (bool, error)
 }
 
 type LockingExecutorWrapper struct {
@@ -48,6 +49,19 @@ func (l LockingExecutorWrapper) Apply() (bool, error) {
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
 		return l.Executor.Apply()
+	} else {
+		return false, nil
+	}
+}
+
+func (l LockingExecutorWrapper) Destroy() (bool, error) {
+	locked, err := l.ProjectLock.Lock()
+	if err != nil {
+		return false, fmt.Errorf("error locking project: %v", err)
+	}
+	log.Printf("Lock result: %t\n", locked)
+	if locked {
+		return l.Executor.Destroy()
 	} else {
 		return false, nil
 	}
@@ -256,6 +270,33 @@ func (d DiggerExecutor) Apply() (bool, error) {
 			if err != nil {
 				return false, fmt.Errorf("error running command: %v", err)
 			}
+		}
+	}
+	return true, nil
+}
+
+func (d DiggerExecutor) Destroy() (bool, error) {
+
+	destroySteps := []models.Step{
+		{
+			Action: "init",
+		},
+		{
+			Action: "destroy",
+		},
+	}
+
+	for _, step := range destroySteps {
+		if step.Action == "init" {
+			_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
+			if err != nil {
+				return false, fmt.Errorf("error running init: %v", err)
+			}
+		}
+		if step.Action == "destroy" {
+			applyArgs := []string{"-lock-timeout=3m"}
+			applyArgs = append(applyArgs, step.ExtraArgs...)
+			d.TerraformExecutor.Destroy(applyArgs, d.CommandEnvVars)
 		}
 	}
 	return true, nil
