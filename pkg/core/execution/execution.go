@@ -90,6 +90,7 @@ type DiggerExecutor struct {
 	StateEnvVars      map[string]string
 	CommandEnvVars    map[string]string
 	ApplyStage        *models.Stage
+	DestroyStage      *models.Stage
 	PlanStage         *models.Stage
 	CommandRunner     runners.CommandRun
 	TerraformExecutor terraform.TerraformExecutor
@@ -279,8 +280,8 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 
 	var applySteps []models.Step
 
-	if d.ApplyStage != nil {
-		applySteps = d.ApplyStage.Steps
+	if d.DestroyStage != nil {
+		applySteps = d.DestroyStage.Steps
 	} else {
 		applySteps = []models.Step{
 			{
