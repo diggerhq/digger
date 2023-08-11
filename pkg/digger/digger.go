@@ -392,6 +392,17 @@ func RunCommandForProject(
 				log.Printf("Failed to run digger apply command. %v", err)
 				return fmt.Errorf("failed to run digger apply command. %v", err)
 			}
+		case "digger destroy":
+			err := usage.SendUsageRecord(requestedBy, eventName, "destroy")
+			if err != nil {
+				log.Printf("Failed to send usage report. %v", err)
+			}
+			_, err = diggerExecutor.Destroy()
+			if err != nil {
+				log.Printf("Failed to run digger destroy command. %v", err)
+				return fmt.Errorf("failed to run digger apply command. %v", err)
+			}
+
 		case "digger drift-detect":
 			err = runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, commands.ProjectName, requestedBy, eventName, diggerExecutor)
 			if err != nil {
