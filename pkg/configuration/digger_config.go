@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"digger/pkg/terragrunt/atlantis"
 	"digger/pkg/utils"
 	"errors"
 	"fmt"
@@ -160,6 +161,12 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 		}
 	}
 
+	if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.TerragruntParsingConfig != nil {
+		hydrateDiggerConfig(configYaml, *configYaml.GenerateProjectsConfig.TerragruntParsingConfig)
+	} else if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.Terragrunt {
+		hydrateDiggerConfig(configYaml, TerragruntParsingConfig{})
+	}
+
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
 		return nil, nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
@@ -192,6 +199,74 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 		}
 	}
 	return config, projectDependencyGraph, nil
+}
+
+func hydrateDiggerConfig(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig) {
+	root := ""
+	if parsingConfig.GitRoot == nil {
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Printf("failed to get working directory: %v", err)
+		} else {
+			root = wd
+		}
+	}
+	projectExternalChilds := true
+
+	if parsingConfig.CreateHclProjectExternalChilds != nil {
+		projectExternalChilds = *parsingConfig.CreateHclProjectExternalChilds
+	}
+
+	parallel := true
+	if parsingConfig.Parallel != nil {
+		parallel = *parsingConfig.Parallel
+	}
+
+	ignoreParentTerragrunt := true
+	if parsingConfig.IgnoreParentTerragrunt != nil {
+		ignoreParentTerragrunt = *parsingConfig.IgnoreParentTerragrunt
+	}
+
+	cascadeDependencies := true
+	if parsingConfig.CascadeDependencies != nil {
+		cascadeDependencies = *parsingConfig.CascadeDependencies
+	}
+
+	atlantisConfig, _, err := atlantis.Parse(
+		root,
+		parsingConfig.ProjectHclFiles,
+		projectExternalChilds,
+		parsingConfig.AutoMerge,
+		parallel,
+		parsingConfig.FilterPath,
+		parsingConfig.CreateHclProjectChilds,
+		ignoreParentTerragrunt,
+		parsingConfig.IgnoreDependencyBlocks,
+		cascadeDependencies,
+		parsingConfig.DefaultWorkflow,
+		parsingConfig.DefaultApplyRequirements,
+		parsingConfig.AutoPlan,
+		parsingConfig.DefaultTerraformVersion,
+		parsingConfig.CreateProjectName,
+		parsingConfig.CreateWorkspace,
+		parsingConfig.PreserveProjects,
+		parsingConfig.UseProjectMarkers,
+	)
+	if err != nil {
+		log.Printf("failed to autogenerate config: %v", err)
+	}
+
+	configYaml.AutoMerge = &atlantisConfig.AutoMerge
+	for _, atlantisProject := range atlantisConfig.Projects {
+		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
+			Name:            atlantisProject.Name,
+			Dir:             atlantisProject.Dir,
+			Workspace:       atlantisProject.Workspace,
+			Terragrunt:      true,
+			Workflow:        atlantisProject.Workflow,
+			IncludePatterns: atlantisProject.Autoplan.WhenModified,
+		})
+	}
 }
 
 func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
@@ -274,13 +349,15 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	var result []Project
 	for _, project := range c.Projects {
 		for _, changedFile := range changedFiles {
-			// we append ** to make our directory a globable pattern
-			projectDirPattern := path.Join(project.Dir, "**")
 			includePatterns := project.IncludePatterns
 			excludePatterns := project.ExcludePatterns
+			if !project.Terragrunt {
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, "**", "*.tf"))
+			} else {
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*.hcl"))
+			}
 			// all our patterns are the globale dir pattern + the include patterns specified by user
-			allIncludePatterns := append([]string{projectDirPattern}, includePatterns...)
-			if utils.MatchIncludeExcludePatternsToFile(changedFile, allIncludePatterns, excludePatterns) {
+			if utils.MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
 				result = append(result, project)
 				break
 			}
