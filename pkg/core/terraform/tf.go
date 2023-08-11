@@ -12,7 +12,7 @@ import (
 type TerraformExecutor interface {
 	Init([]string, map[string]string) (string, string, error)
 	Apply([]string, *string, map[string]string) (string, string, error)
-	Destroy([]string, *string, map[string]string) (string, string, error)
+	Destroy([]string, map[string]string) (string, string, error)
 	Plan([]string, map[string]string) (bool, string, string, error)
 	Show([]string, map[string]string) (string, string, error)
 }
@@ -41,12 +41,9 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Destroy(params []string, plan *string, envs map[string]string) (string, string, error) {
+func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
-	if plan != nil {
-		params = append(params, *plan)
-	}
 	stdout, stderr, err := terragrunt.runTerragruntCommand("destroy", envs, params...)
 	return stdout, stderr, err
 }
@@ -113,16 +110,13 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 	return stdout, stderr, err
 }
 
-func (tf Terraform) Destroy(params []string, plan *string, envs map[string]string) (string, string, error) {
+func (tf Terraform) Destroy(params []string, envs map[string]string) (string, string, error) {
 	err := tf.switchToWorkspace(envs)
 	if err != nil {
 		fmt.Printf("Fatal: Error terraform to workspace %v", err)
 		return "", "", err
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
-	if plan != nil {
-		params = append(params, *plan)
-	}
 	stdout, stderr, _, err := tf.runTerraformCommand("destroy", envs, params...)
 	return stdout, stderr, err
 }
