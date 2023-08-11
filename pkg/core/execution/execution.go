@@ -276,14 +276,6 @@ func (d DiggerExecutor) Apply() (bool, error) {
 }
 
 func (d DiggerExecutor) Destroy() (bool, error) {
-	var plansFilename *string
-	if d.PlanStorage != nil {
-		var err error
-		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
-		if err != nil {
-			return false, fmt.Errorf("error retrieving plan: %v", err)
-		}
-	}
 
 	var applySteps []models.Step
 
@@ -310,7 +302,7 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 		if step.Action == "destroy" {
 			applyArgs := []string{"-lock-timeout=3m"}
 			applyArgs = append(applyArgs, step.ExtraArgs...)
-			d.TerraformExecutor.Destroy(applyArgs, plansFilename, d.CommandEnvVars)
+			d.TerraformExecutor.Destroy(applyArgs, d.CommandEnvVars)
 		}
 		if step.Action == "run" {
 			var commands []string
