@@ -167,7 +167,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string) 
 		}
 	}
 
-	if diggerYaml.GenerateProjectsConfig != nil && !diggerYaml.GenerateProjectsConfig.Terragrunt {
+	if diggerYaml.GenerateProjectsConfig != nil && diggerYaml.GenerateProjectsConfig.TerragruntParsingConfig == nil {
 		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
 		dirs, err := dirWalker.GetDirs(workingDir)
 		if err != nil {
