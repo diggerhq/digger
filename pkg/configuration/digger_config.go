@@ -162,7 +162,9 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 	}
 
 	if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.TerragruntParsingConfig != nil {
-		hydrateDiggerConfig(configYaml)
+		hydrateDiggerConfig(configYaml, *configYaml.GenerateProjectsConfig.TerragruntParsingConfig)
+	} else if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.Terragrunt {
+		hydrateDiggerConfig(configYaml, TerragruntParsingConfig{})
 	}
 
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
@@ -199,8 +201,7 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 	return config, projectDependencyGraph, nil
 }
 
-func hydrateDiggerConfig(configYaml *DiggerConfigYaml) {
-	parsingConfig := configYaml.GenerateProjectsConfig.TerragruntParsingConfig
+func hydrateDiggerConfig(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig) {
 	root := ""
 	if parsingConfig.GitRoot == nil {
 		wd, err := os.Getwd()
@@ -348,7 +349,6 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 			} else {
 				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*.hcl"))
 			}
-			fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!!! project name %v, project dir %v, changed file %v\n", project.Name, project.Dir, changedFile)
 			// all our patterns are the globale dir pattern + the include patterns specified by user
 			if utils.MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
 				result = append(result, project)
