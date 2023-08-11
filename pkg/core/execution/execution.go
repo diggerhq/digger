@@ -90,7 +90,6 @@ type DiggerExecutor struct {
 	StateEnvVars      map[string]string
 	CommandEnvVars    map[string]string
 	ApplyStage        *models.Stage
-	DestroyStage      *models.Stage
 	PlanStage         *models.Stage
 	CommandRunner     runners.CommandRun
 	TerraformExecutor terraform.TerraformExecutor
@@ -278,22 +277,16 @@ func (d DiggerExecutor) Apply() (bool, error) {
 
 func (d DiggerExecutor) Destroy() (bool, error) {
 
-	var applySteps []models.Step
-
-	if d.DestroyStage != nil {
-		applySteps = d.DestroyStage.Steps
-	} else {
-		applySteps = []models.Step{
-			{
-				Action: "init",
-			},
-			{
-				Action: "destroy",
-			},
-		}
+	destroySteps := []models.Step{
+		{
+			Action: "init",
+		},
+		{
+			Action: "destroy",
+		},
 	}
 
-	for _, step := range applySteps {
+	for _, step := range destroySteps {
 		if step.Action == "init" {
 			_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
@@ -304,18 +297,6 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 			applyArgs := []string{"-lock-timeout=3m"}
 			applyArgs = append(applyArgs, step.ExtraArgs...)
 			d.TerraformExecutor.Destroy(applyArgs, d.CommandEnvVars)
-		}
-		if step.Action == "run" {
-			var commands []string
-			if os.Getenv("ACTIVATE_VENV") == "true" {
-				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", d.ProjectPath))
-			}
-			commands = append(commands, step.Value)
-			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
-			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
-			if err != nil {
-				return false, fmt.Errorf("error running command: %v", err)
-			}
 		}
 	}
 	return true, nil
