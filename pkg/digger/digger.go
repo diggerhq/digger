@@ -97,13 +97,13 @@ func RunCommandsPerProject(
 			output, err := run(command, commandsConfiguration, policyChecker, orgService, SCMOrganisation, SCMrepository, requestedBy, reporter, lock, prService, projectNamespace, prNumber, workingDir, planStorage, eventName, appliesPerProject)
 
 			if err != nil {
-				err := backendApi.ReportProjectRun(projectNamespace, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
+				err := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
 				if err != nil {
 					log.Printf("Error reporting project run: %v", err)
 				}
 				return false, false, fmt.Errorf("error running command: %v", err)
 			}
-			err = backendApi.ReportProjectRun(projectNamespace, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
+			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
 			if err != nil {
 				log.Printf("Error reporting project run: %v", err)
 			}
