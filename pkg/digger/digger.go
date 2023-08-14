@@ -104,8 +104,9 @@ func RunCommandsPerProject(
 				if err != nil {
 					log.Printf("Error publishing comment: %v", err)
 				}
+				log.Printf("Skipping command ... %v for project %v", command, projectCommands.ProjectName)
 				log.Println(msg)
-				return false, false, errors.New(msg)
+				continue
 			}
 
 			projectLock := &locking.PullRequestLock{
