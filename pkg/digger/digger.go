@@ -98,10 +98,18 @@ func RunCommandsPerProject(
 
 			if err != nil {
 				err := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
+				return false, false, fmt.Errorf("error checking policy: %v", err)
+			}
+
+			if !allowedToPerformCommand {
+				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
+				err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectCommands.ProjectName, command)))
 				if err != nil {
 					log.Printf("Error reporting project run: %v", err)
 				}
-				return false, false, fmt.Errorf("error running command: %v", err)
+				log.Printf("Skipping command ... %v for project %v", command, projectCommands.ProjectName)
+				log.Println(msg)
+				continue
 			}
 			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
 			if err != nil {
@@ -473,6 +481,16 @@ func RunCommandForProject(
 			if err != nil {
 				log.Printf("Error reporting run: %v", err)
 			}
+		case "digger destroy":
+			err := usage.SendUsageRecord(requestedBy, eventName, "destroy")
+			if err != nil {
+				log.Printf("Failed to send usage report. %v", err)
+			}
+			_, err = diggerExecutor.Destroy()
+			if err != nil {
+				log.Printf("Failed to run digger destroy command. %v", err)
+				return fmt.Errorf("failed to run digger apply command. %v", err)
+			}
 
 		case "digger drift-detect":
 			output, err := runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, commands.ProjectName, requestedBy, eventName, diggerExecutor)
@@ -576,6 +594,7 @@ func SortedCommandsByDependency(project []models.ProjectCommand, dependencyGraph
 		return s < s2
 	})
 	if err != nil {
+		fmt.Printf("dependencyGraph: %v", dependencyGraph)
 		log.Fatalf("failed to sort commands by dependency, %v", err)
 	}
 	for _, node := range sortedGraph {

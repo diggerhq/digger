@@ -19,6 +19,7 @@ import (
 type Executor interface {
 	Plan() (bool, bool, string, string, error)
 	Apply() (bool, string, error)
+	Destroy() (bool, error)
 }
 
 type LockingExecutorWrapper struct {
@@ -51,6 +52,19 @@ func (l LockingExecutorWrapper) Apply() (bool, string, error) {
 		return l.Executor.Apply()
 	} else {
 		return false, "couldn't lock ", nil
+	}
+}
+
+func (l LockingExecutorWrapper) Destroy() (bool, error) {
+	locked, err := l.ProjectLock.Lock()
+	if err != nil {
+		return false, fmt.Errorf("error locking project: %v", err)
+	}
+	log.Printf("Lock result: %t\n", locked)
+	if locked {
+		return l.Executor.Destroy()
+	} else {
+		return false, nil
 	}
 }
 
@@ -135,10 +149,19 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			}
 		}
 		if step.Action == "plan" {
-			planArgs := []string{"-out", d.PlanPathProvider.PlanFileName(), "-lock-timeout=3m"}
+			planArgs := []string{"-out", d.PlanPathProvider.LocalPlanFilePath(), "-lock-timeout=3m"}
 			planArgs = append(planArgs, step.ExtraArgs...)
 			nonEmptyPlan, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
 			isNonEmptyPlan = nonEmptyPlan
+			if isNonEmptyPlan {
+				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.PlanFileName(), "isNonEmptyPlan.txt", 1)
+				file, err := os.Create(nonEmptyPlanFilepath)
+				if err != nil {
+					return false, false, "", "", fmt.Errorf("unable to create file: %v", err)
+				}
+				defer file.Close()
+			}
+
 			if err != nil {
 				return false, false, "", "", fmt.Errorf("error executing plan: %v", err)
 			}
@@ -252,6 +275,33 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 		}
 	}
 	return true, applyOutput, nil
+}
+
+func (d DiggerExecutor) Destroy() (bool, error) {
+
+	destroySteps := []models.Step{
+		{
+			Action: "init",
+		},
+		{
+			Action: "destroy",
+		},
+	}
+
+	for _, step := range destroySteps {
+		if step.Action == "init" {
+			_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
+			if err != nil {
+				return false, fmt.Errorf("error running init: %v", err)
+			}
+		}
+		if step.Action == "destroy" {
+			applyArgs := []string{"-lock-timeout=3m"}
+			applyArgs = append(applyArgs, step.ExtraArgs...)
+			d.TerraformExecutor.Destroy(applyArgs, d.CommandEnvVars)
+		}
+	}
+	return true, nil
 }
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr *string) string {

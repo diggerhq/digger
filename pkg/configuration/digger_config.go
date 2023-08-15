@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"digger/pkg/terragrunt/atlantis"
 	"digger/pkg/utils"
 	"errors"
 	"fmt"
@@ -147,7 +148,7 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, grap
 		if err != nil {
 			log.Printf("failed to marshal auto detected digger config: %v", err)
 		} else {
-			log.Printf("Auto detected digger config: \n%v", marshalledConfig)
+			log.Printf("Auto detected digger config: \n%v", string(marshalledConfig))
 		}
 	} else {
 		data, err := os.ReadFile(fileName)
@@ -158,6 +159,12 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, grap
 		if err := yaml.Unmarshal(data, configYaml); err != nil {
 			return nil, nil, nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 		}
+	}
+
+	if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.TerragruntParsingConfig != nil {
+		hydrateDiggerConfig(configYaml, *configYaml.GenerateProjectsConfig.TerragruntParsingConfig)
+	} else if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.Terragrunt {
+		hydrateDiggerConfig(configYaml, TerragruntParsingConfig{})
 	}
 
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
@@ -194,6 +201,74 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, grap
 	return config, configYaml, projectDependencyGraph, nil
 }
 
+func hydrateDiggerConfig(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig) {
+	root := ""
+	if parsingConfig.GitRoot == nil {
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Printf("failed to get working directory: %v", err)
+		} else {
+			root = wd
+		}
+	}
+	projectExternalChilds := true
+
+	if parsingConfig.CreateHclProjectExternalChilds != nil {
+		projectExternalChilds = *parsingConfig.CreateHclProjectExternalChilds
+	}
+
+	parallel := true
+	if parsingConfig.Parallel != nil {
+		parallel = *parsingConfig.Parallel
+	}
+
+	ignoreParentTerragrunt := true
+	if parsingConfig.IgnoreParentTerragrunt != nil {
+		ignoreParentTerragrunt = *parsingConfig.IgnoreParentTerragrunt
+	}
+
+	cascadeDependencies := true
+	if parsingConfig.CascadeDependencies != nil {
+		cascadeDependencies = *parsingConfig.CascadeDependencies
+	}
+
+	atlantisConfig, _, err := atlantis.Parse(
+		root,
+		parsingConfig.ProjectHclFiles,
+		projectExternalChilds,
+		parsingConfig.AutoMerge,
+		parallel,
+		parsingConfig.FilterPath,
+		parsingConfig.CreateHclProjectChilds,
+		ignoreParentTerragrunt,
+		parsingConfig.IgnoreDependencyBlocks,
+		cascadeDependencies,
+		parsingConfig.DefaultWorkflow,
+		parsingConfig.DefaultApplyRequirements,
+		parsingConfig.AutoPlan,
+		parsingConfig.DefaultTerraformVersion,
+		parsingConfig.CreateProjectName,
+		parsingConfig.CreateWorkspace,
+		parsingConfig.PreserveProjects,
+		parsingConfig.UseProjectMarkers,
+	)
+	if err != nil {
+		log.Printf("failed to autogenerate config: %v", err)
+	}
+
+	configYaml.AutoMerge = &atlantisConfig.AutoMerge
+	for _, atlantisProject := range atlantisConfig.Projects {
+		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
+			Name:            atlantisProject.Name,
+			Dir:             atlantisProject.Dir,
+			Workspace:       atlantisProject.Workspace,
+			Terragrunt:      true,
+			Workflow:        atlantisProject.Workflow,
+			IncludePatterns: atlantisProject.Autoplan.WhenModified,
+		})
+	}
+}
+
 func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	configYaml := &DiggerConfigYaml{}
 	collectUsageData := true
@@ -210,14 +285,13 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	}
 
 	terraformDirs, err := terraformDirWalker.GetDirs(workingDir)
-
 	if err != nil {
 		return nil, err
 	}
 
 	moduleDirs, err := moduleDirWalker.GetDirs(workingDir)
 
-	modulePatterns := []string{}
+	var modulePatterns []string
 	for _, dir := range moduleDirs {
 		modulePatterns = append(modulePatterns, dir+"/**")
 	}
@@ -228,13 +302,21 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	if len(terragruntDirs) > 0 {
 		// TODO: add support for dependency graph when parsing terragrunt config
 		for _, dir := range terragruntDirs {
-			project := ProjectYaml{Name: dir, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: true, IncludePatterns: modulePatterns}
+			projectName := dir
+			if dir == "./" {
+				projectName = "default"
+			}
+			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: true, IncludePatterns: modulePatterns}
 			configYaml.Projects = append(configYaml.Projects, &project)
 		}
 		return configYaml, nil
 	} else if len(terraformDirs) > 0 {
 		for _, dir := range terraformDirs {
-			project := ProjectYaml{Name: dir, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
+			projectName := dir
+			if dir == "./" {
+				projectName = "default"
+			}
+			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
 			configYaml.Projects = append(configYaml.Projects, &project)
 		}
 		return configYaml, nil
@@ -267,13 +349,15 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 	var result []Project
 	for _, project := range c.Projects {
 		for _, changedFile := range changedFiles {
-			// we append ** to make our directory a globable pattern
-			projectDirPattern := path.Join(project.Dir, "**")
 			includePatterns := project.IncludePatterns
 			excludePatterns := project.ExcludePatterns
+			if !project.Terragrunt {
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, "**", "*.tf"))
+			} else {
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*.hcl"))
+			}
 			// all our patterns are the globale dir pattern + the include patterns specified by user
-			allIncludePatterns := append([]string{projectDirPattern}, includePatterns...)
-			if utils.MatchIncludeExcludePatternsToFile(changedFile, allIncludePatterns, excludePatterns) {
+			if utils.MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
 				result = append(result, project)
 				break
 			}

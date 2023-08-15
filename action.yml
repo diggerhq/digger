@@ -43,7 +43,7 @@ inputs:
   terragrunt-version:
     description: Terragrunt version
     required: false
-    default: v0.45.4
+    default: v0.48.6
   setup-terraform:
     description: Setup terraform
     required: false
@@ -51,7 +51,7 @@ inputs:
   terraform-version:
     description: Terraform version
     required: false
-    default: v1.4.5
+    default: v1.5.5
   configure-checkout:
     description: Configure checkout. Beware that this will overwrite any changes in the working directory
     required: false
@@ -66,7 +66,7 @@ inputs:
   checkov-version:
     description: Checkov version
     required: false
-    default: '2.3.245'
+    default: '2.3.360'
   disable-locking:
     description: Disable locking
     required: false
