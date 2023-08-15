@@ -99,13 +99,14 @@ func RunCommandsPerProject(
 			}
 
 			if !allowedToPerformCommand {
-				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
-				err := reporter.Report(msg, utils.AsCollapsibleComment("Policy violation"))
+				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
+				err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectCommands.ProjectName, command)))
 				if err != nil {
 					log.Printf("Error publishing comment: %v", err)
 				}
+				log.Printf("Skipping command ... %v for project %v", command, projectCommands.ProjectName)
 				log.Println(msg)
-				return false, false, errors.New(msg)
+				continue
 			}
 
 			projectLock := &locking.PullRequestLock{
