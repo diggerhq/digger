@@ -48,6 +48,11 @@ func (m *MockTerraformExecutor) Apply(params []string, plan *string, envs map[st
 	return "", "", nil
 }
 
+func (m *MockTerraformExecutor) Destroy(params []string, envs map[string]string) (string, string, error) {
+	m.Commands = append(m.Commands, RunInfo{"Destroy", strings.Join(params, " "), time.Now()})
+	return "", "", nil
+}
+
 func (m *MockTerraformExecutor) Show(params []string, envs map[string]string) (string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Show", strings.Join(params, " "), time.Now()})
 	return "", "", nil
@@ -243,6 +248,48 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
 	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply -lock-timeout=3m", "PublishComment 1 <details><summary>Apply for <b>#</b></summary>\n  \n```terraform\n\n  ```\n</details>", "Run   echo"}, commandStrings)
+}
+
+func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
+
+	commandRunner := &MockCommandRunner{}
+	terraformExecutor := &MockTerraformExecutor{}
+	prManager := &MockPRManager{}
+	lock := &MockProjectLock{}
+	planStorage := &MockPlanStorage{}
+	reporter := &reporting.CiReporter{
+		CiService:      prManager,
+		PrNumber:       1,
+		ReportStrategy: &reporting.MultipleCommentsStrategy{},
+	}
+	planPathProvider := &MockPlanPathProvider{}
+	executor := execution.DiggerExecutor{
+		ApplyStage: &models.Stage{
+			Steps: []models.Step{
+				{
+					Action:    "init",
+					ExtraArgs: nil,
+					Value:     "",
+				},
+				{
+					Action:    "destroy",
+					ExtraArgs: nil,
+					Value:     "",
+				},
+			},
+		},
+		PlanStage:         &models.Stage{},
+		CommandRunner:     commandRunner,
+		TerraformExecutor: terraformExecutor,
+		Reporter:          reporter,
+		PlanPathProvider:  planPathProvider,
+	}
+
+	executor.Destroy()
+
+	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
+
+	assert.Equal(t, []string{"Init ", "Destroy -lock-timeout=3m"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {

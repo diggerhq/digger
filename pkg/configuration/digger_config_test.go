@@ -58,6 +58,37 @@ projects:
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
 }
 
+func TestNoDiggerYaml(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	terraformFile := ""
+	deleteFile := createFile(path.Join(tempDir, "main.tf"), terraformFile)
+	defer deleteFile()
+
+	os.Chdir(tempDir)
+	dg, _, err := LoadDiggerConfig("./")
+
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, 1, len(dg.Projects))
+	assert.Equal(t, false, dg.AutoMerge)
+	assert.Equal(t, true, dg.CollectUsageData)
+	assert.Equal(t, 1, len(dg.Workflows))
+	assert.Equal(t, "default", dg.Projects[0].Name)
+	assert.Equal(t, "./", dg.Projects[0].Dir)
+
+	workflow := dg.Workflows["default"]
+	assert.NotNil(t, workflow, "expected workflow to be not nil")
+	assert.NotNil(t, workflow.Plan)
+	assert.NotNil(t, workflow.Plan.Steps)
+
+	assert.NotNil(t, workflow.Apply)
+	assert.NotNil(t, workflow.Apply.Steps)
+	assert.NotNil(t, workflow.EnvVars)
+	assert.NotNil(t, workflow.Configuration)
+}
+
 func TestDefaultDiggerConfig(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
