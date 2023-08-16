@@ -18,7 +18,7 @@ import (
 
 type Executor interface {
 	Plan() (bool, bool, string, string, error)
-	Apply() (bool, error)
+	Apply() (bool, string, error)
 	Destroy() (bool, error)
 }
 
@@ -41,16 +41,17 @@ func (l LockingExecutorWrapper) Plan() (bool, bool, string, string, error) {
 	}
 }
 
-func (l LockingExecutorWrapper) Apply() (bool, error) {
+func (l LockingExecutorWrapper) Apply() (bool, string, error) {
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
-		return false, fmt.Errorf("error locking project: %v", err)
+		msg := fmt.Sprintf("error locking project: %v", err)
+		return false, msg, fmt.Errorf(msg)
 	}
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
 		return l.Executor.Apply()
 	} else {
-		return false, nil
+		return false, "couldn't lock ", nil
 	}
 }
 
@@ -208,13 +209,14 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 	return true, isNonEmptyPlan, plan, terraformPlanOutput, nil
 }
 
-func (d DiggerExecutor) Apply() (bool, error) {
+func (d DiggerExecutor) Apply() (bool, string, error) {
+	var applyOutput string
 	var plansFilename *string
 	if d.PlanStorage != nil {
 		var err error
 		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
-			return false, fmt.Errorf("error retrieving plan: %v", err)
+			return false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}
 	}
 
@@ -235,16 +237,16 @@ func (d DiggerExecutor) Apply() (bool, error) {
 
 	for _, step := range applySteps {
 		if step.Action == "init" {
-			_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
+			stdout, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				return false, fmt.Errorf("error running init: %v", err)
+				return false, stdout, fmt.Errorf("error running init: %v", err)
 			}
 		}
 		if step.Action == "apply" {
 			applyArgs := []string{"-lock-timeout=3m"}
 			applyArgs = append(applyArgs, step.ExtraArgs...)
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
-			applyOutput := cleanupTerraformApply(true, err, stdout, stderr)
+			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
 			formatter := utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + d.ProjectNamespace + "#" + d.ProjectName + "</b>")
 
 			commentErr := d.Reporter.Report(applyOutput, formatter)
@@ -256,7 +258,7 @@ func (d DiggerExecutor) Apply() (bool, error) {
 				if commentErr != nil {
 					fmt.Printf("error publishing comment: %v", err)
 				}
-				return false, fmt.Errorf("error executing apply: %v", err)
+				return false, stdout, fmt.Errorf("error executing apply: %v", err)
 			}
 		}
 		if step.Action == "run" {
@@ -266,13 +268,13 @@ func (d DiggerExecutor) Apply() (bool, error) {
 			}
 			commands = append(commands, step.Value)
 			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
-			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
+			_, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
 			if err != nil {
-				return false, fmt.Errorf("error running command: %v", err)
+				return false, stderr, fmt.Errorf("error running command: %v", err)
 			}
 		}
 	}
-	return true, nil
+	return true, applyOutput, nil
 }
 
 func (d DiggerExecutor) Destroy() (bool, error) {

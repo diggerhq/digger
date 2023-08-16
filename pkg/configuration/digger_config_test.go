@@ -32,7 +32,7 @@ func TestDiggerConfigWhenMultipleConfigExist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.Error(t, err, "expected error to be returned")
 	assert.ErrorContains(t, err, ErrDiggerConfigConflict.Error(), "expected error to match target error")
 	assert.Nil(t, dg, "expected diggerConfig to be nil")
@@ -52,7 +52,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
@@ -67,7 +67,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	defer deleteFile()
 
 	os.Chdir(tempDir)
-	dg, _, err := LoadDiggerConfig("./")
+	dg, _, _, err := LoadDiggerConfig("./")
 
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
@@ -103,7 +103,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
@@ -138,7 +138,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "default", dg.Projects[0].Workflow)
@@ -160,7 +160,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "path/to/module", dg.GetDirectory("dev"))
@@ -185,7 +185,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, models.Step{Action: "run", Value: "echo \"hello\"", Shell: ""}, dg.Workflows["myworkflow"].Plan.Steps[0], "parsed struct does not match expected struct")
 }
@@ -230,7 +230,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, []EnvVar{
 		{Name: "TF_VAR_state", Value: "s3://mybucket/terraform.tfstate"},
@@ -270,7 +270,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, models.Step{Action: "run", Value: "rm -rf .terraform", Shell: ""}, dg.Workflows["dev"].Plan.Steps[0], "parsed struct does not match expected struct")
 	assert.Equal(t, models.Step{Action: "init", ExtraArgs: nil, Shell: ""}, dg.Workflows["dev"].Plan.Steps[1], "parsed struct does not match expected struct")
@@ -300,7 +300,7 @@ generate_projects:
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "test1", dg.Projects[0].Name)
@@ -328,7 +328,7 @@ func TestGenerateProjectsWithoutDiggerConfig(t *testing.T) {
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "dev/project", dg.Projects[0].Name)
@@ -364,7 +364,7 @@ generate_projects:
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "utils", dg.Projects[0].Name)
@@ -397,7 +397,7 @@ generate_projects:
 		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
 		assert.NoError(t, err, "expected error to be nil")
 	}
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "dev", dg.Projects[0].Name)
@@ -412,7 +412,7 @@ func TestMissingProjectsReturnsError(t *testing.T) {
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
-	_, _, err := LoadDiggerConfig(tempDir)
+	_, _, _, err := LoadDiggerConfig(tempDir)
 	assert.ErrorContains(t, err, "no projects configuration found")
 }
 
@@ -435,7 +435,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, err := LoadDiggerConfig(tempDir)
+	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "my_custom_workflow", dg.Projects[0].Workflow)
@@ -457,7 +457,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, _, err := LoadDiggerConfig(tempDir)
+	_, _, _, err := LoadDiggerConfig(tempDir)
 	assert.Error(t, err, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'")
 
 	// steps block is missing for workflows
@@ -472,7 +472,7 @@ workflows:
 	deleteFile = createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	diggerConfig, _, err := LoadDiggerConfig(tempDir)
+	diggerConfig, _, _, err := LoadDiggerConfig(tempDir)
 	assert.Equal(t, "my_custom_workflow", diggerConfig.Projects[0].Workflow)
 	workflow, ok := diggerConfig.Workflows["my_custom_workflow"]
 	assert.True(t, ok)
@@ -501,7 +501,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, _, err := LoadDiggerConfig(tempDir)
+	_, _, _, err := LoadDiggerConfig(tempDir)
 	assert.Equal(t, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'", err.Error())
 
 }
@@ -526,7 +526,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, _, err := LoadDiggerConfig(tempDir)
+	_, _, _, err := LoadDiggerConfig(tempDir)
 	assert.Nil(t, err)
 }
 

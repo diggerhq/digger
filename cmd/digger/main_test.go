@@ -881,6 +881,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
 	policyChecker := &utils.MockPolicyChecker{}
+	backendApi := &utils.MockBackendApi{}
 
 	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
@@ -889,7 +890,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		PrNumber:  prNumber,
 	}
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, prManager, lock, reporter, planStorage, policyChecker, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -917,9 +918,10 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	}
 
 	policyChecker := &utils.MockPolicyChecker{}
+	backendApi := &utils.MockBackendApi{}
 
 	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, prManager, lock, reporter, planStorage, policyChecker, "")
+	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
