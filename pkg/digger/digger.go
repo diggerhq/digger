@@ -94,6 +94,7 @@ func RunCommandsPerProject(
 
 	for _, commandsConfiguration := range commandsPerProject {
 		for _, command := range commandsConfiguration.Commands {
+			fmt.Printf("Running '%s' for project '%s'\n", command, commandsConfiguration.ProjectName)
 
 			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, commandsConfiguration.ProjectName, command, requestedBy)
 
@@ -105,7 +106,7 @@ func RunCommandsPerProject(
 				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
 				err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", commandsConfiguration.ProjectName, command)))
 				if err != nil {
-					log.Printf("Error reporting project run: %v", err)
+					log.Printf("Error publishing comment: %v", err)
 				}
 				log.Printf("Skipping command ... %v for project %v", command, commandsConfiguration.ProjectName)
 				log.Println(msg)
