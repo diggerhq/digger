@@ -67,7 +67,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	defer deleteFile()
 
 	os.Chdir(tempDir)
-	dg, _, err := LoadDiggerConfig("./")
+	dg, _, _, err := LoadDiggerConfig("./")
 
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
