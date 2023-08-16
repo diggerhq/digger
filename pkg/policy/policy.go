@@ -253,9 +253,8 @@ type DiggerPolicyChecker struct {
 }
 
 func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
-	// TODO: Get rid of organisation if its not needed
-	organisation := p.PolicyProvider.GetOrganisation()
-	policy, err := p.PolicyProvider.GetAccessPolicy(organisation, SCMrepository, projectName)
+
+	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName)
 
 	if err != nil {
 		fmt.Printf("Error while fetching policy: %v", err)

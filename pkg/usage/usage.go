@@ -76,7 +76,7 @@ func init() {
 	if err != nil {
 		fmt.Printf("Failed to get current dir. %s", err)
 	}
-	config, _, err := configuration.LoadDiggerConfig(currentDir)
+	config, _, _, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		return
 	}

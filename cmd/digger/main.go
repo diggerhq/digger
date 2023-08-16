@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"digger/pkg/azure"
+	"digger/pkg/backend"
 	"digger/pkg/configuration"
+	core_backend "digger/pkg/core/backend"
 	core_locking "digger/pkg/core/locking"
 	"digger/pkg/core/models"
 	core_policy "digger/pkg/core/policy"
@@ -20,6 +22,7 @@ import (
 	"digger/pkg/usage"
 	"digger/pkg/utils"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"log"
 	"net/http"
 	"os"
@@ -29,7 +32,7 @@ import (
 	"github.com/google/go-github/v53/github"
 )
 
-func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy) {
+func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
 	println("Using GitHub.")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -53,7 +56,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	if ghContext == "" {
 		reportErrorAndExit(githubActor, "GITHUB_CONTEXT is not defined", 2)
 	}
-	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig("./")
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig("./")
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -69,6 +72,22 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 
 	if ghRepository == "" {
 		reportErrorAndExit(githubActor, "GITHUB_REPOSITORY is not defined", 3)
+	}
+
+	yamlData, err := yaml.Marshal(diggerConfigYaml)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	// Convert to string
+	yamlStr := string(yamlData)
+	diggerNamespace := strings.ReplaceAll(ghRepository, "/", "-")
+
+	for _, p := range diggerConfig.Projects {
+		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
+		if err != nil {
+			fmt.Printf("Failed to report project %s. %s\n", p.Name, err)
+		}
 	}
 
 	splitRepositoryName := strings.Split(ghRepository, "/")
@@ -115,7 +134,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 			CommandEnvVars:   commandEnvVars,
 			StateEnvVars:     stateEnvVars,
 		}
-		err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, "manual_invocation", &githubPrService, policyChecker, planStorage, currentDir)
+		err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, "manual_invocation", &githubPrService, policyChecker, planStorage, backendApi, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -140,7 +159,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 			}
-			err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, "drift-detect", &githubPrService, policyChecker, nil, currentDir)
+			err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, "drift-detect", &githubPrService, policyChecker, nil, backendApi, currentDir)
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
@@ -187,7 +206,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 			PrNumber:       prNumber,
 			ReportStrategy: reportingStrategy,
 		}
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, parsedGhContext.Repository, githubActor, eventName, prNumber, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, currentDir)
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, parsedGhContext.Repository, githubActor, eventName, prNumber, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -209,7 +228,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	}()
 }
 
-func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy) {
+func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
 	println("Using GitLab.")
 
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
@@ -225,7 +244,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -235,6 +254,22 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	if err != nil {
 		fmt.Printf("failed to parse GitLab context. %s\n", err.Error())
 		os.Exit(4)
+	}
+
+	yamlData, err := yaml.Marshal(diggerConfigYaml)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	// Convert to string
+	yamlStr := string(yamlData)
+	diggerNamespace := strings.ReplaceAll(gitLabContext.ProjectNamespace, "/", "-")
+
+	for _, p := range diggerConfig.Projects {
+		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
+		if err != nil {
+			fmt.Printf("Failed to report project %s. %s\n", p.Name, err)
+		}
 	}
 
 	// it's ok to not have merge request info if it has been merged
@@ -277,7 +312,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 		PrNumber:       *gitLabContext.MergeRequestIId,
 		ReportStrategy: reportingStrategy,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
@@ -300,7 +335,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, reporti
 	}()
 }
 
-func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy) {
+func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
 	fmt.Println("> Azure CI detected")
 	azureContext := os.Getenv("AZURE_CONTEXT")
 	azureToken := os.Getenv("AZURE_TOKEN")
@@ -319,11 +354,27 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportin
 	}
 	fmt.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
 	fmt.Println("Digger config read successfully")
+
+	yamlData, err := yaml.Marshal(diggerConfigYaml)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	// Convert to string
+	yamlStr := string(yamlData)
+	diggerNamespace := strings.ReplaceAll(parsedAzureContext.BaseUrl, "/", "-")
+
+	for _, p := range diggerConfig.Projects {
+		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
+		if err != nil {
+			fmt.Printf("Failed to report project %s. %s\n", p.Name, err)
+		}
+	}
 
 	azureService, err := azure.NewAzureReposService(azureToken, parsedAzureContext.BaseUrl, parsedAzureContext.ProjectName, parsedAzureContext.RepositoryId)
 	if err != nil {
@@ -355,7 +406,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, reportin
 		PrNumber:       prNumber,
 		ReportStrategy: reportingStrategy,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, azureService, lock, reporter, planStorage, policyChecker, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, azureService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -401,6 +452,7 @@ func main() {
 		os.Exit(0)
 	}
 	var policyChecker core_policy.Checker
+	var backendApi core_backend.Api
 	if os.Getenv("DIGGER_TOKEN") != "" {
 		if os.Getenv("DIGGER_ORGANISATION") == "" {
 			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action configuration.")
@@ -412,8 +464,14 @@ func main() {
 				AuthToken:          os.Getenv("DIGGER_TOKEN"),
 				HttpClient:         http.DefaultClient,
 			}}
+		backendApi = backend.DiggerApi{
+			DiggerHost: os.Getenv("DIGGER_HOSTNAME"),
+			AuthToken:  os.Getenv("DIGGER_TOKEN"),
+			HttpClient: http.DefaultClient,
+		}
 	} else {
 		policyChecker = policy.NoOpPolicyChecker{}
+		backendApi = backend.NoopApi{}
 	}
 
 	var reportStrategy reporting.ReportStrategy
@@ -440,11 +498,11 @@ func main() {
 	ci := digger.DetectCI()
 	switch ci {
 	case digger.GitHub:
-		gitHubCI(lock, policyChecker, reportStrategy)
+		gitHubCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.GitLab:
-		gitLabCI(lock, policyChecker, reportStrategy)
+		gitLabCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.Azure:
-		azureCI(lock, policyChecker, reportStrategy)
+		azureCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.BitBucket:
 		print("Bitbucket support is currently in progress. If you would like to prioritise it, give this issue a bump: https://github.com/diggerhq/digger/issues/81")
 	case digger.None:
