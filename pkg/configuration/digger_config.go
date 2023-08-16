@@ -129,20 +129,20 @@ func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string) ([]strin
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
-func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, string], error) {
+func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, string], error) {
 	configYaml := &DiggerConfigYaml{}
 	config := &DiggerConfig{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
 		if errors.Is(err, ErrDiggerConfigConflict) {
-			return nil, nil, fmt.Errorf("error while retrieving config file: %v", err)
+			return nil, nil, nil, fmt.Errorf("error while retrieving config file: %v", err)
 		}
 	}
 
 	if fileName == "" {
 		configYaml, err = AutoDetectDiggerConfig(workingDir)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to auto detect digger config: %v", err)
+			return nil, nil, nil, fmt.Errorf("failed to auto detect digger config: %v", err)
 		}
 		marshalledConfig, err := yaml.Marshal(configYaml)
 		if err != nil {
@@ -153,11 +153,11 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 	} else {
 		data, err := os.ReadFile(fileName)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
+			return nil, nil, nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
 		}
 
 		if err := yaml.Unmarshal(data, configYaml); err != nil {
-			return nil, nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+			return nil, nil, nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 		}
 	}
 
@@ -168,25 +168,25 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 	}
 
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
-		return nil, nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
+		return nil, nil, nil, fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
 
 	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml, workingDir)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	for _, p := range config.Projects {
 		_, ok := config.Workflows[p.Workflow]
 		if !ok {
-			return nil, nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
+			return nil, nil, nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
 		}
 	}
 
 	for _, w := range config.Workflows {
 		for _, s := range w.Plan.Steps {
 			if s.Action == "" {
-				return nil, nil, fmt.Errorf("plan step's action can't be empty")
+				return nil, nil, nil, fmt.Errorf("plan step's action can't be empty")
 			}
 		}
 	}
@@ -194,11 +194,11 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, graph.Graph[string, str
 	for _, w := range config.Workflows {
 		for _, s := range w.Apply.Steps {
 			if s.Action == "" {
-				return nil, nil, fmt.Errorf("apply step's action can't be empty")
+				return nil, nil, nil, fmt.Errorf("apply step's action can't be empty")
 			}
 		}
 	}
-	return config, projectDependencyGraph, nil
+	return config, configYaml, projectDependencyGraph, nil
 }
 
 func hydrateDiggerConfig(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig) {
