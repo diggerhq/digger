@@ -94,22 +94,29 @@ func RunCommandsPerProject(
 
 	for _, commandsConfiguration := range commandsPerProject {
 		for _, command := range commandsConfiguration.Commands {
-			output, err := run(command, commandsConfiguration, policyChecker, orgService, SCMOrganisation, SCMrepository, requestedBy, reporter, lock, prService, projectNamespace, prNumber, workingDir, planStorage, eventName, appliesPerProject)
+
+			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, commandsConfiguration.ProjectName, command, requestedBy)
 
 			if err != nil {
-				err := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
 				return false, false, fmt.Errorf("error checking policy: %v", err)
 			}
 
 			if !allowedToPerformCommand {
 				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
-				err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectCommands.ProjectName, command)))
+				err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", commandsConfiguration.ProjectName, command)))
 				if err != nil {
 					log.Printf("Error reporting project run: %v", err)
 				}
-				log.Printf("Skipping command ... %v for project %v", command, projectCommands.ProjectName)
+				log.Printf("Skipping command ... %v for project %v", command, commandsConfiguration.ProjectName)
 				log.Println(msg)
 				continue
+			}
+
+			output, err := run(command, commandsConfiguration, policyChecker, orgService, SCMOrganisation, SCMrepository, requestedBy, reporter, lock, prService, projectNamespace, prNumber, workingDir, planStorage, eventName, appliesPerProject)
+
+			if err != nil {
+				err := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
+				return false, false, fmt.Errorf("error checking policy: %v", err)
 			}
 			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, commandsConfiguration.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
 			if err != nil {
