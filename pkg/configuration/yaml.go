@@ -2,6 +2,8 @@ package configuration
 
 import (
 	"digger/pkg/core/models"
+	"errors"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -151,7 +153,26 @@ func (w *WorkflowYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}
+	if err := validateWorkflowConfigurationYaml(raw.Configuration); err != nil {
+		return err
+	}
 	*w = WorkflowYaml(raw)
+	return nil
+}
+
+func validateWorkflowConfigurationYaml(config *WorkflowConfigurationYaml) error {
+	if config == nil {
+		return errors.New("workflow_configuration is required")
+	}
+	if len(config.OnPullRequestPushed) == 0 {
+		return errors.New("workflow_configuration.on_pull_request_pushed is required")
+	}
+	if len(config.OnPullRequestClosed) == 0 {
+		return errors.New("workflow_configuration.on_pull_request_closed is required")
+	}
+	if len(config.OnCommitToDefault) == 0 {
+		return errors.New("workflow_configuration.on_commit_to_default is required")
+	}
 	return nil
 }
 

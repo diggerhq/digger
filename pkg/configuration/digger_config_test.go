@@ -506,6 +506,99 @@ workflows:
 
 }
 
+func TestDiggerConfigMissingProjectsWorkflowConfiguration(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+	tests := []struct {
+		name      string
+		diggerCfg string
+		wantErr   string
+	}{
+		{
+			name: "workflow_configuration empty",
+			diggerCfg: `
+projects:
+- name: dev
+  branch: /main/
+  dir: .
+  workspace: default
+  terragrunt: false
+  workflow: myworkflow
+workflows:
+  myworkflow:
+    workflow_configuration:
+`,
+			wantErr: "workflow_configuration is required",
+		},
+		{
+			name: "on_pull_request_pushed empty",
+			diggerCfg: `
+projects:
+- name: dev
+  branch: /main/
+  dir: .
+  workspace: default
+  terragrunt: false
+  workflow: myworkflow
+workflows:
+  myworkflow:
+    workflow_configuration:
+      on_pull_request_pushed: []
+      on_pull_request_closed: [digger unlock]
+      on_commit_to_default: [digger apply]
+`,
+			wantErr: "workflow_configuration.on_pull_request_pushed is required",
+		},
+		{
+			name: "on_pull_request_closed empty",
+			diggerCfg: `
+projects:
+- name: dev
+  branch: /main/
+  dir: .
+  workspace: default
+  terragrunt: false
+  workflow: myworkflow
+workflows:
+  myworkflow:
+    workflow_configuration:
+      on_pull_request_pushed: [digger plan]
+      on_pull_request_closed:
+      on_commit_to_default: [digger apply]
+`,
+			wantErr: "workflow_configuration.on_pull_request_closed is required",
+		},
+		{
+			name: "on_commit_to_default empty",
+			diggerCfg: `
+projects:
+- name: dev
+  branch: /main/
+  dir: .
+  workspace: default
+  terragrunt: false
+  workflow: myworkflow
+workflows:
+  myworkflow:
+    workflow_configuration:
+      on_pull_request_pushed: [digger plan]
+      on_pull_request_closed: [digger unlock]
+      on_commit_to_default:
+`,
+			wantErr: "workflow_configuration.on_commit_to_default is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deleteFile := createFile(path.Join(tempDir, "digger.yaml"), tt.diggerCfg)
+			defer deleteFile()
+			_, _, err := LoadDiggerConfig(tempDir)
+			assert.ErrorContains(t, err, tt.wantErr)
+		})
+	}
+}
+
 func TestDiggerConfigWithEmptyInitBlock(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
