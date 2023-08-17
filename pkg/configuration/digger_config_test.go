@@ -515,22 +515,6 @@ func TestDiggerConfigMissingProjectsWorkflowConfiguration(t *testing.T) {
 		wantErr   string
 	}{
 		{
-			name: "workflow_configuration empty",
-			diggerCfg: `
-projects:
-- name: dev
-  branch: /main/
-  dir: .
-  workspace: default
-  terragrunt: false
-  workflow: myworkflow
-workflows:
-  myworkflow:
-    workflow_configuration:
-`,
-			wantErr: "workflow_configuration is required",
-		},
-		{
 			name: "on_pull_request_pushed empty",
 			diggerCfg: `
 projects:
@@ -543,7 +527,7 @@ projects:
 workflows:
   myworkflow:
     workflow_configuration:
-      on_pull_request_pushed: []
+      on_pull_request_pushed:
       on_pull_request_closed: [digger unlock]
       on_commit_to_default: [digger apply]
 `,

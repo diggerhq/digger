@@ -161,17 +161,16 @@ func (w *WorkflowYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 func validateWorkflowConfigurationYaml(config *WorkflowConfigurationYaml) error {
-	if config == nil {
-		return errors.New("workflow_configuration is required")
-	}
-	if len(config.OnPullRequestPushed) == 0 {
-		return errors.New("workflow_configuration.on_pull_request_pushed is required")
-	}
-	if len(config.OnPullRequestClosed) == 0 {
-		return errors.New("workflow_configuration.on_pull_request_closed is required")
-	}
-	if len(config.OnCommitToDefault) == 0 {
-		return errors.New("workflow_configuration.on_commit_to_default is required")
+	if config != nil {
+		if config.OnPullRequestPushed == nil {
+			return errors.New("workflow_configuration.on_pull_request_pushed is required")
+		}
+		if config.OnPullRequestClosed == nil {
+			return errors.New("workflow_configuration.on_pull_request_closed is required")
+		}
+		if config.OnCommitToDefault == nil {
+			return errors.New("workflow_configuration.on_commit_to_default is required")
+		}
 	}
 	return nil
 }
