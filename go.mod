@@ -22,9 +22,9 @@ require (
 	github.com/dominikbraun/graph v0.23.0
 	github.com/gruntwork-io/terragrunt v0.36.6
 	github.com/hashicorp/go-getter v1.5.11
-	github.com/hashicorp/hcl/v2 v2.11.1
+	github.com/hashicorp/hcl/v2 v2.17.0
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20230808231734-f15f31bf62b3
-	github.com/zclconf/go-cty v1.8.3
+	github.com/zclconf/go-cty v1.13.0
 	golang.org/x/sync v0.2.0
 )
 
