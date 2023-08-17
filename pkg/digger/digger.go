@@ -110,6 +110,7 @@ func RunCommandsPerProject(
 				}
 				log.Printf("Skipping command ... %v for project %v", command, commandsConfiguration.ProjectName)
 				log.Println(msg)
+				appliesPerProject[commandsConfiguration.ProjectName] = false
 				continue
 			}
 
