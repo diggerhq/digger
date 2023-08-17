@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"fmt"
+	"github.com/acarl005/stripansi"
 	"io"
 	"os"
 	"os/exec"
@@ -10,11 +11,11 @@ import (
 )
 
 type TerraformExecutor interface {
-	Init([]string, map[string]string) (string, string, error)
-	Apply([]string, *string, map[string]string) (string, string, error)
-	Destroy([]string, map[string]string) (string, string, error)
-	Plan([]string, map[string]string) (bool, string, string, error)
-	Show([]string, map[string]string) (string, string, error)
+	Init([]string, map[string]string) (string, string, string, error)
+	Apply([]string, *string, map[string]string) (string, string, string, error)
+	Destroy([]string, map[string]string) (string, string, string, error)
+	Plan([]string, map[string]string) (bool, string, string, string, error)
+	Show([]string, map[string]string) (string, string, string, error)
 }
 
 type Terragrunt struct {
@@ -26,46 +27,45 @@ type Terraform struct {
 	Workspace  string
 }
 
-func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
+func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, string, error) {
 	return terragrunt.runTerragruntCommand("init", envs, params...)
 
 }
 
-func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
+func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, string, error) {
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, err := terragrunt.runTerragruntCommand("apply", envs, params...)
-	return stdout, stderr, err
+	stdout, stderr, stdoutNoColor, err := terragrunt.runTerragruntCommand("apply", envs, params...)
+	return stdout, stderr, stdoutNoColor, err
 }
 
-func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
+func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, string, error) {
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
-	stdout, stderr, err := terragrunt.runTerragruntCommand("destroy", envs, params...)
-	return stdout, stderr, err
+	stdout, stderr, stdoutNoColor, err := terragrunt.runTerragruntCommand("destroy", envs, params...)
+	return stdout, stderr, stdoutNoColor, err
 }
 
-func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", envs, params...)
-	return true, stdout, stderr, err
+func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, string, error) {
+	stdout, stderr, stdoutNoColor, err := terragrunt.runTerragruntCommand("plan", envs, params...)
+	return true, stdout, stderr, stdoutNoColor, err
 }
 
-func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand("show", envs, params...)
-	return stdout, stderr, err
+func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (string, string, string, error) {
+	stdout, stderr, stdoutNoColor, err := terragrunt.runTerragruntCommand("show", envs, params...)
+	return stdout, stderr, stdoutNoColor, err
 }
 
-func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[string]string, arg ...string) (string, string, error) {
+func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[string]string, arg ...string) (string, string, string, error) {
 	args := []string{command}
 	args = append(args, arg...)
 	cmd := exec.Command("terragrunt", args...)
 	cmd.Dir = terragrunt.WorkingDir
 
 	env := os.Environ()
-	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")
 
 	for k, v := range envs {
@@ -80,60 +80,61 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[strin
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
 	err := cmd.Run()
+	stdoutNoColor := stripansi.Strip(stdout.String())
 
 	if err != nil {
-		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
+		return stdout.String(), stderr.String(), stdoutNoColor, fmt.Errorf("error: %v", err)
 	}
 
-	return stdout.String(), stderr.String(), err
+	return stdout.String(), stderr.String(), stdoutNoColor, err
 }
 
-func (tf Terraform) Init(params []string, envs map[string]string) (string, string, error) {
+func (tf Terraform) Init(params []string, envs map[string]string) (string, string, string, error) {
 	params = append(params, "-upgrade=true")
 	params = append(params, "-input=false")
 	params = append(params, "-no-color")
-	stdout, stderr, _, err := tf.runTerraformCommand("init", envs, params...)
-	return stdout, stderr, err
+	stdout, stderr, stdoutNoColor, _, err := tf.runTerraformCommand("init", envs, params...)
+	return stdout, stderr, stdoutNoColor, err
 }
 
-func (tf Terraform) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
+func (tf Terraform) Apply(params []string, plan *string, envs map[string]string) (string, string, string, error) {
 	err := tf.switchToWorkspace(envs)
 	if err != nil {
 		fmt.Printf("Fatal: Error terraform to workspace %v", err)
-		return "", "", err
+		return "", "", "", err
 	}
-	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
+	params = append(append(params, "-input=false"), "-auto-approve")
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, _, err := tf.runTerraformCommand("apply", envs, params...)
-	return stdout, stderr, err
+	stdout, stderr, stdoutNoColor, _, err := tf.runTerraformCommand("apply", envs, params...)
+	return stdout, stderr, stdoutNoColor, err
 }
 
-func (tf Terraform) Destroy(params []string, envs map[string]string) (string, string, error) {
+func (tf Terraform) Destroy(params []string, envs map[string]string) (string, string, string, error) {
 	err := tf.switchToWorkspace(envs)
 	if err != nil {
 		fmt.Printf("Fatal: Error terraform to workspace %v", err)
-		return "", "", err
+		return "", "", "", err
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
-	stdout, stderr, _, err := tf.runTerraformCommand("destroy", envs, params...)
-	return stdout, stderr, err
+	stdout, stderr, stdoutNoColor, _, err := tf.runTerraformCommand("destroy", envs, params...)
+	return stdout, stderr, stdoutNoColor, err
 }
 
 func (tf Terraform) switchToWorkspace(envs map[string]string) error {
-	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
+	workspaces, _, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
 	if err != nil {
 		return err
 	}
 	workspaces = tf.formatTerraformWorkspaces(workspaces)
 	if strings.Contains(workspaces, tf.Workspace) {
-		_, _, _, err := tf.runTerraformCommand("workspace", envs, "select", tf.Workspace)
+		_, _, _, _, err := tf.runTerraformCommand("workspace", envs, "select", tf.Workspace)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
+		_, _, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
 		if err != nil {
 			return err
 		}
@@ -141,7 +142,7 @@ func (tf Terraform) switchToWorkspace(envs map[string]string) error {
 	return nil
 }
 
-func (tf Terraform) runTerraformCommand(command string, envs map[string]string, arg ...string) (string, string, int, error) {
+func (tf Terraform) runTerraformCommand(command string, envs map[string]string, arg ...string) (string, string, string, int, error) {
 	args := []string{command}
 	args = append(args, arg...)
 
@@ -176,7 +177,8 @@ func (tf Terraform) runTerraformCommand(command string, envs map[string]string, 
 		fmt.Println("Error:", err)
 	}
 
-	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err
+	stdoutNoColor := stripansi.Strip(stdout.String())
+	return stdout.String(), stderr.String(), stdoutNoColor, cmd.ProcessState.ExitCode(), err
 }
 
 type StdWriter struct {
@@ -207,36 +209,36 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 	return list
 }
 
-func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, string, error) {
 
-	workspaces, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
+	workspaces, _, _, _, err := tf.runTerraformCommand("workspace", envs, "list")
 	if err != nil {
-		return false, "", "", err
+		return false, "", "", "", err
 	}
 	workspaces = tf.formatTerraformWorkspaces(workspaces)
 	if strings.Contains(workspaces, tf.Workspace) {
-		_, _, _, err := tf.runTerraformCommand("workspace", envs, "select", tf.Workspace)
+		_, _, _, _, err := tf.runTerraformCommand("workspace", envs, "select", tf.Workspace)
 		if err != nil {
-			return false, "", "", err
+			return false, "", "", "", err
 		}
 	} else {
-		_, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
+		_, _, _, _, err := tf.runTerraformCommand("workspace", envs, "new", tf.Workspace)
 		if err != nil {
-			return false, "", "", err
+			return false, "", "", "", err
 		}
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
-	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
+	stdout, stderr, stdoutNoColor, statusCode, err := tf.runTerraformCommand("plan", envs, params...)
 	if err != nil && statusCode != 2 {
-		return false, "", "", err
+		return false, "", "", "", err
 	}
-	return statusCode == 2, stdout, stderr, nil
+	return statusCode == 2, stdout, stderr, stdoutNoColor, nil
 }
 
-func (tf Terraform) Show(params []string, envs map[string]string) (string, string, error) {
-	stdout, stderr, _, err := tf.runTerraformCommand("show", envs, params...)
+func (tf Terraform) Show(params []string, envs map[string]string) (string, string, string, error) {
+	stdout, stderr, stdoutNoColor, _, err := tf.runTerraformCommand("show", envs, params...)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return stdout, stderr, nil
+	return stdout, stderr, stdoutNoColor, nil
 }
