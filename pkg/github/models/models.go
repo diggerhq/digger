@@ -66,6 +66,12 @@ func (g *Github) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		g.Event = event
+	case "workflow_dispatch":
+		var event WorkflowDispatchEvent
+		if err := json.Unmarshal(rawEvent, &event); err != nil {
+			return err
+		}
+		g.Event = event
 	default:
 		return errors.New("unknown GitHub event: " + g.EventName)
 	}
@@ -93,6 +99,10 @@ type IssueCommentEvent struct {
 	Action  string  `json:"action"`
 	Comment Comment `json:"comment"`
 	Issue   Issue   `json:"issue"`
+}
+
+type WorkflowDispatchEvent struct {
+	Inputs map[string]string `json:"inputs"`
 }
 
 type Base struct {

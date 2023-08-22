@@ -9,7 +9,6 @@ import (
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
-	"github.com/dominikbraun/graph"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -873,10 +872,8 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		fmt.Println(err)
 	}
 	ghEvent := context.Event
-	eventName := context.EventName
 
 	diggerConfig := configuration.DiggerConfig{}
-	depGraph := graph.New(graph.StringHash, graph.Directed())
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
@@ -889,8 +886,8 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		CiService: prManager,
 		PrNumber:  prNumber,
 	}
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(*context, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	_, _, err = digger.RunJobs(commandsToRunPerProject, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -905,9 +902,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 		fmt.Println(err)
 	}
 	ghEvent := context.Event
-	eventName := context.EventName
 	diggerConfig := configuration.DiggerConfig{}
-	depGraph := graph.New(graph.StringHash, graph.Directed())
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
@@ -920,8 +915,8 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	policyChecker := &utils.MockPolicyChecker{}
 	backendApi := &utils.MockBackendApi{}
 
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunCommandsPerProject(commandsToRunPerProject, &depGraph, context.Repository, context.Repository, eventName, prNumber, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(context, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	_, _, err = digger.RunJobs(commandsToRunPerProject, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -983,7 +978,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	lock := &utils.MockLock{}
 	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, workflows)
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(*context, impactedProjects, requestedProject, workflows)
 	spew.Dump(lock.MapLock)
 	assert.Equal(t, pullRequestNumber, prNumber)
 	assert.Equal(t, 1, len(commandsToRunPerProject))
@@ -1002,7 +997,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
 
-	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(ghEvent, impactedProjects, &requestedProject, workflows)
+	commandsToRunPerProject, _, err := github.ConvertGithubEventToCommands(gh_models.Github{Event: ghEvent}, impactedProjects, &requestedProject, workflows)
 
 	assert.Equal(t, 1, len(commandsToRunPerProject))
 	assert.Equal(t, "digger plan", commandsToRunPerProject[0].Commands[0])
