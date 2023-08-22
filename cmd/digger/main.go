@@ -123,7 +123,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
 
-		projectCommand := models.Job{
+		jobs := models.Job{
 			ProjectName:       project,
 			ProjectDir:        projectConfig.Dir,
 			ProjectWorkspace:  projectConfig.Workspace,
@@ -138,7 +138,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			StateEnvVars:      stateEnvVars,
 			CommandEnvVars:    commandEnvVars,
 		}
-		err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, currentDir)
+		err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -152,7 +152,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
-			projectCommand := models.Job{
+			job := models.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
 				ProjectWorkspace: projectConfig.Workspace,
@@ -166,7 +166,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				Namespace:        ghRepository,
 				EventName:        "drift-detect",
 			}
-			err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, currentDir)
+			err := digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, currentDir)
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}

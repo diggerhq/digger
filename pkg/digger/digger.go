@@ -355,7 +355,7 @@ func run(command string, job models.Job, policyChecker policy.Checker, orgServic
 	return "", nil
 }
 
-func RunCommandForProject(
+func RunJob(
 	job models.Job,
 	projectNamespace string,
 	requestedBy string,
