@@ -180,12 +180,12 @@ func GetGitHubContext(ghContext string) (*models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToCommands(event models.Event, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.ProjectCommand, bool, error) {
-	commandsPerProject := make([]dg_models.ProjectCommand, 0)
+func ConvertGithubEventToCommands(parsedGhContext models.Github, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.Job, bool, error) {
+	jobs := make([]dg_models.Job, 0)
 
-	switch event.(type) {
+	switch parsedGhContext.Event.(type) {
 	case models.PullRequestEvent:
-		event := event.(models.PullRequestEvent)
+		event := parsedGhContext.Event.(models.PullRequestEvent)
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
@@ -195,46 +195,55 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
 			if event.Action == "closed" && event.PullRequest.Merged && event.PullRequest.Base.Ref == event.Repository.DefaultBranch {
-				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
-					ProjectName:      project.Name,
-					ProjectDir:       project.Dir,
-					ProjectWorkspace: project.Workspace,
-					Terragrunt:       project.Terragrunt,
-					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
-					CommandEnvVars:   commandEnvVars,
-					StateEnvVars:     stateEnvVars,
+				jobs = append(jobs, dg_models.Job{
+					ProjectName:       project.Name,
+					ProjectDir:        project.Dir,
+					ProjectWorkspace:  project.Workspace,
+					Terragrunt:        project.Terragrunt,
+					Commands:          workflow.Configuration.OnCommitToDefault,
+					ApplyStage:        workflow.Apply,
+					PlanStage:         workflow.Plan,
+					CommandEnvVars:    commandEnvVars,
+					StateEnvVars:      stateEnvVars,
+					PullRequestNumber: &event.PullRequest.Number,
+					EventName:         "pull_request",
+					RequestedBy:       parsedGhContext.Actor,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
-				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
-					ProjectName:      project.Name,
-					ProjectDir:       project.Dir,
-					ProjectWorkspace: project.Workspace,
-					Terragrunt:       project.Terragrunt,
-					Commands:         workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
-					CommandEnvVars:   commandEnvVars,
-					StateEnvVars:     stateEnvVars,
+				jobs = append(jobs, dg_models.Job{
+					ProjectName:       project.Name,
+					ProjectDir:        project.Dir,
+					ProjectWorkspace:  project.Workspace,
+					Terragrunt:        project.Terragrunt,
+					Commands:          workflow.Configuration.OnPullRequestPushed,
+					ApplyStage:        workflow.Apply,
+					PlanStage:         workflow.Plan,
+					CommandEnvVars:    commandEnvVars,
+					StateEnvVars:      stateEnvVars,
+					PullRequestNumber: &event.PullRequest.Number,
+					EventName:         "pull_request",
+					RequestedBy:       parsedGhContext.Actor,
 				})
 			} else if event.Action == "closed" {
-				commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
-					ProjectName:      project.Name,
-					ProjectDir:       project.Dir,
-					ProjectWorkspace: project.Workspace,
-					Terragrunt:       project.Terragrunt,
-					Commands:         workflow.Configuration.OnPullRequestClosed,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
-					CommandEnvVars:   commandEnvVars,
-					StateEnvVars:     stateEnvVars,
+				jobs = append(jobs, dg_models.Job{
+					ProjectName:       project.Name,
+					ProjectDir:        project.Dir,
+					ProjectWorkspace:  project.Workspace,
+					Terragrunt:        project.Terragrunt,
+					Commands:          workflow.Configuration.OnPullRequestClosed,
+					ApplyStage:        workflow.Apply,
+					PlanStage:         workflow.Plan,
+					CommandEnvVars:    commandEnvVars,
+					StateEnvVars:      stateEnvVars,
+					PullRequestNumber: &event.PullRequest.Number,
+					EventName:         "pull_request",
+					RequestedBy:       parsedGhContext.Actor,
 				})
 			}
 		}
-		return commandsPerProject, true, nil
+		return jobs, true, nil
 	case models.IssueCommentEvent:
-		event := event.(models.IssueCommentEvent)
+		event := parsedGhContext.Event.(models.IssueCommentEvent)
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
 		coversAllImpactedProjects := true
@@ -246,7 +255,7 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 				coversAllImpactedProjects = false
 				runForProjects = []configuration.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
-				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
+				return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
 		}
 
@@ -266,28 +275,31 @@ func ConvertGithubEventToCommands(event models.Event, impactedProjects []configu
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(event.Comment.Body)
 					if err != nil {
-						return []dg_models.ProjectCommand{}, false, err
+						return []dg_models.Job{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
-					commandsPerProject = append(commandsPerProject, dg_models.ProjectCommand{
-						ProjectName:      project.Name,
-						ProjectDir:       project.Dir,
-						ProjectWorkspace: workspace,
-						Terragrunt:       project.Terragrunt,
-						Commands:         []string{command},
-						ApplyStage:       workflow.Apply,
-						PlanStage:        workflow.Plan,
-						CommandEnvVars:   commandEnvVars,
-						StateEnvVars:     stateEnvVars,
+					jobs = append(jobs, dg_models.Job{
+						ProjectName:       project.Name,
+						ProjectDir:        project.Dir,
+						ProjectWorkspace:  workspace,
+						Terragrunt:        project.Terragrunt,
+						Commands:          []string{command},
+						ApplyStage:        workflow.Apply,
+						PlanStage:         workflow.Plan,
+						CommandEnvVars:    commandEnvVars,
+						StateEnvVars:      stateEnvVars,
+						PullRequestNumber: &event.Issue.Number,
+						EventName:         "issue_comment",
+						RequestedBy:       parsedGhContext.Actor,
 					})
 				}
 			}
 		}
-		return commandsPerProject, coversAllImpactedProjects, nil
+		return jobs, coversAllImpactedProjects, nil
 	default:
-		return []dg_models.ProjectCommand{}, false, fmt.Errorf("unsupported event type: %T", event)
+		return []dg_models.Job{}, false, fmt.Errorf("unsupported event type: %T", parsedGhContext.EventName)
 	}
 }
 

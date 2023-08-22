@@ -123,7 +123,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
 
-		projectCommand := models.ProjectCommand{
+		projectCommand := models.Job{
 			ProjectName:      project,
 			ProjectDir:       projectConfig.Dir,
 			ProjectWorkspace: projectConfig.Workspace,
@@ -133,8 +133,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			PlanStage:        workflow.Plan,
 			CommandEnvVars:   commandEnvVars,
 			StateEnvVars:     stateEnvVars,
+			EventName:        "manual_invocation",
 		}
-		err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, "manual_invocation", &githubPrService, policyChecker, planStorage, backendApi, currentDir)
+		err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -148,7 +149,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
-			projectCommand := models.ProjectCommand{
+			projectCommand := models.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
 				ProjectWorkspace: projectConfig.Workspace,
@@ -158,8 +159,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
+				EventName:        "drift-detect",
 			}
-			err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, "drift-detect", &githubPrService, policyChecker, nil, backendApi, currentDir)
+			err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, currentDir)
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
@@ -172,7 +174,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		println("GitHub context parsed successfully")
 
 		ghEvent := parsedGhContext.Event
-		eventName := parsedGhContext.EventName
 		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
@@ -192,12 +193,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, "No projects impacted", 0)
 		}
 
-		commandsToRunPerProject, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToCommands(ghEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+		jobs, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToCommands(parsedGhContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 		}
 		println("GitHub event converted to commands successfully")
-		logCommands(commandsToRunPerProject)
+		logCommands(jobs)
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
 
@@ -206,7 +207,10 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			PrNumber:       prNumber,
 			ReportStrategy: reportingStrategy,
 		}
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, parsedGhContext.Repository, githubActor, eventName, prNumber, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
+
+		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
+
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -293,7 +297,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 	println("GitLab event processed successfully")
 
-	commandsToRunPerProject, coversAllImpactedProjects, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, coversAllImpactedProjects, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		fmt.Printf("failed to convert event to command, %v", err)
 		os.Exit(7)
@@ -301,18 +305,18 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	println("GitLab event converted to commands successfully")
 
 	println("Digger commands to be executed:")
-	for _, v := range commandsToRunPerProject {
+	for _, v := range jobs {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
-	diggerProjectNamespace := gitLabContext.ProjectNamespace + "/" + gitLabContext.ProjectName
 	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, gitLabContext.MergeRequestIId)
 	reporter := &reporting.CiReporter{
 		CiService:      gitlabService,
 		PrNumber:       *gitLabContext.MergeRequestIId,
 		ReportStrategy: reportingStrategy,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, gitLabContext.GitlabUserName, gitLabContext.EventType.String(), *gitLabContext.MergeRequestIId, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
+	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 
 	if err != nil {
 		fmt.Printf("failed to execute command, %v", err)
@@ -387,26 +391,26 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	}
 	fmt.Println("Azure event processed successfully")
 
-	commandsToRunPerProject, coversAllImpactedProjects, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, coversAllImpactedProjects, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
 
 	}
-	fmt.Println(fmt.Sprintf("Azure event converted to commands successfully: %v", commandsToRunPerProject))
+	fmt.Println(fmt.Sprintf("Azure event converted to commands successfully: %v", jobs))
 
-	for _, v := range commandsToRunPerProject {
+	for _, v := range jobs {
 		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
 	var planStorage core_storage.PlanStorage
-	diggerProjectNamespace := parsedAzureContext.BaseUrl + "/" + parsedAzureContext.ProjectName
 
 	reporter := &reporting.CiReporter{
 		CiService:      azureService,
 		PrNumber:       prNumber,
 		ReportStrategy: reportingStrategy,
 	}
-	allAppliesSuccess, atLeastOneApply, err := digger.RunCommandsPerProject(commandsToRunPerProject, &dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber, azureService, azureService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
+	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -551,7 +555,7 @@ func logImpactedProjects(projects []configuration.Project, prNumber int) {
 	log.Print(logMessage)
 }
 
-func logCommands(projectCommands []models.ProjectCommand) {
+func logCommands(projectCommands []models.Job) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)
