@@ -124,16 +124,19 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
 
 		projectCommand := models.Job{
-			ProjectName:      project,
-			ProjectDir:       projectConfig.Dir,
-			ProjectWorkspace: projectConfig.Workspace,
-			Terragrunt:       projectConfig.Terragrunt,
-			Commands:         []string{command},
-			ApplyStage:       workflow.Apply,
-			PlanStage:        workflow.Plan,
-			CommandEnvVars:   commandEnvVars,
-			StateEnvVars:     stateEnvVars,
-			EventName:        "manual_invocation",
+			ProjectName:       project,
+			ProjectDir:        projectConfig.Dir,
+			ProjectWorkspace:  projectConfig.Workspace,
+			Terragrunt:        projectConfig.Terragrunt,
+			Commands:          []string{command},
+			ApplyStage:        workflow.Apply,
+			PlanStage:         workflow.Plan,
+			PullRequestNumber: nil,
+			EventName:         "manual_invocation",
+			RequestedBy:       githubActor,
+			Namespace:         ghRepository,
+			StateEnvVars:      stateEnvVars,
+			CommandEnvVars:    commandEnvVars,
 		}
 		err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, currentDir)
 		if err != nil {
@@ -159,6 +162,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				PlanStage:        workflow.Plan,
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
+				RequestedBy:      githubActor,
+				Namespace:        ghRepository,
 				EventName:        "drift-detect",
 			}
 			err := digger.RunCommandForProject(projectCommand, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, currentDir)
@@ -193,7 +198,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, "No projects impacted", 0)
 		}
 
-		jobs, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToCommands(parsedGhContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+		jobs, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToJobs(parsedGhContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 		}
