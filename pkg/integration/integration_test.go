@@ -395,7 +395,7 @@ func TestHappyPath(t *testing.T) {
 	//  new pr should lock the project
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err := dg_github.ConvertGithubEventToCommands(*parsedNewPullRequestContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err := dg_github.ConvertGithubEventToJobs(*parsedNewPullRequestContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	zipManager := utils.Zipper{}
 	planStorage := &storage.GithubPlanStorage{
@@ -437,7 +437,7 @@ func TestHappyPath(t *testing.T) {
 	// 'digger plan' comment should trigger terraform execution
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = dg_github.ConvertGithubEventToCommands(*parsedNewPullRequestContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedNewPullRequestContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
@@ -450,7 +450,7 @@ func TestHappyPath(t *testing.T) {
 	// 'digger apply' comment should trigger terraform execution and unlock the project
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = dg_github.ConvertGithubEventToCommands(*parsedDiggerApplyCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedDiggerApplyCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
@@ -473,7 +473,7 @@ func TestHappyPath(t *testing.T) {
 
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = dg_github.ConvertGithubEventToCommands(*parsedDiggerUnlockCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedDiggerUnlockCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
@@ -551,7 +551,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	// no files changed, no locks
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err := dg_github.ConvertGithubEventToCommands(*parsedNewPullRequestContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err := dg_github.ConvertGithubEventToJobs(*parsedNewPullRequestContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 
 	zipManager := utils.Zipper{}
@@ -567,7 +567,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		CiService: &githubPrService,
 		PrNumber:  prNumber,
 	}
-	_, _, err = digger.RunJobs(commandsToRunPerProject, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, nil, dir)
+	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock := &locking.PullRequestLock{
@@ -590,9 +590,9 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	// 'digger plan' comment should trigger terraform execution
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(*parsedDiggerPlanCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedDiggerPlanCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(commandsToRunPerProject, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, nil, dir)
+	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -603,9 +603,9 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	// 'digger apply' comment should trigger terraform execution and unlock the project
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(*parsedDiggerApplyCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedDiggerApplyCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(commandsToRunPerProject, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, nil, dir)
+	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -626,9 +626,9 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	commandsToRunPerProject, _, err = dg_github.ConvertGithubEventToCommands(*parsedDiggerUnlockCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedDiggerUnlockCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(commandsToRunPerProject, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, nil, dir)
+	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -768,7 +768,7 @@ workflows:
 	//  new pr should lock the project
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err := dg_github.ConvertGithubEventToCommands(*parsedNewPullRequestContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err := dg_github.ConvertGithubEventToJobs(*parsedNewPullRequestContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 
 	zipManager := utils.Zipper{}
@@ -808,7 +808,7 @@ workflows:
 	// 'digger plan' comment should trigger terraform execution
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = dg_github.ConvertGithubEventToCommands(*parsedDiggerPlanCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedDiggerPlanCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
@@ -821,7 +821,7 @@ workflows:
 	// 'digger apply' comment should trigger terraform execution and unlock the project
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = dg_github.ConvertGithubEventToCommands(*parsedDiggerApplyCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedDiggerApplyCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)
@@ -843,7 +843,7 @@ workflows:
 
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = dg_github.ConvertGithubEventToCommands(*parsedDiggerUnlockCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err = dg_github.ConvertGithubEventToJobs(*parsedDiggerUnlockCommentContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, nil, dir)
 	assert.NoError(t, err)

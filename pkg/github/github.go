@@ -180,7 +180,7 @@ func GetGitHubContext(ghContext string) (*models.Github, error) {
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToCommands(parsedGhContext models.Github, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.Job, bool, error) {
+func ConvertGithubEventToJobs(parsedGhContext models.Github, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.Job, bool, error) {
 	jobs := make([]dg_models.Job, 0)
 
 	switch parsedGhContext.Event.(type) {
@@ -208,6 +208,7 @@ func ConvertGithubEventToCommands(parsedGhContext models.Github, impactedProject
 					PullRequestNumber: &event.PullRequest.Number,
 					EventName:         "pull_request",
 					RequestedBy:       parsedGhContext.Actor,
+					Namespace:         parsedGhContext.Repository,
 				})
 			} else if event.Action == "opened" || event.Action == "reopened" || event.Action == "synchronize" {
 				jobs = append(jobs, dg_models.Job{
@@ -222,6 +223,7 @@ func ConvertGithubEventToCommands(parsedGhContext models.Github, impactedProject
 					StateEnvVars:      stateEnvVars,
 					PullRequestNumber: &event.PullRequest.Number,
 					EventName:         "pull_request",
+					Namespace:         parsedGhContext.Repository,
 					RequestedBy:       parsedGhContext.Actor,
 				})
 			} else if event.Action == "closed" {
@@ -237,6 +239,7 @@ func ConvertGithubEventToCommands(parsedGhContext models.Github, impactedProject
 					StateEnvVars:      stateEnvVars,
 					PullRequestNumber: &event.PullRequest.Number,
 					EventName:         "pull_request",
+					Namespace:         parsedGhContext.Repository,
 					RequestedBy:       parsedGhContext.Actor,
 				})
 			}
@@ -293,6 +296,7 @@ func ConvertGithubEventToCommands(parsedGhContext models.Github, impactedProject
 						PullRequestNumber: &event.Issue.Number,
 						EventName:         "issue_comment",
 						RequestedBy:       parsedGhContext.Actor,
+						Namespace:         parsedGhContext.Repository,
 					})
 				}
 			}
