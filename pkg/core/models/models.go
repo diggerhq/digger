@@ -1,19 +1,19 @@
 package models
 
 type Job struct {
-	ProjectName       string
-	ProjectDir        string
-	ProjectWorkspace  string
-	Terragrunt        bool
-	Commands          []string
-	ApplyStage        *Stage
-	PlanStage         *Stage
-	PullRequestNumber *int
-	EventName         string
-	RequestedBy       string
-	Namespace         string
-	StateEnvVars      map[string]string
-	CommandEnvVars    map[string]string
+	ProjectName       string            `json:"projectName"`
+	ProjectDir        string            `json:"projectDir"`
+	ProjectWorkspace  string            `json:"projectWorkspace"`
+	Terragrunt        bool              `json:"terragrunt"`
+	Commands          []string          `json:"commands"`
+	ApplyStage        *Stage            `json:"applyStage"`
+	PlanStage         *Stage            `json:"planStage"`
+	PullRequestNumber *int              `json:"pullRequestNumber"`
+	EventName         string            `json:"eventName"`
+	RequestedBy       string            `json:"requestedBy"`
+	Namespace         string            `json:"namespace"`
+	StateEnvVars      map[string]string `json:"stateEnvVars"`
+	CommandEnvVars    map[string]string `json:"commandEnvVars"`
 }
 
 type Step struct {
