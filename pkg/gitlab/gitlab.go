@@ -276,8 +276,8 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
-	commandsPerProject := make([]models.ProjectCommand, 0)
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.Job, bool, error) {
+	jobs := make([]models.Job, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
@@ -289,19 +289,23 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
-				ProjectName:      project.Name,
-				ProjectDir:       project.Dir,
-				ProjectWorkspace: project.Workspace,
-				Terragrunt:       project.Terragrunt,
-				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
+			jobs = append(jobs, models.Job{
+				ProjectName:       project.Name,
+				ProjectDir:        project.Dir,
+				ProjectWorkspace:  project.Workspace,
+				Terragrunt:        project.Terragrunt,
+				Commands:          workflow.Configuration.OnPullRequestPushed,
+				ApplyStage:        workflow.Apply,
+				PlanStage:         workflow.Plan,
+				PullRequestNumber: gitLabContext.MergeRequestIId,
+				EventName:         gitLabContext.EventType.String(),
+				RequestedBy:       gitLabContext.GitlabUserName,
+				Namespace:         gitLabContext.ProjectNamespace,
+				StateEnvVars:      stateEnvVars,
+				CommandEnvVars:    commandEnvVars,
 			})
 		}
-		return commandsPerProject, true, nil
+		return jobs, true, nil
 	case MergeRequestClosed, MergeRequestMerged:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
@@ -309,19 +313,23 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
-				ProjectName:      project.Name,
-				ProjectDir:       project.Dir,
-				ProjectWorkspace: project.Workspace,
-				Terragrunt:       project.Terragrunt,
-				Commands:         workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
+			jobs = append(jobs, models.Job{
+				ProjectName:       project.Name,
+				ProjectDir:        project.Dir,
+				ProjectWorkspace:  project.Workspace,
+				Terragrunt:        project.Terragrunt,
+				Commands:          workflow.Configuration.OnPullRequestClosed,
+				ApplyStage:        workflow.Apply,
+				PlanStage:         workflow.Plan,
+				PullRequestNumber: gitLabContext.MergeRequestIId,
+				EventName:         gitLabContext.EventType.String(),
+				RequestedBy:       gitLabContext.GitlabUserName,
+				Namespace:         gitLabContext.ProjectNamespace,
+				StateEnvVars:      stateEnvVars,
+				CommandEnvVars:    commandEnvVars,
 			})
 		}
-		return commandsPerProject, true, nil
+		return jobs, true, nil
 	case MergeRequestComment:
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
@@ -334,7 +342,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				coversAllImpactedProjects = false
 				runForProjects = []configuration.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
-				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
+				return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
 		}
 
@@ -350,29 +358,33 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
 					if err != nil {
-						return []models.ProjectCommand{}, false, err
+						return []models.Job{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
 					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
-						ProjectName:      project.Name,
-						ProjectDir:       project.Dir,
-						ProjectWorkspace: workspace,
-						Terragrunt:       project.Terragrunt,
-						Commands:         []string{command},
-						ApplyStage:       workflow.Apply,
-						PlanStage:        workflow.Plan,
-						CommandEnvVars:   commandEnvVars,
-						StateEnvVars:     stateEnvVars,
+					jobs = append(jobs, models.Job{
+						ProjectName:       project.Name,
+						ProjectDir:        project.Dir,
+						ProjectWorkspace:  workspace,
+						Terragrunt:        project.Terragrunt,
+						Commands:          []string{command},
+						ApplyStage:        workflow.Apply,
+						PlanStage:         workflow.Plan,
+						PullRequestNumber: gitLabContext.MergeRequestIId,
+						EventName:         gitLabContext.EventType.String(),
+						RequestedBy:       gitLabContext.GitlabUserName,
+						Namespace:         gitLabContext.ProjectNamespace,
+						StateEnvVars:      stateEnvVars,
+						CommandEnvVars:    commandEnvVars,
 					})
 				}
 			}
 		}
-		return commandsPerProject, coversAllImpactedProjects, nil
+		return jobs, coversAllImpactedProjects, nil
 
 	default:
-		return []models.ProjectCommand{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
+		return []models.Job{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
 }
