@@ -373,10 +373,10 @@ func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, comm
 }
 
 func TestSortedCommandByDependency(t *testing.T) {
-	//	commandsPerProject []models.ProjectCommand,
+	//	jobs []models.Job,
 	//	dependencyGraph *graph.Graph[string, string],
 
-	commandsPerProject := []models.ProjectCommand{
+	jobs := []models.Job{
 		{
 			ProjectName: "project1",
 			Commands: []string{
@@ -414,7 +414,7 @@ func TestSortedCommandByDependency(t *testing.T) {
 	dependencyGraph.AddEdge("project3", "project2")
 	dependencyGraph.AddEdge("project4", "project1")
 
-	sortedCommands := SortedCommandsByDependency(commandsPerProject, &dependencyGraph)
+	sortedCommands := SortedCommandsByDependency(jobs, &dependencyGraph)
 
 	assert.Equal(t, "project3", sortedCommands[0].ProjectName)
 	assert.Equal(t, "project4", sortedCommands[1].ProjectName)
