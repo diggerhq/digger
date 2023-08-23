@@ -186,6 +186,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			jobsJson := wdEvent.Inputs["jobs"]
 
+			fmt.Printf("Jobs: %s\n", jobsJson)
+
 			err := json.Unmarshal([]byte(jobsJson), &jobs)
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
