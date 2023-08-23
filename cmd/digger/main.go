@@ -182,7 +182,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		ghEvent := parsedGhContext.Event
 
 		if wdEvent, ok := ghEvent.(github_models.WorkflowDispatchEvent); ok {
-			jobs := make([]models.Job, 0)
+			var jobs []models.Job
 
 			jobsJson := wdEvent.Inputs["jobs"]
 
