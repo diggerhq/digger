@@ -393,8 +393,9 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 	return impactedProjects, nil, prNumber, nil
 }
 
-func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.ProjectCommand, bool, error) {
-	commandsPerProject := make([]models.ProjectCommand, 0)
+func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.Job, bool, error) {
+	jobs := make([]models.Job, 0)
+	//&dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber,
 	switch parseAzureContext.EventType {
 	case AzurePrCreated, AzurePrUpdated, AzurePrReopened:
 		for _, project := range impactedProjects {
@@ -403,20 +404,25 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
+			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
-				ProjectName:      project.Name,
-				ProjectDir:       project.Dir,
-				ProjectWorkspace: project.Workspace,
-				Terragrunt:       project.Terragrunt,
-				Commands:         workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
+			jobs = append(jobs, models.Job{
+				ProjectName:       project.Name,
+				ProjectDir:        project.Dir,
+				ProjectWorkspace:  project.Workspace,
+				Terragrunt:        project.Terragrunt,
+				Commands:          workflow.Configuration.OnPullRequestPushed,
+				ApplyStage:        workflow.Apply,
+				PlanStage:         workflow.Plan,
+				PullRequestNumber: &prNumber,
+				EventName:         parseAzureContext.EventType,
+				RequestedBy:       parseAzureContext.BaseUrl,
+				Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
+				StateEnvVars:      stateEnvVars,
+				CommandEnvVars:    commandEnvVars,
 			})
 		}
-		return commandsPerProject, true, nil
+		return jobs, true, nil
 	case AzurePrClosed:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
@@ -424,21 +430,27 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
+			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-			commandsPerProject = append(commandsPerProject, models.ProjectCommand{
-				ProjectName:      project.Name,
-				ProjectDir:       project.Dir,
-				ProjectWorkspace: project.Workspace,
-				Terragrunt:       project.Terragrunt,
-				Commands:         workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
+			jobs = append(jobs, models.Job{
+				ProjectName:       project.Name,
+				ProjectDir:        project.Dir,
+				ProjectWorkspace:  project.Workspace,
+				Terragrunt:        project.Terragrunt,
+				Commands:          workflow.Configuration.OnPullRequestClosed,
+				ApplyStage:        workflow.Apply,
+				PlanStage:         workflow.Plan,
+				PullRequestNumber: &prNumber,
+				EventName:         parseAzureContext.EventType,
+				RequestedBy:       parseAzureContext.BaseUrl,
+				Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
+				StateEnvVars:      stateEnvVars,
+				CommandEnvVars:    commandEnvVars,
 			})
 		}
-		return commandsPerProject, true, nil
+		return jobs, true, nil
 	case AzurePrMerged:
+		prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 		if parseAzureContext.Event.(AzurePrEvent).Resource.Repository.Status == "completed" {
 			for _, project := range impactedProjects {
 				workflow, ok := workflows[project.Workflow]
@@ -446,32 +458,37 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 				}
 				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-				commandsPerProject = append(commandsPerProject, models.ProjectCommand{
-					ProjectName:      project.Name,
-					ProjectDir:       project.Dir,
-					ProjectWorkspace: project.Workspace,
-					Terragrunt:       project.Terragrunt,
-					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       workflow.Apply,
-					PlanStage:        workflow.Plan,
-					CommandEnvVars:   commandEnvVars,
-					StateEnvVars:     stateEnvVars,
+				jobs = append(jobs, models.Job{
+					ProjectName:       project.Name,
+					ProjectDir:        project.Dir,
+					ProjectWorkspace:  project.Workspace,
+					Terragrunt:        project.Terragrunt,
+					Commands:          workflow.Configuration.OnCommitToDefault,
+					ApplyStage:        workflow.Apply,
+					PlanStage:         workflow.Plan,
+					PullRequestNumber: &prNumber,
+					EventName:         parseAzureContext.EventType,
+					RequestedBy:       parseAzureContext.BaseUrl,
+					Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
+					StateEnvVars:      stateEnvVars,
+					CommandEnvVars:    commandEnvVars,
 				})
 			}
-			return commandsPerProject, true, nil
+			return jobs, true, nil
 		}
-		return commandsPerProject, true, nil
+		return jobs, true, nil
 	case AzurePrCommented:
 		diggerCommand := strings.ToLower(parseAzureContext.Event.(AzureCommentEvent).Resource.Comment.Content)
 		coversAllImpactedProjects := true
 		runForProjects := impactedProjects
 
+		prNumber := parseAzureContext.Event.(AzureCommentEvent).Resource.PullRequest.PullRequestId
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
 				runForProjects = []configuration.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
-				return commandsPerProject, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
+				return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
 		}
 
@@ -482,7 +499,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
 					if err != nil {
-						return []models.ProjectCommand{}, coversAllImpactedProjects, err
+						return []models.Job{}, coversAllImpactedProjects, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
@@ -493,21 +510,27 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					}
 					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
-					commandsPerProject = append(commandsPerProject, models.ProjectCommand{
-						ProjectName:      project.Name,
-						ProjectDir:       project.Dir,
-						ProjectWorkspace: workspace,
-						Terragrunt:       project.Terragrunt,
-						Commands:         []string{command},
-						CommandEnvVars:   commandEnvVars,
-						StateEnvVars:     stateEnvVars,
+					jobs = append(jobs, models.Job{
+						ProjectName:       project.Name,
+						ProjectDir:        project.Dir,
+						ProjectWorkspace:  workspace,
+						Terragrunt:        project.Terragrunt,
+						Commands:          []string{command},
+						ApplyStage:        workflow.Apply,
+						PlanStage:         workflow.Plan,
+						PullRequestNumber: &prNumber,
+						EventName:         parseAzureContext.EventType,
+						RequestedBy:       parseAzureContext.BaseUrl,
+						Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
+						StateEnvVars:      stateEnvVars,
+						CommandEnvVars:    commandEnvVars,
 					})
 				}
 			}
 		}
-		return commandsPerProject, coversAllImpactedProjects, nil
+		return jobs, coversAllImpactedProjects, nil
 
 	default:
-		return []models.ProjectCommand{}, true, fmt.Errorf("unsupported Azure event type: %v", parseAzureContext.EventType)
+		return []models.Job{}, true, fmt.Errorf("unsupported Azure event type: %v", parseAzureContext.EventType)
 	}
 }
