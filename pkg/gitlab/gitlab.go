@@ -2,10 +2,10 @@ package gitlab
 
 import (
 	"digger/pkg/ci"
-	"digger/pkg/configuration"
 	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"fmt"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"log"
 	"strings"
 
