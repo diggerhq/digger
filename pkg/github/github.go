@@ -3,12 +3,12 @@ package github
 import (
 	"context"
 	"digger/pkg/ci"
-	"digger/pkg/configuration"
 	dg_models "digger/pkg/core/models"
 	"digger/pkg/github/models"
 	"digger/pkg/utils"
 	"encoding/json"
 	"fmt"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"log"
 	"strings"
 
