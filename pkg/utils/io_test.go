@@ -3,6 +3,7 @@ package utils
 import (
 	"archive/zip"
 	"bytes"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -87,7 +88,7 @@ func TestNormalizeFileName(t *testing.T) {
 		{"./my/directory", "/my/directory"},
 	}
 	for _, tt := range normTests {
-		res := NormalizeFileName(tt.input)
+		res := configuration.NormalizeFileName(tt.input)
 		assert.Equal(t, tt.expectedOutput, res)
 	}
 }
@@ -111,7 +112,7 @@ func TestMatchIncludeExcludePatternsToFile(t *testing.T) {
 		{"modules/moduleA/main.tf", []string{""}, []string{""}, false},
 	}
 	for _, tt := range normTests {
-		res := MatchIncludeExcludePatternsToFile(tt.fileToMatch, tt.includePatterns, tt.excludePatterns)
+		res := configuration.MatchIncludeExcludePatternsToFile(tt.fileToMatch, tt.includePatterns, tt.excludePatterns)
 		assert.Equal(t, tt.expectedResult, res)
 	}
 }
