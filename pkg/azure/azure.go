@@ -3,12 +3,12 @@ package azure
 import (
 	"context"
 	"digger/pkg/ci"
-	"digger/pkg/configuration"
 	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 	"strings"
