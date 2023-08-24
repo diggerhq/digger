@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"digger/pkg/aws"
-	"digger/pkg/configuration"
 	"digger/pkg/core/terraform"
 	"digger/pkg/digger"
 	dg_github "digger/pkg/github"
@@ -11,6 +10,7 @@ import (
 	"digger/pkg/reporting"
 	"digger/pkg/storage"
 	"digger/pkg/utils"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"log"
 	"math/rand"
 	"os"
