@@ -6,14 +6,14 @@ import (
 	"digger/pkg/core/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"github.com/dominikbraun/graph"
+	"github.com/stretchr/testify/assert"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type RunInfo struct {
@@ -216,8 +216,8 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{
-		ApplyStage: &models.Stage{
-			Steps: []models.Step{
+		ApplyStage: &configuration.Stage{
+			Steps: []configuration.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -235,7 +235,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 				},
 			},
 		},
-		PlanStage:         &models.Stage{},
+		PlanStage:         &configuration.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
@@ -264,8 +264,8 @@ func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{
-		ApplyStage: &models.Stage{
-			Steps: []models.Step{
+		ApplyStage: &configuration.Stage{
+			Steps: []configuration.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -278,7 +278,7 @@ func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
 				},
 			},
 		},
-		PlanStage:         &models.Stage{},
+		PlanStage:         &configuration.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
@@ -305,9 +305,9 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 	planPathProvider := &MockPlanPathProvider{}
 
 	executor := execution.DiggerExecutor{
-		ApplyStage: &models.Stage{},
-		PlanStage: &models.Stage{
-			Steps: []models.Step{
+		ApplyStage: &configuration.Stage{},
+		PlanStage: &configuration.Stage{
+			Steps: []configuration.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,

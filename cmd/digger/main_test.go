@@ -1,14 +1,13 @@
 package main
 
 import (
-	"digger/pkg/configuration"
-	"digger/pkg/core/models"
 	"digger/pkg/digger"
 	"digger/pkg/github"
 	gh_models "digger/pkg/github/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -940,11 +939,11 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	prod := configuration.Project{Name: "prod", Dir: "prod", Workflow: "prod"}
 	workflows := map[string]configuration.Workflow{
 		"dev": {
-			Plan: &models.Stage{Steps: []models.Step{
+			Plan: &configuration.Stage{Steps: []configuration.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &models.Stage{Steps: []models.Step{
+			Apply: &configuration.Stage{Steps: []configuration.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
@@ -955,11 +954,11 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 			},
 		},
 		"prod": {
-			Plan: &models.Stage{Steps: []models.Step{
+			Plan: &configuration.Stage{Steps: []configuration.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "plan", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
-			Apply: &models.Stage{Steps: []models.Step{
+			Apply: &configuration.Stage{Steps: []configuration.Step{
 				{Action: "init", ExtraArgs: []string{}},
 				{Action: "apply", ExtraArgs: []string{"-var-file=dev.tfvars"}},
 			}},
