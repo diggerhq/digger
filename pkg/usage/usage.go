@@ -3,10 +3,10 @@ package usage
 import (
 	"bytes"
 	"crypto/sha256"
-	"digger/pkg/configuration"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"log"
 	"net/http"
 	"os"
