@@ -1,9 +1,10 @@
 package main
 
 import (
+	"digger/pkg/core/orchestrator/github"
+	gh_models "digger/pkg/core/orchestrator/github/models"
 	"digger/pkg/digger"
 	"digger/pkg/github"
-	gh_models "digger/pkg/github/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
@@ -865,7 +866,7 @@ var githubInvalidContextJson = `{
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
 
-	context, err := github.GetGitHubContext(githubContextNewPullRequestJson)
+	context, err := models.GetGitHubContext(githubContextNewPullRequestJson)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -931,7 +932,7 @@ func TestInvalidGitHubContext(t *testing.T) {
 }
 
 func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
-	context, err := github.GetGitHubContext(githubContextNewPullRequestJson)
+	context, err := models.GetGitHubContext(githubContextNewPullRequestJson)
 	assert.NoError(t, err)
 	ghEvent := context.Event
 	pullRequestNumber := 11
@@ -996,7 +997,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
 
-	jobs, _, err := github.ConvertGithubEventToJobs(gh_models.Github{Event: ghEvent}, impactedProjects, &requestedProject, workflows)
+	jobs, _, err := github.ConvertGithubEventToJobs(gh_models.GithubAction{Event: ghEvent}, impactedProjects, &requestedProject, workflows)
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])

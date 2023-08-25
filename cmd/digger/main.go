@@ -6,12 +6,10 @@ import (
 	"digger/pkg/backend"
 	core_backend "digger/pkg/core/backend"
 	core_locking "digger/pkg/core/locking"
-	"digger/pkg/core/models"
 	core_policy "digger/pkg/core/policy"
 	core_storage "digger/pkg/core/storage"
 	"digger/pkg/digger"
 	"digger/pkg/gcp"
-	dg_github "digger/pkg/github"
 	github_models "digger/pkg/github/models"
 	"digger/pkg/gitlab"
 	"digger/pkg/locking"
@@ -22,6 +20,8 @@ import (
 	"digger/pkg/utils"
 	"fmt"
 	configuration "github.com/diggerhq/lib-digger-config"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
+	dg_github "github.com/diggerhq/lib-orchestrator/github"
 	"gopkg.in/yaml.v3"
 	"log"
 	"net/http"
@@ -123,14 +123,14 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
 
-		jobs := models.Job{
+		jobs := orchestrator.Job{
 			ProjectName:       project,
 			ProjectDir:        projectConfig.Dir,
 			ProjectWorkspace:  projectConfig.Workspace,
 			Terragrunt:        projectConfig.Terragrunt,
 			Commands:          []string{command},
-			ApplyStage:        workflow.Apply,
-			PlanStage:         workflow.Plan,
+			ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+			PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 			PullRequestNumber: nil,
 			EventName:         "manual_invocation",
 			RequestedBy:       githubActor,
@@ -152,14 +152,14 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
-			job := models.Job{
+			job := orchestrator.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
 				ProjectWorkspace: projectConfig.Workspace,
 				Terragrunt:       projectConfig.Terragrunt,
 				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       workflow.Apply,
-				PlanStage:        workflow.Plan,
+				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 				RequestedBy:      githubActor,
@@ -172,7 +172,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			}
 		}
 	} else {
-		parsedGhContext, err := github_models.GetGitHubContext(ghContext)
+		parsedGhActionContext, err := github_models.GetGitHubContext(ghContext)
+		parsedGhContext := parsedGhActionContext.ToEventPackage()
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 		}
@@ -560,7 +561,7 @@ func logImpactedProjects(projects []configuration.Project, prNumber int) {
 	log.Print(logMessage)
 }
 
-func logCommands(projectCommands []models.Job) {
+func logCommands(projectCommands []orchestrator.Job) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)
