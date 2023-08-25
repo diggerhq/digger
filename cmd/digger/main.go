@@ -6,14 +6,14 @@ import (
 	"digger/pkg/backend"
 	"digger/pkg/configuration"
 	core_backend "digger/pkg/core/backend"
+	dg_github "digger/pkg/core/lib-orchestrator/github"
+	github_models "digger/pkg/core/lib-orchestrator/github/models"
 	core_locking "digger/pkg/core/locking"
 	"digger/pkg/core/models"
 	core_policy "digger/pkg/core/policy"
 	core_storage "digger/pkg/core/storage"
 	"digger/pkg/digger"
 	"digger/pkg/gcp"
-	dg_github "digger/pkg/github"
-	github_models "digger/pkg/github/models"
 	"digger/pkg/gitlab"
 	"digger/pkg/locking"
 	"digger/pkg/policy"
@@ -179,7 +179,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		println("GitHub context parsed successfully")
 
 		ghEvent := parsedGhContext.Event
-		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
+		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubActionEvent(ghEvent, diggerConfig, &githubPrService)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 		}

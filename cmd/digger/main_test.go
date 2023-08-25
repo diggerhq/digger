@@ -2,10 +2,10 @@ package main
 
 import (
 	"digger/pkg/configuration"
+	"digger/pkg/core/lib-orchestrator/github"
+	gh_models "digger/pkg/core/lib-orchestrator/github/models"
 	"digger/pkg/core/models"
 	"digger/pkg/digger"
-	"digger/pkg/github"
-	gh_models "digger/pkg/github/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
@@ -880,7 +880,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	policyChecker := &utils.MockPolicyChecker{}
 	backendApi := &utils.MockBackendApi{}
 
-	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubActionEvent(ghEvent, &diggerConfig, prManager)
 
 	reporter := &reporting.CiReporter{
 		CiService: prManager,
@@ -906,7 +906,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
-	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubActionEvent(ghEvent, &diggerConfig, prManager)
 	reporter := &reporting.CiReporter{
 		CiService: prManager,
 		PrNumber:  prNumber,
@@ -976,7 +976,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	lock := &utils.MockLock{}
-	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubActionEvent(ghEvent, &diggerConfig, prManager)
 	assert.NoError(t, err)
 	jobs, _, err := github.ConvertGithubEventToJobs(*context, impactedProjects, requestedProject, workflows)
 	spew.Dump(lock.MapLock)
@@ -986,7 +986,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 }
 
 func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
-	ghEvent := gh_models.IssueCommentEvent{}
+	ghEvent := gh_models.IssueCommentActionEvent{}
 	ghEvent.Comment.Body = "DiGGeR PlAn"
 
 	project := configuration.Project{Name: "test project", Workflow: "default"}
@@ -997,7 +997,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
 
-	jobs, _, err := github.ConvertGithubEventToJobs(gh_models.Github{Event: ghEvent}, impactedProjects, &requestedProject, workflows)
+	jobs, _, err := github.ConvertGithubEventToJobs(gh_models.GithubAction{Event: ghEvent}, impactedProjects, &requestedProject, workflows)
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])

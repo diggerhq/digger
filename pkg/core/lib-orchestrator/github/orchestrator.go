@@ -4,8 +4,8 @@ import (
 	"context"
 	"digger/pkg/ci"
 	"digger/pkg/configuration"
+	"digger/pkg/core/lib-orchestrator/github/models"
 	dg_models "digger/pkg/core/models"
-	"digger/pkg/github/models"
 	"digger/pkg/utils"
 	"encoding/json"
 	"fmt"
@@ -171,21 +171,21 @@ func (svc *GithubService) IsClosed(prNumber int) (bool, error) {
 	return pr.GetState() == "closed", nil
 }
 
-func GetGitHubContext(ghContext string) (*models.Github, error) {
-	parsedGhContext := new(models.Github)
+func GetGitHubContext(ghContext string) (*models.GithubAction, error) {
+	parsedGhContext := new(models.GithubAction)
 	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
 	if err != nil {
-		return &models.Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
+		return &models.GithubAction{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
 	}
 	return parsedGhContext, nil
 }
 
-func ConvertGithubEventToJobs(parsedGhContext models.Github, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.Job, bool, error) {
+func ConvertGithubEventToJobs(parsedGhContext models.GithubAction, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]dg_models.Job, bool, error) {
 	jobs := make([]dg_models.Job, 0)
 
 	switch parsedGhContext.Event.(type) {
-	case models.PullRequestEvent:
-		event := parsedGhContext.Event.(models.PullRequestEvent)
+	case models.PullRequestActionEvent:
+		event := parsedGhContext.Event.(models.PullRequestActionEvent)
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
@@ -245,8 +245,8 @@ func ConvertGithubEventToJobs(parsedGhContext models.Github, impactedProjects []
 			}
 		}
 		return jobs, true, nil
-	case models.IssueCommentEvent:
-		event := parsedGhContext.Event.(models.IssueCommentEvent)
+	case models.IssueCommentActionEvent:
+		event := parsedGhContext.Event.(models.IssueCommentActionEvent)
 		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
 		coversAllImpactedProjects := true
@@ -307,13 +307,13 @@ func ConvertGithubEventToJobs(parsedGhContext models.Github, impactedProjects []
 	}
 }
 
-func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.PullRequestService) ([]configuration.Project, *configuration.Project, int, error) {
+func ProcessGitHubActionEvent(ghEvent models.Event, diggerConfig *configuration.DiggerConfig, ciService ci.PullRequestService) ([]configuration.Project, *configuration.Project, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
 
 	switch ghEvent.(type) {
-	case models.PullRequestEvent:
-		prNumber = ghEvent.(models.PullRequestEvent).PullRequest.Number
+	case models.PullRequestActionEvent:
+		prNumber = ghEvent.(models.PullRequestActionEvent).PullRequest.Number
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
@@ -321,8 +321,8 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-	case models.IssueCommentEvent:
-		prNumber = ghEvent.(models.IssueCommentEvent).Issue.Number
+	case models.IssueCommentActionEvent:
+		prNumber = ghEvent.(models.IssueCommentActionEvent).Issue.Number
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
@@ -330,7 +330,7 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-		requestedProject := utils.ParseProjectName(ghEvent.(models.IssueCommentEvent).Comment.Body)
+		requestedProject := utils.ParseProjectName(ghEvent.(models.IssueCommentActionEvent).Comment.Body)
 
 		if requestedProject == "" {
 			return impactedProjects, nil, prNumber, nil
@@ -351,8 +351,8 @@ func ProcessGitHubEvent(ghEvent models.Event, diggerConfig *configuration.Digger
 
 func issueCommentEventContainsComment(event models.Event, comment string) bool {
 	switch event.(type) {
-	case models.IssueCommentEvent:
-		event := event.(models.IssueCommentEvent)
+	case models.IssueCommentActionEvent:
+		event := event.(models.IssueCommentActionEvent)
 		if strings.Contains(event.Comment.Body, comment) {
 			return true
 		}

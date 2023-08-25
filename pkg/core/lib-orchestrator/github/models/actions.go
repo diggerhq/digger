@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-type Github struct {
+type GithubAction struct {
 	Action           string `json:"action"`
 	ActionPath       string `json:"action_path"`
 	ActionRef        string `json:"action_ref"`
@@ -24,10 +24,8 @@ type Github struct {
 	RepositoryOwner  string `json:"repository_owner"`
 }
 
-type Event interface{}
-
-func (g *Github) UnmarshalJSON(data []byte) error {
-	type Alias Github
+func (g *GithubAction) UnmarshalJSON(data []byte) error {
+	type Alias GithubAction
 	aux := struct {
 		*Alias
 	}{
@@ -49,13 +47,13 @@ func (g *Github) UnmarshalJSON(data []byte) error {
 
 	switch g.EventName {
 	case "pull_request":
-		var event PullRequestEvent
+		var event PullRequestActionEvent
 		if err := json.Unmarshal(rawEvent, &event); err != nil {
 			return err
 		}
 		g.Event = event
 	case "issue_comment":
-		var event IssueCommentEvent
+		var event IssueCommentActionEvent
 		if err := json.Unmarshal(rawEvent, &event); err != nil {
 			return err
 		}
@@ -67,7 +65,7 @@ func (g *Github) UnmarshalJSON(data []byte) error {
 		}
 		g.Event = event
 	case "workflow_dispatch":
-		var event WorkflowDispatchEvent
+		var event WorkflowDispatchActionEvent
 		if err := json.Unmarshal(rawEvent, &event); err != nil {
 			return err
 		}
@@ -79,7 +77,7 @@ func (g *Github) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type PullRequestEvent struct {
+type PullRequestActionEvent struct {
 	Action      string      `json:"action"`
 	Number      int         `json:"number"`
 	PullRequest PullRequest `json:"pull_request"`
@@ -95,37 +93,21 @@ type PullRequest struct {
 type PushEvent struct {
 }
 
-type IssueCommentEvent struct {
+type IssueCommentActionEvent struct {
 	Action  string  `json:"action"`
 	Comment Comment `json:"comment"`
 	Issue   Issue   `json:"issue"`
 }
 
-type WorkflowDispatchEvent struct {
+type WorkflowDispatchActionEvent struct {
 	Inputs map[string]string `json:"inputs"`
 }
 
-type Base struct {
-	Ref string `json:"ref"`
-}
-
-type Comment struct {
-	Body string `json:"body"`
-}
-
-type Issue struct {
-	Number int `json:"number"`
-}
-
-type Repository struct {
-	DefaultBranch string `json:"default_branch"`
-}
-
-func GetGitHubContext(ghContext string) (Github, error) {
-	var parsedGhContext Github
+func GetGitHubContext(ghContext string) (GithubAction, error) {
+	var parsedGhContext GithubAction
 	err := json.Unmarshal([]byte(ghContext), &parsedGhContext)
 	if err != nil {
-		return Github{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
+		return GithubAction{}, fmt.Errorf("error parsing GitHub context JSON: %v", err)
 	}
 	return parsedGhContext, nil
 }
