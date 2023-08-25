@@ -9,6 +9,7 @@ import (
 	"digger/pkg/core/utils"
 	"fmt"
 	configuration "github.com/diggerhq/lib-digger-config"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"log"
 	"os"
 	"path"
@@ -90,8 +91,8 @@ type DiggerExecutor struct {
 	ProjectPath       string
 	StateEnvVars      map[string]string
 	CommandEnvVars    map[string]string
-	ApplyStage        *configuration.Stage
-	PlanStage         *configuration.Stage
+	ApplyStage        *orchestrator.Stage
+	PlanStage         *orchestrator.Stage
 	CommandRunner     runners.CommandRun
 	TerraformExecutor terraform.TerraformExecutor
 	Reporter          reporting.Reporter
@@ -127,12 +128,12 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 	plan := ""
 	terraformPlanOutput := ""
 	isNonEmptyPlan := false
-	var planSteps []configuration.Step
+	var planSteps []orchestrator.Step
 
 	if d.PlanStage != nil {
 		planSteps = d.PlanStage.Steps
 	} else {
-		planSteps = []configuration.Step{
+		planSteps = []orchestrator.Step{
 			{
 				Action: "init",
 			},
@@ -220,12 +221,12 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 		}
 	}
 
-	var applySteps []configuration.Step
+	var applySteps []orchestrator.Step
 
 	if d.ApplyStage != nil {
 		applySteps = d.ApplyStage.Steps
 	} else {
-		applySteps = []configuration.Step{
+		applySteps = []orchestrator.Step{
 			{
 				Action: "init",
 			},

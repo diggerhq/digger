@@ -2,11 +2,11 @@ package policy
 
 import (
 	"context"
-	"digger/pkg/ci"
 	"digger/pkg/core/policy"
 	"encoding/json"
 	"errors"
 	"fmt"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/open-policy-agent/opa/rego"
 	"io"
 	"log"
@@ -24,7 +24,7 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) CheckAccessPolicy(_ ci.OrgService, _ string, _ string, _ string, _ string, _ string) (bool, error) {
+func (p NoOpPolicyChecker) CheckAccessPolicy(_ orchestrator.OrgService, _ string, _ string, _ string, _ string, _ string) (bool, error) {
 	return true, nil
 }
 
@@ -252,7 +252,7 @@ type DiggerPolicyChecker struct {
 	PolicyProvider policy.Provider
 }
 
-func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
 
 	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName)
 

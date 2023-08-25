@@ -1,12 +1,11 @@
 package digger
 
 import (
-	"digger/pkg/ci"
 	"digger/pkg/core/execution"
-	"digger/pkg/core/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	configuration "github.com/diggerhq/lib-digger-config"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/dominikbraun/graph"
 	"github.com/stretchr/testify/assert"
 	"sort"
@@ -116,9 +115,9 @@ func (m *MockPRManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (m *MockPRManager) GetComments(prNumber int) ([]ci.Comment, error) {
+func (m *MockPRManager) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetComments", strconv.Itoa(prNumber), time.Now()})
-	return []ci.Comment{}, nil
+	return []orchestrator.Comment{}, nil
 }
 
 func (m *MockPRManager) EditComment(id interface{}, comment string) error {
@@ -376,7 +375,7 @@ func TestSortedCommandByDependency(t *testing.T) {
 	//	jobs []models.Job,
 	//	dependencyGraph *graph.Graph[string, string],
 
-	jobs := []models.Job{
+	jobs := []orchestrator.Job{
 		{
 			ProjectName: "project1",
 			Commands: []string{

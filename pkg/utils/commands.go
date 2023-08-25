@@ -36,6 +36,7 @@ func GetCommands() string {
 	return commands
 }
 
+// TODO move func to lib-orchestrator library after gitlab and azure moves there
 func ParseProjectName(comment string) string {
 	re := regexp.MustCompile(`-p ([0-9a-zA-Z\-_]+)`)
 	match := re.FindStringSubmatch(comment)
@@ -45,6 +46,7 @@ func ParseProjectName(comment string) string {
 	return ""
 }
 
+// TODO move func to lib-orchestrator library after gitlab and azure moves there
 func ParseWorkspace(comment string) (string, error) {
 	re := regexp.MustCompile(`-w(?:\s+(\S+)|$)`)
 	matches := re.FindAllStringSubmatch(comment, -1)
