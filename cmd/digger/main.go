@@ -182,21 +182,23 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		ghEvent := parsedGhContext.Event
 
 		if wdEvent, ok := ghEvent.(github_models.WorkflowDispatchEvent); ok {
-			var jobs []models.Job
+			var job models.Job
 
-			jobsJson := wdEvent.Inputs["jobs"]
+			jobJson := wdEvent.Inputs["job"]
 
-			err := json.Unmarshal([]byte(jobsJson), &jobs)
+			err := json.Unmarshal([]byte(jobJson), &job)
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 			}
-			planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobs[0].PullRequestNumber)
+			planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
 			reporter := &reporting.CiReporter{
 				CiService:      &githubPrService,
-				PrNumber:       *jobs[0].PullRequestNumber,
+				PrNumber:       *job.PullRequestNumber,
 				ReportStrategy: reportingStrategy,
 			}
+
+			jobs := []models.Job{job}
 
 			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
