@@ -4,7 +4,6 @@ import (
 	"digger/pkg/core/execution"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
-	configuration "github.com/diggerhq/lib-digger-config"
 	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/dominikbraun/graph"
 	"github.com/stretchr/testify/assert"
@@ -215,8 +214,8 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{
-		ApplyStage: &configuration.Stage{
-			Steps: []configuration.Step{
+		ApplyStage: &orchestrator.Stage{
+			Steps: []orchestrator.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -234,7 +233,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 				},
 			},
 		},
-		PlanStage:         &configuration.Stage{},
+		PlanStage:         &orchestrator.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
@@ -263,8 +262,8 @@ func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{
-		ApplyStage: &configuration.Stage{
-			Steps: []configuration.Step{
+		ApplyStage: &orchestrator.Stage{
+			Steps: []orchestrator.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -277,7 +276,7 @@ func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
 				},
 			},
 		},
-		PlanStage:         &configuration.Stage{},
+		PlanStage:         &orchestrator.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
@@ -304,9 +303,9 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 	planPathProvider := &MockPlanPathProvider{}
 
 	executor := execution.DiggerExecutor{
-		ApplyStage: &configuration.Stage{},
-		PlanStage: &configuration.Stage{
-			Steps: []configuration.Step{
+		ApplyStage: &orchestrator.Stage{},
+		PlanStage: &orchestrator.Stage{
+			Steps: []orchestrator.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
