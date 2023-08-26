@@ -993,7 +993,13 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 }
 
 func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
-	ghEvent := github.IssueCommentEvent{}
+	issuenumber := 1
+	ghEvent := github.IssueCommentEvent{
+		Comment: &github.IssueComment{},
+		Issue: &github.Issue{
+			Number: &issuenumber,
+		},
+	}
 	comment := "DiGGeR PlAn"
 	ghEvent.Comment.Body = &comment
 
