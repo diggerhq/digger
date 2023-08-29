@@ -184,12 +184,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok {
 			type Inputs struct {
-				Job orchestrator.JobJson `json:"job"`
+				JobString string `json:"job"`
 			}
 
 			var inputs Inputs
 
-			jobJson, err := wdEvent.Inputs.MarshalJSON()
+			jobJson := wdEvent.Inputs
 
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal job json. %s", err), 4)
@@ -202,15 +202,23 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 			}
-			planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, inputs.Job.PullRequestNumber)
+
+			var job orchestrator.JobJson
+
+			err = json.Unmarshal([]byte(inputs.JobString), &job)
+
+			if err != nil {
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
+			}
+			planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
 			reporter := &reporting.CiReporter{
 				CiService:      &githubPrService,
-				PrNumber:       *inputs.Job.PullRequestNumber,
+				PrNumber:       *job.PullRequestNumber,
 				ReportStrategy: reportingStrategy,
 			}
 
-			jobs := []orchestrator.Job{orchestrator.JsonToJob(inputs.Job)}
+			jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
 			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
