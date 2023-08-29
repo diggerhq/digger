@@ -2,11 +2,9 @@ package digger
 
 import (
 	"bytes"
-	"digger/pkg/ci"
 	"digger/pkg/core/backend"
 	"digger/pkg/core/execution"
 	core_locking "digger/pkg/core/locking"
-	"digger/pkg/core/models"
 	"digger/pkg/core/policy"
 	core_reporting "digger/pkg/core/reporting"
 	"digger/pkg/core/runners"
@@ -19,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"io"
 	"log"
 	"net/http"
@@ -67,9 +66,9 @@ func DetectCI() CIName {
 }
 
 func RunJobs(
-	jobs []models.Job,
-	prService ci.PullRequestService,
-	orgService ci.OrgService,
+	jobs []orchestrator.Job,
+	prService orchestrator.PullRequestService,
+	orgService orchestrator.OrgService,
 	lock core_locking.Lock,
 	reporter core_reporting.Reporter,
 	planStorage storage.PlanStorage,
@@ -133,7 +132,7 @@ func RunJobs(
 	return allAppliesSuccess, atLeastOneApply, nil
 }
 
-func run(command string, job models.Job, policyChecker policy.Checker, orgService ci.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService ci.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
 	fmt.Printf("Running '%s' for project '%s'\n", command, job.ProjectName)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, requestedBy)
@@ -356,10 +355,10 @@ func run(command string, job models.Job, policyChecker policy.Checker, orgServic
 }
 
 func RunJob(
-	job models.Job,
+	job orchestrator.Job,
 	projectNamespace string,
 	requestedBy string,
-	orgService ci.OrgService,
+	orgService orchestrator.OrgService,
 	policyChecker policy.Checker,
 	planStorage storage.PlanStorage,
 	backendApi backend.Api,
@@ -590,8 +589,8 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 	return plan, nil
 }
 
-func SortedCommandsByDependency(project []models.Job, dependencyGraph *graph.Graph[string, string]) []models.Job {
-	var sortedCommands []models.Job
+func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *graph.Graph[string, string]) []orchestrator.Job {
+	var sortedCommands []orchestrator.Job
 	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s string, s2 string) bool {
 		return s < s2
 	})
@@ -609,7 +608,7 @@ func SortedCommandsByDependency(project []models.Job, dependencyGraph *graph.Gra
 	return sortedCommands
 }
 
-func MergePullRequest(ciService ci.PullRequestService, prNumber int) {
+func MergePullRequest(ciService orchestrator.PullRequestService, prNumber int) {
 	time.Sleep(5 * time.Second)
 
 	// CheckAccessPolicy if it was manually merged
