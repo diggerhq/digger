@@ -184,7 +184,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok {
 			type Inputs struct {
-				Job orchestrator.Job `json:"job"`
+				Job orchestrator.JobJson `json:"job"`
 			}
 
 			var inputs Inputs
@@ -203,7 +203,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				ReportStrategy: reportingStrategy,
 			}
 
-			jobs := []orchestrator.Job{inputs.Job}
+			jobs := []orchestrator.Job{orchestrator.JsonToJob(inputs.Job)}
 
 			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
