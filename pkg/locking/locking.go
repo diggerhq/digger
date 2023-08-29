@@ -4,13 +4,13 @@ import (
 	"digger/pkg/aws"
 	"digger/pkg/aws/envprovider"
 	"digger/pkg/azure"
-	"digger/pkg/ci"
 	"digger/pkg/core/locking"
 	"digger/pkg/core/reporting"
 	"digger/pkg/core/utils"
 	"digger/pkg/gcp"
 	"errors"
 	"fmt"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"log"
 	"os"
 	"strconv"
@@ -27,7 +27,7 @@ import (
 
 type PullRequestLock struct {
 	InternalLock     locking.Lock
-	CIService        ci.PullRequestService
+	CIService        orchestrator.PullRequestService
 	Reporter         reporting.Reporter
 	ProjectName      string
 	ProjectNamespace string
