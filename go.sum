@@ -452,6 +452,12 @@ github.com/dgryski/trifles v0.0.0-20200323201526-dd97f9abfb48 h1:fRzb/w+pyskVMQ+
 github.com/dgryski/trifles v0.0.0-20200323201526-dd97f9abfb48/go.mod h1:if7Fbed8SFyPtHLHbg49SI7NAdJiC5WIA09pe59rfAA=
 github.com/diggerhq/lib-digger-config v0.0.0-20230824131856-20c017537bb3 h1:3EG6wvFBYxCrV5XWqf6bAca8cY4Md8Oz2w6U3Z95lxU=
 github.com/diggerhq/lib-digger-config v0.0.0-20230824131856-20c017537bb3/go.mod h1:AdWua640lLPJJwWe7kZmKP6rk1+ycxxPjd1M4cQJDbs=
+github.com/diggerhq/lib-digger-config v0.0.0-20230824142939-83044a6a36df h1:qgAQe6glZKywACL1qVLDXVpfNUEHzpqFxkWpyqap1xE=
+github.com/diggerhq/lib-digger-config v0.0.0-20230824142939-83044a6a36df/go.mod h1:AdWua640lLPJJwWe7kZmKP6rk1+ycxxPjd1M4cQJDbs=
+github.com/diggerhq/lib-orchestrator v0.0.0-20230825110849-5ea9306e2057 h1:SxYgsaSNrbRxIQ0i0LSf52dinvXn5CZ9PkYmFuW2X30=
+github.com/diggerhq/lib-orchestrator v0.0.0-20230825110849-5ea9306e2057/go.mod h1:+qiBIf8u/UQHpBgxROPCC/rJ1/DcY0HeR/biPu6yt7w=
+github.com/diggerhq/lib-orchestrator v0.0.0-20230825114620-f51fa4eb2fe3 h1:C6syzTVX/AodFt5uUB/HwDeSsyK7uBdBeu4pGDUqVdY=
+github.com/diggerhq/lib-orchestrator v0.0.0-20230825114620-f51fa4eb2fe3/go.mod h1:JBjRXAr8bJQjIIhwmJwbLSSt8xziGFcWVcvAQArYfzs=
 github.com/dimchansky/utfbom v1.1.0/go.mod h1:rO41eb7gLfo8SF1jd9F8HplJm1Fewwi4mQvIirEdv+8=
 github.com/dimchansky/utfbom v1.1.1 h1:vV6w1AhK4VMnhBno/TPVCoK9U/LP0PkLCS9tbxHdi/U=
 github.com/dimchansky/utfbom v1.1.1/go.mod h1:SxdoEBH5qIqFocHMyGOXVAybYJdr71b1Q/j0mACtrfE=
@@ -1066,6 +1072,7 @@ github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6L
 github.com/rogpeppe/go-charset v0.0.0-20180617210344-2471d30d28b4/go.mod h1:qgYeAmZ5ZIpBWTGllZSQnw97Dj+woV0toclVaRGI8pc=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZVejAe8=
+github.com/rogpeppe/go-internal v1.11.0 h1:cWPaGQEPrBb5/AsnsZesgZZ9yb1OQ+GOISoDNXVBh4M=
 github.com/rubiojr/go-vhd v0.0.0-20160810183302-0bfd3b39853c/go.mod h1:DM5xW0nvfNNm2uytzsvhI3OnX8uzaRAg8UX/CnDqbto=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=

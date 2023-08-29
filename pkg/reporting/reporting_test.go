@@ -1,8 +1,8 @@
 package reporting
 
 import (
-	"digger/pkg/ci"
 	"digger/pkg/core/utils"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -17,7 +17,7 @@ func TestCommentPerRunStrategyReport(t *testing.T) {
 
 	prNumber := 1
 	ciService := &MockCiService{
-		CommentsPerPr: map[int][]*ci.Comment{
+		CommentsPerPr: map[int][]*orchestrator.Comment{
 			prNumber: {
 				{
 					Id:   1,
@@ -66,7 +66,7 @@ func TestLatestCommentStrategyReport(t *testing.T) {
 
 	prNumber := 1
 	ciService := &MockCiService{
-		CommentsPerPr: map[int][]*ci.Comment{
+		CommentsPerPr: map[int][]*orchestrator.Comment{
 			prNumber: {
 				{
 					Id:   1,
@@ -112,7 +112,7 @@ func TestMultipleCommentStrategyReport(t *testing.T) {
 
 	prNumber := 1
 	ciService := &MockCiService{
-		CommentsPerPr: map[int][]*ci.Comment{
+		CommentsPerPr: map[int][]*orchestrator.Comment{
 			prNumber: {
 				{
 					Id:   1,
@@ -153,7 +153,7 @@ func TestMultipleCommentStrategyReport(t *testing.T) {
 }
 
 type MockCiService struct {
-	CommentsPerPr map[int][]*ci.Comment
+	CommentsPerPr map[int][]*orchestrator.Comment
 }
 
 func (t MockCiService) GetUserTeams(organisation string, user string) ([]string, error) {
@@ -175,7 +175,7 @@ func (t MockCiService) PublishComment(prNumber int, comment string) error {
 		}
 	}
 
-	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &ci.Comment{Id: latestId + 1, Body: &comment})
+	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &orchestrator.Comment{Id: latestId + 1, Body: &comment})
 
 	return nil
 }
@@ -208,8 +208,8 @@ func (t MockCiService) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (t MockCiService) GetComments(prNumber int) ([]ci.Comment, error) {
-	comments := []ci.Comment{}
+func (t MockCiService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+	comments := []orchestrator.Comment{}
 	for _, c := range t.CommentsPerPr[prNumber] {
 		comments = append(comments, *c)
 	}

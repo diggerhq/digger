@@ -18,7 +18,7 @@ require (
 )
 
 require (
-	github.com/diggerhq/lib-digger-config v0.0.0-20230824131856-20c017537bb3
+	github.com/diggerhq/lib-digger-config v0.0.0-20230824142939-83044a6a36df
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v53 v53.2.0
 	github.com/gruntwork-io/terragrunt v0.36.6
@@ -50,6 +50,7 @@ require (
 	github.com/bmatcuk/doublestar v1.3.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/creack/pty v1.1.11 // indirect
+	github.com/diggerhq/lib-orchestrator v0.0.0-20230825114620-f51fa4eb2fe3 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect

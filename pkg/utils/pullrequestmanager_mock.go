@@ -1,6 +1,6 @@
 package utils
 
-import "digger/pkg/ci"
+import orchestrator "github.com/diggerhq/lib-orchestrator"
 
 type MockReporter struct {
 	commands []string
@@ -64,9 +64,9 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMerged(prNum
 	return false, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetComments(prNumber int) ([]ci.Comment, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetComments")
-	return []ci.Comment{}, nil
+	return []orchestrator.Comment{}, nil
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(commentId interface{}, comment string) error {
