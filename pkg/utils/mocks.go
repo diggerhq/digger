@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"digger/pkg/ci"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"time"
 )
 
@@ -47,7 +47,7 @@ func (lock *MockLock) GetLock(resource string) (*int, error) {
 type MockPolicyChecker struct {
 }
 
-func (t MockPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+func (t MockPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
 	return false, nil
 }
 
@@ -103,8 +103,8 @@ func (t MockPullRequestManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (t MockPullRequestManager) GetComments(prNumber int) ([]ci.Comment, error) {
-	return []ci.Comment{}, nil
+func (t MockPullRequestManager) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+	return []orchestrator.Comment{}, nil
 }
 
 func (t MockPullRequestManager) EditComment(commentId interface{}, comment string) error {
