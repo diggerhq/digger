@@ -189,11 +189,16 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			var inputs Inputs
 
-			jobJson := wdEvent.Inputs
+			jobJson, err := wdEvent.Inputs.MarshalJSON()
+
+			if err != nil {
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal job json. %s", err), 4)
+			}
 
 			fmt.Printf("Job json: %s\n", jobJson)
 
-			err := json.Unmarshal(jobJson, &inputs)
+			err = json.Unmarshal(jobJson, &inputs)
+
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 			}
