@@ -2,11 +2,15 @@ package main
 
 import (
 	"digger/pkg/digger"
-	"digger/pkg/github"
-	gh_models "digger/pkg/github/models"
+	"digger/pkg/github/models"
+	ghmodels "digger/pkg/github/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
+	dggithub "github.com/diggerhq/lib-orchestrator/github"
+	dggithubmodels "github.com/diggerhq/lib-orchestrator/github/models"
+	"github.com/google/go-github/v53/github"
+
 	configuration "github.com/diggerhq/lib-digger-config"
 	"testing"
 
@@ -865,7 +869,9 @@ var githubInvalidContextJson = `{
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
 
-	context, err := github.GetGitHubContext(githubContextNewPullRequestJson)
+	actionContext, err := models.GetGitHubContext(githubContextNewPullRequestJson)
+	context := actionContext.ToEventPackage()
+
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -879,13 +885,13 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	policyChecker := &utils.MockPolicyChecker{}
 	backendApi := &utils.MockBackendApi{}
 
-	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 
 	reporter := &reporting.CiReporter{
 		CiService: prManager,
 		PrNumber:  prNumber,
 	}
-	jobs, _, err := github.ConvertGithubEventToJobs(*context, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	jobs, _, err := dggithub.ConvertGithubEventToJobs(context, impactedProjects, requestedProject, map[string]configuration.Workflow{})
 	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
 
 	assert.NoError(t, err)
@@ -895,7 +901,8 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 }
 
 func TestGitHubNewCommentContext(t *testing.T) {
-	context, err := gh_models.GetGitHubContext(githubContextCommentJson)
+	actionContext, err := ghmodels.GetGitHubContext(githubContextCommentJson)
+	context := actionContext.ToEventPackage()
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -905,7 +912,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	lock := &utils.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
-	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 	reporter := &reporting.CiReporter{
 		CiService: prManager,
 		PrNumber:  prNumber,
@@ -914,7 +921,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	policyChecker := &utils.MockPolicyChecker{}
 	backendApi := &utils.MockBackendApi{}
 
-	jobs, _, err := github.ConvertGithubEventToJobs(context, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	jobs, _, err := dggithub.ConvertGithubEventToJobs(context, impactedProjects, requestedProject, map[string]configuration.Workflow{})
 	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
 	assert.NoError(t, err)
 	if err != nil {
@@ -923,7 +930,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 }
 
 func TestInvalidGitHubContext(t *testing.T) {
-	_, err := gh_models.GetGitHubContext(githubInvalidContextJson)
+	_, err := ghmodels.GetGitHubContext(githubInvalidContextJson)
 	require.Error(t, err)
 	if err != nil {
 		fmt.Println(err)
@@ -931,7 +938,8 @@ func TestInvalidGitHubContext(t *testing.T) {
 }
 
 func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
-	context, err := github.GetGitHubContext(githubContextNewPullRequestJson)
+	actionContext, err := models.GetGitHubContext(githubContextNewPullRequestJson)
+	context := actionContext.ToEventPackage()
 	assert.NoError(t, err)
 	ghEvent := context.Event
 	pullRequestNumber := 11
@@ -975,9 +983,9 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	lock := &utils.MockLock{}
-	impactedProjects, requestedProject, prNumber, err := github.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 	assert.NoError(t, err)
-	jobs, _, err := github.ConvertGithubEventToJobs(*context, impactedProjects, requestedProject, workflows)
+	jobs, _, err := dggithub.ConvertGithubEventToJobs(context, impactedProjects, requestedProject, workflows)
 	spew.Dump(lock.MapLock)
 	assert.Equal(t, pullRequestNumber, prNumber)
 	assert.Equal(t, 1, len(jobs))
@@ -985,8 +993,15 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 }
 
 func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
-	ghEvent := gh_models.IssueCommentEvent{}
-	ghEvent.Comment.Body = "DiGGeR PlAn"
+	issuenumber := 1
+	ghEvent := github.IssueCommentEvent{
+		Comment: &github.IssueComment{},
+		Issue: &github.Issue{
+			Number: &issuenumber,
+		},
+	}
+	comment := "DiGGeR PlAn"
+	ghEvent.Comment.Body = &comment
 
 	project := configuration.Project{Name: "test project", Workflow: "default"}
 	var impactedProjects []configuration.Project
@@ -996,7 +1011,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
 
-	jobs, _, err := github.ConvertGithubEventToJobs(gh_models.Github{Event: ghEvent}, impactedProjects, &requestedProject, workflows)
+	jobs, _, err := dggithub.ConvertGithubEventToJobs(dggithubmodels.EventPackage{Event: ghEvent}, impactedProjects, &requestedProject, workflows)
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])

@@ -1,15 +1,15 @@
 package reporting
 
 import (
-	"digger/pkg/ci"
 	"digger/pkg/core/utils"
 	"fmt"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"strings"
 	"time"
 )
 
 type CiReporter struct {
-	CiService      ci.PullRequestService
+	CiService      orchestrator.PullRequestService
 	PrNumber       int
 	ReportStrategy ReportStrategy
 }
@@ -26,14 +26,14 @@ func (reporter *StdOutReporter) Report(report string, reportFormatter func(repor
 }
 
 type ReportStrategy interface {
-	Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string) error
+	Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string) error
 }
 
 type CommentPerRunStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy *CommentPerRunStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string) error {
+func (strategy *CommentPerRunStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string) error {
 	comments, err := ciService.GetComments(PrNumber)
 	if err != nil {
 		return fmt.Errorf("error getting comments: %v", err)
@@ -43,7 +43,7 @@ func (strategy *CommentPerRunStrategy) Report(ciService ci.PullRequestService, P
 	return upsertComment(ciService, PrNumber, report, reportFormatter, comments, reportTitle, err)
 }
 
-func upsertComment(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, err error) error {
+func upsertComment(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, comments []orchestrator.Comment, reportTitle string, err error) error {
 	report = reportFormatter(report)
 	var commentIdForThisRun interface{}
 	var commentBody string
@@ -85,7 +85,7 @@ type LatestRunCommentStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy *LatestRunCommentStrategy) Report(ciService ci.PullRequestService, prNumber int, comment string, commentFormatting func(comment string) string) error {
+func (strategy *LatestRunCommentStrategy) Report(ciService orchestrator.PullRequestService, prNumber int, comment string, commentFormatting func(comment string) string) error {
 	comments, err := ciService.GetComments(prNumber)
 	if err != nil {
 		return fmt.Errorf("error getting comments: %v", err)
@@ -97,6 +97,6 @@ func (strategy *LatestRunCommentStrategy) Report(ciService ci.PullRequestService
 
 type MultipleCommentsStrategy struct{}
 
-func (strategy *MultipleCommentsStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, formatter func(string) string) error {
+func (strategy *MultipleCommentsStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, formatter func(string) string) error {
 	return ciService.PublishComment(PrNumber, formatter(report))
 }

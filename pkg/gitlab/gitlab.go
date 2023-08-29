@@ -1,11 +1,10 @@
 package gitlab
 
 import (
-	"digger/pkg/ci"
-	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"fmt"
 	configuration "github.com/diggerhq/lib-digger-config"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"log"
 	"strings"
 
@@ -234,7 +233,7 @@ func (gitlabService GitLabService) EditComment(id interface{}, comment string) e
 	return nil
 }
 
-func (gitlabService GitLabService) GetComments(prNumber int) ([]ci.Comment, error) {
+func (gitlabService GitLabService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	//TODO implement me
 	return nil, nil
 }
@@ -276,8 +275,8 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.Job, bool, error) {
-	jobs := make([]models.Job, 0)
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]orchestrator.Job, bool, error) {
+	jobs := make([]orchestrator.Job, 0)
 
 	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
@@ -289,14 +288,14 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			}
 
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-			jobs = append(jobs, models.Job{
+			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
 				ProjectWorkspace:  project.Workspace,
 				Terragrunt:        project.Terragrunt,
 				Commands:          workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:        workflow.Apply,
-				PlanStage:         workflow.Plan,
+				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 				PullRequestNumber: gitLabContext.MergeRequestIId,
 				EventName:         gitLabContext.EventType.String(),
 				RequestedBy:       gitLabContext.GitlabUserName,
@@ -313,14 +312,14 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, true, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-			jobs = append(jobs, models.Job{
+			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
 				ProjectWorkspace:  project.Workspace,
 				Terragrunt:        project.Terragrunt,
 				Commands:          workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:        workflow.Apply,
-				PlanStage:         workflow.Plan,
+				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 				PullRequestNumber: gitLabContext.MergeRequestIId,
 				EventName:         gitLabContext.EventType.String(),
 				RequestedBy:       gitLabContext.GitlabUserName,
@@ -358,20 +357,20 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
 					if err != nil {
-						return []models.Job{}, false, err
+						return []orchestrator.Job{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
 					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-					jobs = append(jobs, models.Job{
+					jobs = append(jobs, orchestrator.Job{
 						ProjectName:       project.Name,
 						ProjectDir:        project.Dir,
 						ProjectWorkspace:  workspace,
 						Terragrunt:        project.Terragrunt,
 						Commands:          []string{command},
-						ApplyStage:        workflow.Apply,
-						PlanStage:         workflow.Plan,
+						ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+						PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 						PullRequestNumber: gitLabContext.MergeRequestIId,
 						EventName:         gitLabContext.EventType.String(),
 						RequestedBy:       gitLabContext.GitlabUserName,
@@ -385,6 +384,6 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		return jobs, coversAllImpactedProjects, nil
 
 	default:
-		return []models.Job{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
+		return []orchestrator.Job{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
 }

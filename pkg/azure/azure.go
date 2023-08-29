@@ -2,13 +2,12 @@ package azure
 
 import (
 	"context"
-	"digger/pkg/ci"
-	"digger/pkg/core/models"
 	"digger/pkg/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
 	configuration "github.com/diggerhq/lib-digger-config"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 	"strings"
@@ -331,7 +330,7 @@ func (a *AzureReposService) EditComment(id interface{}, comment string) error {
 	return err
 }
 
-func (a *AzureReposService) GetComments(prNumber int) ([]ci.Comment, error) {
+func (a *AzureReposService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	comments, err := a.Client.GetComments(context.Background(), git.GetCommentsArgs{
 		Project:       &a.ProjectName,
 		RepositoryId:  &a.RepositoryId,
@@ -340,9 +339,9 @@ func (a *AzureReposService) GetComments(prNumber int) ([]ci.Comment, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result []ci.Comment
+	var result []orchestrator.Comment
 	for _, comment := range *comments {
-		result = append(result, ci.Comment{
+		result = append(result, orchestrator.Comment{
 			Id:   *comment.Id,
 			Body: comment.Content,
 		})
@@ -351,7 +350,7 @@ func (a *AzureReposService) GetComments(prNumber int) ([]ci.Comment, error) {
 
 }
 
-func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService ci.PullRequestService) ([]configuration.Project, *configuration.Project, int, error) {
+func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService orchestrator.PullRequestService) ([]configuration.Project, *configuration.Project, int, error) {
 	var impactedProjects []configuration.Project
 	var prNumber int
 
@@ -393,8 +392,8 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 	return impactedProjects, nil, prNumber, nil
 }
 
-func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]models.Job, bool, error) {
-	jobs := make([]models.Job, 0)
+func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]orchestrator.Job, bool, error) {
+	jobs := make([]orchestrator.Job, 0)
 	//&dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber,
 	switch parseAzureContext.EventType {
 	case AzurePrCreated, AzurePrUpdated, AzurePrReopened:
@@ -406,14 +405,14 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-			jobs = append(jobs, models.Job{
+			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
 				ProjectWorkspace:  project.Workspace,
 				Terragrunt:        project.Terragrunt,
 				Commands:          workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:        workflow.Apply,
-				PlanStage:         workflow.Plan,
+				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 				PullRequestNumber: &prNumber,
 				EventName:         parseAzureContext.EventType,
 				RequestedBy:       parseAzureContext.BaseUrl,
@@ -432,14 +431,14 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-			jobs = append(jobs, models.Job{
+			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
 				ProjectWorkspace:  project.Workspace,
 				Terragrunt:        project.Terragrunt,
 				Commands:          workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:        workflow.Apply,
-				PlanStage:         workflow.Plan,
+				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 				PullRequestNumber: &prNumber,
 				EventName:         parseAzureContext.EventType,
 				RequestedBy:       parseAzureContext.BaseUrl,
@@ -458,14 +457,14 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 				}
 				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-				jobs = append(jobs, models.Job{
+				jobs = append(jobs, orchestrator.Job{
 					ProjectName:       project.Name,
 					ProjectDir:        project.Dir,
 					ProjectWorkspace:  project.Workspace,
 					Terragrunt:        project.Terragrunt,
 					Commands:          workflow.Configuration.OnCommitToDefault,
-					ApplyStage:        workflow.Apply,
-					PlanStage:         workflow.Plan,
+					ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 					PullRequestNumber: &prNumber,
 					EventName:         parseAzureContext.EventType,
 					RequestedBy:       parseAzureContext.BaseUrl,
@@ -499,7 +498,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
 					if err != nil {
-						return []models.Job{}, coversAllImpactedProjects, err
+						return []orchestrator.Job{}, coversAllImpactedProjects, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
@@ -510,14 +509,14 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					}
 					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
 
-					jobs = append(jobs, models.Job{
+					jobs = append(jobs, orchestrator.Job{
 						ProjectName:       project.Name,
 						ProjectDir:        project.Dir,
 						ProjectWorkspace:  workspace,
 						Terragrunt:        project.Terragrunt,
 						Commands:          []string{command},
-						ApplyStage:        workflow.Apply,
-						PlanStage:         workflow.Plan,
+						ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+						PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 						PullRequestNumber: &prNumber,
 						EventName:         parseAzureContext.EventType,
 						RequestedBy:       parseAzureContext.BaseUrl,
@@ -531,6 +530,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		return jobs, coversAllImpactedProjects, nil
 
 	default:
-		return []models.Job{}, true, fmt.Errorf("unsupported Azure event type: %v", parseAzureContext.EventType)
+		return []orchestrator.Job{}, true, fmt.Errorf("unsupported Azure event type: %v", parseAzureContext.EventType)
 	}
 }
