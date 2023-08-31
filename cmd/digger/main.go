@@ -207,6 +207,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			err = json.Unmarshal([]byte(inputs.JobString), &job)
 
+			fmt.Printf("Job: %s\n", job)
+
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 			}
@@ -219,6 +221,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			}
 
 			jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
+
+			fmt.Printf("Jobs: %s\n", jobs)
 
 			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
