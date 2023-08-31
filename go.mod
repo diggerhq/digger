@@ -19,11 +19,12 @@ require (
 
 require (
 	github.com/diggerhq/lib-digger-config v0.0.0-20230824142939-83044a6a36df
+	github.com/diggerhq/lib-orchestrator v0.0.0-20230829160318-c3cce42f5f35
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v53 v53.2.0
 	github.com/gruntwork-io/terragrunt v0.36.6
 	github.com/hashicorp/go-getter v1.7.2
-	github.com/hashicorp/hcl/v2 v2.11.1
+	github.com/hashicorp/hcl/v2 v2.18.0
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20230808231734-f15f31bf62b3
 	github.com/zclconf/go-cty v1.13.2
 	golang.org/x/sync v0.3.0
@@ -45,12 +46,12 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
+	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/bmatcuk/doublestar v1.3.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/creack/pty v1.1.11 // indirect
-	github.com/diggerhq/lib-orchestrator v0.0.0-20230829160318-c3cce42f5f35 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
