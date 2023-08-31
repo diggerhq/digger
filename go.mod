@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.32.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.1
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.2
-	github.com/aws/aws-sdk-go v1.44.325
+	github.com/aws/aws-sdk-go v1.45.0
 	github.com/bmatcuk/doublestar/v4 v4.6.0 // indirect
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/google/uuid v1.3.1
@@ -21,6 +21,7 @@ require (
 	github.com/diggerhq/lib-digger-config v0.0.0-20230824142939-83044a6a36df
 	github.com/diggerhq/lib-orchestrator v0.0.0-20230829160318-c3cce42f5f35
 	github.com/dominikbraun/graph v0.23.0
+	github.com/google/go-github/v53 v53.2.0
 	github.com/google/go-github/v54 v54.0.0
 	github.com/gruntwork-io/terragrunt v0.36.6
 	github.com/hashicorp/go-getter v1.7.2
