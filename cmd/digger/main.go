@@ -103,8 +103,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal job json. %s", err), 4)
 		}
 
-		fmt.Printf("Job json: %s\n", jobJson)
-
 		err = json.Unmarshal(jobJson, &inputs)
 
 		if err != nil {
@@ -114,8 +112,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		var job orchestrator.JobJson
 
 		err = json.Unmarshal([]byte(inputs.JobString), &job)
-
-		fmt.Printf("Job: %s\n", job)
 
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
@@ -129,8 +125,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
-
-		fmt.Printf("Jobs: %s\n", jobs)
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 		if err != nil {
