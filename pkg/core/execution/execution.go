@@ -8,13 +8,14 @@ import (
 	"digger/pkg/core/terraform"
 	"digger/pkg/core/utils"
 	"fmt"
-	configuration "github.com/diggerhq/lib-digger-config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"log"
 	"os"
 	"path"
 	"regexp"
 	"strings"
+
+	configuration "github.com/diggerhq/lib-digger-config"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 )
 
 type Executor interface {
@@ -144,8 +145,12 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 	}
 	for _, step := range planSteps {
 		if step.Action == "init" {
-			_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
+			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
+				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
+				if commentErr != nil {
+					fmt.Printf("error publishing comment: %v", err)
+				}
 				return false, false, "", "", fmt.Errorf("error running init: %v", err)
 			}
 		}
@@ -238,8 +243,12 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 
 	for _, step := range applySteps {
 		if step.Action == "init" {
-			stdout, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
+			stdout, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
+				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
+				if commentErr != nil {
+					fmt.Printf("error publishing comment: %v", err)
+				}
 				return false, stdout, fmt.Errorf("error running init: %v", err)
 			}
 		}
@@ -291,8 +300,12 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 
 	for _, step := range destroySteps {
 		if step.Action == "init" {
-			_, _, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
+			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
+				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
+				if commentErr != nil {
+					fmt.Printf("error publishing comment: %v", err)
+				}
 				return false, fmt.Errorf("error running init: %v", err)
 			}
 		}
