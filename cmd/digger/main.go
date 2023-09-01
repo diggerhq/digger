@@ -57,11 +57,17 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if ghContext == "" {
 		reportErrorAndExit(githubActor, "GITHUB_CONTEXT is not defined", 2)
 	}
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig("./")
+
+	runningMode := os.Getenv("INPUT_DIGGER_MODE")
+
+	parsedGhActionContext, err := github_models.GetGitHubContext(ghContext)
+	parsedGhContext := parsedGhActionContext.ToEventPackage()
 	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 	}
-	println("Digger config read successfully")
+	println("GitHub context parsed successfully")
+
+	ghEvent := parsedGhContext.Event
 
 	lock, err = locking.GetLock()
 	if err != nil {
@@ -74,6 +80,69 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if ghRepository == "" {
 		reportErrorAndExit(githubActor, "GITHUB_REPOSITORY is not defined", 3)
 	}
+
+	splitRepositoryName := strings.Split(ghRepository, "/")
+	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
+	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
+
+	currentDir, err := os.Getwd()
+	if err != nil {
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+	}
+
+	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" {
+		type Inputs struct {
+			JobString string `json:"job"`
+		}
+
+		var inputs Inputs
+
+		jobJson := wdEvent.Inputs
+
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal job json. %s", err), 4)
+		}
+
+		fmt.Printf("Job json: %s\n", jobJson)
+
+		err = json.Unmarshal(jobJson, &inputs)
+
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
+		}
+
+		var job orchestrator.JobJson
+
+		err = json.Unmarshal([]byte(inputs.JobString), &job)
+
+		fmt.Printf("Job: %s\n", job)
+
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
+		}
+		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
+
+		reporter := &reporting.CiReporter{
+			CiService:      &githubPrService,
+			PrNumber:       *job.PullRequestNumber,
+			ReportStrategy: reportingStrategy,
+		}
+
+		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
+
+		fmt.Printf("Jobs: %s\n", jobs)
+
+		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
+		}
+	}
+
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig("./")
+	if err != nil {
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+	}
+	println("Digger config read successfully")
 
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
@@ -90,17 +159,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			fmt.Printf("Failed to report project %s. %s\n", p.Name, err)
 		}
 	}
-
-	splitRepositoryName := strings.Split(ghRepository, "/")
-	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
-	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
-
-	currentDir, err := os.Getwd()
-	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
-	}
-
-	runningMode := os.Getenv("INPUT_DIGGER_MODE")
 
 	if runningMode == "manual" {
 		command := os.Getenv("INPUT_DIGGER_COMMAND")
@@ -173,110 +231,51 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			}
 		}
 	} else {
-		parsedGhActionContext, err := github_models.GetGitHubContext(ghContext)
-		parsedGhContext := parsedGhActionContext.ToEventPackage()
+
+		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 		}
-		println("GitHub context parsed successfully")
+		logImpactedProjects(impactedProjects, prNumber)
+		println("GitHub event processed successfully")
 
-		ghEvent := parsedGhContext.Event
-
-		if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok {
-			type Inputs struct {
-				JobString string `json:"job"`
-			}
-
-			var inputs Inputs
-
-			jobJson := wdEvent.Inputs
-
+		if dg_github.CheckIfHelpComment(ghEvent) {
+			reply := utils.GetCommands()
+			err := githubPrService.PublishComment(prNumber, reply)
 			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal job json. %s", err), 4)
+				reportErrorAndExit(githubActor, "Failed to publish help command output", 1)
 			}
+		}
 
-			fmt.Printf("Job json: %s\n", jobJson)
+		if len(impactedProjects) == 0 {
+			reportErrorAndExit(githubActor, "No projects impacted", 0)
+		}
 
-			err = json.Unmarshal(jobJson, &inputs)
+		jobs, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToJobs(parsedGhContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
+		}
+		println("GitHub event converted to commands successfully")
+		logCommands(jobs)
 
-			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
-			}
+		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
 
-			var job orchestrator.JobJson
+		reporter := &reporting.CiReporter{
+			CiService:      &githubPrService,
+			PrNumber:       prNumber,
+			ReportStrategy: reportingStrategy,
+		}
 
-			err = json.Unmarshal([]byte(inputs.JobString), &job)
+		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-			fmt.Printf("Job: %s\n", job)
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		}
 
-			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
-			}
-			planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
-
-			reporter := &reporting.CiReporter{
-				CiService:      &githubPrService,
-				PrNumber:       *job.PullRequestNumber,
-				ReportStrategy: reportingStrategy,
-			}
-
-			jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
-
-			fmt.Printf("Jobs: %s\n", jobs)
-
-			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-
-			_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
-			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
-			}
-		} else {
-
-			impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
-			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
-			}
-			logImpactedProjects(impactedProjects, prNumber)
-			println("GitHub event processed successfully")
-
-			if dg_github.CheckIfHelpComment(ghEvent) {
-				reply := utils.GetCommands()
-				err := githubPrService.PublishComment(prNumber, reply)
-				if err != nil {
-					reportErrorAndExit(githubActor, "Failed to publish help command output", 1)
-				}
-			}
-
-			if len(impactedProjects) == 0 {
-				reportErrorAndExit(githubActor, "No projects impacted", 0)
-			}
-
-			jobs, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToJobs(parsedGhContext, impactedProjects, requestedProject, diggerConfig.Workflows)
-			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
-			}
-			println("GitHub event converted to commands successfully")
-			logCommands(jobs)
-
-			planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
-
-			reporter := &reporting.CiReporter{
-				CiService:      &githubPrService,
-				PrNumber:       prNumber,
-				ReportStrategy: reportingStrategy,
-			}
-
-			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-
-			allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
-			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
-			}
-
-			if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
-				digger.MergePullRequest(&githubPrService, prNumber)
-				println("PR merged successfully")
-			}
+		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
+			digger.MergePullRequest(&githubPrService, prNumber)
+			println("PR merged successfully")
 		}
 
 		println("Commands executed successfully")
