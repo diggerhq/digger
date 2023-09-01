@@ -42,6 +42,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		usage.SendUsageRecord("", "log", "non github initialisation")
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Panic occurred. %s", r), 1)
+		}
+	}()
+
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
 		reportErrorAndExit(githubActor, "GITHUB_TOKEN is not defined", 1)
@@ -130,6 +136,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
+		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 	}
 
 	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig("./")
@@ -276,12 +283,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 
 	reportErrorAndExit(githubActor, "Digger finished successfully", 0)
-
-	defer func() {
-		if r := recover(); r != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Panic occurred. %s", r), 1)
-		}
-	}()
 }
 
 func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
