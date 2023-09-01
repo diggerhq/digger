@@ -96,6 +96,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
+	// this is used when called from api by the backend and exits in the end of if statement
 	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" {
 		type Inputs struct {
 			JobString string `json:"job"`
