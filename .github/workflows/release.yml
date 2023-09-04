@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build
         run: |
           env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o digger ./cmd/digger
