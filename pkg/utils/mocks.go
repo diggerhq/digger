@@ -1,8 +1,9 @@
 package utils
 
 import (
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"time"
+
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 )
 
 type MockTerraform struct {
@@ -109,6 +110,10 @@ func (t MockPullRequestManager) GetComments(prNumber int) ([]orchestrator.Commen
 
 func (t MockPullRequestManager) EditComment(commentId interface{}, comment string) error {
 	return nil
+}
+
+func (t MockPullRequestManager) GetBranchName(prNumber int) (string, error) {
+	return "", nil
 }
 
 type MockPlanStorage struct {
