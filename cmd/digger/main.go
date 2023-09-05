@@ -239,7 +239,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 		}
-		logImpactedProjects(impactedProjects, prNumber)
+		impactedProjectsMsg := getImpacagedProjectsAsString(impactedProjects, prNumber)
+		println(impactedProjectsMsg)
 		println("GitHub event processed successfully")
 
 		if dg_github.CheckIfHelpComment(ghEvent) {
@@ -247,6 +248,14 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			err := githubPrService.PublishComment(prNumber, reply)
 			if err != nil {
 				reportErrorAndExit(githubActor, "Failed to publish help command output", 1)
+			}
+		}
+
+		if dg_github.CheckIfShowProjectsComment(ghEvent) {
+			reply := impactedProjectsMsg
+			err := githubPrService.PublishComment(prNumber, reply)
+			if err != nil {
+				reportErrorAndExit(githubActor, "Failed to publish show-projects command output", 1)
 			}
 		}
 
@@ -602,12 +611,12 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 	return planStorage
 }
 
-func logImpactedProjects(projects []configuration.Project, prNumber int) {
-	logMessage := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
+func getImpacagedProjectsAsString(projects []configuration.Project, prNumber int) string {
+	msg := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
 	for _, p := range projects {
-		logMessage += fmt.Sprintf("%s\n", p.Name)
+		msg += fmt.Sprintf("- %s\n", p.Name)
 	}
-	log.Print(logMessage)
+	return msg
 }
 
 func logCommands(projectCommands []orchestrator.Job) {

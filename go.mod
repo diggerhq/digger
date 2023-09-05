@@ -19,7 +19,7 @@ require (
 
 require (
 	github.com/diggerhq/lib-digger-config v0.0.0-20230824142939-83044a6a36df
-	github.com/diggerhq/lib-orchestrator v0.0.0-20230829160318-c3cce42f5f35
+	github.com/diggerhq/lib-orchestrator v0.0.0-20230905165200-c04caa57bbfd
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v54 v54.0.0
 	github.com/gruntwork-io/terragrunt v0.36.6
@@ -57,7 +57,6 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-github/v53 v53.2.0 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf // indirect
 	github.com/goware/prefixer v0.0.0-20160118172347-395022866408 // indirect
