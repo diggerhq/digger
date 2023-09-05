@@ -20,17 +20,18 @@ import (
 	"digger/pkg/utils"
 	"encoding/json"
 	"fmt"
-	configuration "github.com/diggerhq/lib-digger-config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
-	dg_github "github.com/diggerhq/lib-orchestrator/github"
-	"gopkg.in/yaml.v3"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v53/github"
+	configuration "github.com/diggerhq/lib-digger-config"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
+	dg_github "github.com/diggerhq/lib-orchestrator/github"
+	"gopkg.in/yaml.v3"
+
+	"github.com/google/go-github/v54/github"
 )
 
 func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {

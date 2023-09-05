@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/diggerhq/lib-orchestrator/github/models"
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v54/github"
 )
 
 type GithubAction struct {

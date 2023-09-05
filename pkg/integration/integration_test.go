@@ -10,18 +10,19 @@ import (
 	"digger/pkg/reporting"
 	"digger/pkg/storage"
 	"digger/pkg/utils"
-	configuration "github.com/diggerhq/lib-digger-config"
-	dg_github "github.com/diggerhq/lib-orchestrator/github"
 	"log"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
 
+	configuration "github.com/diggerhq/lib-digger-config"
+	dg_github "github.com/diggerhq/lib-orchestrator/github"
+
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v54/github"
 	"github.com/stretchr/testify/assert"
 )
 
