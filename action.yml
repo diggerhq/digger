@@ -118,6 +118,9 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: ${{github.event.inputs.id}}
+      run: echo run identifier ${{ inputs.id }}
+
     - name: Validate Input Configuration for Google
       run: |
         if [[ -z ${{ toJSON(inputs.google-auth-credentials) }} && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
