@@ -21,8 +21,7 @@ require (
 	github.com/diggerhq/lib-digger-config v0.0.0-20230824142939-83044a6a36df
 	github.com/diggerhq/lib-orchestrator v0.0.0-20230829160318-c3cce42f5f35
 	github.com/dominikbraun/graph v0.23.0
-	github.com/google/go-github/v54 v54.0.0
-	github.com/google/go-github/v54 v54.0.0
+	github.com/google/go-github/v53 v53.2.0
 	github.com/gruntwork-io/terragrunt v0.36.6
 	github.com/hashicorp/go-getter v1.7.2
 	github.com/hashicorp/hcl/v2 v2.18.0
