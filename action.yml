@@ -120,6 +120,7 @@ runs:
   steps:
     - name: ${{github.event.inputs.id}}
       run: echo run identifier ${{ inputs.id }}
+      shell: bash
 
     - name: Validate Input Configuration for Google
       run: |
