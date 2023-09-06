@@ -160,8 +160,8 @@ func (tf Terraform) runTerraformCommand(printOutputToStdout bool, command string
 		mwout = io.MultiWriter(os.Stdout, &stdout)
 		mwerr = io.MultiWriter(os.Stderr, &stderr)
 	} else {
-		mwout = io.Writer(os.Stdout)
-		mwerr = io.Writer(os.Stderr)
+		mwout = io.Writer(&stdout)
+		mwerr = io.Writer(&stderr)
 	}
 
 	cmd := exec.Command("terraform", expandedArgs...)
