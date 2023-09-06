@@ -19,7 +19,7 @@ require (
 
 require (
 	github.com/diggerhq/lib-digger-config v0.0.0-20230824142939-83044a6a36df
-	github.com/diggerhq/lib-orchestrator v0.0.0-20230905165200-c04caa57bbfd
+	github.com/diggerhq/lib-orchestrator 5d9c76e70f76
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v54 v54.0.0
 	github.com/gruntwork-io/terragrunt v0.36.6
