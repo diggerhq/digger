@@ -2,10 +2,11 @@ package reporting
 
 import (
 	"digger/pkg/core/utils"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	orchestrator "github.com/diggerhq/lib-orchestrator"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCommentPerRunStrategyReport(t *testing.T) {
@@ -226,4 +227,8 @@ func (t MockCiService) EditComment(commentId interface{}, comment string) error 
 		}
 	}
 	return nil
+}
+
+func (t MockCiService) GetBranchName(prNumber int) (string, error) {
+	return "", nil
 }
