@@ -109,9 +109,6 @@ inputs:
     description: 'drift-detection slack notification url'
     required: false
     default: ''
-  id:
-    description: 'run identifier'
-    required: false
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
