@@ -201,7 +201,8 @@ func GetLock() (locking.Lock, error) {
 
 		log.Printf("awsProfile: %v\n", awsProfile)
 
-		options := session.Options{}
+		// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html
+		options := session.Options{SharedConfigState: session.SharedConfigEnable}
 		if awsProfile != "" {
 			options = session.Options{
 				Profile: awsProfile,
