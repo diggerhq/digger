@@ -198,18 +198,21 @@ func GetLock() (locking.Lock, error) {
 	}
 	if lockProvider == "" || lockProvider == "aws" {
 		log.Println("Using AWS lock provider.")
-		sess, err := session.NewSessionWithOptions(session.Options{
-			Profile: awsProfile,
-			Config: awssdk.Config{
-				Region:      awssdk.String(awsRegion),
-				Credentials: credentials.NewCredentials(&envprovider.EnvProvider{}),
-			},
-		})
+		options := session.Options{}
+		if awsProfile != "" {
+			options = session.Options{
+				Profile: awsProfile,
+				Config: awssdk.Config{
+					Region:      awssdk.String(awsRegion),
+					Credentials: credentials.NewCredentials(&envprovider.EnvProvider{}),
+				},
+			}
+		}
+		awsSession, err := session.NewSessionWithOptions(options)
 		if err != nil {
 			return nil, err
 		}
-
-		svc := sts.New(sess)
+		svc := sts.New(awsSession)
 		input := &sts.GetCallerIdentityInput{}
 		result, err := svc.GetCallerIdentity(input)
 		if err != nil {
@@ -217,7 +220,7 @@ func GetLock() (locking.Lock, error) {
 		}
 		log.Printf("Successfully connected to AWS account %s, user Id: %s\n", *result.Account, *result.UserId)
 
-		dynamoDb := dynamodb.New(sess)
+		dynamoDb := dynamodb.New(awsSession)
 		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 		return &dynamoDbLock, nil
 	} else if lockProvider == "gcp" {
