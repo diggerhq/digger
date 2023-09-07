@@ -220,7 +220,7 @@ runs:
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger
           chmod +x digger
-          mv digger /usr/local/bin/digger
+          PATH=$PATH:$(pwd)
           cd ${{ github.workspace }}
           digger
     - name: run digger
@@ -244,7 +244,7 @@ runs:
       run: |
         curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-${{ runner.os  }}-${{ runner.arch }} -o digger
         chmod +x digger
-        mv digger /usr/local/bin/digger
+        PATH=$PATH:$(pwd)
         cd ${{ github.workspace }}
         digger
     - name: generate artifact name based on issue number or pr number
