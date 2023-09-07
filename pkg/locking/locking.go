@@ -187,11 +187,24 @@ func (projectLock *PullRequestLock) LockId() string {
 	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 
+// DoEnvVarsExist return true if any of env vars do exist, false otherwise
+func DoEnvVarsExist(envVars []string) bool {
+	result := false
+	for _, key := range envVars {
+		value := os.Getenv(key)
+		if value != "" {
+			result = true
+		}
+	}
+	return result
+}
+
 func GetLock() (locking.Lock, error) {
 	awsRegion := strings.ToLower(os.Getenv("AWS_REGION"))
 	awsProfile := strings.ToLower(os.Getenv("AWS_PROFILE"))
 	lockProvider := strings.ToLower(os.Getenv("LOCK_PROVIDER"))
 	disableLocking := strings.ToLower(os.Getenv("DISABLE_LOCKING")) == "true"
+
 	if disableLocking {
 		log.Println("Using NoOp lock provider.")
 		return &NoOpLock{}, nil
@@ -201,7 +214,11 @@ func GetLock() (locking.Lock, error) {
 
 		// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html
 		options := session.Options{SharedConfigState: session.SharedConfigEnable}
-		if awsProfile != "" {
+
+		keysToCheck := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY"}
+		awsCredsProvided := DoEnvVarsExist(keysToCheck)
+
+		if awsCredsProvided {
 			options = session.Options{
 				Profile: awsProfile,
 				Config: awssdk.Config{
