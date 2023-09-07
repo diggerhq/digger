@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"io"
 	"log"
 	"net/http"
@@ -25,6 +24,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 
 	"github.com/dominikbraun/graph"
 )
@@ -215,12 +216,12 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			return msg, fmt.Errorf(msg)
 		} else if planPerformed {
+			formatter := utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
+			err = reporter.Report(plan, formatter)
+			if err != nil {
+				log.Printf("Failed to report plan. %v", err)
+			}
 			if isNonEmptyPlan {
-				formatter := utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
-				err = reporter.Report(plan, formatter)
-				if err != nil {
-					log.Printf("Failed to report plan. %v", err)
-				}
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, job.ProjectName, planJsonOutput)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to validate plan. %v", err)
