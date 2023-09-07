@@ -26,7 +26,7 @@ require (
 	github.com/hashicorp/go-getter v1.7.2
 	github.com/hashicorp/go-getter/v2 v2.2.1
 	github.com/hashicorp/hcl/v2 v2.18.0
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20230808231734-f15f31bf62b3
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20230825013512-b800820f61b8
 	github.com/zclconf/go-cty v1.14.0
 	golang.org/x/sync v0.3.0
 )
