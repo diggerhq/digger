@@ -37,11 +37,10 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 }
 
 func TestGetLock(t *testing.T) {
+	// TODO: implement this test
 	lock, err := GetLock()
 	if err != nil {
 		print(err)
-
 	}
 	print(lock)
-
 }
