@@ -227,7 +227,7 @@ func GetLock() (locking.Lock, error) {
 				},
 			}
 		} else {
-			log.Printf("Using default aws credentials\n")
+			log.Printf("Using keyless aws configuration\n")
 		}
 		awsSession, err := session.NewSessionWithOptions(options)
 		if err != nil {
