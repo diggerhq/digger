@@ -187,29 +187,53 @@ func (projectLock *PullRequestLock) LockId() string {
 	return projectLock.ProjectNamespace + "#" + projectLock.ProjectName
 }
 
+// DoEnvVarsExist return true if any of env vars do exist, false otherwise
+func DoEnvVarsExist(envVars []string) bool {
+	result := false
+	for _, key := range envVars {
+		value := os.Getenv(key)
+		if value != "" {
+			result = true
+		}
+	}
+	return result
+}
+
 func GetLock() (locking.Lock, error) {
 	awsRegion := strings.ToLower(os.Getenv("AWS_REGION"))
 	awsProfile := strings.ToLower(os.Getenv("AWS_PROFILE"))
 	lockProvider := strings.ToLower(os.Getenv("LOCK_PROVIDER"))
 	disableLocking := strings.ToLower(os.Getenv("DISABLE_LOCKING")) == "true"
+
 	if disableLocking {
 		log.Println("Using NoOp lock provider.")
 		return &NoOpLock{}, nil
 	}
 	if lockProvider == "" || lockProvider == "aws" {
 		log.Println("Using AWS lock provider.")
-		sess, err := session.NewSessionWithOptions(session.Options{
-			Profile: awsProfile,
-			Config: awssdk.Config{
-				Region:      awssdk.String(awsRegion),
-				Credentials: credentials.NewCredentials(&envprovider.EnvProvider{}),
-			},
-		})
+
+		// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html
+		options := session.Options{SharedConfigState: session.SharedConfigEnable}
+
+		keysToCheck := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY"}
+		awsCredsProvided := DoEnvVarsExist(keysToCheck)
+
+		if awsCredsProvided {
+			options = session.Options{
+				Profile: awsProfile,
+				Config: awssdk.Config{
+					Region:      awssdk.String(awsRegion),
+					Credentials: credentials.NewCredentials(&envprovider.EnvProvider{}),
+				},
+			}
+		} else {
+			log.Printf("Using keyless aws configuration\n")
+		}
+		awsSession, err := session.NewSessionWithOptions(options)
 		if err != nil {
 			return nil, err
 		}
-
-		svc := sts.New(sess)
+		svc := sts.New(awsSession)
 		input := &sts.GetCallerIdentityInput{}
 		result, err := svc.GetCallerIdentity(input)
 		if err != nil {
@@ -217,7 +241,7 @@ func GetLock() (locking.Lock, error) {
 		}
 		log.Printf("Successfully connected to AWS account %s, user Id: %s\n", *result.Account, *result.UserId)
 
-		dynamoDb := dynamodb.New(sess)
+		dynamoDb := dynamodb.New(awsSession)
 		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 		return &dynamoDbLock, nil
 	} else if lockProvider == "gcp" {

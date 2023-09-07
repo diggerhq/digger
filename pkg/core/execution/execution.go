@@ -33,7 +33,7 @@ func (l LockingExecutorWrapper) Plan() (bool, bool, string, string, error) {
 	plan := ""
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
-		return false, false, "", "", fmt.Errorf("error locking project: %v", err)
+		return false, false, "", "", fmt.Errorf("digger plan, error locking project: %v", err)
 	}
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
@@ -46,7 +46,7 @@ func (l LockingExecutorWrapper) Plan() (bool, bool, string, string, error) {
 func (l LockingExecutorWrapper) Apply() (bool, string, error) {
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
-		msg := fmt.Sprintf("error locking project: %v", err)
+		msg := fmt.Sprintf("digger apply, error locking project: %v", err)
 		return false, msg, fmt.Errorf(msg)
 	}
 	log.Printf("Lock result: %t\n", locked)
@@ -60,7 +60,7 @@ func (l LockingExecutorWrapper) Apply() (bool, string, error) {
 func (l LockingExecutorWrapper) Destroy() (bool, error) {
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
-		return false, fmt.Errorf("error locking project: %v", err)
+		return false, fmt.Errorf("digger destroy, error locking project: %v", err)
 	}
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
