@@ -199,7 +199,8 @@ func GetLock() (locking.Lock, error) {
 	if lockProvider == "" || lockProvider == "aws" {
 		log.Println("Using AWS lock provider.")
 
-		log.Printf("awsProfile: %v", awsProfile)
+		log.Printf("awsProfile: %v\n", awsProfile)
+
 		options := session.Options{}
 		if awsProfile != "" {
 			options = session.Options{
