@@ -76,12 +76,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	ghEvent := parsedGhContext.Event
 
-	lock, err = locking.GetLock()
-	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to create lock provider. %s", err), 5)
-	}
-	println("Lock provider has been created successfully")
-
 	ghRepository := os.Getenv("GITHUB_REPOSITORY")
 
 	if ghRepository == "" {
