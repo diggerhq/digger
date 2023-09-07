@@ -274,7 +274,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 		if step.Action == "run" {
 			var commands []string
 			if os.Getenv("ACTIVATE_VENV") == "true" {
-				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", d.ProjectPath))
+				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 			}
 			commands = append(commands, step.Value)
 			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
