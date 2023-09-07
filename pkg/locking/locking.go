@@ -199,8 +199,6 @@ func GetLock() (locking.Lock, error) {
 	if lockProvider == "" || lockProvider == "aws" {
 		log.Println("Using AWS lock provider.")
 
-		log.Printf("awsProfile: %v\n", awsProfile)
-
 		// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html
 		options := session.Options{SharedConfigState: session.SharedConfigEnable}
 		if awsProfile != "" {
@@ -211,6 +209,8 @@ func GetLock() (locking.Lock, error) {
 					Credentials: credentials.NewCredentials(&envprovider.EnvProvider{}),
 				},
 			}
+		} else {
+			log.Printf("Using default aws credentials\n")
 		}
 		awsSession, err := session.NewSessionWithOptions(options)
 		if err != nil {
