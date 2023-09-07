@@ -22,7 +22,7 @@ require (
 	github.com/diggerhq/lib-orchestrator v0.0.0-20230905165200-c04caa57bbfd
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v54 v54.0.0
-	github.com/gruntwork-io/terragrunt v0.36.6
+	github.com/gruntwork-io/terragrunt v0.50.14
 	github.com/hashicorp/go-getter v1.7.2
 	github.com/hashicorp/go-getter/v2 v2.2.1
 	github.com/hashicorp/hcl/v2 v2.18.0
