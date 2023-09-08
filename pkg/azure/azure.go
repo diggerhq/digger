@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	configuration "github.com/diggerhq/lib-digger-config"
 	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
-	"strings"
 )
 
 const (
@@ -328,6 +329,11 @@ func (a *AzureReposService) EditComment(id interface{}, comment string) error {
 		},
 	})
 	return err
+}
+
+func (a *AzureReposService) GetBranchName(prNumber int) (string, error) {
+	//TODO implement me
+	return "", nil
 }
 
 func (a *AzureReposService) GetComments(prNumber int) ([]orchestrator.Comment, error) {

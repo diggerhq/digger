@@ -4,14 +4,15 @@ import (
 	"digger/pkg/core/execution"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
-	"github.com/dominikbraun/graph"
-	"github.com/stretchr/testify/assert"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	orchestrator "github.com/diggerhq/lib-orchestrator"
+	"github.com/dominikbraun/graph"
+	"github.com/stretchr/testify/assert"
 )
 
 type RunInfo struct {
@@ -122,6 +123,11 @@ func (m *MockPRManager) GetComments(prNumber int) ([]orchestrator.Comment, error
 func (m *MockPRManager) EditComment(id interface{}, comment string) error {
 	m.Commands = append(m.Commands, RunInfo{"EditComment", strconv.Itoa(id.(int)) + " " + comment, time.Now()})
 	return nil
+}
+
+func (m *MockPRManager) GetBranchName(prNumber int) (string, error) {
+	m.Commands = append(m.Commands, RunInfo{"GetBranchName", strconv.Itoa(prNumber), time.Now()})
+	return "", nil
 }
 
 type MockProjectLock struct {

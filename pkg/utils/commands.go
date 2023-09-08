@@ -16,6 +16,7 @@ var availableCommands = []Commad{
 	{"digger version", "Display version information"},
 	{"digger apply", "Apply the Terraform  configuration"},
 	{"digger plan", "Plan the Terraform  configuration"},
+	{"digger show-projects", "Show the impacted projects"},
 	{"digger lock", "Lock Terraform project"},
 	{"digger unlock", "Unlock the Terraform project"},
 }

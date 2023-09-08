@@ -3,10 +3,11 @@ package gitlab
 import (
 	"digger/pkg/utils"
 	"fmt"
-	configuration "github.com/diggerhq/lib-digger-config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"log"
 	"strings"
+
+	configuration "github.com/diggerhq/lib-digger-config"
+	orchestrator "github.com/diggerhq/lib-orchestrator"
 
 	"github.com/caarlos0/env/v8"
 	go_gitlab "github.com/xanzy/go-gitlab"
@@ -236,6 +237,11 @@ func (gitlabService GitLabService) EditComment(id interface{}, comment string) e
 func (gitlabService GitLabService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	//TODO implement me
 	return nil, nil
+}
+
+func (gitlabService GitLabService) GetBranchName(prNumber int) (string, error) {
+	//TODO implement me
+	return "", nil
 }
 
 func getMergeRequest(gitlabService GitLabService) *go_gitlab.MergeRequest {
