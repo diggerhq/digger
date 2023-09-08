@@ -12,7 +12,7 @@ import (
 	"strconv"
 
 	"cloud.google.com/go/storage"
-	"github.com/google/go-github/v54/github"
+	"github.com/google/go-github/v55/github"
 )
 
 type PlanStorageGcp struct {
