@@ -32,6 +32,15 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 	}
 	state2, err2 := pl2.Lock()
 	assert.False(t, state2)
-	// No error because the lock was not aquired
+	// No error because the lock was not acquired
 	assert.NoError(t, err2)
+}
+
+func TestGetLock(t *testing.T) {
+	// TODO: implement this test
+	lock, err := GetLock()
+	if err != nil {
+		print(err)
+	}
+	print(lock)
 }

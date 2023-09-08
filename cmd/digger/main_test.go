@@ -7,12 +7,14 @@ import (
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"fmt"
+
 	dggithub "github.com/diggerhq/lib-orchestrator/github"
 	dggithubmodels "github.com/diggerhq/lib-orchestrator/github/models"
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v54/github"
+
+	"testing"
 
 	configuration "github.com/diggerhq/lib-digger-config"
-	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
