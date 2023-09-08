@@ -109,7 +109,6 @@ inputs:
     description: 'drift-detection slack notification url'
     required: false
     default: ''
-
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -118,6 +117,10 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: run identifier
+      run: echo run identifier ${{ inputs.id }}
+      shell: bash
+
     - name: Validate Input Configuration for Google
       run: |
         if [[ -z ${{ toJSON(inputs.google-auth-credentials) }} && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
