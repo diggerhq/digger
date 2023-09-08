@@ -31,7 +31,7 @@ import (
 	dg_github "github.com/diggerhq/lib-orchestrator/github"
 	"gopkg.in/yaml.v3"
 
-	"github.com/google/go-github/v54/github"
+	"github.com/google/go-github/v55/github"
 )
 
 func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
