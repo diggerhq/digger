@@ -43,11 +43,11 @@ inputs:
   azure-client-id:
     description: Azure Client ID to be used for Azure OIDC auth
     required: false
-  azure-tenat-id:
+  azure-tenant-id:
     description: AzureAD ID of the organization you are using
     required: false
   azure-subscription-id:
-    description: Subscrition ID of you are using
+    description: Subscription ID of you are using
     required: false
   setup-terragrunt:
     description: Setup terragrunt
@@ -190,7 +190,7 @@ runs:
       uses: azure/login@v1
       with:
           client-id: ${{ inputs.azure-client-id }}
-          tenant-id: ${{ inputs.azure-tenat-id }}
+          tenant-id: ${{ inputs.azure-tenant-id }}
           subscription-id: ${{ inputs.azure-subscription-id }}
       if: ${{ inputs.setup-azure == 'true' && inputs.azure-client-id != '' }}
 
