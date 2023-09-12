@@ -36,6 +36,19 @@ inputs:
   google-service-account:
       description: Service account to be used when the 'google-workload-identity-provider' input is specified)
       required: false
+  setup-azure:
+    description: Setup Azure
+    required: false
+    default: 'false'
+  azure-client-id:
+    description: Azure Client ID to be used for Azure OIDC auth
+    required: false
+  azure-tenat-id:
+    description: AzureAD ID of the organization you are using
+    required: false
+  azure-subscription-id:
+    description: Subscrition ID of you are using
+    required: false
   setup-terragrunt:
     description: Setup terragrunt
     required: false
@@ -172,6 +185,14 @@ runs:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         aws-region: ${{ inputs.aws-region }}
       if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume != '' }}
+
+    - name: Configure OIDC Azure credentials
+      uses: azure/login@v1
+      with:
+          client-id: ${{ inputs.azure-client-id }}
+          tenant-id: ${{ inputs.azure-tenat-id }}
+          subscription-id: ${{ inputs.azure-subscription-id }}
+      if: ${{ inputs.setup-azure == 'true' && inputs.azure-client-id != '' }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
