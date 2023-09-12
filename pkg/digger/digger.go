@@ -115,7 +115,7 @@ func RunJobs(
 				if reportErr != nil {
 					fmt.Printf("error reporting project run err: %v.\n", reportErr)
 				}
-				return false, false, fmt.Errorf("error checking policy: %v", err)
+				return false, false, fmt.Errorf("error while running command: %v", err)
 			}
 			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
 			if err != nil {
