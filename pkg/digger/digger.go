@@ -111,8 +111,11 @@ func RunJobs(
 			output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
 
 			if err != nil {
-				err := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
-				return false, false, fmt.Errorf("error checking policy: %v", err)
+				reportErr := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
+				if reportErr != nil {
+					fmt.Printf("error reporting project run err: %v.\n", reportErr)
+				}
+				return false, false, fmt.Errorf("error while running command: %v", err)
 			}
 			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
 			if err != nil {
