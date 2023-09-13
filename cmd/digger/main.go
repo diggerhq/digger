@@ -633,3 +633,7 @@ func reportErrorAndExit(repoOwner string, message string, exitCode int) {
 	}
 	os.Exit(exitCode)
 }
+
+func init() {
+	log.SetOutput(os.Stdout)
+}
