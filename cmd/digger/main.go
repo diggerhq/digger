@@ -636,5 +636,8 @@ func reportErrorAndExit(repoOwner string, message string, exitCode int) {
 
 func init() {
 	log.SetOutput(os.Stdout)
-	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Llongfile)
+
+	if os.Getenv("DEBUG") == "true" {
+		log.SetFlags(log.Ltime | log.Llongfile)
+	}
 }
