@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"time"
