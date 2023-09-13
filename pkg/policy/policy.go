@@ -130,7 +130,7 @@ func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, 
 
 	resp, err := p.HttpClient.Do(req)
 	if err != nil {
-		return "", nil, err
+		return "", resp, err
 	}
 	defer resp.Body.Close()
 
@@ -174,7 +174,7 @@ func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo str
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 	content, resp, err := getAccessPolicyForNamespace(p, namespace, projectName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error while fetching access policy for namespace: %v", err)
 	}
 
 	// project policy found
@@ -186,7 +186,7 @@ func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo str
 	if (resp.StatusCode == 200 && content == "") || resp.StatusCode == 404 {
 		content, resp, err := getAccessPolicyForOrganisation(p)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error while fetching access policy for organisation: %v", err)
 		}
 		if resp.StatusCode == 200 {
 			return content, nil
