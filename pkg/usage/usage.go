@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	configuration "github.com/diggerhq/lib-digger-config"
 	"log"
 	"net/http"
@@ -74,7 +73,7 @@ func sendPayload(payload interface{}) error {
 func init() {
 	currentDir, err := os.Getwd()
 	if err != nil {
-		fmt.Printf("Failed to get current dir. %s", err)
+		log.Printf("Failed to get current dir. %s", err)
 	}
 	config, _, _, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {

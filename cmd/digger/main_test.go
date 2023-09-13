@@ -6,7 +6,7 @@ import (
 	ghmodels "digger/pkg/github/models"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
-	"fmt"
+	"log"
 
 	dggithub "github.com/diggerhq/lib-orchestrator/github"
 	dggithubmodels "github.com/diggerhq/lib-orchestrator/github/models"
@@ -876,7 +876,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	assert.NoError(t, err)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	ghEvent := context.Event
 
@@ -898,7 +898,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	assert.NoError(t, err)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
@@ -907,7 +907,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	context := actionContext.ToEventPackage()
 	assert.NoError(t, err)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	ghEvent := context.Event
 	diggerConfig := configuration.DiggerConfig{}
@@ -927,7 +927,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
 	assert.NoError(t, err)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
@@ -935,7 +935,7 @@ func TestInvalidGitHubContext(t *testing.T) {
 	_, err := ghmodels.GetGitHubContext(githubInvalidContextJson)
 	require.Error(t, err)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
