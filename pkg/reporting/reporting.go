@@ -21,7 +21,7 @@ func (ciReporter *CiReporter) Report(report string, reportFormatter func(report 
 type StdOutReporter struct{}
 
 func (reporter *StdOutReporter) Report(report string, reportFormatter func(report string) string) error {
-	fmt.Println(reportFormatter(report))
+	log.Println(reportFormatter(report))
 	return nil
 }
 

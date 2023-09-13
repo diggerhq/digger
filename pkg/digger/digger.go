@@ -88,7 +88,7 @@ func RunJobs(
 		SCMrepository := splits[1]
 
 		for _, command := range job.Commands {
-			fmt.Printf("Running '%s' for project '%s'\n", command, job.ProjectName)
+			log.Printf("Running '%s' for project '%s'\n", command, job.ProjectName)
 
 			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.RequestedBy)
 
@@ -113,7 +113,7 @@ func RunJobs(
 			if err != nil {
 				reportErr := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
 				if reportErr != nil {
-					fmt.Printf("error reporting project run err: %v.\n", reportErr)
+					log.Printf("error reporting project run err: %v.\n", reportErr)
 				}
 				return false, false, fmt.Errorf("error while running command: %v", err)
 			}
@@ -137,7 +137,7 @@ func RunJobs(
 }
 
 func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
-	fmt.Printf("Running '%s' for project '%s'\n", command, job.ProjectName)
+	log.Printf("Running '%s' for project '%s'\n", command, job.ProjectName)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, requestedBy)
 
@@ -285,13 +285,13 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			msg := fmt.Sprintf("Failed to check if PR is mergeable. %v", err)
 			return msg, fmt.Errorf(msg)
 		}
-		fmt.Printf("PR status, mergeable: %v, merged: %v\n", isMergeable, isMerged)
+		log.Printf("PR status, mergeable: %v, merged: %v\n", isMergeable, isMerged)
 		if !isMergeable && !isMerged {
 			comment := "cannot perform Apply since the PR is not currently mergeable"
-			fmt.Println(comment)
+			log.Println(comment)
 			err = reporter.Report(comment, utils.AsCollapsibleComment("Apply error"))
 			if err != nil {
-				fmt.Printf("error publishing comment: %v\n", err)
+				log.Printf("error publishing comment: %v\n", err)
 			}
 
 			return comment, fmt.Errorf(comment)
@@ -319,7 +319,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	case "digger unlock":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "unlock")
 		if err != nil {
-			fmt.Printf("failed to send usage report. %v", err)
+			log.Printf("failed to send usage report. %v", err)
 		}
 		err = diggerExecutor.Unlock()
 		if err != nil {
@@ -372,7 +372,7 @@ func RunJob(
 	splits := strings.Split(projectNamespace, "/")
 	SCMOrganisation := splits[0]
 	SCMrepository := splits[1]
-	fmt.Printf("Running '%s' for project '%s'\n", job.Commands, job.ProjectName)
+	log.Printf("Running '%s' for project '%s'\n", job.Commands, job.ProjectName)
 
 	for _, command := range job.Commands {
 
@@ -442,7 +442,7 @@ func RunJob(
 				return fmt.Errorf(msg)
 			}
 			planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, job.ProjectName, planJsonOutput)
-			fmt.Printf(strings.Join(messages, "\n"))
+			log.Printf(strings.Join(messages, "\n"))
 			if err != nil {
 				msg := fmt.Sprintf("Failed to validate plan %v", err)
 				log.Printf(msg)
@@ -599,7 +599,7 @@ func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *gra
 		return s < s2
 	})
 	if err != nil {
-		fmt.Printf("dependencyGraph: %v", dependencyGraph)
+		log.Printf("dependencyGraph: %v", dependencyGraph)
 		log.Fatalf("failed to sort commands by dependency, %v", err)
 	}
 	for _, node := range sortedGraph {
