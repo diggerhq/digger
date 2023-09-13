@@ -519,6 +519,9 @@ func main() {
 		if os.Getenv("DIGGER_ORGANISATION") == "" {
 			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action configuration.")
 		}
+		log.Println(os.Getenv("DIGGER_ORGANISATION") == "digger")
+		log.Println(os.Getenv("DIGGER_ORGANISATION") == "digger-tusker-tests")
+		log.Println(os.Getenv("DIGGER_TOKEN") == "t:e09c4a36-3c44-11ee-be56-0242ac120002")
 		policyChecker = policy.DiggerPolicyChecker{
 			PolicyProvider: &policy.DiggerHttpPolicyProvider{
 				DiggerHost:         os.Getenv("DIGGER_HOSTNAME"),
