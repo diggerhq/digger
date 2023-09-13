@@ -149,7 +149,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			if err != nil {
 				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
 				if commentErr != nil {
-					fmt.Printf("error publishing comment: %v", err)
+					log.Printf("error publishing comment: %v", err)
 				}
 				return false, false, "", "", fmt.Errorf("error running init: %v", err)
 			}
@@ -191,7 +191,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			}
 			plan = cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
 			if err != nil {
-				fmt.Printf("error publishing comment: %v", err)
+				log.Printf("error publishing comment: %v", err)
 			}
 
 			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
@@ -247,7 +247,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			if err != nil {
 				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
 				if commentErr != nil {
-					fmt.Printf("error publishing comment: %v", err)
+					log.Printf("error publishing comment: %v", err)
 				}
 				return false, stdout, fmt.Errorf("error running init: %v", err)
 			}
@@ -261,12 +261,12 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 
 			commentErr := d.Reporter.Report(applyOutput, formatter)
 			if commentErr != nil {
-				fmt.Printf("error publishing comment: %v", err)
+				log.Printf("error publishing comment: %v", err)
 			}
 			if err != nil {
 				commentErr = d.Reporter.Report(err.Error(), utils.AsCollapsibleComment("Error during applying."))
 				if commentErr != nil {
-					fmt.Printf("error publishing comment: %v", err)
+					log.Printf("error publishing comment: %v", err)
 				}
 				return false, stdout, fmt.Errorf("error executing apply: %v", err)
 			}
@@ -304,7 +304,7 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 			if err != nil {
 				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
 				if commentErr != nil {
-					fmt.Printf("error publishing comment: %v", err)
+					log.Printf("error publishing comment: %v", err)
 				}
 				return false, fmt.Errorf("error running init: %v", err)
 			}

@@ -130,7 +130,7 @@ func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, 
 
 	resp, err := p.HttpClient.Do(req)
 	if err != nil {
-		return "", nil, err
+		return "", resp, err
 	}
 	defer resp.Body.Close()
 
@@ -174,7 +174,7 @@ func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo str
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 	content, resp, err := getAccessPolicyForNamespace(p, namespace, projectName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error while fetching access policy for namespace: %v", err)
 	}
 
 	// project policy found
@@ -186,7 +186,7 @@ func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo str
 	if (resp.StatusCode == 200 && content == "") || resp.StatusCode == 404 {
 		content, resp, err := getAccessPolicyForOrganisation(p)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error while fetching access policy for organisation: %v", err)
 		}
 		if resp.StatusCode == 200 {
 			return content, nil
@@ -257,13 +257,13 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName)
 
 	if err != nil {
-		fmt.Printf("Error while fetching policy: %v", err)
+		log.Printf("Error while fetching policy: %v", err)
 		return false, err
 	}
 
 	teams, err := ciService.GetUserTeams(SCMOrganisation, requestedBy)
 	if err != nil {
-		fmt.Printf("Error while fetching user teams for CI service: %v", err)
+		log.Printf("Error while fetching user teams for CI service: %v", err)
 		return false, err
 	}
 
@@ -280,7 +280,7 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	}
 
 	ctx := context.Background()
-	fmt.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
+	log.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
 	query, err := rego.New(
 		rego.Query("data.digger.allow"),
 		rego.Module("digger", policy),
@@ -328,12 +328,12 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 	}
 
 	if policy == "" {
-		fmt.Printf("No plan policies found, succeeding")
+		log.Printf("No plan policies found, succeeding")
 		return true, nil, nil
 	}
 
 	ctx := context.Background()
-	fmt.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
+	log.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
 	query, err := rego.New(
 		rego.Query("data.digger.deny"),
 		rego.Module("digger", policy),
@@ -360,7 +360,7 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName s
 		if len(decisions) > 0 {
 			for _, d := range decisions {
 				decisionsResult = append(decisionsResult, d.(string))
-				fmt.Printf("denied: %v\n", d)
+				log.Printf("denied: %v\n", d)
 			}
 
 		}
@@ -379,7 +379,7 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	//organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetDriftPolicy()
 	if err != nil {
-		fmt.Printf("Error while fetching drift policy: %v", err)
+		log.Printf("Error while fetching drift policy: %v", err)
 		return false, err
 	}
 
@@ -393,7 +393,7 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	}
 
 	ctx := context.Background()
-	fmt.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
+	log.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
 	query, err := rego.New(
 		rego.Query("data.digger.enable"),
 		rego.Module("digger", policy),
