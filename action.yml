@@ -117,8 +117,8 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: run identifier
-      run: echo run identifier ${{ inputs.id }}
+    - name: digger run ${{github.event.inputs.id}}
+      run: echo digger run ${{ inputs.id }}
       shell: bash
 
     - name: Validate Input Configuration for Google
