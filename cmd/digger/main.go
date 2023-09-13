@@ -638,6 +638,6 @@ func init() {
 	log.SetOutput(os.Stdout)
 
 	if os.Getenv("DEBUG") == "true" {
-		log.SetFlags(log.Ltime | log.Llongfile)
+		log.SetFlags(log.Ltime | log.Lshortfile)
 	}
 }
