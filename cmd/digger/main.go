@@ -636,4 +636,5 @@ func reportErrorAndExit(repoOwner string, message string, exitCode int) {
 
 func init() {
 	log.SetOutput(os.Stdout)
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Llongfile)
 }
