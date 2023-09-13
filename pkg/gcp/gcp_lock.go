@@ -29,12 +29,12 @@ func (googleLock *GoogleStorageLock) Lock(transactionId int, resource string) (b
 
 	bucketAttrs, err := googleLock.Bucket.Attrs(googleLock.Context)
 	if err != nil {
-		fmt.Printf("failed to get bucket attributes: %v\n", err)
+		log.Printf("failed to get bucket attributes: %v\n", err)
 	}
 	bucketName := bucketAttrs.Name
 
 	if err := wc.Close(); err != nil {
-		fmt.Printf("createFile: unable to close bucket %q, file %q: %v\n", bucketName, fileName, err)
+		log.Printf("createFile: unable to close bucket %q, file %q: %v\n", bucketName, fileName, err)
 	}
 	return true, nil
 }
@@ -44,7 +44,7 @@ func (googleLock *GoogleStorageLock) Unlock(resource string) (bool, error) {
 
 	existingLockTransactionId, err := googleLock.GetLock(resource)
 	if err != nil {
-		fmt.Printf("failed to get lock: %v\n", err)
+		log.Printf("failed to get lock: %v\n", err)
 	}
 	if existingLockTransactionId == nil {
 		return false, nil
@@ -74,7 +74,7 @@ func (googleLock *GoogleStorageLock) GetLock(resource string) (*int, error) {
 	lockIdStr := fileMetadata["LockId"]
 	transactionId, err := strconv.Atoi(lockIdStr)
 	if err != nil {
-		fmt.Printf("failed to parse LockId in object's metadata: %v\n", err)
+		log.Printf("failed to parse LockId in object's metadata: %v\n", err)
 	}
 	return &transactionId, nil
 }

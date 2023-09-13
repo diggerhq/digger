@@ -237,6 +237,7 @@ runs:
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        DEBUG: 'true'
       run: |
           cd ${{ github.action_path }}
           go build -o digger ./cmd/digger

@@ -35,7 +35,7 @@ import (
 )
 
 func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
-	println("Using GitHub.")
+	log.Printf("Using GitHub.\n")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
 		usage.SendUsageRecord(githubActor, "log", "initialize")
@@ -56,7 +56,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	diggerGitHubToken := os.Getenv("DIGGER_GITHUB_TOKEN")
 	if diggerGitHubToken != "" {
-		fmt.Println("GITHUB_TOKEN has been overridden with DIGGER_GITHUB_TOKEN")
+		log.Println("GITHUB_TOKEN has been overridden with DIGGER_GITHUB_TOKEN")
 		ghToken = diggerGitHubToken
 	}
 
@@ -72,7 +72,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 	}
-	println("GitHub context parsed successfully")
+	log.Printf("GitHub context parsed successfully\n")
 
 	ghEvent := parsedGhContext.Event
 
@@ -139,7 +139,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
-	println("Digger config read successfully")
+	log.Printf("Digger config read successfully\n")
 
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
@@ -153,7 +153,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	for _, p := range diggerConfig.Projects {
 		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
 		if err != nil {
-			fmt.Printf("Failed to report project %s. %s\n", p.Name, err)
+			log.Printf("Failed to report project %s. %s\n", p.Name, err)
 		}
 	}
 
@@ -234,8 +234,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 		}
 		impactedProjectsMsg := getImpacagedProjectsAsString(impactedProjects, prNumber)
-		println(impactedProjectsMsg)
-		println("GitHub event processed successfully")
+		log.Println(impactedProjectsMsg)
+		log.Println("GitHub event processed successfully")
 
 		if dg_github.CheckIfHelpComment(ghEvent) {
 			reply := utils.GetCommands()
@@ -261,7 +261,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 		}
-		println("GitHub event converted to commands successfully")
+		log.Println("GitHub event converted to commands successfully")
 		logCommands(jobs)
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
@@ -281,40 +281,40 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
 			digger.MergePullRequest(&githubPrService, prNumber)
-			println("PR merged successfully")
+			log.Println("PR merged successfully")
 		}
 
-		println("Commands executed successfully")
+		log.Println("Commands executed successfully")
 	}
 
 	reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 }
 
 func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
-	println("Using GitLab.")
+	log.Println("Using GitLab.")
 
 	projectNamespace := os.Getenv("CI_PROJECT_NAMESPACE")
 	projectName := os.Getenv("CI_PROJECT_NAME")
 	gitlabToken := os.Getenv("GITLAB_TOKEN")
 	if gitlabToken == "" {
-		fmt.Println("GITLAB_TOKEN is empty")
+		log.Println("GITLAB_TOKEN is empty")
 	}
 
 	currentDir, err := os.Getwd()
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
-	fmt.Printf("main: working dir: %s \n", currentDir)
+	log.Printf("main: working dir: %s \n", currentDir)
 
 	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
-	println("Digger config read successfully")
+	log.Println("Digger config read successfully")
 
 	gitLabContext, err := gitlab.ParseGitLabContext()
 	if err != nil {
-		fmt.Printf("failed to parse GitLab context. %s\n", err.Error())
+		log.Printf("failed to parse GitLab context. %s\n", err.Error())
 		os.Exit(4)
 	}
 
@@ -330,19 +330,19 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	for _, p := range diggerConfig.Projects {
 		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
 		if err != nil {
-			fmt.Printf("Failed to report project %s. %s\n", p.Name, err)
+			log.Printf("Failed to report project %s. %s\n", p.Name, err)
 		}
 	}
 
 	// it's ok to not have merge request info if it has been merged
 	if (gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0) && gitLabContext.EventType != "merge_request_merge" {
-		fmt.Println("No merge request found.")
+		log.Println("No merge request found.")
 		os.Exit(0)
 	}
 
 	gitlabService, err := gitlab.NewGitLabService(gitlabToken, gitLabContext)
 	if err != nil {
-		fmt.Printf("failed to initialise GitLab service, %v", err)
+		log.Printf("failed to initialise GitLab service, %v", err)
 		os.Exit(4)
 	}
 
@@ -350,21 +350,21 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	impactedProjects, requestedProject, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
 	if err != nil {
-		fmt.Printf("failed to process GitLab event, %v", err)
+		log.Printf("failed to process GitLab event, %v", err)
 		os.Exit(6)
 	}
-	println("GitLab event processed successfully")
+	log.Println("GitLab event processed successfully")
 
 	jobs, coversAllImpactedProjects, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
-		fmt.Printf("failed to convert event to command, %v", err)
+		log.Printf("failed to convert event to command, %v", err)
 		os.Exit(7)
 	}
-	println("GitLab event converted to commands successfully")
+	log.Println("GitLab event converted to commands successfully")
 
-	println("Digger commands to be executed:")
+	log.Println("Digger commands to be executed:")
 	for _, v := range jobs {
-		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
+		log.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
 	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, gitLabContext.MergeRequestIId)
@@ -377,16 +377,16 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 
 	if err != nil {
-		fmt.Printf("failed to execute command, %v", err)
+		log.Printf("failed to execute command, %v", err)
 		os.Exit(8)
 	}
 
 	if diggerConfig.AutoMerge && atLeastOneApply && allAppliesSuccess && coversAllImpactedProjects {
 		digger.MergePullRequest(gitlabService, *gitLabContext.MergeRequestIId)
-		println("Merge request changes has been applied successfully")
+		log.Println("Merge request changes has been applied successfully")
 	}
 
-	println("Commands executed successfully")
+	log.Println("Commands executed successfully")
 
 	reportErrorAndExit(projectName, "Digger finished successfully", 0)
 
@@ -398,15 +398,15 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 }
 
 func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
-	fmt.Println("> Azure CI detected")
+	log.Println("> Azure CI detected")
 	azureContext := os.Getenv("AZURE_CONTEXT")
 	azureToken := os.Getenv("AZURE_TOKEN")
 	if azureToken == "" {
-		fmt.Println("AZURE_TOKEN is empty")
+		log.Println("AZURE_TOKEN is empty")
 	}
 	parsedAzureContext, err := azure.GetAzureReposContext(azureContext)
 	if err != nil {
-		fmt.Printf("failed to parse Azure context. %s\n", err.Error())
+		log.Printf("failed to parse Azure context. %s\n", err.Error())
 		os.Exit(4)
 	}
 
@@ -414,13 +414,13 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
-	fmt.Printf("main: working dir: %s \n", currentDir)
+	log.Printf("main: working dir: %s \n", currentDir)
 
 	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
-	fmt.Println("Digger config read successfully")
+	log.Println("Digger config read successfully")
 
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
@@ -434,7 +434,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	for _, p := range diggerConfig.Projects {
 		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
 		if err != nil {
-			fmt.Printf("Failed to report project %s. %s\n", p.Name, err)
+			log.Printf("Failed to report project %s. %s\n", p.Name, err)
 		}
 	}
 
@@ -447,17 +447,17 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
 	}
-	fmt.Println("Azure event processed successfully")
+	log.Println("Azure event processed successfully")
 
 	jobs, coversAllImpactedProjects, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
 
 	}
-	fmt.Println(fmt.Sprintf("Azure event converted to commands successfully: %v", jobs))
+	log.Println(fmt.Sprintf("Azure event converted to commands successfully: %v", jobs))
 
 	for _, v := range jobs {
-		fmt.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
+		log.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
 	var planStorage core_storage.PlanStorage
@@ -475,10 +475,10 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 
 	if diggerConfig.AutoMerge && allAppliesSuccess && atLeastOneApply && coversAllImpactedProjects {
 		digger.MergePullRequest(azureService, prNumber)
-		fmt.Println("PR merged successfully")
+		log.Println("PR merged successfully")
 	}
 
-	println("Commands executed successfully")
+	log.Println("Commands executed successfully")
 
 	reportErrorAndExit(parsedAzureContext.BaseUrl, "Digger finished successfully", 0)
 
@@ -506,7 +506,7 @@ Exit codes:
 func main() {
 	args := os.Args[1:]
 	if len(args) > 0 && args[0] == "version" {
-		fmt.Println(utils.GetVersion())
+		log.Println(utils.GetVersion())
 		os.Exit(0)
 	}
 	if len(args) > 0 && args[0] == "help" {
@@ -519,6 +519,9 @@ func main() {
 		if os.Getenv("DIGGER_ORGANISATION") == "" {
 			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action configuration.")
 		}
+		log.Println(os.Getenv("DIGGER_ORGANISATION") == "digger")
+		log.Println(os.Getenv("DIGGER_ORGANISATION") == "digger-tusker-tests")
+		log.Println(os.Getenv("DIGGER_TOKEN") == "t:e09c4a36-3c44-11ee-be56-0242ac120002")
 		policyChecker = policy.DiggerPolicyChecker{
 			PolicyProvider: &policy.DiggerHttpPolicyProvider{
 				DiggerHost:         os.Getenv("DIGGER_HOSTNAME"),
@@ -552,10 +555,10 @@ func main() {
 
 	lock, err := locking.GetLock()
 	if err != nil {
-		fmt.Printf("Failed to create lock provider. %s\n", err)
+		log.Printf("Failed to create lock provider. %s\n", err)
 		os.Exit(2)
 	}
-	println("Lock provider has been created successfully")
+	log.Println("Lock provider has been created successfully")
 
 	ci := digger.DetectCI()
 	switch ci {
@@ -626,10 +629,18 @@ func logCommands(projectCommands []orchestrator.Job) {
 }
 
 func reportErrorAndExit(repoOwner string, message string, exitCode int) {
-	fmt.Println(message)
+	log.Println(message)
 	err := usage.SendLogRecord(repoOwner, message)
 	if err != nil {
-		fmt.Printf("Failed to send log record. %s\n", err)
+		log.Printf("Failed to send log record. %s\n", err)
 	}
 	os.Exit(exitCode)
+}
+
+func init() {
+	log.SetOutput(os.Stdout)
+
+	if os.Getenv("DEBUG") == "true" {
+		log.SetFlags(log.Ltime | log.Lshortfile)
+	}
 }

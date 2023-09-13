@@ -3,15 +3,16 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 )
 
-type Commad struct {
+type Command struct {
 	Name        string
 	Description string
 }
 
-var availableCommands = []Commad{
+var availableCommands = []Command{
 	{"digger help", "Display help information"},
 	{"digger version", "Display version information"},
 	{"digger apply", "Apply the Terraform  configuration"},
@@ -22,9 +23,9 @@ var availableCommands = []Commad{
 }
 
 func DisplayCommands() {
-	fmt.Println("Use the following commands to get started:")
+	log.Println("Use the following commands to get started:")
 	for _, command := range availableCommands {
-		fmt.Printf("  %s: %s\n", command.Name, command.Description)
+		log.Printf("  %s: %s\n", command.Name, command.Description)
 	}
 }
 

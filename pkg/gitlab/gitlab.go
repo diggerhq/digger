@@ -60,10 +60,10 @@ func ParseGitLabContext() (*GitLabContext, error) {
 	var parsedGitLabContext GitLabContext
 
 	if err := env.Parse(&parsedGitLabContext); err != nil {
-		fmt.Printf("%+v\n", err)
+		log.Printf("%+v\n", err)
 	}
 
-	fmt.Printf("%+v\n", parsedGitLabContext)
+	log.Printf("%+v\n", parsedGitLabContext)
 	return &parsedGitLabContext, nil
 }
 
@@ -77,7 +77,7 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current GitLab user info, %v", err)
 	}
-	fmt.Printf("current GitLab user: %s\n", user.Name)
+	log.Printf("current GitLab user: %s\n", user.Name)
 
 	return &GitLabService{
 		Client:  client,
@@ -142,7 +142,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 
 	for i, change := range mergeRequestChanges.Changes {
 		fileNames[i] = change.NewPath
-		//fmt.Printf("changed file: %s \n", change.NewPath)
+		//log.Printf("changed file: %s \n", change.NewPath)
 	}
 	return fileNames, nil
 }
@@ -157,13 +157,13 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
 
-	fmt.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestID, projectId, mergeRequestIID, discussionId)
+	log.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestID, projectId, mergeRequestIID, discussionId)
 
 	if discussionId == "" {
 		commentOpt := &go_gitlab.CreateMergeRequestDiscussionOptions{Body: &comment}
 		discussion, _, err := gitlabService.Client.Discussions.CreateMergeRequestDiscussion(projectId, mergeRequestIID, commentOpt)
 		if err != nil {
-			fmt.Printf("Failed to publish a comment. %v\n", err)
+			log.Printf("Failed to publish a comment. %v\n", err)
 			print(err.Error())
 		}
 		discussionId = discussion.ID
@@ -171,7 +171,7 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	} else {
 		_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 		if err != nil {
-			fmt.Printf("Failed to publish a comment. %v\n", err)
+			log.Printf("Failed to publish a comment. %v\n", err)
 			print(err.Error())
 		}
 		return err
@@ -183,7 +183,7 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 // only supported by 'Ultimate' plan
 func (gitlabService GitLabService) SetStatus(mergeRequestID int, status string, statusContext string) error {
 	//TODO implement me
-	fmt.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s\n", mergeRequestID, status, statusContext)
+	log.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s\n", mergeRequestID, status, statusContext)
 	return nil
 }
 
@@ -199,11 +199,11 @@ func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 	mergeWhenPipelineSucceeds := true
 	opt := &go_gitlab.AcceptMergeRequestOptions{MergeWhenPipelineSucceeds: &mergeWhenPipelineSucceeds}
 
-	fmt.Printf("MergePullRequest mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, \n", mergeRequestID, projectId, mergeRequestIID)
+	log.Printf("MergePullRequest mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, \n", mergeRequestID, projectId, mergeRequestIID)
 
 	_, _, err := gitlabService.Client.MergeRequests.AcceptMergeRequest(projectId, mergeRequestIID, opt)
 	if err != nil {
-		fmt.Printf("Failed to merge Merge Request. %v\n", err)
+		log.Printf("Failed to merge Merge Request. %v\n", err)
 		return fmt.Errorf("Failed to merge Merge Request. %v\n", err)
 	}
 	return nil
@@ -247,11 +247,11 @@ func (gitlabService GitLabService) GetBranchName(prNumber int) (string, error) {
 func getMergeRequest(gitlabService GitLabService) *go_gitlab.MergeRequest {
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
-	fmt.Printf("getMergeRequest mergeRequestIID : %d, projectId: %d \n", mergeRequestIID, projectId)
+	log.Printf("getMergeRequest mergeRequestIID : %d, projectId: %d \n", mergeRequestIID, projectId)
 	opt := &go_gitlab.GetMergeRequestsOptions{}
 	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, mergeRequestIID, opt)
 	if err != nil {
-		fmt.Printf("Failed to get a MergeRequest: %d, %v \n", mergeRequestIID, err)
+		log.Printf("Failed to get a MergeRequest: %d, %v \n", mergeRequestIID, err)
 		print(err.Error())
 	}
 	return mergeRequest
@@ -284,7 +284,7 @@ const (
 func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]orchestrator.Job, bool, error) {
 	jobs := make([]orchestrator.Job, 0)
 
-	fmt.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
+	log.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
 	case MergeRequestOpened, MergeRequestReopened, MergeRequestUpdated:
 		for _, project := range impactedProjects {
