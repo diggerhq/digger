@@ -99,7 +99,7 @@ func (tf Terraform) Init(params []string, envs map[string]string) (string, strin
 func (tf Terraform) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
 	err := tf.switchToWorkspace(envs)
 	if err != nil {
-		fmt.Printf("Fatal: Error terraform to workspace %v", err)
+		log.Printf("Fatal: Error terraform to workspace %v", err)
 		return "", "", err
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
@@ -113,7 +113,7 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 func (tf Terraform) Destroy(params []string, envs map[string]string) (string, string, error) {
 	err := tf.switchToWorkspace(envs)
 	if err != nil {
-		fmt.Printf("Fatal: Error terraform to workspace %v", err)
+		log.Printf("Fatal: Error terraform to workspace %v", err)
 		return "", "", err
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
@@ -179,7 +179,7 @@ func (tf Terraform) runTerraformCommand(printOutputToStdout bool, command string
 
 	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
 	if err != nil && cmd.ProcessState.ExitCode() != 2 {
-		fmt.Println("Error:", err)
+		log.Println("Error:", err)
 	}
 
 	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err

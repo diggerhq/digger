@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -62,7 +61,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 		}
 		cnt++
 		if cnt > TableCreationRetryCount {
-			fmt.Printf("DynamoDB failed to create, timed out during creation.\n" +
+			log.Printf("DynamoDB failed to create, timed out during creation.\n" +
 				"Rerunning the action may cause creation to succeed\n")
 			os.Exit(1)
 		}
@@ -110,17 +109,17 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() error {
 	_, err = dynamoDbLock.DynamoDb.CreateTable(createtbl_input)
 	if err != nil {
 		if os.Getenv("DEBUG") != "" {
-			fmt.Printf("%v\n", err)
+			log.Printf("%v\n", err)
 		}
 		return err
 	}
 
 	err = dynamoDbLock.waitUntilTableCreated()
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		log.Printf("%v\n", err)
 		return err
 	}
-	fmt.Printf("DynamoDB Table %v has been created\n", TABLE_NAME)
+	log.Printf("DynamoDB Table %v has been created\n", TABLE_NAME)
 	return nil
 }
 

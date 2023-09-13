@@ -51,7 +51,7 @@ func (noOpLock *NoOpLock) GetLock(resource string) (*int, error) {
 
 func (projectLock *PullRequestLock) Lock() (bool, error) {
 	lockId := projectLock.LockId()
-	fmt.Printf("Lock %s\n", lockId)
+	log.Printf("Lock %s\n", lockId)
 
 	noHangingLocks, err := projectLock.verifyNoHangingLocks()
 
@@ -65,7 +65,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 
 	existingLockTransactionId, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
-		fmt.Printf("failed to get lock: %v\n", err)
+		log.Printf("failed to get lock: %v\n", err)
 		return false, err
 	}
 	if existingLockTransactionId != nil {
@@ -90,9 +90,9 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(projectLock.PrNumber)
 		err = projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Locking successful"))
 		if err != nil {
-			println("failed to publish comment: " + err.Error())
+			log.Println("failed to publish comment: " + err.Error())
 		}
-		println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(projectLock.PrNumber))
+		log.Println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(projectLock.PrNumber))
 
 	}
 	return lockAcquired, nil
@@ -131,7 +131,7 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 
 func (projectLock *PullRequestLock) Unlock() (bool, error) {
 	lockId := projectLock.LockId()
-	fmt.Printf("Unlock %s\n", lockId)
+	log.Printf("Unlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
 		return false, err
@@ -148,7 +148,7 @@ func (projectLock *PullRequestLock) Unlock() (bool, error) {
 				comment := "Project unlocked (" + projectLock.projectId() + ")."
 				projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Unlocking successful"))
 
-				println("Project unlocked")
+				log.Println("Project unlocked")
 				return true, nil
 			}
 		}
@@ -158,7 +158,7 @@ func (projectLock *PullRequestLock) Unlock() (bool, error) {
 
 func (projectLock *PullRequestLock) ForceUnlock() error {
 	lockId := projectLock.LockId()
-	fmt.Printf("ForceUnlock %s\n", lockId)
+	log.Printf("ForceUnlock %s\n", lockId)
 	lock, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
 		return err
@@ -172,7 +172,7 @@ func (projectLock *PullRequestLock) ForceUnlock() error {
 		if lockReleased {
 			comment := "Project unlocked (" + projectLock.projectId() + ")."
 			projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Unlocking successful"))
-			println("Project unlocked")
+			log.Println("Project unlocked")
 		}
 		return nil
 	}
