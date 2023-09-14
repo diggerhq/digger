@@ -145,3 +145,7 @@ func (t MockBackendApi) ReportProject(namespace string, projectName string, conf
 func (t MockBackendApi) ReportProjectRun(namespace string, projectName string, startedAt time.Time, endedAt time.Time, status string, command string, output string) error {
 	return nil
 }
+
+func (t MockBackendApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time) error {
+	return nil
+}

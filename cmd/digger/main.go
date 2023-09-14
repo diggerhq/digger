@@ -95,6 +95,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" {
 		type Inputs struct {
 			JobString string `json:"job"`
+			Id        string `json:"id"`
 		}
 
 		var inputs Inputs
@@ -110,6 +111,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
+		repoName := strings.ReplaceAll(ghRepository, "/", "-")
 
 		var job orchestrator.JobJson
 
@@ -118,6 +120,13 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
+
+		err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now())
+
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
+		}
+
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
 		reporter := &reporting.CiReporter{
@@ -130,7 +139,15 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 		if err != nil {
+			err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now())
+			if err != nil {
+				log.Printf("Failed to report job status to backend. %s", err)
+			}
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
+		}
+		err = backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "succeeded", time.Now())
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. %s", err), 4)
 		}
 		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 	}
@@ -148,10 +165,10 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	// Convert to string
 	yamlStr := string(yamlData)
-	diggerNamespace := strings.ReplaceAll(ghRepository, "/", "-")
+	repo := strings.ReplaceAll(ghRepository, "/", "-")
 
 	for _, p := range diggerConfig.Projects {
-		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
+		err = backendApi.ReportProject(repo, p.Name, yamlStr)
 		if err != nil {
 			log.Printf("Failed to report project %s. %s\n", p.Name, err)
 		}
@@ -325,10 +342,10 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	// Convert to string
 	yamlStr := string(yamlData)
-	diggerNamespace := strings.ReplaceAll(gitLabContext.ProjectNamespace, "/", "-")
+	repo := strings.ReplaceAll(gitLabContext.ProjectNamespace, "/", "-")
 
 	for _, p := range diggerConfig.Projects {
-		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
+		err = backendApi.ReportProject(repo, p.Name, yamlStr)
 		if err != nil {
 			log.Printf("Failed to report project %s. %s\n", p.Name, err)
 		}
@@ -429,10 +446,10 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 
 	// Convert to string
 	yamlStr := string(yamlData)
-	diggerNamespace := strings.ReplaceAll(parsedAzureContext.BaseUrl, "/", "-")
+	repo := strings.ReplaceAll(parsedAzureContext.BaseUrl, "/", "-")
 
 	for _, p := range diggerConfig.Projects {
-		err = backendApi.ReportProject(diggerNamespace, p.Name, yamlStr)
+		err = backendApi.ReportProject(repo, p.Name, yamlStr)
 		if err != nil {
 			log.Printf("Failed to report project %s. %s\n", p.Name, err)
 		}
