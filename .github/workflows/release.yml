@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Build
         run: |
-          echo "Tag that is going to be used as digger version: ${{  github.ref_name }}"
+          echo "Tag that is going to be used as digger version: ${{ github.event.release.tag_name }}"
           env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ github.event.release.tag_name }}" -o digger ./cmd/digger
       - name: Publish linux-x64 exec to github
         id: upload-release-asset-linux-x64
