@@ -45,7 +45,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	defer func() {
 		if r := recover(); r != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Panic occurred. %s", r), 1)
+			log.Println(fmt.Sprintf("Panic occurred. %v", r))
+			err := usage.SendLogRecord(githubActor, fmt.Sprintf("Panic occurred. %s", r))
+			if err != nil {
+				log.Printf("Failed to send log record. %s\n", err)
+			}
 		}
 	}()
 
