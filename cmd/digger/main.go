@@ -23,6 +23,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -45,7 +46,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println(fmt.Sprintf("Panic occurred. %v", r))
+			log.Println(fmt.Sprintf("stacktrace from panic: \n" + string(debug.Stack())))
 			err := usage.SendLogRecord(githubActor, fmt.Sprintf("Panic occurred. %s", r))
 			if err != nil {
 				log.Printf("Failed to send log record. %s\n", err)
