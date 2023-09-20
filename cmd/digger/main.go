@@ -51,6 +51,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			if err != nil {
 				log.Printf("Failed to send log record. %s\n", err)
 			}
+			os.Exit(1)
 		}
 	}()
 
