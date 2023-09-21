@@ -360,7 +360,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 func RunJob(
 	job orchestrator.Job,
-	projectNamespace string,
+	repo string,
 	requestedBy string,
 	orgService orchestrator.OrgService,
 	policyChecker policy.Checker,
@@ -369,7 +369,7 @@ func RunJob(
 	workingDir string,
 ) error {
 	runStartedAt := time.Now()
-	splits := strings.Split(projectNamespace, "/")
+	splits := strings.Split(repo, "/")
 	SCMOrganisation := splits[0]
 	SCMrepository := splits[1]
 	log.Printf("Running '%s' for project '%s'\n", job.Commands, job.ProjectName)
@@ -388,7 +388,7 @@ func RunJob(
 				log.Printf("Error publishing comment: %v", err)
 			}
 			log.Println(msg)
-			err = backendApi.ReportProjectRun(projectNamespace, job.ProjectName, runStartedAt, time.Now(), "FORBIDDEN", command, msg)
+			err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FORBIDDEN", command, msg)
 			if err != nil {
 				log.Printf("Error reporting run: %v", err)
 			}
@@ -406,12 +406,12 @@ func RunJob(
 
 		planPathProvider := execution.ProjectPathProvider{
 			ProjectPath:      projectPath,
-			ProjectNamespace: projectNamespace,
+			ProjectNamespace: repo,
 			ProjectName:      job.ProjectName,
 		}
 
 		diggerExecutor := execution.DiggerExecutor{
-			ProjectNamespace:  projectNamespace,
+			ProjectNamespace:  repo,
 			ProjectName:       job.ProjectName,
 			ProjectPath:       projectPath,
 			StateEnvVars:      job.StateEnvVars,
@@ -435,7 +435,7 @@ func RunJob(
 			if err != nil {
 				msg := fmt.Sprintf("Failed to run digger plan command. %v", err)
 				log.Printf(msg)
-				err = backendApi.ReportProjectRun(projectNamespace, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
+				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
 				if err != nil {
 					log.Printf("Error reporting run: %v", err)
 				}
@@ -446,7 +446,7 @@ func RunJob(
 			if err != nil {
 				msg := fmt.Sprintf("Failed to validate plan %v", err)
 				log.Printf(msg)
-				err = backendApi.ReportProjectRun(projectNamespace, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
+				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
 				if err != nil {
 					log.Printf("Error reporting run: %v", err)
 				}
@@ -455,13 +455,13 @@ func RunJob(
 			if !planIsAllowed {
 				msg := fmt.Sprintf("Plan is not allowed")
 				log.Printf(msg)
-				err = backendApi.ReportProjectRun(projectNamespace, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
+				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
 				if err != nil {
 					log.Printf("Error reporting run: %v", err)
 				}
 				return fmt.Errorf(msg)
 			} else {
-				err = backendApi.ReportProjectRun(projectNamespace, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, plan)
+				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, plan)
 				if err != nil {
 					log.Printf("Error reporting run: %v", err)
 				}
@@ -476,13 +476,13 @@ func RunJob(
 			if err != nil {
 				msg := fmt.Sprintf("Failed to run digger apply command. %v", err)
 				log.Printf(msg)
-				err = backendApi.ReportProjectRun(projectNamespace, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
+				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
 				if err != nil {
 					log.Printf("Error reporting run: %v", err)
 				}
 				return fmt.Errorf(msg)
 			}
-			err = backendApi.ReportProjectRun(projectNamespace, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
+			err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
 			if err != nil {
 				log.Printf("Error reporting run: %v", err)
 			}
@@ -502,7 +502,7 @@ func RunJob(
 			if err != nil {
 				return fmt.Errorf("failed to run digger drift-detect command. %v", err)
 			}
-			err = backendApi.ReportProjectRun(projectNamespace, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
+			err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
 			if err != nil {
 				log.Printf("Error reporting run: %v", err)
 			}
