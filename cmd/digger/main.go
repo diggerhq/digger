@@ -145,9 +145,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 		if err != nil {
-			err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now())
-			if err != nil {
-				log.Printf("Failed to report job status to backend. %s", err)
+			reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now())
+			if reportingError != nil {
+				log.Printf("Failed to report job status to backend. %s", reportingError)
 			}
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
