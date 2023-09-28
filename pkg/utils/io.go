@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"log"
 	"strings"
 )
 
@@ -25,7 +26,7 @@ func (z *Zipper) GetFileFromZip(zipFile string, filename string) (string, error)
 		if file.FileInfo().IsDir() {
 			continue
 		}
-
+		log.Printf("Checking file %s, expected %s", file.Name, filename)
 		if strings.HasSuffix(file.Name, filename) {
 			rc, err := file.Open()
 			if err != nil {
