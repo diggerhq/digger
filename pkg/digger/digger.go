@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	config "github.com/diggerhq/lib-digger-config"
 	orchestrator "github.com/diggerhq/lib-orchestrator"
 
 	"github.com/dominikbraun/graph"
@@ -593,7 +594,7 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 	return plan, nil
 }
 
-func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *graph.Graph[string, string]) []orchestrator.Job {
+func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *graph.Graph[string, config.Project]) []orchestrator.Job {
 	var sortedCommands []orchestrator.Job
 	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s string, s2 string) bool {
 		return s < s2
