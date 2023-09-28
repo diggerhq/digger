@@ -4,6 +4,7 @@ import (
 	"digger/pkg/core/execution"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
+	configuration "github.com/diggerhq/lib-digger-config"
 	"sort"
 	"strconv"
 	"strings"
@@ -407,12 +408,15 @@ func TestSortedCommandByDependency(t *testing.T) {
 		},
 	}
 
-	dependencyGraph := graph.New(graph.StringHash, graph.PreventCycles(), graph.Directed())
+	projectHash := func(p configuration.Project) string {
+		return p.Name
+	}
+	dependencyGraph := graph.New(projectHash, graph.PreventCycles(), graph.Directed())
 
-	dependencyGraph.AddVertex("project1")
-	dependencyGraph.AddVertex("project2")
-	dependencyGraph.AddVertex("project3")
-	dependencyGraph.AddVertex("project4")
+	dependencyGraph.AddVertex(configuration.Project{Name: "project1"})
+	dependencyGraph.AddVertex(configuration.Project{Name: "project2"})
+	dependencyGraph.AddVertex(configuration.Project{Name: "project3"})
+	dependencyGraph.AddVertex(configuration.Project{Name: "project4"})
 
 	dependencyGraph.AddEdge("project2", "project1")
 	dependencyGraph.AddEdge("project3", "project2")
