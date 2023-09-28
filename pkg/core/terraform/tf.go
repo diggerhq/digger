@@ -166,6 +166,7 @@ func (tf Terraform) runTerraformCommand(printOutputToStdout bool, command string
 	}
 
 	cmd := exec.Command("terraform", expandedArgs...)
+	log.Printf("Running command: terraform %v", expandedArgs)
 	cmd.Dir = tf.WorkingDir
 
 	env := os.Environ()
