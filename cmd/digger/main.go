@@ -280,7 +280,15 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, "No projects impacted", 0)
 		}
 
-		jobs, coversAllImpactedProjects, err := dg_github.ConvertGithubEventToJobs(parsedGhContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+		jobs := []orchestrator.Job{}
+		coversAllImpactedProjects := false
+		err = nil
+		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
+			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+		} else if pushEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
+			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubIssueCommentEventToJobs(&pushEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+		}
+
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 		}
