@@ -115,6 +115,7 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanF
 		return nil, fmt.Errorf("no plans found for this PR")
 	}
 
+	log.Printf("Local plan file path: %s, storedPlanfilePath %s", localPlanFilePath, storedPlanFilePath)
 	plansFilename, err = gps.ZipManager.GetFileFromZip(plansFilename, localPlanFilePath)
 
 	log.Printf("Extracted plan file: %s", plansFilename)
