@@ -83,7 +83,6 @@ func RunJobs(
 	appliesPerProject := make(map[string]bool)
 
 	for _, job := range jobs {
-
 		splits := strings.Split(job.Namespace, "/")
 		SCMOrganisation := splits[0]
 		SCMrepository := splits[1]
@@ -138,7 +137,7 @@ func RunJobs(
 }
 
 func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
-	log.Printf("Running '%s' for project '%s'\n", command, job.ProjectName)
+	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, requestedBy)
 
@@ -359,6 +358,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	return "", nil
 }
 
+// RunJob
 func RunJob(
 	job orchestrator.Job,
 	repo string,
