@@ -224,6 +224,10 @@ runs:
       shell: bash
       if: inputs.setup-checkov == 'true'
 
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '^1.21.1'
+
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
       shell: bash
