@@ -27,7 +27,7 @@ func (z *Zipper) GetFileFromZip(zipFile string, filename string) (string, error)
 			continue
 		}
 		log.Printf("Checking file %s, expected %s", file.Name, filename)
-		if strings.HasSuffix(file.Name, filename) {
+		if strings.HasSuffix(filename, file.Name) {
 			rc, err := file.Open()
 			if err != nil {
 				return "", err
