@@ -113,7 +113,7 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanF
 		return nil, fmt.Errorf("no plans found for this PR")
 	}
 
-	plansFilename, err = gps.ZipManager.GetFileFromZip(plansFilename, storedPlanFilePath)
+	plansFilename, err = gps.ZipManager.GetFileFromZip(plansFilename, localPlanFilePath)
 
 	if err != nil {
 		return nil, fmt.Errorf("error extracting plan: %v", err)
