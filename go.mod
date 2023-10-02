@@ -20,6 +20,7 @@ require (
 )
 
 require (
+	github.com/diggerhq/lib-digger-config v0.0.10-0.20231002145121-cd6fb380fe66
 	github.com/diggerhq/lib-orchestrator v0.0.11
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
@@ -51,7 +52,6 @@ require (
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/creack/pty v1.1.11 // indirect
-	github.com/diggerhq/lib-digger-config v0.0.10-0.20231002145121-cd6fb380fe66 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
