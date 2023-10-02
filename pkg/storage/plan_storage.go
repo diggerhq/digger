@@ -5,7 +5,6 @@ import (
 	"digger/pkg/utils"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -105,7 +104,6 @@ func (gps *GithubPlanStorage) StorePlan(localPlanFilePath string, storedPlanFile
 
 func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
 	plansFilename, err := gps.DownloadLatestPlans()
-	log.Printf("Downloaded plans file: %s", plansFilename)
 
 	if err != nil {
 		return nil, fmt.Errorf("error downloading plan: %v", err)
@@ -115,10 +113,7 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanF
 		return nil, fmt.Errorf("no plans found for this PR")
 	}
 
-	log.Printf("Local plan file path: %s, storedPlanfilePath %s", localPlanFilePath, storedPlanFilePath)
 	plansFilename, err = gps.ZipManager.GetFileFromZip(plansFilename, localPlanFilePath)
-
-	log.Printf("Extracted plan file: %s", plansFilename)
 
 	if err != nil {
 		return nil, fmt.Errorf("error extracting plan: %v", err)

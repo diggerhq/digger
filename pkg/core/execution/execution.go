@@ -220,12 +220,10 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 	var plansFilename *string
 	if d.PlanStorage != nil {
 		var err error
-		log.Printf("Retrieving plan from storage: %v", d.PlanPathProvider.StoredPlanFilePath())
 		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
 			return false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}
-		log.Printf("Retrieved plan from storage: %v", *plansFilename)
 	}
 
 	var applySteps []orchestrator.Step
