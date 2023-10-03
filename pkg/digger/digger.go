@@ -88,8 +88,6 @@ func RunJobs(
 		SCMrepository := splits[1]
 
 		for _, command := range job.Commands {
-			log.Printf("Running '%s' for project '%s'\n", command, job.ProjectName)
-
 			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.RequestedBy)
 
 			if err != nil {
