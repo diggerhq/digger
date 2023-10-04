@@ -18,7 +18,7 @@ require (
 )
 
 require (
-	github.com/diggerhq/lib-digger-config v0.0.4
+	github.com/diggerhq/lib-digger-config v0.0.4-hotfix
 	github.com/diggerhq/lib-orchestrator v0.0.1
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
