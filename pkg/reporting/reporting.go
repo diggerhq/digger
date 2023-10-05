@@ -105,18 +105,18 @@ type LatestRunCommentStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy *LatestRunCommentStrategy) Report(ciService orchestrator.PullRequestService, prNumber int, comment string, commentFormatting func(comment string) string, supportsCollapsibleComments bool) error {
+func (strategy *LatestRunCommentStrategy) Report(ciService orchestrator.PullRequestService, prNumber int, comment string, commentFormatting func(comment string) string, supportsMarkdown bool) error {
 	comments, err := ciService.GetComments(prNumber)
 	if err != nil {
 		return fmt.Errorf("error getting comments: %v", err)
 	}
 
 	reportTitle := "Digger latest run report"
-	return upsertComment(ciService, prNumber, comment, commentFormatting, comments, reportTitle, supportsCollapsibleComments)
+	return upsertComment(ciService, prNumber, comment, commentFormatting, comments, reportTitle, supportsMarkdown)
 }
 
 type MultipleCommentsStrategy struct{}
 
-func (strategy *MultipleCommentsStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, formatter func(string) string, supportsCollapsibleComments bool) error {
+func (strategy *MultipleCommentsStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, formatter func(string) string, supportsMarkdown bool) error {
 	return ciService.PublishComment(PrNumber, formatter(report))
 }

@@ -75,7 +75,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 			transactionIdStr := strconv.Itoa(*existingLockTransactionId)
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.ProjectNamespace + "). The locking plan must be applied or discarded before future plans can execute"
 
-			if projectLock.Reporter.SupportsCollapsibleComments() {
+			if projectLock.Reporter.SupportsMarkdown() {
 				err = projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Locking failed"))
 				if err != nil {
 					log.Println("failed to publish comment: " + err.Error())
