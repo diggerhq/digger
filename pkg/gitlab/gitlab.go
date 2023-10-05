@@ -99,11 +99,13 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 		log.Fatalf("failed to create gitlab client: %v", err)
 	}
 
+	/* for cli only version it's not needed
 	user, _, err := client.Users.CurrentUser()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current GitLab user info, %v", err)
 	}
 	log.Printf("current GitLab user: %s\n", user.Name)
+	*/
 
 	return &GitLabService{
 		Client:  client,
