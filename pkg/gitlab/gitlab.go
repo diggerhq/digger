@@ -41,6 +41,8 @@ type GitLabContext struct {
 	IsMeargeable                 bool     `env:"IS_MERGEABLE"`
 	MergeRequestSourceBranchName *string  `env:"CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"`
 	MergeRequestTargetBranchName *string  `env:"CI_MERGE_REQUEST_TARGET_BRANCH_NAME"`
+	MergeRequestSourceBranchSHA  *string  `env:"CI_MERGE_REQUEST_SOURCE_BRANCH_SHA"`
+	MergeRequestTargetBranchSHA  *string  `env:"CI_MERGE_REQUEST_TARGET_BRANCH_SHA"`
 }
 
 type PipelineSourceType string
@@ -178,7 +180,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 	ctx := context.Background()
 	// for merge requests we need to compare two branches, for the push to a branch we need to get diff for the commit
 	if gitlabService.Context.MergeRequestSourceBranchName != nil && gitlabService.Context.MergeRequestTargetBranchName != nil {
-		diffArgs = fmt.Sprintf("origin/%s..origin/%s", *gitlabService.Context.MergeRequestSourceBranchName, *gitlabService.Context.MergeRequestTargetBranchName)
+		diffArgs = fmt.Sprintf("origin/%s..origin/%s", *gitlabService.Context.MergeRequestSourceBranchSHA, *gitlabService.Context.MergeRequestTargetBranchSHA)
 	} else {
 		diffArgs = *gitlabService.Context.CommitSHA
 	}
