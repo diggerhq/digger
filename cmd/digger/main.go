@@ -698,7 +698,18 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				}
 				jobs = append(jobs, job)
 			}
-		} else if os.Getenv("BITBUCKET_PR_ID") != "" {
+		}
+
+		for _, job := range jobs {
+			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+			if err != nil {
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			}
+		}
+
+		reportErrorAndExit(actor, "Digger finished successfully", 0)
+
+		if os.Getenv("BITBUCKET_PR_ID") != "" {
 			prNumber, err := strconv.Atoi(os.Getenv("BITBUCKET_PR_ID"))
 			if err != nil {
 				reportErrorAndExit(actor, fmt.Sprintf("Failed to parse PR number. %s", err), 4)

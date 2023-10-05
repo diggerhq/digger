@@ -356,7 +356,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	return "", nil
 }
 
-// RunJob
 func RunJob(
 	job orchestrator.Job,
 	repo string,
