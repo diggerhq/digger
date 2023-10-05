@@ -339,7 +339,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 	log.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
+	diggerConfig, _, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
 	}
@@ -351,21 +351,24 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		os.Exit(4)
 	}
 
-	yamlData, err := yaml.Marshal(diggerConfigYaml)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-
-	// Convert to string
-	yamlStr := string(yamlData)
-	repo := strings.ReplaceAll(gitLabContext.ProjectNamespace, "/", "-")
-
-	for _, p := range diggerConfig.Projects {
-		err = backendApi.ReportProject(repo, p.Name, yamlStr)
+	// commented out because for cli only version we don't need to report anything to backend
+	/*
+		yamlData, err := yaml.Marshal(diggerConfigYaml)
 		if err != nil {
-			log.Printf("Failed to report project %s. %s\n", p.Name, err)
+			log.Fatalf("error: %v", err)
 		}
-	}
+
+		// Convert to string
+		yamlStr := string(yamlData)
+		repo := strings.ReplaceAll(gitLabContext.ProjectNamespace, "/", "-")
+
+		for _, p := range diggerConfig.Projects {
+			err = backendApi.ReportProject(repo, p.Name, yamlStr)
+			if err != nil {
+				log.Printf("Failed to report project %s. %s\n", p.Name, err)
+			}
+		}
+	*/
 
 	// it's ok to not have merge request info if it has been merged
 	if (gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0) && gitLabContext.EventType != "merge_request_merge" {
@@ -379,16 +382,14 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		os.Exit(4)
 	}
 
-	gitlabEvent := gitlab.GitLabEvent{EventType: gitLabContext.EventType}
-
-	impactedProjects, requestedProject, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
+	impactedProjects, err := gitlab.ProcessGitLabEvent(gitLabContext, diggerConfig, gitlabService)
 	if err != nil {
 		log.Printf("failed to process GitLab event, %v", err)
 		os.Exit(6)
 	}
 	log.Println("GitLab event processed successfully")
 
-	jobs, coversAllImpactedProjects, err := gitlab.ConvertGitLabEventToCommands(gitlabEvent, gitLabContext, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, coversAllImpactedProjects, err := gitlab.ConvertGitLabEventToCommands(gitLabContext, impactedProjects, diggerConfig.Workflows)
 	if err != nil {
 		log.Printf("failed to convert event to command, %v", err)
 		os.Exit(7)

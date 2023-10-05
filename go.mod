@@ -24,6 +24,7 @@ require (
 	github.com/diggerhq/lib-orchestrator v0.0.11
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
+	github.com/joho/godotenv v1.5.1
 )
 
 require (

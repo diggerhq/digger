@@ -1,9 +1,10 @@
 package gitlab
 
 import (
-	"digger/pkg/utils"
+	"context"
 	"fmt"
 	"log"
+	"os/exec"
 	"strings"
 
 	configuration "github.com/diggerhq/lib-digger-config"
@@ -19,21 +20,27 @@ type GitLabContext struct {
 	PipelineSource PipelineSourceType `env:"CI_PIPELINE_SOURCE"`
 
 	// this env var should be set by webhook that trigger pipeline
-	EventType          GitLabEventType `env:"MERGE_REQUEST_EVENT_NAME"`
-	PipelineId         *int            `env:"CI_PIPELINE_ID"`
-	PipelineIId        *int            `env:"CI_PIPELINE_IID"`
-	MergeRequestId     *int            `env:"CI_MERGE_REQUEST_ID"`
-	MergeRequestIId    *int            `env:"CI_MERGE_REQUEST_IID"`
-	ProjectName        string          `env:"CI_PROJECT_NAME"`
-	ProjectNamespace   string          `env:"CI_PROJECT_NAMESPACE"`
-	ProjectId          *int            `env:"CI_PROJECT_ID"`
-	ProjectNamespaceId *int            `env:"CI_PROJECT_NAMESPACE_ID"`
-	OpenMergeRequests  []string        `env:"CI_OPEN_MERGE_REQUESTS"`
-	Token              string          `env:"GITLAB_TOKEN"`
-	GitlabUserName     string          `env:"GITLAB_USER_NAME"`
-	DiggerCommand      string          `env:"DIGGER_COMMAND"`
-	DiscussionID       string          `env:"DISCUSSION_ID"`
-	IsMeargeable       bool            `env:"IS_MERGEABLE"`
+	EventType GitLabEventType `env:"MERGE_REQUEST_EVENT_NAME"`
+
+	CommitMessage                *string  `env:"CI_COMMIT_MESSAGE"`
+	CommitSHA                    *string  `env:"CI_COMMIT_SHA"`
+	GitLabRunnerProjectDir       string   `env:"CI_PROJECT_DIR"`
+	PipelineId                   *int     `env:"CI_PIPELINE_ID"`
+	PipelineIId                  *int     `env:"CI_PIPELINE_IID"`
+	MergeRequestId               *int     `env:"CI_MERGE_REQUEST_ID"`
+	MergeRequestIId              *int     `env:"CI_MERGE_REQUEST_IID"`
+	ProjectName                  string   `env:"CI_PROJECT_NAME"`
+	ProjectNamespace             string   `env:"CI_PROJECT_NAMESPACE"`
+	ProjectId                    *int     `env:"CI_PROJECT_ID"`
+	ProjectNamespaceId           *int     `env:"CI_PROJECT_NAMESPACE_ID"`
+	OpenMergeRequests            []string `env:"CI_OPEN_MERGE_REQUESTS"`
+	Token                        string   `env:"GITLAB_TOKEN"`
+	GitlabUserName               string   `env:"GITLAB_USER_NAME"`
+	DiggerCommand                string   `env:"DIGGER_COMMAND"`
+	DiscussionID                 string   `env:"DISCUSSION_ID"`
+	IsMeargeable                 bool     `env:"IS_MERGEABLE"`
+	MergeRequestSourceBranchName *string  `env:"CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"`
+	MergeRequestTargetBranchName *string  `env:"CI_MERGE_REQUEST_TARGET_BRANCH_NAME"`
 }
 
 type PipelineSourceType string
@@ -43,24 +50,43 @@ func (t PipelineSourceType) String() string {
 }
 
 const (
-	Push                     = PipelineSourceType("push")
-	Web                      = PipelineSourceType("web")
-	Schedule                 = PipelineSourceType("schedule")
-	Api                      = PipelineSourceType("api")
-	External                 = PipelineSourceType("external")
-	Chat                     = PipelineSourceType("chat")
-	WebIDE                   = PipelineSourceType("webide")
-	ExternalPullRequestEvent = PipelineSourceType("external_pull_request_event")
-	ParentPipeline           = PipelineSourceType("parent_pipeline")
-	Trigger                  = PipelineSourceType("trigger")
-	Pipeline                 = PipelineSourceType("pipeline")
+	PipelineSourceTypePush                     = PipelineSourceType("push")
+	PipelineSourceTypeWeb                      = PipelineSourceType("web")
+	PipelineSourceTypeSchedule                 = PipelineSourceType("schedule")
+	PipelineSourceTypeApi                      = PipelineSourceType("api")
+	PipelineSourceTypeExternal                 = PipelineSourceType("external")
+	PipelineSourceTypeChat                     = PipelineSourceType("chat")
+	PipelineSourceTypeWebIDE                   = PipelineSourceType("webide")
+	PipelineSourceTypeExternalPullRequestEvent = PipelineSourceType("external_pull_request_event")
+	PipelineSourceTypeParentPipeline           = PipelineSourceType("parent_pipeline")
+	PipelineSourceTypeTrigger                  = PipelineSourceType("trigger")
+	PipelineSourceTypePipeline                 = PipelineSourceType("pipeline")
+	PipelineSourceTypeMergeRequestEvent        = PipelineSourceType("merge_request_event")
 )
+
+type GitLabService struct {
+	Client  *go_gitlab.Client
+	Context *GitLabContext
+}
+
+type GitLabMockService struct {
+	Context      *GitLabContext
+	ChangedFiles []string
+}
 
 func ParseGitLabContext() (*GitLabContext, error) {
 	var parsedGitLabContext GitLabContext
 
 	if err := env.Parse(&parsedGitLabContext); err != nil {
-		log.Printf("%+v\n", err)
+		log.Printf("failed to parse GitLab Context, %v\n", err)
+	}
+
+	// set GitLabEventType manually
+	if parsedGitLabContext.PipelineSource == PipelineSourceTypeMergeRequestEvent {
+		parsedGitLabContext.EventType = MergeRequestCreatedOrUpdated
+	}
+	if parsedGitLabContext.PipelineSource == PipelineSourceTypePush && strings.Contains(*parsedGitLabContext.CommitMessage, "See merge request") {
+		parsedGitLabContext.EventType = MergeRequestMerged
 	}
 
 	log.Printf("%+v\n", parsedGitLabContext)
@@ -85,49 +111,44 @@ func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabServic
 	}, nil
 }
 
-func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service *GitLabService) ([]configuration.Project, *configuration.Project, error) {
+func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuration.DiggerConfig, service orchestrator.PullRequestService) ([]configuration.Project, error) {
 	var impactedProjects []configuration.Project
 
-	if gitlabContext.MergeRequestIId == nil {
-		return nil, nil, fmt.Errorf("value for 'Merge Request ID' parameter is not found")
-	}
-
-	mergeRequestId := gitlabContext.MergeRequestIId
-	changedFiles, err := service.GetChangedFiles(*mergeRequestId)
+	// merge request number is ignored in this function
+	changedFiles, err := service.GetChangedFiles(0)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not get changed files")
+		return nil, fmt.Errorf("could not get changed files")
 	}
 
 	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
 
-	switch gitlabContext.EventType {
-	case MergeRequestComment:
-		diggerCommand := strings.ToLower(gitlabContext.DiggerCommand)
-		diggerCommand = strings.TrimSpace(diggerCommand)
-		requestedProject := utils.ParseProjectName(diggerCommand)
+	/*
+		switch gitlabContext.EventType {
+		case MergeRequestComment:
+			diggerCommand := strings.ToLower(gitlabContext.DiggerCommand)
+			diggerCommand = strings.TrimSpace(diggerCommand)
+			requestedProject := utils.ParseProjectName(diggerCommand)
 
-		if requestedProject == "" {
-			return impactedProjects, nil, nil
-		}
-
-		for _, project := range impactedProjects {
-			if project.Name == requestedProject {
-				return impactedProjects, &project, nil
+			if requestedProject == "" {
+				return impactedProjects, nil, nil
 			}
+
+			for _, project := range impactedProjects {
+				if project.Name == requestedProject {
+					return impactedProjects, &project, nil
+				}
+			}
+			return nil, nil, fmt.Errorf("requested project not found in modified projects")
+		default:
+			return impactedProjects, nil, nil
+
 		}
-		return nil, nil, fmt.Errorf("requested project not found in modified projects")
-	default:
-		return impactedProjects, nil, nil
-
-	}
+	*/
+	return impactedProjects, nil
 }
 
-type GitLabService struct {
-	Client  *go_gitlab.Client
-	Context *GitLabContext
-}
-
+/*
 func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string, error) {
 	opt := &go_gitlab.GetMergeRequestChangesOptions{}
 
@@ -145,6 +166,38 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 		//log.Printf("changed file: %s \n", change.NewPath)
 	}
 	return fileNames, nil
+}
+*/
+
+// GetChangedFiles get the list of changed files using local git only, no API calls
+// this function is not tested in unit tests
+func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string, error) {
+	var result []string
+	var diffArgs string
+	ctx := context.Background()
+	// for merge requests we need to compare two branches, for the push to a branch we need to get diff for the commit
+	if gitlabService.Context.MergeRequestSourceBranchName != nil && gitlabService.Context.MergeRequestTargetBranchName != nil {
+		diffArgs = fmt.Sprintf("%s..%s", *gitlabService.Context.MergeRequestSourceBranchName, *gitlabService.Context.MergeRequestTargetBranchName)
+	} else {
+		diffArgs = *gitlabService.Context.CommitSHA
+	}
+	cmd := exec.CommandContext(ctx, "git", "diff", "--name-only", diffArgs)
+	cmd.Dir = gitlabService.Context.GitLabRunnerProjectDir
+
+	combinedOutput, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to run git diff, %w", err)
+	}
+	result = strings.Split(string(combinedOutput), "\n")
+
+	// remove empty strings from the list
+	var temp []string
+	for _, r := range result {
+		if r != "" {
+			temp = append(temp, r)
+		}
+	}
+	return temp, nil
 }
 
 func (gitlabService GitLabService) GetUserTeams(organisation string, user string) ([]string, error) {
@@ -268,6 +321,10 @@ func (e GitLabEventType) String() string {
 }
 
 const (
+	MergeRequestCreatedOrUpdated = GitLabEventType("merge_request_created_or_updated")
+	MergeRequestMerged           = GitLabEventType("merge_request_merged")
+
+	/*  this is webhook events, that are not used at the moment
 	MergeRequestOpened     = GitLabEventType("merge_request_opened")
 	MergeRequestClosed     = GitLabEventType("merge_request_closed")
 	MergeRequestReopened   = GitLabEventType("merge_request_reopened")
@@ -279,14 +336,16 @@ const (
 	MergeRequestMerged     = GitLabEventType("merge_request_merge")
 
 	MergeRequestComment = GitLabEventType("merge_request_commented")
+
+	*/
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]orchestrator.Job, bool, error) {
+func ConvertGitLabEventToCommands(gitLabContext *GitLabContext, impactedProjects []configuration.Project, workflows map[string]configuration.Workflow) ([]orchestrator.Job, bool, error) {
 	jobs := make([]orchestrator.Job, 0)
 
-	log.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
-	switch event.EventType {
-	case MergeRequestOpened, MergeRequestReopened, MergeRequestUpdated:
+	log.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", gitLabContext.EventType)
+	switch gitLabContext.EventType {
+	case MergeRequestCreatedOrUpdated:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
@@ -311,7 +370,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			})
 		}
 		return jobs, true, nil
-	case MergeRequestClosed, MergeRequestMerged:
+	case MergeRequestMerged:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
@@ -335,61 +394,117 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			})
 		}
 		return jobs, true, nil
-	case MergeRequestComment:
-		supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
+		/*
+			case MergeRequestComment:
+				supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
-		coversAllImpactedProjects := true
+				coversAllImpactedProjects := true
 
-		runForProjects := impactedProjects
+				runForProjects := impactedProjects
 
-		if requestedProject != nil {
-			if len(impactedProjects) > 1 {
-				coversAllImpactedProjects = false
-				runForProjects = []configuration.Project{*requestedProject}
-			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
-				return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
-			}
-		}
-
-		diggerCommand := strings.ToLower(gitLabContext.DiggerCommand)
-		diggerCommand = strings.TrimSpace(diggerCommand)
-		for _, command := range supportedCommands {
-			if strings.Contains(diggerCommand, command) {
-				for _, project := range runForProjects {
-					workflow, ok := workflows[project.Workflow]
-					if !ok {
-						workflow = workflows["default"]
+				if requestedProject != nil {
+					if len(impactedProjects) > 1 {
+						coversAllImpactedProjects = false
+						runForProjects = []configuration.Project{*requestedProject}
+					} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
+						return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 					}
-					workspace := project.Workspace
-					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
-					if err != nil {
-						return []orchestrator.Job{}, false, err
-					}
-					if workspaceOverride != "" {
-						workspace = workspaceOverride
-					}
-					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
-					jobs = append(jobs, orchestrator.Job{
-						ProjectName:       project.Name,
-						ProjectDir:        project.Dir,
-						ProjectWorkspace:  workspace,
-						Terragrunt:        project.Terragrunt,
-						Commands:          []string{command},
-						ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-						PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-						PullRequestNumber: gitLabContext.MergeRequestIId,
-						EventName:         gitLabContext.EventType.String(),
-						RequestedBy:       gitLabContext.GitlabUserName,
-						Namespace:         gitLabContext.ProjectNamespace,
-						StateEnvVars:      stateEnvVars,
-						CommandEnvVars:    commandEnvVars,
-					})
 				}
-			}
-		}
-		return jobs, coversAllImpactedProjects, nil
 
+				diggerCommand := strings.ToLower(gitLabContext.DiggerCommand)
+				diggerCommand = strings.TrimSpace(diggerCommand)
+				for _, command := range supportedCommands {
+					if strings.Contains(diggerCommand, command) {
+						for _, project := range runForProjects {
+							workflow, ok := workflows[project.Workflow]
+							if !ok {
+								workflow = workflows["default"]
+							}
+							workspace := project.Workspace
+							workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
+							if err != nil {
+								return []orchestrator.Job{}, false, err
+							}
+							if workspaceOverride != "" {
+								workspace = workspaceOverride
+							}
+							stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+							jobs = append(jobs, orchestrator.Job{
+								ProjectName:       project.Name,
+								ProjectDir:        project.Dir,
+								ProjectWorkspace:  workspace,
+								Terragrunt:        project.Terragrunt,
+								Commands:          []string{command},
+								ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+								PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
+								PullRequestNumber: gitLabContext.MergeRequestIId,
+								EventName:         gitLabContext.EventType.String(),
+								RequestedBy:       gitLabContext.GitlabUserName,
+								Namespace:         gitLabContext.ProjectNamespace,
+								StateEnvVars:      stateEnvVars,
+								CommandEnvVars:    commandEnvVars,
+							})
+						}
+					}
+				}
+				return jobs, coversAllImpactedProjects, nil
+		*/
 	default:
-		return []orchestrator.Job{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
+		return []orchestrator.Job{}, false, fmt.Errorf("unsupported GitLab event type: %v", gitLabContext.EventType)
 	}
+}
+
+// GetChangedFiles Mock implementation that just returns a list of files
+func (gitlabService GitLabMockService) GetChangedFiles(mergeRequestId int) ([]string, error) {
+	return gitlabService.ChangedFiles, nil
+}
+
+func (gitlabService GitLabMockService) PublishComment(prNumber int, comment string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) EditComment(id interface{}, comment string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) SetStatus(prNumber int, status string, statusContext string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) MergePullRequest(prNumber int) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) IsMergeable(prNumber int) (bool, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) IsMerged(prNumber int) (bool, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) IsClosed(prNumber int) (bool, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gitlabService GitLabMockService) GetBranchName(prNumber int) (string, error) {
+	//TODO implement me
+	panic("implement me")
 }
