@@ -20,7 +20,7 @@ require (
 )
 
 require (
-	github.com/diggerhq/lib-digger-config v0.1.12
+	github.com/diggerhq/lib-digger-config v0.1.13
 	github.com/diggerhq/lib-orchestrator v0.0.11
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
@@ -63,7 +63,7 @@ require (
 	github.com/goware/prefixer v0.0.0-20160118172347-395022866408 // indirect
 	github.com/gruntwork-io/go-commons v0.17.1 // indirect
 	github.com/gruntwork-io/gruntwork-cli v0.7.0 // indirect
-	github.com/gruntwork-io/terragrunt v0.51.7 // indirect
+	github.com/gruntwork-io/terragrunt v0.51.8 // indirect
 	github.com/gruntwork-io/terratest v0.41.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-getter v1.7.2 // indirect
