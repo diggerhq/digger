@@ -108,7 +108,7 @@ func (t MockPullRequestManager) GetComments(prNumber int) ([]orchestrator.Commen
 	return []orchestrator.Comment{}, nil
 }
 
-func (t MockPullRequestManager) EditComment(commentId interface{}, comment string) error {
+func (t MockPullRequestManager) EditComment(prNumber int, commentId interface{}, comment string) error {
 	return nil
 }
 
