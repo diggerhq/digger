@@ -243,7 +243,7 @@ func (b *BitbucketAPI) SetStatus(prNumber int, status string, statusContext stri
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusOK {
 		body := &bytes.Buffer{}
 		_, err := body.ReadFrom(resp.Body)
 		if err != nil {
