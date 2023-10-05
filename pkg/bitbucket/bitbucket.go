@@ -39,7 +39,6 @@ func (b *BitbucketAPI) sendRequest(method, url string, body []byte) (*http.Respo
 	return resp, nil
 }
 
-// {"pagelen":500,"values":[{"type":"diffstat","status":"modified","lines_removed":1,"lines_added":2,"old":{"path":"setup.py","escaped_path":"setup.py","type":"commit_file","links":{"self":{"href":"https://api.bitbucket.org/2.0/repositories/bitbucket/geordi/src/e1749643d655d7c7014001a6c0f58abaf42ad850/setup.py"}}},"new":{"path":"setup.py","escaped_path":"setup.py","type":"commit_file","links":{"self":{"href":"https://api.bitbucket.org/2.0/repositories/bitbucket/geordi/src/d222fa235229c55dad20b190b0b571adf737d5a6/setup.py"}}}}],"page":1,"size":1}
 type DiffStat struct {
 	Pagelen int `json:"pagelen"`
 	Values  []struct {
@@ -150,19 +149,6 @@ func (b *BitbucketAPI) EditComment(prNumber int, id interface{}, comment string)
 	return nil
 }
 
-//	GetComments(prNumber int) ([]Comment, error)
-//	// SetStatus set status of specified pull/merge request, status could be: "pending", "failure", "success"
-//	SetStatus(prNumber int, status string, statusContext string) error
-//	GetCombinedPullRequestStatus(prNumber int) (string, error)
-//	MergePullRequest(prNumber int) error
-//	// IsMergeable is still open and ready to be merged
-//	IsMergeable(prNumber int) (bool, error)
-//	// IsMerged merged and closed
-//	IsMerged(prNumber int) (bool, error)
-//	// IsClosed closed without merging
-//	IsClosed(prNumber int) (bool, error)
-//	GetBranchName(prNumber int) (string, error)
-
 type Comment struct {
 	Size     int    `json:"size"`
 	Page     int    `json:"page"`
@@ -210,8 +196,27 @@ func (b *BitbucketAPI) GetComments(prNumber int) ([]orchestrator.Comment, error)
 
 }
 
+type PullRequest struct {
+	Id     int `json:"id"`
+	Source struct {
+		Commit struct {
+			Hash string `json:"hash"`
+		}
+	}
+}
+
 func (b *BitbucketAPI) SetStatus(prNumber int, status string, statusContext string) error {
-	url := fmt.Sprintf("%s/repositories/%s/%s/commit/%d/statuses/build", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
+	prUrl := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
+
+	resp, err := b.sendRequest("GET", prUrl, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get pull request. Status code: %d", resp.StatusCode)
+	}
+
+	var prResponse PullRequest
+	err = json.NewDecoder(resp.Body).Decode(&prResponse)
+
+	url := fmt.Sprintf("%s/repositories/%s/%s/commit/%d/statuses/build", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prResponse.Source.Commit)
 
 	statusBody := map[string]interface{}{
 		"state": status,
@@ -223,13 +228,19 @@ func (b *BitbucketAPI) SetStatus(prNumber int, status string, statusContext stri
 		return err
 	}
 
-	resp, err := b.sendRequest("POST", url, statusJSON)
+	resp, err = b.sendRequest("POST", url, statusJSON)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
+		body := &bytes.Buffer{}
+		_, err := body.ReadFrom(resp.Body)
+		if err != nil {
+			fmt.Printf("failed to read response body: %v", err)
+		}
+		fmt.Printf("failed to set status. Status code: %d. Response: %s", resp.StatusCode, body.String())
 		return fmt.Errorf("failed to set status. Status code: %d", resp.StatusCode)
 	}
 
