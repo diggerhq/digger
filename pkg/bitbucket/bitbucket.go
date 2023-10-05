@@ -229,6 +229,7 @@ func (b *BitbucketAPI) SetStatus(prNumber int, status string, statusContext stri
 	statusBody := map[string]interface{}{
 		"state": status,
 		"key":   statusContext,
+		"url":   prUrl,
 	}
 
 	statusJSON, err := json.Marshal(statusBody)
