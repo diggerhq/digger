@@ -256,7 +256,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 		}
-		impactedProjectsMsg := getImpacagedProjectsAsString(impactedProjects, prNumber)
+		impactedProjectsMsg := getImpactedProjectsAsString(impactedProjects, prNumber)
 		log.Println(impactedProjectsMsg)
 		log.Println("GitHub event processed successfully")
 
@@ -641,7 +641,7 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 	return planStorage
 }
 
-func getImpacagedProjectsAsString(projects []configuration.Project, prNumber int) string {
+func getImpactedProjectsAsString(projects []configuration.Project, prNumber int) string {
 	msg := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
 	for _, p := range projects {
 		msg += fmt.Sprintf("- %s\n", p.Name)
