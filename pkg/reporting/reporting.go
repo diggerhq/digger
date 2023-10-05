@@ -74,7 +74,7 @@ func upsertComment(ciService orchestrator.PullRequestService, PrNumber int, repo
 
 	completeComment := utils.AsCollapsibleComment(reportTitle)(commentBody)
 
-	err = ciService.EditComment(commentIdForThisRun, completeComment)
+	err = ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
 
 	if err != nil {
 		return fmt.Errorf("error editing comment: %v", err)

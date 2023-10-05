@@ -217,7 +217,7 @@ func (t MockCiService) GetComments(prNumber int) ([]orchestrator.Comment, error)
 	return comments, nil
 }
 
-func (t MockCiService) EditComment(commentId interface{}, comment string) error {
+func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment string) error {
 	for _, comments := range t.CommentsPerPr {
 		for _, c := range comments {
 			if c.Id == commentId {
