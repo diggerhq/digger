@@ -147,9 +147,16 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
-				if commentErr != nil {
-					log.Printf("error publishing comment: %v", err)
+				if d.Reporter.SupportsCollapsibleComments() {
+					commentErr := d.Reporter.Report(stderr, utils.AsCollapsibleComment("Error during init."))
+					if commentErr != nil {
+						log.Printf("error publishing comment: %v", err)
+					}
+				} else {
+					commentErr := d.Reporter.Report(stderr, utils.AsComment("Error during init."))
+					if commentErr != nil {
+						log.Printf("error publishing comment: %v", err)
+					}
 				}
 				return false, false, "", "", fmt.Errorf("error running init: %v", err)
 			}
@@ -245,9 +252,16 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 		if step.Action == "init" {
 			stdout, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
-				if commentErr != nil {
-					log.Printf("error publishing comment: %v", err)
+				if d.Reporter.SupportsCollapsibleComments() {
+					commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
+					if commentErr != nil {
+						log.Printf("error publishing comment: %v", commentErr)
+					}
+				} else {
+					commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
+					if commentErr != nil {
+						log.Printf("error publishing comment: %v", commentErr)
+					}
 				}
 				return false, stdout, fmt.Errorf("error running init: %v", err)
 			}
@@ -257,16 +271,28 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			applyArgs = append(applyArgs, step.ExtraArgs...)
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
-			formatter := utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + d.ProjectNamespace + "#" + d.ProjectName + "</b>")
+			var formatter func(string) string
+			if d.Reporter.SupportsCollapsibleComments() {
+				formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + d.ProjectNamespace + "#" + d.ProjectName + "</b>")
+			} else {
+				formatter = utils.GetTerraformOutputAsComment("Apply for <b>" + d.ProjectNamespace + "#" + d.ProjectName + "</b>")
+			}
 
 			commentErr := d.Reporter.Report(applyOutput, formatter)
 			if commentErr != nil {
 				log.Printf("error publishing comment: %v", err)
 			}
 			if err != nil {
-				commentErr = d.Reporter.Report(err.Error(), utils.AsCollapsibleComment("Error during applying."))
-				if commentErr != nil {
-					log.Printf("error publishing comment: %v", err)
+				if d.Reporter.SupportsCollapsibleComments() {
+					commentErr := d.Reporter.Report(err.Error(), utils.AsCollapsibleComment("Error during applying."))
+					if commentErr != nil {
+						log.Printf("error publishing comment: %v", err)
+					}
+				} else {
+					commentErr := d.Reporter.Report(err.Error(), utils.AsComment("Error during applying."))
+					if commentErr != nil {
+						log.Printf("error publishing comment: %v", err)
+					}
 				}
 				return false, stdout, fmt.Errorf("error executing apply: %v", err)
 			}
@@ -302,9 +328,16 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
-				if commentErr != nil {
-					log.Printf("error publishing comment: %v", err)
+				if d.Reporter.SupportsCollapsibleComments() {
+					commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
+					if commentErr != nil {
+						log.Printf("error publishing comment: %v", commentErr)
+					}
+				} else {
+					commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
+					if commentErr != nil {
+						log.Printf("error publishing comment: %v", commentErr)
+					}
 				}
 				return false, fmt.Errorf("error running init: %v", err)
 			}
