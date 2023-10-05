@@ -147,7 +147,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				if d.Reporter.SupportsCollapsibleComments() {
+				if d.Reporter.SupportsMarkdown() {
 					commentErr := d.Reporter.Report(stderr, utils.AsCollapsibleComment("Error during init."))
 					if commentErr != nil {
 						log.Printf("error publishing comment: %v", err)
@@ -252,7 +252,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 		if step.Action == "init" {
 			stdout, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				if d.Reporter.SupportsCollapsibleComments() {
+				if d.Reporter.SupportsMarkdown() {
 					commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
 					if commentErr != nil {
 						log.Printf("error publishing comment: %v", commentErr)
@@ -272,10 +272,10 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
 			var formatter func(string) string
-			if d.Reporter.SupportsCollapsibleComments() {
+			if d.Reporter.SupportsMarkdown() {
 				formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + d.ProjectNamespace + "#" + d.ProjectName + "</b>")
 			} else {
-				formatter = utils.GetTerraformOutputAsComment("Apply for <b>" + d.ProjectNamespace + "#" + d.ProjectName + "</b>")
+				formatter = utils.GetTerraformOutputAsComment("Apply for " + d.ProjectNamespace + "#" + d.ProjectName)
 			}
 
 			commentErr := d.Reporter.Report(applyOutput, formatter)
@@ -283,7 +283,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 				log.Printf("error publishing comment: %v", err)
 			}
 			if err != nil {
-				if d.Reporter.SupportsCollapsibleComments() {
+				if d.Reporter.SupportsMarkdown() {
 					commentErr := d.Reporter.Report(err.Error(), utils.AsCollapsibleComment("Error during applying."))
 					if commentErr != nil {
 						log.Printf("error publishing comment: %v", err)
@@ -328,7 +328,7 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				if d.Reporter.SupportsCollapsibleComments() {
+				if d.Reporter.SupportsMarkdown() {
 					commentErr := d.Reporter.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
 					if commentErr != nil {
 						log.Printf("error publishing comment: %v", commentErr)

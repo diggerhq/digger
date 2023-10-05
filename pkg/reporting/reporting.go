@@ -10,18 +10,18 @@ import (
 )
 
 type CiReporter struct {
-	CiService                     orchestrator.PullRequestService
-	PrNumber                      int
-	IsSupportsCollapsibleComments bool
-	ReportStrategy                ReportStrategy
+	CiService         orchestrator.PullRequestService
+	PrNumber          int
+	IsSupportMarkdown bool
+	ReportStrategy    ReportStrategy
 }
 
 func (ciReporter *CiReporter) Report(report string, reportFormatter func(report string) string) error {
-	return ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatter, ciReporter.SupportsCollapsibleComments())
+	return ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatter, ciReporter.SupportsMarkdown())
 }
 
-func (ciReporter *CiReporter) SupportsCollapsibleComments() bool {
-	return ciReporter.IsSupportsCollapsibleComments
+func (ciReporter *CiReporter) SupportsMarkdown() bool {
+	return ciReporter.IsSupportMarkdown
 }
 
 type StdOutReporter struct{}
@@ -31,7 +31,7 @@ func (reporter *StdOutReporter) Report(report string, reportFormatter func(repor
 	return nil
 }
 
-func (reporter *StdOutReporter) SupportsCollapsibleComments() bool {
+func (reporter *StdOutReporter) SupportsMarkdown() bool {
 	return false
 }
 

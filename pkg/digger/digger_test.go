@@ -215,10 +215,10 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	lock := &MockProjectLock{}
 	planStorage := &MockPlanStorage{}
 	reporter := &reporting.CiReporter{
-		CiService:                     prManager,
-		PrNumber:                      1,
-		ReportStrategy:                &reporting.MultipleCommentsStrategy{},
-		IsSupportsCollapsibleComments: true,
+		CiService:         prManager,
+		PrNumber:          1,
+		ReportStrategy:    &reporting.MultipleCommentsStrategy{},
+		IsSupportMarkdown: true,
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{
