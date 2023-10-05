@@ -178,7 +178,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 	ctx := context.Background()
 	// for merge requests we need to compare two branches, for the push to a branch we need to get diff for the commit
 	if gitlabService.Context.MergeRequestSourceBranchName != nil && gitlabService.Context.MergeRequestTargetBranchName != nil {
-		diffArgs = fmt.Sprintf("%s..%s", *gitlabService.Context.MergeRequestSourceBranchName, *gitlabService.Context.MergeRequestTargetBranchName)
+		diffArgs = fmt.Sprintf("origin/%s..origin/%s", *gitlabService.Context.MergeRequestSourceBranchName, *gitlabService.Context.MergeRequestTargetBranchName)
 	} else {
 		diffArgs = *gitlabService.Context.CommitSHA
 	}
