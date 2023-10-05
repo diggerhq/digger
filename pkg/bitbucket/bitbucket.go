@@ -216,7 +216,7 @@ func (b *BitbucketAPI) SetStatus(prNumber int, status string, statusContext stri
 	var prResponse PullRequest
 	err = json.NewDecoder(resp.Body).Decode(&prResponse)
 
-	url := fmt.Sprintf("%s/repositories/%s/%s/commit/%d/statuses/build", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prResponse.Source.Commit)
+	url := fmt.Sprintf("%s/repositories/%s/%s/commit/%s/statuses/build", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prResponse.Source.Commit.Hash)
 
 	statusBody := map[string]interface{}{
 		"state": status,
