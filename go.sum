@@ -407,6 +407,8 @@ github.com/dgryski/trifles v0.0.0-20200323201526-dd97f9abfb48 h1:fRzb/w+pyskVMQ+
 github.com/dgryski/trifles v0.0.0-20200323201526-dd97f9abfb48/go.mod h1:if7Fbed8SFyPtHLHbg49SI7NAdJiC5WIA09pe59rfAA=
 github.com/diggerhq/lib-digger-config v0.1.12 h1:TljqjS7DTyDKWBGMJntkqZ4jFD/fZYPSjwTMMOuZkU4=
 github.com/diggerhq/lib-digger-config v0.1.12/go.mod h1:JjYYT7VsFfpRW/9nuquM3VNP59vqlcVupbFHsi58usI=
+github.com/diggerhq/lib-digger-config v0.1.13 h1:Gcz4NIxW+j282EkQWUDGRX5hhA3sF3PmrxQYWqVjAQs=
+github.com/diggerhq/lib-digger-config v0.1.13/go.mod h1:auq+ZpnkDpdvQF67vWbVniFjOq+UtPuuyDADHhKyLp8=
 github.com/diggerhq/lib-orchestrator v0.0.11 h1:5kyiXws3+Ql3UHxDuruRIcm0KEYpO+lo/z1qyb+Auu4=
 github.com/diggerhq/lib-orchestrator v0.0.11/go.mod h1:2axPwm860UcZnGp6Jg0me1p291LAaTiI51inpf0YbOQ=
 github.com/dimchansky/utfbom v1.1.0/go.mod h1:rO41eb7gLfo8SF1jd9F8HplJm1Fewwi4mQvIirEdv+8=
@@ -663,6 +665,8 @@ github.com/gruntwork-io/gruntwork-cli v0.7.0 h1:YgSAmfCj9c61H+zuvHwKfYUwlMhu5arn
 github.com/gruntwork-io/gruntwork-cli v0.7.0/go.mod h1:jp6Z7NcLF2avpY8v71fBx6hds9eOFPELSuD/VPv7w00=
 github.com/gruntwork-io/terragrunt v0.51.7 h1:ED7r4f/k1AfQnAPRbvczUJIFomAP3Y698CWqpb/9Iy4=
 github.com/gruntwork-io/terragrunt v0.51.7/go.mod h1:CeHocL1iD0hVVJqV+3Y48wmAZUZfy0ExHxVUMAZ36Eo=
+github.com/gruntwork-io/terragrunt v0.51.8 h1:l9/0AXymfX391nXd1Qm6bo3OsP9+KMlrsW/cwgucVNw=
+github.com/gruntwork-io/terragrunt v0.51.8/go.mod h1:CeHocL1iD0hVVJqV+3Y48wmAZUZfy0ExHxVUMAZ36Eo=
 github.com/gruntwork-io/terratest v0.41.0 h1:QKFK6m0EMVnrV7lw2L06TlG+Ha3t0CcOXuBVywpeNRU=
 github.com/gruntwork-io/terratest v0.41.0/go.mod h1:qH1xkPTTGx30XkMHw8jAVIbzqheSjIa5IyiTwSV2vKI=
 github.com/hashicorp/aws-sdk-go-base v0.6.0/go.mod h1:2fRjWDv3jJBeN6mVWFHV6hFTNeFBx2gpDLQaZNxUVAY=
