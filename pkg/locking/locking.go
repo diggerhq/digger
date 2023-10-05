@@ -98,7 +98,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 
 	if lockAcquired && !isNoOpLock {
 		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(projectLock.PrNumber)
-		if projectLock.Reporter.SupportsCollapsibleComments() {
+		if projectLock.Reporter.SupportsMarkdown() {
 			err = projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Locking successful"))
 			if err != nil {
 				log.Println("failed to publish comment: " + err.Error())
@@ -138,7 +138,7 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 			}
 			transactionIdStr := strconv.Itoa(*transactionId)
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
-			if projectLock.Reporter.SupportsCollapsibleComments() {
+			if projectLock.Reporter.SupportsMarkdown() {
 				err = projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Locking failed"))
 				if err != nil {
 					log.Println("failed to publish comment: " + err.Error())
@@ -173,7 +173,7 @@ func (projectLock *PullRequestLock) Unlock() (bool, error) {
 			}
 			if lockReleased {
 				comment := "Project unlocked (" + projectLock.projectId() + ")."
-				if projectLock.Reporter.SupportsCollapsibleComments() {
+				if projectLock.Reporter.SupportsMarkdown() {
 					err := projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Unlocking successful"))
 					if err != nil {
 						log.Println("failed to publish comment: " + err.Error())
@@ -209,7 +209,7 @@ func (projectLock *PullRequestLock) ForceUnlock() error {
 		if lockReleased {
 			comment := "Project unlocked (" + projectLock.projectId() + ")."
 
-			if projectLock.Reporter.SupportsCollapsibleComments() {
+			if projectLock.Reporter.SupportsMarkdown() {
 				err := projectLock.Reporter.Report(comment, utils.AsCollapsibleComment("Unlocking successful"))
 				if err != nil {
 					log.Println("failed to publish comment: " + err.Error())

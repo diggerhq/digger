@@ -96,13 +96,13 @@ func RunJobs(
 
 			if !allowedToPerformCommand {
 				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", job.RequestedBy, command)
-				if reporter.SupportsCollapsibleComments() {
+				if reporter.SupportsMarkdown() {
 					err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", job.ProjectName, command)))
 					if err != nil {
 						log.Printf("Error publishing comment: %v", err)
 					}
 				} else {
-					err := reporter.Report(msg, utils.AsComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", job.ProjectName, command)))
+					err := reporter.Report(msg, utils.AsComment(fmt.Sprintf("Policy violation for %v - %v", job.ProjectName, command)))
 					if err != nil {
 						log.Printf("Error publishing comment: %v", err)
 					}
@@ -153,7 +153,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	if !allowedToPerformCommand {
 		msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
 
-		if reporter.SupportsCollapsibleComments() {
+		if reporter.SupportsMarkdown() {
 			err := reporter.Report(msg, utils.AsCollapsibleComment("Policy violation"))
 			if err != nil {
 				log.Printf("Error publishing comment: %v", err)
@@ -234,10 +234,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		} else if planPerformed {
 			var formatter func(string) string
 
-			if reporter.SupportsCollapsibleComments() {
+			if reporter.SupportsMarkdown() {
 				formatter = utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
 			} else {
-				formatter = utils.GetTerraformOutputAsComment("Plan for <b>" + projectLock.LockId() + "</b>")
+				formatter = utils.GetTerraformOutputAsComment("Plan for " + projectLock.LockId())
 			}
 
 			err = reporter.Report(plan, formatter)
@@ -253,7 +253,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				}
 				var planPolicyFormatter func(report string) string
 				summary := fmt.Sprintf("Terraform plan validation check (%v)", job.ProjectName)
-				if reporter.SupportsCollapsibleComments() {
+				if reporter.SupportsMarkdown() {
 					planPolicyFormatter = utils.AsCollapsibleComment(summary)
 				} else {
 					planPolicyFormatter = utils.AsComment(summary)
@@ -316,7 +316,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			comment := "cannot perform Apply since the PR is not currently mergeable"
 			log.Println(comment)
 
-			if reporter.SupportsCollapsibleComments() {
+			if reporter.SupportsMarkdown() {
 				err = reporter.Report(comment, utils.AsCollapsibleComment("Apply error"))
 				if err != nil {
 					log.Printf("error publishing comment: %v\n", err)
