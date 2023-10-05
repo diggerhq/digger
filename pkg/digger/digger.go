@@ -96,9 +96,16 @@ func RunJobs(
 
 			if !allowedToPerformCommand {
 				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", job.RequestedBy, command)
-				err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", job.ProjectName, command)))
-				if err != nil {
-					log.Printf("Error publishing comment: %v", err)
+				if reporter.SupportsCollapsibleComments() {
+					err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", job.ProjectName, command)))
+					if err != nil {
+						log.Printf("Error publishing comment: %v", err)
+					}
+				} else {
+					err := reporter.Report(msg, utils.AsComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", job.ProjectName, command)))
+					if err != nil {
+						log.Printf("Error publishing comment: %v", err)
+					}
 				}
 				log.Printf("Skipping command ... %v for project %v", command, job.ProjectName)
 				log.Println(msg)
@@ -145,9 +152,17 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 	if !allowedToPerformCommand {
 		msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
-		err := reporter.Report(msg, utils.AsCollapsibleComment("Policy violation"))
-		if err != nil {
-			log.Printf("Error publishing comment: %v", err)
+
+		if reporter.SupportsCollapsibleComments() {
+			err := reporter.Report(msg, utils.AsCollapsibleComment("Policy violation"))
+			if err != nil {
+				log.Printf("Error publishing comment: %v", err)
+			}
+		} else {
+			err := reporter.Report(msg, utils.AsComment("Policy violation"))
+			if err != nil {
+				log.Printf("Error publishing comment: %v", err)
+			}
 		}
 		log.Println(msg)
 		return msg, errors.New(msg)
@@ -217,7 +232,14 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			return msg, fmt.Errorf(msg)
 		} else if planPerformed {
-			formatter := utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
+			var formatter func(string) string
+
+			if reporter.SupportsCollapsibleComments() {
+				formatter = utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
+			} else {
+				formatter = utils.GetTerraformOutputAsComment("Plan for <b>" + projectLock.LockId() + "</b>")
+			}
+
 			err = reporter.Report(plan, formatter)
 			if err != nil {
 				log.Printf("Failed to report plan. %v", err)
@@ -229,7 +251,13 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					log.Printf(msg)
 					return msg, fmt.Errorf(msg)
 				}
-				planPolicyFormatter := utils.AsCollapsibleComment(fmt.Sprintf("Terraform plan validation check (%v)", job.ProjectName))
+				var planPolicyFormatter func(report string) string
+				summary := fmt.Sprintf("Terraform plan validation check (%v)", job.ProjectName)
+				if reporter.SupportsCollapsibleComments() {
+					planPolicyFormatter = utils.AsCollapsibleComment(summary)
+				} else {
+					planPolicyFormatter = utils.AsComment(summary)
+				}
 				if !planIsAllowed {
 					planReportMessage := "Terraform plan failed validation checks :x:<br>"
 					preformattedMessaged := make([]string, 0)
@@ -287,9 +315,17 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		if !isMergeable && !isMerged {
 			comment := "cannot perform Apply since the PR is not currently mergeable"
 			log.Println(comment)
-			err = reporter.Report(comment, utils.AsCollapsibleComment("Apply error"))
-			if err != nil {
-				log.Printf("error publishing comment: %v\n", err)
+
+			if reporter.SupportsCollapsibleComments() {
+				err = reporter.Report(comment, utils.AsCollapsibleComment("Apply error"))
+				if err != nil {
+					log.Printf("error publishing comment: %v\n", err)
+				}
+			} else {
+				err = reporter.Report(comment, utils.AsComment("Apply error"))
+				if err != nil {
+					log.Printf("error publishing comment: %v\n", err)
+				}
 			}
 
 			return comment, fmt.Errorf(comment)
