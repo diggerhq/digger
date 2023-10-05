@@ -651,7 +651,6 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 		}
 	} else {
 		var jobs []orchestrator.Job
-		var reporter reporting.CiReporter
 		if os.Getenv("BITBUCKET_PR_ID") == "" && os.Getenv("BITBUCKET_BRANCH") == "DEFAULT_BRANCH" {
 			for _, projectConfig := range diggerConfig.Projects {
 
@@ -673,7 +672,10 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 					Namespace:        repository,
 					EventName:        "commit_to_default",
 				}
-				jobs = append(jobs, job)
+				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+				if err != nil {
+					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				}
 			}
 		} else if os.Getenv("BITBUCKET_PR_ID") == "" {
 			for _, projectConfig := range diggerConfig.Projects {
@@ -696,20 +698,12 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 					Namespace:        repository,
 					EventName:        "commit_to_default",
 				}
-				jobs = append(jobs, job)
+				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+				if err != nil {
+					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				}
 			}
-		}
-
-		for _, job := range jobs {
-			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
-			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
-			}
-		}
-
-		reportErrorAndExit(actor, "Digger finished successfully", 0)
-
-		if os.Getenv("BITBUCKET_PR_ID") != "" {
+		} else if os.Getenv("BITBUCKET_PR_ID") != "" {
 			prNumber, err := strconv.Atoi(os.Getenv("BITBUCKET_PR_ID"))
 			if err != nil {
 				reportErrorAndExit(actor, fmt.Sprintf("Failed to parse PR number. %s", err), 4)
@@ -752,26 +746,26 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				jobs = append(jobs, job)
 			}
 
-			reporter = reporting.CiReporter{
+			reporter := reporting.CiReporter{
 				CiService:      &bitbucketService,
 				PrNumber:       prNumber,
 				ReportStrategy: reportingStrategy,
 			}
+
+			log.Println("Bitbucket trigger converted to commands successfully")
+
+			logCommands(jobs)
+
+			planStorage := newPlanStorage("", repoOwner, repositoryName, actor, nil)
+
+			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
+
+			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, backendApi, currentDir)
+			if err != nil {
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			}
 		} else {
 			reportErrorAndExit(actor, "Failed to detect running mode", 1)
-		}
-
-		log.Println("Bitbucket trigger converted to commands successfully")
-
-		logCommands(jobs)
-
-		planStorage := newPlanStorage("", repoOwner, repositoryName, actor, nil)
-
-		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-
-		_, _, err := digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, backendApi, currentDir)
-		if err != nil {
-			reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 
 	}
