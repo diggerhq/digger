@@ -11,6 +11,11 @@ func (mockReporter *MockReporter) Report(report string, formatter func(string) s
 	return nil
 }
 
+func (mockReporter *MockReporter) SupportsCollapsibleComments() bool {
+	mockReporter.commands = append(mockReporter.commands, "SupportsCollapsibleComments")
+	return false
+}
+
 type MockGithubPullrequestManager struct {
 	commands []string
 }
