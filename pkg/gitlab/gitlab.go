@@ -187,7 +187,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 
 	combinedOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to run git diff, %w\n%v\n", err, combinedOutput)
+		return nil, fmt.Errorf("failed to run git diff, %w\n%v\n", err, string(combinedOutput))
 	}
 	result = strings.Split(string(combinedOutput), "\n")
 
