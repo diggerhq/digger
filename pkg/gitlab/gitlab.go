@@ -118,9 +118,8 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *configuratio
 
 	// merge request number is ignored in this function
 	changedFiles, err := service.GetChangedFiles(0)
-
 	if err != nil {
-		return nil, fmt.Errorf("could not get changed files")
+		return nil, fmt.Errorf("could not get changed files, %v\n", err)
 	}
 
 	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
