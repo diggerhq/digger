@@ -705,6 +705,9 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			}
 			impactedProjects, err := bitbucket.FindImpactedProjectsInBitbucket(diggerConfig, prNumber, &bitbucketService)
 
+			if err != nil {
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to find impacted projects. %s", err), 5)
+			}
 			if len(impactedProjects) == 0 {
 				reportErrorAndExit(actor, "No projects impacted", 0)
 			}
