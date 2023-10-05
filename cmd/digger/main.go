@@ -566,7 +566,18 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	}
 	log.Printf("Digger config read successfully\n")
 
-	bitbucketService := bitbucket.BitbucketAPI{}
+	authToken := os.Getenv("BITBUCKET_AUTH_TOKEN")
+
+	if authToken == "" {
+		reportErrorAndExit(actor, "BITBUCKET_AUTH_TOKEN is not defined", 3)
+	}
+
+	bitbucketService := bitbucket.BitbucketAPI{
+		AuthToken:     authToken,
+		HttpClient:    http.Client{},
+		RepoWorkspace: repoOwner,
+		RepoName:      repositoryName,
+	}
 
 	if runningMode == "manual" {
 		command := os.Getenv("INPUT_DIGGER_COMMAND")
