@@ -14,7 +14,5 @@ RUN chmod +x digger
 RUN mv digger /usr/local/bin/digger
 
 
-CMD ["digger", "--version"]
-
 
 
