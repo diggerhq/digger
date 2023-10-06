@@ -26,7 +26,7 @@ jobs:
           asset_content_type: application/octet-stream
       - name: build docker image
         run: |
-          docker build -t dockerdiggerorg/digger:${{ github.event.release.tag_name }} -e DIGGER_VERSION=${{ github.event.release.tag_name }} -e OS=Linux -e ARCH=X64 .
+          docker build -t dockerdiggerorg/digger:${{ github.event.release.tag_name }} -e DIGGER_VERSION=${{ github.event.release.tag_name }} -e OS=Linux -e ARCH=X64  -f dockerfiles/release/Dockerfile .
           docker tag dockerdiggerorg/digger:${{ github.event.release.tag_name }} dockerdiggerorg/digger:latest
       - name: push docker image
         run: |

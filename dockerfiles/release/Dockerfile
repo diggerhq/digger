@@ -1,10 +1,10 @@
 FROM hashicorp/terraform as terraform_builder
 
-ENV DIGGER_VERSION=latest
-ENV OS=Linux
-ENV ARCH=X64
-
 FROM alpine:latest
+
+ARG DIGGER_VERSION=latest
+ARG OS=Linux
+ARG ARCH=X64
 
 COPY --from=terraform_builder /bin/terraform /bin/terraform
 
