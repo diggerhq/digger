@@ -651,10 +651,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 		}
 	} else {
 		var jobs []orchestrator.Job
-		log.Println("BITBUCKET_PR_ID: " + os.Getenv("BITBUCKET_PR_ID"))
-		log.Println("BITBUCKET_BRANCH: " + os.Getenv("BITBUCKET_BRANCH"))
-		log.Println("DEFAULT_BRANCH: " + os.Getenv("DEFAULT_BRANCH"))
-		if os.Getenv("BITBUCKET_PR_ID") == "" && os.Getenv("BITBUCKET_BRANCH") == "DEFAULT_BRANCH" {
+		if os.Getenv("BITBUCKET_PR_ID") == "" && os.Getenv("BITBUCKET_BRANCH") == os.Getenv("DEFAULT_BRANCH") {
 			for _, projectConfig := range diggerConfig.Projects {
 
 				workflow := diggerConfig.Workflows[projectConfig.Workflow]
