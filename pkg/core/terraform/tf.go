@@ -22,9 +22,17 @@ type Terragrunt struct {
 	WorkingDir string
 }
 
+type TerraformImplementationType string
+
+const (
+	TerraformImplementation TerraformImplementationType = "terraform"
+	OpenTofuImplementation  TerraformImplementationType = "tofu"
+)
+
 type Terraform struct {
-	WorkingDir string
-	Workspace  string
+	WorkingDir              string
+	Workspace               string
+	TerraformImplementation TerraformImplementationType
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
@@ -165,7 +173,8 @@ func (tf Terraform) runTerraformCommand(printOutputToStdout bool, command string
 		mwerr = io.Writer(&stderr)
 	}
 
-	cmd := exec.Command("terraform", expandedArgs...)
+	execFileName := string(tf.TerraformImplementation)
+	cmd := exec.Command(execFileName, expandedArgs...)
 	log.Printf("Running command: terraform %v", expandedArgs)
 	cmd.Dir = tf.WorkingDir
 
