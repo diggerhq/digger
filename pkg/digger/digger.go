@@ -95,7 +95,7 @@ func RunJobs(
 			}
 
 			if !allowedToPerformCommand {
-				msg := report(job.ProjectName, job.RequestedBy, command, reporter)
+				msg := reportPolicyError(job.ProjectName, job.RequestedBy, command, reporter)
 				log.Printf("Skipping command ... %v for project %v", command, job.ProjectName)
 				log.Println(msg)
 				appliesPerProject[job.ProjectName] = false
@@ -130,7 +130,7 @@ func RunJobs(
 	return allAppliesSuccess, atLeastOneApply, nil
 }
 
-func report(projectName string, command string, requestedBy string, reporter core_reporting.Reporter) string {
+func reportPolicyError(projectName string, command string, requestedBy string, reporter core_reporting.Reporter) string {
 	msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
 	if reporter.SupportsMarkdown() {
 		err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command)))
@@ -156,19 +156,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	}
 
 	if !allowedToPerformCommand {
-		msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
-
-		if reporter.SupportsMarkdown() {
-			err := reporter.Report(msg, utils.AsCollapsibleComment("Policy violation"))
-			if err != nil {
-				log.Printf("Error publishing comment: %v", err)
-			}
-		} else {
-			err := reporter.Report(msg, utils.AsComment("Policy violation"))
-			if err != nil {
-				log.Printf("Error publishing comment: %v", err)
-			}
-		}
+		msg := reportPolicyError(job.ProjectName, command, requestedBy, reporter)
 		log.Println(msg)
 		return msg, errors.New(msg)
 	}
@@ -237,18 +225,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			return msg, fmt.Errorf(msg)
 		} else if planPerformed {
-			var formatter func(string) string
-
-			if reporter.SupportsMarkdown() {
-				formatter = utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectLock.LockId() + "</b>")
-			} else {
-				formatter = utils.GetTerraformOutputAsComment("Plan for " + projectLock.LockId())
-			}
-
-			err = reporter.Report(plan, formatter)
-			if err != nil {
-				log.Printf("Failed to report plan. %v", err)
-			}
+			reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 			if isNonEmptyPlan {
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, job.ProjectName, planJsonOutput)
 				if err != nil {
@@ -318,20 +295,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		}
 		log.Printf("PR status, mergeable: %v, merged: %v\n", isMergeable, isMerged)
 		if !isMergeable && !isMerged {
-			comment := "cannot perform Apply since the PR is not currently mergeable"
-			log.Println(comment)
-
-			if reporter.SupportsMarkdown() {
-				err = reporter.Report(comment, utils.AsCollapsibleComment("Apply error"))
-				if err != nil {
-					log.Printf("error publishing comment: %v\n", err)
-				}
-			} else {
-				err = reporter.Report(comment, utils.AsComment("Apply error"))
-				if err != nil {
-					log.Printf("error publishing comment: %v\n", err)
-				}
-			}
+			comment := reportApplyMergeabilityError(reporter)
 
 			return comment, fmt.Errorf(comment)
 		} else {
@@ -395,6 +359,39 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		return msg, fmt.Errorf(msg)
 	}
 	return "", nil
+}
+
+func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {
+	comment := "cannot perform Apply since the PR is not currently mergeable"
+	log.Println(comment)
+
+	if reporter.SupportsMarkdown() {
+		err := reporter.Report(comment, utils.AsCollapsibleComment("Apply error"))
+		if err != nil {
+			log.Printf("error publishing comment: %v\n", err)
+		}
+	} else {
+		err := reporter.Report(comment, utils.AsComment("Apply error"))
+		if err != nil {
+			log.Printf("error publishing comment: %v\n", err)
+		}
+	}
+	return comment
+}
+
+func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId string, plan string) {
+	var formatter func(string) string
+
+	if reporter.SupportsMarkdown() {
+		formatter = utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectId + "</b>")
+	} else {
+		formatter = utils.GetTerraformOutputAsComment("Plan for " + projectId)
+	}
+
+	err := reporter.Report(plan, formatter)
+	if err != nil {
+		log.Printf("Failed to report plan. %v", err)
+	}
 }
 
 func RunJob(
