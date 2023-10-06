@@ -1,0 +1,25 @@
+name: release
+on:
+  push:
+    branches:
+      - 'develop'
+      - 'feat/*'
+    types: [released]
+jobs:
+  binary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Build
+        run: |
+          echo "Tag that is going to be used as digger version: ${{ github.ref }}"
+          env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ github.ref }}" -o digger ./cmd/digger
+      - name: build docker image
+        run: |
+          docker build -t dockerdiggerorg/digger:${{ github.ref }} -e DIGGER_BRANCH=${{ github.ref }}" .
+      - name: push docker image
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push dockerdiggerorg/digger:${{ github.ref }}
+          
