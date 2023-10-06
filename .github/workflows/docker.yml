@@ -1,11 +1,11 @@
-name: release
+name: docker
 on:
   push:
     branches:
       - develop
       - feat/*
 jobs:
-  binary:
+  docker:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
