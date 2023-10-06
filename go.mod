@@ -8,19 +8,19 @@ require (
 	cloud.google.com/go/storage v1.33.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.1
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.2
-	github.com/aws/aws-sdk-go v1.45.20
+	github.com/aws/aws-sdk-go v1.45.23
 	github.com/bmatcuk/doublestar/v4 v4.6.0 // indirect
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/google/uuid v1.3.1
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/open-policy-agent/opa v0.57.0
 	github.com/stretchr/testify v1.8.4
-	github.com/xanzy/go-gitlab v0.92.3
+	github.com/xanzy/go-gitlab v0.93.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/diggerhq/lib-digger-config v0.1.12
+	github.com/diggerhq/lib-digger-config v0.1.13
 	github.com/diggerhq/lib-orchestrator v0.0.12-0.20231003151127-0bb18578b47b
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
@@ -65,7 +65,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3 // indirect
 	github.com/gruntwork-io/go-commons v0.17.1 // indirect
 	github.com/gruntwork-io/gruntwork-cli v0.7.0 // indirect
-	github.com/gruntwork-io/terragrunt v0.51.7 // indirect
+	github.com/gruntwork-io/terragrunt v0.51.8 // indirect
 	github.com/gruntwork-io/terratest v0.41.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-getter v1.7.2 // indirect
