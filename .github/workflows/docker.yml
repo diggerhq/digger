@@ -23,7 +23,7 @@ jobs:
           env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ steps.branch-name.outputs.current_branch }}" -o digger ./cmd/digger
       - name: build docker image
         run: |
-          docker build -t dockerdiggerorg/digger:${{ steps.branch-name.outputs.current_branch }} -e DIGGER_BRANCH=${{ steps.branch-name.outputs.current_branch }} .
+          docker build -t dockerdiggerorg/digger:${{ steps.branch-name.outputs.current_branch }} --build-arg DIGGER_BRANCH=${{ steps.branch-name.outputs.current_branch }} .
       - name: push docker image
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
