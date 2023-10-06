@@ -425,7 +425,7 @@ func (b *BitbucketAPI) IsClosed(prNumber int) (bool, error) {
 		return false, err
 	}
 
-	return pullRequest.State == "DECLINED", nil
+	return pullRequest.State != "OPEN", nil
 }
 
 func (b *BitbucketAPI) GetBranchName(prNumber int) (string, error) {
