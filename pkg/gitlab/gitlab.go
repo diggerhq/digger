@@ -367,7 +367,7 @@ func ConvertGitLabEventToCommands(gitLabContext *GitLabContext, impactedProjects
 				PullRequestNumber: gitLabContext.MergeRequestIId,
 				EventName:         gitLabContext.EventType.String(),
 				RequestedBy:       gitLabContext.GitlabUserName,
-				Namespace:         gitLabContext.ProjectNamespace,
+				Namespace:         gitLabContext.ProjectNamespace + "/" + gitLabContext.ProjectName,
 				StateEnvVars:      stateEnvVars,
 				CommandEnvVars:    commandEnvVars,
 			})

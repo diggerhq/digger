@@ -68,6 +68,7 @@ func DetectCI() CIName {
 }
 
 // RunJobs
+// return allAppliesSuccess, atLeastOneApply, error
 func RunJobs(
 	jobs []orchestrator.Job,
 	prService orchestrator.PullRequestService,
