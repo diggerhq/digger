@@ -19,7 +19,7 @@ jobs:
         uses: tj-actions/branch-names@v7
       - name: Build
         run: |
-          echo "Tag that is going to be used as digger version: "${{ steps.branch-name.outputs.current_branch }}"
+          echo "Tag that is going to be used as digger version: ${{ steps.branch-name.outputs.current_branch }}"
           env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ steps.branch-name.outputs.current_branch }}" -o digger ./cmd/digger
       - name: build docker image
         run: |
