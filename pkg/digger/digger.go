@@ -95,18 +95,7 @@ func RunJobs(
 			}
 
 			if !allowedToPerformCommand {
-				msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", job.RequestedBy, command)
-				if reporter.SupportsMarkdown() {
-					err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", job.ProjectName, command)))
-					if err != nil {
-						log.Printf("Error publishing comment: %v", err)
-					}
-				} else {
-					err := reporter.Report(msg, utils.AsComment(fmt.Sprintf("Policy violation for %v - %v", job.ProjectName, command)))
-					if err != nil {
-						log.Printf("Error publishing comment: %v", err)
-					}
-				}
+				msg := report(job.ProjectName, job.RequestedBy, command, reporter)
 				log.Printf("Skipping command ... %v for project %v", command, job.ProjectName)
 				log.Println(msg)
 				appliesPerProject[job.ProjectName] = false
@@ -139,6 +128,22 @@ func RunJobs(
 	atLeastOneApply := len(appliesPerProject) > 0
 
 	return allAppliesSuccess, atLeastOneApply, nil
+}
+
+func report(projectName string, command string, requestedBy string, reporter core_reporting.Reporter) string {
+	msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
+	if reporter.SupportsMarkdown() {
+		err := reporter.Report(msg, utils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command)))
+		if err != nil {
+			log.Printf("Error publishing comment: %v", err)
+		}
+	} else {
+		err := reporter.Report(msg, utils.AsComment(fmt.Sprintf("Policy violation for %v - %v", projectName, command)))
+		if err != nil {
+			log.Printf("Error publishing comment: %v", err)
+		}
+	}
+	return msg
 }
 
 func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
