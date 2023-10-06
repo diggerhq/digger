@@ -12,6 +12,7 @@ import (
 )
 
 var collect_usage_data = true
+var source = "unknown"
 
 type UsageRecord struct {
 	UserId    interface{} `json:"userid"`
@@ -41,7 +42,7 @@ func SendLogRecord(repoOwner string, message string) error {
 	shaStr := hex.EncodeToString(sha)
 	payload := UsageRecord{
 		UserId:    shaStr,
-		EventName: "log",
+		EventName: "log from " + source,
 		Action:    message,
 		Token:     "diggerABC@@1998fE",
 	}
@@ -75,6 +76,23 @@ func init() {
 	if err != nil {
 		log.Printf("Failed to get current dir. %s", err)
 	}
+	notEmpty := func(key string) bool {
+		return os.Getenv(key) != ""
+	}
+
+	if notEmpty("GITHUB_ACTIONS") {
+		source = "github"
+	}
+	if notEmpty("GITLAB_CI") {
+		source = "gitlab"
+	}
+	if notEmpty("BITBUCKET_BUILD_NUMBER") {
+		source = "bitbucket"
+	}
+	if notEmpty("AZURE_CI") {
+		source = "azure"
+	}
+
 	config, _, _, err := configuration.LoadDiggerConfig(currentDir)
 	if err != nil {
 		return
