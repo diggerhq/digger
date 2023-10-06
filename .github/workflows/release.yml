@@ -26,11 +26,11 @@ jobs:
           asset_content_type: application/octet-stream
       - name: build docker image
         run: |
-          docker build -t diggerhq/digger:${{ github.event.release.tag_name }} -e DIGGER_VERSION=${{ github.event.release.tag_name }} -e OS=Linux -e ARCH=X64 .
-          docker tag diggerhq/digger:${{ github.event.release.tag_name }} diggerhq/digger:latest
+          docker build -t dockerdiggerorg/digger:${{ github.event.release.tag_name }} -e DIGGER_VERSION=${{ github.event.release.tag_name }} -e OS=Linux -e ARCH=X64 .
+          docker tag dockerdiggerorg/digger:${{ github.event.release.tag_name }} dockerdiggerorg/digger:latest
       - name: push docker image
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-          docker push diggerhq/digger:${{ github.event.release.tag_name }}
-          docker push diggerhq/digger:latest  
+          docker push dockerdiggerorg/digger:${{ github.event.release.tag_name }}
+          docker push dockerdiggerorg/digger:latest  
           
