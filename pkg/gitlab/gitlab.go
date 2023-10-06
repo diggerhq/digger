@@ -211,10 +211,11 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
-	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
+	//commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
 
 	log.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestID, projectId, mergeRequestIID, discussionId)
 
+	/* TODO do nothing for now
 	if discussionId == "" {
 		commentOpt := &go_gitlab.CreateMergeRequestDiscussionOptions{Body: &comment}
 		discussion, _, err := gitlabService.Client.Discussions.CreateMergeRequestDiscussion(projectId, mergeRequestIID, commentOpt)
@@ -232,6 +233,8 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 		}
 		return err
 	}
+	*/
+	return nil
 }
 
 // SetStatus GitLab implementation is using https://docs.gitlab.com/15.11/ee/api/status_checks.html (external status checks)
