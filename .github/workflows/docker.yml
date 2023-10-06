@@ -2,9 +2,8 @@ name: release
 on:
   push:
     branches:
-      - 'develop'
-      - 'feat/*'
-    types: [released]
+      - develop
+      - feat/*
 jobs:
   binary:
     runs-on: ubuntu-latest
