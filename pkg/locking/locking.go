@@ -116,7 +116,7 @@ func reportLockingFailed(r reporting.Reporter, comment string) {
 			log.Println("failed to publish comment: " + err.Error())
 		}
 	} else {
-		err := r.Report(comment, nil)
+		err := r.Report(comment, utils.AsComment("Locking failed"))
 		if err != nil {
 			log.Println("failed to publish comment: " + err.Error())
 		}

@@ -535,7 +535,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println(fmt.Sprintf("stacktrace from panic: \n" + string(debug.Stack())))
+			log.Println(fmt.Sprintf("stacktrace from panic for %s: %v\n", r, string(debug.Stack())))
 			err := usage.SendLogRecord(actor, fmt.Sprintf("Panic occurred. %s", r))
 			if err != nil {
 				log.Printf("Failed to send log record. %s\n", err)
