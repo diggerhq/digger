@@ -15,7 +15,4 @@ FROM alpine:latest
 COPY --from=terraform_builder /bin/terraform /usr/local/bin/terraform
 COPY --from=digger_builder /usr/local/bin/digger /usr/local/bin/digger
 
-CMD ["digger", "--version"]
-
-
 
