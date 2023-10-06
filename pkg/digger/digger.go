@@ -67,6 +67,7 @@ func DetectCI() CIName {
 
 }
 
+// RunJobs
 func RunJobs(
 	jobs []orchestrator.Job,
 	prService orchestrator.PullRequestService,
@@ -84,11 +85,14 @@ func RunJobs(
 
 	for _, job := range jobs {
 		splits := strings.Split(job.Namespace, "/")
+		if len(splits) != 2 {
+			return false, false, fmt.Errorf("job namespace is in a wrong format: %s", job.Namespace)
+		}
 		SCMOrganisation := splits[0]
-		SCMrepository := splits[1]
+		SCMRepository := splits[1]
 
 		for _, command := range job.Commands {
-			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.RequestedBy)
+			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMRepository, job.ProjectName, command, job.RequestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
@@ -106,16 +110,16 @@ func RunJobs(
 				continue
 			}
 
-			output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
+			output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMRepository, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
 
 			if err != nil {
-				reportErr := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
+				reportErr := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMRepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
 				if reportErr != nil {
 					log.Printf("error reporting project run err: %v.\n", reportErr)
 				}
 				return false, false, fmt.Errorf("error while running command: %v", err)
 			}
-			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
+			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMRepository, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
 			if err != nil {
 				log.Printf("Error reporting project run: %v", err)
 			}
