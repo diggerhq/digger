@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop
-      - feat/*
+      - docker-release
 jobs:
   docker:
     runs-on: ubuntu-latest
