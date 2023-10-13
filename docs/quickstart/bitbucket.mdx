@@ -29,21 +29,21 @@ Click "pipelines" in the left sidebar in Bitbucket. Select "Starter Pipeline" te
 Replace the code with the following:
 
 ```
-# Example Digger pipeline for Bitbucket
-
-image: diggerhq/digger-bitbucket:3 (TODO provide an image)
+image: dockerdiggerorg/digger:develop
 
 pipelines:
-  default:
-    - parallel:
+  pull-requests:
+    '**':
+     - step:
+         name: pull request pipeline
+         script:
+          - digger
+  branches:
+    master:
       - step:
-          name: 'Digger Plan'
+          name: default branch pipeline
           script:
-            - echo "Your build and test goes here..."
-      - step:
-          name: 'Digger Apply'
-          script:
-            - echo "Your linting goes here..."
+            - digger
 ```
 
 ### Set environment variables
