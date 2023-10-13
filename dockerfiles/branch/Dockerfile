@@ -1,6 +1,6 @@
 FROM hashicorp/terraform as terraform_builder
 
-FROM golang:1.21.0-alpine as digger_builder
+FROM golang:1.21.3-alpine as digger_builder
 
 ARG DIGGER_BRANCH=develop
 ARG OS=linux
