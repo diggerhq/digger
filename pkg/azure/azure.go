@@ -313,7 +313,7 @@ func (a *AzureReposService) IsMerged(prNumber int) (bool, error) {
 	return *pullRequest.Status == git.PullRequestStatusValues.Completed, nil
 }
 
-func (a *AzureReposService) EditComment(id interface{}, comment string) error {
+func (a *AzureReposService) EditComment(prNumber int, id interface{}, comment string) error {
 	threadId := id.(int)
 	comments := []git.Comment{
 		{

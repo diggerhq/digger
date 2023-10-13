@@ -121,7 +121,7 @@ func (m *MockPRManager) GetComments(prNumber int) ([]orchestrator.Comment, error
 	return []orchestrator.Comment{}, nil
 }
 
-func (m *MockPRManager) EditComment(id interface{}, comment string) error {
+func (m *MockPRManager) EditComment(prNumber int, id interface{}, comment string) error {
 	m.Commands = append(m.Commands, RunInfo{"EditComment", strconv.Itoa(id.(int)) + " " + comment, time.Now()})
 	return nil
 }
@@ -215,9 +215,10 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	lock := &MockProjectLock{}
 	planStorage := &MockPlanStorage{}
 	reporter := &reporting.CiReporter{
-		CiService:      prManager,
-		PrNumber:       1,
-		ReportStrategy: &reporting.MultipleCommentsStrategy{},
+		CiService:         prManager,
+		PrNumber:          1,
+		ReportStrategy:    &reporting.MultipleCommentsStrategy{},
+		IsSupportMarkdown: true,
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{

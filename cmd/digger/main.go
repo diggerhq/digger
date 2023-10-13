@@ -4,6 +4,7 @@ import (
 	"context"
 	"digger/pkg/azure"
 	"digger/pkg/backend"
+	"digger/pkg/bitbucket"
 	core_backend "digger/pkg/core/backend"
 	core_locking "digger/pkg/core/locking"
 	core_policy "digger/pkg/core/policy"
@@ -24,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -522,6 +524,256 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	}()
 }
 
+func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
+	log.Printf("Using Bitbucket.\n")
+	actor := os.Getenv("BITBUCKET_STEP_TRIGGERER_UUID")
+	if actor != "" {
+		usage.SendUsageRecord(actor, "log", "initialize")
+	} else {
+		usage.SendUsageRecord("", "log", "non github initialisation")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println(fmt.Sprintf("stacktrace from panic for %s: %v\n", r, string(debug.Stack())))
+			err := usage.SendLogRecord(actor, fmt.Sprintf("Panic occurred. %s", r))
+			if err != nil {
+				log.Printf("Failed to send log record. %s\n", err)
+			}
+			os.Exit(1)
+		}
+	}()
+
+	runningMode := os.Getenv("INPUT_DIGGER_MODE")
+
+	repository := os.Getenv("BITBUCKET_REPO_FULL_NAME")
+
+	if repository == "" {
+		reportErrorAndExit(actor, "BITBUCKET_REPO_FULL_NAME is not defined", 3)
+	}
+
+	splitRepositoryName := strings.Split(repository, "/")
+	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
+
+	currentDir, err := os.Getwd()
+	if err != nil {
+		reportErrorAndExit(actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+	}
+
+	diggerConfig, _, dependencyGraph, err := configuration.LoadDiggerConfig("./")
+	if err != nil {
+		reportErrorAndExit(actor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+	}
+	log.Printf("Digger config read successfully\n")
+
+	authToken := os.Getenv("BITBUCKET_AUTH_TOKEN")
+
+	if authToken == "" {
+		reportErrorAndExit(actor, "BITBUCKET_AUTH_TOKEN is not defined", 3)
+	}
+
+	bitbucketService := bitbucket.BitbucketAPI{
+		AuthToken:     authToken,
+		HttpClient:    http.Client{},
+		RepoWorkspace: repoOwner,
+		RepoName:      repositoryName,
+	}
+
+	if runningMode == "manual" {
+		command := os.Getenv("INPUT_DIGGER_COMMAND")
+		if command == "" {
+			reportErrorAndExit(actor, "provide 'command' to run in 'manual' mode", 1)
+		}
+		project := os.Getenv("INPUT_DIGGER_PROJECT")
+		if project == "" {
+			reportErrorAndExit(actor, "provide 'project' to run in 'manual' mode", 2)
+		}
+
+		var projectConfig configuration.Project
+		for _, projectConfig = range diggerConfig.Projects {
+			if projectConfig.Name == project {
+				break
+			}
+		}
+		workflow := diggerConfig.Workflows[projectConfig.Workflow]
+
+		stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
+		planStorage := newPlanStorage("", repoOwner, repositoryName, actor, nil)
+
+		jobs := orchestrator.Job{
+			ProjectName:       project,
+			ProjectDir:        projectConfig.Dir,
+			ProjectWorkspace:  projectConfig.Workspace,
+			Terragrunt:        projectConfig.Terragrunt,
+			Commands:          []string{command},
+			ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+			PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
+			PullRequestNumber: nil,
+			EventName:         "manual_invocation",
+			RequestedBy:       actor,
+			Namespace:         repository,
+			StateEnvVars:      stateEnvVars,
+			CommandEnvVars:    commandEnvVars,
+		}
+		err := digger.RunJob(jobs, repository, actor, &bitbucketService, policyChecker, planStorage, backendApi, currentDir)
+		if err != nil {
+			reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		}
+	} else if runningMode == "drift-detection" {
+
+		for _, projectConfig := range diggerConfig.Projects {
+			if !projectConfig.DriftDetection {
+				continue
+			}
+			workflow := diggerConfig.Workflows[projectConfig.Workflow]
+
+			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
+			job := orchestrator.Job{
+				ProjectName:      projectConfig.Name,
+				ProjectDir:       projectConfig.Dir,
+				ProjectWorkspace: projectConfig.Workspace,
+				Terragrunt:       projectConfig.Terragrunt,
+				Commands:         []string{"digger drift-detect"},
+				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
+				CommandEnvVars:   commandEnvVars,
+				StateEnvVars:     stateEnvVars,
+				RequestedBy:      actor,
+				Namespace:        repository,
+				EventName:        "drift-detect",
+			}
+			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+			if err != nil {
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			}
+		}
+	} else {
+		var jobs []orchestrator.Job
+		if os.Getenv("BITBUCKET_PR_ID") == "" && os.Getenv("BITBUCKET_BRANCH") == os.Getenv("DEFAULT_BRANCH") {
+			for _, projectConfig := range diggerConfig.Projects {
+
+				workflow := diggerConfig.Workflows[projectConfig.Workflow]
+				log.Printf("workflow: %v", workflow)
+
+				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
+				job := orchestrator.Job{
+					ProjectName:      projectConfig.Name,
+					ProjectDir:       projectConfig.Dir,
+					ProjectWorkspace: projectConfig.Workspace,
+					Terragrunt:       projectConfig.Terragrunt,
+					Commands:         workflow.Configuration.OnCommitToDefault,
+					ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
+					CommandEnvVars:   commandEnvVars,
+					StateEnvVars:     stateEnvVars,
+					RequestedBy:      actor,
+					Namespace:        repository,
+					EventName:        "commit_to_default",
+				}
+				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+				if err != nil {
+					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				}
+			}
+		} else if os.Getenv("BITBUCKET_PR_ID") == "" {
+			for _, projectConfig := range diggerConfig.Projects {
+
+				workflow := diggerConfig.Workflows[projectConfig.Workflow]
+
+				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
+				job := orchestrator.Job{
+					ProjectName:      projectConfig.Name,
+					ProjectDir:       projectConfig.Dir,
+					ProjectWorkspace: projectConfig.Workspace,
+					Terragrunt:       projectConfig.Terragrunt,
+					Commands:         []string{"digger plan"},
+					ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
+					CommandEnvVars:   commandEnvVars,
+					StateEnvVars:     stateEnvVars,
+					RequestedBy:      actor,
+					Namespace:        repository,
+					EventName:        "commit_to_default",
+				}
+				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+				if err != nil {
+					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				}
+			}
+		} else if os.Getenv("BITBUCKET_PR_ID") != "" {
+			prNumber, err := strconv.Atoi(os.Getenv("BITBUCKET_PR_ID"))
+			if err != nil {
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to parse PR number. %s", err), 4)
+			}
+			impactedProjects, err := bitbucket.FindImpactedProjectsInBitbucket(diggerConfig, prNumber, &bitbucketService)
+
+			if err != nil {
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to find impacted projects. %s", err), 5)
+			}
+			if len(impactedProjects) == 0 {
+				reportErrorAndExit(actor, "No projects impacted", 0)
+			}
+
+			impactedProjectsMsg := getImpactedProjectsAsString(impactedProjects, prNumber)
+			log.Println(impactedProjectsMsg)
+			if err != nil {
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to find impacted projects. %s", err), 5)
+			}
+
+			for _, project := range impactedProjects {
+				workflow := diggerConfig.Workflows[project.Workflow]
+
+				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+
+				job := orchestrator.Job{
+					ProjectName:       project.Name,
+					ProjectDir:        project.Dir,
+					ProjectWorkspace:  project.Workspace,
+					Terragrunt:        project.Terragrunt,
+					Commands:          workflow.Configuration.OnPullRequestPushed,
+					ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
+					CommandEnvVars:    commandEnvVars,
+					StateEnvVars:      stateEnvVars,
+					PullRequestNumber: &prNumber,
+					RequestedBy:       actor,
+					Namespace:         repository,
+					EventName:         "pull_request",
+				}
+				jobs = append(jobs, job)
+			}
+
+			reporter := reporting.CiReporter{
+				CiService:      &bitbucketService,
+				PrNumber:       prNumber,
+				ReportStrategy: reportingStrategy,
+			}
+
+			log.Println("Bitbucket trigger converted to commands successfully")
+
+			logCommands(jobs)
+
+			planStorage := newPlanStorage("", repoOwner, repositoryName, actor, nil)
+
+			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
+
+			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, backendApi, currentDir)
+			if err != nil {
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			}
+		} else {
+			reportErrorAndExit(actor, "Failed to detect running mode", 1)
+		}
+
+	}
+
+	reportErrorAndExit(actor, "Digger finished successfully", 0)
+}
+
 /*
 Exit codes:
 0 - No errors
@@ -602,7 +854,7 @@ func main() {
 	case digger.Azure:
 		azureCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.BitBucket:
-		print("Bitbucket support is currently in progress. If you would like to prioritise it, give this issue a bump: https://github.com/diggerhq/digger/issues/81")
+		bitbucketCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.None:
 		print("No CI detected.")
 		os.Exit(10)

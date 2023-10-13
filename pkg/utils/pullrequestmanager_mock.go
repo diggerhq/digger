@@ -11,6 +11,11 @@ func (mockReporter *MockReporter) Report(report string, formatter func(string) s
 	return nil
 }
 
+func (mockReporter *MockReporter) SupportsMarkdown() bool {
+	mockReporter.commands = append(mockReporter.commands, "SupportsMarkdown")
+	return false
+}
+
 type MockGithubPullrequestManager struct {
 	commands []string
 }
@@ -69,7 +74,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetComments(pr
 	return []orchestrator.Comment{}, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(commentId interface{}, comment string) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(prNumber int, commentId interface{}, comment string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "EditComment")
 	return nil
 }
