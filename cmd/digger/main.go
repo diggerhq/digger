@@ -529,6 +529,8 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	actor := os.Getenv("BITBUCKET_STEP_TRIGGERER_UUID")
 	if actor != "" {
 		usage.SendUsageRecord(actor, "log", "initialize")
+	} else {
+		usage.SendUsageRecord("", "log", "non github initialisation")
 	}
 
 	defer func() {

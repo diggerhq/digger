@@ -8,6 +8,12 @@ jobs:
   binary:
     runs-on: ubuntu-latest
     steps:
+      - name: Download Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21.1
+        id: go
+
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Build
