@@ -1,0 +1,31 @@
+name: docker
+on:
+  push:
+    branches:
+      - develop
+      - docker-release
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.21.1
+        id: go
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v7
+      - name: Build
+        run: |
+          echo "Tag that is going to be used as digger version: ${{ steps.branch-name.outputs.current_branch }}"
+          env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ steps.branch-name.outputs.current_branch }}" -o digger ./cmd/digger
+      - name: build docker image
+        run: |
+          docker build -t dockerdiggerorg/digger:${{ steps.branch-name.outputs.current_branch }} --build-arg DIGGER_BRANCH=${{ steps.branch-name.outputs.current_branch }} -f dockerfiles/branch/Dockerfile .
+      - name: push docker image
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push dockerdiggerorg/digger:${{ steps.branch-name.outputs.current_branch }}
+          
