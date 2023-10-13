@@ -229,7 +229,7 @@ func (gitlabService GitLabService) IsMerged(mergeRequestID int) (bool, error) {
 	return false, nil
 }
 
-func (gitlabService GitLabService) EditComment(id interface{}, comment string) error {
+func (gitlabService GitLabService) EditComment(prNumber int, id interface{}, comment string) error {
 	//TODO implement me
 	return nil
 }

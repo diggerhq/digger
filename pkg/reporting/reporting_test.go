@@ -30,25 +30,25 @@ func TestCommentPerRunStrategyReport(t *testing.T) {
 
 	report := "resource \"null_resource\" \"test\" {}"
 	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1")
-	err := strategy.Report(ciService, prNumber, report, reportFormatter)
+	err := strategy.Report(ciService, prNumber, report, reportFormatter, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report2 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2")
-	err = strategy.Report(ciService, prNumber, report2, reportFormatter2)
+	err = strategy.Report(ciService, prNumber, report2, reportFormatter2, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report3 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3")
-	err = strategy.Report(ciService, prNumber, report3, reportFormatter3)
+	err = strategy.Report(ciService, prNumber, report3, reportFormatter3, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report4 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4")
-	err = strategy.Report(ciService, prNumber, report4, reportFormatter4)
+	err = strategy.Report(ciService, prNumber, report4, reportFormatter4, true)
 
 	if err != nil {
 		t.Errorf("Error: %v", err)
@@ -79,25 +79,25 @@ func TestLatestCommentStrategyReport(t *testing.T) {
 
 	report := "resource \"null_resource\" \"test\" {}"
 	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1")
-	err := strategy.Report(ciService, prNumber, report, reportFormatter)
+	err := strategy.Report(ciService, prNumber, report, reportFormatter, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report2 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2")
-	err = strategy.Report(ciService, prNumber, report2, reportFormatter2)
+	err = strategy.Report(ciService, prNumber, report2, reportFormatter2, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report3 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3")
-	err = strategy.Report(ciService, prNumber, report3, reportFormatter3)
+	err = strategy.Report(ciService, prNumber, report3, reportFormatter3, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report4 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4")
-	err = strategy.Report(ciService, prNumber, report4, reportFormatter4)
+	err = strategy.Report(ciService, prNumber, report4, reportFormatter4, true)
 
 	if err != nil {
 		t.Errorf("Error: %v", err)
@@ -125,25 +125,25 @@ func TestMultipleCommentStrategyReport(t *testing.T) {
 
 	report := "resource \"null_resource\" \"test\" {}"
 	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1")
-	err := strategy.Report(ciService, prNumber, report, reportFormatter)
+	err := strategy.Report(ciService, prNumber, report, reportFormatter, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report2 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2")
-	err = strategy.Report(ciService, prNumber, report2, reportFormatter2)
+	err = strategy.Report(ciService, prNumber, report2, reportFormatter2, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report3 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3")
-	err = strategy.Report(ciService, prNumber, report3, reportFormatter3)
+	err = strategy.Report(ciService, prNumber, report3, reportFormatter3, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report4 := "resource \"null_resource\" \"test\" {}"
 	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4")
-	err = strategy.Report(ciService, prNumber, report4, reportFormatter4)
+	err = strategy.Report(ciService, prNumber, report4, reportFormatter4, true)
 
 	if err != nil {
 		t.Errorf("Error: %v", err)
@@ -217,7 +217,7 @@ func (t MockCiService) GetComments(prNumber int) ([]orchestrator.Comment, error)
 	return comments, nil
 }
 
-func (t MockCiService) EditComment(commentId interface{}, comment string) error {
+func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment string) error {
 	for _, comments := range t.CommentsPerPr {
 		for _, c := range comments {
 			if c.Id == commentId {
