@@ -30,3 +30,13 @@ jobs:
           asset_path: 'digger'
           asset_name: digger-Linux-X64
           asset_content_type: application/octet-stream
+      - name: build docker image
+        run: |
+          docker build -t dockerdiggerorg/digger:${{ github.event.release.tag_name }} -e DIGGER_VERSION=${{ github.event.release.tag_name }} -e OS=Linux -e ARCH=X64  -f dockerfiles/release/Dockerfile .
+          docker tag dockerdiggerorg/digger:${{ github.event.release.tag_name }} dockerdiggerorg/digger:latest
+      - name: push docker image
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push dockerdiggerorg/digger:${{ github.event.release.tag_name }}
+          docker push dockerdiggerorg/digger:latest  
+          
