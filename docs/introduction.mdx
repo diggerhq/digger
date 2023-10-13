@@ -11,9 +11,16 @@ description: "Digger is an open-source Terraform automation software (TACO)"
 </div>
 
 
-## Setting up
+## Motivation
 
-The first step to world-class documentation is setting up your editing environnments.
+Infrastructure code, like any other code, benefits from continuous integration. But unlike application code, Terraform has state. Because of state, running terraform in general-purpose CI system like GitHub Actions or Bitbucket Pipelines is problematic:
+- If 2 jobs attempt to access the same state file, one will fail. Instead, they should be queued
+- But running only 1 terraform job at a time is slow. If a change affects multiple state files, they should run in parallel
+- It's risky to review terraform PRs without seeing plan outputs for each affected environment
+
+One way to solve these issues is to use a specialised CI/CD system that is aware of Terraform state. Products like Terraform Cloud, Spacelift, Scalr and Env0 take this approach. Terraform jobs are running on their servers that have access to state files, so they can manage concurrency. This approach however also has downsides:
+- CI/CD infrastructure is duplicated. A "CI for terraform" has its own compute, jobs, logs etc
+- Another third party needs to be given access to secrets, and cloud account credentials are the most sensitive of all. This is partially solved by private runners - but then you are effectively self-hosting your own CI/CD stack. 
 
 <CardGroup cols={2}>
   <Card
