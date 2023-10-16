@@ -61,8 +61,8 @@
       "pages": ["quickstart/githubactions", "quickstart/bitbucket", "quickstart/gitlab", "quickstart/azuredevops", "quickstart/jenkins"]
     },
     {
-      "group": "Configuration",
-      "pages": ["Configureation/digger.yml"]
+      "group": "configuration",
+      "pages": ["configureation/digger.yml"]
     }
   ],
   "footerSocials": {
