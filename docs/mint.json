@@ -59,6 +59,10 @@
     {
       "group": "Get Started",
       "pages": ["quickstart/githubactions", "quickstart/bitbucket", "quickstart/gitlab", "quickstart/azuredevops", "quickstart/jenkins"]
+    },
+    {
+      "group": "Configuration",
+      "pages": ["Configureation/digger.yml"]
     }
   ],
   "footerSocials": {
