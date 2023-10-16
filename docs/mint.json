@@ -62,7 +62,7 @@
     },
     {
       "group": "configuration",
-      "pages": ["configureation/digger.yml"]
+      "pages": ["configuration/digger.yml"]
     }
   ],
   "footerSocials": {
