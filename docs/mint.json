@@ -61,8 +61,8 @@
       "pages": ["quickstart/githubactions", "quickstart/bitbucket", "quickstart/gitlab", "quickstart/azuredevops", "quickstart/jenkins"]
     },
     {
-      "group": "configuration",
-      "pages": ["configuration/digger.yml"]
+      "group": "Configuration",
+      "pages": ["Configuration/digger.yml", "Configuration/specifyingversion", "Configuration/disableautocheckout", "Configuration/segregatecloudaccounts", "Configuration/usingworkspaces", "Configuration/usingterragrunt", "Configuration/applyonmerge", "Configuration/usingcheckov", "Configuration/usinginfracost", "Configuration/disableautocheckout", "Configuration/usingopa", "Configuration/terragruntprojectgeneration"]
     }
   ],
   "footerSocials": {
