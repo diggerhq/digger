@@ -62,7 +62,7 @@
     },
     {
       "group": "configuration",
-      "pages": ["configuration/digger.yml"]
+      "pages": ["configuration/digger.yml", "configuration/specifyingversion", "configuration/disableautocheckout"]
     }
   ],
   "footerSocials": {
