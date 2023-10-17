@@ -62,7 +62,8 @@
     },
     {
       "group": "configuration",
-      "pages": ["configuration/digger.yml", "configuration/specifyingversion", "configuration/disableautocheckout"]
+
+      "pages": ["configuration/digger.yml", "configuration/specifyingversion", "configuration/disableautocheckout", "configuration/segregatecloudaccounts", "configuration/usingworkspaces", "configuration/usingterragrunt", "configuration/applyonmerge", "configuration/usingcheckov", "configuration/usinginfracost", "configuration/disableautocheckout", "configuration/usingopa", "configuration/terragruntprojectgeneration"]
     }
   ],
   "footerSocials": {
