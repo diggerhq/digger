@@ -1,0 +1,7 @@
+---
+title: 'Disable Auto-Checkout'
+---
+
+By default Digger checks out latest code from the branch prior to every run. So you don't need to configure checkout in your workflow file.
+
+If you prefer to not checkout automatically (for example if you have your own checkout logic as a previous step), set the `configure-checkout` input to `false` in your workflow
