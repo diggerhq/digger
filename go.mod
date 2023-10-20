@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/storage v1.33.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.2
-	github.com/aws/aws-sdk-go v1.46.0
+	github.com/aws/aws-sdk-go v1.46.1
 	github.com/bmatcuk/doublestar/v4 v4.6.0 // indirect
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/google/uuid v1.3.1
