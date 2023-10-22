@@ -15,7 +15,7 @@ require (
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/open-policy-agent/opa v0.57.1
 	github.com/stretchr/testify v1.8.4
-	github.com/xanzy/go-gitlab v0.93.1
+	github.com/xanzy/go-gitlab v0.93.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
