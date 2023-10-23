@@ -2,13 +2,12 @@ package usage
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	configuration "github.com/diggerhq/lib-digger-config"
 	"log"
 	"net/http"
 	"os"
+
+	configuration "github.com/diggerhq/lib-digger-config"
 )
 
 var collect_usage_data = true
@@ -22,12 +21,8 @@ type UsageRecord struct {
 }
 
 func SendUsageRecord(repoOwner string, eventName string, action string) error {
-	h := sha256.New()
-	h.Write([]byte(repoOwner))
-	sha := h.Sum(nil)
-	shaStr := hex.EncodeToString(sha)
 	payload := UsageRecord{
-		UserId:    shaStr,
+		UserId:    repoOwner,
 		EventName: eventName,
 		Action:    action,
 		Token:     "diggerABC@@1998fE",
@@ -36,12 +31,8 @@ func SendUsageRecord(repoOwner string, eventName string, action string) error {
 }
 
 func SendLogRecord(repoOwner string, message string) error {
-	h := sha256.New()
-	h.Write([]byte(repoOwner))
-	sha := h.Sum(nil)
-	shaStr := hex.EncodeToString(sha)
 	payload := UsageRecord{
-		UserId:    shaStr,
+		UserId:    repoOwner,
 		EventName: "log from " + source,
 		Action:    message,
 		Token:     "diggerABC@@1998fE",
