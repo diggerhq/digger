@@ -1,6 +1,8 @@
 package orchestrator
 
-import configuration "digger/pkg/digger_config"
+import (
+	configuration "digger/libs/digger_config"
+)
 
 type Job struct {
 	ProjectName       string

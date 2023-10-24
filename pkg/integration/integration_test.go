@@ -2,6 +2,8 @@ package integration
 
 import (
 	"context"
+	configuration "digger/libs/digger_config"
+	dg_github "digger/libs/orchestrator/github"
 	"digger/pkg/aws"
 	"digger/pkg/core/terraform"
 	"digger/pkg/digger"
@@ -15,9 +17,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	configuration "digger/pkg/digger_config"
-	dg_github "digger/pkg/orchestrator/github"
 
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"

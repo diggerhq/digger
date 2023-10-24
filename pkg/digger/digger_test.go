@@ -1,8 +1,9 @@
 package digger
 
 import (
+	configuration "digger/libs/digger_config"
+	orchestrator2 "digger/libs/orchestrator"
 	"digger/pkg/core/execution"
-	configuration "digger/pkg/digger_config"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"sort"
@@ -11,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	orchestrator "digger/pkg/orchestrator"
 	"github.com/dominikbraun/graph"
 	"github.com/stretchr/testify/assert"
 )
@@ -116,9 +116,9 @@ func (m *MockPRManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (m *MockPRManager) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+func (m *MockPRManager) GetComments(prNumber int) ([]orchestrator2.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetComments", strconv.Itoa(prNumber), time.Now()})
-	return []orchestrator.Comment{}, nil
+	return []orchestrator2.Comment{}, nil
 }
 
 func (m *MockPRManager) EditComment(prNumber int, id interface{}, comment string) error {
@@ -222,8 +222,8 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{
-		ApplyStage: &orchestrator.Stage{
-			Steps: []orchestrator.Step{
+		ApplyStage: &orchestrator2.Stage{
+			Steps: []orchestrator2.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -241,7 +241,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 				},
 			},
 		},
-		PlanStage:         &orchestrator.Stage{},
+		PlanStage:         &orchestrator2.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
@@ -270,8 +270,8 @@ func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{
-		ApplyStage: &orchestrator.Stage{
-			Steps: []orchestrator.Step{
+		ApplyStage: &orchestrator2.Stage{
+			Steps: []orchestrator2.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -284,7 +284,7 @@ func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
 				},
 			},
 		},
-		PlanStage:         &orchestrator.Stage{},
+		PlanStage:         &orchestrator2.Stage{},
 		CommandRunner:     commandRunner,
 		TerraformExecutor: terraformExecutor,
 		Reporter:          reporter,
@@ -311,9 +311,9 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 	planPathProvider := &MockPlanPathProvider{}
 
 	executor := execution.DiggerExecutor{
-		ApplyStage: &orchestrator.Stage{},
-		PlanStage: &orchestrator.Stage{
-			Steps: []orchestrator.Step{
+		ApplyStage: &orchestrator2.Stage{},
+		PlanStage: &orchestrator2.Stage{
+			Steps: []orchestrator2.Step{
 				{
 					Action:    "init",
 					ExtraArgs: nil,
@@ -382,7 +382,7 @@ func TestSortedCommandByDependency(t *testing.T) {
 	//	jobs []models.Job,
 	//	dependencyGraph *graph.Graph[string, string],
 
-	jobs := []orchestrator.Job{
+	jobs := []orchestrator2.Job{
 		{
 			ProjectName: "project1",
 			Commands: []string{

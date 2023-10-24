@@ -1,11 +1,11 @@
 package reporting
 
 import (
+	"digger/libs/orchestrator"
 	"digger/pkg/core/utils"
 	"testing"
 	"time"
 
-	orchestrator "digger/pkg/orchestrator"
 	"github.com/stretchr/testify/assert"
 )
 

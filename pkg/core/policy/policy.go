@@ -1,6 +1,8 @@
 package policy
 
-import "digger/pkg/orchestrator"
+import (
+	"digger/libs/orchestrator"
+)
 
 type Provider interface {
 	GetAccessPolicy(organisation string, repository string, projectname string) (string, error)

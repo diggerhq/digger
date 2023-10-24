@@ -1,6 +1,8 @@
 package execution
 
 import (
+	configuration "digger/libs/digger_config"
+	"digger/libs/orchestrator"
 	"digger/pkg/core/locking"
 	"digger/pkg/core/reporting"
 	"digger/pkg/core/runners"
@@ -13,9 +15,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-
-	configuration "digger/pkg/digger_config"
-	orchestrator "digger/pkg/orchestrator"
 )
 
 type Executor interface {

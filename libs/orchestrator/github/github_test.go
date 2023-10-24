@@ -1,14 +1,14 @@
 package github
 
 import (
-	configuration "digger/pkg/digger_config"
+	"digger/libs/digger_config"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
 
-	projects := []configuration.Project{
+	projects := []digger_config.Project{
 		{
 			Name: "a",
 		},
@@ -54,13 +54,13 @@ func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
 		},
 	}
 
-	dependencyGraph, err := configuration.CreateProjectDependencyGraph(projects)
+	dependencyGraph, err := digger_config.CreateProjectDependencyGraph(projects)
 
 	if err != nil {
 		t.Errorf("Error creating dependency graph: %v", err)
 	}
 
-	impactedProjects := []configuration.Project{
+	impactedProjects := []digger_config.Project{
 		{
 			Name: "a",
 		},
