@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	configuration "digger/pkg/config"
+	configuration "digger/pkg/digger_config"
 	dg_github "github.com/diggerhq/lib-orchestrator/github"
 
 	awssdk "github.com/aws/aws-sdk-go/aws"

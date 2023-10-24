@@ -13,7 +13,7 @@ import (
 
 	"testing"
 
-	configuration "digger/pkg/config"
+	configuration "digger/pkg/digger_config"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"

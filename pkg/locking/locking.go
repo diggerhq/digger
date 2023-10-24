@@ -266,7 +266,7 @@ func GetLock() (locking.Lock, error) {
 				},
 			}
 		} else {
-			log.Printf("Using keyless aws configuration\n")
+			log.Printf("Using keyless aws digger_config\n")
 		}
 		awsSession, err := session.NewSessionWithOptions(options)
 		if err != nil {

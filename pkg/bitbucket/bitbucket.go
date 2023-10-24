@@ -2,7 +2,7 @@ package bitbucket
 
 import (
 	"bytes"
-	configuration "digger/pkg/config"
+	configuration "digger/pkg/digger_config"
 	"encoding/json"
 	"fmt"
 	orchestrator "github.com/diggerhq/lib-orchestrator"

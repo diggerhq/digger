@@ -19,7 +19,7 @@ last "terraform apply" which may have affected this plan:
     }
 
 
-Unless you have made equivalent changes to your configuration, or ignored the
+Unless you have made equivalent changes to your digger_config, or ignored the
 relevant attributes using ignore_changes, the following plan may include
 actions to undo or respond to these changes.
 

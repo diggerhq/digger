@@ -1,6 +1,6 @@
 package utils
 
-import orchestrator "github.com/diggerhq/lib-orchestrator"
+import "digger/pkg/orchestrator"
 
 type MockReporter struct {
 	commands []string
