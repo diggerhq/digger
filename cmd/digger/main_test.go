@@ -8,7 +8,7 @@ import (
 	"digger/pkg/utils"
 	"log"
 
-	dggithub "github.com/diggerhq/lib-orchestrator/github"
+	dggithub "digger/pkg/orchestrator/github"
 	"github.com/google/go-github/v55/github"
 
 	"testing"
