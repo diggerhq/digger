@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	orchestrator "github.com/diggerhq/lib-orchestrator"
+	orchestrator "digger/pkg/orchestrator"
 	"github.com/stretchr/testify/assert"
 )
 

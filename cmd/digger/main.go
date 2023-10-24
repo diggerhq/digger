@@ -30,8 +30,8 @@ import (
 	"time"
 
 	configuration "digger/pkg/digger_config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
-	dg_github "github.com/diggerhq/lib-orchestrator/github"
+	orchestrator "digger/pkg/orchestrator"
+	dg_github "digger/pkg/orchestrator/github"
 	"gopkg.in/yaml.v3"
 
 	"github.com/google/go-github/v55/github"

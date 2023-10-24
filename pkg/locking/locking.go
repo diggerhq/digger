@@ -10,7 +10,7 @@ import (
 	"digger/pkg/gcp"
 	"errors"
 	"fmt"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
+	orchestrator "digger/pkg/orchestrator"
 	"log"
 	"os"
 	"strconv"

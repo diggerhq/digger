@@ -25,8 +25,8 @@ import (
 	"strings"
 	"time"
 
-	config "github.com/diggerhq/lib-digger-config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
+	config "digger/pkg/digger_config"
+	orchestrator "digger/pkg/orchestrator"
 
 	"github.com/dominikbraun/graph"
 )

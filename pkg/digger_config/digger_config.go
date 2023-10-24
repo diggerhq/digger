@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/diggerhq/lib-digger-config/terragrunt/atlantis"
+	"digger/pkg/digger_config/terragrunt/atlantis"
 	"github.com/dominikbraun/graph"
 	"gopkg.in/yaml.v3"
 )
