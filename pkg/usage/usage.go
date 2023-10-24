@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	configuration "github.com/diggerhq/lib-digger-config"
+	configuration "digger/pkg/config"
 )
 
 var collect_usage_data = true
