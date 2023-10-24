@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	configuration "github.com/diggerhq/lib-digger-config"
+	configuration "digger/pkg/config"
 	orchestrator "github.com/diggerhq/lib-orchestrator"
 
 	"github.com/caarlos0/env/v8"

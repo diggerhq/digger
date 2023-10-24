@@ -1,10 +1,10 @@
 package digger
 
 import (
+	configuration "digger/pkg/config"
 	"digger/pkg/core/execution"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
-	configuration "github.com/diggerhq/lib-digger-config"
 	"sort"
 	"strconv"
 	"strings"
