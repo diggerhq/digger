@@ -2,8 +2,8 @@ package policy
 
 import (
 	"context"
+	"digger/libs/orchestrator"
 	"digger/pkg/core/policy"
-	orchestrator "digger/pkg/orchestrator"
 	"encoding/json"
 	"errors"
 	"fmt"

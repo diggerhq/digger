@@ -1,6 +1,7 @@
 package digger_config
 
 import (
+	"digger/libs/digger_config/terragrunt/atlantis"
 	"errors"
 	"fmt"
 	"log"
@@ -10,7 +11,6 @@ import (
 	"regexp"
 	"strings"
 
-	"digger/pkg/digger_config/terragrunt/atlantis"
 	"github.com/dominikbraun/graph"
 	"gopkg.in/yaml.v3"
 )
