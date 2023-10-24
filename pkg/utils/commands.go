@@ -15,8 +15,8 @@ type Command struct {
 var availableCommands = []Command{
 	{"digger help", "Display help information"},
 	{"digger version", "Display version information"},
-	{"digger apply", "Apply the Terraform  configuration"},
-	{"digger plan", "Plan the Terraform  configuration"},
+	{"digger apply", "Apply the Terraform  digger_config"},
+	{"digger plan", "Plan the Terraform  digger_config"},
 	{"digger show-projects", "Show the impacted projects"},
 	{"digger lock", "Lock Terraform project"},
 	{"digger unlock", "Unlock the Terraform project"},

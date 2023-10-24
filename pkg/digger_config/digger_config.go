@@ -1,4 +1,4 @@
-package configuration
+package digger_config
 
 import (
 	"errors"
@@ -127,7 +127,7 @@ func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string) ([]strin
 	return dirs, nil
 }
 
-var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
+var ErrDiggerConfigConflict = errors.New("more than one digger digger_config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
 func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
 	config := &DiggerConfig{}
@@ -246,25 +246,25 @@ func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
 		if errors.Is(err, ErrDiggerConfigConflict) {
-			return nil, fmt.Errorf("error while retrieving config file: %v", err)
+			return nil, fmt.Errorf("error while retrieving digger_config file: %v", err)
 		}
 	}
 
 	if fileName == "" {
 		configYaml, err = AutoDetectDiggerConfig(workingDir)
 		if err != nil {
-			return nil, fmt.Errorf("failed to auto detect digger config: %v", err)
+			return nil, fmt.Errorf("failed to auto detect digger digger_config: %v", err)
 		}
 		marshalledConfig, err := yaml.Marshal(configYaml)
 		if err != nil {
-			log.Printf("failed to marshal auto detected digger config: %v", err)
+			log.Printf("failed to marshal auto detected digger digger_config: %v", err)
 		} else {
-			log.Printf("Auto detected digger config: \n%v", string(marshalledConfig))
+			log.Printf("Auto detected digger digger_config: \n%v", string(marshalledConfig))
 		}
 	} else {
 		data, err := os.ReadFile(fileName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read config file %s: %v", fileName, err)
+			return nil, fmt.Errorf("failed to read digger_config file %s: %v", fileName, err)
 		}
 
 		if err := yaml.Unmarshal(data, configYaml); err != nil {
@@ -287,11 +287,11 @@ func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
 
 func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) error {
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
-		return fmt.Errorf("no projects configuration found in '%s'", fileName)
+		return fmt.Errorf("no projects digger_config found in '%s'", fileName)
 	}
 	if configYaml.DependencyConfiguration != nil {
 		if configYaml.DependencyConfiguration.Mode != DependencyConfigurationHard && configYaml.DependencyConfiguration.Mode != DependencyConfigurationSoft {
-			return fmt.Errorf("dependency configuration mode can only be '%s' or '%s'", DependencyConfigurationHard, DependencyConfigurationSoft)
+			return fmt.Errorf("dependency digger_config mode can only be '%s' or '%s'", DependencyConfigurationHard, DependencyConfigurationSoft)
 		}
 	}
 
@@ -310,7 +310,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 	for _, p := range config.Projects {
 		_, ok := config.Workflows[p.Workflow]
 		if !ok {
-			return fmt.Errorf("failed to find workflow config '%s' for project '%s'", p.Workflow, p.Name)
+			return fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", p.Workflow, p.Name)
 		}
 	}
 
@@ -379,7 +379,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.UseProjectMarkers,
 	)
 	if err != nil {
-		log.Printf("failed to autogenerate config: %v", err)
+		log.Printf("failed to autogenerate digger_config: %v", err)
 	}
 
 	if atlantisConfig.Projects == nil {
@@ -532,7 +532,7 @@ func retrieveConfigFile(workingDir string) (string, error) {
 		fileName = path.Join(workingDir, fileName)
 	}
 
-	// Make sure we don't have more than one digger config file
+	// Make sure we don't have more than one digger digger_config file
 	ymlCfg := isFileExists(fileName + ".yml")
 	yamlCfg := isFileExists(fileName + ".yaml")
 	if ymlCfg && yamlCfg {
@@ -548,7 +548,7 @@ func retrieveConfigFile(workingDir string) (string, error) {
 		return path.Join(workingDir, "digger.yaml"), nil
 	}
 
-	// Passing this point means digger config file is
+	// Passing this point means digger digger_config file is
 	// missing which is a non-error
 	return "", nil
 }

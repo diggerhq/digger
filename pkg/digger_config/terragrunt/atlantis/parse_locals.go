@@ -24,7 +24,7 @@ type ResolvedLocals struct {
 	// Apply requirements to override the global `--apply-requirements` flag
 	ApplyRequirements []string
 
-	// Extra dependencies that can be hardcoded in config
+	// Extra dependencies that can be hardcoded in digger_config
 	ExtraAtlantisDependencies []string
 
 	// If set, a single module will have autoplan turned to this setting

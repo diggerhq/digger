@@ -1,8 +1,8 @@
 package atlantis
 
-// Represents an entire config file
+// Represents an entire digger_config file
 type AtlantisConfig struct {
-	// Version of the config syntax
+	// Version of the digger_config syntax
 	Version int `json:"version"`
 
 	// If Atlantis should merge after finishing `atlantis apply`

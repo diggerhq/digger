@@ -1,8 +1,8 @@
 package digger
 
 import (
-	configuration "digger/pkg/config"
 	"digger/pkg/core/execution"
+	configuration "digger/pkg/digger_config"
 	"digger/pkg/reporting"
 	"digger/pkg/utils"
 	"sort"

@@ -14,7 +14,7 @@ import (
 	"regexp"
 	"strings"
 
-	configuration "digger/pkg/config"
+	configuration "digger/pkg/digger_config"
 	orchestrator "github.com/diggerhq/lib-orchestrator"
 )
 
@@ -377,7 +377,7 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 	} else if nonEmptyOutput {
 		start = "Terraform will perform the following actions:"
 	} else {
-		start = "No changes. Your infrastructure matches the configuration."
+		start = "No changes. Your infrastructure matches the digger_config."
 	}
 
 	startPos := strings.Index(stdout, start)

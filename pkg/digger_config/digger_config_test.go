@@ -1,4 +1,4 @@
-package configuration
+package digger_config
 
 import (
 	"fmt"
@@ -55,7 +55,7 @@ projects:
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
 }
 
@@ -71,7 +71,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	dg, _, _, err := LoadDiggerConfig("./")
 
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
 	assert.Equal(t, true, dg.CollectUsageData)
@@ -107,7 +107,7 @@ projects:
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
 	assert.Equal(t, true, dg.CollectUsageData)
@@ -141,7 +141,7 @@ projects:
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "default", dg.Projects[0].Workflow)
 	_, ok := dg.Workflows["default"]
 	assert.True(t, ok)
@@ -163,7 +163,7 @@ projects:
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "path/to/module", dg.GetDirectory("dev"))
 }
 
@@ -303,7 +303,7 @@ generate_projects:
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev_test1", dg.Projects[0].Name)
 	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
 	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
@@ -331,7 +331,7 @@ func TestGenerateProjectsWithoutDiggerConfig(t *testing.T) {
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev_project", dg.Projects[0].Name)
 	assert.Equal(t, "dev_test1", dg.Projects[1].Name)
 	assert.Equal(t, "dev_test2", dg.Projects[2].Name)
@@ -367,7 +367,7 @@ generate_projects:
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev_test1_utils", dg.Projects[0].Name)
 	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
 	assert.Equal(t, "dev/test1/utils", dg.Projects[0].Dir)
@@ -400,7 +400,7 @@ generate_projects:
 	}
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev", dg.Projects[0].Name)
 	assert.Equal(t, 1, len(dg.Projects))
 }
@@ -414,7 +414,7 @@ func TestMissingProjectsReturnsError(t *testing.T) {
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 	_, _, _, err := LoadDiggerConfig(tempDir)
-	assert.ErrorContains(t, err, "no projects configuration found")
+	assert.ErrorContains(t, err, "no projects digger_config found")
 }
 
 func TestDiggerConfigCustomWorkflow(t *testing.T) {
@@ -438,7 +438,7 @@ workflows:
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "my_custom_workflow", dg.Projects[0].Workflow)
 	_, ok := dg.Workflows["my_custom_workflow"]
 	assert.True(t, ok)
@@ -448,7 +448,7 @@ func TestDiggerConfigCustomWorkflowMissingParams(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
 
-	// missing workflow config
+	// missing workflow digger_config
 	diggerCfg := `
 projects:
 - name: my-first-app
@@ -459,7 +459,7 @@ projects:
 	defer deleteFile()
 
 	_, _, _, err := LoadDiggerConfig(tempDir)
-	assert.Error(t, err, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'")
+	assert.Error(t, err, "failed to find workflow digger_config 'my_custom_workflow' for project 'my-first-app'")
 
 	// steps block is missing for workflows
 	diggerCfg = `
@@ -503,7 +503,7 @@ workflows:
 	defer deleteFile()
 
 	_, _, _, err := LoadDiggerConfig(tempDir)
-	assert.Equal(t, "failed to find workflow config 'my_custom_workflow' for project 'my-first-app'", err.Error())
+	assert.Equal(t, "failed to find workflow digger_config 'my_custom_workflow' for project 'my-first-app'", err.Error())
 
 }
 
@@ -587,7 +587,7 @@ projects:
 `
 	dg, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "default", dg.Projects[0].Workflow)
 
 	assert.Equal(t, "my-first-app", dg.Projects[0].Name)
@@ -690,7 +690,7 @@ projects:
 
 	dg, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "default", dg.Projects[0].Workflow)
 	_, ok := dg.Workflows["default"]
 	assert.True(t, ok)
@@ -865,7 +865,7 @@ workflows:
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev_test1", dg.Projects[0].Name)
 	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
 	assert.Equal(t, "prod_one", dg.Projects[2].Name)
@@ -888,7 +888,7 @@ generate_projects:
 `
 	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
 	assert.Error(t, err)
-	assert.Equal(t, "no projects configuration found in 'loaded_yaml_string'", err.Error())
+	assert.Equal(t, "no projects digger_config found in 'loaded_yaml_string'", err.Error())
 }
 
 // TestDiggerGenerateProjectsTooManyParameters include/exclude and blocks of include/exclude can't be used together
@@ -1059,4 +1059,4 @@ func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
 	assert.Equal(t, 5, len(config.Projects))
 }
 
-// todo test terragrunt config with terragrunt_parsing block but without terragrunt: true
+// todo test terragrunt digger_config with terragrunt_parsing block but without terragrunt: true

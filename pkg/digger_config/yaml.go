@@ -1,4 +1,4 @@
-package configuration
+package digger_config
 
 import (
 	"errors"

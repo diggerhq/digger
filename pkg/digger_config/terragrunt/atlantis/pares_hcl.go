@@ -102,10 +102,10 @@ func decodeHcl(
 	return nil
 }
 
-// This decodes only the `include` blocks of a terragrunt config, so its value can be used while decoding the rest of
-// the config.
+// This decodes only the `include` blocks of a terragrunt digger_config, so its value can be used while decoding the rest of
+// the digger_config.
 // For consistency, `include` in the call to `decodeHcl` is always assumed to be nil. Either it really is nil (parsing
-// the child config), or it shouldn't be used anyway (the parent config shouldn't have an include block).
+// the child digger_config), or it shouldn't be used anyway (the parent digger_config shouldn't have an include block).
 func decodeAsTerragruntInclude(
 	file *hcl.File,
 	filename string,

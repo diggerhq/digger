@@ -116,7 +116,7 @@ func sliceUnion(a, b []string) []string {
 	return a
 }
 
-// Parses the terragrunt config at `path` to find all modules it depends on
+// Parses the terragrunt digger_config at `path` to find all modules it depends on
 func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, path string, terragruntOptions *options.TerragruntOptions) ([]string, error) {
 	res, err, _ := requestGroup.Do(path, func() (interface{}, error) {
 		// Check if this path has already been computed

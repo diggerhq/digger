@@ -2,16 +2,15 @@ package azure
 
 import (
 	"context"
+	"digger/pkg/digger_config"
 	"digger/pkg/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
-
-	configuration "digger/pkg/config"
 	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
+	"strings"
 )
 
 const (
@@ -356,8 +355,8 @@ func (a *AzureReposService) GetComments(prNumber int) ([]orchestrator.Comment, e
 
 }
 
-func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.DiggerConfig, ciService orchestrator.PullRequestService) ([]configuration.Project, *configuration.Project, int, error) {
-	var impactedProjects []configuration.Project
+func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config.DiggerConfig, ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
+	var impactedProjects []digger_config.Project
 	var prNumber int
 
 	switch azureEvent.(type) {
@@ -398,7 +397,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *configuration.
 	return impactedProjects, nil, prNumber, nil
 }
 
-func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []configuration.Project, requestedProject *configuration.Project, workflows map[string]configuration.Workflow) ([]orchestrator.Job, bool, error) {
+func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
 	jobs := make([]orchestrator.Job, 0)
 	//&dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber,
 	switch parseAzureContext.EventType {
@@ -406,11 +405,11 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+				return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
-			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
@@ -432,11 +431,11 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
-				return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+				return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
-			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
@@ -460,9 +459,9 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 			for _, project := range impactedProjects {
 				workflow, ok := workflows[project.Workflow]
 				if !ok {
-					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+					return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 				}
-				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 				jobs = append(jobs, orchestrator.Job{
 					ProjectName:       project.Name,
 					ProjectDir:        project.Dir,
@@ -491,7 +490,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 		if requestedProject != nil {
 			if len(impactedProjects) > 1 {
 				coversAllImpactedProjects = false
-				runForProjects = []configuration.Project{*requestedProject}
+				runForProjects = []digger_config.Project{*requestedProject}
 			} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
 				return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 			}
@@ -511,9 +510,9 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []con
 					}
 					workflow, ok := workflows[project.Workflow]
 					if !ok {
-						return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+						return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 					}
-					stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
 					jobs = append(jobs, orchestrator.Job{
 						ProjectName:       project.Name,
