@@ -3,10 +3,10 @@ package policy
 import (
 	"context"
 	"digger/pkg/core/policy"
+	orchestrator "digger/pkg/orchestrator"
 	"encoding/json"
 	"errors"
 	"fmt"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/open-policy-agent/opa/rego"
 	"io"
 	"log"

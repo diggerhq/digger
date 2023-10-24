@@ -20,8 +20,8 @@ require (
 )
 
 require (
-	github.com/diggerhq/lib-digger-config v0.0.7
-	github.com/diggerhq/lib-orchestrator v0.0.12-0.20231003151127-0bb18578b47b
+	github.com/diggerhq/lib-digger-config v0.1.13
+	github.com/diggerhq/lib-orchestrator v0.0.11
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.9.0
 	github.com/google/go-github/v55 v55.0.0

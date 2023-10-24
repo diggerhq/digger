@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	configuration "digger/pkg/digger_config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
+	orchestrator "digger/pkg/orchestrator"
 
 	"github.com/caarlos0/env/v8"
 	go_gitlab "github.com/xanzy/go-gitlab"

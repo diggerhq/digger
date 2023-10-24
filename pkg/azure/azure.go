@@ -3,11 +3,11 @@ package azure
 import (
 	"context"
 	"digger/pkg/digger_config"
+	orchestrator "digger/pkg/orchestrator"
 	"digger/pkg/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 	"strings"

@@ -15,7 +15,7 @@ import (
 	"strings"
 
 	configuration "digger/pkg/digger_config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
+	orchestrator "digger/pkg/orchestrator"
 )
 
 type Executor interface {

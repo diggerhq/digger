@@ -2,8 +2,8 @@ package reporting
 
 import (
 	"digger/pkg/core/utils"
+	orchestrator "digger/pkg/orchestrator"
 	"fmt"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"log"
 	"strings"
 	"time"

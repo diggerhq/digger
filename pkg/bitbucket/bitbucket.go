@@ -3,9 +3,9 @@ package bitbucket
 import (
 	"bytes"
 	configuration "digger/pkg/digger_config"
+	orchestrator "digger/pkg/orchestrator"
 	"encoding/json"
 	"fmt"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"net/http"
 	"time"
 )

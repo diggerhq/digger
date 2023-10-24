@@ -3,7 +3,7 @@ package orchestrator
 type PullRequestService interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string) error
-	EditComment(id interface{}, comment string) error
+	EditComment(prNumber int, id interface{}, comment string) error
 	GetComments(prNumber int) ([]Comment, error)
 	// SetStatus set status of specified pull/merge request, status could be: "pending", "failure", "success"
 	SetStatus(prNumber int, status string, statusContext string) error
