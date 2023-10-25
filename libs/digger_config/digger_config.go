@@ -378,6 +378,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.PreserveProjects,
 		parsingConfig.UseProjectMarkers,
 	)
+	log.Printf("error returned from PARSE: %v", err)
 	if err != nil {
 		log.Printf("failed to autogenerate digger_config: %v", err)
 	}
