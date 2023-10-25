@@ -663,6 +663,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	// Ensure the gitRoot has a trailing slash and is an absolute path
 	absoluteGitRoot, err := filepath.Abs(gitRoot)
 	if err != nil {
+		log.Printf("error while fetching absolute path: %v", err)
 		return nil, nil, err
 	}
 	gitRoot = absoluteGitRoot + string(filepath.Separator)
@@ -697,6 +698,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	for _, workingDir := range workingDirs {
 		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
 		if err != nil {
+			log.Printf("error while get all terragrunt files: %v", err)
 			return nil, nil, err
 		}
 
@@ -720,6 +722,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 				}
 				err := sem.Acquire(ctx, 1)
 				if err != nil {
+					log.Printf("error while sem acquire: %v", err)
 					return nil, nil, err
 				}
 
@@ -772,6 +775,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 			}
 
 			if err := errGroup.Wait(); err != nil {
+				log.Printf("error while errgroup wait: %v", err)
 				return nil, nil, err
 			}
 		}
@@ -779,6 +783,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 			projectHcl := lookupProjectHcl(projectHclDirMap, workingDir)
 			err := sem.Acquire(ctx, 1)
 			if err != nil {
+				log.Printf("error while sem acquire 2: %v", err)
 				return nil, nil, err
 			}
 
@@ -803,6 +808,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 			})
 
 			if err := errGroup.Wait(); err != nil {
+				log.Printf("error while group wait: %v", err)
 				return nil, nil, err
 			}
 		}
