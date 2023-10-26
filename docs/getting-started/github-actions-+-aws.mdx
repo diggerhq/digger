@@ -1,0 +1,68 @@
+---
+title: "Github Actions + AWS"
+description: "In this tutorial we will be using a repository in order to configure a terraform pipeline [https://github.com/diggerhq/digger\_demo\_multienv](https://github.com/diggerhq/digger%5Fdemo%5Fmultienv)."
+---
+
+If you prefer to watch a video instead you can watch this [demo tutorial](https://www.loom.com/share/e201e639a73941e0b5508710377a6106).
+
+In this example we have terraform in two directories:
+
+```
+dev/
+    main.tf
+prod/
+    main.tf
+```
+
+We want to set up a comment-based flow where the user creates a pull request with a change and sees the plan for the change. The user is required to apply the plan and it should succeed before the PR is merged to the main branch. This is achieved by commenting `digger plan` and `digger apply` on the pull request itself. This is only one option which digger supports.
+
+Let's create our first pull request with a change and see this in action:
+
+1. Fork the [demo repository](https://github.com/diggerhq/digger%5Fdemo%5Fmultienv)
+
+2. Enable Actions (by default workflows won't trigger in a fork)
+
+![](/images/getting-started/1.webp)
+
+3. In your repository settings > Actions ensure that the Workflow Read and Write permissions are assigned - This will allow the workflow to post comments on your PRs
+
+![](/images/getting-started/2.webp)
+
+4. Add environment variables into your Github Action Secrets (cloud keys are a requirement since digger needs to connect to your account for coordinating locks)  
+   * AWS\_ACCESS\_KEY\_ID  
+   * AWS\_SECRET\_ACCESS\_KEY
+
+![](/images/getting-started/3.png)
+
+5. make a change in `dev/main.tf` and create a PR - this will create a lock
+
+![](/images/getting-started/4.png)
+
+6. comment `digger plan` \- terraform plan output will be added as comment. If you don't see a comment (bug) - check out job output
+
+![](/images/getting-started/5.png)
+
+6. create another PR - plan or apply won’t work in this PR until the first lock is released
+
+7. You should see `Locked by PR #1` comment. The action logs will display "Project locked" error message.
+
+![](/images/getting-started/6.png)
+
+8. Lets apply the first PR and merge it to unlock the flow for our colleagues
+
+![](/images/getting-started/7.png)
+
+
+**Conclusion**
+
+In this tutorial we reused an existing sample repository to set up our first collaborative terraform environment which allows us to collaborate with our team and run terraform changes safely without conflicts.
+
+
+**Next steps**
+
+* Managing your own state backend
+
+* Using digger with [GCP](/gcp) and [Azure](/azure-specific/azure)
+
+* Using digger with Bitbucket, Gitlab and Jenkins
+

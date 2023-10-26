@@ -1,0 +1,37 @@
+---
+title: "Using Workpaces"
+description: "In this tutorial we will be using a repository in order to configure a terraform pipeline [https://github.com/diggerhq/digger\_demo\_workspaces](https://github.com/diggerhq/digger%5Fdemo%5Fworkspaces). In order to use Terraform workspaces with Digger we follow the steps below."
+---
+
+<Note>
+    This is about Terraform CLI Workspaces - not Terraform Cloud Workspaces. Those are different things for historic reasons. [Hashicorp article](https://developer.hashicorp.com/terraform/cloud-docs/workspaces#terraform-cloud-vs-terraform-cli-workspaces)
+</Note> 
+
+Let's create our first pull request with a change and see this in action
+
+1. Fork the [demo repository](https://github.com/diggerhq/digger%5Fdemo%5Fworkspaces)
+
+2. Enable Actions (by default workflows won't trigger in a fork)
+
+![](/images/configuration/1.webp)
+
+3. In your repository settings > Actions ensure that the Workflow Read and Write permissions are assigned - This will allow the workflow to post comments on your PRs
+
+![](/images/configuration/2.webp)
+
+4. Add environment variables into your Github Action Secrets (cloud keys are a requirement since digger needs to connect to your account for coordinating locks). In this case we are setting AWS keys for this demo but you can follow [GCP](https://diggerhq.gitbook.io/digger-docs/cloud-providers/gcp) or [Azure](https://diggerhq.gitbook.io/digger-docs/cloud-providers/azure) steps as seen fit.   
+
+![](/images/configuration/3.webp)
+
+5. make a change in `main.tf` and create a PR -you can just rename an existing null resource to test it. Notice that we have digger.yml where we have two workspaces defined: one for dev and the other for prod. Therefore Digger will create two plans for us:
+
+![](/images/configuration/1.png)
+
+
+6. Lets apply the PR and merge it to unlock the flow for our colleagues. We can do this by commenting `digger apply`
+
+![](/images/configuration/2.png)
+
+**Conclusion**
+
+In this tutorial we created a workspace enabled example with terraform and workspaces to provision two environments with independent states.
