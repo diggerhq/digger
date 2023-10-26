@@ -1,0 +1,21 @@
+---
+title: "Using Checkov"
+description: "You can configure Digger to run Checkov policy-as-code as an additional step:"
+---
+
+```
+projects:
+  - name: project_a_d
+    dir: ./project_a/development
+    workflow: project_a
+
+workflows:
+  project_a:
+    plan:
+      steps:
+        - init
+        - plan
+        - run: checkov -d . --framework terraform
+```
+
+<Note>This docs page needs improvement. Please consider contributing to [docs](https://github.com/diggerhq/docs). Here is the [relevant PR](https://github.com/diggerhq/digger/pull/267) implementing this feature</Note>

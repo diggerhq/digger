@@ -1,0 +1,85 @@
+---
+title: "Federated OIDC access"
+description: "You can configure Digger to use OIDC instead of key-value pairs."
+---
+
+If you already have configured GCP for that, skip to step 5.
+
+## 1\. Create a Workload Identity Pool
+
+A Workload Identity Pool is an umbrella entity for managing access in GCP. The best practice is to have a dedicated pool for each non-GCP environment.
+
+```
+gcloud iam workload-identity-pools create github-wif-pool --location="global" --project 
+```
+
+## 2\. Create a Workload Identity Provider
+
+A Workload Identity Provider links an external identity like Github with your Google Cloud account. This lets IAM use tokens from external providers to authorize access to Google Cloud resources.
+
+```
+gcloud iam workload-identity-pools providers create-oidc githubwif \
+--location="global" --workload-identity-pool="github-wif-pool"  \
+--issuer-uri="https://token.actions.githubusercontent.com" \
+--attribute-mapping="attribute.actor=assertion.actor,google.subject=assertion.sub,attribute.repository=assertion.repository" \
+--project 
+```
+
+## 3\. Create a Service Account and bind policies
+
+A service account with relevant permissions will be impersonated by WIF. This allows Github action to impersonate the service account and get a token.
+
+```
+gcloud iam service-accounts create test-wif \
+--display-name="Service account used by WIF POC" \
+--project 
+
+gcloud projects add-iam-policy-binding  \
+--member='serviceAccount:test-wif@.iam.gserviceaccount.com' \
+--role="roles/compute.viewer"
+gcloud iam service-accounts add-iam-policy-binding test-wif@.iam.gserviceaccount.com \
+--project= \
+--role="roles/iam.workloadIdentityUser" \
+--member="principalSet://iam.googleapis.com/projects//locations/global/workloadIdentityPools/github-wif-pool/attribute.repository/PradeepSingh1988/gcp-wif"
+```
+
+## 4\. Add secrets to Github
+
+Create 2 secrets in your Action Secrets with the following names:
+
+* GCP\_WORKLOAD\_IDENTITY\_PROVIDER
+
+* GCP\_SERVICE\_ACCOUNT
+
+## 5\. Configure Digger workflow to use federated access
+
+Set `EXT` env var intead of the usual key pair. See [oidc-gcp-example](https://github.com/diggerhq/digger-gcp-ocid-demo) repo for more detail. Sample config below:
+
+```
+- id: 'auth'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+          audience: google-wif
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gsutil ls gs://${{ env.GOOGLE_STORAGE_BUCKET }}
+      - name: digger
+        uses: diggerhq/digger@main
+        env:
+          LOCK_PROVIDER: gcp
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_STORAGE_BUCKET: digger-lock2
+```
+
+## 
+
+<Note>This article is based on [this post](https://medium.com/google-cloud/how-does-the-gcp-workload-identity-federation-work-with-github-provider-a9397efd7158) by Pradeep Kumar Singh</Note>

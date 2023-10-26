@@ -1,0 +1,13 @@
+---
+title: "PR-level locks"
+---
+
+* For every pull request we perform a lock when the pull request is opened and unlocked when the pull request is merged, this is to avoid making a plan preview stale
+
+* For GCP locking is performed using buckets that are strongly consistent: [https://github.com/diggerhq/digger/blob/80289922227f225d887feb74749b4daef8b441f8/pkg/gcp/gcp\_lock.go#L13](https://github.com/diggerhq/digger/blob/80289922227f225d887feb74749b4daef8b441f8/pkg/gcp/gcp%5Flock.go#L13)
+
+* These options are configured and the locking can be disabled entirely if it is not needed
+
+* The locking interface is very simple and is based on `Lock()` and `Unlock()` Operations [https://github.com/s1ntaxe770r/digger/blob/5815775095d7380281c71c7c3aa63ca1b374365f/pkg/locking/locking.go#L40](https://github.com/s1ntaxe770r/digger/blob/5815775095d7380281c71c7c3aa63ca1b374365f/pkg/locking/locking.go#L40)
+
+* A pull request aquires a lock for every project impacted by this PR and all dependant projects

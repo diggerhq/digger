@@ -1,74 +1,121 @@
 {
-  "$schema": "https://mintlify.com/schema.json",
-  "name": "Starter Kit",
-  "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
-  },
-  "favicon": "/favicon.png",
-  "colors": {
-    "primary": "#FF8A20",
-    "light": "#FF8A20",
-    "dark": "#0D001D",
-    "background": {
-      "dark": "#141314"
+    "name": "Digger",
+    "logo": {
+      "light": "/logo/light.png",
+      "dark": "/logo/dark.png"
     },
-    "anchors": {
-      "from": "#FF7F57",
-      "to": "#9563FF"
-    }
-  },
-  "topbarLinks": [
-    {
-      "name": "Support",
-      "url": "mailto:hi@mintlify.com"
-    }
-  ],
-  "topbarCtaButton": {
-    "name": "Dashboard",
-    "url": "https://dashboard.mintlify.com"
-  },
-  "tabs": [
-    {
-      "name": "Pricing",
-      "url": "pricing"
-    }
-  ],
-  "anchors": [
-    {
-      "name": "GitHub",
-      "icon": "github",
+    "favicon": "/favicon.png",
+    "colors": {
+      "primary": "#8101E4",
+      "light": "#AF48FF",
+      "dark": "#8101E4",
+      "anchors": {
+        "from": "#c44778",
+        "to": "#af54e6"
+       }
+    },
+    "topbarCtaButton": {
+      "type": "github",
       "url": "https://github.com/diggerhq/digger"
     },
-    {
-      "name": "Community",
-      "icon": "slack",
-      "url": "https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q"
-    },
-    {
-      "name": "Blog",
-      "icon": "newspaper",
-      "url": "https://blog.digger.dev"
-    }
+    "anchors": [
+      {
+          "name": "Slack",
+          "icon": "slack",
+          "url": "https://diggertalk.slack.com/join/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q#/shared-invite/email"
+      },
+      {
+          "name": "Blog",
+          "icon": "newspaper",
+          "url": "https://blog.digger.dev/"
+      }
   ],
-  "navigation": [
-    {
-      "group": "Introduction",
-      "pages": ["introduction"]
-    },
-    {
-      "group": "Get Started",
-      "pages": ["quickstart/githubactions", "quickstart/bitbucket", "quickstart/gitlab", "quickstart/azuredevops", "quickstart/jenkins"]
-    },
-    {
-      "group": "configuration",
-
-      "pages": ["configuration/digger.yml", "configuration/specifyingversion", "configuration/disableautocheckout", "configuration/segregatecloudaccounts", "configuration/usingworkspaces", "configuration/usingterragrunt", "configuration/applyonmerge", "configuration/usingcheckov", "configuration/usinginfracost", "configuration/disableautocheckout", "configuration/usingopa", "configuration/terragruntprojectgeneration"]
-    }
-  ],
-  "footerSocials": {
-    "twitter": "https://twitter.com/mintlify",
-    "github": "https://github.com/mintlify",
-    "linkedin": "https://www.linkedin.com/company/mintsearch"
+    "navigation": [
+        {
+            "group": "Introduction",
+            "pages": [
+              "readme/introduction",
+              "readme/how-it-works"
+            ]
+        },
+        {
+            "group": "Getting Started",
+            "pages": [
+                "getting-started/github-actions-+-aws",
+                "getting-started/github-actions-and-gcp",
+                "getting-started/gitlab-pipelines-+-aws",
+                "getting-started/azure-devops"
+            ]
+        },
+        {
+            "group": "Configuration",
+            "pages": [
+                "configuration/digger.yml",
+                "configuration/versioning",
+                "configuration/disable-auto-checkout",
+                "configuration/segregate-cloud-accounts",
+                "configuration/with-terraform-workpaces",
+                "configuration/with-terragrunt",
+                "configuration/apply-on-merge",
+                "configuration/using-checkov",
+                "configuration/using-infracost",
+                "configuration/using-opa-conftest",
+                "configuration/commenting-stragegies",
+                "configuration/terragrunt-project-generation"
+            ]
+        },
+        {
+            "group": "Features",
+            "pages": [
+              "features/projects",
+              "features/workspaces",
+              "features/pr-level-locks",
+              "features/commentops",
+              "features/plan-preview",
+              "features/plan-persistence",
+              "features/custom-workflows"
+            ]
+        },
+        {
+            "group": "Digger API",
+            "pages": [
+              "digger-api/rbac-via-opa-guide"
+            ]
+        },
+        {
+            "group": "AWS-specific",
+            "pages": [
+              "cloud-providers/aws",
+              "cloud-providers/setting-up-separate-mgmt-account",
+              "cloud-providers/authenticating-with-oidc-on-aws",
+              "cloud-providers/multi-account-setup"
+            ]
+        },
+        {
+            "group": "GCP-specific",
+            "pages": [
+              "gcp/setting-up-gcp-+-gh-actions",
+              "gcp/federated-oidc-access",
+              "gcp/store-plans-in-a-bucket"
+            ]
+        },
+        {
+            "group": "Azure-specific",
+            "pages": [
+              "azure-specific/azure",
+              "azure-specific/azure-devops-locking-connection-methods"
+            ]
+        },
+        {
+            "group": "Troubleshooting Errors",
+            "pages": [
+              "troubleshooting-errors/importing-existing-resources"
+            ]
+        }
+    ],
+    "footerSocials":
+      {
+          "slack": "https://diggertalk.slack.com/join/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q#/shared-invite/email",
+          "linkedin": "https://www.linkedin.com/company/diggerhq/"
+      }
   }
-}
