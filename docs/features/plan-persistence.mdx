@@ -1,0 +1,11 @@
+---
+title: "Plan Persistence"
+---
+
+If you are using Github Actions, the output of \`terraform plan\` is stored in Workspace Artifacts. When you run apply, Digger will pick up the stored artifact.
+
+If the PR code is updated, the now-outdated plan will be deleted from the plan store.
+
+”Stale plans” was a massive issue in Atlantis ([Issue #1122](https://github.com/runatlantis/atlantis/issues/1122)) and also flagged by many Digger users. If you run a plan and then update the PR and run apply without planning an old stored plan could have been picked up.
+
+One alternative is to always re-plan before apply; but that kind of defies the purpose of storing plans, which are useful as artifacts. So we went with an alternative approach: in the event of a code change, an outdated plan is deleted from the storing bucket.
