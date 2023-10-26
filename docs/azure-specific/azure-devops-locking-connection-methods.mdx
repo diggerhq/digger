@@ -1,0 +1,28 @@
+---
+title: "Azure devops locking connection methods"
+---
+
+**How does it work?**
+
+There is one mandatory environment variable the user will have to set, in order to use Azure based locks: `DIGGER_AZURE_AUTH_METHOD`, which can take one of the three values below:
+
+* SHARED\_KEY
+
+* CONNECTION\_STRING
+
+* CLIENT\_SECRET
+
+Then, depending on the value of `DIGGER_AZURE_AUTH_METHOD`, the user will have to set other environment variables.
+
+1. **SHARED\_KEY**  
+   * `DIGGER_AZURE_SA_NAME`: Storage account name  
+   * `DIGGER_AZURE_SHARED_KEY`: shared key of the storage account
+
+2. **CONNECTION\_STRING**  
+   * `DIGGER_AZURE_CONNECTION_STRING`: connection string
+
+3. **CLIENT\_SECRET**  
+   * `DIGGER_AZURE_TENANT_ID`: tenant id to use  
+   * `DIGGER_AZURE_CLIENT_ID`: client id of the service principal  
+   * `DIGGER_AZURE_CLIENT_SECRET`: secret of the service principal  
+   * `DIGGER_AZURE_SA_NAME`: storage account name

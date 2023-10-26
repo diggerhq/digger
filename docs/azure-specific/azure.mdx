@@ -1,0 +1,123 @@
+---
+title: "Setting up Azure + GH Actions"
+---
+
+## Prerequisites
+
+* Azure Cloud account
+
+## 1\. Create Storage Account for locks
+
+Go to Storage Accounts, press Create. Set name and press Review. Wait for deployment to complete.
+
+Click "Go to Resource"; go to Access keys (on the lefthand side)
+
+Click "show" on the connection string. Copy and save it securely; it will be needed later in this guide.
+
+## 2\. Add Azure keys to Github Actions Secrets
+
+### In Azure
+
+Go to Azure Active Directory -> App Registrations
+
+Click New Registration; give name; click Register
+
+Take note of
+
+* Directory (Tenant) ID
+
+* Application (Client) ID
+
+Go to Certificates and Secrets. Click New Client Secret. Give it a name; click Add. Take note of the Secret Value.
+
+Go to **subscription** in the portal and select your subscription ID, select **Access Control (IAM)** and **Add** the **Role assignment**, **Contributor** to your Service Principal. Take note of your Subscription ID value
+
+### In Github
+
+* Go to Settings → Secrets and Variables
+
+* Click “New Repository Secret” button
+
+* Add a secret named ARM\_CLIENT\_ID with the value of your Application (Client) ID from above
+
+* Add a secret named ARM\_TENANT\_ID with the value of your Directory (Tenant) ID from above
+
+* Add a secret named ARM\_CLIENT\_SECRET with the value of your Client Secret from above
+
+* Add a secret named ARM\_SUBSCRIPTION\_ID with the value of your Subscription ID from above
+
+* Add a secret named DIGGER\_AZURE\_CONNECTION\_STRING with the value of your Connection String from Step 1
+
+In your repository settings > Actions ensure that the Workflow Read and Write permissions are assigned. This will allow the workflow to post comments on your PRs.
+
+## 4\. Create digger.yml file
+
+In your repository, create `digger.yml` file with the following contents:
+
+```
+projects:
+- name: infra-prod
+  dir: prod
+```
+
+## 5\. Create a workflow file
+
+In your repository, create a file at `.github/workflows/infra.yml`
+
+```
+name: CI
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ closed, opened, synchronize, reopened ]
+  issue_comment:
+    types: [created]
+    if: contains(github.event.comment.body, 'digger')
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Checkout Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL="${{ github.event.issue.pull_request.url }}"
+          PR_NUM=${PR_URL##*/}
+          echo "Checking out from PR #$PR_NUM based on URL: $PR_URL"
+          hub pr checkout $PR_NUM
+        if: github.event_name == 'issue_comment'
+    
+      - name: digger
+        uses: diggerhq/digger@main
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LOCK_PROVIDER: azure
+          DIGGER_AZURE_AUTH_METHOD: CONNECTION_STRING
+          DIGGER_AZURE_CONNECTION_STRING: ${{ secrets.DIGGER_AZURE_CONNECTION_STRING }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}          
+```
+
+## 6\. Create a PR to verify that it works
+
+Just make any change to Terraform - like add a blank line
+
+An action should start. After some time you should see a comment of lock being aquired in your PR. Something like this:
+
+```
+Project diggerhq/azure-onboarding-test#infra-prod has been locked by PR #1
+```
+
+
+
+
+
