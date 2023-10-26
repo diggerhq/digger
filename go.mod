@@ -10,7 +10,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.2
 	github.com/aws/aws-sdk-go v1.46.4
 	github.com/bmatcuk/doublestar/v4 v4.6.0 // indirect
-	github.com/caarlos0/env/v8 v8.0.0
+	github.com/caarlos0/env/v9 v9.0.0
 	github.com/google/uuid v1.4.0
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/open-policy-agent/opa v0.57.1
@@ -20,6 +20,7 @@ require (
 )
 
 require (
+	github.com/caarlos0/env/v8 v8.0.0
 	github.com/diggerhq/lib-digger-config v0.1.13
 	github.com/diggerhq/lib-orchestrator v0.0.12-0.20231003151127-0bb18578b47b
 	github.com/dominikbraun/graph v0.23.0
