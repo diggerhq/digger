@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go v1.46.4
 	github.com/bmatcuk/doublestar/v4 v4.6.0 // indirect
 	github.com/caarlos0/env/v8 v8.0.0
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/open-policy-agent/opa v0.57.1
 	github.com/stretchr/testify v1.8.4
