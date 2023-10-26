@@ -1,0 +1,21 @@
+---
+title: "Importing existing resources"
+---
+
+In some cases due to drift or failure to update terraform state terraform will attempt to create an existing resources in your environment and it will lead to a failure message such as the following:
+
+```
+Error: creating ECR Repository (xxx): 
+RepositoryAlreadyExistsException: The repository with name 'xxx' already exists in the 
+registry with id ...
+```
+
+In this case you need to import this resource manually using a command such as:
+
+```
+terraform import aws_ecr_repository.service test-service
+```
+
+To perform this in digger you need to clone your terraform and run the custom command locally. run terraform init and make sure that it is configured to connect to your state backend. To ensure this is the case try to run terraform plan and check that the plan preview is as expected. Finally you can run the terraform import command in order to update your state.
+
+**Coming soon:** Ability to run custom terraform commands directly in digger without the need to clone and run custom commands (all will be controlled via RBAC)

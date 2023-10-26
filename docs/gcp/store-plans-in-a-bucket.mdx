@@ -1,0 +1,9 @@
+---
+title: "Store plans in a Bucket"
+---
+
+By default Digger uses Github Artifacts to store `terraform plan` outputs.
+
+You can configure it to use GCP Buckets instead. This is handy in case you want your plan outputs to stay within your organisation’s network for security or compliance reasons.
+
+To do it, set the `PLAN_UPLOAD_DESTINATION` env var to `gcp in your Actions.`

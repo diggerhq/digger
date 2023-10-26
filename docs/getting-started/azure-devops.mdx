@@ -1,0 +1,144 @@
+---
+title: "Azure DevOps"
+---
+
+Digger can be used with Azure Devops and Azure Repos! This document outlines the steps to configure Digger to run terraform in Azure DevOps as CI system:
+
+* Setting up an Azure Function
+
+* Configuring webhooks for the repository
+
+* Creating a digger.yml file in the repository
+
+* Creating an Azure pipeline
+
+## Prerequisites
+
+* An Azure Devops repository for testing of digger functionality
+
+* VS Code installed for function deployment
+
+## 1\. Create Azure token
+
+Go to [dev.azure.com](http://dev.azure.com) 
+
+Click on the top right corner and go to personal access tokens
+
+![](/images/getting-started/azure-devops-1.png)
+
+Personal Access Tokens
+
+Create a token for digger access. Take note of it; you will need this token later
+
+![](/images/getting-started/azure-devops-2.png)
+
+Creating a token
+
+For tutorial purposes the token is shown with full access. Don't do that in production scenarios. Grant specific access rights instead.
+
+## 2\. Set up Azure Function
+
+Clone [this repository](https://github.com/diggerhq/azure-devops-webhook-handler), then follow [this guide](https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-python?pivots=python-mode-configuration) deploy the function to your azure account
+
+![](/images/getting-started/azure-devops-3.png)
+
+From within VSCode set the following parameters as function settings, You can set them both to the PAT token which was created in step 1:
+
+```
+AZURE_TOKEN={{PAT_TOKEN}}
+AZURE_DEVOPS_EXT_PAT={{PAT_TOKEN}}
+```
+
+## 3\. Configure webhooks
+
+We need to configure service hooks so that our function is notified about the events and trigger the right pipeline for digger to kick in.
+
+In your azure devops project click on project settings > service hooks and then select web hooks from the list and click next
+
+![](/images/getting-started/azure-devops-4.png)
+
+Select the repository you want to integrate digger with. Add the following 4 events for this repository:
+
+* Pull request commented on
+
+* Pull request created
+
+* Pul request merge attempted
+
+* Pull request updated
+
+![](/images/getting-started/azure-devops-5.png)
+
+## 4\. Create digger.yml
+
+Follow the digger documentation to create digger.yml for your structure, it should be similar to this [demo digger.yml](https://github.com/diggerhq/digger%5Fdemo%5Fmultienv/blob/main/digger.yml)
+
+The minimum you would need to define for digger is where all your terraform lives:
+
+```
+projects:
+- name: dev
+  dir: dev
+- name: prod
+  dir: prod
+```
+
+## 5\. Create Storage Account for locks
+
+You can follow [this guide](https://docs.digger.dev/azure-specific/azure#1.-create-storage-account-for-locks) to create storage account for storing digger locks. You only need to create the storage account for this guide and copy the CONNECTION\_STRING
+
+## 6\. Create Azure DevOps pipeline
+
+You can use this as your starter template, replace the values for YOUR\_ORG and YOUR\_REPO to match your repository details
+
+```
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# 
+pool:
+  vmImage: ubuntu-latest
+trigger: none
+steps:
+- checkout: git://YOUR_ORG/YOUR_REPO@$(checkout_branch_ref) 
+- script: |
+    curl -sL  -o digger
+    chmod +x digger
+    mv digger /usr/local/bin/digger
+    digger
+  displayName: 'install and run digger cli'
+  continueOnError: true
+  env:
+		AZURE_CI: true
+    LOCK_PROVIDER: azure
+    DIGGER_AZURE_AUTH_METHOD: CONNECTION_STRING
+    DIGGER_AZURE_CONNECTION_STRING: $(DIGGER_AZURE_CONNECTION_STRING)
+    AZURE_TOKEN: $(AZURE_TOKEN)
+```
+
+Now we need to create a bunch of variables for the azure access to work, here are the variables that need to be set:
+
+```
+AZURE_CONTEXT - (leave it as overridable in checkbox)
+AZURE_TOKEN - (leave it as overridable in checkbox)
+checkout_branch_ref - (leave it as overridable in checkbox)
+DIGGER_AZURE_CONNECTION_STRING - Set it to the value of storage account connection in step 4
+```
+
+For variables that are left as overridable, you don’t need to provide a default value, just leave the value blank and tick the box “Let users override this value when running this pipeline”
+
+![](/images/getting-started/azure-devops-6.png)
+
+Create a pull request and leave a comment on it, a pipeline should be triggered. If you would like to trigger a plan manually leave a comment “digger plan” on the pull request.
+
+During the first run you might need to allow permissions for the pipeline to run:
+
+![](/images/getting-started/azure-devops-7.png)
+
+![](/images/getting-started/azure-devops-8.5.png)
+
+If all goes well you should see the plan output and lock messages commented right in the pull request!
+
+![](/images/getting-started/azure-devops-8.png)
+
+To apply these changes simply comment “digger apply”. The apply output will be commented on the pull request.
