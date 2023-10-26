@@ -1,0 +1,84 @@
+---
+title: "RBAC via OPA guide"
+---
+
+Welcome to the Digger API. This guide aims to help you understand how to manage and use Digger's RBAC OPA policy rules and tokens.
+
+### Authorization
+
+Every request you make to the API must include a Bearer token for authorization. You can pass this token in the headers of your HTTP request with the key `Authorization` and the value `Bearer YOUR_TOKEN`.
+
+```
+headers = {"Authorization": "Bearer YOUR_TOKEN"}
+```
+
+Replace `YOUR_TOKEN` with your admin or access token.
+
+### Endpoints
+
+#### Retrieve Policy Rules
+
+* For a specific project:  
+```  
+GET /repos/:namespace/projects/:projectName/access-policy  
+```
+
+* For an entire organisation:  
+```  
+GET /orgs/:organisation/access-policy  
+```
+
+`:namespace` and `:projectName` or `:organisation` should be replaced with actual values that represent your project or organization.
+
+#### Update Policy Rules
+
+* For a specific project:  
+```  
+PUT /repos/:namespace/projects/:projectName/access-policy  
+```
+
+* For an entire organisation:  
+```  
+PUT /orgs/:organisation/access-policy  
+```
+
+For these requests, your request body should contain a policy document written as an OPA policy with package digger and expected to have the "allow" rule.
+
+#### Issue Access Tokens
+
+* For issuing an access token:  
+```  
+POST /tokens/issue-access-token  
+```
+
+### Usage of Access Tokens
+
+Access Tokens are issued to provide access to the Digger API for non-admin users. These tokens should be treated as sensitive information and should not be shared publicly.
+
+Once you have an access token, you can use it in your GitHub Action `digger/digger`. You need to set two parameters: `digger-token` and `digger-host`.
+
+* `digger-token`: This is where you should pass your access token.
+
+* `digger-host`: This should be set to `https://cloud.uselemon.cloud`.
+
+Here is an example of how to use these parameters in a GitHub Actions workflow:
+
+```
+name: Digger Action
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Run Digger
+      uses: digger/digger@
+      with:
+        digger-token: ${{ secrets.DIGGER_TOKEN }}
+        digger-host: 'https://cloud.uselemon.cloud'
+```
+
+In this example, `secrets.DIGGER_TOKEN` is a GitHub secret where your Digger access token is stored.
+
+Remember to replace the version (`<version>` in the example) with the actual version of the Digger action you're using.
+
+And that's it! You should now be able to update, retrieve policies and issue tokens using the Digger API, as well as use your issued access tokens in your GitHub Actions.

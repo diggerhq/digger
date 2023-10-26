@@ -1,0 +1,35 @@
+---
+title: "Using Terragrunt"
+---
+
+In this tutorial we will be using a repository in order to configure a terraform pipeline [https://github.com/diggerhq/digger\_demo\_terragrunt](https://github.com/diggerhq/digger%5Fdemo%5Fterragrunt). In order to use Terraform workspaces with Digger we follow the steps below:
+
+Let's create our first pull request with a change and see this in action:
+
+1. Fork the [demo repository](https://github.com/diggerhq/digger%5Fdemo%5Fterragrunt)
+
+2. Enable Actions (by default workflows won't trigger in a fork)
+
+![](/images/configuration/1.webp)
+
+3.  In your repository settings > Actions ensure that the Workflow Read and Write permissions are assigned - This will allow the workflow to post comments on your PRs
+
+![](/images/configuration/2.webp)
+
+4.  Add environment variables into your Github Action Secrets (cloud keys are a requirement since digger needs to connect to your account for coordinating locks). In this case we are setting AWS keys for this demo but you can follow [GCP](https://diggerhq.gitbook.io/digger-docs/cloud-providers/gcp) or [Azure](https://diggerhq.gitbook.io/digger-docs/cloud-providers/azure) steps as seen fit.  
+  
+![](/images/configuration/3.webp)
+
+Note: There are several things here which are different from the other repositories here. Ofcourse we have a `terragrunt.hcl` file which marks that it is the root of our repository. We have set `terragrunt: true` in our digger.yml configuration. We also modified our action to install terragrunt prior to running the digger action. 
+
+5.  make a change in `main.tf` and create a PR - You should see the appropriate plan in the pull request as a comment.
+
+![](/images/configuration/4.png)
+
+5.  Lets apply the PR and merge it to unlock the flow for our colleagues. We can do this by commenting `digger apply`
+
+![](/images/configuration/5.png)
+
+**Conclusion**
+
+In this tutorial we created a terragrunt based project and used digger to plan and apply the resources in it within a collaorative environment.
