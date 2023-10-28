@@ -2,6 +2,8 @@ package digger
 
 import (
 	"bytes"
+	config "digger/libs/digger_config"
+	orchestrator2 "digger/libs/orchestrator"
 	"digger/pkg/core/backend"
 	"digger/pkg/core/execution"
 	core_locking "digger/pkg/core/locking"
@@ -24,9 +26,6 @@ import (
 	"path"
 	"strings"
 	"time"
-
-	config "github.com/diggerhq/lib-digger-config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 
 	"github.com/dominikbraun/graph"
 )
@@ -68,9 +67,9 @@ func DetectCI() CIName {
 }
 
 func RunJobs(
-	jobs []orchestrator.Job,
-	prService orchestrator.PullRequestService,
-	orgService orchestrator.OrgService,
+	jobs []orchestrator2.Job,
+	prService orchestrator2.PullRequestService,
+	orgService orchestrator2.OrgService,
 	lock core_locking.Lock,
 	reporter core_reporting.Reporter,
 	planStorage storage.PlanStorage,
@@ -146,7 +145,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
+func run(command string, job orchestrator2.Job, policyChecker policy.Checker, orgService orchestrator2.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator2.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, requestedBy)
@@ -395,10 +394,10 @@ func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId strin
 }
 
 func RunJob(
-	job orchestrator.Job,
+	job orchestrator2.Job,
 	repo string,
 	requestedBy string,
-	orgService orchestrator.OrgService,
+	orgService orchestrator2.OrgService,
 	policyChecker policy.Checker,
 	planStorage storage.PlanStorage,
 	backendApi backend.Api,
@@ -629,8 +628,8 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 	return plan, nil
 }
 
-func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *graph.Graph[string, config.Project]) []orchestrator.Job {
-	var sortedCommands []orchestrator.Job
+func SortedCommandsByDependency(project []orchestrator2.Job, dependencyGraph *graph.Graph[string, config.Project]) []orchestrator2.Job {
+	var sortedCommands []orchestrator2.Job
 	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s string, s2 string) bool {
 		return s < s2
 	})
@@ -648,7 +647,7 @@ func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *gra
 	return sortedCommands
 }
 
-func MergePullRequest(ciService orchestrator.PullRequestService, prNumber int) {
+func MergePullRequest(ciService orchestrator2.PullRequestService, prNumber int) {
 	time.Sleep(5 * time.Second)
 
 	// CheckAccessPolicy if it was manually merged

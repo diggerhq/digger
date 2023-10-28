@@ -1,9 +1,8 @@
 package utils
 
 import (
+	"digger/libs/orchestrator"
 	"time"
-
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 )
 
 type MockTerraform struct {
