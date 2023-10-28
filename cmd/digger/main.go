@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"digger/libs/digger_config"
+	orchestrator2 "digger/libs/orchestrator"
+	dg_github "digger/libs/orchestrator/github"
 	"digger/pkg/azure"
 	"digger/pkg/backend"
 	"digger/pkg/bitbucket"
@@ -29,9 +32,6 @@ import (
 	"strings"
 	"time"
 
-	configuration "github.com/diggerhq/lib-digger-config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
-	dg_github "github.com/diggerhq/lib-orchestrator/github"
 	"gopkg.in/yaml.v3"
 
 	"github.com/google/go-github/v55/github"
@@ -121,7 +121,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		repoName := strings.ReplaceAll(ghRepository, "/", "-")
 
-		var job orchestrator.JobJson
+		var job orchestrator2.JobJson
 
 		err = json.Unmarshal([]byte(inputs.JobString), &job)
 
@@ -143,7 +143,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			ReportStrategy: reportingStrategy,
 		}
 
-		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
+		jobs := []orchestrator2.Job{orchestrator2.JsonToJob(job)}
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 		if err != nil {
@@ -160,11 +160,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 	}
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig("./")
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig("./")
 	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
-	log.Printf("Digger config read successfully\n")
+	log.Printf("Digger digger_config read successfully\n")
 
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
@@ -192,7 +192,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
-		var projectConfig configuration.Project
+		var projectConfig digger_config.Project
 		for _, projectConfig = range diggerConfig.Projects {
 			if projectConfig.Name == project {
 				break
@@ -200,18 +200,18 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
-		stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
 
-		jobs := orchestrator.Job{
+		jobs := orchestrator2.Job{
 			ProjectName:       project,
 			ProjectDir:        projectConfig.Dir,
 			ProjectWorkspace:  projectConfig.Workspace,
 			Terragrunt:        projectConfig.Terragrunt,
 			Commands:          []string{command},
-			ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-			PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
+			ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
+			PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
 			PullRequestNumber: nil,
 			EventName:         "manual_invocation",
 			RequestedBy:       githubActor,
@@ -231,16 +231,16 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			}
 			workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
-			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-			job := orchestrator.Job{
+			job := orchestrator2.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
 				ProjectWorkspace: projectConfig.Workspace,
 				Terragrunt:       projectConfig.Terragrunt,
 				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
+				ApplyStage:       orchestrator2.ToConfigStage(workflow.Apply),
+				PlanStage:        orchestrator2.ToConfigStage(workflow.Plan),
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 				RequestedBy:      githubActor,
@@ -282,7 +282,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, "No projects impacted", 0)
 		}
 
-		var jobs []orchestrator.Job
+		var jobs []orchestrator2.Job
 		coversAllImpactedProjects := false
 		err = nil
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
@@ -341,11 +341,11 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 	log.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig(currentDir)
 	if err != nil {
-		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
-	log.Println("Digger config read successfully")
+	log.Println("Digger digger_config read successfully")
 
 	gitLabContext, err := gitlab.ParseGitLabContext()
 	if err != nil {
@@ -451,11 +451,11 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	}
 	log.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := configuration.LoadDiggerConfig(currentDir)
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig(currentDir)
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
-	log.Println("Digger config read successfully")
+	log.Println("Digger digger_config read successfully")
 
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
@@ -560,11 +560,11 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 		reportErrorAndExit(actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
-	diggerConfig, _, dependencyGraph, err := configuration.LoadDiggerConfig("./")
+	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./")
 	if err != nil {
-		reportErrorAndExit(actor, fmt.Sprintf("Failed to read Digger config. %s", err), 4)
+		reportErrorAndExit(actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
-	log.Printf("Digger config read successfully\n")
+	log.Printf("Digger digger_config read successfully\n")
 
 	authToken := os.Getenv("BITBUCKET_AUTH_TOKEN")
 
@@ -589,7 +589,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			reportErrorAndExit(actor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
-		var projectConfig configuration.Project
+		var projectConfig digger_config.Project
 		for _, projectConfig = range diggerConfig.Projects {
 			if projectConfig.Name == project {
 				break
@@ -597,18 +597,18 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 		}
 		workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
-		stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
 		planStorage := newPlanStorage("", repoOwner, repositoryName, actor, nil)
 
-		jobs := orchestrator.Job{
+		jobs := orchestrator2.Job{
 			ProjectName:       project,
 			ProjectDir:        projectConfig.Dir,
 			ProjectWorkspace:  projectConfig.Workspace,
 			Terragrunt:        projectConfig.Terragrunt,
 			Commands:          []string{command},
-			ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-			PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
+			ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
+			PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
 			PullRequestNumber: nil,
 			EventName:         "manual_invocation",
 			RequestedBy:       actor,
@@ -628,16 +628,16 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			}
 			workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
-			stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-			job := orchestrator.Job{
+			job := orchestrator2.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
 				ProjectWorkspace: projectConfig.Workspace,
 				Terragrunt:       projectConfig.Terragrunt,
 				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
+				ApplyStage:       orchestrator2.ToConfigStage(workflow.Apply),
+				PlanStage:        orchestrator2.ToConfigStage(workflow.Plan),
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 				RequestedBy:      actor,
@@ -650,23 +650,23 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			}
 		}
 	} else {
-		var jobs []orchestrator.Job
+		var jobs []orchestrator2.Job
 		if os.Getenv("BITBUCKET_PR_ID") == "" && os.Getenv("BITBUCKET_BRANCH") == os.Getenv("DEFAULT_BRANCH") {
 			for _, projectConfig := range diggerConfig.Projects {
 
 				workflow := diggerConfig.Workflows[projectConfig.Workflow]
 				log.Printf("workflow: %v", workflow)
 
-				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-				job := orchestrator.Job{
+				job := orchestrator2.Job{
 					ProjectName:      projectConfig.Name,
 					ProjectDir:       projectConfig.Dir,
 					ProjectWorkspace: projectConfig.Workspace,
 					Terragrunt:       projectConfig.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
-					PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
+					ApplyStage:       orchestrator2.ToConfigStage(workflow.Apply),
+					PlanStage:        orchestrator2.ToConfigStage(workflow.Plan),
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 					RequestedBy:      actor,
@@ -683,16 +683,16 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 				workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
-				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-				job := orchestrator.Job{
+				job := orchestrator2.Job{
 					ProjectName:      projectConfig.Name,
 					ProjectDir:       projectConfig.Dir,
 					ProjectWorkspace: projectConfig.Workspace,
 					Terragrunt:       projectConfig.Terragrunt,
 					Commands:         []string{"digger plan"},
-					ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
-					PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
+					ApplyStage:       orchestrator2.ToConfigStage(workflow.Apply),
+					PlanStage:        orchestrator2.ToConfigStage(workflow.Plan),
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 					RequestedBy:      actor,
@@ -727,16 +727,16 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			for _, project := range impactedProjects {
 				workflow := diggerConfig.Workflows[project.Workflow]
 
-				stateEnvVars, commandEnvVars := configuration.CollectTerraformEnvConfig(workflow.EnvVars)
+				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-				job := orchestrator.Job{
+				job := orchestrator2.Job{
 					ProjectName:       project.Name,
 					ProjectDir:        project.Dir,
 					ProjectWorkspace:  project.Workspace,
 					Terragrunt:        project.Terragrunt,
 					Commands:          workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-					PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
+					ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
+					PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
 					CommandEnvVars:    commandEnvVars,
 					StateEnvVars:      stateEnvVars,
 					PullRequestNumber: &prNumber,
@@ -777,7 +777,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 /*
 Exit codes:
 0 - No errors
-1 - Failed to read digger config
+1 - Failed to read digger digger_config
 2 - Failed to create lock provider
 3 - Failed to find auth token
 4 - Failed to initialise CI context
@@ -802,7 +802,7 @@ func main() {
 	var backendApi core_backend.Api
 	if os.Getenv("DIGGER_TOKEN") != "" {
 		if os.Getenv("DIGGER_ORGANISATION") == "" {
-			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action configuration.")
+			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action digger_config.")
 		}
 		log.Println(os.Getenv("DIGGER_ORGANISATION") == "digger")
 		log.Println(os.Getenv("DIGGER_ORGANISATION") == "digger-tusker-tests")
@@ -893,7 +893,7 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 	return planStorage
 }
 
-func getImpactedProjectsAsString(projects []configuration.Project, prNumber int) string {
+func getImpactedProjectsAsString(projects []digger_config.Project, prNumber int) string {
 	msg := fmt.Sprintf("Following projects are impacted by pull request #%d\n", prNumber)
 	for _, p := range projects {
 		msg += fmt.Sprintf("- %s\n", p.Name)
@@ -901,7 +901,7 @@ func getImpactedProjectsAsString(projects []configuration.Project, prNumber int)
 	return msg
 }
 
-func logCommands(projectCommands []orchestrator.Job) {
+func logCommands(projectCommands []orchestrator2.Job) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)

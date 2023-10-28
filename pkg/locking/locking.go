@@ -1,6 +1,7 @@
 package locking
 
 import (
+	"digger/libs/orchestrator"
 	"digger/pkg/aws"
 	"digger/pkg/aws/envprovider"
 	"digger/pkg/azure"
@@ -10,7 +11,6 @@ import (
 	"digger/pkg/gcp"
 	"errors"
 	"fmt"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 	"log"
 	"os"
 	"strconv"
@@ -26,9 +26,9 @@ import (
 )
 
 type PullRequestLock struct {
-	InternalLock     locking.Lock
-	CIService        orchestrator.PullRequestService
-	Reporter         reporting.Reporter
+	InternalLock locking.Lock
+	CIService    orchestrator.PullRequestService
+	Reporter     reporting.Reporter
 	ProjectName      string
 	ProjectNamespace string
 	PrNumber         int
@@ -266,7 +266,7 @@ func GetLock() (locking.Lock, error) {
 				},
 			}
 		} else {
-			log.Printf("Using keyless aws configuration\n")
+			log.Printf("Using keyless aws digger_config\n")
 		}
 		awsSession, err := session.NewSessionWithOptions(options)
 		if err != nil {

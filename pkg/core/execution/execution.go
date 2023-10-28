@@ -1,6 +1,8 @@
 package execution
 
 import (
+	configuration "digger/libs/digger_config"
+	"digger/libs/orchestrator"
 	"digger/pkg/core/locking"
 	"digger/pkg/core/reporting"
 	"digger/pkg/core/runners"
@@ -13,9 +15,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-
-	configuration "github.com/diggerhq/lib-digger-config"
-	orchestrator "github.com/diggerhq/lib-orchestrator"
 )
 
 type Executor interface {
@@ -377,7 +376,7 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 	} else if nonEmptyOutput {
 		start = "Terraform will perform the following actions:"
 	} else {
-		start = "No changes. Your infrastructure matches the configuration."
+		start = "No changes. Your infrastructure matches the digger_config."
 	}
 
 	startPos := strings.Index(stdout, start)
