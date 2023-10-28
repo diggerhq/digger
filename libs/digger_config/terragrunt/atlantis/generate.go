@@ -662,6 +662,7 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 
 func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPath string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool) (*AtlantisConfig, map[string][]string, error) {
 	// Ensure the gitRoot has a trailing slash and is an absolute path
+	fmt.Printf("In Parse function: %v", gitRoot)
 	absoluteGitRoot, err := filepath.Abs(gitRoot)
 	if err != nil {
 		fmt.Printf("error while fetching absolute path: %v", err)
@@ -675,7 +676,6 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 		workingDirs = nil
 		// map [project-hcl-file] => directories containing project-hcl-file
 		projectHclDirMap = getAllTerragruntProjectHclFiles(projectHclFiles, gitRoot)
-		fmt.Printf("!!Found terragrunt files: %v\n\n", projectHclDirMap)
 		for _, projectHclFile := range projectHclFiles {
 			projectHclDirs = append(projectHclDirs, projectHclDirMap[projectHclFile]...)
 			workingDirs = append(workingDirs, projectHclDirMap[projectHclFile]...)
@@ -699,6 +699,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	potentialProjectDependencies := make(map[string][]string)
 	for _, workingDir := range workingDirs {
 		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
+		fmt.Printf("!!getAllTerragruntFiles: %v\n\n", projectHclDirMap)
 		if err != nil {
 			fmt.Printf("error while get all terragrunt files: %v", err)
 			return nil, nil, err
