@@ -31,10 +31,10 @@ Digger runs terraform natively in your CI. This is:
 
 ## Getting Started
 
-- [Github Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
-- [Github Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
-- [Gitlab Pipelines + AWS](https://docs.digger.dev/getting-started/gitlab-pipelines-+-aws)
-- [Azure DevOps](https://docs.digger.dev/getting-started/azure-devops)
+- [Github Actions + AWS](https://digger-20.mintlify.app/getting-started/github-actions-+-aws)
+- [Github Actions + GCP](https://digger-20.mintlify.app/getting-started/github-actions-and-gcp)
+- [Gitlab Pipelines + AWS](https://digger-20.mintlify.app/getting-started/gitlab-pipelines-+-aws)
+- [Azure DevOps](https://digger-20.mintlify.app/getting-started/azure-devops)
 
 ## How it works
 
