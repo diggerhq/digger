@@ -675,6 +675,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 		workingDirs = nil
 		// map [project-hcl-file] => directories containing project-hcl-file
 		projectHclDirMap = getAllTerragruntProjectHclFiles(projectHclFiles, gitRoot)
+		fmt.Printf("!!Found terragrunt files: %v\n\n", projectHclDirMap)
 		for _, projectHclFile := range projectHclFiles {
 			projectHclDirs = append(projectHclDirs, projectHclDirMap[projectHclFile]...)
 			workingDirs = append(workingDirs, projectHclDirMap[projectHclFile]...)
