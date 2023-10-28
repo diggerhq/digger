@@ -1,0 +1,95 @@
+---
+title: "Multi-account setup"
+description: "A common pattern, and also best practice, is to use separate AWS accounts for different environments - for example dev / staging / prod"
+---
+
+There are 2 ways to achieve this with Digger:
+
+* Re-map environment variables
+
+* Inject AWS profile credentials in the workflow
+
+## Mapping environment variables
+
+Digger supports re-mapping environment variables from your CI context so that your secrets appear to terraform binary under a different name. This allows you to have a single workflow file for multiple environments.
+
+Mapping is configured in digger.yml like this:
+
+```
+projects:
+- name: dev
+  dir: .
+  workspace: default
+  workflow: dev
+workflows:
+  dev:
+    env_vars:
+      state:
+      - name: AWS_ACCESS_KEY_ID
+        value_from: TF_STATE_ACCESS_KEY_ID
+      - name: AWS_SECRET_ACCESS_KEY
+        value_from: TF_STATE_SECRET_ACCESS_KEY
+      commands:
+      - name: AWS_ACCESS_KEY_ID
+        value_from: DEV_AWS_ACCESS_KEY_ID
+      - name: AWS_SECRET_ACCESS_KEY
+        value_from: DEV_AWS_SECRET_ACCESS_KEY
+```
+
+Then in your workflow file you can pass them all like this:
+
+```
+jobs:
+  build:
+    steps:
+      - name: digger
+        uses: diggerhq/digger@v0.1.23
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TF_STATE_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          TF_STATE_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          DIGGER_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DIGGER_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+```
+
+## Injecting AWS profile
+
+You can also directly instruct aws CLI to use specific `aws_access_key_id` and `aws_secret_access_key` in your Github Actions workflow file ([example repo](https://github.com/Spartakovic/digger%5Fmulti%5Fenv%5Fvars))
+
+```
+name: CI
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ closed, opened, synchronize, reopened ]
+  issue_comment:
+    types: [created]
+    if: contains(github.event.comment.body, 'digger')
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Add profile credentials to ~/.aws/credentials 
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.TF_STATE_ACCESS_KEY_ID }} --profile tf-state
+          aws configure set aws_secret_access_key ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }} --profile tf-state
+          aws configure set region us-east-1 --profile tf-state
+          aws configure set aws_access_key_id ${{ secrets.DEV_AWS_ACCESS_KEY_ID }} --profile tf-infra
+          aws configure set aws_secret_access_key ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }} --profile tf-infra
+          aws configure set region us-east-1 --profile tf-infra
+      - name: digger tfrun
+        uses: diggerhq/digger@test/check
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIGGER_AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          DIGGER_AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+```
+
