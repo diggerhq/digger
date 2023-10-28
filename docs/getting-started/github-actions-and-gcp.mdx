@@ -2,118 +2,84 @@
 title: "Github Actions + GCP"
 ---
 
-This is a step-by-step guide how to set up Digger in your Github repository with terraform code for GCP. If you'd rather fork a sample repository, or if are using Terragrunt or Workspaces - check out [other tutorials](https://diggerhq.gitbook.io/digger-docs/getting-started)
+In this tutorial, you will set up Digger to automate terraform pull requests using Github Actions and GCP.
 
-### 1\. Create a GCP bucket for locks
+# Prerequisites
+- A GitHub repository with valid terraform code. Here's a [demo repo](https://github.com/diggerhq/demo-conftest-gcp/) for inspiration.
+- A GCP Service Account Key json file. See [Hashicorp's GCP tutorial](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
 
-* Go to Cloud Storage → Buckets; Click Create
-
-* Name it something like “digger-lock-myproj” (you'll need the name later)
-
-* Keep all the default settings
-
-### 2\. Create IAM service account in GCP
-
-* Go to IAM → Service Accounts (in the side bar)
-
-* Press “create service account” at the top
-
-* Keep all the default settings
-
-Make sure your IAM service account has permission to write to the bucket
-
-Make sure your IAM service account has permissions to execute your Terraform
-
-### 3\. Add GCP keys to Github Actions Secrets
-
-In your new GCP service account:
-
-* go to Keys; click Add Key
-
-* Download json
-
-* Copy contents of the json file
-
-Then in Github
-
-* Go to Settings → Secrets and Variables
-
-* Click “New Repository Secret” button
-
-* Add a secret named `GCP_CREDENTIALS` and paste contents of GCP key json there
-
-### 4\. Create digger.yml
-
-In your repository, create `digger.yml` file with the following contents:
-
+# Create digger.yml
+This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
 ```
 projects:
-- name: infra-prod
+- name: production
   dir: prod
 ```
 
-### 5\. Create a workflow file
+# Add your GCP Service Account Key to Action Secrets
+In GitHub repository settings:
+- Go to Secrets and Variables - Actions
+- Click New Repository Secret
+- Name it `GCP_CREDENTIALS`
+- Paste the contents of your GCP Service Account Key json file
 
-In your repository, create a file at `.github/workflows/infra.yml`
+# Create Github Actions workflow file
+Place it at `.github/workflows/digger-tf.yml`
 
 ```
-name: Terraform Digger
+name: Digger
 
 on:
   pull_request:
     branches: [ "main" ]
-    types: [ closed, opened, synchronize, reopened ]
+    types: [ opened, synchronize ]
   issue_comment:
     types: [created]
-    if: contains(github.event.comment.body, 'digger')
   workflow_dispatch:
 
 jobs:
-  digger-terraform:
+  plan:
+    name: Digger
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Checkout Pull Request
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          PR_URL="${{ github.event.issue.pull_request.url }}"
-          PR_NUM=${PR_URL##*/}
-          echo "Checking out from PR #$PR_NUM based on URL: $PR_URL"
-          hub pr checkout $PR_NUM
-        if: github.event_name == 'issue_comment'
-        
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v1'
-        with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
-
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-
-      - name: 'Use gcloud CLI'
-        run: 'gcloud info'
-
-      - name: digger
-        uses: diggerhq/digger@main
-        env:
-          LOCK_PROVIDER: gcp
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOGLE_STORAGE_BUCKET: **digger-lock-myproj**
+    - uses: actions/checkout@v4
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+        create_credentials_file: true
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+    - name: 'Use gcloud CLI'
+      run: 'gcloud info'
+    - name: digger run
+      uses: diggerhq/digger@v0.2.0
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        LOCK_PROVIDER: gcp
+        GOOGLE_STORAGE_BUCKET: 'digger-lock-prod'
 ```
 
-<Note>
-Rename storage bucket (last line) to your bucket name
-</Note>
+This file defines a workflow with 5 steps:
+- Checkout repository using Github's official [Checkout action](https://github.com/actions/checkout)
+- Authenticate into GCP using Google's official [Auth action](https://github.com/google-github-actions/auth). Note the `create_credentials_file: true` option; without it, subsequent steps that rely [Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc) will not work.
+- Set up Google Cloud SDK for use in the subsequent steps via Google's official [Setup-gcloud action](https://github.com/google-github-actions/setup-gcloud)
+- Verify that GCP is configured correctly by running `gcloud info`
+- Run Digger. Note the `GOOGLE_STORAGE_BUCKET` env variable; it should contain the name of your bucket for locks (see below)
 
-### 6\. Create a PR to verify that it works
 
-Just make any change to Terraform - like add a blank line
+# Create a GCP bucket for locks
 
-An action should start. After some time you should see output of Terraform Plan added as a comment to your PR. Something like this:
+Digger stores PR-level locks in a bucket. PR-level locks prevent race conditions when running plan / apply from different PRs.
+- Go to Cloud Storage → Buckets; Click Create
+- Name it “digger-lock-prod” (same as in the workflow file)
+- Keep all the default settings
+
+
+# Create a PR to verify that it works
+
+Make any change to your terraform code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of Terraform Plan added as a comment to your PR:
 
 ```
 Terraform will perform the following actions:
@@ -129,3 +95,5 @@ Terraform will perform the following actions:
       
  ... (further content omitted)
 ```
+
+Then you can add a comment like `digger apply` and shortly after apply output will be added as comment too.
