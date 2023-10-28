@@ -2,12 +2,11 @@ package usage
 
 import (
 	"bytes"
+	configuration "digger/libs/digger_config"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
-
-	configuration "github.com/diggerhq/lib-digger-config"
 )
 
 var collect_usage_data = true

@@ -1,6 +1,8 @@
 package main
 
 import (
+	configuration "digger/libs/digger_config"
+	dggithub "digger/libs/orchestrator/github"
 	"digger/pkg/digger"
 	"digger/pkg/github/models"
 	ghmodels "digger/pkg/github/models"
@@ -8,12 +10,9 @@ import (
 	"digger/pkg/utils"
 	"log"
 
-	dggithub "github.com/diggerhq/lib-orchestrator/github"
 	"github.com/google/go-github/v55/github"
 
 	"testing"
-
-	configuration "github.com/diggerhq/lib-digger-config"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"

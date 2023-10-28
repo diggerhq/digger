@@ -10,6 +10,7 @@ and we would be happy to set you up.
 - [Introduction](#introduction)
 - [How to contribute](#how-to-contribute)
 - [Coding conventions](#coding-conventions)
+- [Folder structure](#folder-structure)
 - [Submitting a pull request](#submitting-a-pull-request)
 - [Release Process](#release-process)
 - [Code of Conduct](#code-of-conduct)
@@ -36,6 +37,17 @@ There are many ways to contribute to Digger, including:
 
 ## Coding conventions
 We strive to maintain a consistent coding style throughout the project. Please follow our [coding conventions](/coding-conventions.md) when making changes to the codebase.
+
+## Folder structure
+
+```
+cmd/ # contains the main cli files | TODO: refactor into cli/cmd
+dockerfiles/ # DEPRECATED - contains the dockerfiles of digger | TODO: remove  
+docs/ # contains documentation pages
+libs/ # contains libraries that are common between digger cli and digger cloud backend (should NOT import anything from pkg/ which is cli specific)
+pkg/ # contains packages that are used by the cli code | TODO: refactor into cli/pkg, can import from libs/
+cloud/ # (coming soon) contains the backend code, can import from libs/
+```
 
 ## Submitting a pull request
 When you have made changes to the codebase that you would like to contribute back, please follow these steps:
