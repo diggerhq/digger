@@ -1,0 +1,9 @@
+---
+title: "Setting up separate mgmt account"
+---
+
+You can use separate AWS accounts for Digger locks and target infrastructure.
+
+* If you only pass `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` env vars, same account will be used for both
+
+* If in addition you also pass `DIGGER_AWS_ACCESS_KEY_ID` and `DIGGER_AWS_SECRET_ACCESS_KEY` vars then those will be used for Digger locks, and the first pair will be used as target account
