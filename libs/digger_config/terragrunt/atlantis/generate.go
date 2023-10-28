@@ -699,7 +699,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	potentialProjectDependencies := make(map[string][]string)
 	for _, workingDir := range workingDirs {
 		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
-		fmt.Printf("!!getAllTerragruntFiles: %v\n\n", projectHclDirMap)
+		fmt.Printf("!!getAllTerragruntFiles: %v\n\n", terragruntFiles)
 		if err != nil {
 			fmt.Printf("error while get all terragrunt files: %v", err)
 			return nil, nil, err
