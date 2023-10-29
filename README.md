@@ -1,11 +1,10 @@
 <img width="1470" alt="digger-opensource-gitops-banner" src="https://github.com/diggerhq/digger/assets/1280498/7fb44db3-38ca-4021-8714-87a2f1a14982">
 
 <h2 align="center">
-  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a> |
+  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Community Slack</a> |
   <a href="https://calendly.com/diggerdev/digger-open-source-terraform-cloud-alternativ-clone?month=2023-07">Schedule a call</a> |
-  <a href="https://digger-20.mintlify.app">Docs</a> | 
-  <a href="https://www.loom.com/share/51f27994d95f4dc5bb6eea579e1fa8dc?sid=403f161a-6c0b-44ac-af57-cc9b56190f64">Demo Video</a>
-
+  <a href="https://www.loom.com/share/51f27994d95f4dc5bb6eea579e1fa8dc?sid=403f161a-6c0b-44ac-af57-cc9b56190f64">Demo Video</a> |
+  <a href="https://docs.digger.dev/">Docs</a>
 </h2>
 
 CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
@@ -31,10 +30,10 @@ Digger runs terraform natively in your CI. This is:
 
 ## Getting Started
 
-- [Github Actions + AWS](https://digger-20.mintlify.app/getting-started/github-actions-+-aws)
-- [Github Actions + GCP](https://digger-20.mintlify.app/getting-started/github-actions-and-gcp)
-- [Gitlab Pipelines + AWS](https://digger-20.mintlify.app/getting-started/gitlab-pipelines-+-aws)
-- [Azure DevOps](https://digger-20.mintlify.app/getting-started/azure-devops)
+- [Github Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
+- [Github Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
+- [Gitlab Pipelines + AWS](https://docs.digger.dev/getting-started/gitlab-pipelines-+-aws)
+- [Azure DevOps](https://docs.digger.dev/getting-started/azure-devops)
 
 ## How it works
 
