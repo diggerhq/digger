@@ -100,7 +100,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 
 	// this is used when called from api by the backend and exits in the end of if statement
-	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" {
+	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" && runningMode != "drift-detection" {
 		type Inputs struct {
 			JobString string `json:"job"`
 			Id        string `json:"id"`
