@@ -585,7 +585,7 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 			Text string `json:"text"`
 		}
 		slackMessage := SlackMessage{
-			Text: fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n```%v```", projectName, plan),
+			Text: fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan),
 		}
 
 		jsonData, err := json.Marshal(slackMessage)
