@@ -81,6 +81,13 @@ func (g *GithubAction) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		g.Event = event
+	case "schedule":
+		// TODO: Find appropriate event for workflow scheduled run
+		var event github.WorkflowDispatchEvent
+		if err := json.Unmarshal(rawEvent, &event); err != nil {
+			return err
+		}
+		g.Event = event
 	default:
 		return errors.New("unknown GitHub event: " + g.EventName)
 	}
