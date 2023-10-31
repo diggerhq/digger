@@ -3,66 +3,90 @@ title: "Github Actions + AWS"
 description: "In this tutorial we will be using a repository in order to configure a terraform pipeline [https://github.com/diggerhq/digger\_demo\_multienv](https://github.com/diggerhq/digger%5Fdemo%5Fmultienv)."
 ---
 
-If you prefer to watch a video instead you can watch this [demo tutorial](https://www.loom.com/share/e201e639a73941e0b5508710377a6106).
+In this tutorial, you will set up Digger to automate terraform pull requests using Github Actions and AWS 
 
-In this example we have terraform in two directories:
+#Prerequisites
+- A GitHub repository with valid terraform code. Here's a [demo repo](https://github.com/diggerhq/quickstart-actions-aws)
+- Your AWS credentials. See [Hashicorp's AWS tutorual](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
+
+# Create digger.yml
+This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
+```
+projects:
+- name: production
+  dir: prod
+```
+
+
+# Add your AWS credentials to Action Secrets
+Note: This is relevant if utilizing basic credentials. If you are using OIDC please refer to [the relevant documentation](https://docs.digger.dev/cloud-providers/authenticating-with-oidc-on-aws)
+- Go to Secrets and Variables - Actions
+- Click New Repository Secret
+- Name it `AWS_ACCESS_KEY_ID`
+- Paste the your AWS_ACCESS_KEY_ID
+- Create another New Repository Secret
+- Name it `AWS_SECRET_ACCESS_KEY`
+- Paste in your `Secret access key`
+
+# Create Github Actions workflow file
+Place it at `.github/workflows/digger-tf.yml`
 
 ```
-dev/
-    main.tf
-prod/
-    main.tf
+name: Digger Plan
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, synchronize ]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:    
+      contents: write      # required to merge PRs
+      id-token: write      # required for workload-identity-federation
+      pull-requests: write # required to post PR comments
+      statuses: write      # required to validate combined PR status
+
+    steps:
+      - uses: actions/checkout@v4
+      # Unlike GCP; the role assumption is handled inline 
+      - uses: actions/checkout@v4
+      - name: digger run
+        uses: diggerhq/digger@v0.2.0
+        with:
+          setup-aws: true
+          #Uncomment below line if using OIDC
+          #aws-role-to-assume: arn:aws:sts::{secrets.AccountID}:assumed-role/{secrets.RoleName}/{FunctionName}
+         
+          #Comment the following two lines out if using OIDC. 
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ##End comment block
+          aws-region: us-east-1
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         
 ```
 
-We want to set up a comment-based flow where the user creates a pull request with a change and sees the plan for the change. The user is required to apply the plan and it should succeed before the PR is merged to the main branch. This is achieved by commenting `digger plan` and `digger apply` on the pull request itself. This is only one option which digger supports.
+This file defines a simple workflow that
+- Checks out repository using Github's official [Checkout action](https://github.com/actions/checkout)
+- Runs Digger against a the given AWS account. 
 
-Let's create our first pull request with a change and see this in action:
+# AWS locks for Digger 
+Digger  in AWS uses DynamoDB to handle locks. The [demo repo](https://github.com/diggerhq/quickstart-actions-aws) contains example terraform code to spin up the  relevant DynamoDB resources. 
 
-1. Fork the [demo repository](https://github.com/diggerhq/digger%5Fdemo%5Fmultienv)
+# Create a PR to verify that it works
 
-2. Enable Actions (by default workflows won't trigger in a fork)
+Terraform  will run an existing plan against your code. 
 
-![](/images/getting-started/1.webp)
+Make any change to your terraform code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of Terraform Plan added as a comment to your PR. 
 
-3. In your repository settings > Actions ensure that the Workflow Read and Write permissions are assigned - This will allow the workflow to post comments on your PRs
+Then you can add a comment like `digger apply` and shortly after apply output will be added as comment too.
 
-![](/images/getting-started/2.webp)
-
-4. Add environment variables into your Github Action Secrets (cloud keys are a requirement since digger needs to connect to your account for coordinating locks)  
-   * AWS\_ACCESS\_KEY\_ID  
-   * AWS\_SECRET\_ACCESS\_KEY
-
-![](/images/getting-started/3.png)
-
-5. make a change in `dev/main.tf` and create a PR - this will create a lock
-
-![](/images/getting-started/4.png)
-
-6. comment `digger plan` \- terraform plan output will be added as comment. If you don't see a comment (bug) - check out job output
-
-![](/images/getting-started/5.png)
-
-6. create another PR - plan or apply won’t work in this PR until the first lock is released
-
-7. You should see `Locked by PR #1` comment. The action logs will display "Project locked" error message.
-
-![](/images/getting-started/6.png)
-
-8. Lets apply the first PR and merge it to unlock the flow for our colleagues
-
-![](/images/getting-started/7.png)
-
-
-**Conclusion**
-
-In this tutorial we reused an existing sample repository to set up our first collaborative terraform environment which allows us to collaborate with our team and run terraform changes safely without conflicts.
-
-
-**Next steps**
-
-* Managing your own state backend
-
-* Using digger with [GCP](/gcp) and [Azure](/azure-specific/azure)
-
-* Using digger with Bitbucket, Gitlab and Jenkins
 
