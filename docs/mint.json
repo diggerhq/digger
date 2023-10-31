@@ -43,9 +43,7 @@
             "group": "Getting Started",
             "pages": [
                 "getting-started/github-actions-+-aws",
-                "getting-started/github-actions-and-gcp",
-                "getting-started/gitlab-pipelines-+-aws",
-                "getting-started/azure-devops"
+                "getting-started/github-actions-and-gcp"
             ]
         },
         {
