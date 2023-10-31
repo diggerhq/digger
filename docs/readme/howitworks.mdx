@@ -1,0 +1,20 @@
+---
+title: "How it works"
+---
+
+Digger has 2 main components:
+
+- A CLI agent that runs in your CI and interacts with Terraform CLI
+- An orchestrator backend that responds to events from GitHub and triggers CI jobs
+
+When a PR is opened, Digger starts a CI job that runs `terraform plan` and posts plan output as comment. You can then comment "digger apply" to run `terraform apply`. Digger can also be configured to run apply only after the PR has been merged; to check plan output against OPA policies; to run drift detection on schedule; and so on.
+
+The orchestrator backend does not have access to your cloud account, or terraform ates, or plan output, or tfvars, or any other sensitive data. It just triggers CI jobs; your sensitive data never leaves the high-trust environment of your CI. For this reason, there is little reason to self-host the backend of Digger (although you still can). Much easier to use the managed cloud version of the orchestrator.
+
+<Note>
+Digger can also run as a standalone GitHub Action without a backend. In this case:
+- comments and status checks will be updated with a delay
+- all applies will run sequentially in one job without concurrency
+- clashing applies from other jobs will fail as they cannot be queued
+- buckets / tables for PR-level locks need to be configured manually in your cloud account
+</Note>
