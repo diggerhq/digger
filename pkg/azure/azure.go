@@ -2,12 +2,12 @@ package azure
 
 import (
 	"context"
-	digger_config2 "digger/libs/digger_config"
-	orchestrator2 "digger/libs/orchestrator"
-	"digger/pkg/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
+	digger_config2 "github.com/diggerhq/digger/libs/digger_config"
+	orchestrator2 "github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/pkg/utils"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 	"strings"
