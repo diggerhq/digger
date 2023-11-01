@@ -19,6 +19,7 @@ require (
 )
 
 require (
+	github.com/caarlos0/env/v10 v10.0.0
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/diggerhq/lib-orchestrator v0.0.11
 	github.com/dominikbraun/graph v0.23.0
