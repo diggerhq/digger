@@ -1,7 +1,7 @@
 package orchestrator
 
 import (
-	configuration "digger/libs/digger_config"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 type Job struct {
