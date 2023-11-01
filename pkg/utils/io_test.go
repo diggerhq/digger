@@ -3,7 +3,7 @@ package utils
 import (
 	"archive/zip"
 	"bytes"
-	configuration "digger/libs/digger_config"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"

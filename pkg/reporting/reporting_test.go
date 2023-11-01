@@ -1,8 +1,8 @@
 package reporting
 
 import (
-	"digger/libs/orchestrator"
-	"digger/pkg/core/utils"
+	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/pkg/core/utils"
 	"testing"
 	"time"
 
