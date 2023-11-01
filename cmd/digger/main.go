@@ -2,28 +2,28 @@ package main
 
 import (
 	"context"
-	"digger/libs/digger_config"
-	orchestrator2 "digger/libs/orchestrator"
-	dg_github "digger/libs/orchestrator/github"
-	"digger/pkg/azure"
-	"digger/pkg/backend"
-	"digger/pkg/bitbucket"
-	core_backend "digger/pkg/core/backend"
-	core_locking "digger/pkg/core/locking"
-	core_policy "digger/pkg/core/policy"
-	core_storage "digger/pkg/core/storage"
-	"digger/pkg/digger"
-	"digger/pkg/gcp"
-	github_models "digger/pkg/github/models"
-	"digger/pkg/gitlab"
-	"digger/pkg/locking"
-	"digger/pkg/policy"
-	"digger/pkg/reporting"
-	"digger/pkg/storage"
-	"digger/pkg/usage"
-	"digger/pkg/utils"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config"
+	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
+	"github.com/diggerhq/digger/pkg/azure"
+	"github.com/diggerhq/digger/pkg/backend"
+	"github.com/diggerhq/digger/pkg/bitbucket"
+	core_backend "github.com/diggerhq/digger/pkg/core/backend"
+	core_locking "github.com/diggerhq/digger/pkg/core/locking"
+	core_policy "github.com/diggerhq/digger/pkg/core/policy"
+	core_storage "github.com/diggerhq/digger/pkg/core/storage"
+	"github.com/diggerhq/digger/pkg/digger"
+	"github.com/diggerhq/digger/pkg/gcp"
+	github_models "github.com/diggerhq/digger/pkg/github/models"
+	"github.com/diggerhq/digger/pkg/gitlab"
+	"github.com/diggerhq/digger/pkg/locking"
+	"github.com/diggerhq/digger/pkg/policy"
+	"github.com/diggerhq/digger/pkg/reporting"
+	"github.com/diggerhq/digger/pkg/storage"
+	"github.com/diggerhq/digger/pkg/usage"
+	"github.com/diggerhq/digger/pkg/utils"
 	"log"
 	"net/http"
 	"os"
@@ -121,7 +121,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		repoName := strings.ReplaceAll(ghRepository, "/", "-")
 
-		var job orchestrator2.JobJson
+		var job orchestrator.JobJson
 
 		err = json.Unmarshal([]byte(inputs.JobString), &job)
 
@@ -143,7 +143,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			ReportStrategy: reportingStrategy,
 		}
 
-		jobs := []orchestrator2.Job{orchestrator2.JsonToJob(job)}
+		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 		if err != nil {
@@ -204,14 +204,14 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
 
-		jobs := orchestrator2.Job{
+		jobs := orchestrator.Job{
 			ProjectName:       project,
 			ProjectDir:        projectConfig.Dir,
 			ProjectWorkspace:  projectConfig.Workspace,
 			Terragrunt:        projectConfig.Terragrunt,
 			Commands:          []string{command},
-			ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
-			PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
+			ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+			PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 			PullRequestNumber: nil,
 			EventName:         "manual_invocation",
 			RequestedBy:       githubActor,
@@ -233,14 +233,14 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-			job := orchestrator2.Job{
+			job := orchestrator.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
 				ProjectWorkspace: projectConfig.Workspace,
 				Terragrunt:       projectConfig.Terragrunt,
 				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       orchestrator2.ToConfigStage(workflow.Apply),
-				PlanStage:        orchestrator2.ToConfigStage(workflow.Plan),
+				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 				RequestedBy:      githubActor,
@@ -282,7 +282,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, "No projects impacted", 0)
 		}
 
-		var jobs []orchestrator2.Job
+		var jobs []orchestrator.Job
 		coversAllImpactedProjects := false
 		err = nil
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
@@ -601,14 +601,14 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 		planStorage := newPlanStorage("", repoOwner, repositoryName, actor, nil)
 
-		jobs := orchestrator2.Job{
+		jobs := orchestrator.Job{
 			ProjectName:       project,
 			ProjectDir:        projectConfig.Dir,
 			ProjectWorkspace:  projectConfig.Workspace,
 			Terragrunt:        projectConfig.Terragrunt,
 			Commands:          []string{command},
-			ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
-			PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
+			ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+			PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 			PullRequestNumber: nil,
 			EventName:         "manual_invocation",
 			RequestedBy:       actor,
@@ -630,14 +630,14 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-			job := orchestrator2.Job{
+			job := orchestrator.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
 				ProjectWorkspace: projectConfig.Workspace,
 				Terragrunt:       projectConfig.Terragrunt,
 				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       orchestrator2.ToConfigStage(workflow.Apply),
-				PlanStage:        orchestrator2.ToConfigStage(workflow.Plan),
+				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
 				CommandEnvVars:   commandEnvVars,
 				StateEnvVars:     stateEnvVars,
 				RequestedBy:      actor,
@@ -650,7 +650,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			}
 		}
 	} else {
-		var jobs []orchestrator2.Job
+		var jobs []orchestrator.Job
 		if os.Getenv("BITBUCKET_PR_ID") == "" && os.Getenv("BITBUCKET_BRANCH") == os.Getenv("DEFAULT_BRANCH") {
 			for _, projectConfig := range diggerConfig.Projects {
 
@@ -659,14 +659,14 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-				job := orchestrator2.Job{
+				job := orchestrator.Job{
 					ProjectName:      projectConfig.Name,
 					ProjectDir:       projectConfig.Dir,
 					ProjectWorkspace: projectConfig.Workspace,
 					Terragrunt:       projectConfig.Terragrunt,
 					Commands:         workflow.Configuration.OnCommitToDefault,
-					ApplyStage:       orchestrator2.ToConfigStage(workflow.Apply),
-					PlanStage:        orchestrator2.ToConfigStage(workflow.Plan),
+					ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 					RequestedBy:      actor,
@@ -685,14 +685,14 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-				job := orchestrator2.Job{
+				job := orchestrator.Job{
 					ProjectName:      projectConfig.Name,
 					ProjectDir:       projectConfig.Dir,
 					ProjectWorkspace: projectConfig.Workspace,
 					Terragrunt:       projectConfig.Terragrunt,
 					Commands:         []string{"digger plan"},
-					ApplyStage:       orchestrator2.ToConfigStage(workflow.Apply),
-					PlanStage:        orchestrator2.ToConfigStage(workflow.Plan),
+					ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
 					CommandEnvVars:   commandEnvVars,
 					StateEnvVars:     stateEnvVars,
 					RequestedBy:      actor,
@@ -729,14 +729,14 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-				job := orchestrator2.Job{
+				job := orchestrator.Job{
 					ProjectName:       project.Name,
 					ProjectDir:        project.Dir,
 					ProjectWorkspace:  project.Workspace,
 					Terragrunt:        project.Terragrunt,
 					Commands:          workflow.Configuration.OnPullRequestPushed,
-					ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
-					PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
+					ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 					CommandEnvVars:    commandEnvVars,
 					StateEnvVars:      stateEnvVars,
 					PullRequestNumber: &prNumber,
@@ -901,7 +901,7 @@ func getImpactedProjectsAsString(projects []digger_config.Project, prNumber int)
 	return msg
 }
 
-func logCommands(projectCommands []orchestrator2.Job) {
+func logCommands(projectCommands []orchestrator.Job) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)

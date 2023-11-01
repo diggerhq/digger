@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/orchestrator"
 )
 
 type MockReporter struct {
