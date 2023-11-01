@@ -1,15 +1,15 @@
 package execution
 
 import (
-	configuration "digger/libs/digger_config"
-	"digger/libs/orchestrator"
-	"digger/pkg/core/locking"
-	"digger/pkg/core/reporting"
-	"digger/pkg/core/runners"
-	"digger/pkg/core/storage"
-	"digger/pkg/core/terraform"
-	"digger/pkg/core/utils"
 	"fmt"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/pkg/core/locking"
+	"github.com/diggerhq/digger/pkg/core/reporting"
+	"github.com/diggerhq/digger/pkg/core/runners"
+	"github.com/diggerhq/digger/pkg/core/storage"
+	"github.com/diggerhq/digger/pkg/core/terraform"
+	"github.com/diggerhq/digger/pkg/core/utils"
 	"log"
 	"os"
 	"path"

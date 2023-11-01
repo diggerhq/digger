@@ -2,11 +2,11 @@ package policy
 
 import (
 	"context"
-	"digger/libs/orchestrator"
-	"digger/pkg/core/policy"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/pkg/core/policy"
 	"github.com/open-policy-agent/opa/rego"
 	"io"
 	"log"

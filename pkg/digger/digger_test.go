@@ -1,11 +1,11 @@
 package digger
 
 import (
-	configuration "digger/libs/digger_config"
-	orchestrator2 "digger/libs/orchestrator"
-	"digger/pkg/core/execution"
-	"digger/pkg/reporting"
-	"digger/pkg/utils"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
+	orchestrator2 "github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/pkg/core/execution"
+	"github.com/diggerhq/digger/pkg/reporting"
+	"github.com/diggerhq/digger/pkg/utils"
 	"sort"
 	"strconv"
 	"strings"

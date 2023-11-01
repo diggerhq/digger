@@ -2,9 +2,9 @@ package github
 
 import (
 	"context"
-	"digger/libs/digger_config"
-	orchestrator2 "digger/libs/orchestrator"
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config"
+	orchestrator2 "github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/dominikbraun/graph"
 	"log"
 	"strings"

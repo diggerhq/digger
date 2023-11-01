@@ -1,13 +1,13 @@
 package main
 
 import (
-	configuration "digger/libs/digger_config"
-	dggithub "digger/libs/orchestrator/github"
-	"digger/pkg/digger"
-	"digger/pkg/github/models"
-	ghmodels "digger/pkg/github/models"
-	"digger/pkg/reporting"
-	"digger/pkg/utils"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
+	dggithub "github.com/diggerhq/digger/libs/orchestrator/github"
+	"github.com/diggerhq/digger/pkg/digger"
+	"github.com/diggerhq/digger/pkg/github/models"
+	ghmodels "github.com/diggerhq/digger/pkg/github/models"
+	"github.com/diggerhq/digger/pkg/reporting"
+	"github.com/diggerhq/digger/pkg/utils"
 	"log"
 
 	"github.com/google/go-github/v55/github"
