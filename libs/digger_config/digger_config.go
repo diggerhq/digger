@@ -1,9 +1,9 @@
 package digger_config
 
 import (
-	"digger/libs/digger_config/terragrunt/atlantis"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/atlantis"
 	"log"
 	"os"
 	"path"
