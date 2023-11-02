@@ -45,7 +45,7 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 
 ## Contributing
 
-We love contributions. Check out our [contribiting guide](CONTRIBUTING.md) to get started. 
+We love contributions. Check out our [contributing guide](CONTRIBUTING.md) to get started.
 
 Not sure where to get started? You can:
 
@@ -60,4 +60,4 @@ Not sure where to get started? You can:
 - [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull request
 - [Medium](https://medium.com/@DiggerHQ) for terraform automation and collaboration insights, articles, tutorials, and updates.
 - [Roadmap](https://diggerdev.notion.site/Digger-Roadmap-845a90fb17954afca80431580e1b3958?pvs=4) for planned features.
-- [Digger API beta](https://github.com/diggerhq/api) 
+- [Digger API beta](https://github.com/diggerhq/api)
