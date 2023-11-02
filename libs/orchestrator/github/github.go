@@ -77,6 +77,21 @@ func (svc *GithubService) GetComments(prNumber int) ([]orchestrator2.Comment, er
 	return commentBodies, err
 }
 
+func (svc *GithubService) GetApprovals(prNumber int) ([]orchestrator2.Review, error) {
+	reviews, _, err := svc.Client.PullRequests.ListReviews(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.ListOptions{})
+	approvals := make([]orchestrator2.Review, 0)
+	for _, review := range reviews {
+		if *review.State == "APPROVED" {
+			approvals = append(approvals, orchestrator2.Review{
+				Id:       review.ID,
+				Username: review.User.Login,
+				State:    review.State,
+			})
+		}
+	}
+	return approvals, err
+}
+
 func (svc *GithubService) EditComment(prNumber int, id interface{}, comment string) error {
 	commentId := id.(int64)
 	_, _, err := svc.Client.Issues.EditComment(context.Background(), svc.Owner, svc.RepoName, commentId, &github.IssueComment{Body: &comment})

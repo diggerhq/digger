@@ -355,6 +355,12 @@ func (a *AzureReposService) GetComments(prNumber int) ([]orchestrator2.Comment, 
 
 }
 
+func (svc *AzureReposService) GetApprovals(prNumber int) ([]orchestrator2.Review, error) {
+	approvals := make([]orchestrator2.Review, 0)
+	// TODO: implement me
+	return approvals, nil
+}
+
 func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2.DiggerConfig, ciService orchestrator2.PullRequestService) ([]digger_config2.Project, *digger_config2.Project, int, error) {
 	var impactedProjects []digger_config2.Project
 	var prNumber int
