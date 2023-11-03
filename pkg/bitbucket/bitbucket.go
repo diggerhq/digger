@@ -196,8 +196,8 @@ func (b *BitbucketAPI) GetComments(prNumber int) ([]orchestrator.Comment, error)
 
 }
 
-func (svc *BitbucketAPI) GetApprovals(prNumber int) ([]orchestrator.Review, error) {
-	approvals := make([]orchestrator.Review, 0)
+func (svc *BitbucketAPI) GetApprovals(prNumber int) ([]string, error) {
+	approvals := make([]string, 0)
 	// TODO: implement me
 	return approvals, nil
 }

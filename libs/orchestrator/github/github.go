@@ -77,16 +77,12 @@ func (svc *GithubService) GetComments(prNumber int) ([]orchestrator2.Comment, er
 	return commentBodies, err
 }
 
-func (svc *GithubService) GetApprovals(prNumber int) ([]orchestrator2.Review, error) {
+func (svc *GithubService) GetApprovals(prNumber int) ([]string, error) {
 	reviews, _, err := svc.Client.PullRequests.ListReviews(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.ListOptions{})
-	approvals := make([]orchestrator2.Review, 0)
+	approvals := make([]string, 0)
 	for _, review := range reviews {
 		if *review.State == "APPROVED" {
-			approvals = append(approvals, orchestrator2.Review{
-				Id:       review.ID,
-				Username: review.User.Login,
-				State:    review.State,
-			})
+			approvals = append(approvals, *review.User.Login)
 		}
 	}
 	return approvals, err
