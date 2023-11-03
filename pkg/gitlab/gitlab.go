@@ -238,8 +238,8 @@ func (gitlabService GitLabService) GetComments(prNumber int) ([]orchestrator2.Co
 	return nil, nil
 }
 
-func (gitlabService *GitLabService) GetApprovals(prNumber int) ([]orchestrator2.Review, error) {
-	approvals := make([]orchestrator2.Review, 0)
+func (gitlabService *GitLabService) GetApprovals(prNumber int) ([]string, error) {
+	approvals := make([]string, 0)
 	// TODO: implement me
 	return approvals, nil
 }

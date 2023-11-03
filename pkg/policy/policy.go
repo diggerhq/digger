@@ -268,7 +268,7 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	}
 
 	// list of pull request approvals (if applicable)
-	var approvals = make([]orchestrator.Review, 0)
+	var approvals = make([]string, 0)
 	if prService != nil && prNumber != nil {
 		approvals, err = (*prService).GetApprovals(*prNumber)
 	}
