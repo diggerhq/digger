@@ -173,6 +173,8 @@ func run(command string, job orchestrator2.Job, policyChecker policy.Checker, or
 	projectPath := path.Join(workingDir, job.ProjectDir)
 	if job.Terragrunt {
 		terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
+	} else if job.OpenTofu {
+		terraformExecutor = terraform.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 	} else {
 		terraformExecutor = terraform.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 	}
@@ -433,6 +435,8 @@ func RunJob(
 		projectPath := path.Join(workingDir, job.ProjectDir)
 		if job.Terragrunt {
 			terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
+		} else if job.OpenTofu {
+			terraformExecutor = terraform.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 		} else {
 			terraformExecutor = terraform.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 		}
