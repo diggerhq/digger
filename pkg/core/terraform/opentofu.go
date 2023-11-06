@@ -39,24 +39,24 @@ func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) 
 
 func (tf OpenTofu) Plan(params []string, envs map[string]string) (bool, string, string, error) {
 
-	workspaces, _, _, err := tf.runTerraformCommand(false, "workspace", envs, "list")
+	workspaces, _, _, err := tf.runOpentofuCommand(false, "workspace", envs, "list")
 	if err != nil {
 		return false, "", "", err
 	}
-	workspaces = tf.formatTerraformWorkspaces(workspaces)
+	workspaces = tf.formatOpentofuWorkspaces(workspaces)
 	if strings.Contains(workspaces, tf.Workspace) {
-		_, _, _, err := tf.runTerraformCommand(true, "workspace", envs, "select", tf.Workspace)
+		_, _, _, err := tf.runOpentofuCommand(true, "workspace", envs, "select", tf.Workspace)
 		if err != nil {
 			return false, "", "", err
 		}
 	} else {
-		_, _, _, err := tf.runTerraformCommand(true, "workspace", envs, "new", tf.Workspace)
+		_, _, _, err := tf.runOpentofuCommand(true, "workspace", envs, "new", tf.Workspace)
 		if err != nil {
 			return false, "", "", err
 		}
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
-	stdout, stderr, statusCode, err := tf.runTerraformCommand(true, "plan", envs, params...)
+	stdout, stderr, statusCode, err := tf.runOpentofuCommand(true, "plan", envs, params...)
 	if err != nil && statusCode != 2 {
 		return false, "", "", err
 	}
@@ -125,8 +125,8 @@ func (tf OpenTofu) runOpentofuCommand(printOutputToStdout bool, command string, 
 		mwerr = io.Writer(&stderr)
 	}
 
-	cmd := exec.Command("terraform", expandedArgs...)
-	log.Printf("Running command: terraform %v", expandedArgs)
+	cmd := exec.Command("opentofu", expandedArgs...)
+	log.Printf("Running command: opentofu %v", expandedArgs)
 	cmd.Dir = tf.WorkingDir
 
 	env := os.Environ()
