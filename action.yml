@@ -226,7 +226,7 @@ runs:
       uses: opentofu/setup-opentofu@v1.0.1
       with:
         tofu_version: ${{ inputs.opentofu-version }}
-      if: inputs.setup-terragrunt == 'true'
+      if: inputs.setup-opentofu == 'true'
 
 
     - name: Setup Checkov
