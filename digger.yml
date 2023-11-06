@@ -1,3 +1,4 @@
-- projects:
-  name: dev
-  dir: .
+projects:
+  - name: dev
+    dir: .
+
