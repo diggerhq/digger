@@ -1,0 +1,25 @@
+name: Digger Pull Request Workflow
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, synchronize ]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  plan:
+    name: Run digger
+    runs-on: ubuntu-latest
+    steps:
+    - name: digger run
+      uses: diggerhq/digger@vpass-approvers-into-access-policy
+      with:
+        disable-locking: true
+        setup-aws: false
+        aws-region: us-east-1
+        setup-opentofu: true
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
