@@ -64,7 +64,7 @@ inputs:
   opentofu-version:
     description: OpenTofu version
     required: false
-    default: v1.5.5
+    default: v1.6.0-alpha3
   setup-terraform:
     description: Setup terraform
     required: false
