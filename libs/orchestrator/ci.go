@@ -27,9 +27,3 @@ type Comment struct {
 	Id   interface{}
 	Body *string
 }
-
-type Review struct {
-	Id       interface{}
-	Username *string
-	State    *string //APPROVED, CHANGES_REQUESTED, comment
-}
