@@ -125,7 +125,7 @@ func (tf OpenTofu) runOpentofuCommand(printOutputToStdout bool, command string, 
 		mwerr = io.Writer(&stderr)
 	}
 
-	cmd := exec.Command("opentofu", expandedArgs...)
+	cmd := exec.Command("tofu", expandedArgs...)
 	log.Printf("Running command: opentofu %v", expandedArgs)
 	cmd.Dir = tf.WorkingDir
 
