@@ -1,4 +1,5 @@
 projects:
   - name: dev
     dir: .
+    opentofu: true
 
