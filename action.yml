@@ -53,10 +53,18 @@ inputs:
     description: Setup terragrunt
     required: false
     default: 'false'
+  setup-opentofu:
+    description: Setup OpenToFu
+    required: false
+    default: 'false'
   terragrunt-version:
     description: Terragrunt version
     required: false
     default: v0.48.6
+  opentofu-version:
+    description: OpenTofu version
+    required: false
+    default: v1.5.5
   setup-terraform:
     description: Setup terraform
     required: false
@@ -213,6 +221,13 @@ runs:
       with:
         terragrunt_version: ${{ inputs.terragrunt-version }}
       if: inputs.setup-terragrunt == 'true'
+
+    - name: Setup OpenTofu
+      uses: opentofu/action-opentofu@v1.0.1
+      with:
+        tofu_version: ${{ inputs.opentofu-version }}
+      if: inputs.setup-terragrunt == 'true'
+
 
     - name: Setup Checkov
       run: |
