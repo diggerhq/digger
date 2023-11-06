@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: digger run
-      uses: diggerhq/digger@vpass-approvers-into-access-policy
+      uses: diggerhq/digger@feat/opentofu-support
       with:
         disable-locking: true
         setup-aws: false
