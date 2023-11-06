@@ -10,6 +10,7 @@ type Job struct {
 	ProjectWorkspace  string
 	ProjectWorkflow   string
 	Terragrunt        bool
+	OpenTofu          bool
 	Commands          []string
 	ApplyStage        *Stage
 	PlanStage         *Stage
