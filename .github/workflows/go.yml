@@ -13,6 +13,11 @@ jobs:
           go-version: 1.21.1
         id: go
 
+      - name: Setup Opentofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.6.0-alpha3
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
