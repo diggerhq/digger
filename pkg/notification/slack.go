@@ -18,17 +18,17 @@ type SlackNotification struct {
 	Url string
 }
 
-func splitCodeBlocks(message string) []string {
+func SplitCodeBlocks(message string) []string {
 	var res []string
 	regex := regexp.MustCompile(`\\n`)
 	split := regex.Split(message, -1)
 	part := ""
 	for _, line := range split {
 		if len(part+line) > 4000 {
-			res = append(res, part)
-			part = line
+			res = append(res, part+"\n"+line+"\n```")
+			part = "```\n" + line
 		} else {
-			part = part + line
+			part = part + "\n" + line
 		}
 	}
 	if len(part) > 0 {
@@ -42,7 +42,7 @@ func (slack SlackNotification) Send(message string) error {
 	type SlackMessage struct {
 		Text string `json:"text"`
 	}
-	parts := splitCodeBlocks(message)
+	parts := SplitCodeBlocks(message)
 	for _, part := range parts {
 		slackMessage := SlackMessage{
 			Text: part,
