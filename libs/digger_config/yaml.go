@@ -24,6 +24,7 @@ type ProjectYaml struct {
 	Dir                string   `yaml:"dir"`
 	Workspace          string   `yaml:"workspace"`
 	Terragrunt         bool     `yaml:"terragrunt"`
+	OpenTofu           bool     `yaml:"opentofu"`
 	Workflow           string   `yaml:"workflow"`
 	IncludePatterns    []string `yaml:"include_patterns,omitempty"`
 	ExcludePatterns    []string `yaml:"exclude_patterns,omitempty"`
