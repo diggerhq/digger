@@ -31,6 +31,9 @@ func splitCodeBlocks(message string) []string {
 			part = part + line
 		}
 	}
+	if len(part) > 0 {
+		res = append(res, part)
+	}
 	return res
 }
 
@@ -40,7 +43,7 @@ func (slack SlackNotification) Send(message string) error {
 		Text string `json:"text"`
 	}
 	parts := splitCodeBlocks(message)
-	for _, part := range (parts) {
+	for _, part := range parts {
 		slackMessage := SlackMessage{
 			Text: part,
 		}
