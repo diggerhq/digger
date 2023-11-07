@@ -33,7 +33,7 @@ func (slack SlackNotification) Send(message string) error {
 		return fmt.Errorf(msg)
 	}
 
-	request, err := http.NewRequest("POST", slack.url, bytes.NewBuffer(jsonData))
+	request, err := http.NewRequest("POST", slack.Url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		msg := fmt.Sprintf("failed to create slack notification request. %v", err)
 		log.Printf(msg)
