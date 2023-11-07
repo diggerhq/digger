@@ -14,7 +14,7 @@ jobs:
         id: go
 
       - name: Setup Opentofu
-      - uses: opentofu/setup-opentofu@v1
+        uses: opentofu/setup-opentofu@v1
         with:
           tofu_version: 1.6.0-alpha3
 
