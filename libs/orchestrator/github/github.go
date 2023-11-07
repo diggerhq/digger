@@ -47,15 +47,21 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 }
 
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
-	files, _, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
-	if err != nil {
-		log.Fatalf("error getting pull request files: %v", err)
-	}
+	var fileNames []string
+	opts := github.ListOptions{PerPage: 100}
+	for {
+		files, resp, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, &opts)
+		if err != nil {
+			log.Fatalf("error getting pull request files: %v", err)
+		}
 
-	fileNames := make([]string, len(files))
-
-	for i, file := range files {
-		fileNames[i] = *file.Filename
+		for _, file := range files {
+			fileNames = append(fileNames, *file.Filename)
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 	return fileNames, nil
 }
