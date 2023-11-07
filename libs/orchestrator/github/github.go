@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/diggerhq/digger/libs/digger_config"
-	orchestrator2 "github.com/diggerhq/digger/libs/orchestrator"
+	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/dominikbraun/graph"
 	"log"
 	"strings"
@@ -47,15 +47,21 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 }
 
 func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
-	files, _, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, nil)
-	if err != nil {
-		log.Fatalf("error getting pull request files: %v", err)
-	}
+	var fileNames []string
+	opts := github.ListOptions{PerPage: 100}
+	for {
+		files, resp, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, &opts)
+		if err != nil {
+			log.Fatalf("error getting pull request files: %v", err)
+		}
 
-	fileNames := make([]string, len(files))
-
-	for i, file := range files {
-		fileNames[i] = *file.Filename
+		for _, file := range files {
+			fileNames = append(fileNames, *file.Filename)
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 	return fileNames, nil
 }
@@ -65,11 +71,11 @@ func (svc *GithubService) PublishComment(prNumber int, comment string) error {
 	return err
 }
 
-func (svc *GithubService) GetComments(prNumber int) ([]orchestrator2.Comment, error) {
+func (svc *GithubService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	comments, _, err := svc.Client.Issues.ListComments(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueListCommentsOptions{ListOptions: github.ListOptions{PerPage: 100}})
-	commentBodies := make([]orchestrator2.Comment, len(comments))
+	commentBodies := make([]orchestrator.Comment, len(comments))
 	for i, comment := range comments {
-		commentBodies[i] = orchestrator2.Comment{
+		commentBodies[i] = orchestrator.Comment{
 			Id:   *comment.ID,
 			Body: comment.Body,
 		}
@@ -177,8 +183,8 @@ func (svc *GithubService) GetBranchName(prNumber int) (string, error) {
 	return pr.Head.GetRef(), nil
 }
 
-func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator2.Job, bool, error) {
-	jobs := make([]orchestrator2.Job, 0)
+func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
+	jobs := make([]orchestrator.Job, 0)
 
 	for _, project := range impactedProjects {
 		workflow, ok := workflows[project.Workflow]
@@ -190,15 +196,15 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 		pullRequestNumber := payload.PullRequest.Number
 
 		if *payload.Action == "closed" && *payload.PullRequest.Merged && *(payload.PullRequest.Base).Ref == *(payload.Repo).DefaultBranch {
-			jobs = append(jobs, orchestrator2.Job{
+			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
 				ProjectWorkspace:  project.Workspace,
 				ProjectWorkflow:   project.Workflow,
 				Terragrunt:        project.Terragrunt,
 				Commands:          workflow.Configuration.OnCommitToDefault,
-				ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
+				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 				CommandEnvVars:    commandEnvVars,
 				StateEnvVars:      stateEnvVars,
 				PullRequestNumber: pullRequestNumber,
@@ -207,15 +213,16 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:       *payload.Sender.Login,
 			})
 		} else if *payload.Action == "opened" || *payload.Action == "reopened" || *payload.Action == "synchronize" {
-			jobs = append(jobs, orchestrator2.Job{
+			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
 				ProjectWorkspace:  project.Workspace,
 				ProjectWorkflow:   project.Workflow,
 				Terragrunt:        project.Terragrunt,
+				OpenTofu:          project.OpenTofu,
 				Commands:          workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
+				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 				CommandEnvVars:    commandEnvVars,
 				StateEnvVars:      stateEnvVars,
 				PullRequestNumber: pullRequestNumber,
@@ -224,15 +231,16 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:       *payload.Sender.Login,
 			})
 		} else if *payload.Action == "closed" {
-			jobs = append(jobs, orchestrator2.Job{
+			jobs = append(jobs, orchestrator.Job{
 				ProjectName:       project.Name,
 				ProjectDir:        project.Dir,
 				ProjectWorkspace:  project.Workspace,
 				ProjectWorkflow:   project.Workflow,
 				Terragrunt:        project.Terragrunt,
+				OpenTofu:          project.OpenTofu,
 				Commands:          workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
+				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 				CommandEnvVars:    commandEnvVars,
 				StateEnvVars:      stateEnvVars,
 				PullRequestNumber: pullRequestNumber,
@@ -245,8 +253,8 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 	return jobs, true, nil
 }
 
-func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator2.Job, bool, error) {
-	jobs := make([]orchestrator2.Job, 0)
+func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
+	jobs := make([]orchestrator.Job, 0)
 
 	supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
@@ -277,22 +285,23 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
 				workspace := project.Workspace
-				workspaceOverride, err := orchestrator2.ParseWorkspace(*payload.Comment.Body)
+				workspaceOverride, err := orchestrator.ParseWorkspace(*payload.Comment.Body)
 				if err != nil {
-					return []orchestrator2.Job{}, false, err
+					return []orchestrator.Job{}, false, err
 				}
 				if workspaceOverride != "" {
 					workspace = workspaceOverride
 				}
-				jobs = append(jobs, orchestrator2.Job{
+				jobs = append(jobs, orchestrator.Job{
 					ProjectName:       project.Name,
 					ProjectDir:        project.Dir,
 					ProjectWorkspace:  workspace,
 					ProjectWorkflow:   project.Workflow,
 					Terragrunt:        project.Terragrunt,
+					OpenTofu:          project.OpenTofu,
 					Commands:          []string{command},
-					ApplyStage:        orchestrator2.ToConfigStage(workflow.Apply),
-					PlanStage:         orchestrator2.ToConfigStage(workflow.Plan),
+					ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
 					CommandEnvVars:    commandEnvVars,
 					StateEnvVars:      stateEnvVars,
 					PullRequestNumber: issueNumber,
@@ -306,7 +315,7 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 	return jobs, coversAllImpactedProjects, nil
 }
 
-func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerConfig, ciService orchestrator2.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
+func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerConfig, ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
 	var impactedProjects []digger_config.Project
 	var prNumber int
 
@@ -329,7 +338,7 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 		}
 
 		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-		requestedProject := orchestrator2.ParseProjectName(*event.Comment.Body)
+		requestedProject := orchestrator.ParseProjectName(*event.Comment.Body)
 
 		if requestedProject == "" {
 			return impactedProjects, nil, prNumber, nil
@@ -348,7 +357,7 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 	return impactedProjects, nil, prNumber, nil
 }
 
-func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator2.PullRequestService) ([]digger_config.Project, int, error) {
+func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, int, error) {
 	var impactedProjects []digger_config.Project
 	var prNumber int
 	prNumber = *payload.PullRequest.Number
@@ -417,7 +426,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 	return impactedProjectsWithDependantProjects, nil
 }
 
-func ProcessGitHubIssueCommentEvent(payload *github.IssueCommentEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator2.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
+func ProcessGitHubIssueCommentEvent(payload *github.IssueCommentEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
 	var impactedProjects []digger_config.Project
 	var prNumber int
 
@@ -437,7 +446,7 @@ func ProcessGitHubIssueCommentEvent(payload *github.IssueCommentEvent, diggerCon
 		}
 	}
 
-	requestedProject := orchestrator2.ParseProjectName(*payload.Comment.Body)
+	requestedProject := orchestrator.ParseProjectName(*payload.Comment.Body)
 
 	if requestedProject == "" {
 		return impactedProjects, nil, prNumber, nil
