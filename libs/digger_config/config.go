@@ -17,6 +17,7 @@ type Project struct {
 	Dir                string
 	Workspace          string
 	Terragrunt         bool
+	OpenTofu           bool
 	Workflow           string
 	IncludePatterns    []string
 	ExcludePatterns    []string
