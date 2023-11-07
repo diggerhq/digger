@@ -583,8 +583,8 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 		// send notification
 		notificationMessage := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
 		notification := notification.SlackNotification{Url: slackNotificationUrl}
-		notification.Send(notificationMessage)
-
+		err := notification.Send(notificationMessage)
+		log.Printf("Erorr sending drift notification: %v", err)
 	} else if planPerformed && !nonEmptyPlan {
 		log.Printf("No drift detected")
 	} else {
