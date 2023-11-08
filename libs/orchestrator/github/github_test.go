@@ -112,3 +112,9 @@ func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
 	assert.NotContains(t, projectNames, "k")
 	assert.NotContains(t, projectNames, "b")
 }
+
+func TestFindAllChangedFilesOfPR(t *testing.T) {
+	githubPrService := NewGitHubService("", "digger", "diggerhq")
+	files, _ := githubPrService.GetChangedFiles(98)
+	assert.Equal(t, 45, len(files))
+}
