@@ -92,8 +92,7 @@
             "pages": [
               "cloud-providers/aws",
               "cloud-providers/setting-up-separate-mgmt-account",
-              "cloud-providers/authenticating-with-oidc-on-aws",
-              "cloud-providers/multi-account-setup"
+              "cloud-providers/authenticating-with-oidc-on-aws"
             ]
         },
         {
