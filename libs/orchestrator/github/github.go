@@ -13,7 +13,11 @@ import (
 )
 
 func NewGitHubService(ghToken string, repoName string, owner string) GithubService {
-	client := github.NewTokenClient(context.Background(), ghToken)
+	client := github.NewClient(nil)
+	if ghToken != "" {
+		client = client.WithAuthToken(ghToken)
+	}
+
 	return GithubService{
 		Client:   client,
 		RepoName: repoName,
