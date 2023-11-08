@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
 type Notification interface {
@@ -20,10 +21,17 @@ type SlackNotification struct {
 
 func SplitCodeBlocks(message string) []string {
 	var res []string
-	regex := regexp.MustCompile(`\\n`)
+
+	if strings.Count(message, "```") < 2 {
+		res = append(res, message)
+		return res
+	}
+
+	regex := regexp.MustCompile(`\n`)
 	split := regex.Split(message, -1)
 	part := ""
 	for _, line := range split {
+		fmt.Printf("line: %v\n", line)
 		if len(part+line) > 4000 {
 			res = append(res, part+"\n"+line+"\n```")
 			part = "```\n" + line
