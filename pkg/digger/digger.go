@@ -1,8 +1,6 @@
 package digger
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	config "github.com/diggerhq/digger/libs/digger_config"
@@ -17,11 +15,10 @@ import (
 	"github.com/diggerhq/digger/pkg/core/terraform"
 	"github.com/diggerhq/digger/pkg/core/utils"
 	"github.com/diggerhq/digger/pkg/locking"
+	"github.com/diggerhq/digger/pkg/notification"
 	"github.com/diggerhq/digger/pkg/reporting"
 	"github.com/diggerhq/digger/pkg/usage"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -576,7 +573,6 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 	}
 
 	if planPerformed && nonEmptyPlan {
-		httpClient := &http.Client{}
 		slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
 
 		if slackNotificationUrl == "" {
@@ -584,46 +580,13 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 			log.Printf(msg)
 			return msg, fmt.Errorf(msg)
 		}
-
-		type SlackMessage struct {
-			Text string `json:"text"`
-		}
-		slackMessage := SlackMessage{
-			Text: fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan),
-		}
-
-		jsonData, err := json.Marshal(slackMessage)
+		// send notification
+		notificationMessage := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
+		notification := notification.SlackNotification{Url: slackNotificationUrl}
+		err := notification.Send(notificationMessage)
 		if err != nil {
-			msg := fmt.Sprintf("failed to marshal slack message. %v", err)
-			log.Printf(msg)
-			return msg, fmt.Errorf(msg)
+			log.Printf("Erorr sending drift notification: %v", err)
 		}
-
-		request, err := http.NewRequest("POST", slackNotificationUrl, bytes.NewBuffer(jsonData))
-		if err != nil {
-			msg := fmt.Sprintf("failed to create slack notification request. %v", err)
-			log.Printf(msg)
-			return msg, fmt.Errorf(msg)
-		}
-
-		request.Header.Set("Content-Type", "application/json")
-		resp, err := httpClient.Do(request)
-		if err != nil {
-			msg := fmt.Sprintf("failed to send slack notification request. %v", err)
-			log.Printf(msg)
-		}
-		if resp.StatusCode != 200 {
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				msg := fmt.Sprintf("failed to read response body. %v", err)
-				log.Printf(msg)
-				return msg, fmt.Errorf(msg)
-			}
-			msg := fmt.Sprintf("failed to send slack notification request. %v. Message: %v", resp.Status, body)
-			log.Printf(msg)
-			return msg, fmt.Errorf(msg)
-		}
-		defer resp.Body.Close()
 	} else if planPerformed && !nonEmptyPlan {
 		log.Printf("No drift detected")
 	} else {
