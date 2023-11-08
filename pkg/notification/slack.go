@@ -27,11 +27,10 @@ func SplitCodeBlocks(message string) []string {
 		return res
 	}
 
-	regex := regexp.MustCompile(`\n`)
+	regex := regexp.MustCompile("\n")
 	split := regex.Split(message, -1)
 	part := ""
 	for _, line := range split {
-		fmt.Printf("line: %v\n", line)
 		if len(part+line) > 4000 {
 			res = append(res, part+"\n"+line+"\n```")
 			part = "```\n" + line
