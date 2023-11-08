@@ -74,6 +74,7 @@ func (slack SlackNotification) Send(message string) error {
 		if err != nil {
 			msg := fmt.Sprintf("failed to send slack notification request. %v", err)
 			log.Printf(msg)
+			return fmt.Errorf(msg)
 		}
 		if resp.StatusCode != 200 {
 			body, err := io.ReadAll(resp.Body)
@@ -86,7 +87,7 @@ func (slack SlackNotification) Send(message string) error {
 			log.Printf(msg)
 			return fmt.Errorf(msg)
 		}
-		defer resp.Body.Close()
+		resp.Body.Close()
 	}
 
 	return nil
