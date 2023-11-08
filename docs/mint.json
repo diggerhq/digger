@@ -47,6 +47,12 @@
             ]
         },
         {
+          "group": "How-to Guides",
+          "pages": [
+              "guides/multiacc-aws"
+          ]
+      },
+        {
             "group": "Configuration",
             "pages": [
                 "configuration/digger.yml",
