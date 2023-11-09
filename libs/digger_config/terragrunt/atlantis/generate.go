@@ -12,8 +12,8 @@ import (
 	"sort"
 
 	"github.com/hashicorp/go-getter"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/singleflight"
+	"log"
 
 	"os"
 	"path/filepath"
@@ -707,7 +707,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 			for _, terragruntPath := range terragruntFiles {
 				terragruntPath := terragruntPath // https://golang.org/doc/faq#closures_and_goroutines
 
-				fmt.Printf("ITERATING TERRAGRUNT PATH: %v\n", terragruntPath)
+				log.Printf("ITERATING TERRAGRUNT PATH: %v | %v | %v | %v | %v\n", terragruntPath, createHclProjectExternalChilds, workingDir, gitRoot, projectHclDirs)
 				// don't create atlantis projects already covered by project hcl file projects
 				skipProject := false
 				if createHclProjectExternalChilds && workingDir == gitRoot && len(projectHclDirs) > 0 {
@@ -718,6 +718,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						}
 					}
 				}
+				log.Printf("SKIP PROJECT: %v \n", skipProject)
 				if skipProject {
 					continue
 				}
@@ -752,7 +753,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						for i := range atlantisConfig.Projects {
 							if atlantisConfig.Projects[i].Dir == project.Dir {
 								updateProject = true
-								log.Info("Updated project for ", terragruntPath)
+								log.Printf("Updated project for %v\n", terragruntPath)
 								atlantisConfig.Projects[i] = *project
 
 								// projects should be unique, let's exit for loop for performance
@@ -762,11 +763,11 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						}
 
 						if !updateProject {
-							log.Info("Created project for ", terragruntPath)
+							log.Printf("Created project for %v\n", terragruntPath)
 							atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 						}
 					} else {
-						log.Info("Created project for ", terragruntPath)
+						log.Printf("Created project for %v\n", terragruntPath)
 						atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 					}
 
