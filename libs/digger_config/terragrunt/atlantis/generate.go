@@ -764,11 +764,11 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						}
 
 						if !updateProject {
-							log.Printf("Created project for %v\n", terragruntPath)
+							fmt.Printf("1Created project for %v\n", terragruntPath)
 							atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 						}
 					} else {
-						log.Printf("Created project for %v\n", terragruntPath)
+						fmt.Printf("2Created project for %v\n", terragruntPath)
 						atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 					}
 
@@ -884,5 +884,6 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 		}
 	}
 
+	fmt.Printf("COMPLETED PARSING %v ~~ %Rv", atlantisConfig, dependsOn)
 	return &atlantisConfig, dependsOn, nil
 }
