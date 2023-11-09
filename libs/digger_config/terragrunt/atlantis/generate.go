@@ -333,19 +333,23 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	// dependencies being nil is a sign from `getDependencies` that this project should be skipped
 	fmt.Printf("INSIDE CREATE PROJECT, dependencies: %v | %v\n", dependencies, err)
 	if dependencies == nil {
+		fmt.Printf("returning in dependencies \n")
 		return nil, potentialProjectDependencies, nil
 	}
 
 	absoluteSourceDir := filepath.Dir(sourcePath) + string(filepath.Separator)
 
 	locals, err := parseLocals(sourcePath, options, nil)
+	fmt.Printf("INSIDE CREATE PROJECT, result of locals: %v\n", locals)
 	if err != nil {
+		fmt.Printf("returning in parselocals IF \n")
 		return nil, potentialProjectDependencies, err
 	}
 
 	// If `atlantis_skip` is true on the module, then do not produce a project for it
 	fmt.Printf("INSIDE CREATE PROJECT, locals: %v\n", locals)
 	if locals.Skip != nil && *locals.Skip {
+		fmt.Printf("returning in parselocals IF2 \n")
 		return nil, potentialProjectDependencies, nil
 	}
 
