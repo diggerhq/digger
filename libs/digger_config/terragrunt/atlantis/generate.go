@@ -344,6 +344,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	}
 
 	// If `atlantis_skip` is true on the module, then do not produce a project for it
+	fmt.Printf("INSIDE CREATE PROJECT, locals: %v\n", locals)
 	if locals.Skip != nil && *locals.Skip {
 		return nil, potentialProjectDependencies, nil
 	}
