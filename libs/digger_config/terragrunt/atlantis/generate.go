@@ -457,7 +457,9 @@ func createHclProject(defaultWorkflow string, defaultApplyRequirements []string,
 	}
 
 	// If `atlantis_skip` is true on the module, then do not produce a project for it
+	fmt.Printf("INSIDE CREATE PROJECT, parselocals: %v\n", locals)
 	if locals.Skip != nil && *locals.Skip {
+
 		return nil, nil
 	}
 
@@ -738,7 +740,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 					}
 					// if project and err are nil then skip this project
 					if err == nil && project == nil {
-						fmt.Printf("ERROR CreateProject returned nil ?!?%v $v $v", project, projDeps, err)
+						fmt.Printf("ERROR CreateProject returned nil ?!? %v | %v | %v", project, projDeps, err)
 						return nil
 					}
 
