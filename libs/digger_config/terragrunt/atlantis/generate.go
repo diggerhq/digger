@@ -707,6 +707,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 			for _, terragruntPath := range terragruntFiles {
 				terragruntPath := terragruntPath // https://golang.org/doc/faq#closures_and_goroutines
 
+				fmt.Printf("ITERATING TERRAGRUNT PATH: %v\n", terragruntPath)
 				// don't create atlantis projects already covered by project hcl file projects
 				skipProject := false
 				if createHclProjectExternalChilds && workingDir == gitRoot && len(projectHclDirs) > 0 {
@@ -798,7 +799,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 				lock.Lock()
 				defer lock.Unlock()
 
-				log.Info("Created "+projectHcl+" project for ", workingDir)
+				fmt.Println("Created "+projectHcl+" project for ", workingDir)
 				atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 
 				return nil
@@ -866,6 +867,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 	dependsOn := make(map[string][]string)
 
+	fmt.Printf("POTENTIAL PROJECT DEPENDENCIES: %v\n", potentialProjectDependencies)
 	for projectName, dependencies := range potentialProjectDependencies {
 		for _, dep := range dependencies {
 			_, ok := potentialProjectDependencies[dep]
