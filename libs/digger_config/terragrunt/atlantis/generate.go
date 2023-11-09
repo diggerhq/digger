@@ -331,6 +331,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	}
 
 	// dependencies being nil is a sign from `getDependencies` that this project should be skipped
+	fmt.Printf("INSIDE CREATE PROJECT, dependencies: %v | %v\n", dependencies, err)
 	if dependencies == nil {
 		return nil, potentialProjectDependencies, nil
 	}
@@ -457,7 +458,6 @@ func createHclProject(defaultWorkflow string, defaultApplyRequirements []string,
 	}
 
 	// If `atlantis_skip` is true on the module, then do not produce a project for it
-	fmt.Printf("INSIDE CREATE PROJECT, parselocals: %v\n", locals)
 	if locals.Skip != nil && *locals.Skip {
 
 		return nil, nil
