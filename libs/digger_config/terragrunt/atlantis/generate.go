@@ -3,6 +3,7 @@ package atlantis
 import (
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gruntwork-io/terragrunt/cli/commands/terraform"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -732,10 +733,12 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 					fmt.Printf("CREATING PROJECT: %v\n", terragruntPath)
 					project, projDeps, err := createProject(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, defaultWorkflow, defaultApplyRequirements, autoPlan, defaultTerraformVersion, createProjectName, createWorkspace, terragruntPath)
 					if err != nil {
+						fmt.Printf("ERROR CreateProject %v", err)
 						return err
 					}
 					// if project and err are nil then skip this project
 					if err == nil && project == nil {
+						fmt.Printf("ERROR CreateProject returned nil ?!?%v $v $v", project, projDeps, err)
 						return nil
 					}
 
@@ -884,6 +887,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 		}
 	}
 
+	spew.Dump(atlantisConfig)
 	fmt.Printf("COMPLETED PARSING %v ~~ %Rv", atlantisConfig, dependsOn)
 	return &atlantisConfig, dependsOn, nil
 }
