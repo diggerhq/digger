@@ -332,10 +332,11 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 
 	// dependencies being nil is a sign from `getDependencies` that this project should be skipped
 	fmt.Printf("INSIDE CREATE PROJECT, dependencies: %v | %v\n", dependencies, err)
-	if dependencies == nil {
-		fmt.Printf("returning in dependencies \n")
-		return nil, potentialProjectDependencies, nil
-	}
+	spew.Dump(dependencies)
+	//if dependencies == nil {
+	//	fmt.Printf("returning in dependencies \n")
+	//	return nil, potentialProjectDependencies, nil
+	//}
 
 	absoluteSourceDir := filepath.Dir(sourcePath) + string(filepath.Separator)
 
