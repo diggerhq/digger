@@ -2,6 +2,7 @@ package atlantis
 
 import (
 	"context"
+	"fmt"
 	"github.com/gruntwork-io/terragrunt/cli/commands/terraform"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -603,6 +604,7 @@ func getAllTerragruntFiles(filterPath string, projectHclFiles []string, path str
 	orderedConfigFilePaths := []string{}
 	for _, workingPath := range workingPaths {
 		paths, err := config.FindConfigFilesInPath(workingPath, options)
+		fmt.Printf("THE PATHS ARE: %v\n", paths)
 		if err != nil {
 			return nil, err
 		}
