@@ -306,6 +306,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 		return cascadedDeps, nil
 	})
 
+	fmt.Printf("!!! value of res in dependencies: %v", res)
 	if res != nil {
 		return res.([]string), err
 	} else {
