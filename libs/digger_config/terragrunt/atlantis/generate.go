@@ -331,7 +331,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	}
 
 	// dependencies being nil is a sign from `getDependencies` that this project should be skipped
-	fmt.Printf("INSIDE CREATE PROJECT, dependencies: %v | %v\n", dependencies, err)
+	fmt.Printf("INSIDE CREATE PROJECT, dependencies: %v | %v | %v | %v\n", dependencies, len(dependencies), cap(dependencies), err)
 	spew.Dump(dependencies)
 	//if dependencies == nil {
 	//	fmt.Printf("returning in dependencies \n")
