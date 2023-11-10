@@ -117,7 +117,7 @@ func sliceUnion(a, b []string) []string {
 }
 
 // Parses the terragrunt digger_config at `path` to find all modules it depends on
-func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, path string, terragruntOptions *options.TerragruntOptions) ([]string, error) {
+func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, path string, terragruntOptions *options.TerragruntOptions) ([]string, bool, error) {
 	res, err, _ := requestGroup.Do(path, func() (interface{}, error) {
 		// Check if this path has already been computed
 		cachedResult, ok := getDependenciesCache.get(path)
@@ -255,8 +255,11 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			depPath := dep
 			terrOpts, _ := options.NewTerragruntOptionsWithConfigPath(depPath)
 			terrOpts.OriginalTerragruntConfigPath = terragruntOptions.OriginalTerragruntConfigPath
-			childDeps, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, depPath, terrOpts)
+			childDeps, skipProject, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, depPath, terrOpts)
 			if err != nil {
+				continue
+			}
+			if skipProject {
 				continue
 			}
 
@@ -305,9 +308,9 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 	})
 
 	if res != nil {
-		return res.([]string), err
+		return res.([]string), false, err
 	} else {
-		return nil, err
+		return nil, true, err
 	}
 }
 
@@ -323,13 +326,13 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	options.RunTerragrunt = terraform.Run
 	options.Env = getEnvs()
 
-	dependencies, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
+	dependencies, skipProject, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
 	if err != nil {
 		return nil, potentialProjectDependencies, err
 	}
 
 	// dependencies being nil is a sign from `getDependencies` that this project should be skipped
-	if dependencies == nil {
+	if skipProject == true {
 		return nil, potentialProjectDependencies, nil
 	}
 
@@ -506,12 +509,12 @@ func createHclProject(defaultWorkflow string, defaultApplyRequirements []string,
 		options.RunTerragrunt = terraform.Run
 		options.Env = getEnvs()
 
-		dependencies, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
+		dependencies, skipProject, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
 		if err != nil {
 			return nil, err
 		}
 		// dependencies being nil is a sign from `getDependencies` that this project should be skipped
-		if dependencies == nil {
+		if skipProject == true {
 			return nil, nil
 		}
 
