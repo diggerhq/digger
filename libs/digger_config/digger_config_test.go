@@ -1011,7 +1011,7 @@ generate_projects:
     defaultWorkflow: default
 `
 
-	repoUrl := "https://github.com/gruntwork-io/terragrunt-infrastructure-live-example"
+	repoUrl := "https://github.com/diggerhq/terragrunt-infrastructure-live-example-for-test"
 	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
 		URL:      repoUrl,
 		Progress: os.Stdout,
