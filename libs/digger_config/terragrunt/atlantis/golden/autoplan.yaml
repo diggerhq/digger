@@ -1,0 +1,26 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../terragrunt.hcl
+  dir: autoplan_false
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../terragrunt.hcl
+  dir: autoplan_true
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../terragrunt.hcl
+  dir: set_in_parent
+version: 3

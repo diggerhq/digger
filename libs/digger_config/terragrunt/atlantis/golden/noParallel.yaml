@@ -1,0 +1,11 @@
+automerge: false
+parallel_apply: false
+parallel_plan: false
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+  dir: .
+version: 3

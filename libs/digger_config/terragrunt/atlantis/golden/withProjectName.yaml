@@ -1,0 +1,13 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../../terragrunt.hcl
+  dir: child/deep
+  name: child_deep
+version: 3
