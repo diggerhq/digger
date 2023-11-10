@@ -1,0 +1,29 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '**/*.hcl'
+    - '**/*.tf*'
+    - ../../account.hcl
+    - ../region.hcl
+    - ../../arbitrary.hcl
+    - ../stage/**/*.hcl
+  dir: non-prod/us-east-1/qa
+  workflow: anotherWorkflowSpecifiedInParent
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '**/*.hcl'
+    - '**/*.tf*'
+    - ../../account.hcl
+    - ../region.hcl
+  dir: non-prod/us-east-1/stage
+  workflow: workflowSpecifiedInParent
+version: 3

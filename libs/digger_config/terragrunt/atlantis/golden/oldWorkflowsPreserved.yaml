@@ -1,0 +1,19 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+  dir: .
+version: 3
+workflows:
+  terragrunt:
+    apply:
+      steps:
+      - run: terragrunt apply -no-color $PLANFILE
+    plan:
+      steps:
+      - run: terragrunt plan -no-color -out $PLANFILE

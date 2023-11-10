@@ -1,0 +1,51 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../../../../terragrunt.hcl
+    - ../network/terragrunt.hcl
+    - ../../stage/network/terragrunt.hcl
+  dir: myproject/eu-south-1/infra/apps
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../../../../terragrunt.hcl
+    - ../../stage/network/terragrunt.hcl
+  dir: myproject/eu-south-1/infra/network
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../../../../terragrunt.hcl
+    - ../network/terragrunt.hcl
+  dir: myproject/eu-south-1/stage/dbs
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../../../../terragrunt.hcl
+  dir: myproject/eu-south-1/stage/network
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../../../terragrunt.hcl
+  dir: myproject/global/dns
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - ../../../terragrunt.hcl
+  dir: myproject/global/iam
+version: 3
