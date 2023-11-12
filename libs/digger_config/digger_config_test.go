@@ -1024,13 +1024,12 @@ generate_projects:
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 
-	assert.Equal(t, "_", config.Projects[0].Name)
-	assert.Equal(t, "non-prod_us-east-1_qa_mysql", config.Projects[1].Name)
-	assert.Equal(t, "non-prod_us-east-1_qa_webserver-cluster", config.Projects[2].Name)
-	assert.Equal(t, "non-prod_us-east-1_stage_mysql", config.Projects[3].Name)
-	assert.Equal(t, "non-prod_us-east-1_stage_webserver-cluster", config.Projects[4].Name)
-	assert.Equal(t, "prod_us-east-1_prod_mysql", config.Projects[5].Name)
-	assert.Equal(t, "prod_us-east-1_prod_webserver-cluster", config.Projects[6].Name)
+	assert.Equal(t, "non-prod_us-east-1_qa_mysql", config.Projects[0].Name)
+	assert.Equal(t, "non-prod_us-east-1_qa_webserver-cluster", config.Projects[1].Name)
+	assert.Equal(t, "non-prod_us-east-1_stage_mysql", config.Projects[2].Name)
+	assert.Equal(t, "non-prod_us-east-1_stage_webserver-cluster", config.Projects[3].Name)
+	assert.Equal(t, "prod_us-east-1_prod_mysql", config.Projects[4].Name)
+	assert.Equal(t, "prod_us-east-1_prod_webserver-cluster", config.Projects[5].Name)
 }
 
 func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
