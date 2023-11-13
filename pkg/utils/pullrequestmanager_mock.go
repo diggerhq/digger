@@ -76,6 +76,11 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetComments(pr
 	return []orchestrator.Comment{}, nil
 }
 
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetApprovals(prNumber int) ([]string, error) {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetApprovals")
+	return []string{}, nil
+}
+
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(prNumber int, commentId interface{}, comment string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "EditComment")
 	return nil

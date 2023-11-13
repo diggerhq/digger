@@ -84,7 +84,7 @@ func RunJobs(
 		SCMrepository := splits[1]
 
 		for _, command := range job.Commands {
-			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.RequestedBy)
+			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, job.RequestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
@@ -145,7 +145,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
-	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, requestedBy)
+	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy)
 
 	if err != nil {
 		return "error checking policy", fmt.Errorf("error checking policy: %v", err)
@@ -410,7 +410,7 @@ func RunJob(
 
 	for _, command := range job.Commands {
 
-		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, requestedBy)
+		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, nil, SCMOrganisation, SCMrepository, job.ProjectName, command, nil, requestedBy)
 
 		if err != nil {
 			return fmt.Errorf("error checking policy: %v", err)
