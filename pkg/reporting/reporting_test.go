@@ -1,10 +1,11 @@
 package reporting
 
 import (
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/pkg/core/utils"
 	"testing"
 	"time"
+
+	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/pkg/core/utils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -159,6 +160,10 @@ type MockCiService struct {
 
 func (t MockCiService) GetUserTeams(organisation string, user string) ([]string, error) {
 	return nil, nil
+}
+
+func (t MockCiService) GetApprovals(prNumber int) ([]string, error) {
+	return []string{}, nil
 }
 
 func (t MockCiService) GetChangedFiles(prNumber int) ([]string, error) {
