@@ -48,7 +48,7 @@ func (lock *MockLock) GetLock(resource string) (*int, error) {
 type MockPolicyChecker struct {
 }
 
-func (t MockPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+func (t MockPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, command string, ptr *int, requestedBy string) (bool, error) {
 	return false, nil
 }
 
