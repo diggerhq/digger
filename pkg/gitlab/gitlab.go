@@ -238,6 +238,12 @@ func (gitlabService GitLabService) GetComments(prNumber int) ([]orchestrator.Com
 	return nil, nil
 }
 
+func (gitlabService *GitLabService) GetApprovals(prNumber int) ([]string, error) {
+	approvals := make([]string, 0)
+	// TODO: implement me
+	return approvals, nil
+}
+
 func (gitlabService GitLabService) GetBranchName(prNumber int) (string, error) {
 	//TODO implement me
 	return "", nil

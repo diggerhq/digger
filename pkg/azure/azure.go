@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	digger_config2 "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/pkg/utils"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
-	"strings"
 )
 
 const (
@@ -353,6 +354,12 @@ func (a *AzureReposService) GetComments(prNumber int) ([]orchestrator.Comment, e
 	}
 	return result, nil
 
+}
+
+func (svc *AzureReposService) GetApprovals(prNumber int) ([]string, error) {
+	approvals := make([]string, 0)
+	// TODO: implement me
+	return approvals, nil
 }
 
 func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2.DiggerConfig, ciService orchestrator.PullRequestService) ([]digger_config2.Project, *digger_config2.Project, int, error) {
