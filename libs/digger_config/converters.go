@@ -26,6 +26,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.Dir,
 			p.Workspace,
 			p.Terragrunt,
+			p.OpenTofu,
 			p.Workflow,
 			p.IncludePatterns,
 			p.ExcludePatterns,
