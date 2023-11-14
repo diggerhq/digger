@@ -1,9 +1,10 @@
 package policy
 
 import (
+	"testing"
+
 	"github.com/diggerhq/digger/pkg/core/policy"
 	"github.com/diggerhq/digger/pkg/utils"
-	"testing"
 )
 
 type OpaExamplePolicyProvider struct {
@@ -176,7 +177,7 @@ func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
 			ciService := utils.MockPullRequestManager{Teams: []string{"engineering"}}
-			got, err := p.CheckAccessPolicy(ciService, nil, tt.organisation, tt.name, tt.name, tt.command, nil, tt.requestedBy)
+			got, err := p.CheckAccessPolicy(ciService, nil, tt.organisation, tt.name, tt.name, tt.command, nil, tt.requestedBy, []string{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.CheckAccessPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
