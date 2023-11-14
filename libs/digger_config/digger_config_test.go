@@ -2,12 +2,13 @@ package digger_config
 
 import (
 	"fmt"
-	"github.com/dominikbraun/graph"
-	"github.com/go-git/go-git/v5"
 	"log"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/dominikbraun/graph"
+	"github.com/go-git/go-git/v5"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,6 +38,27 @@ func TestDiggerConfigWhenMultipleConfigExist(t *testing.T) {
 	assert.Error(t, err, "expected error to be returned")
 	assert.ErrorContains(t, err, ErrDiggerConfigConflict.Error(), "expected error to match target error")
 	assert.Nil(t, dg, "expected diggerConfig to be nil")
+}
+
+func TestDiggerConfigWhenCustomFileName(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	os.Setenv("DIGGER_FILENAME", "digger-custom.yml")
+
+	_, err := os.Create(path.Join(tempDir, "digger-custom.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configPath, err := retrieveConfigFile(tempDir)
+	fmt.Println(configPath)
+
+	assert.Nil(t, err)
+	assert.Equal(t, configPath, path.Join(tempDir, "digger-custom.yml"))
+
+	os.Unsetenv("DIGGER_FILENAME")
+
 }
 
 func TestDiggerConfigWhenOnlyYamlExists(t *testing.T) {
