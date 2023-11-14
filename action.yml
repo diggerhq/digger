@@ -92,6 +92,9 @@ inputs:
     description: Disable locking
     required: false
     default: 'false'
+  digger-filename:
+    description: Alternative Digger configuration file name
+    required: false
   digger-token:
     description: Digger token
     required: false
@@ -256,6 +259,7 @@ runs:
         DIGGER_TOKEN: ${{ inputs.digger-token }}
         DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
+        DIGGER_FILENAME: ${{ inputs.digger-filename }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
         REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
