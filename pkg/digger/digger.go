@@ -254,14 +254,13 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					log.Printf(msg)
 					return msg, fmt.Errorf(msg)
 				} else {
-					reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan")
+					err := reporter.Report("Terraform plan validation checks succeeded :white_check_mark:", planPolicyFormatter)
+					if err != nil {
+						log.Printf("Failed to report plan. %v", err)
+					}
 				}
 			} else {
-				msg := "Terraform plan completed with no changes to apply"
-				err := reporter.Report(msg, utils.AsComment(msg))
-				if err != nil {
-					log.Printf("Failed to report plan. %v", err)
-				}
+				reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan")
 			}
 			err := prService.SetStatus(*job.PullRequestNumber, "success", job.ProjectName+"/plan")
 			if err != nil {
