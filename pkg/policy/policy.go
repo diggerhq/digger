@@ -279,12 +279,13 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	}
 
 	input := map[string]interface{}{
-		"user":         requestedBy,
-		"organisation": SCMOrganisation,
-		"teams":        teams,
-		"approvals":    approvals,
-		"action":       command,
-		"project":      projectName,
+		"user":                 requestedBy,
+		"organisation":         SCMOrganisation,
+		"teams":                teams,
+		"approvals":            approvals,
+		"planPolicyViolations": planPolicyViolations,
+		"action":               command,
+		"project":              projectName,
 	}
 
 	if policy == "" {
