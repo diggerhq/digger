@@ -23,6 +23,7 @@ require (
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.10.0
 	github.com/google/go-github/v55 v55.0.0
+	github.com/google/go-github/v56 v56.0.0
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/terragrunt v0.53.3
 	github.com/hashicorp/go-getter v1.7.3
