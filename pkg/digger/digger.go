@@ -223,8 +223,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			return msg, fmt.Errorf(msg)
 		} else if planPerformed {
-			reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 			if isNonEmptyPlan {
+				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, job.ProjectName, planJsonOutput)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to validate plan. %v", err)
@@ -259,6 +259,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 						log.Printf("Failed to report plan. %v", err)
 					}
 				}
+			} else {
+				reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan\n")
 			}
 			err := prService.SetStatus(*job.PullRequestNumber, "success", job.ProjectName+"/plan")
 			if err != nil {
