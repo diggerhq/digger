@@ -138,10 +138,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
 		reporter := &reporting.CiReporter{
-			CiService:         &githubPrService,
-			PrNumber:          *job.PullRequestNumber,
-			ReportStrategy:    reportingStrategy,
-			IsSupportMarkdown: true,
+			CiService:      &githubPrService,
+			PrNumber:       *job.PullRequestNumber,
+			ReportStrategy: reportingStrategy,
 		}
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
@@ -305,9 +304,10 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
 
 		reporter := &reporting.CiReporter{
-			CiService:      &githubPrService,
-			PrNumber:       prNumber,
-			ReportStrategy: reportingStrategy,
+			CiService:         &githubPrService,
+			PrNumber:          prNumber,
+			ReportStrategy:    reportingStrategy,
+			IsSupportMarkdown: true,
 		}
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
