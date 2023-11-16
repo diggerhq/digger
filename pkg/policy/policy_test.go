@@ -229,7 +229,7 @@ func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 			var p = &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
-			got, _, err := p.CheckPlanPolicy("", "", tt.planJsonOutput)
+			got, _, err := p.CheckPlanPolicy("", "", "", tt.planJsonOutput)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.CheckPlanPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
