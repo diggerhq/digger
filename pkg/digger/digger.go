@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	config "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/pkg/core/backend"
@@ -382,6 +383,9 @@ func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {
 func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId string, plan string) {
 	var formatter func(string) string
 
+	fmt.Printf("reporting terraform plan output for: %v \n\n\n plaN: %v\n", projectId, plan)
+	fmt.Printf("is support markdown:: %v \n", reporter.SupportsMarkdown())
+	spew.Dump(reporter)
 	if reporter.SupportsMarkdown() {
 		formatter = utils.GetTerraformOutputAsCollapsibleComment("Plan for <b>" + projectId + "</b>")
 	} else {
