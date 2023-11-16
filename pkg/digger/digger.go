@@ -226,7 +226,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		} else if planPerformed {
 			reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 			if isNonEmptyPlan {
-				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, job.ProjectName, planJsonOutput)
+				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, planJsonOutput)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to validate plan. %v", err)
 					log.Printf(msg)
@@ -314,7 +314,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				}
 				return msg, fmt.Errorf(msg)
 			} else if planPerformed && isNonEmptyPlan {
-				_, planPolicyViolations, err := policyChecker.CheckPlanPolicy(SCMrepository, job.ProjectName, planJsonOutput)
+				_, planPolicyViolations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMrepository, job.ProjectName, planJsonOutput)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to validate plan. %v", err)
 					log.Printf(msg)
@@ -516,7 +516,7 @@ func RunJob(
 				}
 				return fmt.Errorf(msg)
 			}
-			planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, job.ProjectName, planJsonOutput)
+			planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, planJsonOutput)
 			log.Printf(strings.Join(messages, "\n"))
 			if err != nil {
 				msg := fmt.Sprintf("Failed to validate plan %v", err)

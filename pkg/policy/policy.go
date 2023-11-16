@@ -32,7 +32,7 @@ func (p NoOpPolicyChecker) CheckAccessPolicy(_ orchestrator.OrgService, _ *orche
 	return true, nil
 }
 
-func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string) (bool, []string, error) {
+func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string, _ string) (bool, []string, error) {
 	return true, nil, nil
 }
 
@@ -322,10 +322,8 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	return true, nil
 }
 
-func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName string, planOutput string) (bool, []string, error) {
-	// TODO: Get rid of organisation if its not needed
-	organisation := p.PolicyProvider.GetOrganisation()
-	policy, err := p.PolicyProvider.GetPlanPolicy(organisation, SCMrepository, projectName)
+func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectName string, planOutput string) (bool, []string, error) {
+	policy, err := p.PolicyProvider.GetPlanPolicy(SCMOrganisation, SCMrepository, projectName)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed get plan policy: %v", err)
 	}
