@@ -314,7 +314,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				}
 				return msg, fmt.Errorf(msg)
 			} else if planPerformed && isNonEmptyPlan {
-				_, planPolicyViolations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMrepository, job.ProjectName, planJsonOutput)
+				_, planPolicyViolations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, planJsonOutput)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to validate plan. %v", err)
 					log.Printf(msg)
