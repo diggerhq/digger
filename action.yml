@@ -133,6 +133,14 @@ inputs:
     description: 'drift-detection slack notification url'
     required: false
     default: ''
+  github-ee-base-url:
+    description: 'Base URL for Github Enterprise Server'
+    required: false
+    default: ''
+  github-ee-upload-url:
+    description: 'Upload URL for Github Enterprise Server'
+    required: false
+    default: ''
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -266,6 +274,8 @@ runs:
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        GITHUB_EE_BASE_URL: ${{ inputs.github-ee-base-url }}
+        GITHUB_EE_UPLOAD_URL: ${{ inputs.github-ee-upload-url }}
         DEBUG: 'true'
       run: |
           cd ${{ github.action_path }}
@@ -290,6 +300,9 @@ runs:
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        GITHUB_EE_BASE_URL: ${{ inputs.github-ee-base-url }}
+        GITHUB_EE_UPLOAD_URL: ${{ inputs.github-ee-upload-url }}
+
       id: digger
       shell: bash
       run: |

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -14,7 +15,15 @@ import (
 )
 
 func NewGitHubService(ghToken string, repoName string, owner string) GithubService {
+	_, useGithubEnterpiseServer := os.LookupEnv("GITHUB_EE_BASE_URL")
 	client := github.NewClient(nil)
+	if useGithubEnterpiseServer {
+		client, _ = client.WithEnterpriseURLs(
+			os.Getenv("GITHUB_EE_BASE_URL"),
+			os.Getenv("GITHUB_EE_UPLOAD_URL"),
+		)
+	}
+
 	if ghToken != "" {
 		client = client.WithAuthToken(ghToken)
 	}
