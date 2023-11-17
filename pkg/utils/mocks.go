@@ -52,7 +52,7 @@ func (t MockPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, 
 	return false, nil
 }
 
-func (t MockPolicyChecker) CheckPlanPolicy(projectName string, command string, requestedBy string) (bool, []string, error) {
+func (t MockPolicyChecker) CheckPlanPolicy(projectName string, SCMOrganisation string, command string, requestedBy string) (bool, []string, error) {
 	return false, nil, nil
 }
 
