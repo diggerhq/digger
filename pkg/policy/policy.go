@@ -18,6 +18,12 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 )
 
+const defaultAccessPolicy = `
+package digger
+default allow = true
+allow = (count(input.planPolicyViolations) == 0)
+`
+
 type DiggerHttpPolicyProvider struct {
 	DiggerHost         string
 	DiggerOrganisation string
@@ -195,7 +201,7 @@ func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo str
 		if resp.StatusCode == 200 {
 			return content, nil
 		} else if resp.StatusCode == 404 {
-			return "", nil
+			return defaultAccessPolicy, nil
 		} else {
 			return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
 		}
