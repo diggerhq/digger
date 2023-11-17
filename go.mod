@@ -7,8 +7,8 @@ toolchain go1.21.1
 require (
 	cloud.google.com/go/storage v1.35.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0
-	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.0.2
-	github.com/aws/aws-sdk-go v1.47.10
+	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.1.0
+	github.com/aws/aws-sdk-go v1.47.13
 	github.com/bmatcuk/doublestar/v4 v4.6.1
 	github.com/google/uuid v1.4.0
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
@@ -24,7 +24,7 @@ require (
 	github.com/go-git/go-git/v5 v5.10.0
 	github.com/google/go-github/v55 v55.0.0
 	github.com/gruntwork-io/go-commons v0.17.1
-	github.com/gruntwork-io/terragrunt v0.53.2
+	github.com/gruntwork-io/terragrunt v0.53.3
 	github.com/hashicorp/go-getter v1.7.3
 	github.com/hashicorp/hcl/v2 v2.19.1
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20230925220900-5a6f8d18746d
@@ -161,8 +161,8 @@ require (
 	cloud.google.com/go/compute v1.23.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v1.1.3 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.8.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.1.1 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230828082145-3c4c8a2d2371 // indirect
