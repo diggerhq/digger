@@ -320,7 +320,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					log.Printf(msg)
 					return msg, fmt.Errorf(msg)
 				}
-				allowedToApply, err := policyChecker.CheckAccessPolicy(orgService, nil, SCMOrganisation, SCMrepository, job.ProjectName, command, nil, requestedBy, planPolicyViolations)
+				allowedToApply, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, planPolicyViolations)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to run plan policy check before apply. %v", err)
 					log.Printf(msg)
