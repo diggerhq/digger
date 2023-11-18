@@ -830,6 +830,10 @@ func main() {
 		logLeader = os.Getenv("CI_PROJECT_NAME")
 		gitLabCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.Azure:
+		// This should be refactored in the future because in this way the parsing
+		// is done twice, both here and inside azureCI, a better solution might be
+		// to encapsulate it into a method on the azure package and then grab the
+		// value here and pass it into the azureCI call.
 		azureContext := os.Getenv("AZURE_CONTEXT")
 		parsedAzureContext, _ := azure.GetAzureReposContext(azureContext)
 		logLeader = parsedAzureContext.BaseUrl
