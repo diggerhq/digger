@@ -2,6 +2,7 @@ package atlantis
 
 import (
 	"context"
+	"fmt"
 	"github.com/gruntwork-io/terragrunt/cli/commands/terraform"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -725,7 +726,9 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 				errGroup.Go(func() error {
 					defer sem.Release(1)
+					fmt.Printf("CREATING PROJECT FOR: %v | %v\n", terragruntPath, "")
 					project, projDeps, err := createProject(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, defaultWorkflow, defaultApplyRequirements, autoPlan, defaultTerraformVersion, createProjectName, createWorkspace, terragruntPath)
+					fmt.Printf("RESULT OF PROJECT %v = %v | %v | %v\n", terragruntPath, project, projDeps, err)
 					if err != nil {
 						return err
 					}
