@@ -176,7 +176,7 @@ func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
 			ciService := utils.MockPullRequestManager{Teams: []string{"engineering"}}
-			got, err := p.CheckAccessPolicy(ciService, tt.organisation, tt.name, tt.name, tt.command, tt.requestedBy)
+			got, err := p.CheckAccessPolicy(ciService, nil, tt.organisation, tt.name, tt.name, tt.command, nil, tt.requestedBy)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.CheckAccessPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return

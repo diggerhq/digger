@@ -84,7 +84,7 @@ func RunJobs(
 		SCMrepository := splits[1]
 
 		for _, command := range job.Commands {
-			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.RequestedBy)
+			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, job.RequestedBy)
 
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
@@ -145,7 +145,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
-	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, requestedBy)
+	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy)
 
 	if err != nil {
 		return "error checking policy", fmt.Errorf("error checking policy: %v", err)
@@ -223,8 +223,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			return msg, fmt.Errorf(msg)
 		} else if planPerformed {
-			reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 			if isNonEmptyPlan {
+				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, job.ProjectName, planJsonOutput)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to validate plan. %v", err)
@@ -254,11 +254,16 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					log.Printf(msg)
 					return msg, fmt.Errorf(msg)
 				} else {
-					err := reporter.Report("Terraform plan validation checks succeeded :white_check_mark:", planPolicyFormatter)
-					if err != nil {
-						log.Printf("Failed to report plan. %v", err)
-					}
+					reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan")
 				}
+			} else {
+				msg := "Terraform plan completed with no changes to apply"
+				err := reporter.Report(msg, utils.AsComment(msg))
+				if err != nil {
+					log.Printf("Failed to report plan. %v", err)
+				}
+			} else {
+				reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan\n")
 			}
 			err := prService.SetStatus(*job.PullRequestNumber, "success", job.ProjectName+"/plan")
 			if err != nil {
@@ -410,7 +415,7 @@ func RunJob(
 
 	for _, command := range job.Commands {
 
-		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, SCMOrganisation, SCMrepository, job.ProjectName, command, requestedBy)
+		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, nil, SCMOrganisation, SCMrepository, job.ProjectName, command, nil, requestedBy)
 
 		if err != nil {
 			return fmt.Errorf("error checking policy: %v", err)

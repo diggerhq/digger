@@ -1,16 +1,17 @@
 package digger
 
 import (
-	configuration "github.com/diggerhq/digger/libs/digger_config"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/pkg/core/execution"
-	"github.com/diggerhq/digger/pkg/reporting"
-	"github.com/diggerhq/digger/pkg/utils"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	configuration "github.com/diggerhq/digger/libs/digger_config"
+	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/pkg/core/execution"
+	"github.com/diggerhq/digger/pkg/reporting"
+	"github.com/diggerhq/digger/pkg/utils"
 
 	"github.com/dominikbraun/graph"
 	"github.com/stretchr/testify/assert"
@@ -73,6 +74,10 @@ func (m *MockPRManager) GetUserTeams(organisation string, user string) ([]string
 
 func (m *MockPRManager) GetChangedFiles(prNumber int) ([]string, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetChangedFiles", strconv.Itoa(prNumber), time.Now()})
+	return []string{}, nil
+}
+
+func (m *MockPRManager) GetApprovals(prNumber int) ([]string, error) {
 	return []string{}, nil
 }
 

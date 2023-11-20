@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/diggerhq/digger/libs/orchestrator"
 	"time"
+
+	"github.com/diggerhq/digger/libs/orchestrator"
 )
 
 type MockTerraform struct {
@@ -47,7 +48,7 @@ func (lock *MockLock) GetLock(resource string) (*int, error) {
 type MockPolicyChecker struct {
 }
 
-func (t MockPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+func (t MockPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, command string, ptr *int, requestedBy string) (bool, error) {
 	return false, nil
 }
 
@@ -62,6 +63,7 @@ func (t MockPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepositor
 type MockPullRequestManager struct {
 	ChangedFiles []string
 	Teams        []string
+	Approvals    []string
 }
 
 func (t MockPullRequestManager) GetUserTeams(organisation string, user string) ([]string, error) {
@@ -81,6 +83,10 @@ func (t MockPullRequestManager) SetStatus(prNumber int, status string, statusCon
 
 func (t MockPullRequestManager) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	return "", nil
+}
+
+func (t MockPullRequestManager) GetApprovals(prNumber int) ([]string, error) {
+	return t.Approvals, nil
 }
 
 func (t MockPullRequestManager) MergePullRequest(prNumber int) error {
