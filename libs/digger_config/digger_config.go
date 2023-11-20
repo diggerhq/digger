@@ -3,13 +3,14 @@ package digger_config
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/digger_config/terragrunt/atlantis"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/atlantis"
 
 	"github.com/dominikbraun/graph"
 	"gopkg.in/yaml.v3"
@@ -531,25 +532,33 @@ func isFileExists(path string) bool {
 }
 
 func retrieveConfigFile(workingDir string) (string, error) {
-	fileName := "digger"
+	var fileName string = "digger"
+	customConfigFile := os.Getenv("DIGGER_FILENAME") != ""
+
+	if customConfigFile {
+		fileName = os.Getenv("DIGGER_FILENAME")
+	}
+
 	if workingDir != "" {
 		fileName = path.Join(workingDir, fileName)
 	}
 
-	// Make sure we don't have more than one digger digger_config file
-	ymlCfg := isFileExists(fileName + ".yml")
-	yamlCfg := isFileExists(fileName + ".yaml")
-	if ymlCfg && yamlCfg {
-		return "", ErrDiggerConfigConflict
-	}
+	if !customConfigFile {
+		// Make sure we don't have more than one digger digger_config file
+		ymlCfg := fileName + ".yml"
+		yamlCfg := fileName + ".yaml"
+		ymlCfgExists := isFileExists(ymlCfg)
+		yamlCfgExists := isFileExists(yamlCfg)
 
-	// At this point we know there are no duplicates
-	// Return the first one that exists
-	if ymlCfg {
-		return path.Join(workingDir, "digger.yml"), nil
-	}
-	if yamlCfg {
-		return path.Join(workingDir, "digger.yaml"), nil
+		if ymlCfgExists && yamlCfgExists {
+			return "", ErrDiggerConfigConflict
+		} else if ymlCfgExists {
+			return ymlCfg, nil
+		} else if yamlCfgExists {
+			return yamlCfg, nil
+		}
+	} else {
+		return fileName, nil
 	}
 
 	// Passing this point means digger digger_config file is

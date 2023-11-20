@@ -24,7 +24,7 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) CheckAccessPolicy(_ orchestrator.OrgService, _ string, _ string, _ string, _ string, _ string) (bool, error) {
+func (p NoOpPolicyChecker) CheckAccessPolicy(_ orchestrator.OrgService, _ *orchestrator.PullRequestService, _ string, _ string, _ string, _ string, _ *int, _ string) (bool, error) {
 	return true, nil
 }
 
@@ -252,7 +252,7 @@ type DiggerPolicyChecker struct {
 	PolicyProvider policy.Provider
 }
 
-func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, projectName string, command string, requestedBy string) (bool, error) {
+func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, command string, prNumber *int, requestedBy string) (bool, error) {
 
 	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName)
 
@@ -267,10 +267,17 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 		return false, err
 	}
 
+	// list of pull request approvals (if applicable)
+	var approvals = make([]string, 0)
+	if prService != nil && prNumber != nil {
+		approvals, err = (*prService).GetApprovals(*prNumber)
+	}
+
 	input := map[string]interface{}{
 		"user":         requestedBy,
 		"organisation": SCMOrganisation,
 		"teams":        teams,
+		"approvals":    approvals,
 		"action":       command,
 		"project":      projectName,
 	}
