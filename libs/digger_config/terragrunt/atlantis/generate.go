@@ -256,8 +256,8 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			depPath := dep
 			terrOpts, _ := options.NewTerragruntOptionsWithConfigPath(depPath)
 			terrOpts.OriginalTerragruntConfigPath = terragruntOptions.OriginalTerragruntConfigPath
-			childDeps, _, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, depPath, terrOpts)
-			if err != nil {
+			childDeps, skipProject, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, depPath, terrOpts)
+			if err != nil || skipProject {
 				continue
 			}
 
