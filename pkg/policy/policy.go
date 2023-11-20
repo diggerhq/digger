@@ -5,14 +5,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/pkg/core/policy"
-	"github.com/open-policy-agent/opa/rego"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/pkg/core/policy"
+
+	// "github.com/diggerhq/digger/pkg/core/policy/AccessPolicyContext"
+	// TODO fix imports - publish?
+	"github.com/open-policy-agent/opa/rego"
 )
+
+const DefaultAccessPolicy = `
+package digger
+default allow = true
+allow = (count(input.planPolicyViolations) == 0)
+`
 
 type DiggerHttpPolicyProvider struct {
 	DiggerHost         string
@@ -24,11 +34,11 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) CheckAccessPolicy(_ orchestrator.OrgService, _ *orchestrator.PullRequestService, _ string, _ string, _ string, _ string, _ *int, _ string) (bool, error) {
+func (p NoOpPolicyChecker) CheckAccessPolicy(_ orchestrator.OrgService, _ *orchestrator.PullRequestService, _ string, _ string, _ string, _ string, _ *int, _ string, _ []string) (bool, error) {
 	return true, nil
 }
 
-func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string) (bool, []string, error) {
+func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string, _ string) (bool, []string, error) {
 	return true, nil, nil
 }
 
@@ -191,7 +201,7 @@ func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo str
 		if resp.StatusCode == 200 {
 			return content, nil
 		} else if resp.StatusCode == 404 {
-			return "", nil
+			return DefaultAccessPolicy, nil
 		} else {
 			return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
 		}
@@ -252,7 +262,8 @@ type DiggerPolicyChecker struct {
 	PolicyProvider policy.Provider
 }
 
-func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, command string, prNumber *int, requestedBy string) (bool, error) {
+// TODO refactor to use AccessPolicyContext - too many arguments
+func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 
 	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName)
 
@@ -274,12 +285,13 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	}
 
 	input := map[string]interface{}{
-		"user":         requestedBy,
-		"organisation": SCMOrganisation,
-		"teams":        teams,
-		"approvals":    approvals,
-		"action":       command,
-		"project":      projectName,
+		"user":                 requestedBy,
+		"organisation":         SCMOrganisation,
+		"teams":                teams,
+		"approvals":            approvals,
+		"planPolicyViolations": planPolicyViolations,
+		"action":               command,
+		"project":              projectName,
 	}
 
 	if policy == "" {
@@ -317,10 +329,8 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	return true, nil
 }
 
-func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, projectName string, planOutput string) (bool, []string, error) {
-	// TODO: Get rid of organisation if its not needed
-	organisation := p.PolicyProvider.GetOrganisation()
-	policy, err := p.PolicyProvider.GetPlanPolicy(organisation, SCMrepository, projectName)
+func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectName string, planOutput string) (bool, []string, error) {
+	policy, err := p.PolicyProvider.GetPlanPolicy(SCMOrganisation, SCMrepository, projectName)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed get plan policy: %v", err)
 	}

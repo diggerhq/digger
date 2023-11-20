@@ -1,9 +1,10 @@
 package policy
 
 import (
+	"testing"
+
 	"github.com/diggerhq/digger/pkg/core/policy"
 	"github.com/diggerhq/digger/pkg/utils"
-	"testing"
 )
 
 type OpaExamplePolicyProvider struct {
@@ -43,6 +44,25 @@ func (s *OpaExamplePolicyProvider) GetAccessPolicy(_ string, _ string) (string, 
 }
 
 func (s *OpaExamplePolicyProvider) GetOrganisation() string {
+	return "ORGANISATIONDIGGER"
+}
+
+type DiggerDefaultPolicyProvider struct {
+}
+
+func (s *DiggerDefaultPolicyProvider) GetAccessPolicy(_ string, _ string, _ string) (string, error) {
+	return DefaultAccessPolicy, nil
+}
+
+func (s *DiggerDefaultPolicyProvider) GetPlanPolicy(_ string, _ string, _ string) (string, error) {
+	return "package digger\n", nil
+}
+
+func (s *DiggerDefaultPolicyProvider) GetDriftPolicy() (string, error) {
+	return "package digger\n", nil
+}
+
+func (s *DiggerDefaultPolicyProvider) GetOrganisation() string {
 	return "ORGANISATIONDIGGER"
 }
 
@@ -119,54 +139,81 @@ func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 		input interface{}
 	}
 	tests := []struct {
-		name         string
-		organisation string
-		fields       fields
-		args         args
-		want         bool
-		wantErr      bool
-		command      string
-		requestedBy  string
+		name                 string
+		organisation         string
+		fields               fields
+		args                 args
+		want                 bool
+		wantErr              bool
+		command              string
+		requestedBy          string
+		planPolicyViolations []string
 	}{
+		{
+			name: "test digger default access policy with no plan violations returns true",
+			fields: fields{
+				PolicyProvider: &DiggerDefaultPolicyProvider{},
+			},
+			want:                 true,
+			wantErr:              false,
+			command:              "digger plan",
+			requestedBy:          "motatoes",
+			planPolicyViolations: []string{},
+		},
+		{
+			name: "test digger default policy with plan policy violations returns false",
+			fields: fields{
+				PolicyProvider: &DiggerDefaultPolicyProvider{},
+			},
+			want:                 false,
+			wantErr:              false,
+			command:              "digger plan",
+			requestedBy:          "motatoes",
+			planPolicyViolations: []string{"EC2 not allowed!"},
+		},
 		{
 			name: "test digger example",
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider{},
 			},
-			want:        true,
-			wantErr:     false,
-			command:     "digger plan",
-			requestedBy: "motatoes",
+			want:                 true,
+			wantErr:              false,
+			command:              "digger plan",
+			requestedBy:          "motatoes",
+			planPolicyViolations: []string{},
 		},
 		{
 			name: "test digger example 2",
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider{},
 			},
-			want:        false,
-			wantErr:     false,
-			command:     "digger unlock",
-			requestedBy: "Spartakovic",
+			want:                 false,
+			wantErr:              false,
+			command:              "digger unlock",
+			requestedBy:          "Spartakovic",
+			planPolicyViolations: []string{},
 		},
 		{
 			name: "test digger example 3",
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider{},
 			},
-			want:        false,
-			wantErr:     false,
-			command:     "digger apply",
-			requestedBy: "rando",
+			want:                 false,
+			wantErr:              false,
+			command:              "digger apply",
+			requestedBy:          "rando",
+			planPolicyViolations: []string{},
 		},
 		{
 			name: "test digger example 4",
 			fields: fields{
 				PolicyProvider: &DiggerExamplePolicyProvider2{},
 			},
-			want:        true,
-			wantErr:     false,
-			command:     "digger plan",
-			requestedBy: "motatoes",
+			want:                 true,
+			wantErr:              false,
+			command:              "digger plan",
+			requestedBy:          "motatoes",
+			planPolicyViolations: []string{},
 		},
 	}
 
@@ -176,7 +223,7 @@ func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
 			ciService := utils.MockPullRequestManager{Teams: []string{"engineering"}}
-			got, err := p.CheckAccessPolicy(ciService, nil, tt.organisation, tt.name, tt.name, tt.command, nil, tt.requestedBy)
+			got, err := p.CheckAccessPolicy(ciService, nil, tt.organisation, tt.name, tt.name, tt.command, nil, tt.requestedBy, tt.planPolicyViolations)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.CheckAccessPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -228,7 +275,7 @@ func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 			var p = &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
-			got, _, err := p.CheckPlanPolicy("", "", tt.planJsonOutput)
+			got, _, err := p.CheckPlanPolicy("", "", "", tt.planJsonOutput)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.CheckPlanPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
