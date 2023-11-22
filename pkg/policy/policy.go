@@ -275,7 +275,8 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	teams, err := ciService.GetUserTeams(SCMOrganisation, requestedBy)
 	if err != nil {
 		log.Printf("Error while fetching user teams for CI service: %v", err)
-		return false, err
+		log.Printf("WARNING: teams failed to be fetched, passing an empty list instead for access policy checks\n")
+		teams = []string{}
 	}
 
 	// list of pull request approvals (if applicable)
