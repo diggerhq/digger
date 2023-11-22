@@ -258,12 +258,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan")
 				}
 			} else {
-				msg := "Terraform plan completed with no changes to apply"
-				err := reporter.Report(msg, utils.AsComment(msg))
-				if err != nil {
-					log.Printf("Failed to report plan. %v", err)
-				}
-			} else {
 				reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan\n")
 			}
 			err := prService.SetStatus(*job.PullRequestNumber, "success", job.ProjectName+"/plan")
