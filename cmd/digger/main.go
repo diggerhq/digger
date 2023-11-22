@@ -46,17 +46,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		usage.SendUsageRecord("", "log", "non github initialisation")
 	}
 
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println(fmt.Sprintf("stacktrace from panic: \n" + string(debug.Stack())))
-			err := usage.SendLogRecord(githubActor, fmt.Sprintf("Panic occurred. %s", r))
-			if err != nil {
-				log.Printf("Failed to send log record. %s\n", err)
-			}
-			os.Exit(1)
-		}
-	}()
-
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
 		reportErrorAndExit(githubActor, "GITHUB_TOKEN is not defined", 1)
@@ -428,12 +417,6 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	log.Println("Commands executed successfully")
 
 	reportErrorAndExit(projectName, "Digger finished successfully", 0)
-
-	defer func() {
-		if r := recover(); r != nil {
-			reportErrorAndExit(projectName, fmt.Sprintf("Panic occurred. %s", r), 1)
-		}
-	}()
 }
 
 func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
@@ -520,12 +503,6 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	log.Println("Commands executed successfully")
 
 	reportErrorAndExit(parsedAzureContext.BaseUrl, "Digger finished successfully", 0)
-
-	defer func() {
-		if r := recover(); r != nil {
-			reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Panic occurred. %s", r), 1)
-		}
-	}()
 }
 
 func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
@@ -536,17 +513,6 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	} else {
 		usage.SendUsageRecord("", "log", "non github initialisation")
 	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println(fmt.Sprintf("stacktrace from panic for %s: %v\n", r, string(debug.Stack())))
-			err := usage.SendLogRecord(actor, fmt.Sprintf("Panic occurred. %s", r))
-			if err != nil {
-				log.Printf("Failed to send log record. %s\n", err)
-			}
-			os.Exit(1)
-		}
-	}()
 
 	runningMode := os.Getenv("INPUT_DIGGER_MODE")
 
@@ -855,19 +821,43 @@ func main() {
 	log.Println("Lock provider has been created successfully")
 
 	ci := digger.DetectCI()
+
+	var logLeader = "Unknown CI"
+
 	switch ci {
 	case digger.GitHub:
+		logLeader = os.Getenv("GITHUB_ACTOR")
 		gitHubCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.GitLab:
+		logLeader = os.Getenv("CI_PROJECT_NAME")
 		gitLabCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.Azure:
+		// This should be refactored in the future because in this way the parsing
+		// is done twice, both here and inside azureCI, a better solution might be
+		// to encapsulate it into a method on the azure package and then grab the
+		// value here and pass it into the azureCI call.
+		azureContext := os.Getenv("AZURE_CONTEXT")
+		parsedAzureContext, _ := azure.GetAzureReposContext(azureContext)
+		logLeader = parsedAzureContext.BaseUrl
 		azureCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.BitBucket:
+		logLeader = os.Getenv("BITBUCKET_STEP_TRIGGERER_UUID")
 		bitbucketCI(lock, policyChecker, backendApi, reportStrategy)
 	case digger.None:
 		print("No CI detected.")
 		os.Exit(10)
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println(fmt.Sprintf("stacktrace from panic: \n" + string(debug.Stack())))
+			err := usage.SendLogRecord(logLeader, fmt.Sprintf("Panic occurred. %s", r))
+			if err != nil {
+				log.Printf("Failed to send log record. %s\n", err)
+			}
+			os.Exit(1)
+		}
+	}()
 }
 
 func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber *int) core_storage.PlanStorage {
