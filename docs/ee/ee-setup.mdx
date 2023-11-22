@@ -1,0 +1,55 @@
+---
+title: "Setting up Digger EE"
+---
+
+## Prerequesites
+- Digger CE configured
+- Automatic access to Actions via Github Connect enabled in Github Enterprise Server - [github docs](https://docs.github.com/en/enterprise-server@3.11/admin/github-actions/managing-access-to-actions-from-githubcom/enabling-automatic-access-to-githubcom-actions-using-github-connect)
+
+## Get a new Digger token
+- Go to [cloud.digger.dev](https://cloud.digger.dev)
+- Go to API tokens in the sidebar
+- Press "Generate Token"
+- Copy the value; save securely (you will need it later)
+
+## Update your workflow file to use Digger EE
+- point `uses` to `diggerhq/digger-ee@v0.2.6-ee` (use relevant version)
+- set your Digger token as `DIGGER_TOKEN`
+
+```
+name: Digger Plan
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, synchronize ]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:    
+      contents: write      # required to merge PRs
+      id-token: write      # required for workload-identity-federation
+      pull-requests: write # required to post PR comments
+      statuses: write      # required to validate combined PR status
+
+    steps:
+      - uses: actions/checkout@v4
+      # Unlike GCP; the role assumption is handled inline 
+      - uses: actions/checkout@v4
+      - name: digger run
+        uses: diggerhq/digger-ee@v0.2.6-ee                 # HERE                
+        with:
+          setup-aws: true
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIGGER_TOKEN: ${{ secrets.GITHUB_TOKEN }}       # HERE       
+```

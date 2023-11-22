@@ -3,11 +3,12 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/dominikbraun/graph"
-	"log"
-	"strings"
 
 	"github.com/google/go-github/v55/github"
 )
@@ -61,6 +62,9 @@ func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 
 		for _, file := range files {
 			fileNames = append(fileNames, *file.Filename)
+			if file.PreviousFilename != nil {
+				fileNames = append(fileNames, *file.PreviousFilename)
+			}
 		}
 		if resp.NextPage == 0 {
 			break

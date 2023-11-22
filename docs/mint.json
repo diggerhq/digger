@@ -51,7 +51,7 @@
           "pages": [
               "guides/multiacc-aws"
           ]
-      },
+        },
         {
             "group": "Configuration",
             "pages": [
@@ -68,6 +68,12 @@
                 "configuration/commenting-stragegies",
                 "configuration/terragrunt-project-generation"
             ]
+        },
+        {
+          "group": "Digger Enterprise",
+          "pages": [
+              "ee/ee-setup"
+          ]
         },
         {
             "group": "Features",
