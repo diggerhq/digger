@@ -4,6 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"runtime/debug"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
@@ -24,13 +32,6 @@ import (
 	"github.com/diggerhq/digger/pkg/storage"
 	"github.com/diggerhq/digger/pkg/usage"
 	"github.com/diggerhq/digger/pkg/utils"
-	"log"
-	"net/http"
-	"os"
-	"runtime/debug"
-	"strconv"
-	"strings"
-	"time"
 
 	"gopkg.in/yaml.v3"
 
@@ -779,9 +780,6 @@ func main() {
 		if os.Getenv("DIGGER_ORGANISATION") == "" {
 			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action digger_config.")
 		}
-		log.Println(os.Getenv("DIGGER_ORGANISATION") == "digger")
-		log.Println(os.Getenv("DIGGER_ORGANISATION") == "digger-tusker-tests")
-		log.Println(os.Getenv("DIGGER_TOKEN") == "t:e09c4a36-3c44-11ee-be56-0242ac120002")
 		policyChecker = policy.DiggerPolicyChecker{
 			PolicyProvider: &policy.DiggerHttpPolicyProvider{
 				DiggerHost:         os.Getenv("DIGGER_HOSTNAME"),
@@ -795,6 +793,7 @@ func main() {
 			HttpClient: http.DefaultClient,
 		}
 	} else {
+		log.Fatalf("DIGGER_TOKEN not specified. Get one at https://cloud.digger.dev")
 		policyChecker = policy.NoOpPolicyChecker{}
 		backendApi = backend.NoopApi{}
 	}
