@@ -794,8 +794,6 @@ func main() {
 		}
 	} else {
 		log.Fatalf("DIGGER_TOKEN not specified. Get one at https://cloud.digger.dev")
-		policyChecker = policy.NoOpPolicyChecker{}
-		backendApi = backend.NoopApi{}
 	}
 
 	var reportStrategy reporting.ReportStrategy
