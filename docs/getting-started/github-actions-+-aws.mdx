@@ -50,6 +50,8 @@ jobs:
       - uses: diggerhq/digger@v0.3.0
         with:
           setup-aws: true
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           disable-locking: true
           digger-hostname: 'https://cloud.digger.dev'
           digger-organisation: 'digger'
@@ -62,7 +64,7 @@ jobs:
 
 This file defines a simple workflow that
 - Checks out repository using Github's official [Checkout action](https://github.com/actions/checkout)
-- Runs Digger. Note that `DIGGER_TOKEN` needs to be set as a secret in Actions (either repository secret, or environment secret)
+- Runs Digger. Note that `DIGGER_TOKEN` needs to be set as a secret in Actions (either repository secret, or environment secret), you also need to set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY parameter. OIDC is also supported if you prefer that route
 
 # Create a PR to verify that it works
 
