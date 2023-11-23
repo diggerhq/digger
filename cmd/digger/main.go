@@ -793,7 +793,7 @@ func main() {
 			HttpClient: http.DefaultClient,
 		}
 	} else {
-		log.Fatalf("DIGGER_TOKEN not specified. Get one at https://cloud.digger.dev")
+		reportErrorAndExit("", "DIGGER_TOKEN not specified. Get one at https://cloud.digger.dev", 1)
 	}
 
 	var reportStrategy reporting.ReportStrategy
