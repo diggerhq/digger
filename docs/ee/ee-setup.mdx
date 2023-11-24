@@ -42,7 +42,7 @@ jobs:
       # Unlike GCP; the role assumption is handled inline 
       - uses: actions/checkout@v4
       - name: digger run
-        uses: diggerhq/digger-ee@v0.2.6-ee                 # HERE                
+        uses: diggerhq/digger-ee@v0.3.0-ee                 # HERE                
         with:
           setup-aws: true
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
