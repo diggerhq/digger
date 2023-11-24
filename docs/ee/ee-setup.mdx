@@ -51,6 +51,8 @@ jobs:
           digger-hostname: 'https://cloud.digger.dev'
           digger-organisation: 'digger' # < replace with your organisation name
           digger-token: ${{ secrets.DIGGER_TOKEN }}       # HERE       
+          github-ee-base-url: "https://ghe.YOURCOMPANY.dev/"
+          github-ee-upload-url: "https://ghe.YOURCOMPANY.dev/api/uploads/"
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
