@@ -13,7 +13,7 @@ title: "Setting up Digger EE"
 - Copy the value; save securely (you will need it later)
 
 ## Update your workflow file to use Digger EE
-- point `uses` to `diggerhq/digger-ee@v0.2.6-ee` (use relevant version)
+- point `uses` to `diggerhq/digger-ee@v0.3.0-ee` (use relevant version)
 - set your Digger token as `DIGGER_TOKEN`
 
 ```
@@ -42,14 +42,16 @@ jobs:
       # Unlike GCP; the role assumption is handled inline 
       - uses: actions/checkout@v4
       - name: digger run
-        uses: diggerhq/digger-ee@v0.2.6-ee                 # HERE                
+        uses: diggerhq/digger-ee@v0.3.0-ee                 # HERE                
         with:
           setup-aws: true
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+          digger-hostname: 'https://cloud.digger.dev'
+          digger-organisation: 'digger' # < replace with your organisation name
+          digger-token: ${{ secrets.DIGGER_TOKEN }}       # HERE       
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DIGGER_TOKEN: ${{ secrets.GITHUB_TOKEN }}       # HERE       
 ```
