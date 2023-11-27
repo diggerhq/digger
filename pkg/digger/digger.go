@@ -255,7 +255,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					log.Printf(msg)
 					return msg, fmt.Errorf(msg)
 				} else {
-					reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan")
+					err := reporter.Report("Terraform plan validation checks succeeded :white_check_mark:", planPolicyFormatter)
+					if err != nil {
+						log.Printf("Failed to report plan. %v", err)
+					}
 				}
 			} else {
 				reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan\n")
