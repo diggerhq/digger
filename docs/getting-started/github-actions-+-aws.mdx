@@ -6,7 +6,13 @@ In this tutorial, you will set up Digger to automate terraform pull requests usi
 
 # Prerequisites
 - A GitHub repository with valid terraform code. Here's a [demo repo](https://github.com/diggerhq/quickstart-actions-aws)
-- Your AWS credentials. See [Hashicorp's AWS tutorual](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
+- Your AWS credentials. See [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
+- Digger token - get it on [cloud.digger.dev](https://cloud.digger.dev)
+
+# Create Action Secrets
+In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
+- `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` - your AWS key pair. [OIDC is supported too](https://docs.digger.dev/cloud-providers/authenticating-with-oidc-on-aws)
+- `DIGGER_TOKEN` - your Digger token (get it at [cloud.digger.dev](https://cloud.digger.dev))
 
 # Create digger.yml
 This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
@@ -16,34 +22,22 @@ projects:
   dir: prod
 ```
 
-
-# Add your AWS credentials to Action Secrets
-Note: This is relevant if utilizing basic credentials. If you are using OIDC please refer to [the relevant documentation](https://docs.digger.dev/cloud-providers/authenticating-with-oidc-on-aws)
-- Go to Secrets and Variables - Actions
-- Click New Repository Secret
-- Name it `AWS_ACCESS_KEY_ID`
-- Paste the your AWS_ACCESS_KEY_ID
-- Create another New Repository Secret
-- Name it `AWS_SECRET_ACCESS_KEY`
-- Paste in your `Secret access key`
-
 # Create Github Actions workflow file
-Place it at `.github/workflows/digger-tf.yml`
+Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 
 ```
-name: Digger Plan
+name: Digger Workflow
 
 on:
-  pull_request:
-    branches: [ "main" ]
-    types: [ opened, synchronize ]
-  issue_comment:
-    types: [created]
   workflow_dispatch:
-
-
+    inputs:
+      id:
+        description: 'run identifier'
+        required: false
+      job:
+        required: true
 jobs:
-  plan:
+  digger-job:
     runs-on: ubuntu-latest
     permissions:    
       contents: write      # required to merge PRs
@@ -53,20 +47,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      # Unlike GCP; the role assumption is handled inline 
-      - uses: actions/checkout@v4
-      - name: digger run
-        uses: diggerhq/digger@v0.2.0
+      - uses: diggerhq/digger@v0.3.0
         with:
           setup-aws: true
-          #Uncomment below line if using OIDC
-          #aws-role-to-assume: arn:aws:sts::{secrets.AccountID}:assumed-role/{secrets.RoleName}/{FunctionName}
-         
-          #Comment the following two lines out if using OIDC. 
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ##End comment block
-          aws-region: us-east-1
+          disable-locking: true
+          digger-hostname: 'https://cloud.digger.dev'
+          digger-organisation: 'digger'
+          digger-token: ${{ secrets.DIGGER_TOKEN }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -75,10 +64,7 @@ jobs:
 
 This file defines a simple workflow that
 - Checks out repository using Github's official [Checkout action](https://github.com/actions/checkout)
-- Runs Digger against a the given AWS account. 
-
-# AWS locks for Digger 
-Digger  in AWS uses DynamoDB to handle locks. The [demo repo](https://github.com/diggerhq/quickstart-actions-aws) contains example terraform code to spin up the  relevant DynamoDB resources. 
+- Runs Digger. Note that `DIGGER_TOKEN` needs to be set as a secret in Actions (either repository secret, or environment secret), you also need to set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY parameter. OIDC is also supported if you prefer that route
 
 # Create a PR to verify that it works
 
