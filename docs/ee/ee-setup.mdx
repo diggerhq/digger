@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: digger run
-        uses: diggerhq/digger-ee@v0.3.0-ee                 # HERE                
+        uses: diggerhq/digger-ee@v0.3.0-ee  # Updaate version here
         with:
           setup-aws: true
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -47,7 +47,9 @@ jobs:
           setup-terraform: true
           digger-hostname: 'https://cloud.digger.dev'
           digger-organisation: 'digger' # < replace with your organisation name
-          digger-token: ${{ secrets.DIGGER_TOKEN }}       # HERE       
+          digger-token: ${{ secrets.DIGGER_TOKEN }}                     # HERE       
+          github-ee-base-url: "https://ghe.digger.dev/"                 # < replace with your GHE instance name
+          github-ee-upload-url: "https://ghe.digger.dev/api/uploads/"   # < replace with your GHE instance name
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
