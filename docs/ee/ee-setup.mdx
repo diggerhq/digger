@@ -27,7 +27,6 @@ on:
     types: [created]
   workflow_dispatch:
 
-
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -38,9 +37,6 @@ jobs:
       statuses: write      # required to validate combined PR status
 
     steps:
-      - uses: actions/checkout@v4
-      # Unlike GCP; the role assumption is handled inline 
-      - uses: actions/checkout@v4
       - name: digger run
         uses: diggerhq/digger-ee@v0.3.0-ee                 # HERE                
         with:
@@ -48,6 +44,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+          setup-terraform: true
           digger-hostname: 'https://cloud.digger.dev'
           digger-organisation: 'digger' # < replace with your organisation name
           digger-token: ${{ secrets.DIGGER_TOKEN }}       # HERE       
