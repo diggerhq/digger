@@ -9,6 +9,19 @@ description: "This feature is in early development. If you find something that c
 
 Infracost binary needs to be installed into your CI pipeline (see [Infracost docs](https://www.infracost.io/docs/integrations/generic%5Fcicd/))
 
+## Set up Infracost
+
+Use the official setup-infracost action in your workflow file ([README](https://github.com/infracost/actions/))
+
+```
+- name: Setup Infracost
+        uses: infracost/actions/setup@v2
+        # See https://github.com/infracost/actions/tree/master/setup for other inputs
+        # If you can't use this action, see Docker images in https://infracost.io/cicd
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+```
+
 ## Digger.yml configuration
 
 ```
