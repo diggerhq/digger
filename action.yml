@@ -167,13 +167,13 @@ runs:
         clean: false
       if: ${{ github.event_name != 'issue_comment' && inputs.configure-checkout == 'true' }}
     - name: Set up Google Auth Using A Service Account Key
-      uses: google-github-actions/auth@v1
+      uses: google-github-actions/auth@v2
       with:
         credentials_json: '${{ inputs.google-auth-credentials }}'
       if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-auth-credentials != '' }}
 
     - name: Set up Google Auth Using Workload Identity Federation
-      uses: google-github-actions/auth@v1
+      uses: google-github-actions/auth@v2
       with:
         token_format: access_token
         service_account: ${{ inputs.google-service-account }}
@@ -209,7 +209,7 @@ runs:
       if: ${{ inputs.setup-azure == 'true' && inputs.azure-client-id != '' }}
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: ${{ inputs.terraform-version }}
         terraform_wrapper: false
@@ -284,6 +284,7 @@ runs:
         DIGGER_TOKEN: ${{ inputs.digger-token }}
         DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
+        DIGGER_FILENAME: ${{ inputs.digger-filename }}
         ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
         REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
