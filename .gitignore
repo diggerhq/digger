@@ -3,4 +3,3 @@
 venv/
 **/__pycache__/
 __azurite*
-./digger
