@@ -268,7 +268,7 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         DEBUG: 'true'
       run: |
-          cd ${{ github.action_path }}
+          cd ${{ github.action_path }}/cli
           go build -o digger ./cmd/digger
           chmod +x digger
           PATH=$PATH:$(pwd)
@@ -294,7 +294,7 @@ runs:
       id: digger
       shell: bash
       run: |
-        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-${{ runner.os  }}-${{ runner.arch }} -o digger
+        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
         chmod +x digger
         PATH=$PATH:$(pwd)
         cd ${{ github.workspace }}
