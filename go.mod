@@ -23,11 +23,11 @@ require (
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.10.1
-	github.com/google/go-github/v57 v57.0.0
+	github.com/google/go-github/v55 v55.0.0
 	github.com/google/go-github/v57 v57.0.0
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/terragrunt v0.53.3
-	github.com/hashicorp/go-getter v1.7.1
+	github.com/hashicorp/go-getter v1.7.3
 	github.com/hashicorp/go-getter/v2 v2.2.1
 	github.com/hashicorp/hcl/v2 v2.19.1
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20230925220900-5a6f8d18746d
