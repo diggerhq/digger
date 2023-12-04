@@ -17,23 +17,19 @@ Digger runs terraform natively in your CI. This is:
 - Cost-effective, because you are not paying for additional compute just to run your terraform
 
 ## Features
+
 - Terraform plan and apply in pull request comments
-- Any VCS - Github, Gitlab, Azure Repos, etc
-- Any CI - Github Actions, Gitlab, Azure DevOps, etc
-- Any cloud provider - AWS, GCP, Azure
 - Private runners - thanks to the fact that there are no separate runners! Your existing CI's compute environment is used
 - Open Policy Agent (OPA) support for RBAC
 - PR-level locks (on top of Terraform native state locks, similar to Atlantis) to avoid race conditions across multiple PRs
 - Terragrunt, Workspaces, multiple Terraform versions, static analysis via Checkov, plan persistence, ...
-- Drift detection - coming soon
-- Cost estimation - coming soon
+- Drift detection 
+  
 
 ## Getting Started
 
 - [Github Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
 - [Github Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
-- [Gitlab Pipelines + AWS](https://docs.digger.dev/getting-started/gitlab-pipelines-+-aws)
-- [Azure DevOps](https://docs.digger.dev/getting-started/azure-devops)
 
 ## How it works
 
