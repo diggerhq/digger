@@ -23,10 +23,10 @@ require (
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.10.1
-	github.com/google/go-github/v57 v57.0.0
+	github.com/google/go-github/v55 v55.0.0
 	github.com/google/go-github/v57 v57.0.0
 	github.com/gruntwork-io/go-commons v0.17.1
-	github.com/gruntwork-io/terragrunt v0.53.3
+	github.com/gruntwork-io/terragrunt v0.53.8
 	github.com/hashicorp/go-getter v1.7.1
 	github.com/hashicorp/go-getter/v2 v2.2.1
 	github.com/hashicorp/hcl/v2 v2.19.1
@@ -125,6 +125,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/posener/complete v1.2.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
