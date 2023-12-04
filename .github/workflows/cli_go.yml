@@ -25,14 +25,13 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
-      - name: Change directory to cli
-        run: cd cli
-
       - name: Deps
         run: go get -v ./...
+        working-directory: cli
 
       - name: Build
         run: go build -v ./cmd/digger
+        working-directory: cli
 
       - name: Install Azurite
         run: npm install -g azurite
@@ -42,3 +41,4 @@ jobs:
 
       - name: Test
         run: go test -v ./...
+        working-directory: cli
