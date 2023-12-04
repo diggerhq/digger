@@ -167,13 +167,13 @@ runs:
         clean: false
       if: ${{ github.event_name != 'issue_comment' && inputs.configure-checkout == 'true' }}
     - name: Set up Google Auth Using A Service Account Key
-      uses: google-github-actions/auth@v1
+      uses: google-github-actions/auth@v2
       with:
         credentials_json: '${{ inputs.google-auth-credentials }}'
       if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-auth-credentials != '' }}
 
     - name: Set up Google Auth Using Workload Identity Federation
-      uses: google-github-actions/auth@v1
+      uses: google-github-actions/auth@v2
       with:
         token_format: access_token
         service_account: ${{ inputs.google-service-account }}
