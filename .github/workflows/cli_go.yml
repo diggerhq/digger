@@ -26,11 +26,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deps
-        run: go get -v ./...
+        run: |
+          pwd
+          go get -v ./...
         working-directory: cli
 
       - name: Build
-        run: go build -v ./cmd/digger
+        run: |
+          pwd
+          go build -v ./cmd/digger
         working-directory: cli
 
       - name: Install Azurite
