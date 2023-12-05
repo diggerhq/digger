@@ -65,7 +65,7 @@
                 "configuration/using-checkov",
                 "configuration/using-infracost",
                 "configuration/using-opa-conftest",
-                "configuration/commenting-stragegies",
+                "configuration/commenting-strategies",
                 "configuration/terragrunt-project-generation"
             ]
         },
