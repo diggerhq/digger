@@ -8,7 +8,7 @@ ARG ARCH=amd64
 
 RUN apk add --no-cache git
 RUN git clone https://github.com/diggerhq/digger.git --depth 1 --branch ${DIGGER_BRANCH}
-RUN cd digger && env GOOS=${OS} GOARCH=${ARCH} CGO_ENABLED=0 go build -o digger ./cmd/digger && chmod +x digger && mv digger /usr/local/bin/digger
+RUN cd digger && env GOOS=${OS} GOARCH=${ARCH} CGO_ENABLED=0 go build -o digger ./cli/cmd/digger && chmod +x digger && mv digger /usr/local/bin/digger
 
 FROM alpine:latest
 
