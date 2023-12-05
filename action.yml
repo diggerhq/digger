@@ -121,6 +121,10 @@ inputs:
     description: 'manual, drift-detection or otherwise'
     required: false
     default: ''
+  no-backend:
+    description: 'run cli-only, without an orchestrator backend'
+    required: false
+    default: 'false'
   command:
     description: 'digger plan or digger apply in case of manual mode'
     required: false
