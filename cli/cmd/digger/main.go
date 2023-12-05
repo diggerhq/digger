@@ -776,7 +776,11 @@ func main() {
 	}
 	var policyChecker core_policy.Checker
 	var backendApi core_backend.Api
-	if os.Getenv("DIGGER_TOKEN") != "" {
+	if os.Getenv("NO_BACKEND") == "true" {
+		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
+		policyChecker = policy.NoOpPolicyChecker{}
+		backendApi = backend.NoopApi{}
+	} else if os.Getenv("DIGGER_TOKEN") != "" {
 		if os.Getenv("DIGGER_ORGANISATION") == "" {
 			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action digger_config.")
 		}
@@ -793,7 +797,7 @@ func main() {
 			HttpClient: http.DefaultClient,
 		}
 	} else {
-		reportErrorAndExit("", "DIGGER_TOKEN not specified. Get one at https://cloud.digger.dev", 1)
+		reportErrorAndExit("", "DIGGER_TOKEN not specified. You can get one at https://cloud.digger.dev, or self-manage a backend of Digger Community Edition (change DIGGER_HOSTNAME). You can also pass 'no-backend: true' option; in this case some of the features may not be available.", 1)
 	}
 
 	var reportStrategy reporting.ReportStrategy
