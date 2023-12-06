@@ -1,14 +1,14 @@
 package locking
 
 import (
-	"digger/cli/pkg/aws"
-	"digger/cli/pkg/aws/envprovider"
-	"digger/cli/pkg/azure"
-	"digger/cli/pkg/core/locking"
-	"digger/cli/pkg/core/reporting"
-	"digger/cli/pkg/core/utils"
-	"digger/cli/pkg/gcp"
-	"digger/libs/orchestrator"
+	"digger-cli/pkg/aws"
+	"digger-cli/pkg/aws/envprovider"
+	"digger-cli/pkg/azure"
+	"digger-cli/pkg/core/locking"
+	"digger-cli/pkg/core/reporting"
+	"digger-cli/pkg/core/utils"
+	"digger-cli/pkg/gcp"
+	"digger-libs/orchestrator"
 	"errors"
 	"fmt"
 	"log"

@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"digger/libs/digger_config"
+	"digger-libs/digger_config"
 	"github.com/stretchr/testify/assert"
 )
 

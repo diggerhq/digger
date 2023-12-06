@@ -2,7 +2,7 @@ package usage
 
 import (
 	"bytes"
-	configuration "digger/libs/digger_config"
+	configuration "digger-libs/digger_config"
 	"encoding/json"
 	"log"
 	"net/http"

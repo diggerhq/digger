@@ -3,8 +3,8 @@ package policy
 import (
 	"testing"
 
-	"digger/cli/pkg/core/policy"
-	"digger/cli/pkg/utils"
+	"digger-cli/pkg/core/policy"
+	"digger-cli/pkg/utils"
 )
 
 type OpaExamplePolicyProvider struct {

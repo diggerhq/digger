@@ -1,9 +1,9 @@
 package gitlab
 
 import (
-	"digger/cli/pkg/utils"
-	"digger/libs/digger_config"
-	orchestrator "digger/libs/orchestrator"
+	"digger-cli/pkg/utils"
+	"digger-libs/digger_config"
+	orchestrator "digger-libs/orchestrator"
 	"fmt"
 	"log"
 	"strings"

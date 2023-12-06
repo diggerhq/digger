@@ -2,8 +2,8 @@ package bitbucket
 
 import (
 	"bytes"
-	configuration "digger/libs/digger_config"
-	"digger/libs/orchestrator"
+	configuration "digger-libs/digger_config"
+	"digger-libs/orchestrator"
 	"encoding/json"
 	"fmt"
 	"net/http"

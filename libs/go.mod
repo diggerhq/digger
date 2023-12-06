@@ -1,4 +1,4 @@
-module digger/libs
+module digger-libs
 
 go 1.21.1
 
