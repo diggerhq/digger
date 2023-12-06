@@ -4,6 +4,9 @@ go 1.21
 
 toolchain go1.21.1
 
+replace "github.com/diggerhq/digger/libs" => "../libs"
+
+
 require (
 	cloud.google.com/go/storage v1.35.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0
