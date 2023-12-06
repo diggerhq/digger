@@ -2,9 +2,9 @@ package gitlab
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/pkg/utils"
 	"log"
 	"strings"
 
