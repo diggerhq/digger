@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/diggerhq/digger/cli/pkg/core/execution"
+	"github.com/diggerhq/digger/cli/pkg/reporting"
+	"github.com/diggerhq/digger/cli/pkg/utils"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/pkg/core/execution"
-	"github.com/diggerhq/digger/pkg/reporting"
-	"github.com/diggerhq/digger/pkg/utils"
 
 	"github.com/dominikbraun/graph"
 	"github.com/stretchr/testify/assert"
