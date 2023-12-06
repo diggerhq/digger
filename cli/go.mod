@@ -1,4 +1,4 @@
-module digger/cli
+module digger-cli
 
 go 1.21
 

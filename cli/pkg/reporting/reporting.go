@@ -1,8 +1,8 @@
 package reporting
 
 import (
-	"digger/cli/pkg/core/utils"
-	"digger/libs/orchestrator"
+	"digger-cli/pkg/core/utils"
+	"digger-libs/orchestrator"
 	"fmt"
 	"log"
 	"strings"

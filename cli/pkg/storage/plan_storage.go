@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"digger/cli/pkg/utils"
+	"digger-cli/pkg/utils"
 	"fmt"
 	"io"
 	"net/http"
