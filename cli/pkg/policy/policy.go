@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/diggerhq/digger/cli/pkg/core/policy"
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"digger/cli/pkg/core/policy"
+	"digger/libs/orchestrator"
 	"github.com/open-policy-agent/opa/rego"
 )
 

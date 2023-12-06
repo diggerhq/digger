@@ -1,7 +1,7 @@
 package locking
 
 import (
-	"github.com/diggerhq/digger/cli/pkg/utils"
+	"digger/cli/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

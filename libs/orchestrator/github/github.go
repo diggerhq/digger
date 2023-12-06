@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/diggerhq/digger/libs/digger_config"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	"digger/libs/digger_config"
+	orchestrator "digger/libs/orchestrator"
 	"github.com/dominikbraun/graph"
 
 	"github.com/google/go-github/v55/github"

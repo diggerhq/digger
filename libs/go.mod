@@ -1,4 +1,4 @@
-module github.com/diggerhq/digger/libs
+module digger/libs
 
 go 1.21.1
 
