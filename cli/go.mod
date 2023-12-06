@@ -1,11 +1,8 @@
 module github.com/diggerhq/digger/cli
 
-go 1.21
+go 1.21.1
 
-toolchain go1.21.1
-
-replace "github.com/diggerhq/digger/libs" => "../libs"
-
+replace github.com/diggerhq/digger/libs => ../libs
 
 require (
 	cloud.google.com/go/storage v1.35.1
@@ -23,7 +20,7 @@ require (
 
 require (
 	github.com/caarlos0/env/v8 v8.0.0
-	github.com/diggerhq/digger v0.3.1
+	github.com/diggerhq/digger/libs v0.0.0-00010101000000-000000000000
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
 )
