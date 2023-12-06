@@ -2,6 +2,12 @@ package execution
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path"
+	"regexp"
+	"strings"
+
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/pkg/core/locking"
@@ -10,11 +16,6 @@ import (
 	"github.com/diggerhq/digger/pkg/core/storage"
 	"github.com/diggerhq/digger/pkg/core/terraform"
 	"github.com/diggerhq/digger/pkg/core/utils"
-	"log"
-	"os"
-	"path"
-	"regexp"
-	"strings"
 )
 
 type Executor interface {
@@ -208,6 +209,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			}
 		}
 	}
+	reportAdditionalOutput(d.Reporter, d.projectId())
 	return true, isNonEmptyPlan, plan, terraformPlanOutput, nil
 }
 
@@ -283,6 +285,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			}
 		}
 	}
+	reportAdditionalOutput(d.Reporter, d.projectId())
 	return true, applyOutput, nil
 }
 
@@ -325,6 +328,30 @@ func reportTerraformError(r reporting.Reporter, stderr string) {
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
+	}
+}
+
+func reportAdditionalOutput(r reporting.Reporter, projectId string) {
+	var formatter func(string) string
+	if r.SupportsMarkdown() {
+		formatter = utils.AsCollapsibleComment("Additional output for <b>" + projectId + "</b>")
+	} else {
+		formatter = utils.AsComment("Additional output for " + projectId)
+	}
+	diggerOutPath := os.Getenv("DIGGER_OUT")
+	if _, err := os.Stat(diggerOutPath); err == nil {
+		output, _ := os.ReadFile(diggerOutPath)
+		outputStr := string(output)
+		if len(outputStr) > 0 {
+			commentErr := r.Report(outputStr, formatter)
+			if commentErr != nil {
+				log.Printf("error publishing comment: %v", commentErr)
+			}
+		} else {
+			log.Printf("empty $DIGGER_OUT file at: %v", diggerOutPath)
+		}
+	} else {
+		log.Printf("no $DIGGER_OUT file at: %v", diggerOutPath)
 	}
 }
 

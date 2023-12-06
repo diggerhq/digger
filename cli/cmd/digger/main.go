@@ -63,6 +63,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		reportErrorAndExit(githubActor, "GITHUB_CONTEXT is not defined", 2)
 	}
 
+	diggerOutPath := os.Getenv("DIGGER_OUT")
+	if diggerOutPath == "" {
+		diggerOutPath = os.Getenv("RUNNER_TEMP") + "/digger-out.log"
+		os.Setenv("DIGGER_OUT", diggerOutPath)
+	}
+
 	runningMode := os.Getenv("INPUT_DIGGER_MODE")
 
 	parsedGhActionContext, err := github_models.GetGitHubContext(ghContext)
