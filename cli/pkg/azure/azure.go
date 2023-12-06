@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/diggerhq/digger/cli/pkg/utils"
-	digger_config2 "github.com/diggerhq/digger/libs/digger_config"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	"digger/cli/pkg/utils"
+	digger_config2 "digger/libs/digger_config"
+	orchestrator "digger/libs/orchestrator"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 )

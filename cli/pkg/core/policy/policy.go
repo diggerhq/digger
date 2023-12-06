@@ -1,7 +1,7 @@
 package policy
 
 import (
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"digger/libs/orchestrator"
 )
 
 type Provider interface {

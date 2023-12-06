@@ -2,8 +2,8 @@ package storage
 
 import (
 	"context"
+	"digger/cli/pkg/utils"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/utils"
 	"io"
 	"net/http"
 	"net/url"

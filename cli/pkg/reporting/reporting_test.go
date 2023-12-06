@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/core/utils"
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"digger/cli/pkg/core/utils"
+	"digger/libs/orchestrator"
 
 	"github.com/stretchr/testify/assert"
 )

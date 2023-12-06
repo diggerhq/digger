@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/diggerhq/digger/libs/orchestrator/github/models"
+	"digger/libs/orchestrator/github/models"
 	"github.com/google/go-github/v55/github"
 )
 
