@@ -2,6 +2,12 @@ package execution
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path"
+	"regexp"
+	"strings"
+
 	"github.com/diggerhq/digger/cli/pkg/core/locking"
 	"github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/core/runners"
@@ -10,11 +16,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/utils"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/orchestrator"
-	"log"
-	"os"
-	"path"
-	"regexp"
-	"strings"
 )
 
 type Executor interface {
@@ -208,6 +209,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			}
 		}
 	}
+	reportAdditionalOutput(d.Reporter, d.projectId())
 	return true, isNonEmptyPlan, plan, terraformPlanOutput, nil
 }
 
@@ -283,6 +285,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			}
 		}
 	}
+	reportAdditionalOutput(d.Reporter, d.projectId())
 	return true, applyOutput, nil
 }
 
@@ -325,6 +328,34 @@ func reportTerraformError(r reporting.Reporter, stderr string) {
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
+	}
+}
+
+func reportAdditionalOutput(r reporting.Reporter, projectId string) {
+	var formatter func(string) string
+	if r.SupportsMarkdown() {
+		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>" + projectId + "</b>")
+	} else {
+		formatter = utils.GetTerraformOutputAsComment("Additional output for " + projectId)
+	}
+	diggerOutPath := os.Getenv("DIGGER_OUT")
+	if _, err := os.Stat(diggerOutPath); err == nil {
+		output, _ := os.ReadFile(diggerOutPath)
+		outputStr := string(output)
+		if len(outputStr) > 0 {
+			commentErr := r.Report(outputStr, formatter)
+			if commentErr != nil {
+				log.Printf("error publishing comment: %v", commentErr)
+			}
+		} else {
+			log.Printf("empty $DIGGER_OUT file at: %v", diggerOutPath)
+		}
+		err = os.Remove(diggerOutPath)
+		if err != nil {
+			log.Printf("error removing $DIGGER_OUT file at: %v, %v", diggerOutPath, err)
+		}
+	} else {
+		log.Printf("no $DIGGER_OUT file at: %v", diggerOutPath)
 	}
 }
 
