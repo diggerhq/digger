@@ -350,6 +350,10 @@ func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 		} else {
 			log.Printf("empty $DIGGER_OUT file at: %v", diggerOutPath)
 		}
+		err = os.Remove(diggerOutPath)
+		if err != nil {
+			log.Printf("error removing $DIGGER_OUT file at: %v, %v", diggerOutPath, err)
+		}
 	} else {
 		log.Printf("no $DIGGER_OUT file at: %v", diggerOutPath)
 	}
