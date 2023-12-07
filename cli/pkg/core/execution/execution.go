@@ -126,7 +126,6 @@ func (d ProjectPathProvider) StoredPlanFilePath() string {
 }
 
 func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
-	return false, false, "", "", fmt.Errorf("error because let's see if it fails")
 	plan := ""
 	terraformPlanOutput := ""
 	isNonEmptyPlan := false
