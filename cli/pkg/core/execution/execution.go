@@ -334,9 +334,9 @@ func reportTerraformError(r reporting.Reporter, stderr string) {
 func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = utils.AsCollapsibleComment("Additional output for <b>" + projectId + "</b>")
+		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>" + projectId + "</b>")
 	} else {
-		formatter = utils.AsComment("Additional output for " + projectId)
+		formatter = utils.GetTerraformOutputAsComment("Additional output for " + projectId)
 	}
 	diggerOutPath := os.Getenv("DIGGER_OUT")
 	if _, err := os.Stat(diggerOutPath); err == nil {
