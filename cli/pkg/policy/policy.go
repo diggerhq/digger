@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/pkg/core/policy"
 
-	// "github.com/diggerhq/digger/pkg/core/policy/AccessPolicyContext"
+	// "github.com/diggerhq/digger/cli/pkg/core/policy/AccessPolicyContext"
 	// TODO fix imports - publish?
 	"github.com/open-policy-agent/opa/rego"
 )
