@@ -432,7 +432,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
 				StateEnvVars:      stateEnvVars,
 				CommandEnvVars:    commandEnvVars,
-				RoleToAssume:      project.RoleToAssume,
+				AwsRoleToAssume:   project.AwsRoleToAssume,
 			})
 		}
 		return jobs, true, nil
@@ -460,7 +460,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
 				StateEnvVars:      stateEnvVars,
 				CommandEnvVars:    commandEnvVars,
-				RoleToAssume:      project.RoleToAssume,
+				AwsRoleToAssume:   project.AwsRoleToAssume,
 			})
 		}
 		return jobs, true, nil
@@ -488,7 +488,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 					Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
 					StateEnvVars:      stateEnvVars,
 					CommandEnvVars:    commandEnvVars,
-					RoleToAssume:      project.RoleToAssume,
+					AwsRoleToAssume:   project.AwsRoleToAssume,
 				})
 			}
 			return jobs, true, nil
@@ -542,7 +542,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 						Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
 						StateEnvVars:      stateEnvVars,
 						CommandEnvVars:    commandEnvVars,
-						RoleToAssume:      project.RoleToAssume,
+						AwsRoleToAssume:   project.AwsRoleToAssume,
 					})
 				}
 			}
