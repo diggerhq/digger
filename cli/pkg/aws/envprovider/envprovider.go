@@ -76,43 +76,28 @@ func GetKeysFromRole(role string) (*credentials.Value, error) {
 // Retrieve retrieves the keys from the environment.
 func (e *EnvProvider) Retrieve() (credentials.Value, error) {
 	e.retrieved = false
-	defer func() { e.retrieved = true }()
-
-	if e.roleToAssume != nil || os.Getenv("AWS_ROLE_ARN") != "" {
-		var role string
-		if os.Getenv("AWS_ROLE_ARN") != "" {
-			role = os.Getenv("AWS_ROLE_ARN")
-		} else {
-			role = *e.roleToAssume
-		}
-		creds, err := GetKeysFromRole(role)
-		if err != nil {
-			return credentials.Value{ProviderName: EnvProviderName}, err
-		}
-		return *creds, nil
-
-	} else {
-		//assign id from env vars
-		idEnvVars := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY"}
-		id, err := assignEnv(idEnvVars)
-		if err != nil {
-			return credentials.Value{ProviderName: EnvProviderName}, ErrAccessKeyIDNotFound
-		}
-
-		//assign secret from env vars
-		secretEnvVars := []string{"DIGGER_AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY", "AWS_SECRET_KEY"}
-		secret, err := assignEnv(secretEnvVars)
-		if err != nil {
-			return credentials.Value{ProviderName: EnvProviderName}, ErrSecretAccessKeyNotFound
-		}
-
-		return credentials.Value{
-			AccessKeyID:     id,
-			SecretAccessKey: secret,
-			SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
-			ProviderName:    EnvProviderName,
-		}, nil
+	//assign id from env vars
+	idEnvVars := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY"}
+	id, err := assignEnv(idEnvVars)
+	if err != nil {
+		return credentials.Value{ProviderName: EnvProviderName}, ErrAccessKeyIDNotFound
 	}
+
+	//assign secret from env vars
+	secretEnvVars := []string{"DIGGER_AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY", "AWS_SECRET_KEY"}
+	secret, err := assignEnv(secretEnvVars)
+	if err != nil {
+		return credentials.Value{ProviderName: EnvProviderName}, ErrSecretAccessKeyNotFound
+	}
+
+	e.retrieved = true
+	return credentials.Value{
+		AccessKeyID:     id,
+		SecretAccessKey: secret,
+		SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
+		ProviderName:    EnvProviderName,
+	}, nil
+
 }
 
 // Assign first non-nil env var
