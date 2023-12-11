@@ -6,6 +6,7 @@ import (
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -57,6 +58,7 @@ func GetKeysFromRole(role string) (*credentials.Value, error) {
 
 	resp, err := stsService.AssumeRole(params)
 	if err != nil {
+		log.Printf("error in GetkeysFromRole %v", err)
 		return nil, ErrRoleNotValid
 	}
 	akey := *resp.Credentials.AccessKeyId

@@ -14,6 +14,7 @@ func PopulateAwsCredentialsEnvVarsForJob(job *orchestrator.Job) (orchestrator.Jo
 		return *job, nil
 	}
 
+	log.Println(awsRoleToAssume)
 	creds, err := envprovider.GetKeysFromRole(awsRoleToAssume)
 	if err != nil {
 		log.Printf("Failed to get keys from role: %v", err)
