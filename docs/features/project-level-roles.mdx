@@ -1,0 +1,30 @@
+---
+title: "Project Level Roles for AWS"
+---
+
+Multi-account setups are pretty common. In many cases you want to use a different account for
+different sets of projects. If you wish to acheive this outside of digger and only use profile names and set
+them directly in terraform you can use this as an example repository: https://github.com/diggerhq/demo-assume-role-multi-account-aws
+
+You can also use digger.yml to specify which roles should be used for which repository. In this case you specify a main
+role in the workflow file using `aws-role-to-assume` (or using keys) and inside the repo if you wish to assume
+a differnt role for a specific project you specify an `aws_role_to_assume` under that project. Example digger.yml:
+
+```
+projects:
+   - name: dev
+      dir: ./dev
+      aws_role_to_assume: "arn:/blabla/accid/devaccount"
+   - name: prod
+      dir: ./prod
+      aws_role_to_assume: "arn:/blabla/accid/prodaccount"
+```
+
+Using a workflow file as usual. Here is an example repository using digger.yml to assume differnt roles for differnt projects:
+https://github.com/diggerhq/demo-assume-role-multi-account-aws_diggeryml
+
+<Note>
+NOTE: for locking to be configured user needs to also pass aws-role-to-assume in the workflow file as a
+parameter within the workflow file. This role needs to have ability to assume all the other roles and also have access to a common account where the locks are to live
+<Note>
+
