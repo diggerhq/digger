@@ -77,7 +77,12 @@ func (e *EnvProvider) Retrieve() (credentials.Value, error) {
 	defer func() { e.retrieved = true }()
 
 	if e.roleToAssume != nil || os.Getenv("AWS_ROLE_ARN") != "" {
-		role := ""
+		var role string
+		if os.Getenv("AWS_ROLE_ARN") != "" {
+			role = os.Getenv("AWS_ROLE_ARN")
+		} else {
+			role = *e.roleToAssume
+		}
 		creds, err := GetKeysFromRole(role)
 		if err != nil {
 			return credentials.Value{ProviderName: EnvProviderName}, err
