@@ -30,6 +30,7 @@ type ProjectYaml struct {
 	ExcludePatterns    []string `yaml:"exclude_patterns,omitempty"`
 	DependencyProjects []string `yaml:"depends_on,omitempty"`
 	DriftDetection     *bool    `yaml:"drift_detection,omitempty"`
+	AwsRoleToAssume    *string  `yaml:"aws_role_to_assume,omitempty"`
 }
 
 type WorkflowYaml struct {
