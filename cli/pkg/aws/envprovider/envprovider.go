@@ -41,7 +41,13 @@ type EnvProvider struct {
 	roleToAssume *string
 }
 
-func GetKeysFromRole(role string) (*credentials.Value, error) {
+type RoleProvider interface {
+	GetKeysFromRole(role string) (*credentials.Value, error)
+}
+
+type AwsRoleProvider struct{}
+
+func (a AwsRoleProvider) GetKeysFromRole(role string) (*credentials.Value, error) {
 
 	session, err := session.NewSession()
 	if err != nil {

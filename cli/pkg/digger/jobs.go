@@ -8,14 +8,18 @@ import (
 	"log"
 )
 
-func PopulateAwsCredentialsEnvVarsForJob(job *orchestrator.Job) (orchestrator.Job, error) {
+func PopulateAwsCredentialsEnvVarsForJob(job *orchestrator.Job, roleProvider envprovider.RoleProvider) (orchestrator.Job, error) {
 	awsRoleToAssume := job.AwsRoleToAssume
 	if awsRoleToAssume == "" {
 		return *job, nil
 	}
 
+	if roleProvider == nil {
+		roleProvider = &envprovider.AwsRoleProvider{}
+	}
+
 	log.Printf("Project-level AWS role detected, Assuming role: %v for project run: %v", awsRoleToAssume, job.ProjectName)
-	creds, err := envprovider.GetKeysFromRole(awsRoleToAssume)
+	creds, err := roleProvider.GetKeysFromRole(awsRoleToAssume)
 	if err != nil {
 		log.Printf("Failed to get keys from role: %v", err)
 		return *job, fmt.Errorf("Failed to get keys from role: %v", err)
