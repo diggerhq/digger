@@ -158,6 +158,11 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		return msg, errors.New(msg)
 	}
 
+	job, err = PopulateAwsCredentialsEnvVarsForJob(&job)
+	if err != nil {
+		log.Fatalf("failed to fetch AWS keys, %v", err)
+	}
+
 	projectLock := &locking.PullRequestLock{
 		InternalLock:     lock,
 		Reporter:         reporter,
@@ -183,6 +188,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		ProjectNamespace: projectNamespace,
 		ProjectName:      job.ProjectName,
 	}
+
 	diggerExecutor := execution.LockingExecutorWrapper{
 		ProjectLock: projectLock,
 		Executor: execution.DiggerExecutor{

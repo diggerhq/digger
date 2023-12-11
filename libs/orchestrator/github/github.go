@@ -230,6 +230,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				EventName:         "pull_request",
 				Namespace:         *payload.Repo.FullName,
 				RequestedBy:       *payload.Sender.Login,
+				RoleToAssume:      project.RoleToAssume,
 			})
 		} else if *payload.Action == "opened" || *payload.Action == "reopened" || *payload.Action == "synchronize" {
 			jobs = append(jobs, orchestrator.Job{
@@ -248,6 +249,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				EventName:         "pull_request",
 				Namespace:         *payload.Repo.FullName,
 				RequestedBy:       *payload.Sender.Login,
+				RoleToAssume:      project.RoleToAssume,
 			})
 		} else if *payload.Action == "closed" {
 			jobs = append(jobs, orchestrator.Job{
@@ -266,6 +268,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				EventName:         "pull_request",
 				Namespace:         *payload.Repo.FullName,
 				RequestedBy:       *payload.Sender.Login,
+				RoleToAssume:      project.RoleToAssume,
 			})
 		}
 	}
@@ -327,6 +330,7 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 					EventName:         "issue_comment",
 					Namespace:         *payload.Repo.FullName,
 					RequestedBy:       *payload.Sender.Login,
+					RoleToAssume:      project.RoleToAssume,
 				})
 			}
 		}
