@@ -314,6 +314,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				Namespace:         gitLabContext.ProjectNamespace,
 				StateEnvVars:      stateEnvVars,
 				CommandEnvVars:    commandEnvVars,
+				AwsRoleToAssume:   project.AwsRoleToAssume,
 			})
 		}
 		return jobs, true, nil
@@ -339,6 +340,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				Namespace:         gitLabContext.ProjectNamespace,
 				StateEnvVars:      stateEnvVars,
 				CommandEnvVars:    commandEnvVars,
+				AwsRoleToAssume:   project.AwsRoleToAssume,
 			})
 		}
 		return jobs, true, nil
@@ -391,6 +393,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 						Namespace:         gitLabContext.ProjectNamespace,
 						StateEnvVars:      stateEnvVars,
 						CommandEnvVars:    commandEnvVars,
+						AwsRoleToAssume:   project.AwsRoleToAssume,
 					})
 				}
 			}
