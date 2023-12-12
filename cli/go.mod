@@ -24,6 +24,7 @@ require (
 	github.com/diggerhq/digger/libs v0.3.3
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
+	github.com/google/go-github/v57 v57.0.0
 )
 
 require (
