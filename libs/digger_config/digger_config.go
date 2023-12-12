@@ -3,6 +3,7 @@ package digger_config
 import (
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"os"
 	"path"
@@ -199,7 +200,8 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 	} else if config.GenerateProjectsConfig != nil {
 		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
 		dirs, err := dirWalker.GetDirs(terraformDir)
-
+		println("!!!! Directories traverssed:")
+		spew.Dump(dirs)
 		if err != nil {
 			fmt.Printf("Error while walking through directories: %v", err)
 		}
@@ -216,6 +218,9 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 					config.Projects = append(config.Projects, &project)
 				}
 			}
+			println("!!!! Config projects:")
+			spew.Dump(config.Projects)
+
 		}
 		if config.GenerateProjectsConfig.Blocks != nil && len(config.GenerateProjectsConfig.Blocks) > 0 {
 			// if blocks of include/exclude patterns defined
