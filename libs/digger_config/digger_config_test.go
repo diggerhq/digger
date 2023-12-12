@@ -121,6 +121,7 @@ projects:
 - name: prod
   branch: /main/
   dir: path/to/module/test
+  aws_role_to_assume: "arn://abc:xyz:xxx"
   workspace: default
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
@@ -134,6 +135,10 @@ projects:
 	assert.Equal(t, false, dg.AutoMerge)
 	assert.Equal(t, true, dg.CollectUsageData)
 	assert.Equal(t, 1, len(dg.Workflows))
+
+	assert.Equal(t, "prod", dg.Projects[0].Name)
+	assert.Equal(t, "path/to/module/test", dg.Projects[0].Dir)
+	assert.Equal(t, "arn://abc:xyz:xxx", dg.Projects[0].AwsRoleToAssume)
 
 	workflow := dg.Workflows["default"]
 	assert.NotNil(t, workflow, "expected workflow to be not nil")

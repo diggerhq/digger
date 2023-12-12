@@ -20,6 +20,7 @@ type Job struct {
 	Namespace         string
 	StateEnvVars      map[string]string
 	CommandEnvVars    map[string]string
+	AwsRoleToAssume   string
 }
 
 type Step struct {
