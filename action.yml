@@ -186,7 +186,7 @@ runs:
       if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-workload-identity-provider != '' }}
 
     - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v1
+      uses: google-github-actions/setup-gcloud@v2
       if: inputs.setup-google-cloud == 'true'
 
     - name: Configure AWS credentials
