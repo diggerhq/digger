@@ -16,7 +16,7 @@ jobs:
         id: go
       - name: Get branch name
         id: branch-name
-        uses: tj-actions/branch-names@v7
+        uses: tj-actions/branch-names@v8
       - name: Build
         run: |
           echo "Tag that is going to be used as digger version: ${{ steps.branch-name.outputs.current_branch }}"
