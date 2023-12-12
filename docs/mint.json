@@ -50,6 +50,7 @@
           "group": "How-to Guides",
           "pages": [
               "guides/multiacc-aws",
+              "guides/destroy-manual",
               "guides/policy-overrides"
           ]
         },
