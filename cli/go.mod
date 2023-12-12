@@ -19,12 +19,10 @@ require (
 )
 
 require (
-	github.com/caarlos0/env/v10 v10.0.0
 	github.com/caarlos0/env/v8 v8.0.0
 	github.com/diggerhq/digger/libs v0.3.3
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
-	github.com/google/go-github/v57 v57.0.0
 )
 
 require (
@@ -85,7 +83,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.19.1 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/terraform v0.15.3 // indirect
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20230925220900-5a6f8d18746d // indirect
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20231204233900-a34142ec2a72 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.0 // indirect
 	github.com/hashicorp/terraform-svchost v0.0.1 // indirect
 	github.com/hashicorp/vault/api v1.5.0 // indirect
