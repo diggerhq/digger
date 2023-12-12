@@ -81,6 +81,7 @@
               "features/projects",
               "features/workspaces",
               "features/pr-level-locks",
+              "features/project-level-roles",
               "features/commentops",
               "features/plan-preview",
               "features/plan-persistence",
