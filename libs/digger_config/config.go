@@ -23,6 +23,7 @@ type Project struct {
 	ExcludePatterns    []string
 	DependencyProjects []string
 	DriftDetection     bool
+	AwsRoleToAssume    string
 }
 
 type Workflow struct {
