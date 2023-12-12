@@ -41,6 +41,8 @@ type EnvProvider struct {
 	roleToAssume *string
 }
 
+// TODO: Refactor this to start using the same Envprovider interface
+// Also it might be worth using `AssumeRoleProvider` interface
 type RoleProvider interface {
 	GetKeysFromRole(role string) (*credentials.Value, error)
 }
