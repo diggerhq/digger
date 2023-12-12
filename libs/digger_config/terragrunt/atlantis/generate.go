@@ -2,13 +2,14 @@ package atlantis
 
 import (
 	"context"
+	"regexp"
+	"sort"
+
 	"github.com/gruntwork-io/terragrunt/cli/commands/terraform"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
-	"regexp"
-	"sort"
 
 	"github.com/hashicorp/go-getter"
 	log "github.com/sirupsen/logrus"
@@ -693,7 +694,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	ctx := context.Background()
 	errGroup, _ := errgroup.WithContext(ctx)
 	sem := semaphore.NewWeighted(10)
-	potentialProjectDependencies := make(map[string][]string)
+	projectDependenciesMap := sync.Map{}
 	for _, workingDir := range workingDirs {
 		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
 		if err != nil {
@@ -734,7 +735,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						return nil
 					}
 
-					potentialProjectDependencies[project.Name] = projDeps
+					projectDependenciesMap.Store(project.Name, projDeps)
 
 					// Lock the list as only one goroutine should be writing to atlantisConfig.Projects at a time
 					lock.Lock()
@@ -864,19 +865,21 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 	dependsOn := make(map[string][]string)
 
-	for projectName, dependencies := range potentialProjectDependencies {
-		for _, dep := range dependencies {
-			_, ok := potentialProjectDependencies[dep]
+	projectDependenciesMap.Range(func(projectName, dependencies interface{}) bool {
+		project := projectName.(string)
+		for _, dep := range dependencies.([]string) {
+			_, ok := projectDependenciesMap.Load(dep)
 			if ok {
-				deps, ok := dependsOn[projectName]
+				deps, ok := dependsOn[project]
 				if ok {
-					dependsOn[projectName] = append(deps, dep)
+					dependsOn[project] = append(deps, dep)
 				} else {
-					dependsOn[projectName] = []string{dep}
+					dependsOn[project] = []string{dep}
 				}
 			}
 		}
-	}
+		return true
+	})
 
 	return &atlantisConfig, dependsOn, nil
 }
