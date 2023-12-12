@@ -1,0 +1,7 @@
+---
+title: "Policy overrides"
+---
+
+You can configure Access Policy (OPA) in Digger to override prior Plan Policy checks. The Access policy is run before every apply, and by default if there are any policy violations in the plan it'd fail. However, you can use the `approvers` list in your access policy to override this behavior, for example if the PR has been approved by specific users or teams. Or simply check if it's not empty and then pass, which would achieve the logic "only allow apply if approved".
+
+[See video](https://www.loom.com/share/4dec05636b2b4b0187faf91e5c18879a?sid=58811567-00b3-4246-b87f-bd8dc06016f1)
