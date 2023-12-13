@@ -72,7 +72,6 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	defer resp.Body.Close()
 	parsed := &TokenResponse{}
 	json.NewDecoder(resp.Body).Decode(parsed)
-	log.Printf("value response: %v", parsed.Value)
 	return []byte(parsed.Value), nil
 }
 
