@@ -402,6 +402,28 @@ generate_projects:
 	assert.Equal(t, 2, len(dg.Projects))
 }
 
+// A .tfvars file should not be recognised as .tf and break parsing for projects nested deeper
+// Issue: https://github.com/diggerhq/digger/issues/887
+func TestDiggerGenerateProjectsWithTfvars(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	dirsWithTfToCreate := []string{"dev/us-east-1"}
+
+	for _, dir := range dirsWithTfToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	defer createFile(path.Join(tempDir, "dev", "blank.tfvars"), "")()
+
+	dg, _, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+	assert.Equal(t, 1, len(dg.Projects))
+}
+
 func TestDiggerGenerateProjectsIgnoreSubdirs(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
