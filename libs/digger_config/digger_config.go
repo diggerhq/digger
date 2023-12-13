@@ -212,7 +212,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 			includePatterns = []string{config.GenerateProjectsConfig.Include}
 			excludePatterns = []string{config.GenerateProjectsConfig.Exclude}
 			for _, dir := range dirs {
-				fmt.Printf("DEBUG: Processing dir: %v", dir)
+				log.Printf("DEBUG: Processing dir: %v", dir)
 				if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
 					projectName := strings.ReplaceAll(dir, "/", "_")
 					project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
@@ -490,7 +490,7 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 			} else {
 				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*"))
 			}
-			fmt.Printf("DEBUG: Processing changed file: %v", changedFile)
+			log.Printf("DEBUG: Processing changed file: %v", changedFile)
 			// all our patterns are the globale dir pattern + the include patterns specified by user
 			if MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
 				result = append(result, project)

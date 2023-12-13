@@ -1,7 +1,6 @@
 package digger_config
 
 import (
-	"fmt"
 	"log"
 	"path"
 	"path/filepath"
@@ -18,7 +17,6 @@ func NormalizeFileName(fileName string) string {
 }
 
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
-	fmt.Printf("DEBUG: Matching file: %v", fileToMatch)
 	fileToMatch = NormalizeFileName(fileToMatch)
 	for i, _ := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])
@@ -50,5 +48,6 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 		}
 	}
 
+	log.Printf("DEBUG: Matching file: %v - %v", fileToMatch, matching)
 	return matching
 }
