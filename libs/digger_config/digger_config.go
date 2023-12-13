@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/diggerhq/digger/libs/digger_config/terragrunt/atlantis"
@@ -37,7 +36,7 @@ func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	}
 	for _, f := range listOfFiles {
 		if !f.IsDir() {
-			r, err := regexp.MatchString(ext, f.Name())
+			r, err := filepath.Match("*"+ext, f.Name())
 			if err == nil && r {
 				files = append(files, f.Name())
 			}
