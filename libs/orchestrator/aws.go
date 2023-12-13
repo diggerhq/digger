@@ -61,7 +61,7 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	url := fmt.Sprintf("%v&audience=%v", tokenIdUrl, audience)
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("bearer: %v", bearerToken))
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", "application/json; api-version=2.0")
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := httpClient.Do(req)
@@ -69,6 +69,7 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 		return nil, err
 	}
 	log.Printf("webtoken url: %v", url)
+	log.Printf("webtoken url token: %v", bearerToken)
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
