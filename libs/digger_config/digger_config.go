@@ -490,6 +490,7 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 			} else {
 				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*"))
 			}
+			fmt.Printf("DEBUG: Processing changed file: %v", changedFile)
 			// all our patterns are the globale dir pattern + the include patterns specified by user
 			if MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
 				result = append(result, project)
