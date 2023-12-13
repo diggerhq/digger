@@ -7,6 +7,7 @@ import (
 	stscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	sts "github.com/aws/aws-sdk-go/service/sts"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"net/http"
 	"os"
@@ -63,6 +64,8 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	}
 	defer resp.Body.Close()
 
+	spew.Dump(resp.Body)
+	
 	parsed := &TokenResponse{}
 	json.NewDecoder(resp.Body).Decode(parsed)
 	return parsed.Value, nil
