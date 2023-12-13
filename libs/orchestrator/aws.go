@@ -7,7 +7,6 @@ import (
 	stscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	sts "github.com/aws/aws-sdk-go/service/sts"
-	"io"
 	"log"
 	"net/http"
 	url2 "net/url"
@@ -69,13 +68,7 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("webtoken url: %v", url)
-	log.Printf("webtoken url token: %v", bearerToken)
 	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	log.Printf("raw body response: %v", string(body))
-
 	parsed := &TokenResponse{}
 	json.NewDecoder(resp.Body).Decode(parsed)
 	log.Printf("value response: %v", parsed.Value)
