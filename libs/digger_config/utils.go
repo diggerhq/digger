@@ -1,10 +1,12 @@
 package digger_config
 
 import (
-	"github.com/bmatcuk/doublestar/v4"
+	"fmt"
 	"log"
 	"path"
 	"path/filepath"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 func NormalizeFileName(fileName string) string {
@@ -16,6 +18,7 @@ func NormalizeFileName(fileName string) string {
 }
 
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
+	fmt.Printf("DEBUG: Matching file: %v", fileToMatch)
 	fileToMatch = NormalizeFileName(fileToMatch)
 	for i, _ := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])
