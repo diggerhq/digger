@@ -78,6 +78,6 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 func GetProviderFromRole(role string) *stscreds.WebIdentityRoleProvider {
 	mySession := session.Must(session.NewSession())
 	stsSTS := sts.New(mySession)
-	x := stscreds.NewWebIdentityRoleProviderWithOptions(stsSTS, role, role, GithubAwsTokenFetcher{})
+	x := stscreds.NewWebIdentityRoleProviderWithOptions(stsSTS, role, "diggerSess", GithubAwsTokenFetcher{})
 	return x
 }
