@@ -325,7 +325,22 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 				}
 				issueNumber := payload.Issue.Number
 				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+				var StateEnvProvider *stscreds.WebIdentityRoleProvider
+				var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+				if project.AwsRoleToAssume != nil {
 
+					if project.AwsRoleToAssume.Command != "" {
+						StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+					} else {
+						StateEnvProvider = nil
+					}
+
+					if project.AwsRoleToAssume.Command != "" {
+						CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+					} else {
+						CommandEnvProvider = nil
+					}
+				}
 				workspace := project.Workspace
 				workspaceOverride, err := orchestrator.ParseWorkspace(*payload.Comment.Body)
 				if err != nil {
@@ -350,8 +365,8 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 					EventName:          "issue_comment",
 					Namespace:          *payload.Repo.FullName,
 					RequestedBy:        *payload.Sender.Login,
-					CommandEnvProvider: orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command),
-					StateEnvProvider:   orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State),
+					StateEnvProvider:   StateEnvProvider,
+					CommandEnvProvider: CommandEnvProvider,
 				})
 			}
 		}
