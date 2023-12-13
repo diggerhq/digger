@@ -60,7 +60,7 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	audience := url2.QueryEscape("sts.amazonaws.com")
 	url := fmt.Sprintf("%v&audience=%v", tokenIdUrl, audience)
 	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Add("Authorization", fmt.Sprintf("bearer: %v", bearerToken))
+	req.Header.Add("Authorization", fmt.Sprintf("bearer  %v", bearerToken))
 	req.Header.Add("Accept", "application/json; api-version=2.0")
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("User-Agent", "actions/oidc-client")
