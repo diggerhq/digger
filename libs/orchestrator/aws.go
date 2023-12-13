@@ -62,10 +62,11 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("webtoken url: %v", url)
 	defer resp.Body.Close()
 
 	spew.Dump(resp.Body)
-	
+
 	parsed := &TokenResponse{}
 	json.NewDecoder(resp.Body).Decode(parsed)
 	return parsed.Value, nil
