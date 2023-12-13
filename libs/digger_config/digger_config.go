@@ -61,6 +61,7 @@ func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string) (
 				}
 				terraformFiles, _ := GetFilesWithExtension(path, ".tf")
 				if len(terraformFiles) > 0 {
+					log.Printf("DEBUG: terraform files found: %v", terraformFiles)
 					dirs = append(dirs, strings.ReplaceAll(path, workingDir+string(os.PathSeparator), ""))
 					return filepath.SkipDir
 				}
