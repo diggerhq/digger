@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"encoding/json"
 	"fmt"
+	awssdk "github.com/aws/aws-sdk-go/aws"
 	awssdkcreds "github.com/aws/aws-sdk-go/aws/credentials"
 	stscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -77,7 +78,7 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 
 func GetProviderFromRole(role string) *stscreds.WebIdentityRoleProvider {
 	mySession := session.Must(session.NewSession())
-	stsSTS := sts.New(mySession)
+	stsSTS := sts.New(mySession, &awssdk.Config{Region: awssdk.String("us-east-1")})
 	x := stscreds.NewWebIdentityRoleProviderWithOptions(stsSTS, role, "diggerSess", GithubAwsTokenFetcher{})
 	return x
 }
