@@ -212,6 +212,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 			includePatterns = []string{config.GenerateProjectsConfig.Include}
 			excludePatterns = []string{config.GenerateProjectsConfig.Exclude}
 			for _, dir := range dirs {
+				fmt.Printf("DEBUG: Processing dir: %v", dir)
 				if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
 					projectName := strings.ReplaceAll(dir, "/", "_")
 					project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
