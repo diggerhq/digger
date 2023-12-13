@@ -7,7 +7,7 @@ import (
 	stscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	sts "github.com/aws/aws-sdk-go/service/sts"
-	"github.com/davecgh/go-spew/spew"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -52,7 +52,7 @@ type GithubAwsTokenFetcher struct{}
 func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]byte, error) {
 	var httpClient http.Client
 	type TokenResponse struct {
-		Value []byte
+		Value []byte `json:"value"`
 	}
 	tokenIdUrl := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
 	audience := "sts.amazonaws.com"
@@ -65,10 +65,12 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	log.Printf("webtoken url: %v", url)
 	defer resp.Body.Close()
 
-	spew.Dump(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	log.Printf("raw body response: %v", body)
 
 	parsed := &TokenResponse{}
 	json.NewDecoder(resp.Body).Decode(parsed)
+	log.Printf("value response: %v", parsed.Value)
 	return parsed.Value, nil
 }
 
