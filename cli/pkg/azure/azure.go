@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"strings"
 
 	"github.com/diggerhq/digger/cli/pkg/utils"
@@ -417,22 +418,39 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 			stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
+			var StateEnvProvider *stscreds.WebIdentityRoleProvider
+			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+			if project.AwsRoleToAssume != nil {
+
+				if project.AwsRoleToAssume.Command != "" {
+					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+				} else {
+					StateEnvProvider = nil
+				}
+
+				if project.AwsRoleToAssume.Command != "" {
+					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+				} else {
+					CommandEnvProvider = nil
+				}
+			}
 			jobs = append(jobs, orchestrator.Job{
-				ProjectName:       project.Name,
-				ProjectDir:        project.Dir,
-				ProjectWorkspace:  project.Workspace,
-				Terragrunt:        project.Terragrunt,
-				OpenTofu:          project.OpenTofu,
-				Commands:          workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-				PullRequestNumber: &prNumber,
-				EventName:         parseAzureContext.EventType,
-				RequestedBy:       parseAzureContext.BaseUrl,
-				Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
-				StateEnvVars:      stateEnvVars,
-				CommandEnvVars:    commandEnvVars,
-				AwsRoleToAssume:   project.AwsRoleToAssume,
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           workflow.Configuration.OnPullRequestPushed,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				PullRequestNumber:  &prNumber,
+				EventName:          parseAzureContext.EventType,
+				RequestedBy:        parseAzureContext.BaseUrl,
+				Namespace:          parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
+				StateEnvVars:       stateEnvVars,
+				CommandEnvVars:     commandEnvVars,
+				StateEnvProvider:   StateEnvProvider,
+				CommandEnvProvider: CommandEnvProvider,
 			})
 		}
 		return jobs, true, nil
@@ -445,22 +463,39 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 			stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
+			var StateEnvProvider *stscreds.WebIdentityRoleProvider
+			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+			if project.AwsRoleToAssume != nil {
+
+				if project.AwsRoleToAssume.Command != "" {
+					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+				} else {
+					StateEnvProvider = nil
+				}
+
+				if project.AwsRoleToAssume.Command != "" {
+					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+				} else {
+					CommandEnvProvider = nil
+				}
+			}
 			jobs = append(jobs, orchestrator.Job{
-				ProjectName:       project.Name,
-				ProjectDir:        project.Dir,
-				ProjectWorkspace:  project.Workspace,
-				Terragrunt:        project.Terragrunt,
-				OpenTofu:          project.OpenTofu,
-				Commands:          workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-				PullRequestNumber: &prNumber,
-				EventName:         parseAzureContext.EventType,
-				RequestedBy:       parseAzureContext.BaseUrl,
-				Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
-				StateEnvVars:      stateEnvVars,
-				CommandEnvVars:    commandEnvVars,
-				AwsRoleToAssume:   project.AwsRoleToAssume,
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           workflow.Configuration.OnPullRequestClosed,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				PullRequestNumber:  &prNumber,
+				EventName:          parseAzureContext.EventType,
+				RequestedBy:        parseAzureContext.BaseUrl,
+				Namespace:          parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
+				StateEnvVars:       stateEnvVars,
+				CommandEnvVars:     commandEnvVars,
+				StateEnvProvider:   StateEnvProvider,
+				CommandEnvProvider: CommandEnvProvider,
 			})
 		}
 		return jobs, true, nil
@@ -473,22 +508,39 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 					return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 				}
 				stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
+				var StateEnvProvider *stscreds.WebIdentityRoleProvider
+				var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+				if project.AwsRoleToAssume != nil {
+
+					if project.AwsRoleToAssume.Command != "" {
+						StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+					} else {
+						StateEnvProvider = nil
+					}
+
+					if project.AwsRoleToAssume.Command != "" {
+						CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+					} else {
+						CommandEnvProvider = nil
+					}
+				}
 				jobs = append(jobs, orchestrator.Job{
-					ProjectName:       project.Name,
-					ProjectDir:        project.Dir,
-					ProjectWorkspace:  project.Workspace,
-					Terragrunt:        project.Terragrunt,
-					OpenTofu:          project.OpenTofu,
-					Commands:          workflow.Configuration.OnCommitToDefault,
-					ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-					PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-					PullRequestNumber: &prNumber,
-					EventName:         parseAzureContext.EventType,
-					RequestedBy:       parseAzureContext.BaseUrl,
-					Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
-					StateEnvVars:      stateEnvVars,
-					CommandEnvVars:    commandEnvVars,
-					AwsRoleToAssume:   project.AwsRoleToAssume,
+					ProjectName:        project.Name,
+					ProjectDir:         project.Dir,
+					ProjectWorkspace:   project.Workspace,
+					Terragrunt:         project.Terragrunt,
+					OpenTofu:           project.OpenTofu,
+					Commands:           workflow.Configuration.OnCommitToDefault,
+					ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+					PullRequestNumber:  &prNumber,
+					EventName:          parseAzureContext.EventType,
+					RequestedBy:        parseAzureContext.BaseUrl,
+					Namespace:          parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
+					StateEnvVars:       stateEnvVars,
+					CommandEnvVars:     commandEnvVars,
+					StateEnvProvider:   StateEnvProvider,
+					CommandEnvProvider: CommandEnvProvider,
 				})
 			}
 			return jobs, true, nil
@@ -526,23 +578,39 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 						return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 					}
 					stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
+					var StateEnvProvider *stscreds.WebIdentityRoleProvider
+					var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+					if project.AwsRoleToAssume != nil {
 
+						if project.AwsRoleToAssume.Command != "" {
+							StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+						} else {
+							StateEnvProvider = nil
+						}
+
+						if project.AwsRoleToAssume.Command != "" {
+							CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+						} else {
+							CommandEnvProvider = nil
+						}
+					}
 					jobs = append(jobs, orchestrator.Job{
-						ProjectName:       project.Name,
-						ProjectDir:        project.Dir,
-						ProjectWorkspace:  workspace,
-						Terragrunt:        project.Terragrunt,
-						OpenTofu:          project.OpenTofu,
-						Commands:          []string{command},
-						ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-						PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-						PullRequestNumber: &prNumber,
-						EventName:         parseAzureContext.EventType,
-						RequestedBy:       parseAzureContext.BaseUrl,
-						Namespace:         parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
-						StateEnvVars:      stateEnvVars,
-						CommandEnvVars:    commandEnvVars,
-						AwsRoleToAssume:   project.AwsRoleToAssume,
+						ProjectName:        project.Name,
+						ProjectDir:         project.Dir,
+						ProjectWorkspace:   workspace,
+						Terragrunt:         project.Terragrunt,
+						OpenTofu:           project.OpenTofu,
+						Commands:           []string{command},
+						ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+						PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+						PullRequestNumber:  &prNumber,
+						EventName:          parseAzureContext.EventType,
+						RequestedBy:        parseAzureContext.BaseUrl,
+						Namespace:          parseAzureContext.BaseUrl + "/" + parseAzureContext.ProjectName,
+						StateEnvVars:       stateEnvVars,
+						CommandEnvVars:     commandEnvVars,
+						StateEnvProvider:   StateEnvProvider,
+						CommandEnvProvider: CommandEnvProvider,
 					})
 				}
 			}

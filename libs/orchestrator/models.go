@@ -1,26 +1,28 @@
 package orchestrator
 
 import (
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 type Job struct {
-	ProjectName       string
-	ProjectDir        string
-	ProjectWorkspace  string
-	ProjectWorkflow   string
-	Terragrunt        bool
-	OpenTofu          bool
-	Commands          []string
-	ApplyStage        *Stage
-	PlanStage         *Stage
-	PullRequestNumber *int
-	EventName         string
-	RequestedBy       string
-	Namespace         string
-	StateEnvVars      map[string]string
-	CommandEnvVars    map[string]string
-	AwsRoleToAssume   string
+	ProjectName        string
+	ProjectDir         string
+	ProjectWorkspace   string
+	ProjectWorkflow    string
+	Terragrunt         bool
+	OpenTofu           bool
+	Commands           []string
+	ApplyStage         *Stage
+	PlanStage          *Stage
+	PullRequestNumber  *int
+	EventName          string
+	RequestedBy        string
+	Namespace          string
+	StateEnvVars       map[string]string
+	CommandEnvVars     map[string]string
+	StateEnvProvider   *stscreds.WebIdentityRoleProvider
+	CommandEnvProvider *stscreds.WebIdentityRoleProvider
 }
 
 type Step struct {

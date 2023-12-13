@@ -2,6 +2,7 @@ package gitlab
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
@@ -299,22 +300,41 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			}
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+
+			var StateEnvProvider *stscreds.WebIdentityRoleProvider
+			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+			if project.AwsRoleToAssume != nil {
+
+				if project.AwsRoleToAssume.Command != "" {
+					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+				} else {
+					StateEnvProvider = nil
+				}
+
+				if project.AwsRoleToAssume.Command != "" {
+					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+				} else {
+					CommandEnvProvider = nil
+				}
+			}
+
 			jobs = append(jobs, orchestrator.Job{
-				ProjectName:       project.Name,
-				ProjectDir:        project.Dir,
-				ProjectWorkspace:  project.Workspace,
-				Terragrunt:        project.Terragrunt,
-				OpenTofu:          project.OpenTofu,
-				Commands:          workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-				PullRequestNumber: gitLabContext.MergeRequestIId,
-				EventName:         gitLabContext.EventType.String(),
-				RequestedBy:       gitLabContext.GitlabUserName,
-				Namespace:         gitLabContext.ProjectNamespace,
-				StateEnvVars:      stateEnvVars,
-				CommandEnvVars:    commandEnvVars,
-				AwsRoleToAssume:   project.AwsRoleToAssume,
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           workflow.Configuration.OnPullRequestPushed,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				PullRequestNumber:  gitLabContext.MergeRequestIId,
+				EventName:          gitLabContext.EventType.String(),
+				RequestedBy:        gitLabContext.GitlabUserName,
+				Namespace:          gitLabContext.ProjectNamespace,
+				StateEnvVars:       stateEnvVars,
+				CommandEnvVars:     commandEnvVars,
+				StateEnvProvider:   StateEnvProvider,
+				CommandEnvProvider: CommandEnvProvider,
 			})
 		}
 		return jobs, true, nil
@@ -325,22 +345,39 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, true, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+			var StateEnvProvider *stscreds.WebIdentityRoleProvider
+			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+			if project.AwsRoleToAssume != nil {
+
+				if project.AwsRoleToAssume.Command != "" {
+					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+				} else {
+					StateEnvProvider = nil
+				}
+
+				if project.AwsRoleToAssume.Command != "" {
+					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+				} else {
+					CommandEnvProvider = nil
+				}
+			}
 			jobs = append(jobs, orchestrator.Job{
-				ProjectName:       project.Name,
-				ProjectDir:        project.Dir,
-				ProjectWorkspace:  project.Workspace,
-				Terragrunt:        project.Terragrunt,
-				OpenTofu:          project.OpenTofu,
-				Commands:          workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-				PullRequestNumber: gitLabContext.MergeRequestIId,
-				EventName:         gitLabContext.EventType.String(),
-				RequestedBy:       gitLabContext.GitlabUserName,
-				Namespace:         gitLabContext.ProjectNamespace,
-				StateEnvVars:      stateEnvVars,
-				CommandEnvVars:    commandEnvVars,
-				AwsRoleToAssume:   project.AwsRoleToAssume,
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           workflow.Configuration.OnPullRequestClosed,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				PullRequestNumber:  gitLabContext.MergeRequestIId,
+				EventName:          gitLabContext.EventType.String(),
+				RequestedBy:        gitLabContext.GitlabUserName,
+				Namespace:          gitLabContext.ProjectNamespace,
+				StateEnvVars:       stateEnvVars,
+				CommandEnvVars:     commandEnvVars,
+				StateEnvProvider:   StateEnvProvider,
+				CommandEnvProvider: CommandEnvProvider,
 			})
 		}
 		return jobs, true, nil
@@ -378,22 +415,39 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 						workspace = workspaceOverride
 					}
 					stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+					var StateEnvProvider *stscreds.WebIdentityRoleProvider
+					var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+					if project.AwsRoleToAssume != nil {
+
+						if project.AwsRoleToAssume.Command != "" {
+							StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+						} else {
+							StateEnvProvider = nil
+						}
+
+						if project.AwsRoleToAssume.Command != "" {
+							CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+						} else {
+							CommandEnvProvider = nil
+						}
+					}
 					jobs = append(jobs, orchestrator.Job{
-						ProjectName:       project.Name,
-						ProjectDir:        project.Dir,
-						ProjectWorkspace:  workspace,
-						Terragrunt:        project.Terragrunt,
-						OpenTofu:          project.OpenTofu,
-						Commands:          []string{command},
-						ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-						PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-						PullRequestNumber: gitLabContext.MergeRequestIId,
-						EventName:         gitLabContext.EventType.String(),
-						RequestedBy:       gitLabContext.GitlabUserName,
-						Namespace:         gitLabContext.ProjectNamespace,
-						StateEnvVars:      stateEnvVars,
-						CommandEnvVars:    commandEnvVars,
-						AwsRoleToAssume:   project.AwsRoleToAssume,
+						ProjectName:        project.Name,
+						ProjectDir:         project.Dir,
+						ProjectWorkspace:   workspace,
+						Terragrunt:         project.Terragrunt,
+						OpenTofu:           project.OpenTofu,
+						Commands:           []string{command},
+						ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+						PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+						PullRequestNumber:  gitLabContext.MergeRequestIId,
+						EventName:          gitLabContext.EventType.String(),
+						RequestedBy:        gitLabContext.GitlabUserName,
+						Namespace:          gitLabContext.ProjectNamespace,
+						StateEnvVars:       stateEnvVars,
+						CommandEnvVars:     commandEnvVars,
+						StateEnvProvider:   StateEnvProvider,
+						CommandEnvProvider: CommandEnvProvider,
 					})
 				}
 			}

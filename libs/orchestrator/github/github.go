@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"log"
 	"strings"
 
@@ -214,61 +215,80 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 		pullRequestNumber := payload.PullRequest.Number
 
+		var StateEnvProvider *stscreds.WebIdentityRoleProvider
+		var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+		if project.AwsRoleToAssume != nil {
+
+			if project.AwsRoleToAssume.Command != "" {
+				StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
+			} else {
+				StateEnvProvider = nil
+			}
+
+			if project.AwsRoleToAssume.Command != "" {
+				CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
+			} else {
+				CommandEnvProvider = nil
+			}
+		}
 		if *payload.Action == "closed" && *payload.PullRequest.Merged && *(payload.PullRequest.Base).Ref == *(payload.Repo).DefaultBranch {
 			jobs = append(jobs, orchestrator.Job{
-				ProjectName:       project.Name,
-				ProjectDir:        project.Dir,
-				ProjectWorkspace:  project.Workspace,
-				ProjectWorkflow:   project.Workflow,
-				Terragrunt:        project.Terragrunt,
-				Commands:          workflow.Configuration.OnCommitToDefault,
-				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-				CommandEnvVars:    commandEnvVars,
-				StateEnvVars:      stateEnvVars,
-				PullRequestNumber: pullRequestNumber,
-				EventName:         "pull_request",
-				Namespace:         *payload.Repo.FullName,
-				RequestedBy:       *payload.Sender.Login,
-				AwsRoleToAssume:   project.AwsRoleToAssume,
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				ProjectWorkflow:    project.Workflow,
+				Terragrunt:         project.Terragrunt,
+				Commands:           workflow.Configuration.OnCommitToDefault,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				PullRequestNumber:  pullRequestNumber,
+				EventName:          "pull_request",
+				Namespace:          *payload.Repo.FullName,
+				RequestedBy:        *payload.Sender.Login,
+				CommandEnvProvider: CommandEnvProvider,
+				StateEnvProvider:   StateEnvProvider,
 			})
 		} else if *payload.Action == "opened" || *payload.Action == "reopened" || *payload.Action == "synchronize" {
 			jobs = append(jobs, orchestrator.Job{
-				ProjectName:       project.Name,
-				ProjectDir:        project.Dir,
-				ProjectWorkspace:  project.Workspace,
-				ProjectWorkflow:   project.Workflow,
-				Terragrunt:        project.Terragrunt,
-				OpenTofu:          project.OpenTofu,
-				Commands:          workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-				CommandEnvVars:    commandEnvVars,
-				StateEnvVars:      stateEnvVars,
-				PullRequestNumber: pullRequestNumber,
-				EventName:         "pull_request",
-				Namespace:         *payload.Repo.FullName,
-				RequestedBy:       *payload.Sender.Login,
-				AwsRoleToAssume:   project.AwsRoleToAssume,
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				ProjectWorkflow:    project.Workflow,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           workflow.Configuration.OnPullRequestPushed,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				PullRequestNumber:  pullRequestNumber,
+				EventName:          "pull_request",
+				Namespace:          *payload.Repo.FullName,
+				RequestedBy:        *payload.Sender.Login,
+				CommandEnvProvider: CommandEnvProvider,
+				StateEnvProvider:   StateEnvProvider,
 			})
 		} else if *payload.Action == "closed" {
 			jobs = append(jobs, orchestrator.Job{
-				ProjectName:       project.Name,
-				ProjectDir:        project.Dir,
-				ProjectWorkspace:  project.Workspace,
-				ProjectWorkflow:   project.Workflow,
-				Terragrunt:        project.Terragrunt,
-				OpenTofu:          project.OpenTofu,
-				Commands:          workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-				CommandEnvVars:    commandEnvVars,
-				StateEnvVars:      stateEnvVars,
-				PullRequestNumber: pullRequestNumber,
-				EventName:         "pull_request",
-				Namespace:         *payload.Repo.FullName,
-				RequestedBy:       *payload.Sender.Login,
-				AwsRoleToAssume:   project.AwsRoleToAssume,
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				ProjectWorkflow:    project.Workflow,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           workflow.Configuration.OnPullRequestClosed,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				PullRequestNumber:  pullRequestNumber,
+				EventName:          "pull_request",
+				Namespace:          *payload.Repo.FullName,
+				RequestedBy:        *payload.Sender.Login,
+				CommandEnvProvider: CommandEnvProvider,
+				StateEnvProvider:   StateEnvProvider,
 			})
 		}
 	}
@@ -315,22 +335,23 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 					workspace = workspaceOverride
 				}
 				jobs = append(jobs, orchestrator.Job{
-					ProjectName:       project.Name,
-					ProjectDir:        project.Dir,
-					ProjectWorkspace:  workspace,
-					ProjectWorkflow:   project.Workflow,
-					Terragrunt:        project.Terragrunt,
-					OpenTofu:          project.OpenTofu,
-					Commands:          []string{command},
-					ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-					PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-					CommandEnvVars:    commandEnvVars,
-					StateEnvVars:      stateEnvVars,
-					PullRequestNumber: issueNumber,
-					EventName:         "issue_comment",
-					Namespace:         *payload.Repo.FullName,
-					RequestedBy:       *payload.Sender.Login,
-					AwsRoleToAssume:   project.AwsRoleToAssume,
+					ProjectName:        project.Name,
+					ProjectDir:         project.Dir,
+					ProjectWorkspace:   workspace,
+					ProjectWorkflow:    project.Workflow,
+					Terragrunt:         project.Terragrunt,
+					OpenTofu:           project.OpenTofu,
+					Commands:           []string{command},
+					ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+					PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+					CommandEnvVars:     commandEnvVars,
+					StateEnvVars:       stateEnvVars,
+					PullRequestNumber:  issueNumber,
+					EventName:          "issue_comment",
+					Namespace:          *payload.Repo.FullName,
+					RequestedBy:        *payload.Sender.Login,
+					CommandEnvProvider: orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command),
+					StateEnvProvider:   orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State),
 				})
 			}
 		}
