@@ -52,7 +52,7 @@ type GithubAwsTokenFetcher struct{}
 func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]byte, error) {
 	var httpClient http.Client
 	type TokenResponse struct {
-		Value []byte `json:"value"`
+		Value string `json:"value"`
 	}
 	tokenIdUrl := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
 	bearerToken := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
@@ -72,7 +72,7 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	parsed := &TokenResponse{}
 	json.NewDecoder(resp.Body).Decode(parsed)
 	log.Printf("value response: %v", parsed.Value)
-	return parsed.Value, nil
+	return []byte(parsed.Value), nil
 }
 
 func GetProviderFromRole(role string) *stscreds.WebIdentityRoleProvider {
