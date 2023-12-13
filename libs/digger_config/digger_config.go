@@ -51,7 +51,7 @@ func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string) (
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
-
+			log.Printf("DEBUG: walking dir: %v, current file: %v", workingDir, path)
 			if err != nil {
 				return err
 			}
