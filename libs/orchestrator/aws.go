@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	url2 "net/url"
 	"os"
 )
 
@@ -55,9 +56,14 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 		Value []byte `json:"value"`
 	}
 	tokenIdUrl := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
-	audience := "sts.amazonaws.com"
+	bearerToken := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+	audience := url2.QueryEscape("sts.amazonaws.com")
 	url := fmt.Sprintf("%v&audience=%v", tokenIdUrl, audience)
 	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("bearer: %v", bearerToken))
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
