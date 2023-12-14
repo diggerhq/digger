@@ -23,9 +23,12 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			driftDetection = *p.DriftDetection
 		}
 
-		roleToAssume := ""
+		var roleToAssume *AssumeRoleForProject = nil
 		if p.AwsRoleToAssume != nil {
-			roleToAssume = *p.AwsRoleToAssume
+			roleToAssume = &AssumeRoleForProject{
+				State:   p.AwsRoleToAssume.State,
+				Command: p.AwsRoleToAssume.Command,
+			}
 		}
 		item := Project{p.Name,
 			p.Dir,

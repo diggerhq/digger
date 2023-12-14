@@ -28,15 +28,19 @@ func (tf Terraform) Init(params []string, envs map[string]string) (string, strin
 	params = append(params, "-input=false")
 	params = append(params, "-no-color")
 	stdout, stderr, _, err := tf.runTerraformCommand(true, "init", envs, params...)
+
+	// switch to workspace for next step
+	// TODO: make this an individual and isolated step
+	werr := tf.switchToWorkspace(envs)
+	if werr != nil {
+		log.Printf("Fatal: Error terraform switch to workspace %v", err)
+		return "", "", werr
+	}
+
 	return stdout, stderr, err
 }
 
 func (tf Terraform) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
-	err := tf.switchToWorkspace(envs)
-	if err != nil {
-		log.Printf("Fatal: Error terraform to workspace %v", err)
-		return "", "", err
-	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
 	if plan != nil {
 		params = append(params, *plan)
@@ -46,11 +50,6 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 }
 
 func (tf Terraform) Destroy(params []string, envs map[string]string) (string, string, error) {
-	err := tf.switchToWorkspace(envs)
-	if err != nil {
-		log.Printf("Fatal: Error terraform to workspace %v", err)
-		return "", "", err
-	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
 	stdout, stderr, _, err := tf.runTerraformCommand(true, "destroy", envs, params...)
 	return stdout, stderr, err
@@ -135,23 +134,6 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 }
 
 func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
-
-	workspaces, _, _, err := tf.runTerraformCommand(false, "workspace", envs, "list")
-	if err != nil {
-		return false, "", "", err
-	}
-	workspaces = tf.formatTerraformWorkspaces(workspaces)
-	if strings.Contains(workspaces, tf.Workspace) {
-		_, _, _, err := tf.runTerraformCommand(true, "workspace", envs, "select", tf.Workspace)
-		if err != nil {
-			return false, "", "", err
-		}
-	} else {
-		_, _, _, err := tf.runTerraformCommand(true, "workspace", envs, "new", tf.Workspace)
-		if err != nil {
-			return false, "", "", err
-		}
-	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand(true, "plan", envs, params...)
 	if err != nil && statusCode != 2 {
