@@ -84,7 +84,7 @@
               "features/project-level-roles",
               "features/commentops",
               "features/plan-preview",
-              "features/plan-persistence",
+              "features/plan-persistence"
             ]
         },
         {
