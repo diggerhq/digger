@@ -1,0 +1,142 @@
+---
+title: "Action inputs"
+---
+
+Full list of supported options from [action.yml](https://github.com/diggerhq/digger/blob/develop/action.yml)
+
+```
+  setup-aws:
+    description: Setup AWS
+    required: false
+    default: 'false'
+  aws-access-key-id:
+    description: AWS access key id
+    required: false
+  aws-secret-access-key:
+    description: AWS secret access key
+    required: false
+  aws-role-to-assume:
+    description: ARN of AWS IAM role to assume using OIDC
+    required: false
+  aws-region:
+    description: AWS region
+    required: false
+    default: us-east-1
+  setup-google-cloud:
+    description: Setup google cloud
+    required: false
+    default: 'false'
+  google-auth-credentials:
+      description: Service account key used got Google auth (mutually exclusive with 'google-workload-identity-provider' input)
+      required: false
+  google-workload-identity-provider:
+      description: Workload identity provider to be used for Google OIDC auth (mutually exclusive with 'google-auth-credentials' input)
+      required: false
+  google-workload-identity-provider-audience:
+      description: "'audience' parameter configured in Google's Workload Identity Provider (if specified). To be used when the 'google-workload-identity-provider' input is specified"
+      required: false
+  google-service-account:
+      description: Service account to be used when the 'google-workload-identity-provider' input is specified)
+      required: false
+  setup-azure:
+    description: Setup Azure
+    required: false
+    default: 'false'
+  azure-client-id:
+    description: Azure Client ID to be used for Azure OIDC auth
+    required: false
+  azure-tenant-id:
+    description: AzureAD ID of the organization you are using
+    required: false
+  azure-subscription-id:
+    description: Subscription ID of you are using
+    required: false
+  setup-terragrunt:
+    description: Setup terragrunt
+    required: false
+    default: 'false'
+  setup-opentofu:
+    description: Setup OpenToFu
+    required: false
+    default: 'false'
+  terragrunt-version:
+    description: Terragrunt version
+    required: false
+    default: v0.48.6
+  opentofu-version:
+    description: OpenTofu version
+    required: false
+    default: v1.6.0-alpha3
+  setup-terraform:
+    description: Setup terraform
+    required: false
+    default: 'false'
+  terraform-version:
+    description: Terraform version
+    required: false
+    default: v1.5.5
+  configure-checkout:
+    description: Configure checkout. Beware that this will overwrite any changes in the working directory
+    required: false
+    default: 'true'
+  upload-plan-destination:
+    description: Destination to upload the plan to. gcp and github are currently supported
+    required: false
+  setup-checkov:
+    description: Setup Checkov
+    required: false
+    default: 'false'
+  checkov-version:
+    description: Checkov version
+    required: false
+    default: '2.3.360'
+  disable-locking:
+    description: Disable locking
+    required: false
+    default: 'false'
+  digger-filename:
+    description: Alternative Digger configuration file name
+    required: false
+  digger-token:
+    description: Digger token
+    required: false
+  digger-hostname:
+    description: Digger hostname
+    required: false
+    default: 'https://cloud.digger.dev'
+  digger-organisation:
+    description: The name of your digger organisation
+    required: false
+  setup-tfenv:
+    description: Setup tfenv
+    required: false
+    default: 'false'
+  post-plans-as-one-comment:
+    description: Post plans as one comment
+    required: false
+    default: 'false'
+  reporting-strategy:
+    description: 'comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments'
+    required: false
+    default: 'comments_per_run'
+  mode:
+    description: 'manual, drift-detection or otherwise'
+    required: false
+    default: ''
+  no-backend:
+    description: 'run cli-only, without an orchestrator backend'
+    required: false
+    default: 'false'
+  command:
+    description: 'digger plan or digger apply in case of manual mode'
+    required: false
+    default: ''
+  project:
+    description: 'project name for digger to run in case of manual mode'
+    required: false
+    default: ''
+  drift-detection-slack-notification-url:
+    description: 'drift-detection slack notification url'
+    required: false
+    default: ''
+```
