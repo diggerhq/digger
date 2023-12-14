@@ -78,7 +78,8 @@
         {
             "group": "Reference",
             "pages": [
-                "reference/digger.yml"
+                "reference/digger.yml",
+                "reference/action-inputs"
             ]
         },
         {
