@@ -77,9 +77,10 @@ type EnvVarYaml struct {
 }
 
 type BlockYaml struct {
-	Include  string `yaml:"include"`
-	Exclude  string `yaml:"exclude"`
-	Workflow string `yaml:"workflow"`
+	Include         string                      `yaml:"include"`
+	Exclude         string                      `yaml:"exclude"`
+	Workflow        string                      `yaml:"workflow"`
+	AwsRoleToAssume *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 }
 
 type AssumeRoleForProjectConfig struct {
@@ -88,11 +89,12 @@ type AssumeRoleForProjectConfig struct {
 }
 
 type GenerateProjectsConfigYaml struct {
-	Include                 string                   `yaml:"include"`
-	Exclude                 string                   `yaml:"exclude"`
-	Terragrunt              bool                     `yaml:"terragrunt"`
-	Blocks                  []BlockYaml              `yaml:"blocks"`
-	TerragruntParsingConfig *TerragruntParsingConfig `yaml:"terragrunt_parsing,omitempty"`
+	Include                 string                      `yaml:"include"`
+	Exclude                 string                      `yaml:"exclude"`
+	Terragrunt              bool                        `yaml:"terragrunt"`
+	Blocks                  []BlockYaml                 `yaml:"blocks"`
+	TerragruntParsingConfig *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`
+	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 }
 
 type TerragruntParsingConfig struct {
