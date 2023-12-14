@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"strings"
 
 	"github.com/diggerhq/digger/cli/pkg/utils"
@@ -418,22 +417,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 			stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
-			var StateEnvProvider *stscreds.WebIdentityRoleProvider
-			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
-			if project.AwsRoleToAssume != nil {
-
-				if project.AwsRoleToAssume.Command != "" {
-					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
-				} else {
-					StateEnvProvider = nil
-				}
-
-				if project.AwsRoleToAssume.Command != "" {
-					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
-				} else {
-					CommandEnvProvider = nil
-				}
-			}
+			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
 			jobs = append(jobs, orchestrator.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
@@ -463,22 +447,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
 			stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
-			var StateEnvProvider *stscreds.WebIdentityRoleProvider
-			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
-			if project.AwsRoleToAssume != nil {
-
-				if project.AwsRoleToAssume.Command != "" {
-					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
-				} else {
-					StateEnvProvider = nil
-				}
-
-				if project.AwsRoleToAssume.Command != "" {
-					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
-				} else {
-					CommandEnvProvider = nil
-				}
-			}
+			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
 			jobs = append(jobs, orchestrator.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
@@ -508,22 +477,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 					return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 				}
 				stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
-				var StateEnvProvider *stscreds.WebIdentityRoleProvider
-				var CommandEnvProvider *stscreds.WebIdentityRoleProvider
-				if project.AwsRoleToAssume != nil {
-
-					if project.AwsRoleToAssume.Command != "" {
-						StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
-					} else {
-						StateEnvProvider = nil
-					}
-
-					if project.AwsRoleToAssume.Command != "" {
-						CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
-					} else {
-						CommandEnvProvider = nil
-					}
-				}
+				StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
 				jobs = append(jobs, orchestrator.Job{
 					ProjectName:        project.Name,
 					ProjectDir:         project.Dir,
@@ -578,22 +532,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 						return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 					}
 					stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
-					var StateEnvProvider *stscreds.WebIdentityRoleProvider
-					var CommandEnvProvider *stscreds.WebIdentityRoleProvider
-					if project.AwsRoleToAssume != nil {
-
-						if project.AwsRoleToAssume.Command != "" {
-							StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
-						} else {
-							StateEnvProvider = nil
-						}
-
-						if project.AwsRoleToAssume.Command != "" {
-							CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
-						} else {
-							CommandEnvProvider = nil
-						}
-					}
+					StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
 					jobs = append(jobs, orchestrator.Job{
 						ProjectName:        project.Name,
 						ProjectDir:         project.Dir,

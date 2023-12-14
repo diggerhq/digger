@@ -8,6 +8,7 @@ import (
 	stscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	sts "github.com/aws/aws-sdk-go/service/sts"
+	"github.com/diggerhq/digger/libs/digger_config"
 	"log"
 	"net/http"
 	url2 "net/url"
@@ -80,4 +81,24 @@ func GetProviderFromRole(role string) *stscreds.WebIdentityRoleProvider {
 	stsSTS := sts.New(mySession, &awssdk.Config{Region: awssdk.String("us-east-1")})
 	x := stscreds.NewWebIdentityRoleProviderWithOptions(stsSTS, role, "diggerSess", GithubAwsTokenFetcher{})
 	return x
+}
+
+func GetStateAndCommandProviders(project digger_config.Project) (*stscreds.WebIdentityRoleProvider, *stscreds.WebIdentityRoleProvider) {
+	var StateEnvProvider *stscreds.WebIdentityRoleProvider
+	var CommandEnvProvider *stscreds.WebIdentityRoleProvider
+	if project.AwsRoleToAssume != nil {
+
+		if project.AwsRoleToAssume.Command != "" {
+			StateEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.State)
+		} else {
+			StateEnvProvider = nil
+		}
+
+		if project.AwsRoleToAssume.Command != "" {
+			CommandEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.Command)
+		} else {
+			CommandEnvProvider = nil
+		}
+	}
+	return StateEnvProvider, CommandEnvProvider
 }
