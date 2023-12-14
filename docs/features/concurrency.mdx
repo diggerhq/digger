@@ -1,0 +1,7 @@
+---
+title: "Concurrency"
+---
+
+With Digger plans / apply jobs that do not depend on each other run in parallel. This makes execution much faster, often by a large factor, for example when a change in a module affects multiple state files.
+
+Digger does not run its own compute; instead it's an orchestrator that starts jobs in your CI. So concurrency is natural with this architecture. 
