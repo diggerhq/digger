@@ -64,7 +64,6 @@
                 "configuration/versioning",
                 "configuration/disable-auto-checkout",
                 "configuration/segregate-cloud-accounts",
-                "configuration/with-terraform-workpaces",
                 "configuration/apply-on-merge",
                 "configuration/using-checkov",
                 "configuration/using-infracost",
