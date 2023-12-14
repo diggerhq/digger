@@ -49,9 +49,11 @@
         {
           "group": "Features",
           "pages": [
-            "features/pr-level-locks",
-            "features/commentops",
             "features/plan-preview",
+            "features/commentops",
+            "features/dashboard",
+            "features/concurrency",
+            "features/pr-level-locks",
             "features/plan-persistence"
           ]
       },
