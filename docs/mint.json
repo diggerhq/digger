@@ -50,6 +50,7 @@
           "group": "How-to Guides",
           "pages": [
               "guides/multiacc-aws",
+              "guides/terragrunt",
               "guides/destroy-manual",
               "guides/trigger-directly",
               "guides/policy-overrides"
@@ -63,13 +64,11 @@
                 "configuration/disable-auto-checkout",
                 "configuration/segregate-cloud-accounts",
                 "configuration/with-terraform-workpaces",
-                "configuration/with-terragrunt",
                 "configuration/apply-on-merge",
                 "configuration/using-checkov",
                 "configuration/using-infracost",
                 "configuration/using-opa-conftest",
-                "configuration/commenting-strategies",
-                "configuration/terragrunt-project-generation"
+                "configuration/commenting-strategies"
             ]
         },
         {
