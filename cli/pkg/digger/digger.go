@@ -158,7 +158,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		return msg, errors.New(msg)
 	}
 
-	job, err = PopulateAwsCredentialsEnvVarsForJob(&job, nil)
+	err = job.PopulateAwsCredentialsEnvVarsForJob()
 	if err != nil {
 		log.Fatalf("failed to fetch AWS keys, %v", err)
 	}

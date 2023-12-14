@@ -12,6 +12,11 @@ type DependencyConfiguration struct {
 	Mode string
 }
 
+type AssumeRoleForProject struct {
+	State   string
+	Command string
+}
+
 type Project struct {
 	Name               string
 	Dir                string
@@ -23,7 +28,7 @@ type Project struct {
 	ExcludePatterns    []string
 	DependencyProjects []string
 	DriftDetection     bool
-	AwsRoleToAssume    string
+	AwsRoleToAssume    *AssumeRoleForProject
 }
 
 type Workflow struct {
