@@ -315,7 +315,7 @@ runs:
             echo "artifact=plans-${{ github.event.number }}" >> $GITHUB_OUTPUT
           fi
     - name: upload plan
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
           name: ${{ steps.artifact.outputs.artifact }}
           path: '${{ github.workspace }}/**/*.tfplan'
