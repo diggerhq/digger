@@ -38,6 +38,7 @@ func (a *AwsRoleProviderMock) RetrieveWithContext(credentials.Context) (credenti
 
 func (a *AwsRoleProviderMock) IsExpired() bool { return false }
 
+// TODO: uncomment this test after figuring out how to create a mock compatible with WebIdentityRoleProvider
 //func TestPopulationForAwsRoleToAssumeSetsValueOfKeys(t *testing.T) {
 //	stateEnvVars := make(map[string]string)
 //	commandEnvVars := make(map[string]string)
