@@ -2,6 +2,15 @@
 title: "Plan preview"
 ---
 
+Digger runs `terraform plan` whenever a pull request is raised, and appends output as comment
+
+<img height="200" src="images/digger-plan-preview.png" />
+
+Digger run report also contains other useful info e.g. results of policy checks.
+
+You can also re-plan by commenting `digger plan` (see [CommentOps](/features/commentops))
+
+
 * The default way of working with digger is creating a pull request, previewing the plan within the PR as a comment, approving and applying the change within the change and then merging the pull request to the default branch
 
 * This guarantees that any pull request merged to the default branch reflects the infrastructure (since the apply will succeed before merging the pull request)
