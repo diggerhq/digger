@@ -300,24 +300,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			}
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-
-			var StateEnvProvider *stscreds.WebIdentityRoleProvider
-			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
-			if project.AwsRoleToAssume != nil {
-
-				if project.AwsRoleToAssume.Command != "" {
-					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
-				} else {
-					StateEnvProvider = nil
-				}
-
-				if project.AwsRoleToAssume.Command != "" {
-					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
-				} else {
-					CommandEnvProvider = nil
-				}
-			}
-
+			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
 			jobs = append(jobs, orchestrator.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
@@ -415,22 +398,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 						workspace = workspaceOverride
 					}
 					stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-					var StateEnvProvider *stscreds.WebIdentityRoleProvider
-					var CommandEnvProvider *stscreds.WebIdentityRoleProvider
-					if project.AwsRoleToAssume != nil {
-
-						if project.AwsRoleToAssume.Command != "" {
-							StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State)
-						} else {
-							StateEnvProvider = nil
-						}
-
-						if project.AwsRoleToAssume.Command != "" {
-							CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command)
-						} else {
-							CommandEnvProvider = nil
-						}
-					}
+					StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
 					jobs = append(jobs, orchestrator.Job{
 						ProjectName:        project.Name,
 						ProjectDir:         project.Dir,
