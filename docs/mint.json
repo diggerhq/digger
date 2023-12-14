@@ -47,29 +47,38 @@
             ]
         },
         {
-          "group": "How-to Guides",
+          "group": "Features",
           "pages": [
-              "guides/multiacc-aws",
-              "guides/terragrunt",
-              "guides/generate-projects",
-              "guides/destroy-manual",
-              "guides/trigger-directly",
-              "guides/policy-overrides"
+            "features/pr-level-locks",
+            "features/commentops",
+            "features/plan-preview",
+            "features/plan-persistence"
+          ]
+      },
+        {
+          "group": "How To",
+          "pages": [
+              "howto/terragrunt",
+              "howto/using-checkov",
+              "howto/using-infracost",
+              "howto/using-opa-conftest",
+              "howto/multiacc-aws",
+              "howto/project-level-roles",
+              "howto/generate-projects",
+              "howto/destroy-manual",
+              "howto/trigger-directly",
+              "howto/policy-overrides",
+              "howto/versioning",
+              "howto/disable-auto-checkout",
+              "howto/segregate-cloud-accounts",
+              "howto/apply-on-merge",
+              "howto/commenting-strategies"
           ]
         },
         {
-            "group": "Configuration",
+            "group": "Reference",
             "pages": [
-                "configuration/digger.yml",
-                "configuration/versioning",
-                "configuration/disable-auto-checkout",
-                "configuration/segregate-cloud-accounts",
-                "configuration/with-terraform-workpaces",
-                "configuration/apply-on-merge",
-                "configuration/using-checkov",
-                "configuration/using-infracost",
-                "configuration/using-opa-conftest",
-                "configuration/commenting-strategies"
+                "reference/digger.yml"
             ]
         },
         {
@@ -77,19 +86,6 @@
           "pages": [
               "ee/ee-setup"
           ]
-        },
-        {
-            "group": "Features",
-            "pages": [
-              "features/projects",
-              "features/workspaces",
-              "features/pr-level-locks",
-              "features/project-level-roles",
-              "features/commentops",
-              "features/plan-preview",
-              "features/plan-persistence",
-              "features/custom-workflows"
-            ]
         },
         {
             "group": "Digger API",
