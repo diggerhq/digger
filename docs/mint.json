@@ -51,6 +51,7 @@
           "pages": [
               "guides/multiacc-aws",
               "guides/terragrunt",
+              "guides/generate-projects",
               "guides/destroy-manual",
               "guides/trigger-directly",
               "guides/policy-overrides"
