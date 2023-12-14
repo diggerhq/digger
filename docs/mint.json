@@ -82,7 +82,6 @@
             "group": "Features",
             "pages": [
               "features/projects",
-              "features/workspaces",
               "features/pr-level-locks",
               "features/project-level-roles",
               "features/commentops",
