@@ -80,13 +80,11 @@
         {
             "group": "Features",
             "pages": [
-              "features/projects",
               "features/pr-level-locks",
               "features/project-level-roles",
               "features/commentops",
               "features/plan-preview",
               "features/plan-persistence",
-              "features/custom-workflows"
             ]
         },
         {
