@@ -11,6 +11,23 @@ generate_projects:
   exclude: "projects/dev/test3"
 ```
 
+# Blocks syntax
+
+You can also specify multiple include / exclude entries like this:
+
+```
+generate_projects:
+  blocks:
+    - include: "environments/core/**"
+      workflow: default_work_flow
+    - include: "environments/cicd/**"
+      workflow: default_work_flow
+    - include: "environments/dev/**"
+      workflow: default_work_flow
+    - include: "environments/qa/**"
+      workflow: default_work_flow
+```
+
 [Demo repo](https://github.com/diggerhq/generate_projects_demo)
 
 
