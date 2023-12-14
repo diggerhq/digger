@@ -5,7 +5,7 @@ go 1.21.5
 replace github.com/diggerhq/digger/libs => ../libs
 
 require (
-	cloud.google.com/go/storage v1.35.1
+	cloud.google.com/go/storage v1.36.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.1.0
 	github.com/aws/aws-sdk-go v1.49.2
