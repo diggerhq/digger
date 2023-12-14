@@ -1,0 +1,17 @@
+---
+title: "Generate projects"
+---
+
+Sometimes specifying every project in digger.yml by hand is suboptimal, especially with a large number of small statefiles.
+In this scenario you can use the `generate_projects` directive in digger.yml. Digger will then traverse the directory according to `include_patters` and `exclude_patterns` provided and dynamically generate the list of projects
+
+```
+generate_projects:
+  include: "projects/dev/*"
+  exclude: "projects/dev/test3"
+```
+
+[Demo repo](https://github.com/diggerhq/generate_projects_demo)
+
+
+
