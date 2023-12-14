@@ -20,17 +20,17 @@ type DependencyConfigurationYaml struct {
 }
 
 type ProjectYaml struct {
-	Name               string   `yaml:"name"`
-	Dir                string   `yaml:"dir"`
-	Workspace          string   `yaml:"workspace"`
-	Terragrunt         bool     `yaml:"terragrunt"`
-	OpenTofu           bool     `yaml:"opentofu"`
-	Workflow           string   `yaml:"workflow"`
-	IncludePatterns    []string `yaml:"include_patterns,omitempty"`
-	ExcludePatterns    []string `yaml:"exclude_patterns,omitempty"`
-	DependencyProjects []string `yaml:"depends_on,omitempty"`
-	DriftDetection     *bool    `yaml:"drift_detection,omitempty"`
-	AwsRoleToAssume    *string  `yaml:"aws_role_to_assume,omitempty"`
+	Name               string                      `yaml:"name"`
+	Dir                string                      `yaml:"dir"`
+	Workspace          string                      `yaml:"workspace"`
+	Terragrunt         bool                        `yaml:"terragrunt"`
+	OpenTofu           bool                        `yaml:"opentofu"`
+	Workflow           string                      `yaml:"workflow"`
+	IncludePatterns    []string                    `yaml:"include_patterns,omitempty"`
+	ExcludePatterns    []string                    `yaml:"exclude_patterns,omitempty"`
+	DependencyProjects []string                    `yaml:"depends_on,omitempty"`
+	DriftDetection     *bool                       `yaml:"drift_detection,omitempty"`
+	AwsRoleToAssume    *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 }
 
 type WorkflowYaml struct {
@@ -77,17 +77,24 @@ type EnvVarYaml struct {
 }
 
 type BlockYaml struct {
-	Include  string `yaml:"include"`
-	Exclude  string `yaml:"exclude"`
-	Workflow string `yaml:"workflow"`
+	Include         string                      `yaml:"include"`
+	Exclude         string                      `yaml:"exclude"`
+	Workflow        string                      `yaml:"workflow"`
+	AwsRoleToAssume *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+}
+
+type AssumeRoleForProjectConfig struct {
+	State   string `yaml:"state"`
+	Command string `yaml:"command"`
 }
 
 type GenerateProjectsConfigYaml struct {
-	Include                 string                   `yaml:"include"`
-	Exclude                 string                   `yaml:"exclude"`
-	Terragrunt              bool                     `yaml:"terragrunt"`
-	Blocks                  []BlockYaml              `yaml:"blocks"`
-	TerragruntParsingConfig *TerragruntParsingConfig `yaml:"terragrunt_parsing,omitempty"`
+	Include                 string                      `yaml:"include"`
+	Exclude                 string                      `yaml:"exclude"`
+	Terragrunt              bool                        `yaml:"terragrunt"`
+	Blocks                  []BlockYaml                 `yaml:"blocks"`
+	TerragruntParsingConfig *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`
+	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 }
 
 type TerragruntParsingConfig struct {

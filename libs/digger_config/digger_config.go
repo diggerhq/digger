@@ -213,7 +213,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 			for _, dir := range dirs {
 				if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
 					projectName := strings.ReplaceAll(dir, "/", "_")
-					project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
+					project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", AwsRoleToAssume: config.GenerateProjectsConfig.AwsRoleToAssume}
 					config.Projects = append(config.Projects, &project)
 				}
 			}
@@ -231,7 +231,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 				for _, dir := range dirs {
 					if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
 						projectName := strings.ReplaceAll(dir, "/", "_")
-						project := ProjectYaml{Name: projectName, Dir: dir, Workflow: workflow, Workspace: "default"}
+						project := ProjectYaml{Name: projectName, Dir: dir, Workflow: workflow, Workspace: "default", AwsRoleToAssume: b.AwsRoleToAssume}
 						config.Projects = append(config.Projects, &project)
 					}
 				}
