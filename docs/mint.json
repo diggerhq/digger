@@ -52,6 +52,7 @@
             "features/plan-preview",
             "features/commentops",
             "features/dashboard",
+            "features/opa-policies",
             "features/concurrency",
             "features/pr-level-locks",
             "features/plan-persistence"
