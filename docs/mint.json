@@ -55,7 +55,8 @@
             "features/opa-policies",
             "features/concurrency",
             "features/pr-level-locks",
-            "features/plan-persistence"
+            "features/plan-persistence",
+            "features/rbac"
           ]
       },
         {
