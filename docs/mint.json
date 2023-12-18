@@ -80,6 +80,12 @@
           ]
         },
         {
+          "group": "Self-host Digger",
+          "pages": [
+              "self-host/deploy-binary"
+          ]
+      },
+        {
             "group": "Reference",
             "pages": [
                 "reference/digger.yml",
