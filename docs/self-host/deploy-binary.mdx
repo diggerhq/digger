@@ -1,0 +1,60 @@
+---
+title: "Deploy as a binary"
+---
+
+Digger has 2 main components: the CLI that runs within your CI and an orchestrator backend. The orchestrator enables parallelism, policies and other features that require centralisation.
+
+This guide describes self-hosting the orchestrator backend as a binary aka "roll your own". Self-hosting may come handy when using the cloud-based version of it is not an option (for example due to compliance requirements). More guides (docker, EC2, etc) are coming soon.
+
+# Prerequisites
+- Postgres database (e.g. RDS)
+- Rights to install GitHub apps in your organisation
+
+# Download Digger API binary
+
+Get it from [releases](https://github.com/diggerhq/api/releases). Note that it's a separate binary, not to be confused the CLI agent that runs in the CI job. 
+
+# Set initial environment variables
+
+```
+GIHTUB_ORG=your_github_org
+HOSTNAME=your_public_digger_hostname
+BEARER_AUTH_TOKEN=$(openssl rand -base64 12)
+DATABASE_URL=postgres://.....
+HTTP_BASIC_AUTH=1
+HTTP_BASIC_AUTH_USERNAME=myorg
+HTTP_BASIC_AUTH_PASSWORD=$(openssl rand -base64 12)
+```
+
+# Start the service
+
+```
+./diggerapi
+```
+You should now see initial database migrations and tables being created. Go to your_digger_hostname:3000/projects; you should see the dashboard. The setup is not complete yet!
+
+# Create GitHub app
+
+Go to your_digger_hostname:3000/github/setup and click the Setup button. Follow the instructions on GitHub to install the app to the repositories in your organisation.
+
+After the setup is done, GitHub should redirect you to the summary page at your_digger_hostname:3000/github/exchange-code
+
+Copy the values into the following environment variables and restart the service.
+
+```
+GITHUB_APP_ID=
+GITHUB_APP_CLIENT_ID=
+GITHUB_APP_CLIENT_SECRET=
+GITHUB_APP_PRIVATE_KEY=
+GITHUB_WEBHOOK_SECRET=
+```
+
+# Install the GitHub app
+
+On the exchange-code page (see above) click the installation link at the top and select the repositories.
+
+From here on it's the same steps as in the [Quickstart](https://docs.digger.dev/getting-started/github-actions-+-aws):
+- Create digger.yml
+- Create workflow file
+- Create secrets
+- Create a PR to verify that Digger works
