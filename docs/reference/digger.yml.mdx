@@ -116,8 +116,8 @@ workflows:
 | workspace                | string                                               | default | no       | terraform workspace to use                                         |                                                                                                           |
 | terragrunt               | boolean                                              | false   | no       | whether to use terragrunt                                          |                                                                                                           |
 | workflow                 | string                                               | default | no       | workflow to use                                                    | default workflow will be created for you described in workflow section                                    |
-| include\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to include                         | for example shared terraform modules folder                                                               |
-| exclude\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to exclude                         | for example .terraform folder                                                                             |
+| include\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to include, e.g. `./modules`       | see [Include / Exclude Patterns](/howto/include-exclude-patterns)                                         |
+| exclude\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to exclude, e.g. `.terraform`      | see [Include / Exclude Patterns](/howto/include-exclude-patterns)                                         |
 | depends\_on              | array of strings                                     | \[\]    | no       | list of project names that need to be completed before the project | it doesn't force terraform run, but affects the order of commands for projects modified in the current PR |
 | aws_role_to_assume       | [RoleToAssume](/reference/digger.yml#roletoassume)   |         | no       | A string representing the AWS role to assume for this project      |                                                                                                           |
 
@@ -229,37 +229,5 @@ You can run plan / apply in a specified project by using the -p option in Github
 
 ```bash
 digger apply -p my-second-app
-```
-
-## Include / exclude patterns
-
-<Note>
-This docs page needs improvement. Please consider contributing to [docs](https://github.com/diggerhq/docs). Here is the [relevant PR](https://github.com/diggerhq/digger/pull/301) implementing this feature
-</Note>
-
-You can specify wildcard and glob patterns in digger.yml to include multiple directories into a project. A common use case for this is if you have multiple environment folders and they import from a common `modules` directory:
-
-```yml
-development/
-  main.tf
-production/
-  main.tf
-modules/
-  shared_moduleA/
-  dev_only_module/
-```
-
-If you wanted to trigger plans for all `modules/` folder in both dev and prod projects you would include them in the `include_patterns` key. Similarly you put anything which you want to ignore in the `exclude_patterns` key ( exclude takes precedence over includes).
-
-```yml
-projects:
-  - name: dev
-    dir: ./development
-    include_patterns: ["./modules/**"]
-    workflow: default_workflow
-  - name: prod
-    dir: ./production
-    include_patterns: ["./modules/**"]
-    exclude_patterns: ["./modules/dev_only_module/**"]
 ```
 
