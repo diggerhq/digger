@@ -1,8 +1,11 @@
-name: Build&Push to Test ECR
+name: Backend Build&Push to Test ECR
 on:
   push:
-    branches: [ main, feat/* ]
-    paths: [ "backend/**", "libs/**"]
+    branches: [ 'main', 'feat/*' ]
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build:
@@ -16,7 +19,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.TEST_AWS_ROLE}}
+          role-to-assume: ${{ secrets.TEST_AWS_ROLE }}
           aws-region: eu-west-2
 
       - name: Login to Amazon ECR
@@ -30,8 +33,9 @@ jobs:
           IMAGE_TAG: latest
         run: |
           export COMMIT_SHA=$(git rev-parse --short HEAD)
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg COMMIT_SHA=${COMMIT_SHA} -f backend/Dockerfile .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg COMMIT_SHA=${COMMIT_SHA} .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        working-directory: backend
 
   restart:
     needs: build

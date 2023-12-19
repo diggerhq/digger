@@ -1,4 +1,4 @@
-name: release
+name: Backend release
 on:
   release:
     types: [released]

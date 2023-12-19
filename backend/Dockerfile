@@ -3,7 +3,7 @@ ARG COMMIT_SHA
 RUN echo "commit sha: ${COMMIT_SHA}"
 
 # Set the working directory
-WORKDIR $GOPATH/src/github.com/diggerhq/cloud
+WORKDIR $GOPATH/src/github.com/diggerhq/digger/backend
 
 # Copy all required source, blacklist files that are not required through `.dockerignore`
 COPY . .
@@ -15,7 +15,7 @@ RUN go version
 
 # https://github.com/ethereum/go-ethereum/issues/2738
 # Build static binary "-getmode=vendor" does not work with go-ethereum
-RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'"
+RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o backend
 
 # Multi-stage build will just copy the binary to an alpine image.
 FROM ubuntu:22.04 as runner
@@ -34,8 +34,8 @@ RUN echo "commit sha: ${COMMIT_SHA}"
 EXPOSE 3000
 
 # Copy the binary to the corresponding folder
-COPY --from=builder /go/src/github.com/diggerhq/cloud/cloud .
+COPY --from=builder /go/src/github.com/diggerhq/digger/backend/backend .
 ADD templates ./templates
 
 # Run the binary
-CMD ["/app/cloud"]
+CMD ["/app/backend"]

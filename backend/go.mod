@@ -3,6 +3,7 @@ module github.com/diggerhq/digger/backend
 go 1.21
 
 replace github.com/diggerhq/digger/libs => ../libs
+// https://github.com/duo-labs/webauthn/issues/44
 replace github.com/ugorji/go => github.com/ugorji/go v1.2.11
 
 

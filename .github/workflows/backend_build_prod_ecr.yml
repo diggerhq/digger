@@ -1,8 +1,11 @@
-name: Build&Push to Prod ECR
+name: Backend Build&Push to Prod ECR
 on:
   push:
-    branches: [ main ]
-    paths: [ "backend/**", "libs/**"]
+    branches: [ 'develop' ]
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build:
@@ -16,7 +19,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.PROD_AWS_ROLE}}
+          role-to-assume: ${{ secrets.PROD_AWS_ROLE }}
           aws-region: eu-west-2
 
       - name: Login to Amazon ECR
@@ -32,6 +35,7 @@ jobs:
           export COMMIT_SHA=$(git rev-parse --short HEAD)
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg COMMIT_SHA=${COMMIT_SHA} -f backend/Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        working-directory: backend
 
   restart:
     needs: build
