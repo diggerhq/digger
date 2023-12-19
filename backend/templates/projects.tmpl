@@ -1,0 +1,44 @@
+{{template "top" . }}
+<div id="content">
+    <div class="container-fluid">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <p class="text-primary m-0 fw-bold">Projects</p>
+            </div>
+            <div class="card-body">
+
+               {{template "notifications" . }}
+
+                <div class="table-responsive table mt-2" id="dataTable_div" role="grid" aria-describedby="dataTable_info">
+                    <table class="table my-0" id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Repo</th>
+                                <th>Organisation</th>
+                                <th>Status</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {{ range .Projects }}
+                            <tr>
+                                <td>{{ .Name }}</td>
+                                <td><a href="/repo/{{.Repo.ID}}/">{{ .Repo.Name }}<a></td>
+                                <td>{{ .Organisation.Name }}</td>
+                                <td>{{ .Status }}</td>
+                                <td><a href="/projects/{{.ID}}/details">Details<a></td>
+                            </tr>
+                        {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{template "bottom" . }}
+
+
+

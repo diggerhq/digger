@@ -1,0 +1,26 @@
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres:alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=23q4RSDFSDFS
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    links:
+      - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    build: ./
+    env_file:
+      - .env.docker-compose
+    ports:
+      - "3100:3000"
