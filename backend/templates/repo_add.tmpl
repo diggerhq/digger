@@ -1,0 +1,40 @@
+{{template "top" . }}
+
+<div id="content">
+    <div class="container-fluid">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <p class="text-primary m-0 fw-bold">Update Digger Config</p>
+            </div>
+            <div class="card-body">
+
+                {{template "notifications" . }}
+                <form method="POST">
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3"><label class="form-label" ><strong>Digger Config</strong></label>
+                                <textarea class="form-control prism-live language-yaml" type="text" id="diggerconfig" name="diggerconfig">{{.Repo.DiggerConfig}}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3"><button class="btn btn-primary btn-sm" type="submit">Update</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function resizeTextArea(textarea) {
+    textarea.style.height = "";
+    textarea.style.height = textarea.scrollHeight + 3 + "px"
+}
+configYaml = document.getElementById("diggerconfig");
+configYaml.onload = resizeTextArea(configYaml);
+configYaml.oninput = function(){resizeTextArea(configYaml);};
+</script>
+
+{{template "bottom" . }}
+
+
+
+

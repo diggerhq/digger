@@ -1,0 +1,57 @@
+{{template "top" . }}
+<div id="content">
+    <div class="container-fluid">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <p class="text-primary m-0 fw-bold">Add Policy</p>
+            </div>
+            <div class="card-body">
+
+            {{template "notifications" . }}
+
+                <form method="POST">
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                            <label class="form-label"><strong>Project</strong></label>
+                                <select class="form-select" name="projectid" aria-label="Choose project">
+                                {{range .Projects}}
+                                    <option value="{{.ID}}">{{.Name}}</option>
+                                {{end}}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                            <label class="form-label"><strong>Policy Type</strong></label>
+                                <select class="form-select" name="policytype" aria-label="Choose policy type">
+                                {{range .PolicyTypes}}
+                                    <option value="{{.}}">{{.}}</option>
+                                {{end}}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3"><label class="form-label" ><strong>Policy Text</strong></label>
+                                <textarea class="form-control prism-live language-javascript" type="text" id="policytext" name="policytext">{{.Policy.Policy}}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3"><button class="btn btn-primary btn-sm" type="submit">Add</button></div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{{template "bottom" . }}
+
+
+
+
