@@ -6,6 +6,10 @@ Digger has 2 main components: the CLI that runs within your CI and an orchestrat
 
 This guide describes self-hosting the orchestrator backend as a binary aka "roll your own". Self-hosting may come handy when using the cloud-based version of it is not an option (for example due to compliance requirements). More guides (docker, EC2, etc) are coming soon.
 
+<Note>
+This guide is about self-hosting Digger Community Edition which is free and open source (Apache 2.0 license) ([repo on GitHub](https://github.com/diggerhq/digger)). You do not need a license or an account on Digger Cloud to self-host Digger CE. If you require enterprise-grade features like Github Enterprise Server support, SSO / SAML, multi-team / multi-org - [Talk to us](https://calendly.com/diggerdev/digger-open-source-terraform-cloud-alternativ-clone)
+</Note>
+
 # Prerequisites
 - Postgres database (e.g. RDS)
 - Rights to install GitHub apps in your organisation
