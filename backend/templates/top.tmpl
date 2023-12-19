@@ -1,0 +1,38 @@
+{{define "top"}}
+<!DOCTYPE html>
+<html data-bs-theme="light" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Digger</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link href="/static/css/prism.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&amp;display=swap">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.2/css/all.css">
+
+</head>
+
+<body id="page-top">
+    <div id="wrapper">
+        <nav class="navbar align-items-start sidebar sidebar-dark accordion bg-gradient-primary p-0 navbar-dark">
+            <div class="container-fluid d-flex flex-column p-0"><a class="navbar-brand d-flex justify-content-center align-items-center sidebar-brand m-0" href="#">
+                    <div class="sidebar-brand-icon rotate-n-15">
+                        <svg width="40" height="40" viewBox="0 0 31 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.4307 4.77003L9.60067 7.68003C9.41622 7.77278 9.2619 7.91601 9.15568 8.09305C9.04946 8.27008 8.9957 8.47364 9.00067 8.68003V16.25C8.99407 16.438 9.03665 16.6243 9.12419 16.7907C9.21173 16.9572 9.3412 17.0978 9.4998 17.1988C9.65839 17.2999 9.84061 17.3577 10.0284 17.3667C10.2163 17.3757 10.4032 17.3355 10.5707 17.25L16.4007 14.33C16.5859 14.2383 16.7409 14.0952 16.8472 13.918C16.9536 13.7407 17.0068 13.5367 17.0007 13.33V5.74003C17.002 5.55464 16.9555 5.37203 16.8658 5.20978C16.7761 5.04754 16.6461 4.91113 16.4883 4.81368C16.3306 4.71623 16.1505 4.66103 15.9652 4.65338C15.78 4.64574 15.5959 4.68591 15.4307 4.77003V4.77003Z" fill="#FF12E7"></path><path d="M1.57048 4.77003L7.40048 7.68003C7.58493 7.77278 7.73924 7.91601 7.84547 8.09305C7.95169 8.27008 8.00544 8.47364 8.00048 8.68003V16.25C8.00708 16.438 7.9645 16.6243 7.87696 16.7907C7.78942 16.9572 7.65994 17.0978 7.50135 17.1988C7.34275 17.2999 7.16053 17.3577 6.97272 17.3667C6.7849 17.3757 6.59799 17.3355 6.43048 17.25L0.600483 14.28C0.415257 14.1883 0.260264 14.0452 0.153908 13.868C0.047552 13.6907 -0.0056975 13.4867 0.000482946 13.28V5.74003C-0.00081636 5.55464 0.0456338 5.37203 0.135362 5.20978C0.225089 5.04754 0.355073 4.91113 0.5128 4.81368C0.670526 4.71623 0.850683 4.66103 1.03593 4.65338C1.22117 4.64574 1.40526 4.68591 1.57048 4.77003V4.77003Z" fill="#8101E4"></path><path d="M10.48 6.26L9.09001 7C8.90596 7.08862 8.7043 7.13464 8.50001 7.13464C8.29573 7.13464 8.09407 7.08862 7.91001 7L6.52001 6.26C6.36318 6.18297 6.23122 6.06332 6.13925 5.91476C6.04729 5.76619 5.99903 5.59472 6.00001 5.42V2.5C6.00001 1.83696 6.26341 1.20107 6.73225 0.732233C7.20109 0.263392 7.83697 0 8.50001 0V0C9.16306 0 9.79894 0.263392 10.2678 0.732233C10.7366 1.20107 11 1.83696 11 2.5V5.42C11.001 5.59472 10.9527 5.76619 10.8608 5.91476C10.7688 6.06332 10.6368 6.18297 10.48 6.26V6.26Z" fill="#FF8A20"></path></svg>
+                    </div>
+                    <div class="sidebar-brand-text mx-3"><span>Digger</span></div>
+                </a>
+                <hr class="sidebar-divider my-0">
+                <ul class="navbar-nav text-light" id="accordionSidebar">
+                    <li class="nav-item"><a class="nav-link" href="/projects"><i class="fas fa-project-diagram"></i><span>Projects</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="/repos"><i class="fas fa-code-branch"></i><span>Repos</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="/runs"><i class="fas fa-tasks"></i><span>Runs</span></a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/policies"><i class="fa fa-shield-halved"></i><span>Policies</span></a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/"><i class="fas fa-user"></i><span>Profile</span></a></li>
+               </ul>
+                <div class="text-center d-none d-md-inline"><button class="btn rounded-circle border-0" id="sidebarToggle" type="button"></button></div>
+            </div>
+        </nav>
+        <div class="d-flex flex-column" id="content-wrapper">
+{{ end }}
