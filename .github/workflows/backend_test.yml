@@ -1,4 +1,4 @@
-name: Go Tests
+name: Backend Go Tests
 on:
   push:
     branches: [ main ]
@@ -23,11 +23,14 @@ jobs:
 
       - name: Deps
         run: go get -v ./...
+        working-directory: backend
 
       - name: Build
         run: go build
+        working-directory: backend
 
       - name: Test
         run: go test -v ./...
         env:
           GITHUB_PAT_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        working-directory: backend
