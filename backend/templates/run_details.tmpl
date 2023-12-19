@@ -1,0 +1,88 @@
+{{template "top" . }}
+
+<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Ubuntu+Mono" />
+<link rel="stylesheet" href="/static/css/tf.css">
+
+<div id="content">
+    <div class="container-fluid">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <p class="text-primary m-0 fw-bold">Project Run Details</p>
+            </div>
+            <div class="card-body">
+
+                {{template "notifications" . }}
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3"><label class="form-label" ><strong>Project Name</strong></label>
+                            <input class="form-control" type="text"  readonly value="{{.Run.Project.Name}}"></div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3"><label class="form-label" ><strong>Project Run Status</strong></label>
+                            <input class="form-control" type="text"  readonly value="{{.Run.Status}}"></div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3"><label class="form-label" ><strong>Command</strong></label>
+                            <input class="form-control" type="text" readonly value="{{.Run.Command}}" ></div>
+                        </div>
+                    </div>
+
+                    {{ if .RunOutput }}
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3"><label class="form-label" ><strong>Output:</strong></label>
+                                <div class="terraform-output-bg">{{.RunOutput}}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {{ else }}
+
+                    <div class="row">
+                      <div class="col">
+                        <div class="mb-3"><label class="form-label" ><strong>Output:</strong></label>
+                          <div id="collapseTerraformStateSync">
+                            <div class="card">
+                              <a href="#collapseTerraformStateSyncChevron" class="card-header collapse-indicator-chevron" id="headingTerraformStateSync" data-bs-toggle="collapse" aria-expanded="false" aria-controls="collapseIndicatorChevron">
+                                Terraform State Sync
+                              </a>
+                              <div id="collapseTerraformStateSyncChevron" class="collapse" aria-labelledby="headingTerraformStateSync" data-bs-parent="#collapseTerraformStateSync">
+                                <div class="card-body">
+                                    <div class="terraform-output-bg">{{.TerraformStateSyncOutput}}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div id="collapseTerraformPlan">
+                            <div class="card">
+                              <a href="#collapseTerraformPlanChevron" class="card-header collapse-indicator-chevron" id="headingTerraformPlan" data-bs-toggle="collapse" aria-expanded="false" aria-controls="collapseTerraformPlanChevron">
+                                Terraform Plan
+                              </a>
+
+                              <div id="collapseTerraformPlanChevron" class="collapse show" aria-labelledby="headingTerraformPlan" data-bs-parent="#collapseTerraformPlan">
+                                <div class="card-body">
+                                  <div class="terraform-output-bg">{{.TerraformPlanOutput}}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {{ end }}
+
+            </div>
+        </div>
+    </div>
+</div>
+{{template "bottom" . }}
+
+
+
+

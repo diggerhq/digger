@@ -1,0 +1,43 @@
+name: release
+on:
+  release:
+    branches:
+      - 'go'
+    types: [released]
+jobs:
+  binary:
+    strategy:
+      matrix:
+        arch: [arm, arm64, amd64, 386]
+        os: [linux, darwin, freebsd, windows]
+        exclude:
+          - os: darwin
+            arch: arm
+          - os: darwin
+            arch: 386
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21.1
+        id: go
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Build
+        run: |
+          echo "Tag that is going to be used as digger version: ${{ github.event.release.tag_name }}"
+          env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ github.event.release.tag_name }}" -o digger-api ./
+      - name: Publish linux-x64 exec to github
+        id: upload-release-asset-linux-x64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: 'digger-api'
+          asset_name: digger-api-${{matrix.os}}-${{matrix.arch}}
+          asset_content_type: application/octet-stream
+
