@@ -75,6 +75,7 @@
               "howto/policy-overrides",
               "howto/versioning",
               "howto/disable-auto-checkout",
+              "howto/backendless-mode",
               "howto/segregate-cloud-accounts",
               "howto/apply-on-merge",
               "howto/commenting-strategies"
