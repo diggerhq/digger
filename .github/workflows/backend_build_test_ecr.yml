@@ -1,7 +1,7 @@
 name: Backend Build&Push to Test ECR
 on:
   push:
-    branches: [ 'main', 'feat/*' ]
+    branches: [ 'develop', 'feat/*' ]
 
 permissions:
   id-token: write
