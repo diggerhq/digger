@@ -1,0 +1,35 @@
+name: Backend Go Tests
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Download Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21.1
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Deps
+        run: go get -v ./...
+        working-directory: backend
+
+      - name: Build
+        run: go build
+        working-directory: backend
+
+      - name: Test
+        run: go test -v ./...
+        env:
+          GITHUB_PAT_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        working-directory: backend

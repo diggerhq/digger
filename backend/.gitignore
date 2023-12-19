@@ -1,0 +1,12 @@
+backend
+.idea/
+.DS_Store
+venv/
+**/__pycache__/
+__azurite*
+./digger
+cloud
+*.env
+*.env.*
+.docker-compose-env
+controllers/database_test.db
