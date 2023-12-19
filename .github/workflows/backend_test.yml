@@ -1,10 +1,9 @@
 name: Backend Go Tests
 on:
   push:
-    branches: [ main ]
-    paths: [ "backend/**", "libs/**"]
+    branches: [ develop ]
   pull_request:
-    paths: [ "backend/**", "libs/**"]
+
 jobs:
 
   build:
