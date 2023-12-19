@@ -69,6 +69,7 @@
               "howto/multiacc-aws",
               "howto/project-level-roles",
               "howto/generate-projects",
+              "howto/include-exclude-patterns",
               "howto/destroy-manual",
               "howto/trigger-directly",
               "howto/policy-overrides",
