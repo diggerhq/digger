@@ -1,0 +1,23 @@
+---
+title: "Backendless mode"
+---
+
+Digger works best as a 2-piece solution:
+- a CLI that runs inside your CI
+- an orchestrator backend that triggers the CI jobs ([cloud.digger.dev](https://cloud.digger.dev) or [self-hosted](/self-host/deploy-binary))
+
+You can however stil use the most basic features of Digger as a standalone action without a backend. To do that, set the following option in your workflow configuration:
+```
+no_backend: true
+```
+
+# Limitations
+
+Historically this was the original way of running Digger. The initial version called "tfrun" didn't have any backend, it was just a GitHub action. But it quickly became apparent that without some sort of orchestration there's only so much that can be done:
+- No concurrency; all plans / applies need to run sequentially, which is slow
+- Action starts on every push or comment, often just to detect that there are no changes. That's expensive, especially in large repos.
+- Clashing applies from other jobs will fail as they cannot be queued
+- Buckets / tables for PR-level locks need to be configured manually in your cloud account
+- Comments and status checks will be updated with a delay
+
+
