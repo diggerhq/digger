@@ -5,7 +5,7 @@ go 1.21.5
 replace github.com/diggerhq/digger/libs => ../libs
 
 // https://github.com/duo-labs/webauthn/issues/44
-replace github.com/ugorji/go => github.com/ugorji/go v1.2.11
+replace github.com/ugorji/go => github.com/ugorji/go v1.2.12
 
 require (
 	github.com/alextanhongpin/go-gin-starter v0.0.0-20180719045109-df82f33e8aa1
@@ -191,7 +191,7 @@ require (
 	github.com/terraform-linters/tflint-plugin-sdk v0.17.0 // indirect
 	github.com/terraform-linters/tflint-ruleset-terraform v0.4.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.2.11 // indirect
+	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/urfave/cli/v2 v2.25.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
