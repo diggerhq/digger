@@ -393,6 +393,8 @@ github.com/diggerhq/digger v0.3.1 h1:YHHUsWPpZ7ZUs7ftRxlLxNDt7chnQSvuNksNjs8Ksd8
 github.com/diggerhq/digger v0.3.1/go.mod h1:b9ykLQYQGnVS2LCnWCZ+0Bq/RNsdwmrsZTUtE7ot+J4=
 github.com/diggerhq/digger v0.3.6 h1:arw41e5C133ktiaWdxRkK7FRHFgKQnbj4k5VgqyFCYM=
 github.com/diggerhq/digger v0.3.6/go.mod h1:893Fr6U7Qs7nhttSLYaCciUAh0uy18nw++cOd32zMoo=
+github.com/diggerhq/digger v0.3.7 h1:gPmn6jmwGBpihJNWBRgg+vEhgT8GqWm2ItfAnIng+MU=
+github.com/diggerhq/digger v0.3.7/go.mod h1:893Fr6U7Qs7nhttSLYaCciUAh0uy18nw++cOd32zMoo=
 github.com/dimchansky/utfbom v1.1.0/go.mod h1:rO41eb7gLfo8SF1jd9F8HplJm1Fewwi4mQvIirEdv+8=
 github.com/dimchansky/utfbom v1.1.1 h1:vV6w1AhK4VMnhBno/TPVCoK9U/LP0PkLCS9tbxHdi/U=
 github.com/dimchansky/utfbom v1.1.1/go.mod h1:SxdoEBH5qIqFocHMyGOXVAybYJdr71b1Q/j0mACtrfE=
