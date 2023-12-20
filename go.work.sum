@@ -917,7 +917,7 @@ github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 h1:cMjKdf4PxEBN9K5HaD9UM
 github.com/ugorji/go v1.1.11 h1:O5AKWOf+CnfWi6L1WtdBtZpA+YNjoQd2YfbtkowsMrs=
 github.com/ugorji/go v1.1.11/go.mod h1:kbRrdMyHY64ADdazOwkrQP9btxt35Z26OJueD3Tq0/4=
 github.com/ugorji/go v1.2.11 h1:SskMIRQoD2wRlY2Qddg8rjJC+bc0su8i/vmWkYdquMo=
-github.com/ugorji/go v1.2.11/go.mod h1:2CGjQPolsidfhgBxo2wBo1Xh48rJWqUepV6q7OMkdWA=
+github.com/ugorji/go v1.2.12 h1:oRySHlrVC5izTtkkuUmr0leYV9ixxb2eXLnyUiNctis=
 github.com/ugorji/go/codec v1.1.7 h1:2SvQaVZ1ouYrrKKwoSk2pzd4A9evlKJb9oTL+OaLUSs=
 github.com/ugorji/go/codec v1.1.7/go.mod h1:Ax+UKWsSmolVDwsd+7N3ZtXu+yMGCf907BLYF3GoBXY=
 github.com/ugorji/go/codec v1.1.11 h1:GaQDxjNe1J3vCZvlVaDjUIHIbFuUByFXY7rMqnhB5ck=
