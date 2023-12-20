@@ -79,7 +79,7 @@ func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) 
 	return nil
 }
 
-func WebAuth(auth services.Auth) gin.HandlerFunc {
+func JWTWebAuth(auth services.Auth) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var tokenString string
 		tokenString, err := c.Cookie("token")
@@ -178,7 +178,7 @@ func SecretCodeAuth() gin.HandlerFunc {
 	}
 }
 
-func BearerTokenAuth(auth services.Auth) gin.HandlerFunc {
+func JWTBearerTokenAuth(auth services.Auth) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader == "" {
