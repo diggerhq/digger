@@ -22,6 +22,7 @@ func HttpBasicWebAuth() gin.HandlerFunc {
 		gin.BasicAuth(gin.Accounts{
 			username: password,
 		})(c)
+		c.Set(ACCESS_LEVEL_KEY, models.AdminPolicyType)
 		setDefaultOrganisationId(c)
 		c.Next()
 	}
@@ -52,6 +53,7 @@ func HttpBasicApiAuth() gin.HandlerFunc {
 
 		if token == os.Getenv("BEARER_AUTH_TOKEN") {
 			setDefaultOrganisationId(c)
+			c.Set(ACCESS_LEVEL_KEY, models.AdminPolicyType)
 			c.Next()
 		}
 		return

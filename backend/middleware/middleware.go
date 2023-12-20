@@ -17,7 +17,7 @@ func GetWebMiddleware() gin.HandlerFunc {
 			Secret:     os.Getenv("AUTH_SECRET"),
 			ClientId:   os.Getenv("FRONTEGG_CLIENT_ID"),
 		}
-		return WebAuth(auth)
+		return JWTWebAuth(auth)
 	} else if _, ok := os.LookupEnv("HTTP_BASIC_AUTH"); ok {
 		log.Printf("Using http basic auth middleware for web routes")
 		return HttpBasicWebAuth()
@@ -39,7 +39,7 @@ func GetApiMiddleware() gin.HandlerFunc {
 			Secret:     os.Getenv("AUTH_SECRET"),
 			ClientId:   os.Getenv("FRONTEGG_CLIENT_ID"),
 		}
-		return BearerTokenAuth(auth)
+		return JWTBearerTokenAuth(auth)
 	} else if _, ok := os.LookupEnv("HTTP_BASIC_AUTH"); ok {
 		log.Printf("Using http basic auth middleware for API routes")
 		return HttpBasicApiAuth()
