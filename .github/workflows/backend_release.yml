@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: |
           echo "Tag that is going to be used as digger version: ${{ github.event.release.tag_name }}"
-          env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ github.event.release.tag_name }}" -o digger-api ./
+          env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ github.event.release.tag_name }}" -o digger-api ./backend
       - name: Publish linux-x64 exec to github
         id: upload-release-asset-linux-x64
         uses: actions/upload-release-asset@v1
