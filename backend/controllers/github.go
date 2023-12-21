@@ -423,7 +423,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	prNumber := *payload.PullRequest.Number
 
 	ghService, config, projectsGraph, branch, err := getDiggerConfig(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
-
 	if err != nil {
 		log.Printf("getDiggerConfig error: %v", err)
 		return fmt.Errorf("error getting digger config")
@@ -457,10 +456,21 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		impactedJobsMap[j.ProjectName] = j
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, *branch, repoFullName)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, *branch, prNumber, repoFullName)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
-		return fmt.Errorf("error convertingjobs")
+		return fmt.Errorf("error converting jobs")
+	}
+
+	repo, err := GetRepoByInstllationId(installationId, repoOwner, repoName)
+	if err != nil {
+		log.Printf("GetRepoByInstallationId error: %v", err)
+		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
+	}
+	_, err = models.DB.CreateDiggerBatchRepoLink(*batchId, repo.ID)
+	if err != nil {
+		log.Printf("CreateDiggerBatchRepoLink error: %v", err)
+		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
 	}
 
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, prNumber, ghService)
@@ -512,19 +522,10 @@ func getDiggerConfig(gh utils.GithubClientProvider, installationId int64, repoFu
 		return nil, nil, nil, nil, fmt.Errorf("error getting branch name")
 	}
 
-	link, err := models.DB.GetGithubAppInstallationLink(installationId)
+	repo, err := GetRepoByInstllationId(installationId, repoOwner, repoName)
 	if err != nil {
-		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
-		return nil, nil, nil, nil, fmt.Errorf("error getting github app link")
+		return nil, nil, nil, nil, err
 	}
-
-	if link == nil {
-		log.Printf("Failed to find GithubAppInstallationLink for installationId: %v", installationId)
-		return nil, nil, nil, nil, fmt.Errorf("error getting github app installation link")
-	}
-
-	diggerRepoName := repoOwner + "-" + repoName
-	repo, err := models.DB.GetRepo(link.Organisation.ID, diggerRepoName)
 	if err != nil {
 		log.Printf("Error getting repo: %v", err)
 		return nil, nil, nil, nil, fmt.Errorf("error getting repo")
@@ -556,6 +557,23 @@ func getDiggerConfig(gh utils.GithubClientProvider, installationId int64, repoFu
 	}
 	log.Printf("Digger config parsed successfully\n")
 	return ghService, config, dependencyGraph, &prBranch, nil
+}
+
+func GetRepoByInstllationId(installationId int64, repoOwner string, repoName string) (*models.Repo, error) {
+	link, err := models.DB.GetGithubAppInstallationLink(installationId)
+	if err != nil {
+		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
+		return nil, fmt.Errorf("error getting github app link")
+	}
+
+	if link == nil {
+		log.Printf("Failed to find GithubAppInstallationLink for installationId: %v", installationId)
+		return nil, fmt.Errorf("error getting github app installation link")
+	}
+
+	diggerRepoName := repoOwner + "-" + repoName
+	repo, err := models.DB.GetRepo(link.Organisation.ID, diggerRepoName)
+	return repo, nil
 }
 
 func setPRStatusForJobs(prService *dg_github.GithubService, prNumber int, jobs []orchestrator.Job) error {
@@ -626,10 +644,21 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		impactedProjectsJobMap[j.ProjectName] = j
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, *branch, repoFullName)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, *branch, issueNumber, repoFullName)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		return fmt.Errorf("error convertingjobs")
+	}
+
+	repo, err := GetRepoByInstllationId(installationId, repoOwner, repoName)
+	if err != nil {
+		log.Printf("GetRepoByInstallationId error: %v", err)
+		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
+	}
+	_, err = models.DB.CreateDiggerBatchRepoLink(*batchId, repo.ID)
+	if err != nil {
+		log.Printf("CreateDiggerBatchRepoLink error: %v", err)
+		return fmt.Errorf("error converting jobs, CreateDiggerBatchRepoLink error: %v", err)
 	}
 
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, issueNumber, ghService)
@@ -659,7 +688,7 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 
 		// TODO: make workflow file name configurable
 		_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
-			Ref:    job.BranchName,
+			Ref:    job.Batch.BranchName,
 			Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId},
 		})
 
