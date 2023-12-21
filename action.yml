@@ -273,11 +273,11 @@ runs:
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
       run: |
-          cd ${{ github.action_path }}/cli
+          cd $GITHUB_ACTION_PATH/cli
           go build -o digger ./cmd/digger
           chmod +x digger
           PATH=$PATH:$(pwd)
-          cd ${{ github.workspace }}
+          cd $GITHUB_WORKSPACE
           digger
     - name: run digger
       if: ${{ startsWith(github.action_ref, 'v') }}
@@ -303,7 +303,7 @@ runs:
         curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
         chmod +x digger
         PATH=$PATH:$(pwd)
-        cd ${{ github.workspace }}
+        cd $GITHUB_WORKSPACE
         digger
     - name: generate artifact name based on issue number or pr number
       id: artifact
@@ -318,7 +318,7 @@ runs:
       uses: actions/upload-artifact@v3
       with:
           name: ${{ steps.artifact.outputs.artifact }}
-          path: '${{ github.workspace }}/**/*.tfplan'
+          path: '${{ env.GITHUB_WORKSPACE }}/**/*.tfplan'
           retention-days: 14
       if: ${{ inputs.upload-plan-destination == 'github' }}
 
