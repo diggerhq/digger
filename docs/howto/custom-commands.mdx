@@ -1,0 +1,28 @@
+---
+title: "Custom commands"
+---
+
+You can specify custom steps using the `workflows` section in digger.yml. Handy for integration with other CLIs like infracost.
+
+```
+projects:
+- name: production
+  dir: prod
+  workflow: with-infracost
+
+workflows:
+  with-infracost:
+    plan:
+      steps:
+        - init
+        - plan
+        - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
+```
+
+# $DIGGER_OUT
+
+If your custom command writes into a file path defined in the `$DIGGER_OUT` env variable, then its content will be appended to the comment as "additional output":
+
+![](/images/custom-command-output-infracost.png)
+
+The value of `$DIGER_OUT` defaults to `$RUNNER_TEMP/digger-out.log`; you can change that if needed by setting the env var explicitly.

@@ -1,13 +1,11 @@
 ---
 title: "Using Infracost"
-description: "This feature is in early development. If you find something that can be improved, please let us know by [filing an issue](https://github.com/diggerhq/digger/issues)"
 ---
-
-<Note>You can configure Digger to use Infracost to estimate cloud costs.</Note>
 
 ## Pre-requisites
 
-Infracost binary needs to be installed into your CI pipeline (see [Infracost docs](https://www.infracost.io/docs/integrations/generic%5Fcicd/))
+- Infracost binary installed into your CI pipeline (see [Infracost docs](https://www.infracost.io/docs/integrations/generic%5Fcicd/))
+- Infracost API key
 
 ## Set up Infracost
 
@@ -26,21 +24,21 @@ Use the official setup-infracost action in your workflow file ([README](https://
 
 ```
 projects:
-  - name: project_a_d
-    dir: ./project_a/development
-    workflow: project_a
+- name: production
+  dir: prod
+  workflow: with-infracost
 
 workflows:
-  project_a:
+  with-infracost:
     plan:
       steps:
         - init
         - plan
-        - run: infracost breakdown --path=.
+        - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
 ```
 
 ## See cost estimate output
 
-After the pipeline run finishes, you should see Infracost breakdown output in your CI job logs:
+After the pipeline run finishes, you should see Infracost breakdown output appended to digger run report comment as additional output:
 
-![](/images/configuration/infracost-example.png)
+![](/images/custom-command-output-infracost.png)
