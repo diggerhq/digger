@@ -338,12 +338,26 @@ func SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 	job.StatusUpdatedAt = request.Timestamp
-
 	err = models.DB.GormDB.Save(&job).Error
 	if err != nil {
 		log.Printf("Error saving update job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 		return
+	}
+
+	// get batch ID
+	// check if all jobs have succeeded at this point
+	// if so, perform merge of PR (if configured to do so)
+	batch := job.Batch
+	err = models.DB.UpdateBatchStatus(batch)
+	if err != nil {
+		log.Printf("Error updating batch status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating batch status"})
+		return
+	}
+
+	if batch.Status == models.BatchJobSucceeded {
+
 	}
 }
 

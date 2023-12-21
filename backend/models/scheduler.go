@@ -6,6 +6,16 @@ import (
 	"time"
 )
 
+type DiggerBatchStatus int8
+
+const (
+	BatchJobCreated     DiggerBatchStatus = 1
+	BatchJobStarted     DiggerBatchStatus = 2
+	BatchJobFailed      DiggerBatchStatus = 3
+	BatchJobSucceeded   DiggerBatchStatus = 4
+	BatchJobInvalidated DiggerBatchStatus = 5
+)
+
 type DiggerJobStatus int8
 
 const (
@@ -22,13 +32,30 @@ type DiggerJobParentLink struct {
 	ParentDiggerJobId string `gorm:"size:50,index:idx_parent_digger_job_id"`
 }
 
+type DiggerBatchRepoLink struct {
+	gorm.Model
+	Batch   *DiggerBatch
+	BatchId uuid.UUID `gorm:"index:idx_batch_id"`
+	Repo    *Repo
+	RepoID  uint
+}
+
+type DiggerBatch struct {
+	gorm.Model
+	ID         uuid.UUID `gorm:"primary_key"`
+	PrNumber   int
+	Status     DiggerBatchStatus
+	BranchName string
+	// TODO: add diggerYml stored here as a tring
+}
+
 type DiggerJob struct {
 	gorm.Model
 	DiggerJobId     string `gorm:"size:50,index:idx_digger_job_id"`
 	Status          DiggerJobStatus
+	Batch           *DiggerBatch
 	BatchId         uuid.UUID `gorm:"index:idx_batch_id"`
 	SerializedJob   []byte
-	BranchName      string
 	StatusUpdatedAt time.Time
 }
 
