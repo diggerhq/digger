@@ -1,0 +1,14 @@
+---
+title: "Auto-merge"
+---
+
+You can set `auto_merge: true` option to automatically merge the PR when all checks pass (including successful apply). Note that it's a top-level setting, not project level:
+
+```
+projects:
+- name: development
+  dir: dev
+- name: production
+  dir: prod
+auto_merge: true
+```
