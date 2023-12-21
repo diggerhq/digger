@@ -78,6 +78,7 @@
               "howto/backendless-mode",
               "howto/segregate-cloud-accounts",
               "howto/apply-on-merge",
+              "howto/auto-merge",
               "howto/commenting-strategies"
           ]
         },
