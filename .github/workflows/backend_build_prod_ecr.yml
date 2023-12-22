@@ -35,7 +35,6 @@ jobs:
           export COMMIT_SHA=$(git rev-parse --short HEAD)
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg COMMIT_SHA=${COMMIT_SHA} -f Dockerfile_backend .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        working-directory: backend
 
   restart:
     needs: build
