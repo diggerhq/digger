@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -338,13 +340,30 @@ func SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 	job.StatusUpdatedAt = request.Timestamp
-
 	err = models.DB.GormDB.Save(&job).Error
 	if err != nil {
 		log.Printf("Error saving update job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 		return
 	}
+
+	// get batch ID
+	// check if all jobs have succeeded at this point
+	// if so, perform merge of PR (if configured to do so)
+	batch := job.Batch
+	err = models.DB.UpdateBatchStatus(batch)
+	if err != nil {
+		log.Printf("Error updating batch status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating batch status"})
+		return
+	}
+
+	err = AutomergePRforBatchIfEnabled(&utils.DiggerGithubRealClientProvider{}, batch)
+	if err != nil {
+		log.Printf("Error merging PR with automerge option: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
+	}
+
 }
 
 type CreateProjectRunRequest struct {
@@ -421,4 +440,33 @@ func CreateRunForProject(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, run.MapToJsonStruct())
+}
+
+func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	diggerYmlString := batch.DiggerConfig
+	diggerConfig, _, _, err := digger_config.LoadDiggerConfigFromString(diggerYmlString, "./")
+	if err != nil {
+		log.Printf("Error loading digger config from batch: %v", err)
+		return fmt.Errorf("error loading digger config from batch: %v", err)
+
+	}
+	if batch.Status == models.BatchJobSucceeded && batch.BatchType == models.BatchTypeApply && diggerConfig.AutoMerge == true {
+		ghService, _, err := utils.GetGithubService(
+			gh,
+			batch.GithubInstallationId,
+			batch.RepoFullName,
+			batch.RepoOwner,
+			batch.RepoName,
+		)
+		if err != nil {
+			log.Printf("Error getting github service: %v", err)
+			return fmt.Errorf("error getting github service: %v", err)
+		}
+		err = ghService.MergePullRequest(batch.PrNumber)
+		if err != nil {
+			log.Printf("Error merging pull request: %v", err)
+			return fmt.Errorf("error merging pull request: %v", err)
+		}
+	}
+	return nil
 }
