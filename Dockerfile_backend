@@ -3,7 +3,7 @@ ARG COMMIT_SHA
 RUN echo "commit sha: ${COMMIT_SHA}"
 
 # Set the working directory
-WORKDIR $GOPATH/src/github.com/diggerhq/
+WORKDIR $GOPATH/src/github.com/diggerhq/digger
 
 # Copy all required source, blacklist files that are not required through `.dockerignore`
 COPY . .
