@@ -16,6 +16,13 @@ const (
 	BatchJobInvalidated DiggerBatchStatus = 5
 )
 
+type DiggerBatchType string
+
+const (
+	BatchTypePlan  DiggerBatchType = "plan"
+	BatchTypeApply DiggerBatchType = "apply"
+)
+
 type DiggerJobStatus int8
 
 const (
@@ -42,6 +49,7 @@ type DiggerBatch struct {
 	RepoFullName         string
 	RepoOwner            string
 	RepoName             string
+	BatchType            DiggerBatchType
 }
 
 type DiggerJob struct {
