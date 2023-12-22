@@ -558,7 +558,9 @@ func (db *Database) GetOrganisationById(orgId any) (*Organisation, error) {
 }
 
 func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, branchName string, diggerConfig string) (*DiggerBatch, error) {
+	uid := uuid.New()
 	batch := &DiggerBatch{
+		ID:                   uid,
 		GithubInstallationId: githubInstallationId,
 		RepoOwner:            repoOwner,
 		RepoName:             repoName,
@@ -573,7 +575,7 @@ func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner stri
 		return nil, result.Error
 	}
 
-	log.Printf("DiggerBatch %v, (id: %v) has been created successfully\n", batch.ID)
+	log.Printf("DiggerBatch (id: %v) has been created successfully\n", batch.ID)
 	return batch, nil
 }
 
@@ -610,7 +612,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*D
 	jobId := uniuri.New()
 	batchIdStr := batchId.String()
 	job := &DiggerJob{DiggerJobId: jobId, Status: DiggerJobCreated,
-		BatchId: &batchIdStr, SerializedJob: serializedJob}
+		BatchID: &batchIdStr, SerializedJob: serializedJob}
 	result := db.GormDB.Save(job)
 	if result.Error != nil {
 		return nil, result.Error
@@ -632,7 +634,7 @@ func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
 func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
-	joins := db.GormDB.Joins("LEFT JOIN digger_job_parent_links ON digger_jobs.digger_job_id = digger_job_parent_links.digger_job_id")
+	joins := db.GormDB.Joins("LEFT JOIN digger_job_parent_links ON digger_jobs.digger_job_id = digger_job_parent_links.digger_job_id").Preload("Batch")
 
 	var where *gorm.DB
 	if batchId != nil {
@@ -652,7 +654,7 @@ func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob,
 
 func (db *Database) GetDiggerJob(jobId string) (*DiggerJob, error) {
 	job := &DiggerJob{}
-	result := db.GormDB.Where("digger_job_id=? ", jobId).Find(job)
+	result := db.GormDB.Preload("Batch").Where("digger_job_id=? ", jobId).Find(job)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error

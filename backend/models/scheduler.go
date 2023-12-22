@@ -33,7 +33,6 @@ type DiggerJobParentLink struct {
 }
 
 type DiggerBatch struct {
-	gorm.Model
 	ID                   uuid.UUID `gorm:"primary_key"`
 	PrNumber             int
 	Status               DiggerBatchStatus
@@ -50,7 +49,7 @@ type DiggerJob struct {
 	DiggerJobId     string `gorm:"size:50,index:idx_digger_job_id"`
 	Status          DiggerJobStatus
 	Batch           *DiggerBatch
-	BatchId         *string `gorm:"index:idx_batch_id"`
+	BatchID         *string `gorm:"index:idx_digger_job_id"`
 	SerializedJob   []byte
 	StatusUpdatedAt time.Time
 }
