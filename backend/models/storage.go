@@ -557,7 +557,7 @@ func (db *Database) GetOrganisationById(orgId any) (*Organisation, error) {
 	return &org, nil
 }
 
-func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, branchName string, diggerConfig string) (*DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, branchName string, batchType DiggerBatchType, diggerConfig string) (*DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &DiggerBatch{
 		ID:                   uid,
@@ -569,6 +569,7 @@ func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner stri
 		Status:               BatchJobCreated,
 		BranchName:           branchName,
 		DiggerConfig:         diggerConfig,
+		BatchType:            batchType,
 	}
 	result := db.GormDB.Save(batch)
 	if result.Error != nil {
