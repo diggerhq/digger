@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/bradleyfalzon/ghinstallation/v2"
+	"github.com/diggerhq/digger/backend/models"
+	github2 "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -84,4 +86,32 @@ func (gh *DiggerGithubClientMockProvider) Get(githubAppId int64, installationId 
 	ghClient := github.NewClient(gh.MockedHTTPClient)
 	token := "token"
 	return ghClient, &token, nil
+}
+
+func GetGithubService(gh GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
+	installation, err := models.DB.GetGithubAppInstallationByIdAndRepo(installationId, repoFullName)
+	if err != nil {
+		log.Printf("Error getting installation: %v", err)
+		return nil, nil, fmt.Errorf("Error getting installation: %v", err)
+	}
+
+	_, err = models.DB.GetGithubApp(installation.GithubAppId)
+	if err != nil {
+		log.Printf("Error getting app: %v", err)
+		return nil, nil, fmt.Errorf("Error getting app: %v", err)
+	}
+
+	ghClient, token, err := gh.Get(installation.GithubAppId, installation.GithubInstallationId)
+	if err != nil {
+		log.Printf("Error creating github app client: %v", err)
+		return nil, nil, fmt.Errorf("Error creating github app client: %v", err)
+	}
+
+	ghService := github2.GithubService{
+		Client:   ghClient,
+		RepoName: repoName,
+		Owner:    repoOwner,
+	}
+
+	return &ghService, token, nil
 }

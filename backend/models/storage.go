@@ -557,8 +557,17 @@ func (db *Database) GetOrganisationById(orgId any) (*Organisation, error) {
 	return &org, nil
 }
 
-func (db *Database) CreateDiggerBatch(PRNumber int, branchName string) (*DiggerBatch, error) {
-	batch := &DiggerBatch{PrNumber: PRNumber, Status: BatchJobCreated, BranchName: branchName}
+func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, branchName string, diggerConfig string) (*DiggerBatch, error) {
+	batch := &DiggerBatch{
+		GithubInstallationId: githubInstallationId,
+		RepoOwner:            repoOwner,
+		RepoName:             repoName,
+		RepoFullName:         repoFullname,
+		PrNumber:             PRNumber,
+		Status:               BatchJobCreated,
+		BranchName:           branchName,
+		DiggerConfig:         diggerConfig,
+	}
 	result := db.GormDB.Save(batch)
 	if result.Error != nil {
 		return nil, result.Error
@@ -566,17 +575,6 @@ func (db *Database) CreateDiggerBatch(PRNumber int, branchName string) (*DiggerB
 
 	log.Printf("DiggerBatch %v, (id: %v) has been created successfully\n", batch.ID)
 	return batch, nil
-}
-
-func (db *Database) CreateDiggerBatchRepoLink(batchId uuid.UUID, repoId uint) (*DiggerBatchRepoLink, error) {
-	batchRepoLink := &DiggerBatchRepoLink{BatchId: batchId, RepoID: repoId}
-	result := db.GormDB.Save(batchRepoLink)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	log.Printf("batchRepoLink %v, (id: %v) has been created successfully\n", batchRepoLink.ID)
-	return batchRepoLink, nil
 }
 
 func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
@@ -605,13 +603,14 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 	return nil
 
 }
-func (db *Database) CreateDiggerJob(batch uuid.UUID, serializedJob []byte) (*DiggerJob, error) {
+func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*DiggerJob, error) {
 	if serializedJob == nil || len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
 	jobId := uniuri.New()
+	batchIdStr := batchId.String()
 	job := &DiggerJob{DiggerJobId: jobId, Status: DiggerJobCreated,
-		BatchId: batch, SerializedJob: serializedJob}
+		BatchId: &batchIdStr, SerializedJob: serializedJob}
 	result := db.GormDB.Save(job)
 	if result.Error != nil {
 		return nil, result.Error
