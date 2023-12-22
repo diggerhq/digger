@@ -358,7 +358,7 @@ func SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
-	if batch.Status == models.BatchJobSucceeded {
+	if batch.Status == models.BatchJobSucceeded && batch.BatchType == models.BatchTypeApply {
 		err := AutomergePRforBatchIfEnabledInConfig(&utils.DiggerGithubRealClientProvider{}, batch)
 		if err != nil {
 			log.Printf("Error merging PR with automerge option: %v", err)
