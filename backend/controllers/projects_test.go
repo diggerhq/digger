@@ -53,7 +53,7 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 	batch := models.DiggerBatch{
 		ID:         uuid.UUID{},
 		PrNumber:   2,
-		Status:     models.BatchJobCreated,
+		Status:     models.BatchJobSucceeded,
 		BranchName: "main",
 		DiggerConfig: "" +
 			"projects:\n" +
@@ -64,8 +64,9 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 		RepoFullName:         "diggerhq/github-job-scheduler",
 		RepoOwner:            "diggerhq",
 		RepoName:             "github-job-scheduler",
+		BatchType:            models.BatchTypeApply,
 	}
-	err := AutomergePRforBatchIfEnabledInConfig(gh, &batch)
+	err := AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
 	assert.False(t, isMergeCalled)
 
@@ -74,7 +75,18 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 		"  - name: dev\n" +
 		"    dir: dev\n" +
 		"auto_merge: true"
-	err = AutomergePRforBatchIfEnabledInConfig(gh, &batch)
+	batch.BatchType = models.BatchTypePlan
+	err = AutomergePRforBatchIfEnabled(gh, &batch)
+	assert.NoError(t, err)
+	assert.False(t, isMergeCalled)
+
+	batch.DiggerConfig = "" +
+		"projects:\n" +
+		"  - name: dev\n" +
+		"    dir: dev\n" +
+		"auto_merge: true"
+	batch.BatchType = models.BatchTypeApply
+	err = AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
 	assert.True(t, isMergeCalled)
 
