@@ -24,6 +24,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v55/github"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 )
 
@@ -461,7 +462,8 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		log.Printf("GetRepoByInstallationId error: %v", err)
 		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, repo.DiggerConfig)
+	batchType := getBatchType(jobsForImpactedProjects)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, repo.DiggerConfig, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		return fmt.Errorf("error converting jobs")
@@ -543,6 +545,17 @@ func GetRepoByInstllationId(installationId int64, repoOwner string, repoName str
 	return repo, nil
 }
 
+func getBatchType(jobs []orchestrator.Job) models.DiggerBatchType {
+	allJobsContainApply := lo.EveryBy(jobs, func(job orchestrator.Job) bool {
+		return lo.Contains(job.Commands, "digger apply")
+	})
+	if allJobsContainApply == true {
+		return models.BatchTypeApply
+	} else {
+		return models.BatchTypePlan
+	}
+}
+
 func setPRStatusForJobs(prService *dg_github.GithubService, prNumber int, jobs []orchestrator.Job) error {
 	for _, job := range jobs {
 		for _, command := range job.Commands {
@@ -589,6 +602,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	jobs, _, err := dg_github.ConvertGithubIssueCommentEventToJobs(payload, impactedProjects, requestedProject, config.Workflows)
+
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		return fmt.Errorf("error converting event to jobs")
@@ -616,7 +630,8 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		log.Printf("GetRepoByInstallationId error: %v", err)
 		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, repo.DiggerConfig)
+	batchType := getBatchType(jobs)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, repo.DiggerConfig, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		return fmt.Errorf("error convertingjobs")
