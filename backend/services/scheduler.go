@@ -56,7 +56,7 @@ func TriggerJob(client *github.Client, repoOwner string, repoName string, job *m
 	jobString := string(job.SerializedJob)
 	log.Printf("jobString: %v \n", jobString)
 	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(ctx, repoOwner, repoName, workflowFileName, github.CreateWorkflowDispatchEventRequest{
-		Ref:    job.BranchName,
+		Ref:    job.Batch.BranchName,
 		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId},
 	})
 	if err != nil {
