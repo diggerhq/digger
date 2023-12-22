@@ -359,7 +359,7 @@ func SetJobStatusForProject(c *gin.Context) {
 	}
 
 	if batch.Status == models.BatchJobSucceeded {
-		err := automergePRforBatchIfSuccessful(batch)
+		err := AutomergePRforBatchIfEnabledInConfig(&utils.DiggerGithubRealClientProvider{}, batch)
 		if err != nil {
 			log.Printf("Error merging PR with automerge option: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
@@ -443,7 +443,7 @@ func CreateRunForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, run.MapToJsonStruct())
 }
 
-func automergePRforBatchIfSuccessful(batch *models.DiggerBatch) error {
+func AutomergePRforBatchIfEnabledInConfig(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
 	diggerYmlString := batch.DiggerConfig
 	diggerConfig, _, _, err := digger_config.LoadDiggerConfigFromString(diggerYmlString, "./")
 	if err != nil {
@@ -453,7 +453,7 @@ func automergePRforBatchIfSuccessful(batch *models.DiggerBatch) error {
 	}
 	if diggerConfig.AutoMerge == true {
 		ghService, _, err := utils.GetGithubService(
-			&utils.DiggerGithubRealClientProvider{},
+			gh,
 			batch.GithubInstallationId,
 			batch.RepoFullName,
 			batch.RepoOwner,
@@ -463,7 +463,11 @@ func automergePRforBatchIfSuccessful(batch *models.DiggerBatch) error {
 			log.Printf("Error getting github service: %v", err)
 			return fmt.Errorf("error getting github service: %v", err)
 		}
-		ghService.MergePullRequest(batch.PrNumber)
+		err = ghService.MergePullRequest(batch.PrNumber)
+		if err != nil {
+			log.Printf("Error merging pull request: %v", err)
+			return fmt.Errorf("error merging pull request: %v", err)
+		}
 	}
 	return nil
 }
