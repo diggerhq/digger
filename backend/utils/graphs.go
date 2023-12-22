@@ -48,7 +48,7 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 			fmt.Printf("no parent for %v\n", value)
 			parentJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value])
 			if err != nil {
-				log.Printf("failed to create a job")
+				log.Printf("failed to create a job, error: %v", err)
 				return false
 			}
 			_, err = models.DB.CreateDiggerJobLink(parentJob.DiggerJobId, repoFullName)
