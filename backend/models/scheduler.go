@@ -32,21 +32,17 @@ type DiggerJobParentLink struct {
 	ParentDiggerJobId string `gorm:"size:50,index:idx_parent_digger_job_id"`
 }
 
-type DiggerBatchRepoLink struct {
-	gorm.Model
-	Batch   *DiggerBatch
-	BatchId uuid.UUID `gorm:"index:idx_batch_id"`
-	Repo    *Repo
-	RepoID  uint
-}
-
 type DiggerBatch struct {
 	gorm.Model
-	ID         uuid.UUID `gorm:"primary_key"`
-	PrNumber   int
-	Status     DiggerBatchStatus
-	BranchName string
-	// TODO: add diggerYml stored here as a tring
+	ID                   uuid.UUID `gorm:"primary_key"`
+	PrNumber             int
+	Status               DiggerBatchStatus
+	BranchName           string
+	DiggerConfig         string
+	GithubInstallationId int64
+	RepoFullName         string
+	RepoOwner            string
+	RepoName             string
 }
 
 type DiggerJob struct {
@@ -54,7 +50,7 @@ type DiggerJob struct {
 	DiggerJobId     string `gorm:"size:50,index:idx_digger_job_id"`
 	Status          DiggerJobStatus
 	Batch           *DiggerBatch
-	BatchId         uuid.UUID `gorm:"index:idx_batch_id"`
+	BatchId         *string `gorm:"index:idx_batch_id"`
 	SerializedJob   []byte
 	StatusUpdatedAt time.Time
 }

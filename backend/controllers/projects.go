@@ -6,6 +6,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -357,7 +358,26 @@ func SetJobStatusForProject(c *gin.Context) {
 	}
 
 	if batch.Status == models.BatchJobSucceeded {
-
+		diggerYmlString := batch.DiggerConfig
+		diggerConfig, _, _, err := digger_config.LoadDiggerConfigFromString(diggerYmlString, "./")
+		if err != nil {
+			log.Printf("Error loading digger config from batch: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error loading digger config from batch"})
+		}
+		if diggerConfig.AutoMerge == true {
+			ghService, _, err := utils.GetGithubService(
+				&utils.DiggerGithubRealClientProvider{},
+				batch.GithubInstallationId,
+				batch.RepoFullName,
+				batch.RepoOwner,
+				batch.RepoName,
+			)
+			if err != nil {
+				log.Printf("Error getting github service: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting github service"})
+			}
+			ghService.MergePullRequest(batch.PrNumber)
+		}
 	}
 }
 
