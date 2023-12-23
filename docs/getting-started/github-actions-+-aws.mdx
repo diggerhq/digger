@@ -12,7 +12,7 @@ In this tutorial, you will set up Digger to automate terraform pull requests usi
 # Create Action Secrets
 In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
 - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` - your AWS key pair. [OIDC is supported too](https://docs.digger.dev/cloud-providers/authenticating-with-oidc-on-aws)
-- `DIGGER_TOKEN` - your Digger token (get it at [cloud.digger.dev](https://cloud.digger.dev))
+- `DIGGER_TOKEN` - your Digger token from [cloud.digger.dev](https://cloud.digger.dev) (you can also [self-host Digger](/self-host/deploy-binary))
 
 # Create digger.yml
 This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
