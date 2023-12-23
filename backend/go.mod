@@ -11,7 +11,7 @@ require (
 	github.com/alextanhongpin/go-gin-starter v0.0.0-20180719045109-df82f33e8aa1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.8.0
 	github.com/dchest/uniuri v1.2.0
-	github.com/diggerhq/digger/libs v0.3.7
+	github.com/diggerhq/digger/libs v0.3.8
 	github.com/dominikbraun/graph v0.23.0
 	github.com/getsentry/sentry-go v0.25.0
 	github.com/gin-contrib/sessions v0.0.5
