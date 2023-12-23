@@ -7,12 +7,13 @@ In this tutorial, you will set up Digger to automate terraform pull requests usi
 # Prerequisites
 - A GitHub repository with valid terraform code. Here's a [demo repo](https://github.com/diggerhq/demo-conftest-gcp/) for inspiration.
 - A GCP Service Account Key json file. See [Hashicorp's GCP tutorial](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
-- Digger token - get it on [cloud.digger.dev](https://cloud.digger.dev)
+- Digger token from [cloud.digger.dev](https://cloud.digger.dev). You can also [self-host Digger](/self-host/deploy-binary)
 
 # Create Action Secrets
 In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
 - `GCP_CREDENTIALS` - contents of your GCP Service Account Key json file
-- `DIGGER_TOKEN` - your Digger token from [cloud.digger.dev](https://cloud.digger.dev) (you can also [self-host Digger](/self-host/deploy-binary))
+- `DIGGER_TOKEN` - your Digger token (cloud or self-hosted)
+
 # Create digger.yml
 This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
 ```
