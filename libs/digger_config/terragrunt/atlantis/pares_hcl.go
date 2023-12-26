@@ -88,8 +88,7 @@ func decodeHcl(
 			}
 		}
 	}
-
-	evalContext, err := config.CreateTerragruntEvalContext(filename, terragruntOptions, extensions)
+	evalContext, err := extensions.CreateTerragruntEvalContext(filename, terragruntOptions)
 	if err != nil {
 		return err
 	}
