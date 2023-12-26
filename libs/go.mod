@@ -3,10 +3,12 @@ module github.com/diggerhq/digger/libs
 go 1.21.5
 
 require (
+	github.com/aws/aws-sdk-go v1.46.6
 	github.com/bmatcuk/doublestar/v4 v4.6.1
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/google/go-github/v55 v55.0.0
+	github.com/google/go-github/v57 v57.0.0
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/terragrunt v0.53.3
 	github.com/hashicorp/go-getter v1.7.3
@@ -47,7 +49,6 @@ require (
 	github.com/apparentlymart/go-versions v1.0.1 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.46.6 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/bmatcuk/doublestar v1.1.5 // indirect
