@@ -20,6 +20,7 @@ RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o backend_exe ./backend
 
 # Multi-stage build will just copy the binary to an alpine image.
 FROM ubuntu:22.04 as runner
+ENV ATLAS_VERSION v0.16.0
 ARG COMMIT_SHA
 WORKDIR /app
 
@@ -27,6 +28,11 @@ RUN apt-get update && apt-get install -y ca-certificates && apt-get install -y g
 RUN update-ca-certificates
 
 RUN echo "commit sha: ${COMMIT_SHA}"
+
+# install atlas
+RUN curl -sSf https://atlasgo.sh | sh
+
+
 
 # Set gin to production
 #ENV GIN_MODE=release
