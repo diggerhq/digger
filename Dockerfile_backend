@@ -47,4 +47,4 @@ COPY --from=builder /go/src/github.com/diggerhq/digger/backend/migrations /app/m
 ADD backend/templates ./templates
 
 # Run the binary
-ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
