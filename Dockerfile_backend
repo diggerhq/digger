@@ -36,7 +36,8 @@ EXPOSE 3000
 
 # Copy the binary to the corresponding folder
 COPY --from=builder /go/src/github.com/diggerhq/digger/backend_exe ./backend
+COPY --from=builder /go/src/github.com/diggerhq/digger/backend/scripts/entrypoint.sh /entrypoint.sh
 ADD backend/templates ./templates
 
 # Run the binary
-ENTRYPOINT ["/bin/sh", "/app/backend/scripts/entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
