@@ -8,6 +8,7 @@ replace github.com/diggerhq/digger/libs => ../libs
 replace github.com/ugorji/go => github.com/ugorji/go v1.2.12
 
 require (
+	ariga.io/atlas-provider-gorm v0.2.0
 	github.com/alextanhongpin/go-gin-starter v0.0.0-20180719045109-df82f33e8aa1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.8.0
 	github.com/dchest/uniuri v1.2.0
@@ -19,7 +20,6 @@ require (
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v55 v55.0.0
-	github.com/google/go-github/v57 v57.0.0
 	github.com/google/uuid v1.5.0
 	github.com/migueleliasweb/go-github-mock v0.0.22
 	github.com/robert-nix/ansihtml v1.0.1
@@ -35,6 +35,7 @@ require (
 )
 
 require (
+	ariga.io/atlas-go-sdk v0.2.3 // indirect
 	cloud.google.com/go v0.110.10 // indirect
 	cloud.google.com/go/compute v1.23.3 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
@@ -88,6 +89,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.16.0 // indirect
+	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -179,7 +181,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/sergi/go-diff v1.2.0 // indirect
+	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
@@ -217,7 +219,7 @@ require (
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.16.0 // indirect
+	golang.org/x/tools v0.16.1 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.153.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -231,4 +233,5 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gorm.io/driver/mysql v1.5.1 // indirect
 )
