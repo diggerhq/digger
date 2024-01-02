@@ -1,4 +1,4 @@
-name: Create and publish a Docker image
+name: Backend Publish docker image
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: .
-          file: Dockerfile_backend
+          file: "Dockerfile_backend"
           push: true
           tags: [${{ github.event.release.tag_name }}, "latest""]
           labels: ${{ steps.meta.outputs.labels }}
