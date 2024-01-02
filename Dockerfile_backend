@@ -20,13 +20,19 @@ RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o backend_exe ./backend
 
 # Multi-stage build will just copy the binary to an alpine image.
 FROM ubuntu:22.04 as runner
+ENV ATLAS_VERSION v0.16.0
 ARG COMMIT_SHA
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y ca-certificates && apt-get install -y git && apt-get clean all
+RUN apt-get update && apt-get install -y ca-certificates curl && apt-get install -y git && apt-get clean all
 RUN update-ca-certificates
 
 RUN echo "commit sha: ${COMMIT_SHA}"
+
+# install atlas
+RUN curl -sSf https://atlasgo.sh | sh
+
+
 
 # Set gin to production
 #ENV GIN_MODE=release
@@ -35,8 +41,10 @@ RUN echo "commit sha: ${COMMIT_SHA}"
 EXPOSE 3000
 
 # Copy the binary to the corresponding folder
-COPY --from=builder /go/src/github.com/diggerhq/digger/backend_exe ./backend
+COPY --from=builder /go/src/github.com/diggerhq/digger/backend_exe /app/backend
+COPY --from=builder /go/src/github.com/diggerhq/digger/backend/scripts/entrypoint.sh /app/entrypoint.sh
+COPY --from=builder /go/src/github.com/diggerhq/digger/backend/migrations /app/migrations
 ADD backend/templates ./templates
 
 # Run the binary
-CMD ["/app/backend"]
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
