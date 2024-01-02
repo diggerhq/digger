@@ -1,8 +1,6 @@
 name: Backend Publish docker image
 
 on:
-  push:
-    branches: ['feat/atlans-integration']
   release:
     types: ['released']
 
@@ -12,6 +10,8 @@ env:
 
 jobs:
   build-and-push-image:
+    if: (startswith(github.event.release.tag_name, 'v'))
+
     runs-on: ubuntu-latest
 
     permissions:
@@ -41,6 +41,7 @@ jobs:
           context: .
           file: "Dockerfile_backend"
           push: true
-          tags:  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          #, ${{ env.IMAGE_NAME }}/{{ github.event.release.tag_name }}
+          tags:
+            - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:{{ github.event.release.tag_name }}
           labels: ${{ steps.meta.outputs.labels }}
