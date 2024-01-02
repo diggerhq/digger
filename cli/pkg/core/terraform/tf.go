@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -98,7 +99,7 @@ func (tf Terraform) runTerraformCommand(printOutputToStdout bool, command string
 		mwerr = io.Writer(&stderr)
 	}
 
-	cmd := exec.Command("terraform", expandedArgs...)
+	cmd := exec.Command("terraform", RedactSecrets(expandedArgs)...)
 	log.Printf("Running command: terraform %v", expandedArgs)
 	cmd.Dir = tf.WorkingDir
 
@@ -148,4 +149,26 @@ func (tf Terraform) Show(params []string, envs map[string]string) (string, strin
 		return "", "", err
 	}
 	return stdout, stderr, nil
+}
+
+func RedactSecret(s string) string {
+	exps := []*regexp.Regexp{
+		regexp.MustCompile(`\-backend\-config\=access\_key\=(.*)`),
+		regexp.MustCompile(`\-backend\-config\=secret\_key\=(.*)`),
+		regexp.MustCompile(`\-backend\-config\=token\=(.*)`),
+	}
+	for _, e := range exps {
+		x := e.FindStringSubmatch(s)
+		if len(x) > 1 {
+			s = strings.ReplaceAll(s, x[1], "<REDACTED>")
+		}
+	}
+	return s
+}
+
+func RedactSecrets(secrets []string) []string {
+	for i, s := range secrets {
+		secrets[i] = RedactSecret(s)
+	}
+	return secrets
 }
