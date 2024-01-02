@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}_backend
 
 jobs:
   build-and-push-image:
@@ -41,6 +41,6 @@ jobs:
           context: .
           file: "Dockerfile_backend"
           push: true
-          tags: ${{ env.IMAGE_NAME }}:latest
+          tags:  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           #, ${{ env.IMAGE_NAME }}/{{ github.event.release.tag_name }}
           labels: ${{ steps.meta.outputs.labels }}
