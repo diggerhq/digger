@@ -20,9 +20,9 @@ func populateBackendConfig(args []string, provider stscreds.WebIdentityRoleProvi
 	if err != nil {
 		return args, fmt.Errorf("populateKeys: Could not retrieve keys from provider %v", err)
 	}
-	accessKey := fmt.Sprintf("-backend-config=\"access_key=%v\"", creds.AccessKeyID)
-	secretKey := fmt.Sprintf("-backend-config=\"secret_key=%v\"", creds.SecretAccessKey)
-	token := fmt.Sprintf("-backend-config=\"token=%v\"", creds.SessionToken)
+	accessKey := fmt.Sprintf("-backend-config='access_key=%v'", creds.AccessKeyID)
+	secretKey := fmt.Sprintf("-backend-config='secret_key=%v'", creds.SecretAccessKey)
+	token := fmt.Sprintf("-backend-config='token=%v'", creds.SessionToken)
 	return append(args, accessKey, secretKey, token), nil
 
 }
