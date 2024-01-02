@@ -8,11 +8,9 @@ require (
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/google/go-github/v55 v55.0.0
-	github.com/google/go-github/v57 v57.0.0
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/terragrunt v0.54.11
 	github.com/hashicorp/go-getter v1.7.3
-	github.com/hashicorp/go-getter/v2 v2.2.1
 	github.com/hashicorp/hcl/v2 v2.19.1
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20231204233900-a34142ec2a72
 	github.com/sirupsen/logrus v1.9.3
