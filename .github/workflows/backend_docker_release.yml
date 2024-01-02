@@ -41,5 +41,5 @@ jobs:
           context: .
           file: "Dockerfile_backend"
           push: true
-          tags: [${{ github.event.release.tag_name }}, "latest""]
+          tags: [${{ github.event.release.tag_name }},  "latest"]
           labels: ${{ steps.meta.outputs.labels }}
