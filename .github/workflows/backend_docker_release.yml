@@ -41,7 +41,5 @@ jobs:
           context: .
           file: "Dockerfile_backend"
           push: true
-          tags:
-            - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:{{ github.event.release.tag_name }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:{{ github.event.release.tag_name }}
           labels: ${{ steps.meta.outputs.labels }}
