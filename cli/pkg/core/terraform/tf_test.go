@@ -61,3 +61,15 @@ func TestExecuteTerraformApplyDefaultWorkspace(t *testing.T) {
 	_, _, err := tf.Apply([]string{}, &plan, map[string]string{})
 	assert.NoError(t, err)
 }
+
+func TestRedactSecrets(t *testing.T) {
+	secrets := []string{
+		"-backend-config=access_key=xxx",
+		"-backend-config=secret_key=yyy",
+		"-backend-config=token=zzz",
+	}
+	redactedSecrets := RedactSecrets(secrets)
+	assert.Equal(t, redactedSecrets[0], "-backend-config=access_key=<REDACTED>")
+	assert.Equal(t, redactedSecrets[1], "-backend-config=secret_key=<REDACTED>")
+	assert.Equal(t, redactedSecrets[2], "-backend-config=token=<REDACTED>")
+}

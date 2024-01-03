@@ -15,6 +15,18 @@ import (
 	"os"
 )
 
+func populateBackendConfig(args []string, provider stscreds.WebIdentityRoleProvider) ([]string, error) {
+	creds, err := provider.Retrieve()
+	if err != nil {
+		return args, fmt.Errorf("populateKeys: Could not retrieve keys from provider %v", err)
+	}
+	accessKey := fmt.Sprintf("-backend-config=access_key=%v", creds.AccessKeyID)
+	secretKey := fmt.Sprintf("-backend-config=secret_key=%v", creds.SecretAccessKey)
+	token := fmt.Sprintf("-backend-config=token=%v", creds.SessionToken)
+	return append(args, accessKey, secretKey, token), nil
+
+}
+
 func populateKeys(envs map[string]string, provider stscreds.WebIdentityRoleProvider) (map[string]string, error) {
 	creds, err := provider.Retrieve()
 	if err != nil {
@@ -31,11 +43,23 @@ func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
 	if job.StateEnvProvider != nil {
 		log.Printf("Project-level AWS role detected, Assuming role: %v for project run: %v", job.ProjectName)
 		var err error
-		job.StateEnvVars, err = populateKeys(job.StateEnvVars, *job.StateEnvProvider)
+		if job.PlanStage != nil {
+			// TODO: check that the first step is infact the terraform "init" step
+			job.PlanStage.Steps[0].ExtraArgs, err = populateBackendConfig(job.PlanStage.Steps[0].ExtraArgs, *job.StateEnvProvider)
+		}
 		if err != nil {
 			log.Printf("Failed to get keys from role: %v", err)
 			return fmt.Errorf("Failed to get (state) keys from role: %v", err)
 		}
+		if job.ApplyStage != nil {
+			// TODO: check that the first step is infact the terraform "init" step
+			job.ApplyStage.Steps[0].ExtraArgs, err = populateBackendConfig(job.ApplyStage.Steps[0].ExtraArgs, *job.StateEnvProvider)
+		}
+		if err != nil {
+			log.Printf("Failed to get keys from role: %v", err)
+			return fmt.Errorf("Failed to get (state) keys from role: %v", err)
+		}
+
 	}
 
 	if job.CommandEnvProvider != nil {
