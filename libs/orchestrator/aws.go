@@ -17,10 +17,10 @@ import (
 
 func populateretrieveBackendConfigArgs(provider stscreds.WebIdentityRoleProvider) ([]string, error) {
 	creds, err := provider.Retrieve()
+	var args []string
 	if err != nil {
 		return args, fmt.Errorf("populateKeys: Could not retrieve keys from provider %v", err)
 	}
-	var args []string
 	accessKey := fmt.Sprintf("-backend-config=access_key=%v", creds.AccessKeyID)
 	secretKey := fmt.Sprintf("-backend-config=secret_key=%v", creds.SecretAccessKey)
 	token := fmt.Sprintf("-backend-config=token=%v", creds.SessionToken)
