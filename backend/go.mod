@@ -10,7 +10,7 @@ replace github.com/ugorji/go => github.com/ugorji/go v1.2.12
 require (
 	ariga.io/atlas-provider-gorm v0.2.0
 	github.com/alextanhongpin/go-gin-starter v0.0.0-20180719045109-df82f33e8aa1
-	github.com/bradleyfalzon/ghinstallation/v2 v2.8.0
+	github.com/bradleyfalzon/ghinstallation/v2 v2.9.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/diggerhq/digger/libs v0.3.10
 	github.com/dominikbraun/graph v0.23.0
@@ -98,6 +98,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-github/v35 v35.3.0 // indirect
 	github.com/google/go-github/v56 v56.0.0 // indirect
+	github.com/google/go-github/v57 v57.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
