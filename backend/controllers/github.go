@@ -288,23 +288,11 @@ func handleInstallationRepositoriesAddedEvent(ghClientProvider utils.GithubClien
 			return err
 		}
 
-		//_, org, err := createOrGetDiggerRepoForGithubRepo(repoFullName, installationId)
-		//if err != nil {
-		//	log.Printf("createOrGetDiggerRepoForGithubRepo failed, error: %v\n", err)
-		//	return err
-		//}
-
-		//client, _, err := ghClientProvider.Get(int64(appId), installationId)
-		//if err != nil {
-		//	log.Printf("GetGithubClient failed, error: %v\n", err)
-		//	return err
-		//}
-		//
-		//err = CreateDiggerWorkflowWithPullRequest(org, client, repoFullName)
-		//if err != nil {
-		//	log.Printf("CreateDiggerWorkflowWithPullRequest failed, error: %v\n", err)
-		//	return err
-		//}
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, installationId)
+		if err != nil {
+			log.Printf("createOrGetDiggerRepoForGithubRepo failed, error: %v\n", err)
+			return err
+		}
 	}
 	return nil
 }
