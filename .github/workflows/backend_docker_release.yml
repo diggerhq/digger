@@ -31,12 +31,12 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@41e1fe3437fd5c8d22c24a824307673223ead782
+        uses: docker/metadata-action@v5.5.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@9f6f8c940b91232557f8699b21341a08624a8dce
+        uses: docker/build-push-action@v5.1.0
         with:
           context: .
           file: "Dockerfile_backend"
