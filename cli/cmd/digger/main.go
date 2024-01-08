@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/generic_ci"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"os"
@@ -21,6 +24,7 @@ import (
 	core_storage "github.com/diggerhq/digger/cli/pkg/core/storage"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/gcp"
+	github_pkg "github.com/diggerhq/digger/cli/pkg/github"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
 	"github.com/diggerhq/digger/cli/pkg/gitlab"
 	"github.com/diggerhq/digger/cli/pkg/locking"
@@ -86,8 +90,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		reportErrorAndExit(githubActor, "GITHUB_REPOSITORY is not defined", 3)
 	}
 
-	splitRepositoryName := strings.Split(ghRepository, "/")
-	repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
+	repoOwner, repositoryName := utils.ParseRepoNamespace(ghRepository)
 	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
 
 	currentDir, err := os.Getwd()
@@ -756,6 +759,58 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	reportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
+func run(lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy, backendApi core_backend.Api) {
+	type RunConfig struct {
+		Event         string `mapstructure:"event"`
+		Actor         string `mapstructure:"actor"`
+		Command       string `mapstructure:"command"`
+		Projects      string `mapstructure:"projects"`
+		RepoNamespace string `mapstructure:"repo-namespace"`
+		FilesChanged  string `mapstructure:"files-changed"`
+	}
+
+	var runConfig RunConfig
+	v := viper.New()
+	v.SetEnvPrefix("DIGGER")
+	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	v.AutomaticEnv()
+	v.BindPFlag("repo-namespace", &pflag.Flag{Name: "repo-namespace"})
+	v.BindPFlag("command", &pflag.Flag{Name: "command"})
+	v.BindPFlag("files-changed", &pflag.Flag{Name: "files-changed"})
+
+	if err := v.Unmarshal(&runConfig); err != nil {
+		reportErrorAndExit("", fmt.Sprintf("Could not parse user args: %v", err), 1)
+	}
+
+	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
+	currentDir, err := os.Getwd()
+	if err != nil {
+		reportErrorAndExit(runConfig.Actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+	}
+
+	planStorage := newPlanStorage("", "", "", runConfig.Actor, nil)
+
+	reporter := &reporting.StdoutReporter{
+		ReportStrategy:    reportingStrategy,
+		IsSupportMarkdown: true,
+	}
+
+	prService := github_pkg.MockCiService{}
+
+	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./")
+	if err != nil {
+		reportErrorAndExit(runConfig.Actor, fmt.Sprintf("Failed to load digger config. %s", err), 4)
+	}
+	impactedProjects := diggerConfig.GetModifiedProjects(strings.Split(runConfig.FilesChanged, ","))
+	jobs, _, err := generic_ci.ConvertToCommands(runConfig.Actor, runConfig.RepoNamespace, runConfig.Command, impactedProjects, nil, diggerConfig.Workflows)
+	if err != nil {
+		reportErrorAndExit(runConfig.Actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
+	}
+
+	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
+	_, _, err = digger.RunJobs(jobs, &prService, &prService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
+}
+
 /*
 Exit codes:
 0 - No errors
@@ -780,6 +835,7 @@ func main() {
 		utils.DisplayCommands()
 		os.Exit(0)
 	}
+
 	var policyChecker core_policy.Checker
 	var backendApi core_backend.Api
 	if os.Getenv("NO_BACKEND") == "true" {
@@ -826,6 +882,11 @@ func main() {
 		os.Exit(2)
 	}
 	log.Println("Lock provider has been created successfully")
+
+	if len(args) > 0 && args[0] == "run" {
+		run(lock, policyChecker, reportStrategy, backendApi)
+		os.Exit(0)
+	}
 
 	ci := digger.DetectCI()
 
