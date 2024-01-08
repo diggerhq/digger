@@ -240,7 +240,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 					Value:     "",
 				},
 				{
-					Action:    "run",
+					Action:    "Run",
 					ExtraArgs: nil,
 					Value:     "echo",
 				},
@@ -330,7 +330,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 					Value:     "",
 				},
 				{
-					Action:    "run",
+					Action:    "Run",
 					ExtraArgs: nil,
 					Value:     "echo",
 				},
