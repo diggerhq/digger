@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/cli
 
-go 1.21.5
+go 1.21.6
 
 replace github.com/diggerhq/digger/libs => ../libs
 
