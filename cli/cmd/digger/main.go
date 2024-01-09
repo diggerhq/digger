@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/generic_ci"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"log"
@@ -759,27 +760,10 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	reportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
-func run(lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy, backendApi core_backend.Api) {
-	type RunConfig struct {
-		Event         string `mapstructure:"event"`
-		Actor         string `mapstructure:"actor"`
-		Command       string `mapstructure:"command"`
-		Projects      string `mapstructure:"projects"`
-		RepoNamespace string `mapstructure:"repo-namespace"`
-		FilesChanged  string `mapstructure:"files-changed"`
-	}
+func run(v *viper.Viper, lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy, backendApi core_backend.Api) {
 
 	var runConfig RunConfig
-	v := viper.New()
-	v.SetEnvPrefix("DIGGER")
-	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	v.AutomaticEnv()
-	v.BindPFlag("repo-namespace", &pflag.Flag{Name: "repo-namespace"})
-	v.BindPFlag("command", &pflag.Flag{Name: "command"})
-	v.BindPFlag("files-changed", &pflag.Flag{Name: "files-changed"})
-
 	if err := v.Unmarshal(&runConfig); err != nil {
-		reportErrorAndExit("", fmt.Sprintf("Could not parse user args: %v", err), 1)
 	}
 
 	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
@@ -884,7 +868,22 @@ func main() {
 	log.Println("Lock provider has been created successfully")
 
 	if len(args) > 0 && args[0] == "run" {
-		run(lock, policyChecker, reportStrategy, backendApi)
+		runCmd := cobra.Command{Use: "run"}
+		rootCmd.AddCommand(&runCmd)
+		_, v, err := initCobraCmdForRun(&runCmd)
+		runCmd.Run = func(cmd *cobra.Command, args []string) {
+			if err != nil {
+				reportErrorAndExit("", fmt.Sprintf("Could initialize command line args: %v", err), 1)
+			}
+			run(v, lock, policyChecker, reportStrategy, backendApi)
+		}
+		runCmd.Flags().Visit(func(f *pflag.Flag) {
+			println(f.Name, f.Value)
+		})
+		if err := runCmd.Execute(); err != nil {
+			reportErrorAndExit("", fmt.Sprintf("Error occured during command exec: %v", err), 8)
+		}
+
 		os.Exit(0)
 	}
 
