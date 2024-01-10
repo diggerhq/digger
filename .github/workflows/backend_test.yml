@@ -20,6 +20,11 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
+      - name: Test that the docker image still builds successfully
+        run: |
+          export COMMIT_SHA=$(git rev-parse --short HEAD)
+          docker build -t testingbuild:latest --build-arg COMMIT_SHA=${COMMIT_SHA} . -f Dockerfile_backend
+
       - name: Deps
         run: go get -v ./...
         working-directory: backend
@@ -33,3 +38,6 @@ jobs:
         env:
           GITHUB_PAT_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         working-directory: backend
+
+
+          
