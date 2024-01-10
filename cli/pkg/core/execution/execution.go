@@ -128,7 +128,7 @@ func (d ProjectPathProvider) StoredPlanFilePath() string {
 func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 	plan := ""
 	terraformPlanOutput := ""
-	isNonEmptyPlan := false
+	isEmptyPlan := true
 	var planSteps []orchestrator.Step
 
 	if d.PlanStage != nil {
@@ -161,12 +161,12 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
 			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
 
-			isNonEmptyPlan, err = terraform.IsPlanJsonPlanEmpty(terraformPlanOutput)
+			isEmptyPlan, err = terraform.IsPlanJsonPlanEmpty(terraformPlanOutput)
 			if err != nil {
 				return false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
 			}
 
-			if isNonEmptyPlan {
+			if !isEmptyPlan {
 				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.PlanFileName(), "isNonEmptyPlan.txt", 1)
 				file, err := os.Create(nonEmptyPlanFilepath)
 				if err != nil {
@@ -196,7 +196,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 					return false, false, "", "", fmt.Errorf("error storing plan: %v", err)
 				}
 			}
-			plan = cleanupTerraformPlan(isNonEmptyPlan, err, stdout, stderr)
+			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
 			if err != nil {
 				log.Printf("error publishing comment: %v", err)
 			}
@@ -215,7 +215,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 		}
 	}
 	reportAdditionalOutput(d.Reporter, d.projectId())
-	return true, isNonEmptyPlan, plan, terraformPlanOutput, nil
+	return true, !isEmptyPlan, plan, terraformPlanOutput, nil
 }
 
 func reportError(r reporting.Reporter, stderr string) {
