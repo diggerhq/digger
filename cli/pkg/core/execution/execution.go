@@ -154,8 +154,18 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 		if step.Action == "plan" {
 			planArgs := []string{"-out", d.PlanPathProvider.LocalPlanFilePath(), "-lock-timeout=3m"}
 			planArgs = append(planArgs, step.ExtraArgs...)
-			nonEmptyPlan, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
-			isNonEmptyPlan = nonEmptyPlan
+			_, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
+			if err != nil {
+				return false, false, "", "", fmt.Errorf("error executing plan: %v", err)
+			}
+			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
+			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
+
+			isNonEmptyPlan, err = terraform.IsPlanJsonPlanEmpty(terraformPlanOutput)
+			if err != nil {
+				return false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
+			}
+
 			if isNonEmptyPlan {
 				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.PlanFileName(), "isNonEmptyPlan.txt", 1)
 				file, err := os.Create(nonEmptyPlanFilepath)
@@ -190,11 +200,6 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			if err != nil {
 				log.Printf("error publishing comment: %v", err)
 			}
-
-			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
-			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
-			// perform a rego check of plan policy and terraform json output
-
 		}
 		if step.Action == "run" {
 			var commands []string
