@@ -92,6 +92,7 @@ type DiggerExecutor struct {
 	ProjectPath       string
 	StateEnvVars      map[string]string
 	CommandEnvVars    map[string]string
+	RunEnvVars        map[string]string
 	ApplyStage        *orchestrator.Stage
 	PlanStage         *orchestrator.Stage
 	CommandRunner     runners.CommandRun
@@ -208,7 +209,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			}
 			commands = append(commands, step.Value)
 			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
-			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
+			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
 				return false, false, "", "", fmt.Errorf("error running command: %v", err)
 			}
