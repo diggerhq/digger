@@ -27,7 +27,7 @@ type MockCommandRunner struct {
 	Commands []RunInfo
 }
 
-func (m *MockCommandRunner) Run(workDir string, shell string, commands []string) (string, string, error) {
+func (m *MockCommandRunner) Run(workDir string, shell string, commands []string, envs map[string]string) (string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Run", workDir + " " + shell + " " + strings.Join(commands, " "), time.Now()})
 	return "", "", nil
 }
