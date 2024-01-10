@@ -10,7 +10,7 @@ import (
 )
 
 type CommandRun interface {
-	Run(workingDir string, shell string, commands []string) (string, string, error)
+	Run(workingDir string, shell string, commands []string, envs map[string]string) (string, string, error)
 }
 
 type CommandRunner struct {
