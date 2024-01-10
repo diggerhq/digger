@@ -267,7 +267,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 				}
 			} else {
-				reportTerraformPlanOutput(reporter, projectLock.LockId(), "No changes in terraform plan\n")
+				reportEmptyPlanOutput(reporter, projectLock.LockId())
 			}
 			err := prService.SetStatus(*job.PullRequestNumber, "success", job.ProjectName+"/plan")
 			if err != nil {
@@ -434,6 +434,17 @@ func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId strin
 	}
 
 	err := reporter.Report(plan, formatter)
+	if err != nil {
+		log.Printf("Failed to report plan. %v", err)
+	}
+}
+
+func reportEmptyPlanOutput(reporter core_reporting.Reporter, projectId string) {
+	identityFormatter := func(comment string) string {
+		return comment
+	}
+
+	err := reporter.Report("→ No changes in terraform output for "+projectId, identityFormatter)
 	if err != nil {
 		log.Printf("Failed to report plan. %v", err)
 	}
