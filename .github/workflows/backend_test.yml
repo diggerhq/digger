@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      - name: Test that the docker image still builds successfully
+        run: |
+          export COMMIT_SHA=$(git rev-parse --short HEAD)
+          docker build -t testingbuild:latest --build-arg COMMIT_SHA=${COMMIT_SHA} . -f Dockerfile_backend
+
       - name: Download Go
         uses: actions/setup-go@v5
         with:
@@ -34,9 +39,5 @@ jobs:
           GITHUB_PAT_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         working-directory: backend
 
-      - name: Test that the docker image still builds successfully
-        run: |
-          export COMMIT_SHA=$(git rev-parse --short HEAD)
-          docker build -t testingbuild:latest --build-arg COMMIT_SHA=${COMMIT_SHA} . -f Dockerfile_backend
 
           
