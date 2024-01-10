@@ -19,6 +19,7 @@ type Job struct {
 	EventName          string
 	RequestedBy        string
 	Namespace          string
+	RunEnvVars         map[string]string
 	StateEnvVars       map[string]string
 	CommandEnvVars     map[string]string
 	StateEnvProvider   *stscreds.WebIdentityRoleProvider

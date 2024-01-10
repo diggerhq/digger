@@ -205,11 +205,16 @@ func (svc *GithubService) GetBranchName(prNumber int) (string, error) {
 func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
 	jobs := make([]orchestrator.Job, 0)
 
+	defaultBranch := *payload.Repo.DefaultBranch
+	prBranch := payload.PullRequest.Head.GetRef()
+
 	for _, project := range impactedProjects {
 		workflow, ok := workflows[project.Workflow]
 		if !ok {
 			return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 		}
+
+		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 		pullRequestNumber := payload.PullRequest.Number
@@ -225,6 +230,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				Commands:           workflow.Configuration.OnCommitToDefault,
 				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
 				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				RunEnvVars:         runEnvVars,
 				CommandEnvVars:     commandEnvVars,
 				StateEnvVars:       stateEnvVars,
 				PullRequestNumber:  pullRequestNumber,
@@ -245,6 +251,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				Commands:           workflow.Configuration.OnPullRequestPushed,
 				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
 				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				RunEnvVars:         runEnvVars,
 				CommandEnvVars:     commandEnvVars,
 				StateEnvVars:       stateEnvVars,
 				PullRequestNumber:  pullRequestNumber,
@@ -265,6 +272,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				Commands:           workflow.Configuration.OnPullRequestClosed,
 				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
 				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				RunEnvVars:         runEnvVars,
 				CommandEnvVars:     commandEnvVars,
 				StateEnvVars:       stateEnvVars,
 				PullRequestNumber:  pullRequestNumber,
@@ -279,8 +287,20 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 	return jobs, true, nil
 }
 
-func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
+func GetRunEnvVars(defaultBranch string, prBranch string, projectName string, projectDir string) map[string]string {
+	return map[string]string{
+		"DEFAULT_BRANCH": defaultBranch,
+		"PR_BRANCH":      prBranch,
+		"PROJECT_NAME":   projectName,
+		"PROJECT_DIR":    projectDir,
+	}
+}
+
+func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string) ([]orchestrator.Job, bool, error) {
 	jobs := make([]orchestrator.Job, 0)
+
+	defaultBranch := *payload.Repo.DefaultBranch
+	prBranch := prBranchName
 
 	supportedCommands := []string{"digger plan", "digger apply", "digger unlock", "digger lock"}
 
@@ -308,6 +328,7 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 				}
 				issueNumber := payload.Issue.Number
+				runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
 				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 				StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
 				workspace := project.Workspace
@@ -328,6 +349,7 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 					Commands:           []string{command},
 					ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
 					PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+					RunEnvVars:         runEnvVars,
 					CommandEnvVars:     commandEnvVars,
 					StateEnvVars:       stateEnvVars,
 					PullRequestNumber:  issueNumber,
