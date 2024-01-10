@@ -998,13 +998,14 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 }
 
 func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
+	defaultBranch := "defaultBranch"
 	issuenumber := 1
 	ghEvent := github.IssueCommentEvent{
 		Comment: &github.IssueComment{},
 		Issue: &github.Issue{
 			Number: &issuenumber,
 		},
-		Repo:   &github.Repository{FullName: github.String("asdd")},
+		Repo:   &github.Repository{FullName: github.String("asdd"), DefaultBranch: &defaultBranch},
 		Sender: &github.User{Login: github.String("login")},
 	}
 	comment := "DiGGeR PlAn"
