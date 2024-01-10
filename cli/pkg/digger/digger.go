@@ -440,8 +440,11 @@ func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId strin
 }
 
 func reportEmptyPlanOutput(reporter core_reporting.Reporter, projectId string) {
-	formatter := utils.GetTerraformOutputAsComment("No changes for " + projectId)
-	err := reporter.Report("", formatter)
+	identityFormatter := func(comment string) string {
+		return comment
+	}
+
+	err := reporter.Report("No changes in terraform output for "+projectId, identityFormatter)
 	if err != nil {
 		log.Printf("Failed to report plan. %v", err)
 	}
