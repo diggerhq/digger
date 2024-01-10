@@ -284,7 +284,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			}
 			commands = append(commands, step.Value)
 			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
-			_, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands)
+			_, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
 				return false, stderr, fmt.Errorf("error running command: %v", err)
 			}

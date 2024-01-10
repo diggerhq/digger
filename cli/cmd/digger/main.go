@@ -287,7 +287,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
 			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
-			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubIssueCommentEventToJobs(&commentEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+			prBranchName, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
+			if err != nil {
+				reportErrorAndExit(githubActor, fmt.Sprintf("Error while retriving default branch from Issue: %v", err), 6)
+			}
+			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubIssueCommentEventToJobs(&commentEvent, impactedProjects, requestedProject, diggerConfig.Workflows, prBranchName)
 		} else {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Unsupported GitHub event type. %s", err), 6)
 		}
