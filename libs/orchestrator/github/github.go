@@ -206,7 +206,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 	jobs := make([]orchestrator.Job, 0)
 
 	defaultBranch := *payload.Repo.DefaultBranch
-	prBranch := *payload.PullRequest.Base.Ref
+	prBranch := payload.PullRequest.Head.GetRef()
 
 	for _, project := range impactedProjects {
 		workflow, ok := workflows[project.Workflow]
