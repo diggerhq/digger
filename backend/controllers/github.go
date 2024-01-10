@@ -571,10 +571,15 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	issueNumber := *payload.Issue.Number
 
 	ghService, config, projectsGraph, branch, err := getDiggerConfig(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
-
 	if err != nil {
 		log.Printf("getDiggerConfig error: %v", err)
 		return fmt.Errorf("error getting digger config")
+	}
+
+	prBranchName, err := ghService.GetBranchName(issueNumber)
+	if err != nil {
+		log.Printf("GetBranchName error: %v", err)
+		return fmt.Errorf("error while fetching branch name")
 	}
 
 	impactedProjects, requestedProject, _, err := dg_github.ProcessGitHubIssueCommentEvent(payload, config, projectsGraph, ghService)
@@ -589,7 +594,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting github prservice")
 	}
 
-	jobs, _, err := dg_github.ConvertGithubIssueCommentEventToJobs(payload, impactedProjects, requestedProject, config.Workflows)
+	jobs, _, err := dg_github.ConvertGithubIssueCommentEventToJobs(payload, impactedProjects, requestedProject, config.Workflows, prBranchName)
 
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)

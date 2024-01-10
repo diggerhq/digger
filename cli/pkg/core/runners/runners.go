@@ -10,13 +10,13 @@ import (
 )
 
 type CommandRun interface {
-	Run(workingDir string, shell string, commands []string) (string, string, error)
+	Run(workingDir string, shell string, commands []string, envs map[string]string) (string, string, error)
 }
 
 type CommandRunner struct {
 }
 
-func (c CommandRunner) Run(workingDir string, shell string, commands []string) (string, string, error) {
+func (c CommandRunner) Run(workingDir string, shell string, commands []string, envs map[string]string) (string, string, error) {
 	var args []string
 	if shell == "" {
 		shell = "bash"
@@ -39,6 +39,12 @@ func (c CommandRunner) Run(workingDir string, shell string, commands []string) (
 
 	cmd := exec.Command(shell, args...)
 	cmd.Dir = workingDir
+
+	env := os.Environ()
+	for k, v := range envs {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+	cmd.Env = env
 
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
