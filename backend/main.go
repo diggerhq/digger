@@ -71,7 +71,7 @@ func main() {
 	})
 
 	r.LoadHTMLGlob("templates/*.tmpl")
-	r.GET("/", web.RedirectToLoginSubdomain)
+	r.GET("/", web.RedirectToLoginSubdomainIfDiggerDevOtherwiseToProjects)
 
 	r.POST("/github-app-webhook", controllers.GithubAppWebHook)
 

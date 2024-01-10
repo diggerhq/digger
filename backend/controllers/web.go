@@ -293,7 +293,7 @@ func (web *WebController) PolicyDetailsUpdatePage(c *gin.Context) {
 	c.HTML(http.StatusOK, "policy_details.tmpl", pageContext)
 }
 
-func (web *WebController) RedirectToLoginSubdomain(context *gin.Context) {
+func (web *WebController) RedirectToLoginSubdomainIfDiggerDevOtherwiseToProjects(context *gin.Context) {
 	host := context.Request.Host
 	if strings.Contains(host, "digger.dev") || strings.Contains(host, "uselemon.cloud") {
 		hostParts := strings.Split(host, ".")
