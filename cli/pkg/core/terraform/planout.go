@@ -27,10 +27,10 @@ func parseTerraformPlanOutput(terraformJson string) (*TerraformPlan, error) {
 	return &plan, nil
 }
 
-func IsPlanJsonPlanEmpty(planJson string) (*bool, error) {
+func IsPlanJsonPlanEmpty(planJson string) (bool, error) {
 	tfplan, err := parseTerraformPlanOutput(planJson)
 	if err != nil {
-		return nil, fmt.Errorf("Error while parsing json file: %v", err)
+		return false, fmt.Errorf("Error while parsing json file: %v", err)
 	}
 	isPlanEmpty := true
 	for _, change := range tfplan.ResourceChanges {
@@ -40,5 +40,5 @@ func IsPlanJsonPlanEmpty(planJson string) (*bool, error) {
 		}
 	}
 
-	return &isPlanEmpty, nil
+	return isPlanEmpty, nil
 }
