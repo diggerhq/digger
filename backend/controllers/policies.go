@@ -151,29 +151,8 @@ func upsertPolicyForOrg(c *gin.Context, policyType string) {
 		return
 	}
 
-	policy := models.Policy{}
-
-	policyResult := models.DB.GormDB.Where("organisation_id = ? AND (repo_id IS NULL AND project_id IS NULL) AND type = ?", org.ID, policyType).Take(&policy)
-
-	if policyResult.RowsAffected == 0 {
-		err := models.DB.GormDB.Create(&models.Policy{
-			OrganisationID: org.ID,
-			Type:           policyType,
-			Policy:         string(policyData),
-		}).Error
-
-		if err != nil {
-			log.Printf("Error creating policy: %v", err)
-			c.String(http.StatusInternalServerError, "Error creating policy")
-			return
-		}
-	} else {
-		err := policyResult.Update("policy", string(policyData)).Error
-		if err != nil {
-			log.Printf("Error updating policy: %v", err)
-			c.String(http.StatusInternalServerError, "Error updating policy")
-			return
-		}
+	if err = models.DB.UpsertPolicyForOrg(policyType, org, string(policyData)); err != nil {
+		c.String(http.StatusInternalServerError, "Error creating policy for organisation: %v", org)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
