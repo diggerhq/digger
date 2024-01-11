@@ -64,6 +64,32 @@ func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]Repo
 	return repos, true
 }
 
+func (db *Database) UpsertPolicyForOrg(policyType string, org Organisation, policyContent string) error {
+	policy := Policy{}
+
+	policyResult := db.GormDB.Where("organisation_id = ? AND (repo_id IS NULL AND project_id IS NULL) AND type = ?", org.ID, policyType).Take(&policy)
+
+	if policyResult.RowsAffected == 0 {
+		err := db.GormDB.Create(&Policy{
+			OrganisationID: org.ID,
+			Type:           policyType,
+			Policy:         policyContent,
+		}).Error
+
+		if err != nil {
+			log.Printf("Error creating policy: %v", err)
+			return fmt.Errorf("error creating policy: %v", err)
+		}
+	} else {
+		err := policyResult.Update("policy", policyContent).Error
+		if err != nil {
+			log.Printf("Error updating policy: %v", err)
+			return fmt.Errorf("error updating policy: %v", err)
+		}
+	}
+	return nil
+}
+
 func (db *Database) GetPoliciesFromContext(c *gin.Context, orgIdKey string) ([]Policy, bool) {
 	loggedInOrganisationId, exists := c.Get(orgIdKey)
 

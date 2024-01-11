@@ -19,7 +19,6 @@ var DEFAULT_ORG_NAME = "digger"
 var DB *Database
 
 func ConnectDatabase() {
-
 	database, err := gorm.Open(postgres.Open(os.Getenv("DATABASE_URL")), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})

@@ -109,6 +109,12 @@ func (web *WebController) PoliciesPage(c *gin.Context) {
 }
 
 func (web *WebController) AddPolicyPage(c *gin.Context) {
+	organisationId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+	if !exists {
+		c.String(http.StatusForbidden, "Not allowed to access this resource")
+		return
+	}
+
 	if c.Request.Method == "GET" {
 		message := ""
 		projects, done := models.DB.GetProjectsFromContext(c, middleware.ORGANISATION_ID_KEY)
@@ -137,32 +143,38 @@ func (web *WebController) AddPolicyPage(c *gin.Context) {
 
 		policyType := c.PostForm("policytype")
 		projectIdStr := c.PostForm("projectid")
-		projectId64, err := strconv.ParseUint(projectIdStr, 10, 32)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "Failed to parse policy id")
-			return
-		}
-		projectId := uint(projectId64)
-		project, ok := models.DB.GetProjectByProjectId(c, projectId, middleware.ORGANISATION_ID_KEY)
-		if !ok {
-			log.Printf("Failed to fetch specified project by id: %v, %v\n", projectIdStr, err)
-			message := "Failed to create a policy"
-			services.AddError(c, message)
-			pageContext := services.GetMessages(c)
-			c.HTML(http.StatusOK, "policy_add.tmpl", pageContext)
-		}
+		if projectIdStr != "" {
+			projectId64, err := strconv.ParseUint(projectIdStr, 10, 32)
+			if err != nil {
+				c.String(http.StatusInternalServerError, "Failed to parse project id")
+				return
+			}
+			projectIdPtr := uint(projectId64)
+			projectId := &projectIdPtr
+			project, ok := models.DB.GetProjectByProjectId(c, *projectId, middleware.ORGANISATION_ID_KEY)
+			if !ok {
+				log.Printf("Failed to fetch specified project by id: %v, %v\n", projectIdStr, err)
+				message := "Failed to create a policy"
+				services.AddError(c, message)
+				pageContext := services.GetMessages(c)
+				c.HTML(http.StatusOK, "policy_add.tmpl", pageContext)
+			}
+			log.Printf("repo: %v\n", project.Repo)
+			policy := models.Policy{ProjectID: projectId, Policy: policyText, Type: policyType, Organisation: project.Organisation, Repo: project.Repo}
+			err = models.DB.GormDB.Create(&policy).Error
+			if err != nil {
+				log.Printf("Failed to create a new policy, %v\n", err)
+				message := "Failed to create a policy"
+				services.AddError(c, message)
+				pageContext := services.GetMessages(c)
+				c.HTML(http.StatusOK, "policy_add.tmpl", pageContext)
+			}
 
-		log.Printf("repo: %v\n", project.Repo)
-
-		policy := models.Policy{Project: project, Policy: policyText, Type: policyType, Organisation: project.Organisation, Repo: project.Repo}
-
-		err = models.DB.GormDB.Create(&policy).Error
-		if err != nil {
-			log.Printf("Failed to create a new policy, %v\n", err)
-			message := "Failed to create a policy"
-			services.AddError(c, message)
-			pageContext := services.GetMessages(c)
-			c.HTML(http.StatusOK, "policy_add.tmpl", pageContext)
+		} else {
+			org, err := models.DB.GetOrganisationById(organisationId)
+			if err = models.DB.UpsertPolicyForOrg(policyType, *org, policyText); err != nil {
+				c.String(http.StatusInternalServerError, "Error creating policy for organisation: %v", org)
+			}
 		}
 
 		c.Redirect(http.StatusFound, "/policies")
