@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"github.com/dchest/uniuri"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -604,6 +605,23 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 	}
 	return nil
 
+}
+
+func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*DiggerJob, error) {
+	if serializedJob == nil || len(serializedJob) == 0 {
+		return nil, fmt.Errorf("serializedJob can't be empty")
+	}
+	jobId := uniuri.New()
+	batchIdStr := batchId.String()
+	job := &DiggerJob{DiggerJobId: jobId, Status: DiggerJobCreated,
+		BatchID: &batchIdStr, SerializedJob: serializedJob}
+	result := db.GormDB.Save(job)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	log.Printf("DiggerJob %v, (id: %v) has been created successfully\n", job.DiggerJobId, job.ID)
+	return job, nil
 }
 
 func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*DiggerJob, error) {
