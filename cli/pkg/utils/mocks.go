@@ -1,6 +1,7 @@
 package utils
 
 import (
+	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	"time"
 
 	"github.com/diggerhq/digger/libs/orchestrator"
@@ -151,6 +152,6 @@ func (t MockBackendApi) ReportProjectRun(namespace string, projectName string, s
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time) error {
+func (t MockBackendApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time, summary *core_backend.JobSummary) error {
 	return nil
 }
