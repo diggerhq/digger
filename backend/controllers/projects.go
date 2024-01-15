@@ -248,15 +248,15 @@ func RunHistoryForProject(c *gin.Context) {
 }
 
 type JobSummary struct {
-	ResourcesCreated uint
-	ResourcesDeleted uint
-	ResourcesUpdated uint
+	ResourcesCreated uint `json:"resources_created"`
+	ResourcesUpdated uint `json:"resources_updated"`
+	ResourcesDeleted uint `json:"resources_deleted"`
 }
 
 type SetJobStatusRequest struct {
 	Status     string      `json:"status"`
 	Timestamp  time.Time   `json:"timestamp"`
-	JobSummary *JobSummary `json:job_summary`
+	JobSummary *JobSummary `json:"job_summary"`
 }
 
 func SetJobStatusForProject(c *gin.Context) {
@@ -339,6 +339,11 @@ func SetJobStatusForProject(c *gin.Context) {
 			}
 		}()
 
+		// store digger job summary
+		if request.JobSummary != nil {
+			models.DB.UpdateDiggerJobSummary(job.DiggerJobId, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
+		}
+
 	case "failed":
 		job.Status = models.DiggerJobFailed
 	default:
@@ -363,11 +368,6 @@ func SetJobStatusForProject(c *gin.Context) {
 		log.Printf("Error updating batch status: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating batch status"})
 		return
-	}
-
-	// store digger job summary
-	if request.JobSummary != nil {
-		models.DB.UpdateDiggerJobSummary(job.DiggerJobId, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
 	}
 
 	err = AutomergePRforBatchIfEnabled(&utils.DiggerGithubRealClientProvider{}, batch)
