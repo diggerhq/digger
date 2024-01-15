@@ -125,6 +125,7 @@ func (d DiggerApi) ReportProjectJobStatus(namespace string, projectName string, 
 	request := map[string]interface{}{
 		"status":    status,
 		"timestamp": timestamp,
+		//"runResults": runResultsAggregatepayload,
 	}
 
 	jsonData, err := json.Marshal(request)
