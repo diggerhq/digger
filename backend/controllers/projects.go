@@ -247,9 +247,16 @@ func RunHistoryForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+type JobSummary struct {
+	ResourcesCreated uint
+	ResourcesDeleted uint
+	ResourcesUpdated uint
+}
+
 type SetJobStatusRequest struct {
-	Status    string    `json:"status"`
-	Timestamp time.Time `json:"timestamp"`
+	Status     string      `json:"status"`
+	Timestamp  time.Time   `json:"timestamp"`
+	JobSummary *JobSummary `json:job_summary`
 }
 
 func SetJobStatusForProject(c *gin.Context) {
@@ -358,12 +365,30 @@ func SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
+	// store digger job summary
+	if request.JobSummary != nil {
+		models.DB.UpdateDiggerJobSummary(job.DiggerJobId, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
+	}
+
 	err = AutomergePRforBatchIfEnabled(&utils.DiggerGithubRealClientProvider{}, batch)
 	if err != nil {
 		log.Printf("Error merging PR with automerge option: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
 	}
 
+	type BatchResponse struct {
+		Status      string
+		JobPaylaods []models.DiggerJobSummary
+	}
+
+	// return batch summary to client
+	res, err := batch.MapToJsonStruct()
+	if err != nil {
+		log.Printf("Error getting batch details: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
+
+	}
+	c.JSON(http.StatusOK, res)
 }
 
 type CreateProjectRunRequest struct {

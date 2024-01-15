@@ -3,7 +3,6 @@ package models
 import (
 	"errors"
 	"fmt"
-	"github.com/dchest/uniuri"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -606,21 +605,34 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 	return nil
 
 }
-func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*DiggerJob, error) {
-	if serializedJob == nil || len(serializedJob) == 0 {
-		return nil, fmt.Errorf("serializedJob can't be empty")
+
+func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*DiggerJob, error) {
+	diggerJob, err := db.GetDiggerJob(diggerJobId)
+	if err != nil {
+		return nil, fmt.Errorf("Could not get digger job")
 	}
-	jobId := uniuri.New()
-	batchIdStr := batchId.String()
-	job := &DiggerJob{DiggerJobId: jobId, Status: DiggerJobCreated,
-		BatchID: &batchIdStr, SerializedJob: serializedJob}
-	result := db.GormDB.Save(job)
+	var jobSummary *DiggerJobSummary
+	if diggerJob.DiggerJobSummary == nil {
+		jobSummary = &DiggerJobSummary{
+			ResourcesCreated: resourcesCreated,
+			ResourcesUpdated: resourcesUpdated,
+			ResourcesDeleted: resourcesDeleted,
+		}
+		diggerJob.DiggerJobSummary = jobSummary
+	} else {
+		jobSummary = diggerJob.DiggerJobSummary
+		jobSummary.ResourcesCreated = resourcesCreated
+		jobSummary.ResourcesUpdated = resourcesUpdated
+		jobSummary.ResourcesDeleted = resourcesDeleted
+	}
+
+	result := db.GormDB.Save(jobSummary)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	log.Printf("DiggerJob %v, (id: %v) has been created successfully\n", job.DiggerJobId, job.ID)
-	return job, nil
+	log.Printf("DiggerJob %v summary has been updated successfully\n", diggerJobId)
+	return diggerJob, nil
 }
 
 func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
@@ -630,6 +642,22 @@ func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
 	}
 	log.Printf("DiggerJob %v, (id: %v) has been updated successfully\n", job.DiggerJobId, job.ID)
 	return nil
+}
+
+func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error) {
+	jobs := make([]DiggerJob, 0)
+	joins := db.GormDB.Joins("LEFT JOIN digger_job_parent_links ON digger_jobs.digger_job_id = digger_job_parent_links.digger_job_id").Preload("Batch")
+
+	var where *gorm.DB
+	where = joins.Where("digger_jobs.batch_id = ?", batchId)
+
+	result := where.Find(&jobs)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+	return jobs, nil
 }
 
 func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob, error) {
@@ -655,7 +683,7 @@ func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob,
 
 func (db *Database) GetDiggerJob(jobId string) (*DiggerJob, error) {
 	job := &DiggerJob{}
-	result := db.GormDB.Preload("Batch").Where("digger_job_id=? ", jobId).Find(job)
+	result := db.GormDB.Preload("Batch").Preload("DiggerJobSummary").Where("digger_job_id=? ", jobId).Find(job)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
