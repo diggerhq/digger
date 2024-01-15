@@ -125,7 +125,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
-		err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now())
+		err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
 
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
@@ -144,13 +144,14 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
 		if err != nil {
-			reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now())
+			reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %s", reportingError)
 			}
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
-		err = backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "succeeded", time.Now())
+		err = backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "succeeded", time.Now(),
+			&core_backend.JobSummary{ResourcesCreated: 999, ResourcesUpdated: 998, ResourcesDeleted: 997})
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. %s", err), 4)
 		}
