@@ -31,9 +31,9 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetChangedFile
 	return nil, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishComment(prNumber int, comment string) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishComment(prNumber int, comment string) (int64, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "PublishComment")
-	return nil
+	return 0, nil
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) SetStatus(prNumber int, status string, statusContext string) error {

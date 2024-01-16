@@ -74,9 +74,9 @@ func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	return fileNames, nil
 }
 
-func (svc *GithubService) PublishComment(prNumber int, comment string) error {
-	_, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
-	return err
+func (svc *GithubService) PublishComment(prNumber int, comment string) (int64, error) {
+	githubComment, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
+	return *githubComment.ID, err
 }
 
 func (svc *GithubService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
