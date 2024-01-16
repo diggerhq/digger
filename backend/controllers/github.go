@@ -426,24 +426,28 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	impactedProjects, _, err := dg_github.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error processing event: %v", err))
 		return fmt.Errorf("error processing event")
 	}
 
 	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, config.Workflows)
 	if err != nil {
 		log.Printf("Error converting event to jobsForImpactedProjects: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error converting event to jobsForImpactedProjects: %v", err))
 		return fmt.Errorf("error converting event to jobsForImpactedProjects")
 	}
 
 	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
 	if err != nil {
 		log.Printf("Failed to comment initial status for jobs: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
 		return fmt.Errorf("failed to comment initial status for jobs")
 	}
 
 	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
 		fmt.Errorf("error setting status for PR: %v", err)
 	}
 
@@ -460,18 +464,21 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	repo, err := GetRepoByInstllationId(installationId, repoOwner, repoName)
 	if err != nil {
 		log.Printf("GetRepoByInstallationId error: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: GetRepoByInstallationId error: %v", err))
 		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
 	}
 	batchType := getBatchType(jobsForImpactedProjects)
 	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, repo.DiggerConfig, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
 		return fmt.Errorf("error converting jobs")
 	}
 
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, prNumber, ghService)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
 		return fmt.Errorf("error triggerring GitHub Actions for Digger Jobs")
 	}
 
@@ -579,12 +586,14 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	prBranchName, err := ghService.GetBranchName(issueNumber)
 	if err != nil {
 		log.Printf("GetBranchName error: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: GetBranchName error: %v", err))
 		return fmt.Errorf("error while fetching branch name")
 	}
 
 	impactedProjects, requestedProject, _, err := dg_github.ProcessGitHubIssueCommentEvent(payload, config, projectsGraph, ghService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
 		return fmt.Errorf("error processing event")
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
@@ -598,6 +607,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))
 		return fmt.Errorf("error converting event to jobs")
 	}
 	log.Printf("GitHub IssueComment event converted to Jobs successfully\n")
@@ -605,12 +615,14 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	err = utils.ReportInitialJobsStatus(commentReporter, jobs)
 	if err != nil {
 		log.Printf("Failed to comment initial status for jobs: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
 		return fmt.Errorf("failed to comment initial status for jobs")
 	}
 
 	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
 		fmt.Errorf("error setting status for PR: %v", err)
 	}
 
@@ -633,12 +645,14 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, repo.DiggerConfig, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
 		return fmt.Errorf("error convertingjobs")
 	}
 
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, issueNumber, ghService)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
 		return fmt.Errorf("error triggerring GitHub Actions for Digger Jobs")
 	}
 	return nil
