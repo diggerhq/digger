@@ -29,7 +29,7 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []orchestrator.Job) error
 	prService := cr.PrService
 	commentId := cr.CommentId
 	message := "" +
-		":white_circle :arrow_right: The following projects are impacted\n\n"
+		":white_circle: :arrow_right: The following projects are impacted\n\n"
 	for _, job := range jobs {
 		message = message + fmt.Sprintf(""+
 			"<!-- PROJECTHOLDER %v -->\n"+
