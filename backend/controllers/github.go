@@ -681,11 +681,7 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 		log.Printf("jobString: %v \n", jobString)
 
 		// TODO: make workflow file name configurable
-		_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
-			Ref:    job.Batch.BranchName,
-			Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId, "comment_id": batch.CommentId},
-		})
-
+		err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, err, job, jobString, *batch.CommentId)
 		if err != nil {
 			log.Printf("failed to trigger github workflow, %v\n", err)
 			return fmt.Errorf("failed to trigger github workflow, %v\n", err)
