@@ -1,8 +1,8 @@
 package services
 
 import (
-	"context"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
 	"github.com/google/go-github/v55/github"
 	"github.com/google/uuid"
 	"log"
@@ -57,16 +57,13 @@ func TriggerJob(client *github.Client, repoOwner string, repoName string, batchI
 		return
 	}
 
-	ctx := context.Background()
 	if job.SerializedJob == nil {
 		log.Printf("GitHub job can't be nil")
 	}
 	jobString := string(job.SerializedJob)
 	log.Printf("jobString: %v \n", jobString)
-	_, err = client.Actions.CreateWorkflowDispatchEventByFileName(ctx, repoOwner, repoName, workflowFileName, github.CreateWorkflowDispatchEventRequest{
-		Ref:    job.Batch.BranchName,
-		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId, "comment_id": batch.CommentId},
-	})
+
+	err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, err, *job, jobString, *batch.CommentId)
 	if err != nil {
 		log.Printf("TriggerJob err: %v\n", err)
 		return
