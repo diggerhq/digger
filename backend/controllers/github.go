@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"math/rand"
 	"net/http"
@@ -23,7 +24,6 @@ import (
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v55/github"
-	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 )
@@ -417,6 +417,12 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error getting digger config")
 	}
 
+	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":robot: Digger starting")
+	if err != nil {
+		log.Printf("Error initializing comment reporter: %v", err)
+		return fmt.Errorf("error initializing comment reporter")
+	}
+
 	impactedProjects, _, err := dg_github.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
@@ -427,6 +433,12 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	if err != nil {
 		log.Printf("Error converting event to jobsForImpactedProjects: %v", err)
 		return fmt.Errorf("error converting event to jobsForImpactedProjects")
+	}
+
+	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
+	if err != nil {
+		log.Printf("Failed to comment initial status for jobs: %v", err)
+		return fmt.Errorf("failed to comment initial status for jobs")
 	}
 
 	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
@@ -451,7 +463,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
 	}
 	batchType := getBatchType(jobsForImpactedProjects)
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, repo.DiggerConfig, batchType)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, repo.DiggerConfig, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		return fmt.Errorf("error converting jobs")
@@ -618,7 +630,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
 	}
 	batchType := getBatchType(jobs)
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, repo.DiggerConfig, batchType)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, repo.DiggerConfig, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		return fmt.Errorf("error convertingjobs")
@@ -633,6 +645,11 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 }
 
 func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService *dg_github.GithubService) error {
+	batch, err := models.DB.GetDiggerBatch(batchId)
+	if err != nil {
+		log.Printf("failed to get digger batch, %v\n", err)
+		return fmt.Errorf("failed to get digger batch, %v\n", err)
+	}
 	diggerJobs, err := models.DB.GetPendingParentDiggerJobs(batchId)
 
 	if err != nil {
@@ -652,7 +669,7 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 		// TODO: make workflow file name configurable
 		_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
 			Ref:    job.Batch.BranchName,
-			Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId},
+			Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId, "comment_id": batch.CommentId},
 		})
 
 		if err != nil {

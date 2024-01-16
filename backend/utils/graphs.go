@@ -13,7 +13,7 @@ import (
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, diggerConfig string, batchType models.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfig string, batchType models.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	result := make(map[string]*models.DiggerJob)
 
 	log.Printf("Number of Jobs: %v\n", len(jobsMap))
@@ -28,7 +28,7 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 
 	log.Printf("marshalledJobsMap: %v\n", marshalledJobsMap)
 
-	batch, err := models.DB.CreateDiggerBatch(githubInstallationId, repoOwner, repoName, repoFullName, prNumber, branch, batchType, diggerConfig)
+	batch, err := models.DB.CreateDiggerBatch(githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfig, branch, batchType, &commentId)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
 	}

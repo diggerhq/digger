@@ -43,6 +43,7 @@ type DiggerJobParentLink struct {
 type DiggerBatch struct {
 	ID                   uuid.UUID `gorm:"primary_key"`
 	PrNumber             int
+	CommentId            *int64
 	Status               DiggerBatchStatus
 	BranchName           string
 	DiggerConfig         string
