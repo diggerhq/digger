@@ -139,7 +139,7 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 func TriggerGithubWorkflow(client *github.Client, repoOwner string, repoName string, err error, job models.DiggerJob, jobString string, commentId int64) error {
 	_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
 		Ref:    job.Batch.BranchName,
-		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId, "comment_id": commentId},
+		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId, "comment_id": string(commentId)},
 	})
 	return err
 }
