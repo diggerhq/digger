@@ -63,7 +63,7 @@ func TriggerJob(client *github.Client, repoOwner string, repoName string, batchI
 	jobString := string(job.SerializedJob)
 	log.Printf("jobString: %v \n", jobString)
 
-	err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, err, *job, jobString, *batch.CommentId)
+	err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, *job, jobString, *batch.CommentId)
 	if err != nil {
 		log.Printf("TriggerJob err: %v\n", err)
 		return
