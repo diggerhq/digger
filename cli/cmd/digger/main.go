@@ -100,7 +100,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		type Inputs struct {
 			JobString string `json:"job"`
 			Id        string `json:"id"`
-			CommentId string `json:"comment_id"`
+			CommentId int64  `json:"comment_id"`
 		}
 
 		var inputs Inputs
