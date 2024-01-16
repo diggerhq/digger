@@ -20,7 +20,7 @@ require (
 
 require (
 	github.com/caarlos0/env/v8 v8.0.0
-	github.com/diggerhq/digger/libs v0.3.13
+	github.com/diggerhq/digger/libs v0.3.14
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
 	github.com/spf13/cobra v1.8.0
