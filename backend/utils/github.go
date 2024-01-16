@@ -135,16 +135,3 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 	}
 	return nil
 }
-
-func AddInitialCommentJobs(prService *github2.GithubService, prNumber int, jobs []orchestrator.Job) (int, error) {
-	message := ":arrow_right: The following projects are impacted\n\n"
-	for _, job := range jobs {
-		message = message + fmt.Sprintf(""+
-			"<!-- PROJECTHOLDER %v -->\n"+
-			":airplane: %v Pending\n"+
-			"<!-- PROJECTHOLDEREND %v -->\n"+
-			"", job.ProjectName, job.ProjectName, job.ProjectName)
-	}
-	prService.PublishComment(prNumber, message)
-	return -1, nil
-}
