@@ -100,7 +100,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		type Inputs struct {
 			JobString string `json:"job"`
 			Id        string `json:"id"`
-			CommentId int64  `json:"comment_id"`
+			CommentId string `json:"comment_id"`
 		}
 
 		var inputs Inputs
@@ -144,7 +144,16 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		// TOD Remove
 		log.Printf("Received commentID: %v", inputs.CommentId)
-		githubPrService.EditComment(*job.PullRequestNumber, inputs.CommentId, ":x: Edited by cli :x:")
+		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
+		if err != nil {
+			reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			if reportingError != nil {
+				log.Printf("Failed to report job status to backend. %s", reportingError)
+			}
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse commentID to int64. %s", err), 5)
+		}
+
+		githubPrService.EditComment(*job.PullRequestNumber, commentId64, ":x: Edited by cli :x:")
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
