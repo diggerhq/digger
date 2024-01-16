@@ -151,7 +151,7 @@ func (gitlabService GitLabService) GetUserTeams(organisation string, user string
 	return make([]string, 0), nil
 }
 
-func (gitlabService GitLabService) PublishComment(prNumber int, comment string) (int64, error) {
+func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) (int64, error) {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
