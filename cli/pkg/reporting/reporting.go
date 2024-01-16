@@ -72,7 +72,7 @@ func upsertComment(ciService orchestrator.PullRequestService, PrNumber int, repo
 		} else {
 			comment = utils.AsCollapsibleComment(reportTitle)(report)
 		}
-		err := ciService.PublishComment(PrNumber, comment)
+		_, err := ciService.PublishComment(PrNumber, comment)
 		if err != nil {
 			return fmt.Errorf("error publishing comment: %v", err)
 		}
@@ -118,5 +118,6 @@ func (strategy *LatestRunCommentStrategy) Report(ciService orchestrator.PullRequ
 type MultipleCommentsStrategy struct{}
 
 func (strategy *MultipleCommentsStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, formatter func(string) string, supportsMarkdown bool) error {
-	return ciService.PublishComment(PrNumber, formatter(report))
+	_, err := ciService.PublishComment(PrNumber, formatter(report))
+	return err
 }

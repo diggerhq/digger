@@ -264,7 +264,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		if dg_github.CheckIfHelpComment(ghEvent) {
 			reply := utils.GetCommands()
-			err := githubPrService.PublishComment(prNumber, reply)
+			_, err := githubPrService.PublishComment(prNumber, reply)
 			if err != nil {
 				reportErrorAndExit(githubActor, "Failed to publish help command output", 1)
 			}
@@ -272,7 +272,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		if dg_github.CheckIfShowProjectsComment(ghEvent) {
 			reply := impactedProjectsMsg
-			err := githubPrService.PublishComment(prNumber, reply)
+			_, err := githubPrService.PublishComment(prNumber, reply)
 			if err != nil {
 				reportErrorAndExit(githubActor, "Failed to publish show-projects command output", 1)
 			}

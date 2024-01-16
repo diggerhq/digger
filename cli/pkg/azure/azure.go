@@ -173,7 +173,7 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 	return changedFiles, nil
 }
 
-func (a *AzureReposService) PublishComment(prNumber int, comment string) error {
+func (a *AzureReposService) PublishComment(prNumber int, comment string) (int64, error) {
 	_, err := a.Client.CreateThread(context.Background(), git.CreateThreadArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
@@ -184,7 +184,7 @@ func (a *AzureReposService) PublishComment(prNumber int, comment string) error {
 			}},
 		},
 	})
-	return err
+	return 0, err
 }
 
 func (a *AzureReposService) SetStatus(prNumber int, status string, statusContext string) error {

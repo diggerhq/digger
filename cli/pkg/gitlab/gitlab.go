@@ -151,7 +151,7 @@ func (gitlabService GitLabService) GetUserTeams(organisation string, user string
 	return make([]string, 0), nil
 }
 
-func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) error {
+func (gitlabService GitLabService) PublishComment(prNumber int, comment string) (int64, error) {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
@@ -167,14 +167,14 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 			print(err.Error())
 		}
 		discussionId = discussion.ID
-		return err
+		return 0, err
 	} else {
 		_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 		if err != nil {
 			log.Printf("Failed to publish a comment. %v\n", err)
 			print(err.Error())
 		}
-		return err
+		return 0, err
 	}
 }
 
