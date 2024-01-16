@@ -558,6 +558,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting digger config")
 	}
 
+	commentReporter, err := utils.InitCommentReporter(ghService, issueNumber, ":robot: Digger starting")
+	if err != nil {
+		log.Printf("Error initializing comment reporter: %v", err)
+		return fmt.Errorf("error initializing comment reporter")
+	}
+
 	prBranchName, err := ghService.GetBranchName(issueNumber)
 	if err != nil {
 		log.Printf("GetBranchName error: %v", err)
@@ -584,13 +590,13 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 	log.Printf("GitHub IssueComment event converted to Jobs successfully\n")
 
-	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
+	err = utils.ReportInitialJobsStatus(commentReporter, jobs)
 	if err != nil {
-		log.Printf("error setting status for PR: %v", err)
-		fmt.Errorf("error setting status for PR: %v", err)
+		log.Printf("Failed to comment initial status for jobs: %v", err)
+		return fmt.Errorf("failed to comment initial status for jobs")
 	}
 
-	err = utils.AddInitialCommentJobs(ghService, issueNumber, jobs)
+	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		fmt.Errorf("error setting status for PR: %v", err)
