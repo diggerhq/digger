@@ -14,6 +14,7 @@ import (
 	"log"
 	net "net/http"
 	"os"
+	"strconv"
 )
 
 func createTempDir() string {
@@ -140,7 +141,7 @@ func TriggerGithubWorkflow(client *github.Client, repoOwner string, repoName str
 	log.Printf("TriggerGithubWorkflow: repoOwner: %v, repoName: %v, commentId: %v", repoOwner, repoName, commentId)
 	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
 		Ref:    job.Batch.BranchName,
-		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId, "comment_id": string(commentId)},
+		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId, "comment_id": strconv.FormatInt(commentId, 10)},
 	})
 	return err
 }
