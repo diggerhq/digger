@@ -681,7 +681,7 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 		log.Printf("jobString: %v \n", jobString)
 
 		// TODO: make workflow file name configurable
-		err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, err, job, jobString, *batch.CommentId)
+		err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, job, jobString, *batch.CommentId)
 		if err != nil {
 			log.Printf("failed to trigger github workflow, %v\n", err)
 			return fmt.Errorf("failed to trigger github workflow, %v\n", err)
