@@ -429,7 +429,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error converting event to jobsForImpactedProjects")
 	}
 
-	err = setPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		fmt.Errorf("error setting status for PR: %v", err)
@@ -544,24 +544,6 @@ func getBatchType(jobs []orchestrator.Job) models.DiggerBatchType {
 	}
 }
 
-func setPRStatusForJobs(prService *dg_github.GithubService, prNumber int, jobs []orchestrator.Job) error {
-	for _, job := range jobs {
-		for _, command := range job.Commands {
-			var err error
-			switch command {
-			case "digger plan":
-				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/plan")
-			case "digger apply":
-				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/apply")
-			}
-			if err != nil {
-				log.Printf("Erorr setting status: %v", err)
-				return fmt.Errorf("Error setting pr status: %v", err)
-			}
-		}
-	}
-	return nil
-}
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
@@ -602,7 +584,13 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 	log.Printf("GitHub IssueComment event converted to Jobs successfully\n")
 
-	err = setPRStatusForJobs(ghService, issueNumber, jobs)
+	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
+	if err != nil {
+		log.Printf("error setting status for PR: %v", err)
+		fmt.Errorf("error setting status for PR: %v", err)
+	}
+
+	err = utils.AddInitialCommentJobs(ghService, issueNumber, jobs)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		fmt.Errorf("error setting status for PR: %v", err)
