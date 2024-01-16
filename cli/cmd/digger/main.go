@@ -100,6 +100,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		type Inputs struct {
 			JobString string `json:"job"`
 			Id        string `json:"id"`
+			CommentId string `json:"comment_id"`
 		}
 
 		var inputs Inputs
@@ -115,6 +116,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
+
 		repoName := strings.ReplaceAll(ghRepository, "/", "-")
 
 		var job orchestrator.JobJson
@@ -139,6 +141,10 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			ReportStrategy:    reportingStrategy,
 			IsSupportMarkdown: true,
 		}
+
+		// TOD Remove
+		log.Printf("Received commentID: %v", inputs.CommentId)
+		githubPrService.EditComment(*job.PullRequestNumber, inputs.CommentId, ":x: Edited by cli :x:")
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
