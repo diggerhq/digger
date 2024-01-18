@@ -377,11 +377,6 @@ func SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
 	}
 
-	type BatchResponse struct {
-		Status      string
-		JobPaylaods []models.DiggerJobSummary
-	}
-
 	// return batch summary to client
 	res, err := batch.MapToJsonStruct()
 	if err != nil {
