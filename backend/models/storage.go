@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dchest/uniuri"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
+	scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -568,7 +569,7 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType DiggerBatchType, commentId *int64) (*DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerBatchType, commentId *int64) (*DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &DiggerBatch{
 		ID:                   uid,
@@ -578,7 +579,7 @@ func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner stri
 		RepoFullName:         repoFullname,
 		PrNumber:             PRNumber,
 		CommentId:            commentId,
-		Status:               BatchJobCreated,
+		Status:               scheduler.BatchJobCreated,
 		BranchName:           branchName,
 		DiggerConfig:         diggerConfig,
 		BatchType:            batchType,
@@ -593,7 +594,7 @@ func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner stri
 }
 
 func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
-	if batch.Status == BatchJobInvalidated || batch.Status == BatchJobFailed || batch.Status == BatchJobSucceeded {
+	if batch.Status == scheduler.BatchJobInvalidated || batch.Status == scheduler.BatchJobFailed || batch.Status == scheduler.BatchJobSucceeded {
 		return nil
 	}
 	batchId := batch.ID
@@ -608,12 +609,12 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 
 	allJobsSucceeded := true
 	for _, job := range diggerJobs {
-		if job.Status != DiggerJobSucceeded {
+		if job.Status != scheduler.DiggerJobSucceeded {
 			allJobsSucceeded = false
 		}
 	}
 	if allJobsSucceeded == true {
-		batch.Status = BatchJobSucceeded
+		batch.Status = scheduler.BatchJobSucceeded
 	}
 	return nil
 
@@ -625,7 +626,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*D
 	}
 	jobId := uniuri.New()
 	batchIdStr := batchId.String()
-	job := &DiggerJob{DiggerJobId: jobId, Status: DiggerJobCreated,
+	job := &DiggerJob{DiggerJobId: jobId, Status: scheduler.DiggerJobCreated,
 		BatchID: &batchIdStr, SerializedJob: serializedJob}
 	result := db.GormDB.Save(job)
 	if result.Error != nil {
@@ -697,9 +698,9 @@ func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob,
 
 	var where *gorm.DB
 	if batchId != nil {
-		where = joins.Where("digger_jobs.status = ? AND digger_job_parent_links.id IS NULL AND digger_jobs.batch_id = ?", DiggerJobCreated, *batchId)
+		where = joins.Where("digger_jobs.status = ? AND digger_job_parent_links.id IS NULL AND digger_jobs.batch_id = ?", scheduler.DiggerJobCreated, *batchId)
 	} else {
-		where = joins.Where("digger_jobs.status = ? AND digger_job_parent_links.id IS NULL", DiggerJobCreated)
+		where = joins.Where("digger_jobs.status = ? AND digger_job_parent_links.id IS NULL", scheduler.DiggerJobCreated)
 	}
 
 	result := where.Find(&jobs)

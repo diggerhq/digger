@@ -127,7 +127,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
-		err, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
+		_, err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
 
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
@@ -155,7 +155,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
-		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, inputs.Id, true, currentDir)
+		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, inputs.Id, true, commentId64, currentDir)
 		if err != nil {
 			reportingError, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
@@ -322,7 +322,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, "", false, currentDir)
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -422,7 +422,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		ReportStrategy: reportingStrategy,
 	}
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, backendApi, "", false, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 
 	if err != nil {
 		log.Printf("failed to execute command, %v", err)
@@ -510,7 +510,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 		ReportStrategy: reportingStrategy,
 	}
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, backendApi, "", false, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -756,7 +756,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, backendApi, "", false, currentDir)
+			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 			if err != nil {
 				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}

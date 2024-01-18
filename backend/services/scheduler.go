@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/google/go-github/v55/github"
 	"github.com/google/uuid"
 	"log"
@@ -29,7 +30,7 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 				return err
 			}
 
-			if parentJob.Status != models.DiggerJobSucceeded {
+			if parentJob.Status != orchestrator_scheduler.DiggerJobSucceeded {
 				allParentJobsAreComplete = false
 				break
 			}
