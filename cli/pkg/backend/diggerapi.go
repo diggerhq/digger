@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
+	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"log"
 	"net/http"
 	"net/url"
@@ -23,7 +23,7 @@ func (n NoopApi) ReportProjectRun(namespace string, projectName string, startedA
 	return nil
 }
 
-func (n NoopApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time, summary *core_backend.JobSummary) error {
+func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform.PlanSummary) error {
 	return nil
 }
 
@@ -115,18 +115,17 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	return nil
 }
 
-func (d DiggerApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time, summary *core_backend.JobSummary) error {
+func (d DiggerApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time, planSummary *terraform.PlanSummary) error {
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
 		log.Fatalf("Not able to parse digger cloud url: %v", err)
 	}
 
 	u.Path = filepath.Join(u.Path, "repos", namespace, "projects", projectName, "jobs", jobId, "set-status")
-
 	request := map[string]interface{}{
 		"status":      status,
 		"timestamp":   timestamp,
-		"job_summary": summary.ToJson(),
+		"job_summary": planSummary.ToJson(),
 	}
 
 	jsonData, err := json.Marshal(request)
