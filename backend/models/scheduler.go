@@ -82,6 +82,7 @@ func (j *DiggerJob) MapToJsonStruct() interface{} {
 		return orchestrator_scheduler.SerializedJob{
 			DiggerJobId:      j.DiggerJobId,
 			Status:           j.Status,
+			JobString:        j.SerializedJob,
 			ProjectName:      job.ProjectName,
 			ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
 			ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
