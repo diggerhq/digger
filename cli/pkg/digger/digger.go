@@ -126,7 +126,7 @@ func RunJobs(
 		}
 	}
 
-	if allAppliesSuccess == true && reportFinalStatusToBackend == true {
+	if reportFinalStatusToBackend == true {
 		repoNameForBackendReporting := strings.ReplaceAll(jobs[0].Namespace, "/", "-")
 		projectNameForBackendReporting := jobs[0].ProjectName
 		planSummary := exectorResults[0].PlanResult.PlanSummary
