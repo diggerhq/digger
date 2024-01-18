@@ -2,36 +2,10 @@ package models
 
 import (
 	"fmt"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"time"
-)
-
-type DiggerBatchStatus int8
-
-const (
-	BatchJobCreated     DiggerBatchStatus = 1
-	BatchJobStarted     DiggerBatchStatus = 2
-	BatchJobFailed      DiggerBatchStatus = 3
-	BatchJobSucceeded   DiggerBatchStatus = 4
-	BatchJobInvalidated DiggerBatchStatus = 5
-)
-
-type DiggerBatchType string
-
-const (
-	BatchTypePlan  DiggerBatchType = "plan"
-	BatchTypeApply DiggerBatchType = "apply"
-)
-
-type DiggerJobStatus int8
-
-const (
-	DiggerJobCreated   DiggerJobStatus = 1
-	DiggerJobTriggered DiggerJobStatus = 2
-	DiggerJobFailed    DiggerJobStatus = 3
-	DiggerJobStarted   DiggerJobStatus = 4
-	DiggerJobSucceeded DiggerJobStatus = 5
 )
 
 type DiggerJobParentLink struct {
@@ -90,46 +64,25 @@ type GithubDiggerJobLink struct {
 	Status              DiggerJobLinkStatus
 }
 
-type SerializedJob struct {
-	DiggerJobId      string
-	Status           DiggerJobStatus
-	ProjectName      string
-	ResourcesCreated uint
-	ResourcesDeleted uint
-	resourcesUpdated uint
-}
-
-type SerializedBatch struct {
-	ID           string
-	PrNumber     int
-	Status       DiggerBatchStatus
-	BranchName   string
-	RepoFullName string
-	RepoOwner    string
-	RepoName     string
-	BatchType    DiggerBatchType
-	Jobs         []SerializedJob
-}
-
 func (j *DiggerJob) MapToJsonStruct() interface{} {
 	if j.DiggerJobSummary == nil {
-		return SerializedJob{
+		return orchestrator_scheduler.SerializedJob{
 			DiggerJobId: j.DiggerJobId,
 			Status:      j.Status,
 		}
 	} else {
-		return SerializedJob{
+		return orchestrator_scheduler.SerializedJob{
 			DiggerJobId:      j.DiggerJobId,
 			Status:           j.Status,
 			ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
-			resourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
+			ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
 			ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,
 		}
 	}
 }
 func (b *DiggerBatch) MapToJsonStruct() (interface{}, error) {
 
-	res := SerializedBatch{
+	res := orchestrator_scheduler.SerializedBatch{
 		ID:           b.ID.String(),
 		PrNumber:     b.PrNumber,
 		Status:       b.Status,
@@ -140,13 +93,13 @@ func (b *DiggerBatch) MapToJsonStruct() (interface{}, error) {
 		BatchType:    b.BatchType,
 	}
 
-	serializedJobs := make([]SerializedJob, 0)
+	serializedJobs := make([]orchestrator_scheduler.SerializedJob, 0)
 	jobs, err := DB.GetDiggerJobsForBatch(b.ID)
 	if err != nil {
 		return nil, fmt.Errorf("Could not unmarshall digger batch: %v", err)
 	}
 	for _, job := range jobs {
-		serializedJobs = append(serializedJobs, job.MapToJsonStruct().(SerializedJob))
+		serializedJobs = append(serializedJobs, job.MapToJsonStruct().(orchestrator_scheduler.SerializedJob))
 	}
 	res.Jobs = serializedJobs
 	return res, nil

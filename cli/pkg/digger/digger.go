@@ -75,6 +75,7 @@ func RunJobs(
 	backendApi backend.Api,
 	batchId string,
 	reportFinalStatusToBackend bool,
+	prCommentId int64,
 	workingDir string,
 ) (bool, bool, error) {
 	runStartedAt := time.Now()
@@ -130,11 +131,22 @@ func RunJobs(
 		repoNameForBackendReporting := strings.ReplaceAll(jobs[0].Namespace, "/", "-")
 		projectNameForBackendReporting := jobs[0].ProjectName
 		planSummary := exectorResults[0].PlanResult.PlanSummary
-		err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary)
+		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
 		}
+
+		prNumber := *jobs[0].PullRequestNumber
+		message := ":white_circle: :arrow_right: Jobs status:\n\n"
+		for _, job := range batchResult.Jobs {
+			message = message + fmt.Sprintf(""+
+				"<!-- PROJECTHOLDER %v -->\n"+
+				":airplane: %v %v [Resources %v created, %v updated, %v delted]\n"+
+				"<!-- PROJECTHOLDEREND %v -->\n"+
+				"", job.ProjectName, job.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
+		}
+		prService.EditComment(prNumber, prCommentId, message)
 	}
 
 	atLeastOneApply := len(appliesPerProject) > 0
