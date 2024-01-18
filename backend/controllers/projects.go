@@ -389,6 +389,8 @@ func SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
 
 	}
+
+	log.Printf("!!!Batch to json struct: %v", res)
 	c.JSON(http.StatusOK, res)
 }
 

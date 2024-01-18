@@ -1,10 +1,13 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"log"
 	"time"
 )
 
@@ -71,9 +74,15 @@ func (j *DiggerJob) MapToJsonStruct() interface{} {
 			Status:      j.Status,
 		}
 	} else {
+		var job orchestrator.JobJson
+		err := json.Unmarshal(j.SerializedJob, &job)
+		if err != nil {
+			log.Printf("Failed to convert unmarshall Serialized job")
+		}
 		return orchestrator_scheduler.SerializedJob{
 			DiggerJobId:      j.DiggerJobId,
 			Status:           j.Status,
+			ProjectName:      job.ProjectName,
 			ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
 			ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
 			ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,
