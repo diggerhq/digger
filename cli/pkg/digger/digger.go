@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/goccy/go-json"
 	"log"
 	"os"
 	"path"
@@ -141,11 +142,22 @@ func RunJobs(
 		prNumber := *jobs[0].PullRequestNumber
 		message := ":white_circle: :arrow_right: Jobs status:\n\n"
 		for _, job := range batchResult.Jobs {
+
+			var jobjson orchestrator.JobJson
+			err = json.Unmarshal(job.JobString, &jobjson)
+
+			fmt.Printf("!!! jobjson %v", jobjson)
+			spew.Dump(jobjson)
+
+			if err != nil {
+				log.Printf("Failed to convert unmarshall Serialized job")
+			}
+
 			message = message + fmt.Sprintf(""+
 				"<!-- PROJECTHOLDER %v -->\n"+
 				":airplane: %v %v [Resources %v created, %v updated, %v deleted]\n"+
 				"<!-- PROJECTHOLDEREND %v -->\n"+
-				"", job.ProjectName, job.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
+				"", job.ProjectName, jobjson.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
 		}
 
 		fmt.Printf("!!!! interface")
