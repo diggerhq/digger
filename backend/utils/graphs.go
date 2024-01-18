@@ -7,13 +7,14 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/orchestrator"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/dominikbraun/graph"
 	"github.com/google/uuid"
 	"log"
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfig string, batchType models.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfig string, batchType orchestrator_scheduler.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	result := make(map[string]*models.DiggerJob)
 
 	log.Printf("Number of Jobs: %v\n", len(jobsMap))

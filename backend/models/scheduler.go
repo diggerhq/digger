@@ -18,20 +18,20 @@ type DiggerBatch struct {
 	ID                   uuid.UUID `gorm:"primary_key"`
 	PrNumber             int
 	CommentId            *int64
-	Status               DiggerBatchStatus
+	Status               orchestrator_scheduler.DiggerBatchStatus
 	BranchName           string
 	DiggerConfig         string
 	GithubInstallationId int64
 	RepoFullName         string
 	RepoOwner            string
 	RepoName             string
-	BatchType            DiggerBatchType
+	BatchType            orchestrator_scheduler.DiggerBatchType
 }
 
 type DiggerJob struct {
 	gorm.Model
 	DiggerJobId        string `gorm:"size:50,index:idx_digger_job_id"`
-	Status             DiggerJobStatus
+	Status             orchestrator_scheduler.DiggerJobStatus
 	Batch              *DiggerBatch
 	BatchID            *string `gorm:"index:idx_digger_job_id"`
 	DiggerJobSummary   *DiggerJobSummary
