@@ -677,10 +677,10 @@ func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
 
 func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
-	joins := db.GormDB.Joins("LEFT JOIN digger_job_parent_links ON digger_jobs.digger_job_id = digger_job_parent_links.digger_job_id")
+	joins := db.GormDB.Joins("Batch").Joins("DiggerJobSummary").Joins("LEFT JOIN digger_job_parent_links ON digger_jobs.digger_job_id = digger_job_parent_links.digger_job_id")
 
 	var where *gorm.DB
-	where = joins.Preload("Batch").Preload("DiggerJobSummary").Where("digger_jobs.batch_id = ?", batchId)
+	where = joins.Where("digger_jobs.batch_id = ?", batchId)
 
 	result := where.Find(&jobs)
 	if result.Error != nil {
