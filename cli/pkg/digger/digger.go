@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"os"
 	"path"
@@ -142,10 +143,14 @@ func RunJobs(
 		for _, job := range batchResult.Jobs {
 			message = message + fmt.Sprintf(""+
 				"<!-- PROJECTHOLDER %v -->\n"+
-				":airplane: %v %v [Resources %v created, %v updated, %v delted]\n"+
+				":airplane: %v %v [Resources %v created, %v updated, %v deleted]\n"+
 				"<!-- PROJECTHOLDEREND %v -->\n"+
 				"", job.ProjectName, job.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
 		}
+
+		fmt.Printf("!!!! interface")
+		spew.Dump(batchResult)
+
 		prService.EditComment(prNumber, prCommentId, message)
 	}
 
