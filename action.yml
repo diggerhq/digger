@@ -318,7 +318,7 @@ runs:
       uses: actions/upload-artifact@v4
       with:
           name: ${{ steps.artifact.outputs.artifact }}
-          path: '${{ env.GITHUB_WORKSPACE }}/**/*.tfplan'
+          path: '${{ github.workspace }}/**/*.tfplan'
           retention-days: 14
       if: ${{ inputs.upload-plan-destination == 'github' }}
 
