@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/google/uuid"
 	"log"
 	"math/rand"
@@ -552,14 +553,14 @@ func GetRepoByInstllationId(installationId int64, repoOwner string, repoName str
 	return repo, nil
 }
 
-func getBatchType(jobs []orchestrator.Job) models.DiggerBatchType {
+func getBatchType(jobs []orchestrator.Job) orchestrator_scheduler.DiggerBatchType {
 	allJobsContainApply := lo.EveryBy(jobs, func(job orchestrator.Job) bool {
 		return lo.Contains(job.Commands, "digger apply")
 	})
 	if allJobsContainApply == true {
-		return models.BatchTypeApply
+		return orchestrator_scheduler.BatchTypeApply
 	} else {
-		return models.BatchTypePlan
+		return orchestrator_scheduler.BatchTypePlan
 	}
 }
 
@@ -691,7 +692,7 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 				return fmt.Errorf("failed to set pr status, %v\n", err)
 			}
 
-			job.Status = models.DiggerJobTriggered
+			job.Status = orchestrator_scheduler.DiggerJobTriggered
 			err := models.DB.UpdateDiggerJob(&job)
 			if err != nil {
 				log.Printf("failed to trigger github workflow, %v\n", err)
