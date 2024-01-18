@@ -10,6 +10,16 @@ You can however stil use the most basic features of Digger as a standalone actio
 ```
 no-backend: true
 ```
+You'd also need to add `pull_request` and `issue_comment` workflow triggers:
+```
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, synchronize ]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+```
 
 # Limitations
 
