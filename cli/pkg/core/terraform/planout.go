@@ -37,7 +37,6 @@ func (p *PlanSummary) ToJson() map[string]interface{} {
 	}
 }
 func parseTerraformPlanOutput(terraformJson string) (*TerraformPlan, error) {
-
 	var plan TerraformPlan
 	if err := json.Unmarshal([]byte(terraformJson), &plan); err != nil {
 		return nil, fmt.Errorf("Unable to parse the plan file: %v", err)
@@ -61,7 +60,7 @@ func GetPlanSummary(planJson string) (bool, *PlanSummary, error) {
 
 	planSummary := PlanSummary{}
 	for _, resourceChange := range tfplan.ResourceChanges {
-		switch resourceChange.ChangeType {
+		switch resourceChange.Change.Actions[0] {
 		case "create":
 			planSummary.ResourcesCreated++
 		case "delete":
