@@ -127,7 +127,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
-		err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
+		err, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
 
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
@@ -146,20 +146,18 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		log.Printf("Received commentID: %v", inputs.CommentId)
 		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 		if err != nil {
-			reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			reportingError, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %s", reportingError)
 			}
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 
-		githubPrService.EditComment(*job.PullRequestNumber, commentId64, ":x: Edited by cli :x:")
-
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, inputs.Id, true, currentDir)
 		if err != nil {
-			reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			reportingError, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %s", reportingError)
 			}
