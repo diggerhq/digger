@@ -6,7 +6,7 @@ replace github.com/diggerhq/digger/libs => ../libs
 
 require (
 	cloud.google.com/go/storage v1.36.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.0
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.1.0
 	github.com/aws/aws-sdk-go v1.49.23
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
