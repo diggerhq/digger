@@ -315,10 +315,10 @@ runs:
             echo "artifact=plans-${{ github.event.number }}" >> $GITHUB_OUTPUT
           fi
     - name: upload plan
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
           name: ${{ steps.artifact.outputs.artifact }}
-          path: '$GITHUB_WORKSPACE/**/*.tfplan'
+          path: '${{ env.GITHUB_WORKSPACE }}/**/*.tfplan'
           retention-days: 14
       if: ${{ inputs.upload-plan-destination == 'github' }}
 
