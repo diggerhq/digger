@@ -1,0 +1,31 @@
+---
+title: "Auth methods"
+---
+
+Digger Community Edition supports 3 auth methods:
+- JWT (via Frontegg)
+- Basic HTTP
+- No auth
+
+# JWT auth
+Auth via JWT token, same as used in Digger Cloud. As of Jan 2024 the only supported JWT auth provider is [Frontegg](https://docs.frontegg.com/docs/home-page). This is purely for historical reasons; please consider contributing by submitting a PR to address [this issue](https://github.com/diggerhq/digger/issues/1074).
+
+To configure JWT auth via Frontegg, set the following environment variables for Digger orchestrator backend:
+
+- `JWT_AUTH=true`
+- `AUTH_SECRET=<your Frontegg secret>`
+- `FRONTEGG_CLIENT_ID=<your Frontegg client ID>`
+
+# Basic HTTP auth
+Handy for quick testing. Using basic auth in production scenarios is not recommended; consider using no-op auth behind an auth gateway instead.
+
+To configure basic auth, set the following environment variables for Digger orchestrator backend:
+
+- `HTTP_BASIC_AUTH=true`
+
+# No-op auth
+Handy for deploying Digger service behind a gateway that handles auth.
+
+To configure no-op auth, set the following environment variables for Digger orchestrator backend:
+
+- `NOOP_AUTH=true`
