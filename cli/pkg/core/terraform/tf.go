@@ -32,10 +32,12 @@ func (tf Terraform) Init(params []string, envs map[string]string) (string, strin
 
 	// switch to workspace for next step
 	// TODO: make this an individual and isolated step
-	werr := tf.switchToWorkspace(envs)
-	if werr != nil {
-		log.Printf("Fatal: Error terraform switch to workspace %v", err)
-		return "", "", werr
+	if tf.Workspace != "default" {
+		werr := tf.switchToWorkspace(envs)
+		if werr != nil {
+			log.Printf("Fatal: Error terraform switch to workspace %v", err)
+			return "", "", werr
+		}
 	}
 
 	return stdout, stderr, err
