@@ -15,7 +15,7 @@ type TerraformExecutor interface {
 	Init([]string, map[string]string) (string, string, error)
 	Apply([]string, *string, map[string]string) (string, string, error)
 	Destroy([]string, map[string]string) (string, string, error)
-	Plan([]string, map[string]string) (bool, string, string, error)
+	Plan([]string, map[string]string) (string, string, error)
 	Show([]string, map[string]string) (string, string, error)
 }
 
@@ -134,13 +134,13 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 	return list
 }
 
-func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (tf Terraform) Plan(params []string, envs map[string]string) (string, string, error) {
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand(true, "plan", envs, params...)
 	if err != nil && statusCode != 2 {
-		return false, "", "", err
+		return "", "", err
 	}
-	return statusCode == 2, stdout, stderr, nil
+	return stdout, stderr, nil
 }
 
 func (tf Terraform) Show(params []string, envs map[string]string) (string, string, error) {

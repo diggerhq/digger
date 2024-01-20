@@ -155,7 +155,7 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 		if step.Action == "plan" {
 			planArgs := []string{"-out", d.PlanPathProvider.LocalPlanFilePath(), "-lock-timeout=3m"}
 			planArgs = append(planArgs, step.ExtraArgs...)
-			_, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
+			stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
 			if err != nil {
 				return false, false, "", "", fmt.Errorf("error executing plan: %v", err)
 			}
@@ -166,6 +166,19 @@ func (d DiggerExecutor) Plan() (bool, bool, string, string, error) {
 			if err != nil {
 				return false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
 			}
+			if !isEmptyPlan {
+				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.PlanFileName(), "isNonEmptyPlan.txt", 1)
+				file, err := os.Create(nonEmptyPlanFilepath)
+				if err != nil {
+					return false, false, "", "", fmt.Errorf("unable to create file: %v", err)
+				}
+				defer file.Close()
+			}
+
+			if err != nil {
+				return false, false, "", "", fmt.Errorf("error executing plan: %v", err)
+			}
+
 			if d.PlanStorage != nil {
 				planExists, err := d.PlanStorage.PlanExists(d.PlanPathProvider.StoredPlanFilePath())
 				if err != nil {

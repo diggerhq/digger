@@ -34,9 +34,9 @@ func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (s
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (string, string, error) {
 	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", envs, params...)
-	return true, stdout, stderr, err
+	return stdout, stderr, err
 }
 
 func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (string, string, error) {

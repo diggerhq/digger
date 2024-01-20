@@ -37,30 +37,30 @@ func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) 
 	return stdout, stderr, err
 }
 
-func (tf OpenTofu) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (tf OpenTofu) Plan(params []string, envs map[string]string) (string, string, error) {
 
 	workspaces, _, _, err := tf.runOpentofuCommand(false, "workspace", envs, "list")
 	if err != nil {
-		return false, "", "", err
+		return "", "", err
 	}
 	workspaces = tf.formatOpentofuWorkspaces(workspaces)
 	if strings.Contains(workspaces, tf.Workspace) {
 		_, _, _, err := tf.runOpentofuCommand(true, "workspace", envs, "select", tf.Workspace)
 		if err != nil {
-			return false, "", "", err
+			return "", "", err
 		}
 	} else {
 		_, _, _, err := tf.runOpentofuCommand(true, "workspace", envs, "new", tf.Workspace)
 		if err != nil {
-			return false, "", "", err
+			return "", "", err
 		}
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
 	stdout, stderr, statusCode, err := tf.runOpentofuCommand(true, "plan", envs, params...)
 	if err != nil && statusCode != 2 {
-		return false, "", "", err
+		return "", "", err
 	}
-	return statusCode == 2, stdout, stderr, nil
+	return stdout, stderr, nil
 }
 
 func (tf OpenTofu) Show(params []string, envs map[string]string) (string, string, error) {
