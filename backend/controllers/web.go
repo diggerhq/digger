@@ -293,9 +293,9 @@ func (web *WebController) PolicyDetailsUpdatePage(c *gin.Context) {
 	c.HTML(http.StatusOK, "policy_details.tmpl", pageContext)
 }
 
-func (web *WebController) RedirectToLoginSubdomainIfDiggerDevOtherwiseToProjects(context *gin.Context) {
+func (web *WebController) RedirectToLoginOrProjects(context *gin.Context) {
 	host := context.Request.Host
-	if strings.Contains(host, "digger.dev") || strings.Contains(host, "uselemon.cloud") {
+	if os.Getenv("REDIRECT_TO_LOGIN") == "true" {
 		hostParts := strings.Split(host, ".")
 		if len(hostParts) > 2 {
 			hostParts[0] = "login"
