@@ -56,4 +56,6 @@ steps:
         - run: infracost diff --path=. --compare-to=$RUNNER_TEMP/infracost-base-${PROJECT_NAME}.json | tee -a $DIGGER_OUT
 ```
 
+Then you'll be able to see diff appended as comment like below:
+![](/images/infracost-diff-comment-digger.png)
 
