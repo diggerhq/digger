@@ -158,7 +158,7 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 		return "", nil
 	}
 
-	downloadUrl, _, err := gps.Client.Actions.DownloadArtifact(context.Background(), gps.Owner, gps.RepoName, *latestPlans.ID, true)
+	downloadUrl, _, err := gps.Client.Actions.DownloadArtifact(context.Background(), gps.Owner, gps.RepoName, *latestPlans.ID, 5)
 
 	if err != nil {
 		return "", err
