@@ -13,7 +13,7 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/utils"
 
 	"cloud.google.com/go/storage"
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v58/github"
 )
 
 type PlanStorageGcp struct {
