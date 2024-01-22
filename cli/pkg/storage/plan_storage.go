@@ -181,7 +181,7 @@ func downloadArtifactIntoFile(client *http.Client, artifactUrl *url.URL, outputF
 	}
 
 	githubToken := os.Getenv("GITHUB_TOKEN")
-	req.Header.Set("Authorization", "token "+githubToken)
+	req.Header.Set("Authorization", "Bearer "+githubToken)
 
 	resp, err := client.Do(req)
 	if err != nil {
