@@ -2,6 +2,12 @@ package integration
 
 import (
 	"context"
+	"log"
+	"math/rand"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/diggerhq/digger/cli/pkg/aws"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/cli/pkg/digger"
@@ -12,16 +18,11 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
-	"log"
-	"math/rand"
-	"os"
-	"testing"
-	"time"
 
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v58/github"
 	"github.com/stretchr/testify/assert"
 )
 

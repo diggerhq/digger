@@ -23,6 +23,7 @@ require (
 	github.com/diggerhq/digger/libs v0.3.15
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v55 v55.0.0
+	github.com/google/go-github/v58 v58.0.0
 )
 
 require (
@@ -59,7 +60,6 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-github/v35 v35.3.0 // indirect
-	github.com/google/go-github/v58 v58.0.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/goware/prefixer v0.0.0-20160118172347-395022866408 // indirect
 	github.com/gruntwork-io/go-commons v0.17.1 // indirect
