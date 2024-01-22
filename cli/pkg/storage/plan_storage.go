@@ -185,9 +185,13 @@ func downloadArtifactIntoFile(client *http.Client, artifactUrl *url.URL, outputF
 		return err
 	}
 	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download artifact, status code: %d, url: %v, \n\n%v\n\n", resp.StatusCode, artifactUrl.String(), resp.Body)
+		return fmt.Errorf("failed to download artifact, status code: %d, url: %v, body:\n%v", resp.StatusCode, artifactUrl.String(), body)
 	}
 
 	out, err := os.Create(outputFile)
