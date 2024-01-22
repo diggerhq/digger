@@ -3,13 +3,14 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/utils"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/diggerhq/digger/cli/pkg/utils"
 
 	"cloud.google.com/go/storage"
 	"github.com/google/go-github/v55/github"
@@ -186,7 +187,7 @@ func downloadArtifactIntoFile(client *http.Client, artifactUrl *url.URL, outputF
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download artifact, status code: %d", resp.StatusCode)
+		return fmt.Errorf("failed to download artifact, status code: %d, url: %v, \n\n%v\n\n", resp.StatusCode, artifactUrl.String(), resp.Body)
 	}
 
 	out, err := os.Create(outputFile)
