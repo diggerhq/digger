@@ -11,7 +11,7 @@ import (
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	dggithub "github.com/diggerhq/digger/libs/orchestrator/github"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v58/github"
 
 	"testing"
 
