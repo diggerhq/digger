@@ -165,7 +165,7 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 	}
 	filename := "plans-" + strconv.Itoa(gps.PullRequestNumber) + ".zip"
 
-	err = downloadArtifactIntoFile(gps.Client.Client(), downloadUrl, filename)
+	err = downloadArtifactIntoFile(downloadUrl, filename)
 
 	if err != nil {
 		return "", err
@@ -173,17 +173,13 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 	return filename, nil
 }
 
-func downloadArtifactIntoFile(client *http.Client, artifactUrl *url.URL, outputFile string) error {
+func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
 
-	req, err := http.NewRequest("GET", artifactUrl.String(), nil)
+	resp, err := http.Get(artifactUrl.String())
 	if err != nil {
 		return err
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
 	defer resp.Body.Close()
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -191,7 +187,6 @@ func downloadArtifactIntoFile(client *http.Client, artifactUrl *url.URL, outputF
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("req.Header: %v\n", req.Header)
 		return fmt.Errorf("failed to download artifact, status code: %d, url: %v, body:\n%v", resp.StatusCode, artifactUrl.String(), string(bodyBytes))
 	}
 
