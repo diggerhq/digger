@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
-	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 
@@ -176,30 +175,8 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 
 func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
 
-	resp, err := http.Get(artifactUrl.String())
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("200 body:\n%v", string(bodyBytes))
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download artifact, status code: %d, url: %v, body:\n%v", resp.StatusCode, artifactUrl.String(), string(bodyBytes))
-	}
-
-	out, err := os.Create(outputFile)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, resp.Body)
+	cmd := exec.Command(fmt.Sprintf("wget -O %v %v", outputFile, artifactUrl))
+	_, err := cmd.Output()
 	if err != nil {
 		return err
 	}
