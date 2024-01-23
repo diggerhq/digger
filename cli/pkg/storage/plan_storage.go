@@ -191,6 +191,7 @@ func downloadArtifactIntoFile(client *http.Client, artifactUrl *url.URL, outputF
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("req.Header: %v\n", req.Header)
 		return fmt.Errorf("failed to download artifact, status code: %d, url: %v, body:\n%v", resp.StatusCode, artifactUrl.String(), string(bodyBytes))
 	}
 
