@@ -2,9 +2,10 @@ package services
 
 import (
 	"context"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/google/go-github/v55/github"
 	"log"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/google/go-github/v58/github"
 )
 
 func DiggerJobCompleted(client *github.Client, parentJob *models.DiggerJob, repoOwner string, repoName string, workflowFileName string) error {
