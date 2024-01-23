@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -185,6 +186,8 @@ func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("200 body:\n%v", string(bodyBytes))
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download artifact, status code: %d, url: %v, body:\n%v", resp.StatusCode, artifactUrl.String(), string(bodyBytes))
