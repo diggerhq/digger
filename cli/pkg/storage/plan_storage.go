@@ -175,7 +175,7 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 
 func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
 
-	cmd := exec.Command(fmt.Sprintf("wget -O %v %v", outputFile, artifactUrl))
+	cmd := exec.Command("wget", "-O", outputFile, artifactUrl.String())
 	_, err := cmd.Output()
 	if err != nil {
 		return err
