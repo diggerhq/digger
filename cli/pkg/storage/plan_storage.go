@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -180,6 +181,8 @@ func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("Successfully fetched plan artifact into %v", outputFile)
 
 	return nil
 }
