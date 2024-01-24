@@ -4,13 +4,9 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
-	"github.com/google/go-github/v55/github"
-	"github.com/google/uuid"
-	"context"
-	"log"
-
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/google/go-github/v58/github"
+	"github.com/google/uuid"
+	"log"
 )
 
 func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoOwner string, repoName string, workflowFileName string) error {
