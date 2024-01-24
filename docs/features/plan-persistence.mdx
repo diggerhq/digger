@@ -12,3 +12,18 @@ Or to use a GCP bucket:
 ```
 upload-plan-destination: gcp
 ```
+
+## Plan json file naming convention
+
+The location of plan json output file is:
+
+```
+$GITHUB_WORKSPACE/$GITHUB_ORG-$REPO#DIGGER_PROJECT.tfplan
+```
+
+Note that `$GIHTUB_WORKSPACE` may contain repo name twice; it also may contain the project directory e.g "dev" because the workdir is relative to project. Repo name is then appended for the 3rd time between org name and project name. So the final file path for a repo named "myrepo" with a project named "development" at `/dev` may look like this:
+
+```
+/home/runner/work/myrepo/myrepo/dev/diggerhq-myrepo#development.tfplan
+```
+

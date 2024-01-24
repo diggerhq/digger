@@ -19,7 +19,17 @@ workflows:
         - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
 ```
 
-# $DIGGER_OUT
+## Environment variables
+
+Digger makes the following environment variables available to custom commands:
+- `$DEFAULT_BRANCH`
+- `$DIGGER_OUT`
+- `$PR_BRANCH`
+- `$PROJECT_NAME`
+
+These can be used to achieve workflows like [infracost diff](/howto/using-infracost)
+
+## $DIGGER_OUT
 
 If your custom command writes into a file path defined in the `$DIGGER_OUT` env variable, then its content will be appended to the comment as "additional output":
 

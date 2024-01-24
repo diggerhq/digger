@@ -20,7 +20,9 @@ Use the official setup-infracost action in your workflow file ([README](https://
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 ```
 
-## Digger.yml configuration
+## Breadkdown
+
+Use digger.yml like below to see `infracost breakdown` output: 
 
 ```
 projects:
@@ -37,8 +39,23 @@ workflows:
         - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
 ```
 
-## See cost estimate output
-
 After the pipeline run finishes, you should see Infracost breakdown output appended to digger run report comment as additional output:
 
 ![](/images/custom-command-output-infracost.png)
+
+## Diff
+
+For `infracost diff` we'd need to run Infracost twice: first to generate the breakdown on the main branch, then to generate diff on the PR branch. To help with that, Digger provides additional environment varialbes like `$PROJECT_NAME` and `$PR_BRANCH` (see [custom commands](/howto/custom-commands)). You can then configure your workflow in digger.yml to switch branch to main, generate base breakdown, switch back to PR branch, generate diff and finally show it via `$DIGGER_OUT`, like below:
+
+```
+steps:
+        - init
+        - plan
+        - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
+        - run: git checkout $DEFAULT_BRANCH && infracost breakdown --path . --format=json --out-file=$RUNNER_TEMP/infracost-base-${PROJECT_NAME}.json && git fetch origin $PR_BRANCH && git checkout $PR_BRANCH
+        - run: infracost diff --path=. --compare-to=$RUNNER_TEMP/infracost-base-${PROJECT_NAME}.json | tee -a $DIGGER_OUT
+```
+
+Then you'll be able to see diff appended as comment like below:
+![](/images/infracost-diff-comment-digger.png)
+
