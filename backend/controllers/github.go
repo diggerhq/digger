@@ -24,7 +24,8 @@ import (
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v58/github"
+	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 )

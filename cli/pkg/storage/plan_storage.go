@@ -3,16 +3,18 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/utils"
 	"io"
-	"net/http"
+	"log"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 
+	"github.com/diggerhq/digger/cli/pkg/utils"
+
 	"cloud.google.com/go/storage"
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v58/github"
 )
 
 type PlanStorageGcp struct {
@@ -157,14 +159,14 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 		return "", nil
 	}
 
-	downloadUrl, _, err := gps.Client.Actions.DownloadArtifact(context.Background(), gps.Owner, gps.RepoName, *latestPlans.ID, true)
+	downloadUrl, _, err := gps.Client.Actions.DownloadArtifact(context.Background(), gps.Owner, gps.RepoName, *latestPlans.ID, 0)
 
 	if err != nil {
 		return "", err
 	}
 	filename := "plans-" + strconv.Itoa(gps.PullRequestNumber) + ".zip"
 
-	err = downloadArtifactIntoFile(gps.Client.Client(), downloadUrl, filename)
+	err = downloadArtifactIntoFile(downloadUrl, filename)
 
 	if err != nil {
 		return "", err
@@ -172,33 +174,15 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 	return filename, nil
 }
 
-func downloadArtifactIntoFile(client *http.Client, artifactUrl *url.URL, outputFile string) error {
+func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
 
-	req, err := http.NewRequest("GET", artifactUrl.String(), nil)
+	cmd := exec.Command("wget", "-O", outputFile, artifactUrl.String())
+	_, err := cmd.Output()
 	if err != nil {
 		return err
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download artifact, status code: %d", resp.StatusCode)
-	}
-
-	out, err := os.Create(outputFile)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
+	log.Printf("Successfully fetched plan artifact into %v", outputFile)
 
 	return nil
 }
