@@ -2,19 +2,20 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/google/go-github/v55/github"
-	"github.com/migueleliasweb/go-github-mock/src/mock"
-	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
+	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/google/go-github/v58/github"
+	"github.com/migueleliasweb/go-github-mock/src/mock"
+	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var issueCommentPayload = `{
