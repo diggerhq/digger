@@ -25,7 +25,6 @@ import (
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v58/github"
-	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 )

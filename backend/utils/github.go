@@ -3,10 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"log"
-	net "net/http"
-	"os"
-
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/orchestrator"
@@ -15,7 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/v58/github"
-  "log"
+	"log"
 	net "net/http"
 	"os"
 	"strconv"
