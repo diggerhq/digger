@@ -91,7 +91,6 @@ func (j *DiggerJob) MapToJsonStruct() interface{} {
 	}
 }
 func (b *DiggerBatch) MapToJsonStruct() (interface{}, error) {
-
 	res := orchestrator_scheduler.SerializedBatch{
 		ID:           b.ID.String(),
 		PrNumber:     b.PrNumber,
