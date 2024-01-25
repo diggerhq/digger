@@ -33,7 +33,7 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []orchestrator.Job) error
 	for _, job := range jobs {
 		message = message + fmt.Sprintf(""+
 			"<!-- PROJECTHOLDER %v -->\n"+
-			":clock11: %v Pending\n"+
+			":clock11: **%v**: pending...\n"+
 			"<!-- PROJECTHOLDEREND %v -->\n"+
 			"", job.ProjectName, job.ProjectName, job.ProjectName)
 	}
