@@ -634,7 +634,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*D
 	}
 
 	job := &DiggerJob{DiggerJobID: jobId, Status: scheduler.DiggerJobCreated,
-		BatchID: &batchIdStr, SerializedJob: serializedJob, DiggerJobSummary: *summary}
+		BatchID: &batchIdStr, SerializedJobSpec: serializedJob, DiggerJobSummary: *summary}
 	result = db.GormDB.Save(job)
 	if result.Error != nil {
 		return nil, result.Error

@@ -10,9 +10,9 @@ import (
 )
 
 func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoOwner string, repoName string, workflowFileName string) error {
-	log.Printf("DiggerJobCompleted parentJobId: %v", parentJob.DiggerJobId)
+	log.Printf("DiggerJobCompleted parentJobId: %v", parentJob.DiggerJobID)
 
-	jobLinksForParent, err := models.DB.GetDiggerJobParentLinksByParentId(&parentJob.DiggerJobId)
+	jobLinksForParent, err := models.DB.GetDiggerJobParentLinksByParentId(&parentJob.DiggerJobID)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 }
 
 func TriggerJob(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob, workflowFileName string) {
-	log.Printf("TriggerJob jobId: %v", job.DiggerJobId)
+	log.Printf("TriggerJob jobId: %v", job.DiggerJobID)
 
 	batch, err := models.DB.GetDiggerBatch(batchId)
 	if err != nil {
@@ -58,10 +58,10 @@ func TriggerJob(client *github.Client, repoOwner string, repoName string, batchI
 		return
 	}
 
-	if job.SerializedJob == nil {
+	if job.SerializedJobSpec == nil {
 		log.Printf("GitHub job can't be nil")
 	}
-	jobString := string(job.SerializedJob)
+	jobString := string(job.SerializedJobSpec)
 	log.Printf("jobString: %v \n", jobString)
 
 	err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, *job, jobString, *batch.CommentId)
