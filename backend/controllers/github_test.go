@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"log"
 	"os"
 	"strings"
@@ -731,10 +732,10 @@ func TestJobsTreeWithOneJobsAndTwoProjects(t *testing.T) {
 	graph, err := configuration.CreateProjectDependencyGraph(projects)
 	assert.NoError(t, err)
 
-	_, result, err := utils.ConvertJobsToDiggerJobs(jobs, projectMap, graph, 41584295, "", 2, "diggerhq", "parallel_jobs_demo", "diggerhq/parallel_jobs_demo", "test", models.BatchTypeApply)
+	_, result, err := utils.ConvertJobsToDiggerJobs(jobs, projectMap, graph, 41584295, "", 2, "diggerhq", "parallel_jobs_demo", "diggerhq/parallel_jobs_demo", 123, "test", orchestrator_scheduler.BatchTypeApply)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result))
-	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["dev"].DiggerJobId)
+	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["dev"].DiggerJobID)
 	assert.NoError(t, err)
 	assert.Empty(t, parentLinks)
 	assert.NotContains(t, result, "prod")
@@ -760,17 +761,17 @@ func TestJobsTreeWithTwoDependantJobs(t *testing.T) {
 	projectMap["dev"] = project1
 	projectMap["prod"] = project2
 
-	_, result, err := utils.ConvertJobsToDiggerJobs(jobs, projectMap, graph, 123, "", 2, "", "", "test", "test", models.BatchTypeApply)
+	_, result, err := utils.ConvertJobsToDiggerJobs(jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test", orchestrator_scheduler.BatchTypeApply)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(result))
 
-	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["dev"].DiggerJobId)
+	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["dev"].DiggerJobID)
 	assert.NoError(t, err)
 	assert.Empty(t, parentLinks)
-	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["prod"].DiggerJobId)
+	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["prod"].DiggerJobID)
 	assert.NoError(t, err)
 
-	assert.Equal(t, result["dev"].DiggerJobId, parentLinks[0].ParentDiggerJobId)
+	assert.Equal(t, result["dev"].DiggerJobID, parentLinks[0].ParentDiggerJobId)
 }
 
 func TestJobsTreeWithTwoIndependentJobs(t *testing.T) {
@@ -793,17 +794,17 @@ func TestJobsTreeWithTwoIndependentJobs(t *testing.T) {
 	projectMap["dev"] = project1
 	projectMap["prod"] = project2
 
-	_, result, err := utils.ConvertJobsToDiggerJobs(jobs, projectMap, graph, 123, "", 2, "", "", "test", "test", models.BatchTypeApply)
+	_, result, err := utils.ConvertJobsToDiggerJobs(jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test", orchestrator_scheduler.BatchTypeApply)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(result))
-	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["dev"].DiggerJobId)
+	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["dev"].DiggerJobID)
 	assert.NoError(t, err)
 	assert.Empty(t, parentLinks)
-	assert.NotNil(t, result["dev"].SerializedJob)
-	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["prod"].DiggerJobId)
+	assert.NotNil(t, result["dev"].SerializedJobSpec)
+	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["prod"].DiggerJobID)
 	assert.NoError(t, err)
 	assert.Empty(t, parentLinks)
-	assert.NotNil(t, result["prod"].SerializedJob)
+	assert.NotNil(t, result["prod"].SerializedJobSpec)
 }
 
 func TestJobsTreeWithThreeLevels(t *testing.T) {
@@ -838,32 +839,32 @@ func TestJobsTreeWithThreeLevels(t *testing.T) {
 	projectMap["555"] = project5
 	projectMap["666"] = project6
 
-	_, result, err := utils.ConvertJobsToDiggerJobs(jobs, projectMap, graph, 123, "", 2, "", "", "test", "test", models.BatchTypeApply)
+	_, result, err := utils.ConvertJobsToDiggerJobs(jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test", orchestrator_scheduler.BatchTypeApply)
 	assert.NoError(t, err)
 	assert.Equal(t, 6, len(result))
-	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["111"].DiggerJobId)
+	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["111"].DiggerJobID)
 	assert.NoError(t, err)
 	assert.Empty(t, parentLinks)
 
-	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["222"].DiggerJobId)
+	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["222"].DiggerJobID)
 	assert.NoError(t, err)
-	assert.Equal(t, result["111"].DiggerJobId, parentLinks[0].ParentDiggerJobId)
+	assert.Equal(t, result["111"].DiggerJobID, parentLinks[0].ParentDiggerJobId)
 
-	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["333"].DiggerJobId)
+	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["333"].DiggerJobID)
 	assert.NoError(t, err)
-	assert.Equal(t, result["111"].DiggerJobId, parentLinks[0].ParentDiggerJobId)
+	assert.Equal(t, result["111"].DiggerJobID, parentLinks[0].ParentDiggerJobId)
 
-	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["444"].DiggerJobId)
+	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["444"].DiggerJobID)
 	assert.NoError(t, err)
-	assert.Equal(t, result["222"].DiggerJobId, parentLinks[0].ParentDiggerJobId)
+	assert.Equal(t, result["222"].DiggerJobID, parentLinks[0].ParentDiggerJobId)
 
-	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["555"].DiggerJobId)
+	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["555"].DiggerJobID)
 	assert.NoError(t, err)
-	assert.Equal(t, result["222"].DiggerJobId, parentLinks[0].ParentDiggerJobId)
+	assert.Equal(t, result["222"].DiggerJobID, parentLinks[0].ParentDiggerJobId)
 
-	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["666"].DiggerJobId)
+	parentLinks, err = models.DB.GetDiggerJobParentLinksChildId(&result["666"].DiggerJobID)
 	assert.NoError(t, err)
-	assert.Equal(t, result["333"].DiggerJobId, parentLinks[0].ParentDiggerJobId)
+	assert.Equal(t, result["333"].DiggerJobID, parentLinks[0].ParentDiggerJobId)
 }
 
 func TestGithubInstallationRepoAddedEvent(t *testing.T) {

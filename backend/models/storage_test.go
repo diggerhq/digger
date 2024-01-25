@@ -1,7 +1,6 @@
 package models
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
@@ -29,7 +28,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 
 	// open and create a new database
 	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -146,7 +145,11 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	branchName := "main"
 	batchType := scheduler.BatchTypePlan
 	commentId := int64(123)
-	jobSpec := "\x7b2270726f6a6563744e616d65223a22646576222c2270726f6a656374446972223a22\n646576222c2270726f6a656374576f726b7370616365223a2264656661756c74222c2274657272616772756e74223a66616c73652c22636f6d6d616e6473223a5b2264696767657220706c616e225d2c226170706c795374616765223a7b227374657073223a5b7b22616374696f6e\n223a22696e6974222c22657874726141726773223a5b5d7d2c7b22616374696f6e223a226170706c79222c22657874726141726773223a5b5d7d5d7d2c22706c616e5374616765223a7b227374657073223a5b7b22616374696f6e223a22696e6974222c2265787472614172677322\n3a5b5d7d2c7b22616374696f6e223a22706c616e222c22657874726141726773223a5b5d7d5d7d2c2270756c6c526571756573744e756d626572223a332c226576656e744e616d65223a2270756c6c5f72657175657374222c227265717565737465644279223a225a494a222c226e\n616d657370616365223a2264696767657268712f746573742d73656c66686f7374222c227374617465456e7656617273223a7b7d2c22636f6d6d616e64456e7656617273223a7b7d7d   "
+	jobSpec := "abc"
+
+	resourcesCreated := uint(1)
+	resourcesUpdated := uint(2)
+	resourcesDeleted := uint(3)
 
 	batch, err := DB.CreateDiggerBatch(123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId)
 	assert.NoError(t, err)
@@ -154,16 +157,11 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	job, err := DB.CreateDiggerJob(batch.ID, []byte(jobSpec))
 	assert.NoError(t, err)
 
-	job, err = DB.UpdateDiggerJobSummary(job.DiggerJobID, 1, 2, 3)
+	job, err = DB.UpdateDiggerJobSummary(job.DiggerJobID, resourcesCreated, resourcesUpdated, resourcesDeleted)
 	assert.NoError(t, err)
 
 	jobssss, err := DB.GetDiggerJobsForBatch(batch.ID)
-	println(job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
-	println(jobssss[0].DiggerJobSummary.ResourcesCreated, jobssss[0].DiggerJobSummary.ResourcesUpdated, jobssss[0].DiggerJobSummary.ResourcesDeleted)
-
-	fetchedBatch, err := DB.GetDiggerBatch(&batch.ID)
-	assert.NoError(t, err)
-	jsons, err := fetchedBatch.MapToJsonStruct()
-	assert.NoError(t, err)
-	spew.Dump(jsons)
+	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesCreated, resourcesCreated)
+	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesUpdated, resourcesUpdated)
+	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesDeleted, resourcesDeleted)
 }
