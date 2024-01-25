@@ -15,6 +15,8 @@ import (
 	net "net/http"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func createTempDir() string {
@@ -137,11 +139,37 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 	return nil
 }
 
+func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, job models.DiggerJob) (int64, string, error) {
+	timeFilter := time.Now().Add(-5 * time.Minute)
+	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
+		Created: ">= " + timeFilter.Format(time.RFC3339),
+	})
+	if err != nil {
+		return 0, "#", fmt.Errorf("error listing workflow runs %v", err)
+	}
+
+	for _, workflowRun := range runs.WorkflowRuns {
+		jobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
+		if err != nil {
+			return 0, "#", fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
+		}
+
+		for _, step := range jobs.Jobs[0].Steps {
+			if strings.Contains(*step.Name, job.DiggerJobID) {
+				return *workflowRun.ID, fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID), nil
+			}
+		}
+	}
+
+	return 0, "#", fmt.Errorf("workflow not found")
+}
 func TriggerGithubWorkflow(client *github.Client, repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error {
 	log.Printf("TriggerGithubWorkflow: repoOwner: %v, repoName: %v, commentId: %v", repoOwner, repoName, commentId)
 	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
 		Ref:    job.Batch.BranchName,
 		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobID, "comment_id": strconv.FormatInt(commentId, 10)},
 	})
+
 	return err
+
 }
