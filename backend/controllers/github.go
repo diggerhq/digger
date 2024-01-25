@@ -444,6 +444,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
 		return fmt.Errorf("failed to comment initial status for jobs")
 	}
+	
+	if len(jobsForImpactedProjects) == 0 {
+		return nil
+	}
 
 	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 	if err != nil {
@@ -573,7 +577,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	issueNumber := *payload.Issue.Number
 
 	if *payload.Action != "created" {
-		log.Printf("comment is not created, ignoring")
+		log.Printf("comment is not of type 'created', ignoring")
 		return nil
 	}
 
@@ -610,7 +614,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	jobs, _, err := dg_github.ConvertGithubIssueCommentEventToJobs(payload, impactedProjects, requestedProject, config.Workflows, prBranchName)
-
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))
@@ -623,6 +626,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		log.Printf("Failed to comment initial status for jobs: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
 		return fmt.Errorf("failed to comment initial status for jobs")
+	}
+
+	if len(jobs) == 0 {
+		return nil
 	}
 
 	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
