@@ -572,6 +572,11 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	cloneURL := *payload.Repo.CloneURL
 	issueNumber := *payload.Issue.Number
 
+	if *payload.Action != "created" {
+		log.Printf("comment is not created, ignoring")
+		return nil
+	}
+
 	ghService, config, projectsGraph, branch, err := getDiggerConfig(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
 		log.Printf("getDiggerConfig error: %v", err)
