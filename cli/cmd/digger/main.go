@@ -148,7 +148,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportingError, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
-				log.Printf("Failed to report job status to backend. %s", reportingError)
+				log.Printf("Failed to report job status to backend. %v", reportingError)
 			}
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
@@ -159,7 +159,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			reportingError, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
-				log.Printf("Failed to report job status to backend. %s", reportingError)
+				log.Printf("Failed to report job status to backend. %v", reportingError)
 			}
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
