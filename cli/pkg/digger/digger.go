@@ -153,11 +153,9 @@ func RunJobs(
 				log.Printf("Failed to convert unmarshall Serialized job")
 			}
 
-			message = message + fmt.Sprintf(""+
-				"<!-- PROJECTHOLDER %v -->\n"+
-				"%v **%v** %v: [Resources: %v created, %v updated, %v deleted]\n"+
-				"<!-- PROJECTHOLDEREND %v -->\n"+
-				"", job.ProjectName, job.Status.ToEmoji(), jobjson.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
+			message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
+			message = message + fmt.Sprintf("%v **%v** %v%v\n", job.Status.ToEmoji(), jobjson.ProjectName, job.ResourcesSummaryString(), job.Status.ToString())
+			message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
 		}
 
 		fmt.Printf("!!!! interface")

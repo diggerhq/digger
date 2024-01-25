@@ -1,5 +1,7 @@
 package scheduler
 
+import "fmt"
+
 type DiggerBatchStatus int8
 
 const (
@@ -32,11 +34,11 @@ func (d *DiggerJobStatus) ToString() string {
 	case DiggerJobSucceeded:
 		return "succeeded"
 	case DiggerJobStarted:
-		return "started"
+		return "running"
 	case DiggerJobFailed:
 		return "failed"
 	case DiggerJobTriggered:
-		return "triggered"
+		return "running"
 	case DiggerJobCreated:
 		return "created"
 	default:
@@ -81,4 +83,12 @@ type SerializedBatch struct {
 	RepoName     string            `json:"repo_name"`
 	BatchType    DiggerBatchType   `json:"batch_type"`
 	Jobs         []SerializedJob   `json:"jobs"`
+}
+
+func (s *SerializedJob) ResourcesSummaryString() string {
+	if s.Status == DiggerJobSucceeded {
+		return fmt.Sprintf(" [Resources: %v created, %v updated, %v deleted]", s.ResourcesCreated, s.ResourcesUpdated, s.ResourcesDeleted)
+	} else {
+		return "..."
+	}
 }
