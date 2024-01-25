@@ -164,7 +164,7 @@ func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService
 		}
 
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-		message = message + fmt.Sprintf("%v **<a href='%v' target='blank'>%v</a>** %v%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString())
+		message = message + fmt.Sprintf("%v **<a href='%v' target='blank'>%v</a>** %v%v\n", job.Status.ToEmoji(), *job.WorkflowRunUrl, jobSpec.ProjectName, job.Status.ToString(), job.ResourcesSummaryString())
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
 	}
 
