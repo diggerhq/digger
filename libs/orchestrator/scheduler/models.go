@@ -44,6 +44,23 @@ func (d *DiggerJobStatus) ToString() string {
 	}
 }
 
+func (d *DiggerJobStatus) ToEmoji() string {
+	switch *d {
+	case DiggerJobSucceeded:
+		return ":white_check_mark:"
+	case DiggerJobStarted:
+		return ":arrows_counterclockwise:"
+	case DiggerJobFailed:
+		return ":x:"
+	case DiggerJobTriggered:
+		return ":arrows_counterclockwise:"
+	case DiggerJobCreated:
+		return ":clock11:"
+	default:
+		return ":question:"
+	}
+}
+
 type SerializedJob struct {
 	DiggerJobId      string          `json:"digger_job_id"`
 	Status           DiggerJobStatus `json:"status"`
