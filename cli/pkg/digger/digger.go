@@ -140,7 +140,7 @@ func RunJobs(
 		}
 
 		prNumber := *jobs[0].PullRequestNumber
-		message := ":white_circle: :arrow_right: Jobs status:\n\n"
+		message := ":construction_worker: Jobs status:\n\n"
 		for _, job := range batchResult.Jobs {
 
 			var jobjson orchestrator.JobJson
@@ -155,7 +155,7 @@ func RunJobs(
 
 			message = message + fmt.Sprintf(""+
 				"<!-- PROJECTHOLDER %v -->\n"+
-				":white_check_mark: %v %v [Resources %v created, %v updated, %v deleted]\n"+
+				":white_check_mark: **%v** %v: [Resources: %v created, %v updated, %v deleted]\n"+
 				"<!-- PROJECTHOLDEREND %v -->\n"+
 				"", job.ProjectName, jobjson.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
 		}
