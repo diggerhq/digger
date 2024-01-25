@@ -8,6 +8,7 @@ import (
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -247,9 +248,16 @@ func RunHistoryForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+type JobSummary struct {
+	ResourcesCreated uint `json:"resources_created"`
+	ResourcesUpdated uint `json:"resources_updated"`
+	ResourcesDeleted uint `json:"resources_deleted"`
+}
+
 type SetJobStatusRequest struct {
-	Status    string    `json:"status"`
-	Timestamp time.Time `json:"timestamp"`
+	Status     string      `json:"status"`
+	Timestamp  time.Time   `json:"timestamp"`
+	JobSummary *JobSummary `json:"job_summary"`
 }
 
 func SetJobStatusForProject(c *gin.Context) {
@@ -282,9 +290,9 @@ func SetJobStatusForProject(c *gin.Context) {
 
 	switch request.Status {
 	case "started":
-		job.Status = models.DiggerJobStarted
+		job.Status = orchestrator_scheduler.DiggerJobStarted
 	case "succeeded":
-		job.Status = models.DiggerJobSucceeded
+		job.Status = orchestrator_scheduler.DiggerJobSucceeded
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -325,15 +333,20 @@ func SetJobStatusForProject(c *gin.Context) {
 
 			repoFullNameSplit := strings.Split(jobLink.RepoFullName, "/")
 			client, _, err := ghClientProvider.Get(installations[0].GithubAppId, installationLink.GithubInstallationId)
-			err = services.DiggerJobCompleted(client, job, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName)
+			err = services.DiggerJobCompleted(client, &job.Batch.ID, job, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName)
 			if err != nil {
 				log.Printf("Error triggering job: %v", err)
 				return
 			}
 		}()
 
+		// store digger job summary
+		if request.JobSummary != nil {
+			models.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
+		}
+
 	case "failed":
-		job.Status = models.DiggerJobFailed
+		job.Status = orchestrator_scheduler.DiggerJobFailed
 	default:
 		log.Printf("Unexpected status %v", request.Status)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
@@ -364,6 +377,16 @@ func SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
 	}
 
+	// return batch summary to client
+	res, err := batch.MapToJsonStruct()
+	if err != nil {
+		log.Printf("Error getting batch details: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
+
+	}
+
+	log.Printf("!!!Batch to json struct: %v", res)
+	c.JSON(http.StatusOK, res)
 }
 
 type CreateProjectRunRequest struct {
@@ -450,7 +473,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 
 	}
-	if batch.Status == models.BatchJobSucceeded && batch.BatchType == models.BatchTypeApply && diggerConfig.AutoMerge == true {
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.BatchTypeApply && diggerConfig.AutoMerge == true {
 		ghService, _, err := utils.GetGithubService(
 			gh,
 			batch.GithubInstallationId,
