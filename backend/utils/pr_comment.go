@@ -29,11 +29,11 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []orchestrator.Job) error
 	prService := cr.PrService
 	commentId := cr.CommentId
 	message := "" +
-		":white_circle: :arrow_right: The following projects are impacted\n\n"
+		":construction_worker: The following projects are impacted\n\n"
 	for _, job := range jobs {
 		message = message + fmt.Sprintf(""+
 			"<!-- PROJECTHOLDER %v -->\n"+
-			":airplane: %v Pending\n"+
+			":clock11: %v Pending\n"+
 			"<!-- PROJECTHOLDEREND %v -->\n"+
 			"", job.ProjectName, job.ProjectName, job.ProjectName)
 	}
