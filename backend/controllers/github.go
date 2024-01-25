@@ -418,7 +418,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error getting digger config")
 	}
 
-	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":robot: Digger starting")
+	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
 	if err != nil {
 		log.Printf("Error initializing comment reporter: %v", err)
 		return fmt.Errorf("error initializing comment reporter")
@@ -578,7 +578,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting digger config")
 	}
 
-	commentReporter, err := utils.InitCommentReporter(ghService, issueNumber, ":robot: Digger starting")
+	commentReporter, err := utils.InitCommentReporter(ghService, issueNumber, ":construction_worker: Digger starting....")
 	if err != nil {
 		log.Printf("Error initializing comment reporter: %v", err)
 		return fmt.Errorf("error initializing comment reporter")
