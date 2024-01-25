@@ -122,13 +122,14 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		var job orchestrator.JobJson
 
 		err = json.Unmarshal([]byte(inputs.JobString), &job)
+		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
-		_, err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
-
+		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
+		digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
 		}
@@ -142,11 +143,10 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			IsSupportMarkdown: true,
 		}
 
-		// TOD Remove
-		log.Printf("Received commentID: %v", inputs.CommentId)
-		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 		if err != nil {
-			reportingError, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %v", reportingError)
 			}
@@ -157,7 +157,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, inputs.Id, true, commentId64, currentDir)
 		if err != nil {
-			reportingError, _ := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %v", reportingError)
 			}
