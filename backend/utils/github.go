@@ -149,15 +149,18 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 	}
 
 	for _, workflowRun := range runs.WorkflowRuns {
-		jobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
+		workflowjobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
 		if err != nil {
 			return 0, "#", fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
 		}
 
-		for _, step := range jobs.Jobs[0].Steps {
-			if strings.Contains(*step.Name, job.DiggerJobID) {
-				return *workflowRun.ID, fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID), nil
+		for _, workflowjob := range workflowjobs.Jobs {
+			for _, step := range workflowjob.Steps {
+				if strings.Contains(*step.Name, job.DiggerJobID) {
+					return *workflowRun.ID, fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID), nil
+				}
 			}
+
 		}
 	}
 
