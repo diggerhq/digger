@@ -42,14 +42,14 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 			if err != nil {
 				return err
 			}
-			TriggerJob(client, repoOwner, repoName, batchId, job, workflowFileName)
+			TriggerJob(client, repoOwner, repoName, batchId, job)
 		}
 
 	}
 	return nil
 }
 
-func TriggerJob(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob, workflowFileName string) {
+func TriggerJob(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) {
 	log.Printf("TriggerJob jobId: %v", job.DiggerJobID)
 
 	batch, err := models.DB.GetDiggerBatch(batchId)
@@ -68,5 +68,17 @@ func TriggerJob(client *github.Client, repoOwner string, repoName string, batchI
 	if err != nil {
 		log.Printf("TriggerJob err: %v\n", err)
 		return
+	}
+
+	_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, *job)
+	if err != nil {
+		log.Printf("failed to find workflow url: %v\n", err)
+	}
+
+	job.Status = orchestrator_scheduler.DiggerJobTriggered
+	job.WorkflowRunUrl = &workflowRunUrl
+	err = models.DB.UpdateDiggerJob(job)
+	if err != nil {
+		log.Printf("failed to Update digger job state: %v\n", err)
 	}
 }
