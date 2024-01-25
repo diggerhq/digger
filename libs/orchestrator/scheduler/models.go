@@ -87,7 +87,7 @@ type SerializedBatch struct {
 
 func (s *SerializedJob) ResourcesSummaryString() string {
 	if s.Status == DiggerJobSucceeded {
-		return fmt.Sprintf(" [Resources: %v created, %v updated, %v deleted]", s.ResourcesCreated, s.ResourcesUpdated, s.ResourcesDeleted)
+		return fmt.Sprintf(" [Resources: %v to create, %v to update, %v to delete]", s.ResourcesCreated, s.ResourcesUpdated, s.ResourcesDeleted)
 	} else {
 		return "..."
 	}
