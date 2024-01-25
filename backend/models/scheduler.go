@@ -67,7 +67,7 @@ type GithubDiggerJobLink struct {
 	Status              DiggerJobLinkStatus
 }
 
-func (j *DiggerJob) MapToJsonStruct() interface{} {
+func (j *DiggerJob) MapToJsonStruct() (interface{}, error) {
 	var job orchestrator.JobJson
 	err := json.Unmarshal(j.SerializedJobSpec, &job)
 	if err != nil {
@@ -81,7 +81,7 @@ func (j *DiggerJob) MapToJsonStruct() interface{} {
 		ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
 		ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
 		ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,
-	}
+	}, nil
 }
 func (b *DiggerBatch) MapToJsonStruct() (interface{}, error) {
 	res := orchestrator_scheduler.SerializedBatch{
@@ -98,10 +98,14 @@ func (b *DiggerBatch) MapToJsonStruct() (interface{}, error) {
 	serializedJobs := make([]orchestrator_scheduler.SerializedJob, 0)
 	jobs, err := DB.GetDiggerJobsForBatch(b.ID)
 	if err != nil {
-		return nil, fmt.Errorf("Could not unmarshall digger batch: %v", err)
+		return nil, fmt.Errorf("could not unmarshall digger batch: %v", err)
 	}
 	for _, job := range jobs {
-		serializedJobs = append(serializedJobs, job.MapToJsonStruct().(orchestrator_scheduler.SerializedJob))
+		jobJson, err := job.MapToJsonStruct()
+		if err != nil {
+			return nil, fmt.Errorf("error mapping job to struct (ID: %v); %v", job.ID, err)
+		}
+		serializedJobs = append(serializedJobs, jobJson.(orchestrator_scheduler.SerializedJob))
 	}
 	res.Jobs = serializedJobs
 	return res, nil
