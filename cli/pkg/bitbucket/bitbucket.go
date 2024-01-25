@@ -97,7 +97,7 @@ func (b *BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
 	return files, nil
 }
 
-func (b *BitbucketAPI) PublishComment(prNumber int, comment string) error {
+func (b *BitbucketAPI) PublishComment(prNumber int, comment string) (int64, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	commentBody := map[string]interface{}{
@@ -108,20 +108,20 @@ func (b *BitbucketAPI) PublishComment(prNumber int, comment string) error {
 
 	commentJSON, err := json.Marshal(commentBody)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	resp, err := b.sendRequest("POST", url, commentJSON)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("failed to publish comment. Status code: %d", resp.StatusCode)
+		return 0, fmt.Errorf("failed to publish comment. Status code: %d", resp.StatusCode)
 	}
 
-	return nil
+	return 0, nil
 }
 
 func (b *BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) error {

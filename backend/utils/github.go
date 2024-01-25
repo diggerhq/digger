@@ -3,17 +3,18 @@ package utils
 import (
 	"context"
 	"fmt"
-	"log"
-	net "net/http"
-	"os"
-
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/libs/orchestrator"
 	github2 "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/v58/github"
+	"log"
+	net "net/http"
+	"os"
+	"strconv"
 )
 
 func createTempDir() string {
@@ -115,4 +116,32 @@ func GetGithubService(gh GithubClientProvider, installationId int64, repoFullNam
 	}
 
 	return &ghService, token, nil
+}
+
+func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []orchestrator.Job) error {
+	for _, job := range jobs {
+		for _, command := range job.Commands {
+			var err error
+			switch command {
+			case "digger plan":
+				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/plan")
+			case "digger apply":
+				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/apply")
+			}
+			if err != nil {
+				log.Printf("Erorr setting status: %v", err)
+				return fmt.Errorf("Error setting pr status: %v", err)
+			}
+		}
+	}
+	return nil
+}
+
+func TriggerGithubWorkflow(client *github.Client, repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error {
+	log.Printf("TriggerGithubWorkflow: repoOwner: %v, repoName: %v, commentId: %v", repoOwner, repoName, commentId)
+	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
+		Ref:    job.Batch.BranchName,
+		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobID, "comment_id": strconv.FormatInt(commentId, 10)},
+	})
+	return err
 }
