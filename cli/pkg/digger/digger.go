@@ -155,9 +155,9 @@ func RunJobs(
 
 			message = message + fmt.Sprintf(""+
 				"<!-- PROJECTHOLDER %v -->\n"+
-				":white_check_mark: **%v** %v: [Resources: %v created, %v updated, %v deleted]\n"+
+				"%v **%v** %v: [Resources: %v created, %v updated, %v deleted]\n"+
 				"<!-- PROJECTHOLDEREND %v -->\n"+
-				"", job.ProjectName, jobjson.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
+				"", job.ProjectName, job.Status.ToEmoji(), jobjson.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
 		}
 
 		fmt.Printf("!!!! interface")
