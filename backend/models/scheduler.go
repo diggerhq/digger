@@ -39,7 +39,7 @@ type DiggerJob struct {
 	BatchID            *string `gorm:"index:idx_digger_job_id"`
 	DiggerJobSummary   DiggerJobSummary
 	DiggerJobSummaryID uint
-	SerializedJob      []byte
+	SerializedJobSpec  []byte
 	StatusUpdatedAt    time.Time
 }
 
@@ -69,14 +69,14 @@ type GithubDiggerJobLink struct {
 
 func (j *DiggerJob) MapToJsonStruct() interface{} {
 	var job orchestrator.JobJson
-	err := json.Unmarshal(j.SerializedJob, &job)
+	err := json.Unmarshal(j.SerializedJobSpec, &job)
 	if err != nil {
 		log.Printf("Failed to convert unmarshall Serialized job")
 	}
 	return orchestrator_scheduler.SerializedJob{
 		DiggerJobId:      j.DiggerJobID,
 		Status:           j.Status,
-		JobString:        j.SerializedJob,
+		JobString:        j.SerializedJobSpec,
 		ProjectName:      job.ProjectName,
 		ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
 		ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
