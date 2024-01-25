@@ -71,7 +71,7 @@ func (j *DiggerJob) MapToJsonStruct() interface{} {
 	var job orchestrator.JobJson
 	err := json.Unmarshal(j.SerializedJobSpec, &job)
 	if err != nil {
-		log.Printf("Failed to convert unmarshall Serialized job")
+		log.Printf("Failed to convert unmarshall Serialized job, %v", err)
 	}
 	return orchestrator_scheduler.SerializedJob{
 		DiggerJobId:      j.DiggerJobID,
