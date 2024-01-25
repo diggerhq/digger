@@ -52,7 +52,7 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 				log.Printf("failed to create a job, error: %v", err)
 				return false
 			}
-			_, err = models.DB.CreateDiggerJobLink(parentJob.DiggerJobId, repoFullName)
+			_, err = models.DB.CreateDiggerJobLink(parentJob.DiggerJobID, repoFullName)
 			if err != nil {
 				log.Printf("failed to create a digger job link")
 				return false
@@ -70,12 +70,12 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 					log.Printf("failed to create a job")
 					return false
 				}
-				_, err = models.DB.CreateDiggerJobLink(childJob.DiggerJobId, repoFullName)
+				_, err = models.DB.CreateDiggerJobLink(childJob.DiggerJobID, repoFullName)
 				if err != nil {
 					log.Printf("failed to create a digger job link")
 					return false
 				}
-				err = models.DB.CreateDiggerJobParentLink(parentDiggerJob.DiggerJobId, childJob.DiggerJobId)
+				err = models.DB.CreateDiggerJobParentLink(parentDiggerJob.DiggerJobID, childJob.DiggerJobID)
 				if err != nil {
 					log.Printf("failed to create a digger job parent link")
 					return false

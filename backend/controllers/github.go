@@ -675,10 +675,10 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 	log.Printf("number of diggerJobs:%v\n", len(diggerJobs))
 
 	for _, job := range diggerJobs {
-		if job.SerializedJob == nil {
+		if job.SerializedJobSpec == nil {
 			return fmt.Errorf("GitHub job can't be nil")
 		}
-		jobString := string(job.SerializedJob)
+		jobString := string(job.SerializedJobSpec)
 		log.Printf("jobString: %v \n", jobString)
 
 		// TODO: make workflow file name configurable

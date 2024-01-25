@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/davecgh/go-spew/spew"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
@@ -152,22 +153,16 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	job, err := DB.CreateDiggerJob(batch.ID, []byte{97})
 	assert.NoError(t, err)
 
-	job, err = DB.UpdateDiggerJobSummary(job.DiggerJobId, 1, 2, 3)
+	job, err = DB.UpdateDiggerJobSummary(job.DiggerJobID, 1, 2, 3)
 	assert.NoError(t, err)
-
-	//fetchedBatch, err := DB.GetDiggerBatch(&batch.ID)
-	//assert.NoError(t, err)
-	//jsons, err := fetchedBatch.MapToJsonStruct()
-	//assert.NoError(t, err)
-
-	//jobs := job.MapToJsonStruct()
-	//
-	//println(job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
-	//spew.Dump(jsons)
-	//spew.Dump(jobs)
 
 	jobssss, err := DB.GetDiggerJobsForBatch(batch.ID)
 	println(job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
 	println(jobssss[0].DiggerJobSummary.ResourcesCreated, jobssss[0].DiggerJobSummary.ResourcesUpdated, jobssss[0].DiggerJobSummary.ResourcesDeleted)
 
+	fetchedBatch, err := DB.GetDiggerBatch(&batch.ID)
+	assert.NoError(t, err)
+	jsons, err := fetchedBatch.MapToJsonStruct()
+	assert.NoError(t, err)
+	spew.Dump(jsons)
 }

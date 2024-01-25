@@ -342,7 +342,7 @@ func SetJobStatusForProject(c *gin.Context) {
 
 		// store digger job summary
 		if request.JobSummary != nil {
-			models.DB.UpdateDiggerJobSummary(job.DiggerJobId, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
+			models.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
 		}
 
 	case "failed":
