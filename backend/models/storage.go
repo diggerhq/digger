@@ -626,14 +626,21 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*D
 	}
 	jobId := uniuri.New()
 	batchIdStr := batchId.String()
-	job := &DiggerJob{DiggerJobId: jobId, Status: scheduler.DiggerJobCreated,
-		BatchID: &batchIdStr, SerializedJob: serializedJob}
-	result := db.GormDB.Save(job)
+
+	summary := &DiggerJobSummary{}
+	result := db.GormDB.Save(summary)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	log.Printf("DiggerJob %v, (id: %v) has been created successfully\n", job.DiggerJobId, job.ID)
+	job := &DiggerJob{DiggerJobID: jobId, Status: scheduler.DiggerJobCreated,
+		BatchID: &batchIdStr, SerializedJob: serializedJob, DiggerJobSummary: *summary}
+	result = db.GormDB.Save(job)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	log.Printf("DiggerJob %v, (id: %v) has been created successfully\n", job.DiggerJobID, job.ID)
 	return job, nil
 }
 
@@ -643,21 +650,12 @@ func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated 
 		return nil, fmt.Errorf("Could not get digger job")
 	}
 	var jobSummary *DiggerJobSummary
-	if diggerJob.DiggerJobSummary == nil {
-		jobSummary = &DiggerJobSummary{
-			ResourcesCreated: resourcesCreated,
-			ResourcesUpdated: resourcesUpdated,
-			ResourcesDeleted: resourcesDeleted,
-		}
-		diggerJob.DiggerJobSummary = jobSummary
-	} else {
-		jobSummary = diggerJob.DiggerJobSummary
-		jobSummary.ResourcesCreated = resourcesCreated
-		jobSummary.ResourcesUpdated = resourcesUpdated
-		jobSummary.ResourcesDeleted = resourcesDeleted
-	}
+	jobSummary = &diggerJob.DiggerJobSummary
+	jobSummary.ResourcesCreated = resourcesCreated
+	jobSummary.ResourcesUpdated = resourcesUpdated
+	jobSummary.ResourcesDeleted = resourcesDeleted
 
-	result := db.GormDB.Save(jobSummary)
+	result := db.GormDB.Save(&jobSummary)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -671,7 +669,7 @@ func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
 	if result.Error != nil {
 		return result.Error
 	}
-	log.Printf("DiggerJob %v, (id: %v) has been updated successfully\n", job.DiggerJobId, job.ID)
+	log.Printf("DiggerJob %v, (id: %v) has been updated successfully\n", job.DiggerJobID, job.ID)
 	return nil
 }
 
@@ -679,9 +677,9 @@ func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error
 	jobs := make([]DiggerJob, 0)
 
 	var where *gorm.DB
-	where = db.GormDB.Preload("Batch").Preload("DiggerJobSummary").Where("digger_jobs.batch_id = ?", batchId)
+	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
 
-	result := where.Find(&jobs)
+	result := where.Preload("Batch").Preload("DiggerJobSummary").Find(&jobs)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error

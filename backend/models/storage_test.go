@@ -1,9 +1,11 @@
 package models
 
 import (
+	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"strings"
@@ -25,7 +27,9 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 	}
 
 	// open and create a new database
-	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
+	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -127,4 +131,43 @@ func TestGithubRepoRemoved(t *testing.T) {
 	assert.NotNil(t, i)
 	assert.Equal(t, i.ID, i2.ID)
 	assert.Equal(t, GithubAppInstallDeleted, i.Status)
+}
+
+func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
+	teardownSuite, _, _ := setupSuite(t)
+	defer teardownSuite(t)
+
+	prNumber := 123
+	repoName := "test"
+	repoOwner := "test"
+	repoFullName := "test/test"
+	diggerconfig := ""
+	branchName := "main"
+	batchType := scheduler.BatchTypePlan
+	commentId := int64(123)
+
+	batch, err := DB.CreateDiggerBatch(123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId)
+	assert.NoError(t, err)
+
+	job, err := DB.CreateDiggerJob(batch.ID, []byte{97})
+	assert.NoError(t, err)
+
+	job, err = DB.UpdateDiggerJobSummary(job.DiggerJobId, 1, 2, 3)
+	assert.NoError(t, err)
+
+	//fetchedBatch, err := DB.GetDiggerBatch(&batch.ID)
+	//assert.NoError(t, err)
+	//jsons, err := fetchedBatch.MapToJsonStruct()
+	//assert.NoError(t, err)
+
+	//jobs := job.MapToJsonStruct()
+	//
+	//println(job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
+	//spew.Dump(jsons)
+	//spew.Dump(jobs)
+
+	jobssss, err := DB.GetDiggerJobsForBatch(batch.ID)
+	println(job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
+	println(jobssss[0].DiggerJobSummary.ResourcesCreated, jobssss[0].DiggerJobSummary.ResourcesUpdated, jobssss[0].DiggerJobSummary.ResourcesDeleted)
+
 }

@@ -33,12 +33,12 @@ type DiggerBatch struct {
 
 type DiggerJob struct {
 	gorm.Model
-	DiggerJobId        string `gorm:"size:50,index:idx_digger_job_id"`
+	DiggerJobID        string `gorm:"size:50,index:idx_digger_job_id"`
 	Status             orchestrator_scheduler.DiggerJobStatus
 	Batch              *DiggerBatch
 	BatchID            *string `gorm:"index:idx_digger_job_id"`
-	DiggerJobSummary   *DiggerJobSummary
-	DiggerJobSummaryId *uint `gorm:""`
+	DiggerJobSummary   DiggerJobSummary
+	DiggerJobSummaryID uint
 	SerializedJob      []byte
 	StatusUpdatedAt    time.Time
 }
@@ -68,26 +68,19 @@ type GithubDiggerJobLink struct {
 }
 
 func (j *DiggerJob) MapToJsonStruct() interface{} {
-	if j.DiggerJobSummary == nil {
-		return orchestrator_scheduler.SerializedJob{
-			DiggerJobId: j.DiggerJobId,
-			Status:      j.Status,
-		}
-	} else {
-		var job orchestrator.JobJson
-		err := json.Unmarshal(j.SerializedJob, &job)
-		if err != nil {
-			log.Printf("Failed to convert unmarshall Serialized job")
-		}
-		return orchestrator_scheduler.SerializedJob{
-			DiggerJobId:      j.DiggerJobId,
-			Status:           j.Status,
-			JobString:        j.SerializedJob,
-			ProjectName:      job.ProjectName,
-			ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
-			ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
-			ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,
-		}
+	var job orchestrator.JobJson
+	err := json.Unmarshal(j.SerializedJob, &job)
+	if err != nil {
+		log.Printf("Failed to convert unmarshall Serialized job")
+	}
+	return orchestrator_scheduler.SerializedJob{
+		DiggerJobId:      j.DiggerJobID,
+		Status:           j.Status,
+		JobString:        j.SerializedJob,
+		ProjectName:      job.ProjectName,
+		ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
+		ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
+		ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,
 	}
 }
 func (b *DiggerBatch) MapToJsonStruct() (interface{}, error) {
