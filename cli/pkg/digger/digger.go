@@ -3,7 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/goccy/go-json"
 	"log"
 	"os"
@@ -130,43 +130,46 @@ func RunJobs(
 	}
 
 	if allAppliesSuccess == true && reportFinalStatusToBackend == true {
-		repoNameForBackendReporting := strings.ReplaceAll(jobs[0].Namespace, "/", "-")
-		projectNameForBackendReporting := jobs[0].ProjectName
+		currentJob := jobs[0]
+		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
+		projectNameForBackendReporting := currentJob.ProjectName
 		planSummary := exectorResults[0].PlanResult.PlanSummary
+		prNumber := *currentJob.PullRequestNumber
 		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
 		}
 
-		prNumber := *jobs[0].PullRequestNumber
-		message := ":construction_worker: Jobs status:\n\n"
-		for _, job := range batchResult.Jobs {
-
-			var jobjson orchestrator.JobJson
-			err = json.Unmarshal(job.JobString, &jobjson)
-
-			fmt.Printf("!!! jobjson %v", jobjson)
-			spew.Dump(jobjson)
-
-			if err != nil {
-				log.Printf("Failed to convert unmarshall Serialized job")
-			}
-
-			message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-			message = message + fmt.Sprintf("%v **%v** %v%v\n", job.Status.ToEmoji(), jobjson.ProjectName, job.ResourcesSummaryString(), job.Status.ToString())
-			message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
+		err = UpdateStatusComment(batchResult.Jobs, prNumber, prService, prCommentId)
+		if err != nil {
+			return false, false, err
 		}
-
-		fmt.Printf("!!!! interface")
-		spew.Dump(batchResult)
-
-		prService.EditComment(prNumber, prCommentId, message)
 	}
 
 	atLeastOneApply := len(appliesPerProject) > 0
 
 	return allAppliesSuccess, atLeastOneApply, nil
+}
+
+func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService orchestrator.PullRequestService, prCommentId int64) error {
+
+	message := ":construction_worker: Jobs status:\n\n"
+	for _, job := range jobs {
+
+		var jobSpec orchestrator.JobJson
+		err := json.Unmarshal(job.JobString, &jobSpec)
+		if err != nil {
+			log.Printf("Failed to convert unmarshall Serialized job")
+		}
+
+		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
+		message = message + fmt.Sprintf("%v **%v** %v%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, job.Status.ToString(), job.ResourcesSummaryString())
+		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
+	}
+
+	prService.EditComment(prNumber, prCommentId, message)
+	return nil
 }
 
 func reportPolicyError(projectName string, command string, requestedBy string, reporter core_reporting.Reporter) string {
