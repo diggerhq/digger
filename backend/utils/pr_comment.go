@@ -30,6 +30,8 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []orchestrator.Job) error
 	commentId := cr.CommentId
 	message := ""
 	if len(jobs) == 0 {
+		message = message + ":construction_worker: No projects impacted"
+	} else {
 		message = message + ":construction_worker: The following projects are impacted\n\n"
 		for _, job := range jobs {
 			message = message + fmt.Sprintf(""+
@@ -38,8 +40,6 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []orchestrator.Job) error
 				"<!-- PROJECTHOLDEREND %v -->\n"+
 				"", job.ProjectName, job.ProjectName, job.ProjectName)
 		}
-	} else {
-		message = message + ":construction_worker: No projects impacted"
 	}
 	err := prService.EditComment(prNumber, commentId, message)
 	return err
