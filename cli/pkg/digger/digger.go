@@ -155,7 +155,7 @@ func RunJobs(
 
 			message = message + fmt.Sprintf(""+
 				"<!-- PROJECTHOLDER %v -->\n"+
-				":airplane: %v %v [Resources %v created, %v updated, %v deleted]\n"+
+				":white_check_mark: %v %v [Resources %v created, %v updated, %v deleted]\n"+
 				"<!-- PROJECTHOLDEREND %v -->\n"+
 				"", job.ProjectName, jobjson.ProjectName, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted, job.ProjectName)
 		}
