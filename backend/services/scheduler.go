@@ -70,7 +70,7 @@ func TriggerJob(client *github.Client, repoOwner string, repoName string, batchI
 		return
 	}
 
-	_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, *job)
+	_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, job.DiggerJobID)
 	if err != nil {
 		log.Printf("failed to find workflow url: %v\n", err)
 	}

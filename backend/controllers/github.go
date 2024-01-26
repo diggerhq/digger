@@ -700,7 +700,7 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 			return fmt.Errorf("failed to trigger github workflow, %v\n", err)
 		} else {
 
-			_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, job)
+			_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, job.DiggerJobID)
 			if err != nil {
 				log.Printf("failed to find workflow url: %v\n", err)
 			}
