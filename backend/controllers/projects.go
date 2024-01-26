@@ -294,17 +294,16 @@ func SetJobStatusForProject(c *gin.Context) {
 		client, _, err := utils.GetGithubClient(&utils.DiggerGithubRealClientProvider{}, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
 		if err != nil {
 			log.Printf("Error Creating github client: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error Creating github client"})
-			return
-		}
-		_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, job.Batch.RepoOwner, job.Batch.RepoName, job.DiggerJobID)
-		if err != nil {
-			log.Printf("Error getting workflow ID from job: %v", err)
 		} else {
-			job.WorkflowRunUrl = &workflowRunUrl
-			err = models.DB.UpdateDiggerJob(job)
+			_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, job.Batch.RepoOwner, job.Batch.RepoName, job.DiggerJobID)
 			if err != nil {
-				log.Printf("Error updating digger job: %v", err)
+				log.Printf("Error getting workflow ID from job: %v", err)
+			} else {
+				job.WorkflowRunUrl = &workflowRunUrl
+				err = models.DB.UpdateDiggerJob(job)
+				if err != nil {
+					log.Printf("Error updating digger job: %v", err)
+				}
 			}
 		}
 	case "succeeded":
