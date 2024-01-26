@@ -68,6 +68,7 @@ type SerializedJob struct {
 	Status           DiggerJobStatus `json:"status"`
 	ProjectName      string          `json:"project_name"`
 	JobString        []byte          `json:"job_string"`
+	WorkflowRunUrl   *string         `json:"workflow_run_url"`
 	ResourcesCreated uint            `json:"resources_created"`
 	ResourcesDeleted uint            `json:"resources_deleted"`
 	ResourcesUpdated uint            `json:"resources_updated"`

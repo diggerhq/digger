@@ -40,6 +40,7 @@ type DiggerJob struct {
 	DiggerJobSummary   DiggerJobSummary
 	DiggerJobSummaryID uint
 	SerializedJobSpec  []byte
+	WorkflowRunUrl     *string
 	StatusUpdatedAt    time.Time
 }
 
@@ -78,6 +79,7 @@ func (j *DiggerJob) MapToJsonStruct() (interface{}, error) {
 		Status:           j.Status,
 		JobString:        j.SerializedJobSpec,
 		ProjectName:      job.ProjectName,
+		WorkflowRunUrl:   j.WorkflowRunUrl,
 		ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
 		ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
 		ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,
