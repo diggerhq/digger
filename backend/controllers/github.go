@@ -444,7 +444,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
 		return fmt.Errorf("failed to comment initial status for jobs")
 	}
-	
+
 	if len(jobsForImpactedProjects) == 0 {
 		return nil
 	}
@@ -699,16 +699,17 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 			log.Printf("failed to trigger github workflow, %v\n", err)
 			return fmt.Errorf("failed to trigger github workflow, %v\n", err)
 		} else {
-			if err != nil {
-				log.Printf("failed to set pr status, %v\n", err)
-				return fmt.Errorf("failed to set pr status, %v\n", err)
-			}
 
-			job.Status = orchestrator_scheduler.DiggerJobTriggered
-			err := models.DB.UpdateDiggerJob(&job)
+			_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, job.DiggerJobID)
 			if err != nil {
-				log.Printf("failed to trigger github workflow, %v\n", err)
-				return fmt.Errorf("failed to trigger github workflow, %v\n", err)
+				log.Printf("failed to find workflow url: %v\n", err)
+			}
+			job.Status = orchestrator_scheduler.DiggerJobTriggered
+			job.WorkflowRunUrl = &workflowRunUrl
+			err = models.DB.UpdateDiggerJob(&job)
+			if err != nil {
+				log.Printf("failed to Update digger job state: %v\n", err)
+				return fmt.Errorf("failed to Update digger job state: %v\n", err)
 			}
 		}
 	}
