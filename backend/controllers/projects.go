@@ -291,6 +291,21 @@ func SetJobStatusForProject(c *gin.Context) {
 	switch request.Status {
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
+		client, _, err := utils.GetGithubClient(&utils.DiggerGithubRealClientProvider{}, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
+		if err != nil {
+			log.Printf("Error Creating github client: %v", err)
+		} else {
+			_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, job.Batch.RepoOwner, job.Batch.RepoName, job.DiggerJobID)
+			if err != nil {
+				log.Printf("Error getting workflow ID from job: %v", err)
+			} else {
+				job.WorkflowRunUrl = &workflowRunUrl
+				err = models.DB.UpdateDiggerJob(job)
+				if err != nil {
+					log.Printf("Error updating digger job: %v", err)
+				}
+			}
+		}
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
 		go func() {

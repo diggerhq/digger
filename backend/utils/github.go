@@ -15,6 +15,8 @@ import (
 	net "net/http"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func createTempDir() string {
@@ -90,7 +92,7 @@ func (gh *DiggerGithubClientMockProvider) Get(githubAppId int64, installationId 
 	return ghClient, &token, nil
 }
 
-func GetGithubService(gh GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
+func GetGithubClient(gh GithubClientProvider, installationId int64, repoFullName string) (*github.Client, *string, error) {
 	installation, err := models.DB.GetGithubAppInstallationByIdAndRepo(installationId, repoFullName)
 	if err != nil {
 		log.Printf("Error getting installation: %v", err)
@@ -104,6 +106,10 @@ func GetGithubService(gh GithubClientProvider, installationId int64, repoFullNam
 	}
 
 	ghClient, token, err := gh.Get(installation.GithubAppId, installation.GithubInstallationId)
+	return ghClient, token, err
+}
+func GetGithubService(gh GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
+	ghClient, token, err := GetGithubClient(gh, installationId, repoFullName)
 	if err != nil {
 		log.Printf("Error creating github app client: %v", err)
 		return nil, nil, fmt.Errorf("Error creating github app client: %v", err)
@@ -137,11 +143,41 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 	return nil
 }
 
+func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
+	timeFilter := time.Now().Add(-5 * time.Minute)
+	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
+		Created: ">= " + timeFilter.Format(time.RFC3339),
+	})
+	if err != nil {
+		return 0, "#", fmt.Errorf("error listing workflow runs %v", err)
+	}
+
+	for _, workflowRun := range runs.WorkflowRuns {
+		println(*workflowRun.ID)
+		workflowjobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
+		if err != nil {
+			return 0, "#", fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
+		}
+
+		for _, workflowjob := range workflowjobs.Jobs {
+			for _, step := range workflowjob.Steps {
+				if strings.Contains(*step.Name, diggerJobID) {
+					return *workflowRun.ID, fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID), nil
+				}
+			}
+
+		}
+	}
+	return 0, "#", fmt.Errorf("workflow not found")
+}
+
 func TriggerGithubWorkflow(client *github.Client, repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error {
 	log.Printf("TriggerGithubWorkflow: repoOwner: %v, repoName: %v, commentId: %v", repoOwner, repoName, commentId)
 	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
 		Ref:    job.Batch.BranchName,
 		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobID, "comment_id": strconv.FormatInt(commentId, 10)},
 	})
+
 	return err
+
 }
