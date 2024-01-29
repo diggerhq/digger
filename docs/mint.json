@@ -69,6 +69,7 @@
               "howto/custom-commands",
               "howto/destroy-manual",
               "howto/disable-auto-checkout",
+              "howto/drift-detection",
               "howto/generate-projects",
               "howto/include-exclude-patterns",
               "howto/multiacc-aws",
