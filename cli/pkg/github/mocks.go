@@ -17,7 +17,7 @@ func (t MockCiService) GetApprovals(prNumber int) ([]string, error) {
 func (t MockCiService) GetChangedFiles(prNumber int) ([]string, error) {
 	return nil, nil
 }
-func (t MockCiService) PublishComment(prNumber int, comment string) error {
+func (t MockCiService) PublishComment(prNumber int, comment string) (int64, error) {
 
 	latestId := 0
 
@@ -31,7 +31,7 @@ func (t MockCiService) PublishComment(prNumber int, comment string) error {
 
 	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &orchestrator.Comment{Id: latestId + 1, Body: &comment})
 
-	return nil
+	return int64(latestId), nil
 }
 
 func (t MockCiService) SetStatus(prNumber int, status string, statusContext string) error {
