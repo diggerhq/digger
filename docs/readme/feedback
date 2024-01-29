@@ -1,0 +1,12 @@
+---
+title: "Feedback - tell us what is lacking"
+---
+
+We are always looking at feedback and suggestions from the community. If something is missing, if you have a feature request, or if something isn't working as it is supposed to,
+please tell us. We are always keen on thoughts/feedback.
+
+Please head over to this page on [github](https:github.com/diggerhq/digger/docs/readme/feedback) and raise a PR to add your feedback with the following syntax
+
+{Sl no}.{Name} - [Feedback point](Optionally link corresponding GitHub Issue if it exists}
+
+1. Utpal Nadiger - [terraform file for the initial configuration to setup S3 & Dynamo DB for state management](https://github.com/diggerhq/digger/issues/206)
