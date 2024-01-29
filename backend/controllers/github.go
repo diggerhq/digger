@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/google/uuid"
 	"log"
 	"math/rand"
 	"net/http"
@@ -22,8 +24,7 @@ import (
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
-	"github.com/google/go-github/v55/github"
-	"github.com/google/uuid"
+	"github.com/google/go-github/v58/github"
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 )
@@ -417,21 +418,41 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error getting digger config")
 	}
 
+	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
+	if err != nil {
+		log.Printf("Error initializing comment reporter: %v", err)
+		return fmt.Errorf("error initializing comment reporter")
+	}
+
 	impactedProjects, _, err := dg_github.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error processing event: %v", err))
 		return fmt.Errorf("error processing event")
 	}
 
 	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, config.Workflows)
 	if err != nil {
 		log.Printf("Error converting event to jobsForImpactedProjects: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error converting event to jobsForImpactedProjects: %v", err))
 		return fmt.Errorf("error converting event to jobsForImpactedProjects")
 	}
 
-	err = setPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
+	if err != nil {
+		log.Printf("Failed to comment initial status for jobs: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
+		return fmt.Errorf("failed to comment initial status for jobs")
+	}
+
+	if len(jobsForImpactedProjects) == 0 {
+		return nil
+	}
+
+	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
 		fmt.Errorf("error setting status for PR: %v", err)
 	}
 
@@ -448,18 +469,21 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	repo, err := GetRepoByInstllationId(installationId, repoOwner, repoName)
 	if err != nil {
 		log.Printf("GetRepoByInstallationId error: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: GetRepoByInstallationId error: %v", err))
 		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
 	}
 	batchType := getBatchType(jobsForImpactedProjects)
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, repo.DiggerConfig, batchType)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, repo.DiggerConfig, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
 		return fmt.Errorf("error converting jobs")
 	}
 
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, prNumber, ghService)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
 		return fmt.Errorf("error triggerring GitHub Actions for Digger Jobs")
 	}
 
@@ -533,35 +557,17 @@ func GetRepoByInstllationId(installationId int64, repoOwner string, repoName str
 	return repo, nil
 }
 
-func getBatchType(jobs []orchestrator.Job) models.DiggerBatchType {
+func getBatchType(jobs []orchestrator.Job) orchestrator_scheduler.DiggerBatchType {
 	allJobsContainApply := lo.EveryBy(jobs, func(job orchestrator.Job) bool {
 		return lo.Contains(job.Commands, "digger apply")
 	})
 	if allJobsContainApply == true {
-		return models.BatchTypeApply
+		return orchestrator_scheduler.BatchTypeApply
 	} else {
-		return models.BatchTypePlan
+		return orchestrator_scheduler.BatchTypePlan
 	}
 }
 
-func setPRStatusForJobs(prService *dg_github.GithubService, prNumber int, jobs []orchestrator.Job) error {
-	for _, job := range jobs {
-		for _, command := range job.Commands {
-			var err error
-			switch command {
-			case "digger plan":
-				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/plan")
-			case "digger apply":
-				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/apply")
-			}
-			if err != nil {
-				log.Printf("Erorr setting status: %v", err)
-				return fmt.Errorf("Error setting pr status: %v", err)
-			}
-		}
-	}
-	return nil
-}
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
@@ -570,16 +576,34 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	cloneURL := *payload.Repo.CloneURL
 	issueNumber := *payload.Issue.Number
 
-	ghService, config, projectsGraph, branch, err := getDiggerConfig(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
+	if *payload.Action != "created" {
+		log.Printf("comment is not of type 'created', ignoring")
+		return nil
+	}
 
+	ghService, config, projectsGraph, branch, err := getDiggerConfig(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
 		log.Printf("getDiggerConfig error: %v", err)
 		return fmt.Errorf("error getting digger config")
 	}
 
+	commentReporter, err := utils.InitCommentReporter(ghService, issueNumber, ":construction_worker: Digger starting....")
+	if err != nil {
+		log.Printf("Error initializing comment reporter: %v", err)
+		return fmt.Errorf("error initializing comment reporter")
+	}
+
+	prBranchName, err := ghService.GetBranchName(issueNumber)
+	if err != nil {
+		log.Printf("GetBranchName error: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: GetBranchName error: %v", err))
+		return fmt.Errorf("error while fetching branch name")
+	}
+
 	impactedProjects, requestedProject, _, err := dg_github.ProcessGitHubIssueCommentEvent(payload, config, projectsGraph, ghService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
 		return fmt.Errorf("error processing event")
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
@@ -589,17 +613,29 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting github prservice")
 	}
 
-	jobs, _, err := dg_github.ConvertGithubIssueCommentEventToJobs(payload, impactedProjects, requestedProject, config.Workflows)
-
+	jobs, _, err := dg_github.ConvertGithubIssueCommentEventToJobs(payload, impactedProjects, requestedProject, config.Workflows, prBranchName)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))
 		return fmt.Errorf("error converting event to jobs")
 	}
 	log.Printf("GitHub IssueComment event converted to Jobs successfully\n")
 
-	err = setPRStatusForJobs(ghService, issueNumber, jobs)
+	err = utils.ReportInitialJobsStatus(commentReporter, jobs)
+	if err != nil {
+		log.Printf("Failed to comment initial status for jobs: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
+		return fmt.Errorf("failed to comment initial status for jobs")
+	}
+
+	if len(jobs) == 0 {
+		return nil
+	}
+
+	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
 		fmt.Errorf("error setting status for PR: %v", err)
 	}
 
@@ -619,21 +655,28 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
 	}
 	batchType := getBatchType(jobs)
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, repo.DiggerConfig, batchType)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, repo.DiggerConfig, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
 		return fmt.Errorf("error convertingjobs")
 	}
 
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, issueNumber, ghService)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
 		return fmt.Errorf("error triggerring GitHub Actions for Digger Jobs")
 	}
 	return nil
 }
 
 func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService *dg_github.GithubService) error {
+	batch, err := models.DB.GetDiggerBatch(batchId)
+	if err != nil {
+		log.Printf("failed to get digger batch, %v\n", err)
+		return fmt.Errorf("failed to get digger batch, %v\n", err)
+	}
 	diggerJobs, err := models.DB.GetPendingParentDiggerJobs(batchId)
 
 	if err != nil {
@@ -644,32 +687,29 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 	log.Printf("number of diggerJobs:%v\n", len(diggerJobs))
 
 	for _, job := range diggerJobs {
-		if job.SerializedJob == nil {
+		if job.SerializedJobSpec == nil {
 			return fmt.Errorf("GitHub job can't be nil")
 		}
-		jobString := string(job.SerializedJob)
+		jobString := string(job.SerializedJobSpec)
 		log.Printf("jobString: %v \n", jobString)
 
 		// TODO: make workflow file name configurable
-		_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
-			Ref:    job.Batch.BranchName,
-			Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobId},
-		})
-
+		err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, job, jobString, *batch.CommentId)
 		if err != nil {
 			log.Printf("failed to trigger github workflow, %v\n", err)
 			return fmt.Errorf("failed to trigger github workflow, %v\n", err)
 		} else {
-			if err != nil {
-				log.Printf("failed to set pr status, %v\n", err)
-				return fmt.Errorf("failed to set pr status, %v\n", err)
-			}
 
-			job.Status = models.DiggerJobTriggered
-			err := models.DB.UpdateDiggerJob(&job)
+			_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, job.DiggerJobID)
 			if err != nil {
-				log.Printf("failed to trigger github workflow, %v\n", err)
-				return fmt.Errorf("failed to trigger github workflow, %v\n", err)
+				log.Printf("failed to find workflow url: %v\n", err)
+			}
+			job.Status = orchestrator_scheduler.DiggerJobTriggered
+			job.WorkflowRunUrl = &workflowRunUrl
+			err = models.DB.UpdateDiggerJob(&job)
+			if err != nil {
+				log.Printf("failed to Update digger job state: %v\n", err)
+				return fmt.Errorf("failed to Update digger job state: %v\n", err)
 			}
 		}
 	}

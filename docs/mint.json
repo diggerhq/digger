@@ -36,7 +36,8 @@
             "pages": [
               "readme/introduction",
               "readme/howitworks",
-              "readme/pricing"
+              "readme/pricing",
+              "readme/feedback"
             ]
         },
         {
@@ -69,6 +70,7 @@
               "howto/custom-commands",
               "howto/destroy-manual",
               "howto/disable-auto-checkout",
+              "howto/drift-detection",
               "howto/generate-projects",
               "howto/include-exclude-patterns",
               "howto/multiacc-aws",
@@ -86,6 +88,7 @@
         {
           "group": "Self-host Digger",
           "pages": [
+              "self-host/auth-methods",
               "self-host/deploy-docker",
               "self-host/deploy-docker-compose",
               "self-host/deploy-binary"
