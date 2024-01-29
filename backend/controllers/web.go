@@ -293,18 +293,19 @@ func (web *WebController) PolicyDetailsUpdatePage(c *gin.Context) {
 	c.HTML(http.StatusOK, "policy_details.tmpl", pageContext)
 }
 
-func (web *WebController) RedirectToLoginSubdomain(context *gin.Context) {
+func (web *WebController) RedirectToLoginOrProjects(context *gin.Context) {
 	host := context.Request.Host
-	hostParts := strings.Split(host, ".")
-	if len(hostParts) > 2 {
-		hostParts[0] = "login"
-		host = strings.Join(hostParts, ".")
-	}
-	context.Redirect(http.StatusMovedPermanently, fmt.Sprintf("https://%s", host))
-}
+	if os.Getenv("REDIRECT_TO_LOGIN") == "true" {
+		hostParts := strings.Split(host, ".")
+		if len(hostParts) > 2 {
+			hostParts[0] = "login"
+			host = strings.Join(hostParts, ".")
+		}
+		context.Redirect(http.StatusMovedPermanently, fmt.Sprintf("https://%s", host))
 
-func (web *WebController) RedirectToProjectsPage(context *gin.Context) {
-	context.Redirect(http.StatusMovedPermanently, "/projects")
+	} else {
+		context.Redirect(http.StatusMovedPermanently, "/projects")
+	}
 }
 
 func (web *WebController) UpdateRepoPage(c *gin.Context) {

@@ -27,7 +27,7 @@ type MockCommandRunner struct {
 	Commands []RunInfo
 }
 
-func (m *MockCommandRunner) Run(workDir string, shell string, commands []string) (string, string, error) {
+func (m *MockCommandRunner) Run(workDir string, shell string, commands []string, envs map[string]string) (string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Run", workDir + " " + shell + " " + strings.Join(commands, " "), time.Now()})
 	return "", "", nil
 }
@@ -55,8 +55,9 @@ func (m *MockTerraformExecutor) Destroy(params []string, envs map[string]string)
 }
 
 func (m *MockTerraformExecutor) Show(params []string, envs map[string]string) (string, string, error) {
+	nonEmptyTerraformPlanJson := "{\"format_version\":\"1.1\",\"terraform_version\":\"1.4.6\",\"planned_values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"triggers\":null},\"sensitive_values\":{}}]}},\"resource_changes\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"no-op\"],\"before\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after_unknown\":{},\"before_sensitive\":{},\"after_sensitive\":{}}},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"create\"],\"before\":null,\"after\":{\"triggers\":null},\"after_unknown\":{\"id\":true},\"before_sensitive\":false,\"after_sensitive\":{}}}],\"prior_state\":{\"format_version\":\"1.0\",\"terraform_version\":\"1.4.6\",\"values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}}]}}},\"configuration\":{\"provider_config\":{\"null\":{\"name\":\"null\",\"full_name\":\"registry.terraform.io/hashicorp/null\"}},\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_config_key\":\"null\",\"schema_version\":0},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_config_key\":\"null\",\"schema_version\":0}]}}}\n"
 	m.Commands = append(m.Commands, RunInfo{"Show", strings.Join(params, " "), time.Now()})
-	return "", "", nil
+	return nonEmptyTerraformPlanJson, "", nil
 }
 
 func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string) (bool, string, string, error) {
@@ -81,9 +82,9 @@ func (m *MockPRManager) GetApprovals(prNumber int) ([]string, error) {
 	return []string{}, nil
 }
 
-func (m *MockPRManager) PublishComment(prNumber int, comment string) error {
+func (m *MockPRManager) PublishComment(prNumber int, comment string) (int64, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", strconv.Itoa(prNumber) + " " + comment, time.Now()})
-	return nil
+	return 0, nil
 }
 
 func (m *MockPRManager) SetStatus(prNumber int, status string, statusContext string) error {
@@ -347,7 +348,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Init ", "Plan -out plan -lock-timeout=3m", "PlanExists plan", "StorePlan plan", "Show -no-color -json plan", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan -out plan -lock-timeout=3m", "Show -no-color -json plan", "PlanExists plan", "StorePlan plan", "Run   echo"}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {

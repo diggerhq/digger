@@ -71,7 +71,7 @@ func main() {
 	})
 
 	r.LoadHTMLGlob("templates/*.tmpl")
-	r.GET("/", web.RedirectToProjectsPage)
+	r.GET("/", web.RedirectToLoginOrProjects)
 
 	r.POST("/github-app-webhook", controllers.GithubAppWebHook)
 

@@ -11,7 +11,7 @@ import (
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	dggithub "github.com/diggerhq/digger/libs/orchestrator/github"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v58/github"
 
 	"testing"
 
@@ -895,7 +895,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	event := context.Event.(github.PullRequestEvent)
 	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
+	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "123", false, 1, "dir")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -925,8 +925,8 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	backendApi := &utils.MockBackendApi{}
 
 	event := context.Event.(github.IssueCommentEvent)
-	jobs, _, err := dggithub.ConvertGithubIssueCommentEventToJobs(&event, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "")
+	jobs, _, err := dggithub.ConvertGithubIssueCommentEventToJobs(&event, impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch")
+	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "123", false, 1, "")
 	assert.NoError(t, err)
 	if err != nil {
 		log.Println(err)
@@ -998,13 +998,14 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 }
 
 func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
+	defaultBranch := "defaultBranch"
 	issuenumber := 1
 	ghEvent := github.IssueCommentEvent{
 		Comment: &github.IssueComment{},
 		Issue: &github.Issue{
 			Number: &issuenumber,
 		},
-		Repo:   &github.Repository{FullName: github.String("asdd")},
+		Repo:   &github.Repository{FullName: github.String("asdd"), DefaultBranch: &defaultBranch},
 		Sender: &github.User{Login: github.String("login")},
 	}
 	comment := "DiGGeR PlAn"
@@ -1017,7 +1018,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	var requestedProject = project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
-	jobs, _, err := dggithub.ConvertGithubIssueCommentEventToJobs(&ghEvent, impactedProjects, &requestedProject, workflows)
+	jobs, _, err := dggithub.ConvertGithubIssueCommentEventToJobs(&ghEvent, impactedProjects, &requestedProject, workflows, "prbranch")
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])

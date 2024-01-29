@@ -48,6 +48,11 @@ Not sure where to get started? You can:
 -   [Book a free, non-pressure pairing session / code walkthrough with one of our teammates](https://calendly.com/diggerdev/digger-pro-demo-clone)!
 -   Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
 
+## Running migrations
+
+```
+atlas migrate diff --env gorm
+```
 
 ## Resources
 

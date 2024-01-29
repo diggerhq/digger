@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"github.com/diggerhq/digger/cli/pkg/core/terraform"
+	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"time"
 
 	"github.com/diggerhq/digger/libs/orchestrator"
@@ -73,8 +75,8 @@ func (t MockPullRequestManager) GetUserTeams(organisation string, user string) (
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
 	return t.ChangedFiles, nil
 }
-func (t MockPullRequestManager) PublishComment(prNumber int, comment string) error {
-	return nil
+func (t MockPullRequestManager) PublishComment(prNumber int, comment string) (int64, error) {
+	return 0, nil
 }
 
 func (t MockPullRequestManager) SetStatus(prNumber int, status string, statusContext string) error {
@@ -147,10 +149,10 @@ func (t MockBackendApi) ReportProject(namespace string, projectName string, conf
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectRun(namespace string, projectName string, startedAt time.Time, endedAt time.Time, status string, command string, output string) error {
+func (t MockBackendApi) ReportProjectRun(repo string, projectName string, startedAt time.Time, endedAt time.Time, status string, command string, output string) error {
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time) error {
-	return nil
+func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform.PlanSummary) (*scheduler.SerializedBatch, error) {
+	return nil, nil
 }
