@@ -1,0 +1,45 @@
+---
+title: 'Drift Detection'
+---
+
+Digger supports drift detection alerting via Slack. To configure drift detection:
+
+## Create a separate workflow file for drift
+
+To run digger in drift detection mode, pass `mode: drift-detection` in the workflow file and configure the relevant crontab to run it with the frequency you want:
+
+```
+name: Digger Drift Detection
+
+on:  
+  workflow_dispatch:
+  schedule: ## 12am daily.
+    - cron: '0 0 * * *'
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    steps:
+    - name: digger drift detection
+      uses: diggerhq/digger@latest
+      with:
+        mode: drift-detection
+        setup-aws: true
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+        digger-token: ${{ secrets.DIGGER_TOKEN }}
+        digger-organisation: digger
+        digger-hostname: https://cloud.digger.dev/
+        drift-detection-slack-notification-url: ${{ secrets.DRIFT_DETECTION_SLACK_NOTIFICATION }}
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Configure Slack notification URL
+
+Note the `DRIFT_DETECTION_SLACK_NOTIFICATION` env var that the workflow above is using. This should be set to a Slack Incoming Webhook URL.
+
+Follow the [official Slack guide](https://api.slack.com/messaging/webhooks) to get the Incoming Webhook URL; then add it as an Action secret named `DRIFT_DETECTION_SLACK_NOTIFICATION`
+
