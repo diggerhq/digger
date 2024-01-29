@@ -154,7 +154,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %v", reportingError)
 			}
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 5)
 		}
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
@@ -167,7 +167,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %v", reportingError)
 			}
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 5)
 		}
 		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 	}
@@ -197,11 +197,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if runningMode == "manual" {
 		command := os.Getenv("INPUT_DIGGER_COMMAND")
 		if command == "" {
-			reportErrorAndExit(githubActor, "provide 'command' to run in 'manual' mode", 1)
+			reportErrorAndExit(githubActor, "provide 'command' to plan in 'manual' mode", 1)
 		}
 		project := os.Getenv("INPUT_DIGGER_PROJECT")
 		if project == "" {
-			reportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
+			reportErrorAndExit(githubActor, "provide 'project' to plan in 'manual' mode", 2)
 		}
 
 		var projectConfig digger_config.Project
@@ -234,7 +234,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, currentDir)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
 
@@ -263,7 +263,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			}
 			err := digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, currentDir)
 			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 			}
 		}
 	} else {
@@ -330,7 +330,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 		}
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
@@ -518,7 +518,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 	}
 
 	if diggerConfig.AutoMerge && allAppliesSuccess && atLeastOneApply && coversAllImpactedProjects {
@@ -578,11 +578,11 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	if runningMode == "manual" {
 		command := os.Getenv("INPUT_DIGGER_COMMAND")
 		if command == "" {
-			reportErrorAndExit(actor, "provide 'command' to run in 'manual' mode", 1)
+			reportErrorAndExit(actor, "provide 'command' to plan in 'manual' mode", 1)
 		}
 		project := os.Getenv("INPUT_DIGGER_PROJECT")
 		if project == "" {
-			reportErrorAndExit(actor, "provide 'project' to run in 'manual' mode", 2)
+			reportErrorAndExit(actor, "provide 'project' to plan in 'manual' mode", 2)
 		}
 
 		var projectConfig digger_config.Project
@@ -615,7 +615,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 		}
 		err := digger.RunJob(jobs, repository, actor, &bitbucketService, policyChecker, planStorage, backendApi, currentDir)
 		if err != nil {
-			reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
 
@@ -644,7 +644,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			}
 			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 			}
 		}
 	} else {
@@ -674,7 +674,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				}
 				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
 				if err != nil {
-					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+					reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 				}
 			}
 		} else if os.Getenv("BITBUCKET_PR_ID") == "" {
@@ -701,7 +701,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				}
 				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
 				if err != nil {
-					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+					reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 				}
 			}
 		} else if os.Getenv("BITBUCKET_PR_ID") != "" {
@@ -764,7 +764,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
 			}
 		} else {
 			reportErrorAndExit(actor, "Failed to detect running mode", 1)
@@ -775,8 +775,9 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	reportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
-func run(v *viper.Viper, lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy, backendApi core_backend.Api) {
-
+func plan(v *viper.Viper, projectName string, lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy, backendApi core_backend.Api) {
+	actor := "ACTOR"
+	repoNamespace := os.Getenv("REPO_NAMESPACE")
 	var runConfig RunConfig
 	if err := v.Unmarshal(&runConfig); err != nil {
 	}
@@ -784,10 +785,12 @@ func run(v *viper.Viper, lock core_locking.Lock, policyChecker core_policy.Check
 	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
 	currentDir, err := os.Getwd()
 	if err != nil {
-		reportErrorAndExit(runConfig.Actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+
+		reportErrorAndExit(actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+
 	}
 
-	planStorage := newPlanStorage("", "", "", runConfig.Actor, nil)
+	planStorage := newPlanStorage("", "", "", actor, nil)
 
 	reporter := &reporting.StdoutReporter{
 		ReportStrategy:    reportingStrategy,
@@ -798,16 +801,17 @@ func run(v *viper.Viper, lock core_locking.Lock, policyChecker core_policy.Check
 
 	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./")
 	if err != nil {
-		reportErrorAndExit(runConfig.Actor, fmt.Sprintf("Failed to load digger config. %s", err), 4)
+		reportErrorAndExit(actor, fmt.Sprintf("Failed to load digger config. %s", err), 4)
 	}
-	impactedProjects := diggerConfig.GetModifiedProjects(strings.Split(runConfig.FilesChanged, ","))
-	jobs, _, err := generic_ci.ConvertToCommands(runConfig.Actor, runConfig.RepoNamespace, runConfig.Command, impactedProjects, nil, diggerConfig.Workflows)
+	//impactedProjects := diggerConfig.GetModifiedProjects(strings.Split(runConfig.FilesChanged, ","))
+	impactedProjects := diggerConfig.GetProjects(projectName)
+	jobs, _, err := generic_ci.ConvertToCommands(actor, repoNamespace, "digger plan", impactedProjects, nil, diggerConfig.Workflows)
 	if err != nil {
-		reportErrorAndExit(runConfig.Actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
+		reportErrorAndExit(actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
 	}
 
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	_, _, err = digger.RunJobs(jobs, &prService, &prService, lock, reporter, planStorage, policyChecker, backendApi, currentDir)
+	_, _, err = digger.RunJobs(jobs, &prService, &prService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 123, currentDir)
 }
 
 /*
@@ -882,15 +886,16 @@ func main() {
 	}
 	log.Println("Lock provider has been created successfully")
 
-	if len(args) > 0 && args[0] == "run" {
-		runCmd := cobra.Command{Use: "run"}
+	if len(args) > 0 && args[0] == "plan" {
+		projectName := args[1]
+		runCmd := cobra.Command{Use: "plan"}
 		rootCmd.AddCommand(&runCmd)
-		_, v, err := initCobraCmdForRun(&runCmd)
+		v, err := initCobraCmdForRun(&runCmd)
 		runCmd.Run = func(cmd *cobra.Command, args []string) {
 			if err != nil {
 				reportErrorAndExit("", fmt.Sprintf("Could initialize command line args: %v", err), 1)
 			}
-			run(v, lock, policyChecker, reportStrategy, backendApi)
+			plan(v, projectName, lock, policyChecker, reportStrategy, backendApi)
 		}
 		runCmd.Flags().Visit(func(f *pflag.Flag) {
 			println(f.Name, f.Value)
