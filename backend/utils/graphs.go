@@ -7,13 +7,14 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/orchestrator"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/dominikbraun/graph"
 	"github.com/google/uuid"
 	"log"
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, diggerConfig string, batchType models.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfig string, batchType orchestrator_scheduler.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	result := make(map[string]*models.DiggerJob)
 
 	log.Printf("Number of Jobs: %v\n", len(jobsMap))
@@ -28,7 +29,7 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 
 	log.Printf("marshalledJobsMap: %v\n", marshalledJobsMap)
 
-	batch, err := models.DB.CreateDiggerBatch(githubInstallationId, repoOwner, repoName, repoFullName, prNumber, branch, batchType, diggerConfig)
+	batch, err := models.DB.CreateDiggerBatch(githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfig, branch, batchType, &commentId)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
 	}
@@ -51,7 +52,7 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 				log.Printf("failed to create a job, error: %v", err)
 				return false
 			}
-			_, err = models.DB.CreateDiggerJobLink(parentJob.DiggerJobId, repoFullName)
+			_, err = models.DB.CreateDiggerJobLink(parentJob.DiggerJobID, repoFullName)
 			if err != nil {
 				log.Printf("failed to create a digger job link")
 				return false
@@ -69,12 +70,12 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 					log.Printf("failed to create a job")
 					return false
 				}
-				_, err = models.DB.CreateDiggerJobLink(childJob.DiggerJobId, repoFullName)
+				_, err = models.DB.CreateDiggerJobLink(childJob.DiggerJobID, repoFullName)
 				if err != nil {
 					log.Printf("failed to create a digger job link")
 					return false
 				}
-				err = models.DB.CreateDiggerJobParentLink(parentDiggerJob.DiggerJobId, childJob.DiggerJobId)
+				err = models.DB.CreateDiggerJobParentLink(parentDiggerJob.DiggerJobID, childJob.DiggerJobID)
 				if err != nil {
 					log.Printf("failed to create a digger job parent link")
 					return false

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dchest/uniuri"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
+	scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -557,7 +558,18 @@ func (db *Database) GetOrganisationById(orgId any) (*Organisation, error) {
 	return &org, nil
 }
 
-func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, branchName string, batchType DiggerBatchType, diggerConfig string) (*DiggerBatch, error) {
+func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
+	batch := &DiggerBatch{}
+	result := db.GormDB.Where("id=? ", batchId).Find(batch)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+	return batch, nil
+}
+
+func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerBatchType, commentId *int64) (*DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &DiggerBatch{
 		ID:                   uid,
@@ -566,7 +578,8 @@ func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner stri
 		RepoName:             repoName,
 		RepoFullName:         repoFullname,
 		PrNumber:             PRNumber,
-		Status:               BatchJobCreated,
+		CommentId:            commentId,
+		Status:               scheduler.BatchJobCreated,
 		BranchName:           branchName,
 		DiggerConfig:         diggerConfig,
 		BatchType:            batchType,
@@ -581,7 +594,7 @@ func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner stri
 }
 
 func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
-	if batch.Status == BatchJobInvalidated || batch.Status == BatchJobFailed || batch.Status == BatchJobSucceeded {
+	if batch.Status == scheduler.BatchJobInvalidated || batch.Status == scheduler.BatchJobFailed || batch.Status == scheduler.BatchJobSucceeded {
 		return nil
 	}
 	batchId := batch.ID
@@ -596,31 +609,59 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 
 	allJobsSucceeded := true
 	for _, job := range diggerJobs {
-		if job.Status != DiggerJobSucceeded {
+		if job.Status != scheduler.DiggerJobSucceeded {
 			allJobsSucceeded = false
 		}
 	}
 	if allJobsSucceeded == true {
-		batch.Status = BatchJobSucceeded
+		batch.Status = scheduler.BatchJobSucceeded
 	}
 	return nil
 
 }
+
 func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*DiggerJob, error) {
 	if serializedJob == nil || len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
 	jobId := uniuri.New()
 	batchIdStr := batchId.String()
-	job := &DiggerJob{DiggerJobId: jobId, Status: DiggerJobCreated,
-		BatchID: &batchIdStr, SerializedJob: serializedJob}
-	result := db.GormDB.Save(job)
+
+	summary := &DiggerJobSummary{}
+	result := db.GormDB.Save(summary)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	log.Printf("DiggerJob %v, (id: %v) has been created successfully\n", job.DiggerJobId, job.ID)
+	job := &DiggerJob{DiggerJobID: jobId, Status: scheduler.DiggerJobCreated,
+		BatchID: &batchIdStr, SerializedJobSpec: serializedJob, DiggerJobSummary: *summary}
+	result = db.GormDB.Save(job)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	log.Printf("DiggerJob %v, (id: %v) has been created successfully\n", job.DiggerJobID, job.ID)
 	return job, nil
+}
+
+func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*DiggerJob, error) {
+	diggerJob, err := db.GetDiggerJob(diggerJobId)
+	if err != nil {
+		return nil, fmt.Errorf("Could not get digger job")
+	}
+	var jobSummary *DiggerJobSummary
+	jobSummary = &diggerJob.DiggerJobSummary
+	jobSummary.ResourcesCreated = resourcesCreated
+	jobSummary.ResourcesUpdated = resourcesUpdated
+	jobSummary.ResourcesDeleted = resourcesDeleted
+
+	result := db.GormDB.Save(&jobSummary)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	log.Printf("DiggerJob %v summary has been updated successfully\n", diggerJobId)
+	return diggerJob, nil
 }
 
 func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
@@ -628,8 +669,23 @@ func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
 	if result.Error != nil {
 		return result.Error
 	}
-	log.Printf("DiggerJob %v, (id: %v) has been updated successfully\n", job.DiggerJobId, job.ID)
+	log.Printf("DiggerJob %v, (id: %v) has been updated successfully\n", job.DiggerJobID, job.ID)
 	return nil
+}
+
+func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error) {
+	jobs := make([]DiggerJob, 0)
+
+	var where *gorm.DB
+	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
+
+	result := where.Preload("Batch").Preload("DiggerJobSummary").Find(&jobs)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+	return jobs, nil
 }
 
 func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob, error) {
@@ -639,9 +695,9 @@ func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob,
 
 	var where *gorm.DB
 	if batchId != nil {
-		where = joins.Where("digger_jobs.status = ? AND digger_job_parent_links.id IS NULL AND digger_jobs.batch_id = ?", DiggerJobCreated, *batchId)
+		where = joins.Where("digger_jobs.status = ? AND digger_job_parent_links.id IS NULL AND digger_jobs.batch_id = ?", scheduler.DiggerJobCreated, *batchId)
 	} else {
-		where = joins.Where("digger_jobs.status = ? AND digger_job_parent_links.id IS NULL", DiggerJobCreated)
+		where = joins.Where("digger_jobs.status = ? AND digger_job_parent_links.id IS NULL", scheduler.DiggerJobCreated)
 	}
 
 	result := where.Find(&jobs)
@@ -655,7 +711,7 @@ func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob,
 
 func (db *Database) GetDiggerJob(jobId string) (*DiggerJob, error) {
 	job := &DiggerJob{}
-	result := db.GormDB.Preload("Batch").Where("digger_job_id=? ", jobId).Find(job)
+	result := db.GormDB.Preload("Batch").Preload("DiggerJobSummary").Where("digger_job_id=? ", jobId).Find(job)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error

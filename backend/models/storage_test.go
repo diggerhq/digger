@@ -1,9 +1,11 @@
 package models
 
 import (
+	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"strings"
@@ -25,7 +27,9 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 	}
 
 	// open and create a new database
-	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
+	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -127,4 +131,37 @@ func TestGithubRepoRemoved(t *testing.T) {
 	assert.NotNil(t, i)
 	assert.Equal(t, i.ID, i2.ID)
 	assert.Equal(t, GithubAppInstallDeleted, i.Status)
+}
+
+func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
+	teardownSuite, _, _ := setupSuite(t)
+	defer teardownSuite(t)
+
+	prNumber := 123
+	repoName := "test"
+	repoOwner := "test"
+	repoFullName := "test/test"
+	diggerconfig := ""
+	branchName := "main"
+	batchType := scheduler.BatchTypePlan
+	commentId := int64(123)
+	jobSpec := "abc"
+
+	resourcesCreated := uint(1)
+	resourcesUpdated := uint(2)
+	resourcesDeleted := uint(3)
+
+	batch, err := DB.CreateDiggerBatch(123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId)
+	assert.NoError(t, err)
+
+	job, err := DB.CreateDiggerJob(batch.ID, []byte(jobSpec))
+	assert.NoError(t, err)
+
+	job, err = DB.UpdateDiggerJobSummary(job.DiggerJobID, resourcesCreated, resourcesUpdated, resourcesDeleted)
+	assert.NoError(t, err)
+
+	jobssss, err := DB.GetDiggerJobsForBatch(batch.ID)
+	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesCreated, resourcesCreated)
+	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesUpdated, resourcesUpdated)
+	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesDeleted, resourcesDeleted)
 }

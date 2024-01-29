@@ -24,10 +24,12 @@ func (tf OpenTofu) Init(params []string, envs map[string]string) (string, string
 }
 
 func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
-	err := tf.switchToWorkspace(envs)
-	if err != nil {
-		log.Printf("Fatal: Error terraform to workspace %v", err)
-		return "", "", err
+	if tf.Workspace != "default" {
+		err := tf.switchToWorkspace(envs)
+		if err != nil {
+			log.Printf("Fatal: Error terraform to workspace %v", err)
+			return "", "", err
+		}
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
 	if plan != nil {
@@ -38,20 +40,10 @@ func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) 
 }
 
 func (tf OpenTofu) Plan(params []string, envs map[string]string) (bool, string, string, error) {
-
-	workspaces, _, _, err := tf.runOpentofuCommand(false, "workspace", envs, "list")
-	if err != nil {
-		return false, "", "", err
-	}
-	workspaces = tf.formatOpentofuWorkspaces(workspaces)
-	if strings.Contains(workspaces, tf.Workspace) {
-		_, _, _, err := tf.runOpentofuCommand(true, "workspace", envs, "select", tf.Workspace)
+	if tf.Workspace != "default" {
+		err := tf.switchToWorkspace(envs)
 		if err != nil {
-			return false, "", "", err
-		}
-	} else {
-		_, _, _, err := tf.runOpentofuCommand(true, "workspace", envs, "new", tf.Workspace)
-		if err != nil {
+			log.Printf("Fatal: Error terraform to workspace %v", err)
 			return false, "", "", err
 		}
 	}
@@ -72,10 +64,12 @@ func (tf OpenTofu) Show(params []string, envs map[string]string) (string, string
 }
 
 func (tf OpenTofu) Destroy(params []string, envs map[string]string) (string, string, error) {
-	err := tf.switchToWorkspace(envs)
-	if err != nil {
-		log.Printf("Fatal: Error terraform to workspace %v", err)
-		return "", "", err
+	if tf.Workspace != "default" {
+		err := tf.switchToWorkspace(envs)
+		if err != nil {
+			log.Printf("Fatal: Error terraform to workspace %v", err)
+			return "", "", err
+		}
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
 	stdout, stderr, _, err := tf.runOpentofuCommand(true, "destroy", envs, params...)

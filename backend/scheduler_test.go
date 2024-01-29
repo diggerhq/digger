@@ -109,7 +109,7 @@ func TestFindDiggerJobsByParentJobId(t *testing.T) {
 
 	batchId, _ := uuid.NewUUID()
 	job, err := database.CreateDiggerJob(batchId, []byte{100})
-	parentJobId := job.DiggerJobId
+	parentJobId := job.DiggerJobID
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.NotZero(t, job.ID)
@@ -118,13 +118,13 @@ func TestFindDiggerJobsByParentJobId(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.NotZero(t, job.ID)
-	err = database.CreateDiggerJobParentLink(parentJobId, job.DiggerJobId)
+	err = database.CreateDiggerJobParentLink(parentJobId, job.DiggerJobID)
 	assert.Nil(t, err)
 
 	job, err = database.CreateDiggerJob(batchId, []byte{100})
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
-	err = database.CreateDiggerJobParentLink(parentJobId, job.DiggerJobId)
+	err = database.CreateDiggerJobParentLink(parentJobId, job.DiggerJobID)
 	assert.Nil(t, err)
 	assert.NotZero(t, job.ID)
 

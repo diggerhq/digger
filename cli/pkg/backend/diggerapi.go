@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/core/terraform"
+	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -22,8 +25,8 @@ func (n NoopApi) ReportProjectRun(namespace string, projectName string, startedA
 	return nil
 }
 
-func (n NoopApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time) error {
-	return nil
+func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform.PlanSummary) (*scheduler.SerializedBatch, error) {
+	return nil, nil
 }
 
 type DiggerApi struct {
@@ -114,17 +117,17 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	return nil
 }
 
-func (d DiggerApi) ReportProjectJobStatus(namespace string, projectName string, jobId string, status string, timestamp time.Time) error {
+func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform.PlanSummary) (*scheduler.SerializedBatch, error) {
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
 		log.Fatalf("Not able to parse digger cloud url: %v", err)
 	}
 
-	u.Path = filepath.Join(u.Path, "repos", namespace, "projects", projectName, "jobs", jobId, "set-status")
-
+	u.Path = filepath.Join(u.Path, "repos", repo, "projects", projectName, "jobs", jobId, "set-status")
 	request := map[string]interface{}{
-		"status":    status,
-		"timestamp": timestamp,
+		"status":      status,
+		"timestamp":   timestamp,
+		"job_summary": summary.ToJson(),
 	}
 
 	jsonData, err := json.Marshal(request)
@@ -135,7 +138,7 @@ func (d DiggerApi) ReportProjectJobStatus(namespace string, projectName string, 
 	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
 
 	if err != nil {
-		return fmt.Errorf("error while creating request: %v", err)
+		return nil, fmt.Errorf("error while creating request: %v", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -144,12 +147,20 @@ func (d DiggerApi) ReportProjectJobStatus(namespace string, projectName string, 
 	resp, err := d.HttpClient.Do(req)
 
 	if err != nil {
-		return fmt.Errorf("error while sending request: %v", err)
+		return nil, fmt.Errorf("error while sending request: %v", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status when reporting a project job status: %v", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status when reporting a project job status: %v", resp.StatusCode)
 	}
 
-	return nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Could not read response body: %v", err)
+	}
+
+	var response scheduler.SerializedBatch
+	json.Unmarshal(body, &response)
+
+	return &response, nil
 }
