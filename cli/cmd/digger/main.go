@@ -4,20 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/generic_ci"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"os"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/diggerhq/digger/cli/pkg/azure"
-	"github.com/diggerhq/digger/cli/pkg/backend"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
@@ -25,11 +21,8 @@ import (
 	core_storage "github.com/diggerhq/digger/cli/pkg/core/storage"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/gcp"
-	github_pkg "github.com/diggerhq/digger/cli/pkg/github"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
 	"github.com/diggerhq/digger/cli/pkg/gitlab"
-	"github.com/diggerhq/digger/cli/pkg/locking"
-	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/diggerhq/digger/cli/pkg/usage"
@@ -775,12 +768,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	reportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
-func plan(v *viper.Viper, projectName string, lock core_locking.Lock, policyChecker core_policy.Checker, reportingStrategy reporting.ReportStrategy, backendApi core_backend.Api) {
-	actor := "ACTOR"
-	repoNamespace := os.Getenv("REPO_NAMESPACE")
-	var runConfig RunConfig
-	if err := v.Unmarshal(&runConfig); err != nil {
-	}
+func exec(actor string, projectName string, repoNamespace string, command string, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter core_reporting.Reporter, backendApi core_backend.Api) {
 
 	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
 	currentDir, err := os.Getwd()
@@ -792,26 +780,19 @@ func plan(v *viper.Viper, projectName string, lock core_locking.Lock, policyChec
 
 	planStorage := newPlanStorage("", "", "", actor, nil)
 
-	reporter := &reporting.StdoutReporter{
-		ReportStrategy:    reportingStrategy,
-		IsSupportMarkdown: true,
-	}
-
-	prService := github_pkg.MockCiService{}
-
 	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./")
 	if err != nil {
 		reportErrorAndExit(actor, fmt.Sprintf("Failed to load digger config. %s", err), 4)
 	}
 	//impactedProjects := diggerConfig.GetModifiedProjects(strings.Split(runConfig.FilesChanged, ","))
 	impactedProjects := diggerConfig.GetProjects(projectName)
-	jobs, _, err := generic_ci.ConvertToCommands(actor, repoNamespace, "digger plan", impactedProjects, nil, diggerConfig.Workflows)
+	jobs, _, err := generic_ci.ConvertToCommands(actor, repoNamespace, command, impactedProjects, nil, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
 	}
 
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	_, _, err = digger.RunJobs(jobs, &prService, &prService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 123, currentDir)
+	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 123, currentDir)
 }
 
 /*
@@ -829,122 +810,13 @@ Exit codes:
 */
 
 func main() {
-	args := os.Args[1:]
-	if len(args) > 0 && args[0] == "version" {
-		log.Println(utils.GetVersion())
-		os.Exit(0)
+	if len(os.Args) == 1 {
+		os.Args = append([]string{os.Args[0]}, "default")
 	}
-	if len(args) > 0 && args[0] == "help" {
-		utils.DisplayCommands()
-		os.Exit(0)
+	if err := rootCmd.Execute(); err != nil {
+		reportErrorAndExit("", fmt.Sprintf("Error occured during command exec: %v", err), 8)
 	}
 
-	var policyChecker core_policy.Checker
-	var backendApi core_backend.Api
-	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
-		policyChecker = policy.NoOpPolicyChecker{}
-		backendApi = backend.NoopApi{}
-	} else if os.Getenv("DIGGER_TOKEN") != "" {
-		if os.Getenv("DIGGER_ORGANISATION") == "" {
-			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action digger_config.")
-		}
-		policyChecker = policy.DiggerPolicyChecker{
-			PolicyProvider: &policy.DiggerHttpPolicyProvider{
-				DiggerHost:         os.Getenv("DIGGER_HOSTNAME"),
-				DiggerOrganisation: os.Getenv("DIGGER_ORGANISATION"),
-				AuthToken:          os.Getenv("DIGGER_TOKEN"),
-				HttpClient:         http.DefaultClient,
-			}}
-		backendApi = backend.DiggerApi{
-			DiggerHost: os.Getenv("DIGGER_HOSTNAME"),
-			AuthToken:  os.Getenv("DIGGER_TOKEN"),
-			HttpClient: http.DefaultClient,
-		}
-	} else {
-		reportErrorAndExit("", "DIGGER_TOKEN not specified. You can get one at https://cloud.digger.dev, or self-manage a backend of Digger Community Edition (change DIGGER_HOSTNAME). You can also pass 'no-backend: true' option; in this case some of the features may not be available.", 1)
-	}
-
-	var reportStrategy reporting.ReportStrategy
-
-	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
-		reportStrategy = &reporting.CommentPerRunStrategy{
-			TimeOfRun: time.Now(),
-		}
-	} else if os.Getenv("REPORTING_STRATEGY") == "latest_run_comment" {
-		reportStrategy = &reporting.LatestRunCommentStrategy{
-			TimeOfRun: time.Now(),
-		}
-	} else {
-		reportStrategy = &reporting.MultipleCommentsStrategy{}
-	}
-
-	lock, err := locking.GetLock()
-	if err != nil {
-		log.Printf("Failed to create lock provider. %s\n", err)
-		os.Exit(2)
-	}
-	log.Println("Lock provider has been created successfully")
-
-	if len(args) > 0 && args[0] == "plan" {
-		projectName := args[1]
-		runCmd := cobra.Command{Use: "plan"}
-		rootCmd.AddCommand(&runCmd)
-		v, err := initCobraCmdForRun(&runCmd)
-		runCmd.Run = func(cmd *cobra.Command, args []string) {
-			if err != nil {
-				reportErrorAndExit("", fmt.Sprintf("Could initialize command line args: %v", err), 1)
-			}
-			plan(v, projectName, lock, policyChecker, reportStrategy, backendApi)
-		}
-		runCmd.Flags().Visit(func(f *pflag.Flag) {
-			println(f.Name, f.Value)
-		})
-		if err := runCmd.Execute(); err != nil {
-			reportErrorAndExit("", fmt.Sprintf("Error occured during command exec: %v", err), 8)
-		}
-
-		os.Exit(0)
-	}
-
-	ci := digger.DetectCI()
-
-	var logLeader = "Unknown CI"
-
-	switch ci {
-	case digger.GitHub:
-		logLeader = os.Getenv("GITHUB_ACTOR")
-		gitHubCI(lock, policyChecker, backendApi, reportStrategy)
-	case digger.GitLab:
-		logLeader = os.Getenv("CI_PROJECT_NAME")
-		gitLabCI(lock, policyChecker, backendApi, reportStrategy)
-	case digger.Azure:
-		// This should be refactored in the future because in this way the parsing
-		// is done twice, both here and inside azureCI, a better solution might be
-		// to encapsulate it into a method on the azure package and then grab the
-		// value here and pass it into the azureCI call.
-		azureContext := os.Getenv("AZURE_CONTEXT")
-		parsedAzureContext, _ := azure.GetAzureReposContext(azureContext)
-		logLeader = parsedAzureContext.BaseUrl
-		azureCI(lock, policyChecker, backendApi, reportStrategy)
-	case digger.BitBucket:
-		logLeader = os.Getenv("BITBUCKET_STEP_TRIGGERER_UUID")
-		bitbucketCI(lock, policyChecker, backendApi, reportStrategy)
-	case digger.None:
-		print("No CI detected.")
-		os.Exit(10)
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println(fmt.Sprintf("stacktrace from panic: \n" + string(debug.Stack())))
-			err := usage.SendLogRecord(logLeader, fmt.Sprintf("Panic occurred. %s", r))
-			if err != nil {
-				log.Printf("Failed to send log record. %s\n", err)
-			}
-			os.Exit(1)
-		}
-	}()
 }
 
 func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber *int) core_storage.PlanStorage {
