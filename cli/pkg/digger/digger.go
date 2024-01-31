@@ -465,6 +465,7 @@ func retrieveOrRunPlanBeforeApply(planStorage storage.PlanStorage, planPathProvi
 	planJson := ""
 
 	if storedPlanExists {
+		log.Printf("Pre-apply plan retrieval: stored plan exists")
 		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.StoredPlanFilePath())
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
@@ -475,6 +476,7 @@ func retrieveOrRunPlanBeforeApply(planStorage storage.PlanStorage, planPathProvi
 		}
 		planJson = string(planBytes)
 	} else {
+		log.Printf("Pre-apply plan retrieval: stored plan not found, running plan afresh")
 		_, planPerformed, isNonEmptyPlan, _, planJsonOutput, err := diggerExecutor.Plan()
 		if err != nil {
 			return "", fmt.Errorf("failed to execute plan. %v", err)
