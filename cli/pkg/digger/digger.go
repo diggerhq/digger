@@ -3,13 +3,14 @@ package digger
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
-	"github.com/goccy/go-json"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/goccy/go-json"
 
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
@@ -359,38 +360,31 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			return nil, comment, fmt.Errorf(comment)
 		} else {
 
-			// Running plan before apply to check against access policy
-			// TODO only run plan if policy check present. Always running plan is slow.
+			// checking policies (plan, access)
 
-			_, planPerformed, isNonEmptyPlan, _, planJsonOutput, err := diggerExecutor.Plan()
+			planJson, err := retrieveOrRunPlanBeforeApply(planStorage, planPathProvider, diggerExecutor)
 			if err != nil {
-				//TODO reuse executor error handling
-				msg := fmt.Sprintf("Failed to run digger apply command. %v", err)
+				msg := fmt.Sprintf("failed plan before apply. %v", err)
 				log.Printf(msg)
-				err := prService.SetStatus(*job.PullRequestNumber, "failure", job.ProjectName+"/apply")
-				if err != nil {
-					msg := fmt.Sprintf("Failed to set PR status. %v", err)
-					return nil, msg, fmt.Errorf(msg)
-				}
 				return nil, msg, fmt.Errorf(msg)
-			} else if planPerformed && isNonEmptyPlan {
-				_, planPolicyViolations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, planJsonOutput)
-				if err != nil {
-					msg := fmt.Sprintf("Failed to validate plan. %v", err)
-					log.Printf(msg)
-					return nil, msg, fmt.Errorf(msg)
-				}
-				allowedToApply, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, planPolicyViolations)
-				if err != nil {
-					msg := fmt.Sprintf("Failed to run plan policy check before apply. %v", err)
-					log.Printf(msg)
-					return nil, msg, fmt.Errorf(msg)
-				}
-				if !allowedToApply {
-					msg := reportPolicyError(job.ProjectName, command, requestedBy, reporter)
-					log.Println(msg)
-					return nil, msg, errors.New(msg)
-				}
+			}
+
+			_, planPolicyViolations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, planJson)
+			if err != nil {
+				msg := fmt.Sprintf("Failed to validate plan. %v", err)
+				log.Printf(msg)
+				return nil, msg, fmt.Errorf(msg)
+			}
+			allowedToApply, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, planPolicyViolations)
+			if err != nil {
+				msg := fmt.Sprintf("Failed to run plan policy check before apply. %v", err)
+				log.Printf(msg)
+				return nil, msg, fmt.Errorf(msg)
+			}
+			if !allowedToApply {
+				msg := reportPolicyError(job.ProjectName, command, requestedBy, reporter)
+				log.Println(msg)
+				return nil, msg, errors.New(msg)
 			}
 
 			// Running apply
@@ -460,6 +454,36 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		return nil, msg, fmt.Errorf(msg)
 	}
 	return nil, "", nil
+}
+
+func retrieveOrRunPlanBeforeApply(planStorage storage.PlanStorage, planPathProvider execution.PlanPathProvider, diggerExecutor execution.LockingExecutorWrapper) (string, error) {
+	storedPlanExists, err := planStorage.PlanExists(planPathProvider.StoredPlanFilePath())
+	if err != nil {
+		return "", fmt.Errorf("failed to check if plan exists. %v", err)
+	}
+
+	planJson := ""
+
+	if storedPlanExists {
+		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.StoredPlanFilePath())
+		if err != nil {
+			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
+		}
+		planBytes, err := os.ReadFile(*storedPlanPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read stored plan file. %v", err)
+		}
+		planJson = string(planBytes)
+	} else {
+		_, planPerformed, isNonEmptyPlan, _, planJsonOutput, err := diggerExecutor.Plan()
+		if err != nil {
+			return "", fmt.Errorf("failed to execute plan. %v", err)
+		} else if planPerformed && isNonEmptyPlan {
+			planJson = planJsonOutput
+		}
+	}
+
+	return planJson, nil
 }
 
 func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {
