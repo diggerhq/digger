@@ -362,12 +362,15 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 			// checking policies (plan, access)
 
-			storedPlanJson, err := retrievePlanBeforeApply(planStorage, planPathProvider, diggerExecutor)
 			var planPolicyViolations []string
-			if err != nil {
-				log.Printf("WARNING: skipping plan policy checks. could not retrieve stored plan before apply. %v", err)
-				planPolicyViolations = []string{}
-			} else {
+
+			if os.Getenv("PLAN_UPLOAD_DESTINATION") != "" {
+				storedPlanJson, err := retrievePlanBeforeApply(planStorage, planPathProvider, diggerExecutor)
+				if err != nil {
+					msg := fmt.Sprintf("Failed to retrieve stored plan. %v", err)
+					log.Printf(msg)
+					return nil, msg, fmt.Errorf(msg)
+				}
 				_, violations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, storedPlanJson)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to check plan policy. %v", err)
@@ -375,6 +378,9 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					return nil, msg, fmt.Errorf(msg)
 				}
 				planPolicyViolations = violations
+			} else {
+				log.Printf("Skipping plan policy checks because plan storage is not configured.")
+				planPolicyViolations = []string{}
 			}
 
 			allowedToApply, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, planPolicyViolations)
@@ -461,7 +467,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider execution.PlanPathProvider, diggerExecutor execution.LockingExecutorWrapper) (string, error) {
 	storedPlanExists, err := planStorage.PlanExists(planPathProvider.StoredPlanFilePath())
 	if err != nil {
-		return "", fmt.Errorf("failed to check if plan exists. %v", err)
+		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
 	}
 	if storedPlanExists {
 		log.Printf("Pre-apply plan retrieval: stored plan exists")
@@ -475,7 +481,7 @@ func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider e
 		}
 		return string(planBytes), nil
 	} else {
-		return "", fmt.Errorf("s. %v", err)
+		return "", fmt.Errorf("stored plan does not exist")
 	}
 }
 
