@@ -36,11 +36,14 @@ on:
         required: false
       job:
         required: true
+      comment_id:
+        required: true
 jobs:
   digger-job:
     runs-on: ubuntu-latest
     permissions:    
       contents: write      # required to merge PRs
+      actions: write       # required for plan persistence
       id-token: write      # required for workload-identity-federation
       pull-requests: write # required to post PR comments
       statuses: write      # required to validate combined PR status
