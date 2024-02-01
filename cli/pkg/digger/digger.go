@@ -266,11 +266,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			return nil, msg, fmt.Errorf(msg)
 		}
 		planSummary, planPerformed, isNonEmptyPlan, plan, planJsonOutput, err := diggerExecutor.Plan()
-		result := execution.DiggerExecutorResult{
-			PlanResult: &execution.DiggerExecutorPlanResult{
-				PlanSummary: *planSummary,
-			},
-		}
 
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Run digger plan command. %v", err)
@@ -281,8 +276,13 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				return nil, msg, fmt.Errorf(msg)
 			}
 
-			return &result, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf(msg)
 		} else if planPerformed {
+			result := execution.DiggerExecutorResult{
+				PlanResult: &execution.DiggerExecutorPlanResult{
+					PlanSummary: *planSummary,
+				},
+			}
 			if isNonEmptyPlan {
 				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, planJsonOutput)
