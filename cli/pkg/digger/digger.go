@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -465,6 +466,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 }
 
 func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider execution.PlanPathProvider, diggerExecutor execution.LockingExecutorWrapper) (string, error) {
+	log.Printf("Fetching plan from path: %v", planPathProvider.StoredPlanFilePath())
 	storedPlanExists, err := planStorage.PlanExists(planPathProvider.StoredPlanFilePath())
 	if err != nil {
 		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
