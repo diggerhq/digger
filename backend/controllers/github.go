@@ -467,12 +467,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		impactedJobsMap[j.ProjectName] = j
 	}
 
-	//repo, err := GetRepoByInstllationId(installationId, repoOwner, repoName)
-	//if err != nil {
-	//	log.Printf("GetRepoByInstallationId error: %v", err)
-	//	utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: GetRepoByInstallationId error: %v", err))
-	//	return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
-	//}
 	batchType := getBatchType(jobsForImpactedProjects)
 	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr, batchType)
 	if err != nil {
