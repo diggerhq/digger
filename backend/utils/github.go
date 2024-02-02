@@ -27,7 +27,7 @@ func createTempDir() string {
 	return tempDir
 }
 
-type action func(string)
+type action func(string) error
 
 func CloneGitRepoAndDoAction(repoUrl string, branch string, token string, action action) error {
 	dir := createTempDir()
@@ -50,10 +50,14 @@ func CloneGitRepoAndDoAction(repoUrl string, branch string, token string, action
 		log.Printf("PlainClone error: %v\n", err)
 		return err
 	}
-
-	action(dir)
-
 	defer os.RemoveAll(dir)
+
+	err = action(dir)
+	if err != nil {
+		log.Printf("error performing action: %v", err)
+		return err
+	}
+
 	return nil
 
 }
