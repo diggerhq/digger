@@ -9,16 +9,13 @@
             <div class="card-body">
 
                 {{template "notifications" . }}
-                <form method="POST">
-                    <div class="row">
-                        <div class="col">
-                            <div class="mb-3"><label class="form-label" ><strong>Digger Config</strong></label>
-                                <textarea class="form-control prism-live language-yaml" type="text" id="diggerconfig" name="diggerconfig">{{.Repo.DiggerConfig}}</textarea>
-                            </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="mb-3"><label class="form-label" ><strong>Digger Config</strong></label>
+                            <textarea class="form-control prism-live language-yaml" type="text" id="diggerconfig" name="diggerconfig" readonly>{{.Repo.DiggerConfig}}</textarea>
                         </div>
                     </div>
-                    <div class="mb-3"><button class="btn btn-primary btn-sm" type="submit">Update</button></div>
-                </form>
+                </div>
             </div>
         </div>
     </div>

@@ -95,6 +95,14 @@ func GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
+	case *github.PushEvent:
+		log.Printf("Got push event for %d", event.Repo.URL)
+		err := handlePushEvent(gh, event)
+		if err != nil {
+			log.Printf("handlePushEvent error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
 		err := handlePullRequestEvent(gh, event)
@@ -347,6 +355,53 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 			return err
 		}
 	}
+	return nil
+}
+
+func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) error {
+	installationId := *payload.Installation.ID
+	repoName := *payload.Repo.Name
+	repoFullName := *payload.Repo.FullName
+	repoOwner := *payload.Repo.Owner.Login
+	cloneURL := *payload.Repo.CloneURL
+	ref := *payload.Ref
+	defaultBranch := *payload.Repo.DefaultBranch
+
+	if strings.HasSuffix(ref, defaultBranch) {
+		link, err := models.DB.GetGithubAppInstallationLink(installationId)
+		if err != nil {
+			log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
+			return fmt.Errorf("error getting github app link")
+		}
+
+		orgId := link.OrganisationId
+		diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
+		repo, err := models.DB.GetRepo(orgId, diggerRepoName)
+		if err != nil {
+			log.Printf("Error getting Repo: %v", err)
+			return fmt.Errorf("error getting github app link")
+		}
+		if repo == nil {
+			log.Printf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
+			return fmt.Errorf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
+		}
+
+		_, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+		if err != nil {
+			log.Printf("Error getting github service: %v", err)
+			return fmt.Errorf("error getting github service")
+		}
+		utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
+			dat, err := os.ReadFile(path.Join(dir, "digger.yml"))
+			//TODO: fail here and return failure to main fn (need to refactor CloneGitRepoAndDoAction for that
+			if err != nil {
+				log.Printf("ERROR fetching digger.yml file: %v", err)
+			}
+			models.DB.UpdateRepoDiggerConfig(link.OrganisationId, string(dat), repo)
+			return nil
+		})
+	}
+
 	return nil
 }
 
