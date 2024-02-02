@@ -504,23 +504,8 @@ func getDiggerConfig(gh utils.GithubClientProvider, installationId int64, repoFu
 		return "", nil, nil, nil, nil, fmt.Errorf("error getting branch name")
 	}
 
-	//repo, err := GetRepoByInstllationId(installationId, repoOwner, repoName)
-	//if err != nil {
-	//	return nil, nil, nil, nil, err
-	//}
-	//if err != nil {
-	//	log.Printf("Error getting repo: %v", err)
-	//	return nil, nil, nil, nil, fmt.Errorf("error getting repo")
-	//}
-
-	//configYaml, err := dg_configuration.LoadDiggerConfigYamlFromString(repo.DiggerConfig)
-	//if err != nil {
-	//	log.Printf("Error loading digger config: %v", err)
-	//	return nil, nil, nil, nil, fmt.Errorf("error loading digger config")
-	//}
 	var config *dg_configuration.DiggerConfig
 	var diggerYmlStr string
-	//var configYaml *dg_configuration.DiggerConfigYaml
 	var dependencyGraph graph.Graph[string, dg_configuration.Project]
 	err = utils.CloneGitRepoAndDoAction(cloneUrl, prBranch, *token, func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
@@ -531,7 +516,6 @@ func getDiggerConfig(gh utils.GithubClientProvider, installationId int64, repoFu
 			return err
 		}
 		return nil
-		//dg_configuration.HandleYamlProjectGeneration(configYaml, dir)
 	})
 	if err != nil {
 		log.Printf("Error generating projects: %v", err)
@@ -539,14 +523,6 @@ func getDiggerConfig(gh utils.GithubClientProvider, installationId int64, repoFu
 	}
 
 	log.Printf("Digger config loadded successfully\n")
-
-	//config, dependencyGraph, err := loadDiggerConfig(configYaml)
-	//
-	//if err != nil {
-	//	log.Printf("Error loading digger config: %v", err)
-	//	return nil, nil, nil, nil, fmt.Errorf("error loading digger config")
-	//}
-	//log.Printf("Digger config parsed successfully\n")
 	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, nil
 }
 
@@ -659,11 +635,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		impactedProjectsJobMap[j.ProjectName] = j
 	}
 
-	//repo, err := GetRepoByInstllationId(installationId, repoOwner, repoName)
-	//if err != nil {
-	//	log.Printf("GetRepoByInstallationId error: %v", err)
-	//	return fmt.Errorf("error converting jobs, GetRepoByInstallationId error: %v", err)
-	//}
 	batchType := getBatchType(jobs)
 	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr, batchType)
 	if err != nil {
