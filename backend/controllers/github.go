@@ -95,19 +95,19 @@ func GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-	case *github.PushEvent:
-		log.Printf("Got push event for %d", event.Repo.URL)
-		err := handlePushEvent(gh, event)
-		if err != nil {
-			log.Printf("handlePushEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
 		err := handlePullRequestEvent(gh, event)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+	case *github.PushEvent:
+		log.Printf("Got push event for %d", event.Repo.URL)
+		err := handlePushEvent(gh, event)
+		if err != nil {
+			log.Printf("handlePushEvent error: %v", err)
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
