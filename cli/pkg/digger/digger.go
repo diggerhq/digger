@@ -266,11 +266,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			return nil, msg, fmt.Errorf(msg)
 		}
 		planSummary, planPerformed, isNonEmptyPlan, plan, planJsonOutput, err := diggerExecutor.Plan()
-		result := execution.DiggerExecutorResult{
-			PlanResult: &execution.DiggerExecutorPlanResult{
-				PlanSummary: *planSummary,
-			},
-		}
 
 		if err != nil {
 			msg := fmt.Sprintf("Failed to run digger plan command. %v", err)
@@ -280,8 +275,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				msg := fmt.Sprintf("Failed to set PR status. %v", err)
 				return nil, msg, fmt.Errorf(msg)
 			}
-
-			return &result, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf(msg)
 		} else if planPerformed {
 			if isNonEmptyPlan {
 				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
@@ -326,6 +320,11 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			if err != nil {
 				msg := fmt.Sprintf("Failed to set PR status. %v", err)
 				return nil, msg, fmt.Errorf(msg)
+			}
+			result := execution.DiggerExecutorResult{
+				PlanResult: &execution.DiggerExecutorPlanResult{
+					PlanSummary: *planSummary,
+				},
 			}
 			return &result, plan, nil
 		}
