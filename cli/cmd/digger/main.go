@@ -146,7 +146,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %v", reportingError)
 			}
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 5)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
@@ -159,7 +159,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %v", reportingError)
 			}
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 5)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 	}
