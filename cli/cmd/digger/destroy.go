@@ -37,7 +37,7 @@ var destroyCmd = &cobra.Command{
 
 func init() {
 	flags := []pflag.Flag{
-		{Name: "github-token", Usage: "The namespace of this repo"},
+		{Name: "github-token", Usage: "Github token (for github reporter)"},
 		{Name: "repo-namespace", Usage: "The namespace of this repo"},
 		{Name: "actor", Usage: "The actor of this command"},
 		{Name: "reporter", Usage: "The reporter to use (defaults to stdout)"},

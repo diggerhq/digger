@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
-	"github.com/diggerhq/digger/cli/pkg/generic_ci"
 	"log"
 	"net/http"
 	"os"
@@ -227,7 +226,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, currentDir)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
 
@@ -256,7 +255,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			}
 			err := digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, currentDir)
 			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
 		}
 	} else {
@@ -323,7 +322,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
@@ -511,7 +510,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
 	if diggerConfig.AutoMerge && allAppliesSuccess && atLeastOneApply && coversAllImpactedProjects {
@@ -608,7 +607,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 		}
 		err := digger.RunJob(jobs, repository, actor, &bitbucketService, policyChecker, planStorage, backendApi, currentDir)
 		if err != nil {
-			reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+			reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
 
@@ -637,7 +636,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			}
 			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
 		}
 	} else {
@@ -667,7 +666,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				}
 				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
 				if err != nil {
-					reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 				}
 			}
 		} else if os.Getenv("BITBUCKET_PR_ID") == "" {
@@ -694,7 +693,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				}
 				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
 				if err != nil {
-					reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 				}
 			}
 		} else if os.Getenv("BITBUCKET_PR_ID") != "" {
@@ -757,7 +756,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to plan commands. %s", err), 8)
+				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
 		} else {
 			reportErrorAndExit(actor, "Failed to detect running mode", 1)
@@ -786,7 +785,7 @@ func exec(actor string, projectName string, repoNamespace string, command string
 	}
 	//impactedProjects := diggerConfig.GetModifiedProjects(strings.Split(runConfig.FilesChanged, ","))
 	impactedProjects := diggerConfig.GetProjects(projectName)
-	jobs, _, err := generic_ci.ConvertToCommands(actor, repoNamespace, command, prNumber, impactedProjects, nil, diggerConfig.Workflows)
+	jobs, _, err := orchestrator.ConvertProjectsToJobs(actor, repoNamespace, command, prNumber, impactedProjects, nil, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
 	}
