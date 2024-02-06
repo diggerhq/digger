@@ -193,7 +193,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		project := os.Getenv("INPUT_DIGGER_PROJECT")
 		if project == "" {
-			reportErrorAndExit(githubActor, "provide 'project' to plan in 'manual' mode", 2)
+			reportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
 		var projectConfig digger_config.Project
@@ -570,11 +570,11 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	if runningMode == "manual" {
 		command := os.Getenv("INPUT_DIGGER_COMMAND")
 		if command == "" {
-			reportErrorAndExit(actor, "provide 'command' to plan in 'manual' mode", 1)
+			reportErrorAndExit(actor, "provide 'command' to run in 'manual' mode", 1)
 		}
 		project := os.Getenv("INPUT_DIGGER_PROJECT")
 		if project == "" {
-			reportErrorAndExit(actor, "provide 'project' to plan in 'manual' mode", 2)
+			reportErrorAndExit(actor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
 		var projectConfig digger_config.Project
