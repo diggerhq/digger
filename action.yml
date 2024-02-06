@@ -205,7 +205,7 @@ runs:
       if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume != '' }}
 
     - name: Configure OIDC Azure credentials
-      uses: azure/login@v1.5.1
+      uses: azure/login@v1.6.1
       with:
           client-id: ${{ inputs.azure-client-id }}
           tenant-id: ${{ inputs.azure-tenant-id }}
@@ -230,7 +230,7 @@ runs:
       if: inputs.setup-terragrunt == 'true'
 
     - name: Setup OpenTofu
-      uses: opentofu/setup-opentofu@v1.0.1
+      uses: opentofu/setup-opentofu@v1.0.2
       with:
         tofu_version: ${{ inputs.opentofu-version }}
       if: inputs.setup-opentofu == 'true'
