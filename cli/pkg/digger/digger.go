@@ -280,11 +280,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 			return nil, msg, fmt.Errorf(msg)
 		} else if planPerformed {
-			result := execution.DiggerExecutorResult{
-				PlanResult: &execution.DiggerExecutorPlanResult{
-					PlanSummary: *planSummary,
-				},
-			}
 			if isNonEmptyPlan {
 				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, planJsonOutput)
