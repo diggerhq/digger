@@ -27,7 +27,7 @@ require (
 	github.com/samber/lo v1.39.0
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
-	github.com/stripe/stripe-go/v76 v76.12.0
+	github.com/stripe/stripe-go/v76 v76.15.0
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 	golang.org/x/oauth2 v0.16.0
 	gorm.io/driver/postgres v1.5.4
