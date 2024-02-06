@@ -1,17 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/backend"
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
+	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
+	github_pkg "github.com/diggerhq/digger/cli/pkg/github"
 	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/reporting"
+	"github.com/diggerhq/digger/libs/orchestrator"
+	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -22,6 +28,38 @@ type RunConfig struct {
 	CommentID     string `mapstructure:"comment-id"`
 	Actor         string `mapstructure:"actor"`
 	GithubToken   string `mapstructure:"github-token"`
+}
+
+func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrator.OrgService, *core_reporting.Reporter, error) {
+	var prService orchestrator.PullRequestService
+	var orgService orchestrator.OrgService
+	var reporter core_reporting.Reporter
+	switch r.Reporter {
+	case "github":
+		splitRepositoryName := strings.Split(r.RepoNamespace, "/")
+		repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
+		prService = orchestrator_github.NewGitHubService(r.GithubToken, repositoryName, repoOwner)
+		orgService = orchestrator_github.NewGitHubService(r.GithubToken, r.RepoNamespace, r.Actor)
+		reporter = &reporting.CiReporter{
+			CiService:         prService,
+			ReportStrategy:    ReportStrategy,
+			PrNumber:          r.PRNumber,
+			IsSupportMarkdown: true,
+		}
+	case "stdout":
+		print("Using Stdout.")
+		reporter = &reporting.StdoutReporter{
+			ReportStrategy:    ReportStrategy,
+			IsSupportMarkdown: true,
+		}
+		prService = github_pkg.MockCiService{}
+		orgService = github_pkg.MockCiService{}
+	default:
+		return nil, nil, nil, fmt.Errorf("unknown reporter: %v", r.Reporter)
+
+	}
+
+	return &prService, &orgService, &reporter, nil
 }
 
 var PolicyChecker core_policy.Checker

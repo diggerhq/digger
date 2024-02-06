@@ -170,7 +170,6 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 		log.Fatalf("error getting pull request: %v", err)
 		return false, err
 	}
-
 	return pr.GetMergeable() && isMergeableState(pr.GetMergeableState()), nil
 }
 
