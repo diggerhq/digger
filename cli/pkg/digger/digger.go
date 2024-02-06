@@ -256,6 +256,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	}
 
 	switch command {
+
 	case "digger plan":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "plan")
 		if err != nil {
@@ -421,6 +422,21 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			return &result, output, nil
 		}
+	case "digger destroy":
+		err := usage.SendUsageRecord(requestedBy, job.EventName, "destroy")
+		if err != nil {
+			log.Printf("Failed to send usage report. %v", err)
+		}
+		_, err = diggerExecutor.Destroy()
+
+		if err != nil {
+			log.Printf("Failed to Run digger destroy command. %v", err)
+			msg := fmt.Sprintf("failed to run digger destroy command: %v", err)
+			return nil, msg, fmt.Errorf("failed to Run digger apply command. %v", err)
+		}
+		result := execution.DiggerExecutorResult{}
+		return &result, "", nil
+
 	case "digger unlock":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "unlock")
 		if err != nil {
