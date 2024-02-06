@@ -329,6 +329,11 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				msg := fmt.Sprintf("Failed to set PR status. %v", err)
 				return nil, msg, fmt.Errorf(msg)
 			}
+			result := execution.DiggerExecutorResult{
+				PlanResult: &execution.DiggerExecutorPlanResult{
+					PlanSummary: *planSummary,
+				},
+			}
 			return &result, plan, nil
 		}
 	case "digger apply":
