@@ -16,6 +16,11 @@ type CiReporter struct {
 	ReportStrategy    ReportStrategy
 }
 
+type StdoutReporter struct {
+	IsSupportMarkdown bool
+	ReportStrategy    ReportStrategy
+}
+
 func (ciReporter *CiReporter) Report(report string, reportFormatter func(report string) string) error {
 	return ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatter, ciReporter.SupportsMarkdown())
 }
@@ -120,4 +125,13 @@ type MultipleCommentsStrategy struct{}
 func (strategy *MultipleCommentsStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, formatter func(string) string, supportsMarkdown bool) error {
 	_, err := ciService.PublishComment(PrNumber, formatter(report))
 	return err
+}
+
+func (ciReporter *StdoutReporter) Report(report string, reportFormatting func(report string) string) error {
+	log.Printf("Info: %v", report)
+	return nil
+}
+
+func (ciReporter *StdoutReporter) SupportsMarkdown() bool {
+	return ciReporter.IsSupportMarkdown
 }

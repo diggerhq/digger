@@ -32,7 +32,7 @@ type GithubService struct {
 	Owner    string
 }
 
-func (svc *GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
+func (svc GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
 	teamsResponse, _, err := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list github teams: %v", err)
@@ -51,7 +51,7 @@ func (svc *GithubService) GetUserTeams(organisation string, user string) ([]stri
 	return teams, nil
 }
 
-func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
+func (svc GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	var fileNames []string
 	opts := github.ListOptions{PerPage: 100}
 	for {
@@ -74,12 +74,12 @@ func (svc *GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	return fileNames, nil
 }
 
-func (svc *GithubService) PublishComment(prNumber int, comment string) (int64, error) {
+func (svc GithubService) PublishComment(prNumber int, comment string) (int64, error) {
 	githubComment, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
 	return *githubComment.ID, err
 }
 
-func (svc *GithubService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+func (svc GithubService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	comments, _, err := svc.Client.Issues.ListComments(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueListCommentsOptions{ListOptions: github.ListOptions{PerPage: 100}})
 	commentBodies := make([]orchestrator.Comment, len(comments))
 	for i, comment := range comments {
@@ -91,7 +91,7 @@ func (svc *GithubService) GetComments(prNumber int) ([]orchestrator.Comment, err
 	return commentBodies, err
 }
 
-func (svc *GithubService) GetApprovals(prNumber int) ([]string, error) {
+func (svc GithubService) GetApprovals(prNumber int) ([]string, error) {
 	reviews, _, err := svc.Client.PullRequests.ListReviews(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.ListOptions{})
 	approvals := make([]string, 0)
 	for _, review := range reviews {
@@ -102,13 +102,13 @@ func (svc *GithubService) GetApprovals(prNumber int) ([]string, error) {
 	return approvals, err
 }
 
-func (svc *GithubService) EditComment(prNumber int, id interface{}, comment string) error {
+func (svc GithubService) EditComment(prNumber int, id interface{}, comment string) error {
 	commentId := id.(int64)
 	_, _, err := svc.Client.Issues.EditComment(context.Background(), svc.Owner, svc.RepoName, commentId, &github.IssueComment{Body: &comment})
 	return err
 }
 
-func (svc *GithubService) SetStatus(prNumber int, status string, statusContext string) error {
+func (svc GithubService) SetStatus(prNumber int, status string, statusContext string) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -122,7 +122,7 @@ func (svc *GithubService) SetStatus(prNumber int, status string, statusContext s
 	return err
 }
 
-func (svc *GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -136,7 +136,7 @@ func (svc *GithubService) GetCombinedPullRequestStatus(prNumber int) (string, er
 	return *statuses.State, nil
 }
 
-func (svc *GithubService) MergePullRequest(prNumber int) error {
+func (svc GithubService) MergePullRequest(prNumber int) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -164,17 +164,16 @@ func isMergeableState(mergeableState string) bool {
 	return exists
 }
 
-func (svc *GithubService) IsMergeable(prNumber int) (bool, error) {
+func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
 		return false, err
 	}
-
 	return pr.GetMergeable() && isMergeableState(pr.GetMergeableState()), nil
 }
 
-func (svc *GithubService) IsMerged(prNumber int) (bool, error) {
+func (svc GithubService) IsMerged(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -183,7 +182,7 @@ func (svc *GithubService) IsMerged(prNumber int) (bool, error) {
 	return *pr.Merged, nil
 }
 
-func (svc *GithubService) IsClosed(prNumber int) (bool, error) {
+func (svc GithubService) IsClosed(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
@@ -193,7 +192,7 @@ func (svc *GithubService) IsClosed(prNumber int) (bool, error) {
 	return pr.GetState() == "closed", nil
 }
 
-func (svc *GithubService) GetBranchName(prNumber int) (string, error) {
+func (svc GithubService) GetBranchName(prNumber int) (string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
