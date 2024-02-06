@@ -189,7 +189,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if runningMode == "manual" {
 		command := os.Getenv("INPUT_DIGGER_COMMAND")
 		if command == "" {
-			reportErrorAndExit(githubActor, "provide 'command' to plan in 'manual' mode", 1)
+			reportErrorAndExit(githubActor, "provide 'command' to run in 'manual' mode", 1)
 		}
 		project := os.Getenv("INPUT_DIGGER_PROJECT")
 		if project == "" {
