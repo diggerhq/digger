@@ -768,7 +768,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	reportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
-func exec(actor string, projectName string, repoNamespace string, command string, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter core_reporting.Reporter, backendApi core_backend.Api) {
+func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter core_reporting.Reporter, backendApi core_backend.Api) {
 
 	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
 	currentDir, err := os.Getwd()
@@ -786,7 +786,7 @@ func exec(actor string, projectName string, repoNamespace string, command string
 	}
 	//impactedProjects := diggerConfig.GetModifiedProjects(strings.Split(runConfig.FilesChanged, ","))
 	impactedProjects := diggerConfig.GetProjects(projectName)
-	jobs, _, err := generic_ci.ConvertToCommands(actor, repoNamespace, command, impactedProjects, nil, diggerConfig.Workflows)
+	jobs, _, err := generic_ci.ConvertToCommands(actor, repoNamespace, command, prNumber, impactedProjects, nil, diggerConfig.Workflows)
 	if err != nil {
 		reportErrorAndExit(actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
 	}

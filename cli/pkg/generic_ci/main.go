@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-func ConvertToCommands(actor string, repoNamespace string, command string, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
+func ConvertToCommands(actor string, repoNamespace string, command string, prNumber int, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
 	jobs := make([]orchestrator.Job, 0)
 
 	log.Printf("ConvertToCommands, command: %s\n", command)
@@ -17,7 +17,6 @@ func ConvertToCommands(actor string, repoNamespace string, command string, impac
 			return nil, true, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 		}
 
-		prNum := 1
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 		StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
 		jobs = append(jobs, orchestrator.Job{
@@ -31,7 +30,7 @@ func ConvertToCommands(actor string, repoNamespace string, command string, impac
 			ApplyStage: orchestrator.ToConfigStage(workflow.Apply),
 			PlanStage:  orchestrator.ToConfigStage(workflow.Plan),
 			// TODO:
-			PullRequestNumber:  &prNum,
+			PullRequestNumber:  &prNumber,
 			EventName:          "manual_run",
 			RequestedBy:        actor,
 			Namespace:          repoNamespace,
