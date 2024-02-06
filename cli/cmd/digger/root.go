@@ -11,13 +11,13 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/reporting"
+	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -36,8 +36,7 @@ func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrat
 	var reporter core_reporting.Reporter
 	switch r.Reporter {
 	case "github":
-		splitRepositoryName := strings.Split(r.RepoNamespace, "/")
-		repoOwner, repositoryName := splitRepositoryName[0], splitRepositoryName[1]
+		repoOwner, repositoryName := utils.ParseRepoNamespace(r.RepoNamespace)
 		prService = orchestrator_github.NewGitHubService(r.GithubToken, repositoryName, repoOwner)
 		orgService = orchestrator_github.NewGitHubService(r.GithubToken, r.RepoNamespace, r.Actor)
 		reporter = &reporting.CiReporter{
