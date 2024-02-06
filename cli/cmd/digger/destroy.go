@@ -12,26 +12,26 @@ import (
 	"strings"
 )
 
-var vipPlan *viper.Viper
+var vipDestroy *viper.Viper
 
-func plan(actor string, projectName string, repoNamespace string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, reporter core_reporting.Reporter, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, backendApi core_backend.Api) {
-	exec(actor, projectName, repoNamespace, "digger plan", prNumber, lock, policyChecker, prService, orgService, reporter, backendApi)
+func destroy(actor string, projectName string, repoNamespace string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, reporter core_reporting.Reporter, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, backendApi core_backend.Api) {
+	exec(actor, projectName, repoNamespace, "digger destroy", prNumber, lock, policyChecker, prService, orgService, reporter, backendApi)
 }
 
-var planCmd = &cobra.Command{
-	Use:   "plan project_name [flags]",
-	Short: "Plan a project, if no project specified it will plan for all projects",
-	Long:  `Plan a project, if no project specified it will plan for all projects`,
+var destroyCmd = &cobra.Command{
+	Use:   "destroy project_name [flags]",
+	Short: "Destroy a project",
+	Long:  `Destroy a project`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var runConfig RunConfig
-		vipPlan.Unmarshal(&runConfig)
+		vipDestroy.Unmarshal(&runConfig)
 
 		prService, orgService, reporter, err := runConfig.GetServices()
 		if err != nil {
 			reportErrorAndExit(runConfig.Actor, "Unrecognised reporter: "+runConfig.Reporter, 1)
 		}
 
-		plan(runConfig.Actor, args[0], runConfig.RepoNamespace, runConfig.PRNumber, lock, PolicyChecker, *reporter, *prService, *orgService, BackendApi)
+		destroy(runConfig.Actor, args[0], runConfig.RepoNamespace, runConfig.PRNumber, lock, PolicyChecker, *reporter, *prService, *orgService, BackendApi)
 	},
 }
 
@@ -45,15 +45,15 @@ func init() {
 		{Name: "comment-id", Usage: "The PR comment for reporting"},
 	}
 
-	vipPlan = viper.New()
-	vipPlan.SetEnvPrefix("DIGGER")
-	vipPlan.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	vipPlan.AutomaticEnv()
+	vipDestroy = viper.New()
+	vipDestroy.SetEnvPrefix("DIGGER")
+	vipDestroy.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	vipDestroy.AutomaticEnv()
 
 	for _, flag := range flags {
-		planCmd.Flags().String(flag.Name, "", flag.Usage)
-		vipPlan.BindPFlag(flag.Name, planCmd.Flags().Lookup(flag.Name))
+		destroyCmd.Flags().String(flag.Name, "", flag.Usage)
+		vipDestroy.BindPFlag(flag.Name, destroyCmd.Flags().Lookup(flag.Name))
 	}
 
-	rootCmd.AddCommand(planCmd)
+	rootCmd.AddCommand(destroyCmd)
 }
