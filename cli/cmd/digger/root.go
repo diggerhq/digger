@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/backend"
+	"github.com/diggerhq/digger/cli/pkg/bitbucket"
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
@@ -22,12 +23,13 @@ import (
 )
 
 type RunConfig struct {
-	RepoNamespace string `mapstructure:"repo-namespace"`
-	Reporter      string `mapstructure:"reporter"`
-	PRNumber      int    `mapstructure:"pr-number"`
-	CommentID     string `mapstructure:"comment-id"`
-	Actor         string `mapstructure:"actor"`
-	GithubToken   string `mapstructure:"github-token"`
+	RepoNamespace  string `mapstructure:"repo-namespace"`
+	Reporter       string `mapstructure:"reporter"`
+	PRNumber       int    `mapstructure:"pr-number"`
+	CommentID      string `mapstructure:"comment-id"`
+	Actor          string `mapstructure:"actor"`
+	GithubToken    string `mapstructure:"github-token"`
+	BitbucketToken string `mapstructure:"bitbucket-token"`
 }
 
 func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrator.OrgService, *core_reporting.Reporter, error) {
@@ -45,6 +47,27 @@ func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrat
 			PrNumber:          r.PRNumber,
 			IsSupportMarkdown: true,
 		}
+	case "bitbucket":
+		repoOwner, repositoryName := utils.ParseRepoNamespace(r.RepoNamespace)
+		prService = bitbucket.BitbucketAPI{
+			AuthToken:     r.BitbucketToken,
+			HttpClient:    http.Client{},
+			RepoWorkspace: repoOwner,
+			RepoName:      repositoryName,
+		}
+		orgService = bitbucket.BitbucketAPI{
+			AuthToken:     "",
+			HttpClient:    http.Client{},
+			RepoWorkspace: repoOwner,
+			RepoName:      repositoryName,
+		}
+		reporter = &reporting.CiReporter{
+			CiService:         prService,
+			ReportStrategy:    ReportStrategy,
+			PrNumber:          r.PRNumber,
+			IsSupportMarkdown: false,
+		}
+
 	case "stdout":
 		print("Using Stdout.")
 		reporter = &reporting.StdoutReporter{
