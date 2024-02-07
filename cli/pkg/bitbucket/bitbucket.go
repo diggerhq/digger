@@ -71,7 +71,7 @@ type DiffStat struct {
 	Size int `json:"size"`
 }
 
-func (b *BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
+func (b BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/diffstat", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -97,7 +97,7 @@ func (b *BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
 	return files, nil
 }
 
-func (b *BitbucketAPI) PublishComment(prNumber int, comment string) (int64, error) {
+func (b BitbucketAPI) PublishComment(prNumber int, comment string) (int64, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	commentBody := map[string]interface{}{
@@ -124,7 +124,7 @@ func (b *BitbucketAPI) PublishComment(prNumber int, comment string) (int64, erro
 	return 0, nil
 }
 
-func (b *BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) error {
+func (b BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) error {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments/%s", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber, id)
 
 	commentBody := map[string]string{
@@ -163,7 +163,7 @@ type Comment struct {
 	} `json:"values"`
 }
 
-func (b *BitbucketAPI) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+func (b BitbucketAPI) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
@@ -196,7 +196,7 @@ func (b *BitbucketAPI) GetComments(prNumber int) ([]orchestrator.Comment, error)
 
 }
 
-func (svc *BitbucketAPI) GetApprovals(prNumber int) ([]string, error) {
+func (svc BitbucketAPI) GetApprovals(prNumber int) ([]string, error) {
 	approvals := make([]string, 0)
 	// TODO: implement me
 	return approvals, nil
@@ -211,7 +211,7 @@ type PullRequest struct {
 	}
 }
 
-func (b *BitbucketAPI) SetStatus(prNumber int, status string, statusContext string) error {
+func (b BitbucketAPI) SetStatus(prNumber int, status string, statusContext string) error {
 	prUrl := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", prUrl, nil)
@@ -275,7 +275,7 @@ type CommitStatuses struct {
 	} `json:"values"`
 }
 
-func (b *BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/commit/%d/statuses", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -342,7 +342,7 @@ func (b *BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error
 
 }
 
-func (b *BitbucketAPI) MergePullRequest(prNumber int) error {
+func (b BitbucketAPI) MergePullRequest(prNumber int) error {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/merge", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("POST", url, nil)
@@ -358,7 +358,7 @@ func (b *BitbucketAPI) MergePullRequest(prNumber int) error {
 	return nil
 }
 
-func (b *BitbucketAPI) IsMergeable(prNumber int) (bool, error) {
+func (b BitbucketAPI) IsMergeable(prNumber int) (bool, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -383,7 +383,7 @@ func (b *BitbucketAPI) IsMergeable(prNumber int) (bool, error) {
 	return pullRequest.State == "OPEN", nil
 }
 
-func (b *BitbucketAPI) IsMerged(prNumber int) (bool, error) {
+func (b BitbucketAPI) IsMerged(prNumber int) (bool, error) {
 
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
@@ -409,7 +409,7 @@ func (b *BitbucketAPI) IsMerged(prNumber int) (bool, error) {
 	return pullRequest.State == "MERGED", nil
 }
 
-func (b *BitbucketAPI) IsClosed(prNumber int) (bool, error) {
+func (b BitbucketAPI) IsClosed(prNumber int) (bool, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -434,7 +434,7 @@ func (b *BitbucketAPI) IsClosed(prNumber int) (bool, error) {
 	return pullRequest.State != "OPEN", nil
 }
 
-func (b *BitbucketAPI) GetBranchName(prNumber int) (string, error) {
+func (b BitbucketAPI) GetBranchName(prNumber int) (string, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -465,7 +465,7 @@ func (b *BitbucketAPI) GetBranchName(prNumber int) (string, error) {
 
 // Implement the OrgService interface.
 
-func (b *BitbucketAPI) GetUserTeams(organisation string, user string) ([]string, error) {
+func (b BitbucketAPI) GetUserTeams(organisation string, user string) ([]string, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
