@@ -1,5 +1,7 @@
 package orchestrator
 
+import "slices"
+
 type StepJson struct {
 	Action    string   `json:"action"`
 	ExtraArgs []string `json:"extraArgs"`
@@ -23,6 +25,14 @@ type JobJson struct {
 	Namespace         string            `json:"namespace"`
 	StateEnvVars      map[string]string `json:"stateEnvVars"`
 	CommandEnvVars    map[string]string `json:"commandEnvVars"`
+}
+
+func (j *JobJson) IsPlan() bool {
+	return slices.Contains(j.Commands, "digger plan")
+}
+
+func (j *JobJson) IsApply() bool {
+	return slices.Contains(j.Commands, "digger apply")
 }
 
 func JobToJson(job Job) JobJson {

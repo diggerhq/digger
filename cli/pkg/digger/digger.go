@@ -163,15 +163,15 @@ func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService
 
 	message := ":construction_worker: Jobs status:\n\n"
 	for _, job := range jobs {
-
 		var jobSpec orchestrator.JobJson
+		isPlan := jobSpec.IsPlan()
 		err := json.Unmarshal(job.JobString, &jobSpec)
 		if err != nil {
 			log.Printf("Failed to convert unmarshall Serialized job")
 		}
 
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString())
+		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan))
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
 	}
 
