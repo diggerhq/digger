@@ -86,7 +86,11 @@ type SerializedBatch struct {
 	Jobs         []SerializedJob   `json:"jobs"`
 }
 
-func (s *SerializedJob) ResourcesSummaryString() string {
+func (s *SerializedJob) ResourcesSummaryString(isPlan bool) string {
+	if !isPlan {
+		return ""
+	}
+
 	if s.Status == DiggerJobSucceeded {
 		return fmt.Sprintf(" [Resources: %v to create, %v to update, %v to delete]", s.ResourcesCreated, s.ResourcesUpdated, s.ResourcesDeleted)
 	} else {
