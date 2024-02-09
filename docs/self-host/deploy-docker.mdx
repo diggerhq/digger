@@ -20,7 +20,7 @@ Using Docker compose is the easiest way to try digger quickly on a machine.
 You can fetch the docker image using the instructions on [github packages](https://github.com/diggerhq/digger/pkgs/container/digger_backend):
 
 ```
-docker pull ghcr.io/diggerhq/digger_backend:latest
+docker pull digger.docker.scarf.sh/diggerhq/digger_backend:latest
 ```
 
 # Set initial environment variables
@@ -38,7 +38,7 @@ HTTP_BASIC_AUTH_PASSWORD=$(openssl rand -base64 12)
 # Start the service
 
 ```
-docker run --env-file .env -p 3000:3000 ghcr.io/diggerhq/digger_backend:latest
+docker run --env-file .env -p 3000:3000 digger.docker.scarf.sh/diggerhq/digger_backend:latest
 ```
 You should now see initial database migrations and tables being created. Go to your_digger_hostname:3000/projects; you should see the dashboard. The setup is not complete yet!
 
