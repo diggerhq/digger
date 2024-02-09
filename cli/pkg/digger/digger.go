@@ -165,11 +165,11 @@ func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService
 	message := ":construction_worker: Jobs status:\n\n"
 	for _, job := range jobs {
 		var jobSpec orchestrator.JobJson
-		isPlan := jobSpec.IsPlan()
 		err := json.Unmarshal(job.JobString, &jobSpec)
 		if err != nil {
 			log.Printf("Failed to convert unmarshall Serialized job")
 		}
+		isPlan := jobSpec.IsPlan()
 
 		fmt.Printf("job details: %v | %v\n", jobSpec.Commands, isPlan)
 		spew.Dump(jobSpec.Commands)
