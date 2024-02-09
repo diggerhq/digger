@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"os"
 	"path"
@@ -170,7 +171,8 @@ func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService
 			log.Printf("Failed to convert unmarshall Serialized job")
 		}
 
-		fmt.Printf("job details: %v | %v", jobSpec.Commands, isPlan)
+		fmt.Printf("job details: %v | %v\n", jobSpec.Commands, isPlan)
+		spew.Dump(jobSpec.Commands)
 
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
 		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan))
