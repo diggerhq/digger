@@ -135,7 +135,12 @@ func RunJobs(
 		currentJob := jobs[0]
 		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
 		projectNameForBackendReporting := currentJob.ProjectName
-		planSummary := exectorResults[0].PlanResult.PlanSummary
+		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
+		// Some kind of generic terraform operation summary might need to be introduced
+		planSummary := terraform.PlanSummary{}
+		if exectorResults[0].PlanResult != nil {
+			planSummary = exectorResults[0].PlanResult.PlanSummary
+		}
 		prNumber := *currentJob.PullRequestNumber
 		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary)
 		if err != nil {
