@@ -135,7 +135,12 @@ func RunJobs(
 		currentJob := jobs[0]
 		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
 		projectNameForBackendReporting := currentJob.ProjectName
-		planSummary := exectorResults[0].PlanResult.PlanSummary
+		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
+		// Some kind of generic terraform operation summary might need to be introduced
+		planSummary := terraform.PlanSummary{}
+		if exectorResults[0].PlanResult != nil {
+			planSummary = exectorResults[0].PlanResult.PlanSummary
+		}
 		prNumber := *currentJob.PullRequestNumber
 		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary)
 		if err != nil {
@@ -158,15 +163,15 @@ func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService
 
 	message := ":construction_worker: Jobs status:\n\n"
 	for _, job := range jobs {
-
 		var jobSpec orchestrator.JobJson
 		err := json.Unmarshal(job.JobString, &jobSpec)
 		if err != nil {
 			log.Printf("Failed to convert unmarshall Serialized job")
 		}
+		isPlan := jobSpec.IsPlan()
 
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString())
+		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan))
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
 	}
 
