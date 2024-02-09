@@ -128,10 +128,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 
 		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
-		digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
 		}
+
+		digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
