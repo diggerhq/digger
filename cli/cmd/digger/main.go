@@ -145,11 +145,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
-			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
-
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %v", reportingError)
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
+			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 
@@ -158,11 +159,10 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, inputs.Id, true, commentId64, currentDir)
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
-			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
-
 			if reportingError != nil {
-				log.Printf("Failed to report job status to backend. %v", reportingError)
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
+			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
