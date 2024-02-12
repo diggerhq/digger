@@ -482,7 +482,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		msg := fmt.Sprintf("Command '%s' is not supported", command)
 		return nil, msg, fmt.Errorf(msg)
 	}
-	return nil, "", nil
+	return &execution.DiggerExecutorResult{}, "", nil
 }
 
 func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider execution.PlanPathProvider, diggerExecutor execution.LockingExecutorWrapper) (string, error) {
