@@ -407,6 +407,10 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 }
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent) error {
+	if *payload.Action != "opened" && *payload.Action != "reopened" {
+		return nil
+	}
+
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
