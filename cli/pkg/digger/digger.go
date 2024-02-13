@@ -147,8 +147,15 @@ func RunJobs(
 
 		err = UpdateStatusComment(batchResult.Jobs, prNumber, prService, prCommentId)
 		if err != nil {
+			log.Printf("error Updating status comment: %v.\n", err)
 			return false, false, err
 		}
+		err = UpdateAggregateStatus(batchResult, prService)
+		if err != nil {
+			log.Printf("error udpating aggregate status check: %v.\n", err)
+			return false, false, err
+		}
+
 	}
 
 	atLeastOneApply := len(appliesPerProject) > 0
