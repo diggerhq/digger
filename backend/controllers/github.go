@@ -407,7 +407,8 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 }
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent) error {
-	if *payload.Action != "opened" && *payload.Action != "reopened" {
+
+	if *payload.Action == "closed" && *payload.PullRequest.Merged == false {
 		return nil
 	}
 
