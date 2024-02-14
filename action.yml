@@ -305,10 +305,16 @@ runs:
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         digger
+    - name: generate artifact name based on issue number or pr number
+      id: artifact
+      shell: bash
+      run: |
+        env
+        echo "artifact=plans-${DIGGER_PR_NUMBER}" >> $GITHUB_OUTPUT
     - name: upload plan
       uses: actions/upload-artifact@v4
       with:
-          name: "plans-${{ env.DIGGER_PR_NUMBER }}"
+          name: ${{ steps.artifact.outputs.artifact }}
           path: '${{ github.workspace }}/**/*.tfplan'
           retention-days: 14
       if: ${{ inputs.upload-plan-destination == 'github' }}
