@@ -138,6 +138,30 @@ func (d ProjectPathProvider) StoredPlanFilePath() string {
 	return path.Join(d.ProjectNamespace, d.PlanFileName())
 }
 
+func (d DiggerExecutor) RetrievePlanJson() (string, error) {
+	executor := d
+	planStorage := executor.PlanStorage
+	planPathProvider := executor.PlanPathProvider
+	storedPlanExists, err := planStorage.PlanExists(planPathProvider.StoredPlanFilePath())
+	if err != nil {
+		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
+	}
+	if storedPlanExists {
+		log.Printf("Pre-apply plan retrieval: stored plan exists in artefact, retrieving")
+		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.StoredPlanFilePath())
+		if err != nil {
+			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
+		}
+
+		showArgs := []string{"-out", "-json", *storedPlanPath}
+		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars)
+		return terraformPlanOutput, nil
+
+	} else {
+		return "", fmt.Errorf("stored plan does not exist")
+	}
+}
+
 func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, string, error) {
 	plan := ""
 	terraformPlanOutput := ""
