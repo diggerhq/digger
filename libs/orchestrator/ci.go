@@ -17,6 +17,7 @@ type PullRequestService interface {
 	// IsClosed closed without merging
 	IsClosed(prNumber int) (bool, error)
 	GetBranchName(prNumber int) (string, error)
+	SetOutput(prNumber int, key string, value string) error
 }
 
 type OrgService interface {
