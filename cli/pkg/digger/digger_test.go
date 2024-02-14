@@ -137,6 +137,12 @@ func (m *MockPRManager) GetBranchName(prNumber int) (string, error) {
 	return "", nil
 }
 
+func (m *MockPRManager) SetOutput(prNumber int, key string, value string) error {
+	m.Commands = append(m.Commands, RunInfo{"SetOutput", strconv.Itoa(prNumber), time.Now()})
+	return nil
+
+}
+
 type MockProjectLock struct {
 	Commands []RunInfo
 }

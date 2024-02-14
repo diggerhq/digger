@@ -305,19 +305,10 @@ runs:
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         digger
-    - name: generate artifact name based on issue number or pr number
-      id: artifact
-      shell: bash
-      run: |
-          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
-            echo "artifact=plans-${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-          else
-            echo "artifact=plans-${{ github.event.number }}" >> $GITHUB_OUTPUT
-          fi
     - name: upload plan
       uses: actions/upload-artifact@v4
       with:
-          name: ${{ steps.artifact.outputs.artifact }}
+          name: "plans-$DIGGER_PR_NUMBER"
           path: '${{ github.workspace }}/**/*.tfplan'
           retention-days: 14
       if: ${{ inputs.upload-plan-destination == 'github' }}

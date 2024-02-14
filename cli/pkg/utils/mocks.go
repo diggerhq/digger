@@ -123,6 +123,10 @@ func (t MockPullRequestManager) GetBranchName(prNumber int) (string, error) {
 	return "", nil
 }
 
+func (t MockPullRequestManager) SetOutput(prNumber int, key string, value string) error {
+	return nil
+}
+
 type MockPlanStorage struct {
 }
 
