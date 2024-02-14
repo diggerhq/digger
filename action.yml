@@ -308,7 +308,7 @@ runs:
     - name: upload plan
       uses: actions/upload-artifact@v4
       with:
-          name: "plans-"${{ env.DIGGER_PR_NUMBER }}"
+          name: "plans-${{ env.DIGGER_PR_NUMBER }}"
           path: '${{ github.workspace }}/**/*.tfplan'
           retention-days: 14
       if: ${{ inputs.upload-plan-destination == 'github' }}
