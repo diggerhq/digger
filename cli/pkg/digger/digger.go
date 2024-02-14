@@ -259,6 +259,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			PlanPathProvider:  planPathProvider,
 		},
 	}
+	executor := diggerExecutor.Executor.(execution.DiggerExecutor)
 
 	switch command {
 
@@ -371,13 +372,14 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			var planPolicyViolations []string
 
 			if os.Getenv("PLAN_UPLOAD_DESTINATION") != "" {
-				storedPlanJson, err := retrievePlanBeforeApply(planStorage, planPathProvider, diggerExecutor.Executor.(execution.DiggerExecutor))
+				terraformPlanJsonStr, err := executor.RetrievePlanJson()
 				if err != nil {
 					msg := fmt.Sprintf("Failed to retrieve stored plan. %v", err)
 					log.Printf(msg)
 					return nil, msg, fmt.Errorf(msg)
 				}
-				_, violations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, storedPlanJson)
+
+				_, violations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, terraformPlanJsonStr)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to check plan policy. %v", err)
 					log.Printf(msg)
@@ -483,27 +485,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		return nil, msg, fmt.Errorf(msg)
 	}
 	return &execution.DiggerExecutorResult{}, "", nil
-}
-
-func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider execution.PlanPathProvider, diggerExecutor execution.DiggerExecutor) (string, error) {
-	storedPlanExists, err := planStorage.PlanExists(diggerExecutor.ProjectName)
-	if err != nil {
-		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
-	}
-	if storedPlanExists {
-		log.Printf("Pre-apply plan retrieval: stored plan exists")
-		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName())
-		if err != nil {
-			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
-		}
-		planBytes, err := os.ReadFile(*storedPlanPath)
-		if err != nil {
-			return "", fmt.Errorf("failed to read stored plan file. %v", err)
-		}
-		return string(planBytes), nil
-	} else {
-		return "", fmt.Errorf("stored plan does not exist")
-	}
 }
 
 func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {
