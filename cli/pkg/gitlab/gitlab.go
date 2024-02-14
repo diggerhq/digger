@@ -250,6 +250,11 @@ func (gitlabService GitLabService) GetBranchName(prNumber int) (string, error) {
 	return "", nil
 }
 
+func (svc *GitLabService) SetOutput(prNumber int, key string, value string) error {
+	//TODO implement me
+	return nil
+}
+
 func getMergeRequest(gitlabService GitLabService) *go_gitlab.MergeRequest {
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
