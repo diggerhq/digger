@@ -209,6 +209,14 @@ func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, stri
 				if err != nil {
 					return nil, false, false, "", "", fmt.Errorf("error storing plan: %v", err)
 				}
+
+				fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
+				if err != nil {
+					fmt.Println("Error reading file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
+				}
+
+				err = d.PlanStorage.StorePlanFile(fileBytes, d.projectId())
 			}
 			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
 			if err != nil {
