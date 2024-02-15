@@ -150,7 +150,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 
 	// Update Artifact Size
 	updateArtifactURL := fmt.Sprintf("%s&artifactName=%s", artifactBase, artifactName)
-	updateArtifactData := map[string]int{"size": len(uploadData)}
+	updateArtifactData := map[string]int{"size": dataLen}
 	updateArtifactBody, _ := json.Marshal(updateArtifactData)
 	doRequest("PATCH", updateArtifactURL, headers, updateArtifactBody)
 	return nil
