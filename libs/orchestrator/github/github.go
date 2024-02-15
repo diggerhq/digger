@@ -202,6 +202,7 @@ func (svc GithubService) SetOutput(prNumber int, key string, value string) error
 	if err != nil {
 		return fmt.Errorf("could not open file for writing during digger step")
 	}
+	log.Printf("!!!Setting output: %v", fmt.Sprintf("%v=%v", key, value))
 	_, err = f.WriteString(fmt.Sprintf("%v=%v", key, value))
 	if err != nil {
 		return fmt.Errorf("could not write digger file step")
