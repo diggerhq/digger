@@ -172,9 +172,10 @@ func doRequest(method, url string, headers map[string]string, body []byte) *http
 		return nil
 	}
 	if resp.StatusCode >= 400 {
+		fmt.Printf("url: %v", string(url))
 		fmt.Println("Request failed with status code:", resp.StatusCode)
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Printf("body: %v", body)
+		fmt.Printf("body: %v", string(body))
 		return nil
 	}
 	return resp
