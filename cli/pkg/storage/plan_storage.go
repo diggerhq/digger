@@ -141,7 +141,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
 
 	// Upload Data
-	uploadURL := fmt.Sprintf("%s?itemPath=%s/data.txt", resourceURL, artifactName)
+	uploadURL := fmt.Sprintf("%s?itemPath=%s/project.tfplan", resourceURL, artifactName)
 	uploadData := fileContents
 	dataLen := len(uploadData)
 	headers["Content-Type"] = "application/octet-stream"
@@ -150,7 +150,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 
 	// Update Artifact Size
 	updateArtifactURL := fmt.Sprintf("%s&artifactName=%s", artifactBase, artifactName)
-	updateArtifactData := map[string]int{"size": 11}
+	updateArtifactData := map[string]int{"size": len(uploadData)}
 	updateArtifactBody, _ := json.Marshal(updateArtifactData)
 	doRequest("PATCH", updateArtifactURL, headers, updateArtifactBody)
 	return nil
