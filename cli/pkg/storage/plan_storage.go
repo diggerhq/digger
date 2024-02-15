@@ -141,7 +141,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
 
 	// Upload Data
-	uploadURL := fmt.Sprintf("%s?itemPath=%s/project.tfplan", resourceURL, artifactName)
+	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, artifactName)
 	uploadData := fileContents
 	dataLen := len(uploadData)
 	headers["Content-Type"] = "application/octet-stream"
