@@ -149,6 +149,11 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	doRequest("PUT", uploadURL, headers, uploadData)
 
 	// Update Artifact Size
+	headers = map[string]string{
+		"Accept":        "application/json;api-version=6.0-preview",
+		"Authorization": "Bearer " + actionsRuntimeToken,
+		"Content-Type":  "application/json",
+	}
 	updateArtifactURL := fmt.Sprintf("%s&artifactName=%s", artifactBase, artifactName)
 	updateArtifactData := map[string]int{"size": dataLen}
 	updateArtifactBody, _ := json.Marshal(updateArtifactData)
