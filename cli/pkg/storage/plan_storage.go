@@ -177,10 +177,12 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
 
 	cmd := exec.Command("wget", "-O", outputFile, artifactUrl.String())
-	_, err := cmd.Output()
+	stdout, err := cmd.Output()
 	if err != nil {
 		return err
 	}
+
+	fmt.Sprintf("output of wget command: %v", string(stdout))
 
 	log.Printf("Successfully fetched plan artifact into %v", outputFile)
 
