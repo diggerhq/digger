@@ -166,6 +166,7 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 	}
 	filename := "plans-" + strconv.Itoa(gps.PullRequestNumber) + ".zip"
 
+	log.Printf("Download url received: %v", downloadUrl)
 	err = downloadArtifactIntoFile(downloadUrl, filename)
 
 	if err != nil {
