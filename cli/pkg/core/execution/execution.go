@@ -217,6 +217,10 @@ func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, stri
 				}
 
 				err = d.PlanStorage.StorePlanFile(fileBytes, d.projectId())
+				if err != nil {
+					fmt.Println("Error storing artifact file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
+				}
 			}
 			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
 			if err != nil {

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -136,7 +135,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	defer createArtifactResponse.Body.Close()
 
 	// Extract Resource URL
-	createArtifactResponseBody, _ := ioutil.ReadAll(createArtifactResponse.Body)
+	createArtifactResponseBody, _ := io.ReadAll(createArtifactResponse.Body)
 	var createArtifactResponseMap map[string]interface{}
 	json.Unmarshal(createArtifactResponseBody, &createArtifactResponseMap)
 	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
@@ -174,6 +173,8 @@ func doRequest(method, url string, headers map[string]string, body []byte) *http
 	}
 	if resp.StatusCode >= 400 {
 		fmt.Println("Request failed with status code:", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("body: %v", body)
 		return nil
 	}
 	return resp
