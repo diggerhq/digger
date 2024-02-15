@@ -158,7 +158,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
 		}
 
-		showArgs := []string{"-out", "-json", *storedPlanPath}
+		showArgs := []string{"-no-color", "-json", *storedPlanPath}
 		terraformPlanOutput, stderr, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars)
 		fmt.Printf("terraform show stderr: %v", stderr)
 		return terraformPlanOutput, nil
