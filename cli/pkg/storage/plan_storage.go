@@ -1,10 +1,14 @@
 package storage
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -65,6 +69,11 @@ func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePat
 	return nil
 }
 
+func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string) error {
+	// TODO: implement me
+	return nil
+}
+
 func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	rc, err := obj.NewReader(psg.Context)
@@ -102,6 +111,72 @@ func (psg *PlanStorageGcp) DeleteStoredPlan(storedPlanFilePath string) error {
 func (gps *GithubPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
 	_ = fmt.Sprintf("Skipping storing plan %s. It should be achieved using actions/upload-artifact@v3", localPlanFilePath)
 	return nil
+}
+
+func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string) error {
+	actionsRuntimeToken := os.Getenv("ACTIONS_RUNTIME_TOKEN")
+	actionsRuntimeURL := os.Getenv("ACTIONS_RUNTIME_URL")
+	githubRunID := os.Getenv("GITHUB_RUN_ID")
+	artifactBase := fmt.Sprintf("%s_apis/pipelines/workflows/%s/artifacts?api-version=6.0-preview", actionsRuntimeURL, githubRunID)
+
+	headers := map[string]string{
+		"Accept":        "application/json;api-version=6.0-preview",
+		"Authorization": "Bearer " + actionsRuntimeToken,
+		"Content-Type":  "application/json",
+	}
+
+	// Create Artifact
+	createArtifactURL := artifactBase
+	createArtifactData := map[string]string{"type": "actions_storage", "name": artifactName}
+	createArtifactBody, _ := json.Marshal(createArtifactData)
+	createArtifactResponse := doRequest("POST", createArtifactURL, headers, createArtifactBody)
+	if createArtifactResponse == nil {
+		return fmt.Errorf("Could not create artifact with github")
+	}
+	defer createArtifactResponse.Body.Close()
+
+	// Extract Resource URL
+	createArtifactResponseBody, _ := ioutil.ReadAll(createArtifactResponse.Body)
+	var createArtifactResponseMap map[string]interface{}
+	json.Unmarshal(createArtifactResponseBody, &createArtifactResponseMap)
+	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
+
+	// Upload Data
+	uploadURL := fmt.Sprintf("%s?itemPath=%s/data.txt", resourceURL, artifactName)
+	uploadData := fileContents
+	dataLen := len(uploadData)
+	headers["Content-Type"] = "application/octet-stream"
+	headers["Content-Range"] = fmt.Sprintf("bytes 0-%v/%v", dataLen-1, dataLen)
+	doRequest("PUT", uploadURL, headers, uploadData)
+
+	// Update Artifact Size
+	updateArtifactURL := fmt.Sprintf("%s&artifactName=%s", artifactBase, artifactName)
+	updateArtifactData := map[string]int{"size": 11}
+	updateArtifactBody, _ := json.Marshal(updateArtifactData)
+	doRequest("PATCH", updateArtifactURL, headers, updateArtifactBody)
+	return nil
+}
+
+func doRequest(method, url string, headers map[string]string, body []byte) *http.Response {
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return nil
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error making request:", err)
+		return nil
+	}
+	if resp.StatusCode >= 400 {
+		fmt.Println("Request failed with status code:", resp.StatusCode)
+		return nil
+	}
+	return resp
 }
 
 func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
