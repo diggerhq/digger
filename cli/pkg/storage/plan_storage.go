@@ -68,7 +68,7 @@ func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePat
 	return nil
 }
 
-func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string) error {
+func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
 	// TODO: implement me
 	return nil
 }
@@ -112,7 +112,7 @@ func (gps *GithubPlanStorage) StorePlan(localPlanFilePath string, storedPlanFile
 	return nil
 }
 
-func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string) error {
+func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
 	actionsRuntimeToken := os.Getenv("ACTIONS_RUNTIME_TOKEN")
 	actionsRuntimeURL := os.Getenv("ACTIONS_RUNTIME_URL")
 	githubRunID := os.Getenv("GITHUB_RUN_ID")
@@ -141,7 +141,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
 
 	// Upload Data
-	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, artifactName)
+	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, fileName)
 	uploadData := fileContents
 	dataLen := len(uploadData)
 	headers["Content-Type"] = "application/octet-stream"
