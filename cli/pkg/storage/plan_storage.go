@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/utils"
 	"io"
 	"log"
 	"net/http"
@@ -12,9 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
-
-	"github.com/diggerhq/digger/cli/pkg/utils"
 
 	"cloud.google.com/go/storage"
 	"github.com/google/go-github/v58/github"
@@ -196,7 +194,7 @@ func doRequest(method, url string, headers map[string]string, body []byte) (*htt
 }
 
 func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
-	plansFilename, err := gps.DownloadLatestPlans()
+	plansFilename, err := gps.DownloadLatestPlans(storedPlanFilePath)
 
 	if err != nil {
 		return nil, fmt.Errorf("error downloading plan: %v", err)
@@ -223,7 +221,7 @@ func (gps *GithubPlanStorage) PlanExists(storedPlanFilePath string) (bool, error
 		return false, err
 	}
 
-	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, "plans-"+strconv.Itoa(gps.PullRequestNumber))
+	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, storedPlanFilePath)
 
 	if latestPlans == nil {
 		return false, nil
@@ -235,7 +233,7 @@ func (gps *GithubPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error 
 	return nil
 }
 
-func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
+func (gps *GithubPlanStorage) DownloadLatestPlans(storedPlanFilePath string) (string, error) {
 	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
 		PerPage: 100,
 	})
@@ -244,7 +242,7 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 		return "", err
 	}
 
-	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, "plans-"+strconv.Itoa(gps.PullRequestNumber))
+	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, storedPlanFilePath)
 
 	if latestPlans == nil {
 		return "", nil
@@ -255,7 +253,7 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	filename := "plans-" + strconv.Itoa(gps.PullRequestNumber) + ".zip"
+	filename := storedPlanFilePath + ".zip"
 
 	log.Printf("Download url received: %v", downloadUrl)
 	err = downloadArtifactIntoFile(downloadUrl, filename)
