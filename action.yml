@@ -252,6 +252,16 @@ runs:
         go-version: '^1.21.1'
       if: ${{ !startsWith(github.action_ref, 'v') }}
 
+    - name: Adding required env vars for next step
+      uses: actions/github-script@v7
+      env:
+        github-token: $GITHUB_TOKEN
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env['ACTIONS_CACHE_URL'])
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
+          core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
+
 
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
@@ -305,23 +315,6 @@ runs:
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         digger
-    - name: generate artifact name based on issue number or pr number
-      id: artifact
-      shell: bash
-      run: |
-          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
-            echo "artifact=plans-${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-          else
-            echo "artifact=plans-${{ github.event.number }}" >> $GITHUB_OUTPUT
-          fi
-    - name: upload plan
-      uses: actions/upload-artifact@v4
-      with:
-          name: ${{ steps.artifact.outputs.artifact }}
-          path: '${{ github.workspace }}/**/*.tfplan'
-          retention-days: 14
-      if: ${{ inputs.upload-plan-destination == 'github' }}
-
 branding:
   icon: globe
   color: purple

@@ -123,6 +123,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		err = json.Unmarshal([]byte(inputs.JobString), &job)
 		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 
+		err = githubPrService.SetOutput(*job.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *job.PullRequestNumber))
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
+		}
+
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
@@ -312,6 +317,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		log.Println("GitHub event converted to commands successfully")
 		logCommands(jobs)
+
+		err = githubPrService.SetOutput(prNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", prNumber))
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
+		}
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
 
