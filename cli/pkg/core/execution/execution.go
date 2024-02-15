@@ -159,7 +159,8 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 		}
 
 		showArgs := []string{"-out", "-json", *storedPlanPath}
-		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars)
+		terraformPlanOutput, stderr, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars)
+		fmt.Printf("terraform show stderr: %v", stderr)
 		return terraformPlanOutput, nil
 
 	} else {
