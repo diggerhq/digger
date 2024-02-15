@@ -463,6 +463,11 @@ func (b *BitbucketAPI) GetBranchName(prNumber int) (string, error) {
 	return pullRequest.Source.Branch.Name, nil
 }
 
+func (svc *BitbucketAPI) SetOutput(prNumber int, key string, value string) error {
+	//TODO implement me
+	return nil
+}
+
 // Implement the OrgService interface.
 
 func (b *BitbucketAPI) GetUserTeams(organisation string, user string) ([]string, error) {
