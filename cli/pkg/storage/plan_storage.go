@@ -173,7 +173,7 @@ func doRequest(method, url string, headers map[string]string, body []byte) (*htt
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return nil, fmt.Errorf("Error creating request:", err)
+		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 	for key, value := range headers {
 		req.Header.Set(key, value)
@@ -181,14 +181,14 @@ func doRequest(method, url string, headers map[string]string, body []byte) (*htt
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error making request:", err)
-		return nil, fmt.Errorf("Error creating request:", err)
+		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 	if resp.StatusCode >= 400 {
 		fmt.Printf("url: %v", url)
 		fmt.Println("Request failed with status code:", resp.StatusCode)
 		body, _ := io.ReadAll(resp.Body)
 		fmt.Printf("body: %v", string(body))
-		return nil, fmt.Errorf("error creating request:", err)
+		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 	return resp, nil
 }
