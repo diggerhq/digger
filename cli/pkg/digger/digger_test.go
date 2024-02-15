@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -186,6 +187,7 @@ func (m *MockPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath
 }
 
 func (m *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+	m.Commands = append(m.Commands, RunInfo{"StorePlanFile", artifactName, time.Now()})
 	return nil
 }
 
@@ -359,11 +361,14 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		PlanPathProvider:  planPathProvider,
 	}
 
+	os.WriteFile(planPathProvider.LocalPlanFilePath(), []byte{123}, 0644)
+	defer os.Remove(planPathProvider.LocalPlanFilePath())
+
 	executor.Plan()
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Init ", "Plan -out plan -lock-timeout=3m", "Show -no-color -json plan", "PlanExists plan", "StorePlan plan", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan -out plan -lock-timeout=3m", "Show -no-color -json plan", "StorePlanFile plan", "Run   echo"}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {
