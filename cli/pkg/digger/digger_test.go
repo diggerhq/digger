@@ -185,6 +185,10 @@ func (m *MockPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath
 	return nil
 }
 
+func (m *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+	return nil
+}
+
 func (m *MockPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
 	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", localPlanFilePath, time.Now()})
 	return nil, nil
@@ -202,6 +206,11 @@ func (m *MockPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
 
 type MockPlanPathProvider struct {
 	Commands []RunInfo
+}
+
+func (m MockPlanPathProvider) ArtifactName() string {
+	m.Commands = append(m.Commands, RunInfo{"ArtifactName", "", time.Now()})
+	return "plan"
 }
 
 func (m MockPlanPathProvider) PlanFileName() string {
