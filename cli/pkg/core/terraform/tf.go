@@ -146,7 +146,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 }
 
 func (tf Terraform) Show(params []string, envs map[string]string) (string, string, error) {
-	stdout, stderr, _, err := tf.runTerraformCommand(false, "show", envs, params...)
+	stdout, stderr, _, err := tf.runTerraformCommand(true, "show", envs, params...)
 	if err != nil {
 		return "", "", err
 	}
