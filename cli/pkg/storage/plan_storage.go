@@ -157,6 +157,8 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 }
 
 func doRequest(method, url string, headers map[string]string, body []byte) *http.Response {
+	fmt.Printf("Sending request %v %v\n", method, url)
+
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
 	if err != nil {
