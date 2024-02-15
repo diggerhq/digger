@@ -492,7 +492,7 @@ func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider e
 	}
 	if storedPlanExists {
 		log.Printf("Pre-apply plan retrieval: stored plan exists")
-		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), diggerExecutor.ProjectName)
+		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName())
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
 		}
