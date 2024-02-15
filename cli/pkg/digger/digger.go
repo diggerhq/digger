@@ -496,7 +496,6 @@ func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider e
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
 		}
-		fmt.Printf("Store plan path: %v", *storedPlanPath)
 		planBytes, err := os.ReadFile(*storedPlanPath)
 		if err != nil {
 			return "", fmt.Errorf("failed to read stored plan file. %v", err)
