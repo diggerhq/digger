@@ -336,6 +336,9 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisati
 		return false, nil, fmt.Errorf("failed get plan policy: %v", err)
 	}
 	var parsedPlanOutput map[string]interface{}
+
+	fmt.Printf("!!!%v!!!", planOutput)
+
 	err = json.Unmarshal([]byte(planOutput), &parsedPlanOutput)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to parse json terraform output to map: %v", err)
