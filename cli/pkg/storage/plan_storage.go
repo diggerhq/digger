@@ -128,9 +128,9 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	createArtifactURL := artifactBase
 	createArtifactData := map[string]string{"type": "actions_storage", "name": artifactName}
 	createArtifactBody, _ := json.Marshal(createArtifactData)
-	createArtifactResponse := doRequest("POST", createArtifactURL, headers, createArtifactBody)
-	if createArtifactResponse == nil {
-		return fmt.Errorf("Could not create artifact with github")
+	createArtifactResponse, err := doRequest("POST", createArtifactURL, headers, createArtifactBody)
+	if createArtifactResponse == nil || err != nil {
+		return fmt.Errorf("Could not create artifact with github %v", err)
 	}
 	defer createArtifactResponse.Body.Close()
 
@@ -146,7 +146,10 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	dataLen := len(uploadData)
 	headers["Content-Type"] = "application/octet-stream"
 	headers["Content-Range"] = fmt.Sprintf("bytes 0-%v/%v", dataLen-1, dataLen)
-	doRequest("PUT", uploadURL, headers, uploadData)
+	_, err = doRequest("PUT", uploadURL, headers, uploadData)
+	if err != nil {
+		return fmt.Errorf("could not upload artifact file %v", err)
+	}
 
 	// Update Artifact Size
 	headers = map[string]string{
@@ -157,18 +160,22 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	updateArtifactURL := fmt.Sprintf("%s&artifactName=%s", artifactBase, artifactName)
 	updateArtifactData := map[string]int{"size": dataLen}
 	updateArtifactBody, _ := json.Marshal(updateArtifactData)
-	doRequest("PATCH", updateArtifactURL, headers, updateArtifactBody)
+	_, err = doRequest("PATCH", updateArtifactURL, headers, updateArtifactBody)
+	if err != nil {
+		return fmt.Errorf("could finalize artefact upload: %v", err)
+	}
+
 	return nil
 }
 
-func doRequest(method, url string, headers map[string]string, body []byte) *http.Response {
+func doRequest(method, url string, headers map[string]string, body []byte) (*http.Response, error) {
 	fmt.Printf("Sending request %v %v\n", method, url)
 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return nil
+		return nil, fmt.Errorf("Error creating request:", err)
 	}
 	for key, value := range headers {
 		req.Header.Set(key, value)
@@ -176,16 +183,16 @@ func doRequest(method, url string, headers map[string]string, body []byte) *http
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error making request:", err)
-		return nil
+		return nil, fmt.Errorf("Error creating request:", err)
 	}
 	if resp.StatusCode >= 400 {
 		fmt.Printf("url: %v", url)
 		fmt.Println("Request failed with status code:", resp.StatusCode)
 		body, _ := io.ReadAll(resp.Body)
 		fmt.Printf("body: %v", string(body))
-		return nil
+		return nil, fmt.Errorf("error creating request:", err)
 	}
-	return resp
+	return resp, nil
 }
 
 func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {

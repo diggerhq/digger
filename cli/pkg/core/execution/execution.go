@@ -127,7 +127,7 @@ type ProjectPathProvider struct {
 }
 
 func (d ProjectPathProvider) PlanFileName() string {
-	return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "#" + d.ProjectName + ".tfplan"
+	return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.ProjectName + ".tfplan"
 }
 
 func (d ProjectPathProvider) LocalPlanFilePath() string {
