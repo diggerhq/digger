@@ -182,7 +182,7 @@ func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
 		return err
 	}
 
-	fmt.Sprintf("output of wget command: %v", string(stdout))
+	fmt.Printf("output of wget command: %v", string(stdout))
 
 	log.Printf("Successfully fetched plan artifact into %v", outputFile)
 
