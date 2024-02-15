@@ -285,7 +285,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 	var plansFilename *string
 	if d.PlanStorage != nil {
 		var err error
-		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
+		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName())
 		if err != nil {
 			return false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}
