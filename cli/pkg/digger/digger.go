@@ -371,7 +371,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			var planPolicyViolations []string
 
 			if os.Getenv("PLAN_UPLOAD_DESTINATION") != "" {
-				storedPlanJson, err := retrievePlanBeforeApply(planStorage, planPathProvider, diggerExecutor)
+				storedPlanJson, err := retrievePlanBeforeApply(planStorage, planPathProvider, diggerExecutor.Executor.(execution.DiggerExecutor))
 				if err != nil {
 					msg := fmt.Sprintf("Failed to retrieve stored plan. %v", err)
 					log.Printf(msg)
@@ -485,14 +485,14 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	return &execution.DiggerExecutorResult{}, "", nil
 }
 
-func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider execution.PlanPathProvider, diggerExecutor execution.LockingExecutorWrapper) (string, error) {
-	storedPlanExists, err := planStorage.PlanExists(planPathProvider.StoredPlanFilePath())
+func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider execution.PlanPathProvider, diggerExecutor execution.DiggerExecutor) (string, error) {
+	storedPlanExists, err := planStorage.PlanExists(diggerExecutor.ProjectName)
 	if err != nil {
 		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
 	}
 	if storedPlanExists {
 		log.Printf("Pre-apply plan retrieval: stored plan exists")
-		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.StoredPlanFilePath())
+		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName())
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
 		}

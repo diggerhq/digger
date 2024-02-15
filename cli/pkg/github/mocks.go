@@ -85,3 +85,8 @@ func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment 
 func (t MockCiService) GetBranchName(prNumber int) (string, error) {
 	return "", nil
 }
+
+func (svc MockCiService) SetOutput(prNumber int, key string, value string) error {
+	//TODO implement me
+	return nil
+}

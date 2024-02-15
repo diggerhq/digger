@@ -117,6 +117,7 @@ type DiggerExecutorPlanResult struct {
 type PlanPathProvider interface {
 	LocalPlanFilePath() string
 	StoredPlanFilePath() string
+	ArtifactName() string
 	PlanFileName() string
 }
 
@@ -126,8 +127,12 @@ type ProjectPathProvider struct {
 	ProjectName      string
 }
 
+func (d ProjectPathProvider) ArtifactName() string {
+	return d.ProjectName
+}
+
 func (d ProjectPathProvider) PlanFileName() string {
-	return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "#" + d.ProjectName + ".tfplan"
+	return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.ProjectName + ".tfplan"
 }
 
 func (d ProjectPathProvider) LocalPlanFilePath() string {
@@ -193,21 +198,17 @@ func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, stri
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v", err)
 			}
 			if d.PlanStorage != nil {
-				planExists, err := d.PlanStorage.PlanExists(d.PlanPathProvider.StoredPlanFilePath())
+
+				fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
 				if err != nil {
-					return nil, false, false, "", "", fmt.Errorf("error checking if plan exists: %v", err)
+					fmt.Println("Error reading file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
 				}
 
-				if planExists {
-					err = d.PlanStorage.DeleteStoredPlan(d.PlanPathProvider.StoredPlanFilePath())
-					if err != nil {
-						return nil, false, false, "", "", fmt.Errorf("error deleting plan: %v", err)
-					}
-				}
-
-				err = d.PlanStorage.StorePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
+				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.PlanFileName())
 				if err != nil {
-					return nil, false, false, "", "", fmt.Errorf("error storing plan: %v", err)
+					fmt.Println("Error storing artifact file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
 				}
 			}
 			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
