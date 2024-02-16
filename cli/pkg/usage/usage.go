@@ -58,9 +58,6 @@ func sendPayload(payload interface{}) error {
 }
 
 func init() {
-	if err != nil {
-		log.Printf("Failed to get current dir. %s", err)
-	}
 	notEmpty := func(key string) bool {
 		return os.Getenv(key) != ""
 	}
