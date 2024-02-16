@@ -98,7 +98,7 @@ func (b *SerializedBatch) IsPlan() (bool, error) {
 		log.Printf("error while fetching job specs: %v", err)
 		return false, fmt.Errorf("error while fetching job specs: %v", err)
 	}
-	return orchestrator.IsPlan(jobSpecs), nil
+	return orchestrator.IsPlanJobSpecs(jobSpecs), nil
 }
 
 func (b *SerializedBatch) IsApply() (bool, error) {
@@ -107,7 +107,7 @@ func (b *SerializedBatch) IsApply() (bool, error) {
 		log.Printf("error while fetching job specs: %v", err)
 		return false, fmt.Errorf("error while fetching job specs: %v", err)
 	}
-	return orchestrator.IsPlan(jobSpecs), nil
+	return orchestrator.IsPlanJobSpecs(jobSpecs), nil
 }
 
 func (b *SerializedBatch) ToStatusCheck() string {
