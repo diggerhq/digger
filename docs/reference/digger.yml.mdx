@@ -11,7 +11,6 @@ projects:
 - name: my-second-app
   dir: app-two
 auto_merge: true
-collect_usage_data: true
 ```
 
 **Note:** you can also name your Digger configuration file differently, and specify its name using the `digger-filename` input at GitHub Action level.
@@ -21,7 +20,6 @@ collect_usage_data: true
 ## Example using all keys
 
 ```yml
-collect_usage_data: true
 auto_merge: false
 projects:
 - name: prod
@@ -99,20 +97,20 @@ workflows:
 
 ### Top-level
 
-| Key                  | Type                                                             | Default | Required | Description                                            | Notes |
-| -------------------- | ---------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------ | ----- |
-| collect\_usage\_data | boolean                                                          | true    | no       | allows collecting anonymised usage and debugging data  |      |
-| auto\_merge          | boolean                                                          | false   | no       | automatically merge pull requests when all checks pass |      |
-| projects             | array of [Projects](/reference/digger.yml#project)          | \[\]    | no       | list of projects to manage                             |      |
-| generate\_projects   | [GenerateProjects](/reference/digger.yml#generateprojects) | {}      | no       | generate projects from a directory structure           |      |
-| workflows            | map of [Workflows](/reference/digger.yml#workflows)         | {}      | no       | workflows and configurations to run on events          |      |
+| Key                  | Type                                                             | Default | Required | Description                                            | Notes                                                 |
+| -------------------- | ---------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------ | ----------------------------------------------------- |
+| collect\_usage\_data | boolean                                                          | true    | no       | allows collecting anonymised usage and debugging data  | This flag is only supported in Digger enterprise      |
+| auto\_merge          | boolean                                                          | false   | no       | automatically merge pull requests when all checks pass |                                                       |
+| projects             | array of [Projects](/reference/digger.yml#project)               | \[\]    | no       | list of projects to manage                             |                                                       |
+| generate\_projects   | [GenerateProjects](/reference/digger.yml#generateprojects)       | {}      | no       | generate projects from a directory structure           |                                                       |
+| workflows            | map of [Workflows](/reference/digger.yml#workflows)              | {}      | no       | workflows and configurations to run on events          |                                                       |
 
 ### Project
 
 | Key                      | Type                                                 | Default | Required | Description                                                        | Notes                                                                                                     |
 | ------------------------ | ---------------------------------------------------- | ------- | -------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| name                     | string                                               |        | yes      | name of the project                                                | must be unique                                                                                             |
-| dir                      | string                                               |        | yes      | directory containing the project                                   |                                                                                                            |
+| name                     | string                                               |         | yes      | name of the project                                                | must be unique                                                                                            |
+| dir                      | string                                               |         | yes      | directory containing the project                                   |                                                                                                           |
 | workspace                | string                                               | default | no       | terraform workspace to use                                         |                                                                                                           |
 | terragrunt               | boolean                                              | false   | no       | whether to use terragrunt                                          |                                                                                                           |
 | workflow                 | string                                               | default | no       | workflow to use                                                    | default workflow will be created for you described in workflow section                                    |
@@ -132,25 +130,25 @@ workflows:
 
 | Key                     | Type                                                                       | Default | Required | Description                                | Notes |
 | ----------------------- | -------------------------------------------------------------------------- | ------- | -------- | ------------------------------------------ | ----- |
-| env\_vars               | [EnvVars](/reference/digger.yml#envvars)                             | {}      | no       | environment variables to set for per stage |      |
-| plan                    | [Plan](/reference/digger.yml#plan)                                   | {}      | no       | plan stage configuration                   |      |
-| apply                   | [Apply](/reference/digger.yml#apply)                                 | {}      | no       | apply stage configuration                  |      |
-| workflow\_configuration | [WorkflowConfiguration](/reference/digger.yml#workflowconfiguration) | {}      | no       | describes how to react to CI events        |      |
+| env\_vars               | [EnvVars](/reference/digger.yml#envvars)                                   | {}      | no       | environment variables to set for per stage |       |
+| plan                    | [Plan](/reference/digger.yml#plan)                                         | {}      | no       | plan stage configuration                   |       |
+| apply                   | [Apply](/reference/digger.yml#apply)                                       | {}      | no       | apply stage configuration                  |       |
+| workflow\_configuration | [WorkflowConfiguration](/reference/digger.yml#workflowconfiguration)       | {}      | no       | describes how to react to CI events        |       |
 
 ### EnvVars
 
 | Key      | Type                                                 | Default | Required | Description                                               | Notes                                                                     |
 | -------- | ---------------------------------------------------- | ------- | -------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
-| state    | array of [EnvVar](/reference/digger.yml#envvar) | \[\]    | no       | environment variables to set for terraform init stage     | can be use to set different credentials for remote backend for example    |
-| commands | array of [EnvVar](/reference/digger.yml#envvar) | \[\]    | no       | environment variables to set for other terraform commands | can be use to set different credentials for actual managed infrastructure |
+| state    | array of [EnvVar](/reference/digger.yml#envvar)      | \[\]    | no       | environment variables to set for terraform init stage     | can be use to set different credentials for remote backend for example    |
+| commands | array of [EnvVar](/reference/digger.yml#envvar)      | \[\]    | no       | environment variables to set for other terraform commands | can be use to set different credentials for actual managed infrastructure |
 
 ### EnvVar
 
 | Key         | Type   | Default | Required | Description                                                  | Notes                                                                                                                                                                                                                                                                                                                    |
 | ----------- | ------ | ------- | -------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| name        | string |        | yes      | name of the environment variable                             |                                                                                                                                                                                                                                                                                                                         |
-| value\_from | string |        | yes      | name of the other environment variable to get the value from | this can be used for secrets. For example you set a secret from some secret manager (e.g. github secrets) as environment variable and the remap it to another variable. E.g. setting DEV\_TF\_ACCESS\_KEY as a secret in github action, but then remap it into AWS\_ACCESS\_KEY during terraform apply command execution |
-| value       | string |        | yes      | value of the environment variable                            | this value will have a preference over value\_from field if both are set                                                                                                                                                                                                                                                 |
+| name        | string |        | yes      | name of the environment variable                              |                                                                                                                                                                                                                                                                                                                          |
+| value\_from | string |        | yes      | name of the other environment variable to get the value from  | this can be used for secrets. For example you set a secret from some secret manager (e.g. github secrets) as environment variable and the remap it to another variable. E.g. setting DEV\_TF\_ACCESS\_KEY as a secret in github action, but then remap it into AWS\_ACCESS\_KEY during terraform apply command execution |
+| value       | string |        | yes      | value of the environment variable                             | this value will have a preference over value\_from field if both are set                                                                                                                                                                                                                                                 |
 
 ### RoleToAssume
 | Key         | Type   | Default | Required | Description                                                  | Notes                                 |
@@ -162,42 +160,42 @@ workflows:
 
 | Key   | Type                                             | Default | Required | Description                            | Notes |
 | ----- | ------------------------------------------------ | ------- | -------- | -------------------------------------- | ----- |
-| steps | array of [Step](/reference/digger.yml#step) | \[\]    | no       | list of steps to run during plan stage |      |
+| steps | array of [Step](/reference/digger.yml#step)      | \[\]    | no       | list of steps to run during plan stage |       |
 
 ### Apply
 
 | Key   | Type                                             | Default | Required | Description                             | Notes |
 | ----- | ------------------------------------------------ | ------- | -------- | --------------------------------------- | ----- |
-| steps | array of [Step](/reference/digger.yml#step) | \[\]    | no       | list of steps to run during apply stage |      |
+| steps | array of [Step](/reference/digger.yml#step) | \[\]         | no       | list of steps to run during apply stage |       |
 
 ### WorkflowConfiguration
 
 | Key                       | Type                                                                    | Default | Required | Description                                                   | Notes |
 | ------------------------- | ----------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------- | ----- |
-| on\_pull\_request\_pushed | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when pull request is pushed             |      |
-| on\_pull\_request\_closed | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when pull request is closed             |      |
-| on\_commit\_to\_default   | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when commit is pushed to default branch |      |
+| on\_pull\_request\_pushed | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when pull request is pushed             |       |
+| on\_pull\_request\_closed | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when pull request is closed             |       |
+| on\_commit\_to\_default   | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when commit is pushed to default branch |       |
 
 ### Step
 
 | Key   | Type                                                                 | Default | Required | Description          | Notes                                              |
 | ----- | -------------------------------------------------------------------- | ------- | -------- | -------------------- | -------------------------------------------------- |
-| init  | [Init](/reference/digger.yml#init-apply-plan-as-object)/string  | {}/""   | no       | terraform init step  | if missing from array of steps, it will be skipped |
-| plan  | [Plan](/reference/digger.yml#init-apply-plan-as-object)/string  | {}/""   | no       | terraform plan step  | if missing from array of steps, it will be skipped |
-| apply | [Apply](/reference/digger.yml#init-apply-plan-as-object)/string | {}/""   | no       | terraform apply step | if missing from array of steps, it will be skipped |
-| run   | [Run](/reference/digger.yml#run-as-object)/string               | {}/""   | no       | shell command to run | if missing from array of steps, it will be skipped |
+| init  | [Init](/reference/digger.yml#init-apply-plan-as-object)/string       | {}/""   | no       | terraform init step  | if missing from array of steps, it will be skipped |
+| plan  | [Plan](/reference/digger.yml#init-apply-plan-as-object)/string       | {}/""   | no       | terraform plan step  | if missing from array of steps, it will be skipped |
+| apply | [Apply](/reference/digger.yml#init-apply-plan-as-object)/string      | {}/""   | no       | terraform apply step | if missing from array of steps, it will be skipped |
+| run   | [Run](/reference/digger.yml#run-as-object)/string                    | {}/""   | no       | shell command to run | if missing from array of steps, it will be skipped |
 
 ### Init/Apply/Plan as object
 
 | Key         | Type             | Default | Required | Description                                          | Notes |
 | ----------- | ---------------- | ------- | -------- | ---------------------------------------------------- | ----- |
-| extra\_args | array of strings | \[\]    | no       | extra arguments to pass to terraform init/plan/apply |      |
+| extra\_args | array of strings | \[\]    | no       | extra arguments to pass to terraform init/plan/apply |       |
 
 ### Run as object
 
 | Key   | Type   | Default | Required | Description                     | Notes         |
 | ----- | ------ | ------- | -------- | ------------------------------- | ------------- |
-| shell | string |        | yes      | shell to use to run the command | zsh/bash etc. |
+| shell | string |         | yes      | shell to use to run the command | zsh/bash etc. |
 
 ### Default workflow
 
