@@ -144,6 +144,29 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 			}
 		}
 	}
+	// Report aggregate status for digger/plan or digger/apply
+	if len(jobs) > 0 {
+		var err error
+		err = prService.SetStatus(prNumber, "pending", "digger/plan")
+		err = prService.SetStatus(prNumber, "pending", "digger/apply")
+		if err != nil {
+			log.Printf("error setting status: %v", err)
+			return fmt.Errorf("error setting pr status: %v", err)
+		}
+
+	} else {
+		err := prService.SetStatus(prNumber, "success", "digger/plan")
+		if err != nil {
+			log.Printf("error setting status: %v", err)
+			return fmt.Errorf("error setting pr status: %v", err)
+		}
+		err = prService.SetStatus(prNumber, "success", "digger/apply")
+		if err != nil {
+			log.Printf("error setting status: %v", err)
+			return fmt.Errorf("error setting pr status: %v", err)
+		}
+	}
+
 	return nil
 }
 

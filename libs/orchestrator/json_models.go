@@ -103,7 +103,7 @@ func stageToJson(stage *Stage) StageJson {
 	}
 }
 
-func IsPlan(jobs []JobJson) bool {
+func IsPlanJobSpecs(jobs []JobJson) bool {
 	isPlan := false
 	for _, job := range jobs {
 		isPlan = isPlan && job.IsPlan()
@@ -111,7 +111,7 @@ func IsPlan(jobs []JobJson) bool {
 	return isPlan
 }
 
-func IsApply(jobs []JobJson) bool {
+func IsApplyJobSpecs(jobs []JobJson) bool {
 	isApply := false
 	for _, job := range jobs {
 		isApply = isApply && job.IsApply()

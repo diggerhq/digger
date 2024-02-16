@@ -6,6 +6,7 @@ import (
 	"github.com/diggerhq/digger/libs/digger_config"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log"
+	"slices"
 )
 
 type Job struct {
@@ -61,6 +62,30 @@ func ToConfigStage(configStage *configuration.Stage) *Stage {
 	return &Stage{
 		Steps: steps,
 	}
+}
+
+func (j *Job) IsPlan() bool {
+	return slices.Contains(j.Commands, "digger plan")
+}
+
+func (j *Job) IsApply() bool {
+	return slices.Contains(j.Commands, "digger apply")
+}
+
+func IsPlanJobs(jobs []Job) bool {
+	isPlan := false
+	for _, job := range jobs {
+		isPlan = isPlan && job.IsPlan()
+	}
+	return isPlan
+}
+
+func IsApplyJobs(jobs []JobJson) bool {
+	isApply := false
+	for _, job := range jobs {
+		isApply = isApply && job.IsApply()
+	}
+	return isApply
 }
 
 func ConvertProjectsToJobs(actor string, repoNamespace string, command string, prNumber int, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]Job, bool, error) {
