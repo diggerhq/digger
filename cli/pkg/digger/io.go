@@ -39,7 +39,9 @@ func UpdateAggregateStatus(batch *scheduler.SerializedBatch, prService orchestra
 
 	if isPlan {
 		prService.SetStatus(batch.PrNumber, batch.ToStatusCheck(), "digger/plan")
+		prService.SetStatus(batch.PrNumber, "pending", "digger/apply")
 	} else {
+		prService.SetStatus(batch.PrNumber, "success", "digger/plan")
 		prService.SetStatus(batch.PrNumber, batch.ToStatusCheck(), "digger/apply")
 	}
 	return nil
