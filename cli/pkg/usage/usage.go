@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-var collect_usage_data = true
+var collect_usage_data = false
 var source = "unknown"
 
 type UsageRecord struct {
