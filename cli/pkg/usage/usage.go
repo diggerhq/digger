@@ -89,9 +89,9 @@ func init() {
 	}
 	if !config.CollectUsageData {
 		collect_usage_data = false
-	} else if os.Getenv("COLLECT_USAGE_DATA") == "false" {
-		collect_usage_data = false
-	} else {
+	} else if os.Getenv("COLLECT_USAGE_DATA") == "true" {
 		collect_usage_data = true
+	} else {
+		collect_usage_data = false
 	}
 }
