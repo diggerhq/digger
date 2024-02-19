@@ -66,7 +66,8 @@ func sendPayload(payload interface{}) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error sending usage record: %v", err)
+		log.Printf("Error sending usage record: %v. If you are using digger in a firewalled environment "+
+		  	"please whitelist analytics.digger.dev", err)
 		return err
 	}
 	defer resp.Body.Close()
