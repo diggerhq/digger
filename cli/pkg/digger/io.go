@@ -32,7 +32,6 @@ func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService
 func UpdateAggregateStatus(batch *scheduler.SerializedBatch, prService orchestrator.PullRequestService) error {
 	// TODO: Introduce batch-level
 	isPlan, err := batch.IsPlan()
-	fmt.Printf("ISPLAN: %v", isPlan)
 	if err != nil {
 		log.Printf("failed to get batch job plan/apply status: %v", err)
 		return fmt.Errorf("failed to get batch job plan/apply status: %v", err)

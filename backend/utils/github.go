@@ -147,8 +147,11 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 	// Report aggregate status for digger/plan or digger/apply
 	if len(jobs) > 0 {
 		var err error
-		err = prService.SetStatus(prNumber, "pending", "digger/plan")
-		err = prService.SetStatus(prNumber, "pending", "digger/apply")
+		if orchestrator.IsPlanJobs(jobs) {
+			err = prService.SetStatus(prNumber, "pending", "digger/plan")
+		} else {
+			err = prService.SetStatus(prNumber, "pending", "digger/apply")
+		}
 		if err != nil {
 			log.Printf("error setting status: %v", err)
 			return fmt.Errorf("error setting pr status: %v", err)
