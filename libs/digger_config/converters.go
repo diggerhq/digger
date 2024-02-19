@@ -145,7 +145,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 	if diggerYaml.CollectUsageData != nil {
 		diggerConfig.CollectUsageData = *diggerYaml.CollectUsageData
 	} else {
-		diggerConfig.CollectUsageData = true
+		diggerConfig.CollectUsageData = false
 	}
 
 	// if workflow block is not specified in yaml we create a default one, and add it to every project
