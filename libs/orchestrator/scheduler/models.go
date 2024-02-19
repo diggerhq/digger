@@ -1,6 +1,11 @@
 package scheduler
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/goccy/go-json"
+	"log"
+)
 
 type DiggerBatchStatus int8
 
@@ -86,6 +91,40 @@ type SerializedBatch struct {
 	Jobs         []SerializedJob   `json:"jobs"`
 }
 
+func (b *SerializedBatch) IsPlan() (bool, error) {
+	// TODO: Introduce a batch-level field to check for is plan or apply
+	jobSpecs, err := GetJobSpecs(b.Jobs)
+	if err != nil {
+		log.Printf("error while fetching job specs: %v", err)
+		return false, fmt.Errorf("error while fetching job specs: %v", err)
+	}
+	return orchestrator.IsPlanJobSpecs(jobSpecs), nil
+}
+
+func (b *SerializedBatch) IsApply() (bool, error) {
+	jobSpecs, err := GetJobSpecs(b.Jobs)
+	if err != nil {
+		log.Printf("error while fetching job specs: %v", err)
+		return false, fmt.Errorf("error while fetching job specs: %v", err)
+	}
+	return orchestrator.IsPlanJobSpecs(jobSpecs), nil
+}
+
+func (b *SerializedBatch) ToStatusCheck() string {
+	switch b.Status {
+	case BatchJobCreated:
+		return "pending"
+	case BatchJobInvalidated:
+		return "failure"
+	case BatchJobFailed:
+		return "success"
+	case BatchJobSucceeded:
+		return "success"
+	default:
+		return "pending"
+	}
+}
+
 func (s *SerializedJob) ResourcesSummaryString(isPlan bool) string {
 	if !isPlan {
 		return ""
@@ -96,4 +135,18 @@ func (s *SerializedJob) ResourcesSummaryString(isPlan bool) string {
 	} else {
 		return "..."
 	}
+}
+
+func GetJobSpecs(jobs []SerializedJob) ([]orchestrator.JobJson, error) {
+	jobSpecs := make([]orchestrator.JobJson, 0)
+	for _, job := range jobs {
+		var jobSpec orchestrator.JobJson
+		err := json.Unmarshal(job.JobString, &jobSpec)
+		if err != nil {
+			log.Printf("Failed to convert unmarshall Serialized job")
+			return nil, err
+		}
+		jobSpecs = append(jobSpecs, jobSpec)
+	}
+	return jobSpecs, nil
 }

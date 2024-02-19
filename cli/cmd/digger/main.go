@@ -138,6 +138,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 
 		digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
@@ -155,6 +156,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
 			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
@@ -168,6 +170,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
 			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
@@ -337,11 +340,28 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			// aggregate status checks: failure
+			if allAppliesSuccessful {
+				if atLeastOneApply {
+					githubPrService.SetStatus(prNumber, "failure", "digger/apply")
+				} else {
+					githubPrService.SetStatus(prNumber, "failure", "digger/plan")
+				}
+			}
 		}
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
 			digger.MergePullRequest(&githubPrService, prNumber)
 			log.Println("PR merged successfully")
+		}
+
+		if allAppliesSuccessful {
+			// aggreate status checks: success
+			if atLeastOneApply {
+				githubPrService.SetStatus(prNumber, "success", "digger/apply")
+			} else {
+				githubPrService.SetStatus(prNumber, "success", "digger/plan")
+			}
 		}
 
 		log.Println("Commands executed successfully")
