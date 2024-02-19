@@ -48,7 +48,7 @@ func sendPayload(payload interface{}) error {
 		log.Printf("Error marshalling usage record: %v", err)
 		return err
 	}
-	req, _ := http.NewRequest("POST", "https://i2smwjphd4.execute-api.us-east-1.amazonaws.com/prod/", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", "https://analytics.digger.dev", bytes.NewBuffer(jsonData))
 
 	req.Header.Set("Content-Type", "application/json")
 
