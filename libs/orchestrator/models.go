@@ -73,7 +73,7 @@ func (j *Job) IsApply() bool {
 }
 
 func IsPlanJobs(jobs []Job) bool {
-	isPlan := false
+	isPlan := true
 	for _, job := range jobs {
 		isPlan = isPlan && job.IsPlan()
 	}
@@ -81,7 +81,7 @@ func IsPlanJobs(jobs []Job) bool {
 }
 
 func IsApplyJobs(jobs []JobJson) bool {
-	isApply := false
+	isApply := true
 	for _, job := range jobs {
 		isApply = isApply && job.IsApply()
 	}
