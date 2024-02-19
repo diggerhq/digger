@@ -77,6 +77,7 @@ func (svc GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 
 func (svc GithubService) PublishComment(prNumber int, comment string) (int64, error) {
 	githubComment, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
+	fmt.Printf("!!publish comment ERR %v", err)
 	return *githubComment.ID, err
 }
 
