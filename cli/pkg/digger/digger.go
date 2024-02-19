@@ -9,9 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
-	"github.com/goccy/go-json"
-
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
@@ -150,33 +147,20 @@ func RunJobs(
 
 		err = UpdateStatusComment(batchResult.Jobs, prNumber, prService, prCommentId)
 		if err != nil {
+			log.Printf("error Updating status comment: %v.\n", err)
 			return false, false, err
 		}
+		err = UpdateAggregateStatus(batchResult, prService)
+		if err != nil {
+			log.Printf("error udpating aggregate status check: %v.\n", err)
+			return false, false, err
+		}
+
 	}
 
 	atLeastOneApply := len(appliesPerProject) > 0
 
 	return allAppliesSuccess, atLeastOneApply, nil
-}
-
-func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService orchestrator.PullRequestService, prCommentId int64) error {
-
-	message := ":construction_worker: Jobs status:\n\n"
-	for _, job := range jobs {
-		var jobSpec orchestrator.JobJson
-		err := json.Unmarshal(job.JobString, &jobSpec)
-		if err != nil {
-			log.Printf("Failed to convert unmarshall Serialized job")
-		}
-		isPlan := jobSpec.IsPlan()
-
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan))
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
-	}
-
-	prService.EditComment(prNumber, prCommentId, message)
-	return nil
 }
 
 func reportPolicyError(projectName string, command string, requestedBy string, reporter core_reporting.Reporter) string {

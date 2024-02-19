@@ -438,6 +438,8 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		// do not report if no projects are impacted to minimise noise in the PR thread
 		// TODO use status checks instead: https://github.com/diggerhq/digger/issues/1135
 		log.Printf("No projects impacted; not starting any jobs")
+		// This one is for aggregate reporting
+		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 		return nil
 	}
 
@@ -618,6 +620,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	if len(jobs) == 0 {
+		log.Printf("no projects impacated, succeeding")
+		// This one is for aggregate reporting
+		err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
 		return nil
 	}
 
