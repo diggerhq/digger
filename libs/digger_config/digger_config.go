@@ -407,6 +407,8 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 
 func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	configYaml := &DiggerConfigYaml{}
+	collectUsageData := true
+	configYaml.CollectUsageData = &collectUsageData
 
 	terragruntDirWalker := &FileSystemTerragruntDirWalker{}
 	terraformDirWalker := &FileSystemTopLevelTerraformDirWalker{}
