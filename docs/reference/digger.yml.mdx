@@ -11,7 +11,7 @@ projects:
 - name: my-second-app
   dir: app-two
 auto_merge: true
-collect_usage_data: true
+telemetry: true
 ```
 
 **Note:** you can also name your Digger configuration file differently, and specify its name using the `digger-filename` input at GitHub Action level.
@@ -21,7 +21,7 @@ collect_usage_data: true
 ## Example using all keys
 
 ```yml
-collect_usage_data: true
+telemetry: true
 auto_merge: false
 projects:
 - name: prod
@@ -36,7 +36,7 @@ projects:
   workflow: staging
   include_patterns: ["../modules/**"]
   exclude_patterns: []
-generate_projects: 
+generate_projects:
   include: "../projects/**"
   exclude: "../.terraform/**"
 workflows:
@@ -101,11 +101,11 @@ workflows:
 
 | Key                  | Type                                                             | Default | Required | Description                                            | Notes |
 | -------------------- | ---------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------ | ----- |
-| collect\_usage\_data | boolean                                                          | true    | no       | allows collecting anonymised usage and debugging data  |      |
-| auto\_merge          | boolean                                                          | false   | no       | automatically merge pull requests when all checks pass |      |
-| projects             | array of [Projects](/reference/digger.yml#project)          | \[\]    | no       | list of projects to manage                             |      |
-| generate\_projects   | [GenerateProjects](/reference/digger.yml#generateprojects) | {}      | no       | generate projects from a directory structure           |      |
-| workflows            | map of [Workflows](/reference/digger.yml#workflows)         | {}      | no       | workflows and configurations to run on events          |      |
+| telemetry            | boolean                                                          | true    | no       | allows collecting anonymised usage and debugging data  |       |
+| auto\_merge          | boolean                                                          | false   | no       | automatically merge pull requests when all checks pass |       |
+| projects             | array of [Projects](/reference/digger.yml#project)               | \[\]    | no       | list of projects to manage                             |       |
+| generate\_projects   | [GenerateProjects](/reference/digger.yml#generateprojects)       | {}      | no       | generate projects from a directory structure           |       |
+| workflows            | map of [Workflows](/reference/digger.yml#workflows)              | {}      | no       | workflows and configurations to run on events          |       |
 
 ### Project
 
