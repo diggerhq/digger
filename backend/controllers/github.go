@@ -234,7 +234,7 @@ func GithubSetupExchangeCode(c *gin.Context) {
 		"ClientID":      cfg.GetClientID(),
 		"ClientSecret":  cfg.GetClientSecret(),
 		"Key":           PEM,
-		"KEY_B64":       PemBase64,
+		"KeyBase64":     PemBase64,
 		"WebhookSecret": cfg.GetWebhookSecret(),
 		"URL":           cfg.GetHTMLURL(),
 	})
