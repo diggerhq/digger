@@ -2,6 +2,8 @@ package usage
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log"
@@ -9,7 +11,7 @@ import (
 	"os"
 )
 
-var collect_usage_data = true
+var telemetry = true
 var source = "unknown"
 
 type UsageRecord struct {
@@ -20,8 +22,12 @@ type UsageRecord struct {
 }
 
 func SendUsageRecord(repoOwner string, eventName string, action string) error {
+	h := sha256.New()
+	h.Write([]byte(repoOwner))
+	sha := h.Sum(nil)
+	shaStr := hex.EncodeToString(sha)
 	payload := UsageRecord{
-		UserId:    repoOwner,
+		UserId:    shaStr,
 		EventName: eventName,
 		Action:    action,
 		Token:     "diggerABC@@1998fE",
@@ -30,8 +36,12 @@ func SendUsageRecord(repoOwner string, eventName string, action string) error {
 }
 
 func SendLogRecord(repoOwner string, message string) error {
+	h := sha256.New()
+	h.Write([]byte(repoOwner))
+	sha := h.Sum(nil)
+	shaStr := hex.EncodeToString(sha)
 	payload := UsageRecord{
-		UserId:    repoOwner,
+		UserId:    shaStr,
 		EventName: "log from " + source,
 		Action:    message,
 		Token:     "diggerABC@@1998fE",
@@ -40,7 +50,7 @@ func SendLogRecord(repoOwner string, message string) error {
 }
 
 func sendPayload(payload interface{}) error {
-	if !collect_usage_data {
+	if !telemetry {
 		return nil
 	}
 	jsonData, err := json.Marshal(payload)
@@ -48,13 +58,15 @@ func sendPayload(payload interface{}) error {
 		log.Printf("Error marshalling usage record: %v", err)
 		return err
 	}
-	req, _ := http.NewRequest("POST", "https://i2smwjphd4.execute-api.us-east-1.amazonaws.com/prod/", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest("POST", "https://analytics.digger.dev", bytes.NewBuffer(jsonData))
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error sending usage record: %v", err)
+		log.Printf("Error sending telmetry: %v. If you are using digger in a firewalled environment, "+
+			"please consider whitelisting analytics.digger.dev. You can also disable this message by setting "+
+			"telemetry: false in digger.yml", err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -87,11 +99,11 @@ func init() {
 	if err != nil {
 		return
 	}
-	if !config.CollectUsageData {
-		collect_usage_data = false
-	} else if os.Getenv("COLLECT_USAGE_DATA") == "false" {
-		collect_usage_data = false
+	if !config.Telemetry {
+		telemetry = false
+	} else if os.Getenv("TELEMETRY") == "false" {
+		telemetry = false
 	} else {
-		collect_usage_data = true
+		telemetry = true
 	}
 }
