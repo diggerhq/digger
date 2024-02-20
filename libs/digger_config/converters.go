@@ -142,10 +142,10 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.AutoMerge = false
 	}
 
-	if diggerYaml.CollectUsageData != nil {
-		diggerConfig.CollectUsageData = *diggerYaml.CollectUsageData
+	if diggerYaml.Telemetry != nil {
+		diggerConfig.Telemetry = *diggerYaml.Telemetry
 	} else {
-		diggerConfig.CollectUsageData = true
+		diggerConfig.Telemetry = true
 	}
 
 	// if workflow block is not specified in yaml we create a default one, and add it to every project
