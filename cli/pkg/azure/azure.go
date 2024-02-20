@@ -336,6 +336,11 @@ func (a *AzureReposService) GetBranchName(prNumber int) (string, error) {
 	return "", nil
 }
 
+func (svc *AzureReposService) SetOutput(prNumber int, key string, value string) error {
+	//TODO implement me
+	return nil
+}
+
 func (a *AzureReposService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	comments, err := a.Client.GetComments(context.Background(), git.GetCommentsArgs{
 		Project:       &a.ProjectName,

@@ -42,7 +42,7 @@ func populateKeys(envs map[string]string, provider stscreds.WebIdentityRoleProvi
 func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
 
 	if job.StateEnvProvider != nil {
-		log.Printf("Project-level AWS role detected, Assuming role: %v for project run: %v", job.ProjectName)
+		log.Printf("Project-level AWS role detected, Assuming role for project: %v", job.ProjectName)
 		var err error
 		backendConfigArgs, err := populateretrieveBackendConfigArgs(*job.StateEnvProvider)
 		if err != nil {

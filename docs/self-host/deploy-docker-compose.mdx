@@ -44,7 +44,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    image: "ghcr.io/diggerhq/digger_backend:latest"
+    image: "registry.digger.dev/diggerhq/digger_backend:latest"
     env_file:
       - .env
     ports:
