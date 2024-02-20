@@ -38,6 +38,7 @@ var applyCmd = &cobra.Command{
 func init() {
 	flags := []pflag.Flag{
 		{Name: "github-token", Usage: "Github token (for github reporter)"},
+		{Name: "bitbucket-token", Usage: "Bitbucket token (for bitbucket reporter)"},
 		{Name: "repo-namespace", Usage: "The namespace of this repo"},
 		{Name: "actor", Usage: "The actor of this command"},
 		{Name: "reporter", Usage: "The reporter to use (defaults to stdout)"},

@@ -21,7 +21,7 @@ type BitbucketAPI struct {
 	RepoName      string
 }
 
-func (b *BitbucketAPI) sendRequest(method, url string, body []byte) (*http.Response, error) {
+func (b BitbucketAPI) sendRequest(method, url string, body []byte) (*http.Response, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, bytes.NewReader(body))
 	if err != nil {
@@ -463,7 +463,7 @@ func (b BitbucketAPI) GetBranchName(prNumber int) (string, error) {
 	return pullRequest.Source.Branch.Name, nil
 }
 
-func (svc *BitbucketAPI) SetOutput(prNumber int, key string, value string) error {
+func (svc BitbucketAPI) SetOutput(prNumber int, key string, value string) error {
 	//TODO implement me
 	return nil
 }
