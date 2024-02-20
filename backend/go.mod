@@ -14,7 +14,7 @@ require (
 	github.com/dchest/uniuri v1.2.0
 	github.com/diggerhq/digger/libs v0.4.1
 	github.com/dominikbraun/graph v0.23.0
-	github.com/getsentry/sentry-go v0.26.0
+	github.com/getsentry/sentry-go v0.27.0
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-git/go-git/v5 v5.11.0
