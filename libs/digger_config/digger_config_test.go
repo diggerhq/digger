@@ -96,6 +96,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
+	assert.Equal(t, true, dg.CollectUsageData)
 	assert.Equal(t, 1, len(dg.Workflows))
 	assert.Equal(t, "default", dg.Projects[0].Name)
 	assert.Equal(t, "./", dg.Projects[0].Dir)
@@ -132,6 +133,7 @@ projects:
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
+	assert.Equal(t, true, dg.CollectUsageData)
 	assert.Equal(t, 1, len(dg.Workflows))
 
 	assert.Equal(t, "prod", dg.Projects[0].Name)

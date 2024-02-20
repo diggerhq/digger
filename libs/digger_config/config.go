@@ -4,6 +4,7 @@ type DiggerConfig struct {
 	DependencyConfiguration DependencyConfiguration
 	Projects                []Project
 	AutoMerge               bool
+	CollectUsageData        bool
 	Workflows               map[string]Workflow
 }
 
