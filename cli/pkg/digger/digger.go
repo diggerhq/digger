@@ -9,9 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
-	"github.com/goccy/go-json"
-
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
@@ -135,7 +132,12 @@ func RunJobs(
 		currentJob := jobs[0]
 		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
 		projectNameForBackendReporting := currentJob.ProjectName
-		planSummary := exectorResults[0].PlanResult.PlanSummary
+		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
+		// Some kind of generic terraform operation summary might need to be introduced
+		planSummary := terraform.PlanSummary{}
+		if exectorResults[0].PlanResult != nil {
+			planSummary = exectorResults[0].PlanResult.PlanSummary
+		}
 		prNumber := *currentJob.PullRequestNumber
 		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary)
 		if err != nil {
@@ -145,33 +147,20 @@ func RunJobs(
 
 		err = UpdateStatusComment(batchResult.Jobs, prNumber, prService, prCommentId)
 		if err != nil {
+			log.Printf("error Updating status comment: %v.\n", err)
 			return false, false, err
 		}
+		err = UpdateAggregateStatus(batchResult, prService)
+		if err != nil {
+			log.Printf("error udpating aggregate status check: %v.\n", err)
+			return false, false, err
+		}
+
 	}
 
 	atLeastOneApply := len(appliesPerProject) > 0
 
 	return allAppliesSuccess, atLeastOneApply, nil
-}
-
-func UpdateStatusComment(jobs []scheduler.SerializedJob, prNumber int, prService orchestrator.PullRequestService, prCommentId int64) error {
-
-	message := ":construction_worker: Jobs status:\n\n"
-	for _, job := range jobs {
-
-		var jobSpec orchestrator.JobJson
-		err := json.Unmarshal(job.JobString, &jobSpec)
-		if err != nil {
-			log.Printf("Failed to convert unmarshall Serialized job")
-		}
-
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString())
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
-	}
-
-	prService.EditComment(prNumber, prCommentId, message)
-	return nil
 }
 
 func reportPolicyError(projectName string, command string, requestedBy string, reporter core_reporting.Reporter) string {
@@ -254,6 +243,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			PlanPathProvider:  planPathProvider,
 		},
 	}
+	executor := diggerExecutor.Executor.(execution.DiggerExecutor)
 
 	switch command {
 
@@ -366,13 +356,14 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			var planPolicyViolations []string
 
 			if os.Getenv("PLAN_UPLOAD_DESTINATION") != "" {
-				storedPlanJson, err := retrievePlanBeforeApply(planStorage, planPathProvider, diggerExecutor)
+				terraformPlanJsonStr, err := executor.RetrievePlanJson()
 				if err != nil {
 					msg := fmt.Sprintf("Failed to retrieve stored plan. %v", err)
 					log.Printf(msg)
 					return nil, msg, fmt.Errorf(msg)
 				}
-				_, violations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, storedPlanJson)
+
+				_, violations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, terraformPlanJsonStr)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to check plan policy. %v", err)
 					log.Printf(msg)
@@ -477,28 +468,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		msg := fmt.Sprintf("Command '%s' is not supported", command)
 		return nil, msg, fmt.Errorf(msg)
 	}
-	return nil, "", nil
-}
-
-func retrievePlanBeforeApply(planStorage storage.PlanStorage, planPathProvider execution.PlanPathProvider, diggerExecutor execution.LockingExecutorWrapper) (string, error) {
-	storedPlanExists, err := planStorage.PlanExists(planPathProvider.StoredPlanFilePath())
-	if err != nil {
-		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
-	}
-	if storedPlanExists {
-		log.Printf("Pre-apply plan retrieval: stored plan exists")
-		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.StoredPlanFilePath())
-		if err != nil {
-			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
-		}
-		planBytes, err := os.ReadFile(*storedPlanPath)
-		if err != nil {
-			return "", fmt.Errorf("failed to read stored plan file. %v", err)
-		}
-		return string(planBytes), nil
-	} else {
-		return "", fmt.Errorf("stored plan does not exist")
-	}
+	return &execution.DiggerExecutorResult{}, "", nil
 }
 
 func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {

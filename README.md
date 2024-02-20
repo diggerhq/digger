@@ -51,7 +51,7 @@ Not sure where to get started? You can:
 ## Running migrations
 
 ```
-atlas migrate diff --env gorm
+atlas migrate apply --url $DATABASE_URL
 ```
 
 ## Resources

@@ -1,17 +1,18 @@
 package storage
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/utils"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
-
-	"github.com/diggerhq/digger/cli/pkg/utils"
 
 	"cloud.google.com/go/storage"
 	"github.com/google/go-github/v58/github"
@@ -65,6 +66,11 @@ func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePat
 	return nil
 }
 
+func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+	// TODO: implement me
+	return nil
+}
+
 func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	rc, err := obj.NewReader(psg.Context)
@@ -104,8 +110,89 @@ func (gps *GithubPlanStorage) StorePlan(localPlanFilePath string, storedPlanFile
 	return nil
 }
 
+func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+	actionsRuntimeToken := os.Getenv("ACTIONS_RUNTIME_TOKEN")
+	actionsRuntimeURL := os.Getenv("ACTIONS_RUNTIME_URL")
+	githubRunID := os.Getenv("GITHUB_RUN_ID")
+	artifactBase := fmt.Sprintf("%s_apis/pipelines/workflows/%s/artifacts?api-version=6.0-preview", actionsRuntimeURL, githubRunID)
+
+	headers := map[string]string{
+		"Accept":        "application/json;api-version=6.0-preview",
+		"Authorization": "Bearer " + actionsRuntimeToken,
+		"Content-Type":  "application/json",
+	}
+
+	// Create Artifact
+	createArtifactURL := artifactBase
+	createArtifactData := map[string]string{"type": "actions_storage", "name": artifactName}
+	createArtifactBody, _ := json.Marshal(createArtifactData)
+	createArtifactResponse, err := doRequest("POST", createArtifactURL, headers, createArtifactBody)
+	if createArtifactResponse == nil || err != nil {
+		return fmt.Errorf("Could not create artifact with github %v", err)
+	}
+	defer createArtifactResponse.Body.Close()
+
+	// Extract Resource URL
+	createArtifactResponseBody, _ := io.ReadAll(createArtifactResponse.Body)
+	var createArtifactResponseMap map[string]interface{}
+	json.Unmarshal(createArtifactResponseBody, &createArtifactResponseMap)
+	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
+
+	// Upload Data
+	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, fileName)
+	uploadData := fileContents
+	dataLen := len(uploadData)
+	headers["Content-Type"] = "application/octet-stream"
+	headers["Content-Range"] = fmt.Sprintf("bytes 0-%v/%v", dataLen-1, dataLen)
+	_, err = doRequest("PUT", uploadURL, headers, uploadData)
+	if err != nil {
+		return fmt.Errorf("could not upload artifact file %v", err)
+	}
+
+	// Update Artifact Size
+	headers = map[string]string{
+		"Accept":        "application/json;api-version=6.0-preview",
+		"Authorization": "Bearer " + actionsRuntimeToken,
+		"Content-Type":  "application/json",
+	}
+	updateArtifactURL := fmt.Sprintf("%s&artifactName=%s", artifactBase, artifactName)
+	updateArtifactData := map[string]int{"size": dataLen}
+	updateArtifactBody, _ := json.Marshal(updateArtifactData)
+	_, err = doRequest("PATCH", updateArtifactURL, headers, updateArtifactBody)
+	if err != nil {
+		return fmt.Errorf("could finalize artefact upload: %v", err)
+	}
+
+	return nil
+}
+
+func doRequest(method, url string, headers map[string]string, body []byte) (*http.Response, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error making request:", err)
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	if resp.StatusCode >= 400 {
+		fmt.Printf("url: %v", url)
+		fmt.Println("Request failed with status code:", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("body: %v", string(body))
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	return resp, nil
+}
+
 func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
-	plansFilename, err := gps.DownloadLatestPlans()
+	plansFilename, err := gps.DownloadLatestPlans(storedPlanFilePath)
 
 	if err != nil {
 		return nil, fmt.Errorf("error downloading plan: %v", err)
@@ -132,7 +219,7 @@ func (gps *GithubPlanStorage) PlanExists(storedPlanFilePath string) (bool, error
 		return false, err
 	}
 
-	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, "plans-"+strconv.Itoa(gps.PullRequestNumber))
+	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, storedPlanFilePath)
 
 	if latestPlans == nil {
 		return false, nil
@@ -144,7 +231,7 @@ func (gps *GithubPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error 
 	return nil
 }
 
-func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
+func (gps *GithubPlanStorage) DownloadLatestPlans(storedPlanFilePath string) (string, error) {
 	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
 		PerPage: 100,
 	})
@@ -153,7 +240,7 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 		return "", err
 	}
 
-	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, "plans-"+strconv.Itoa(gps.PullRequestNumber))
+	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, storedPlanFilePath)
 
 	if latestPlans == nil {
 		return "", nil
@@ -164,7 +251,7 @@ func (gps *GithubPlanStorage) DownloadLatestPlans() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	filename := "plans-" + strconv.Itoa(gps.PullRequestNumber) + ".zip"
+	filename := storedPlanFilePath + ".zip"
 
 	err = downloadArtifactIntoFile(downloadUrl, filename)
 

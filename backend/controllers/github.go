@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
-	"github.com/google/uuid"
 	"log"
 	"math/rand"
 	"net/http"
@@ -15,6 +13,9 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/google/uuid"
 
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
@@ -419,12 +420,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error getting digger config")
 	}
 
-	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
-	if err != nil {
-		log.Printf("Error initializing comment reporter: %v", err)
-		return fmt.Errorf("error initializing comment reporter")
-	}
-
 	impactedProjects, _, err := dg_github.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
@@ -439,15 +434,26 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error converting event to jobsForImpactedProjects")
 	}
 
+	if len(jobsForImpactedProjects) == 0 {
+		// do not report if no projects are impacted to minimise noise in the PR thread
+		// TODO use status checks instead: https://github.com/diggerhq/digger/issues/1135
+		log.Printf("No projects impacted; not starting any jobs")
+		// This one is for aggregate reporting
+		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+		return nil
+	}
+
+	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
+	if err != nil {
+		log.Printf("Error initializing comment reporter: %v", err)
+		return fmt.Errorf("error initializing comment reporter")
+	}
+
 	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
 	if err != nil {
 		log.Printf("Failed to comment initial status for jobs: %v", err)
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
 		return fmt.Errorf("failed to comment initial status for jobs")
-	}
-
-	if len(jobsForImpactedProjects) == 0 {
-		return nil
 	}
 
 	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
@@ -561,6 +567,11 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return nil
 	}
 
+	if !strings.HasPrefix(*payload.Comment.Body, "digger") {
+		log.Printf("comment is not a Digger command, ignoring")
+		return nil
+	}
+
 	diggerYmlStr, ghService, config, projectsGraph, branch, err := getDiggerConfig(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
 		log.Printf("getDiggerConfig error: %v", err)
@@ -609,6 +620,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	if len(jobs) == 0 {
+		log.Printf("no projects impacated, succeeding")
+		// This one is for aggregate reporting
+		err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
 		return nil
 	}
 

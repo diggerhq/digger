@@ -96,7 +96,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if !strings.Contains(os.Getenv("DIGGER_HOSTNAME"), "cloud.digger.dev") {
 			usage.SendUsageRecord(githubActor, "log", "selfhosted")
 		}
-
+    
 		type Inputs struct {
 			JobString string `json:"job"`
 			Id        string `json:"id"`
@@ -124,15 +124,22 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		err = json.Unmarshal([]byte(inputs.JobString), &job)
 		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 
+		err = githubPrService.SetOutput(*job.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *job.PullRequestNumber))
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
+		}
+
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
 		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
-		digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
 		}
+
+		digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
@@ -145,11 +152,13 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
-			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
-
 			if reportingError != nil {
 				log.Printf("Failed to report job status to backend. %v", reportingError)
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
+			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
+
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 
@@ -158,11 +167,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, inputs.Id, true, commentId64, currentDir)
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
-			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
-
 			if reportingError != nil {
-				log.Printf("Failed to report job status to backend. %v", reportingError)
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
+			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
@@ -313,6 +322,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		log.Println("GitHub event converted to commands successfully")
 		logCommands(jobs)
 
+		err = githubPrService.SetOutput(prNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", prNumber))
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
+		}
+
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
 
 		reporter := &reporting.CiReporter{
@@ -327,11 +341,28 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			// aggregate status checks: failure
+			if allAppliesSuccessful {
+				if atLeastOneApply {
+					githubPrService.SetStatus(prNumber, "failure", "digger/apply")
+				} else {
+					githubPrService.SetStatus(prNumber, "failure", "digger/plan")
+				}
+			}
 		}
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
 			digger.MergePullRequest(&githubPrService, prNumber)
 			log.Println("PR merged successfully")
+		}
+
+		if allAppliesSuccessful {
+			// aggreate status checks: success
+			if atLeastOneApply {
+				githubPrService.SetStatus(prNumber, "success", "digger/apply")
+			} else {
+				githubPrService.SetStatus(prNumber, "success", "digger/plan")
+			}
 		}
 
 		log.Println("Commands executed successfully")

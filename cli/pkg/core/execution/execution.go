@@ -117,6 +117,7 @@ type DiggerExecutorPlanResult struct {
 type PlanPathProvider interface {
 	LocalPlanFilePath() string
 	StoredPlanFilePath() string
+	ArtifactName() string
 	PlanFileName() string
 }
 
@@ -126,8 +127,12 @@ type ProjectPathProvider struct {
 	ProjectName      string
 }
 
+func (d ProjectPathProvider) ArtifactName() string {
+	return d.ProjectName
+}
+
 func (d ProjectPathProvider) PlanFileName() string {
-	return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "#" + d.ProjectName + ".tfplan"
+	return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.ProjectName + ".tfplan"
 }
 
 func (d ProjectPathProvider) LocalPlanFilePath() string {
@@ -136,6 +141,38 @@ func (d ProjectPathProvider) LocalPlanFilePath() string {
 
 func (d ProjectPathProvider) StoredPlanFilePath() string {
 	return path.Join(d.ProjectNamespace, d.PlanFileName())
+}
+
+func (d DiggerExecutor) RetrievePlanJson() (string, error) {
+	executor := d
+	planStorage := executor.PlanStorage
+	planPathProvider := executor.PlanPathProvider
+	storedPlanExists, err := planStorage.PlanExists(planPathProvider.ArtifactName())
+	if err != nil {
+		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
+	}
+	if storedPlanExists {
+		log.Printf("Pre-apply plan retrieval: stored plan exists in artefact, retrieving")
+		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName())
+		if err != nil {
+			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
+		}
+
+		// Running terraform init to load provider
+		for _, step := range executor.PlanStage.Steps {
+			if step.Action == "init" {
+				executor.TerraformExecutor.Init(step.ExtraArgs, executor.StateEnvVars)
+				break
+			}
+		}
+
+		showArgs := []string{"-no-color", "-json", *storedPlanPath}
+		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars)
+		return terraformPlanOutput, nil
+
+	} else {
+		return "", fmt.Errorf("stored plan does not exist")
+	}
 }
 
 func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, string, error) {
@@ -193,21 +230,17 @@ func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, stri
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v", err)
 			}
 			if d.PlanStorage != nil {
-				planExists, err := d.PlanStorage.PlanExists(d.PlanPathProvider.StoredPlanFilePath())
+
+				fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
 				if err != nil {
-					return nil, false, false, "", "", fmt.Errorf("error checking if plan exists: %v", err)
+					fmt.Println("Error reading file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
 				}
 
-				if planExists {
-					err = d.PlanStorage.DeleteStoredPlan(d.PlanPathProvider.StoredPlanFilePath())
-					if err != nil {
-						return nil, false, false, "", "", fmt.Errorf("error deleting plan: %v", err)
-					}
-				}
-
-				err = d.PlanStorage.StorePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
+				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.PlanFileName())
 				if err != nil {
-					return nil, false, false, "", "", fmt.Errorf("error storing plan: %v", err)
+					fmt.Println("Error storing artifact file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
 				}
 			}
 			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
@@ -251,7 +284,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 	var plansFilename *string
 	if d.PlanStorage != nil {
 		var err error
-		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath())
+		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName())
 		if err != nil {
 			return false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}

@@ -36,9 +36,9 @@ There are many ways to contribute to Digger, including:
 - Adding new features
 - Fixing bugs
 - Writing tests
-
 - And more!
-  Before you start contributing, please read our [Code of Conduct](#code-of-conduct) to understand what is expected of contributors.
+
+Before you start contributing, please read our [Code of Conduct](#code-of-conduct) to understand what is expected of contributors.
 
 ## Coding conventions
 
@@ -47,12 +47,11 @@ We strive to maintain a consistent coding style throughout the project. Please f
 ## Folder structure
 
 ```
-cmd/ # contains the main cli files | TODO: refactor into cli/cmd
-dockerfiles/ # DEPRECATED - contains the dockerfiles of digger | TODO: remove
+libs/ # contains libraries that are common between digger cli and digger cloud backend (should NOT import anything from cli/pkg/ which is cli specific)
+cli/cmd/ # contains the main cli files
+cli/pkg/ # contains packages that are used by the cli code, can import from libs/
+backend/ # contains the backend code, can import from libs/
 docs/ # contains documentation pages
-libs/ # contains libraries that are common between digger cli and digger cloud backend (should NOT import anything from pkg/ which is cli specific)
-pkg/ # contains packages that are used by the cli code | TODO: refactor into cli/pkg, can import from libs/
-cloud/ # (coming soon) contains the backend code, can import from libs/
 ```
 
 ## Submitting a pull request
@@ -74,7 +73,7 @@ When you have made changes to the codebase that you would like to contribute bac
 
 ## Release Process
 
-**NOTE: The default branch `@develop` is not guaranteed to be stable and you should always use published release versions in your testing and production.**
+**NOTE: The default branch `@develop` is not guaranteed to be stable and you should always use published release versions in your testing and production environments.**
 
 - All pull requests are merged to the default develop branch after initial unit tests and integration tests are passing and required code review requirements are met.
 - We checkout a pre-release branch to prepare for an upcoming release with the pattern `prerelease-0.1.xx`.
