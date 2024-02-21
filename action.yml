@@ -72,7 +72,7 @@ inputs:
   terraform-version:
     description: Terraform version
     required: false
-    default: v1.7.3
+    default: v1.6.6
   configure-checkout:
     description: Configure checkout. Beware that this will overwrite any changes in the working directory
     required: false
