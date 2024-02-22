@@ -71,6 +71,7 @@
               "howto/custom-commands",
               "howto/destroy-manual",
               "howto/disable-auto-checkout",
+              "howto/disable-telemetry",
               "howto/drift-detection",
               "howto/generate-projects",
               "howto/include-exclude-patterns",

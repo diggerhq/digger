@@ -96,6 +96,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
+	assert.Equal(t, true, dg.Telemetry)
 	assert.Equal(t, 1, len(dg.Workflows))
 	assert.Equal(t, "default", dg.Projects[0].Name)
 	assert.Equal(t, "./", dg.Projects[0].Dir)
@@ -132,6 +133,7 @@ projects:
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
+	assert.Equal(t, true, dg.Telemetry)
 	assert.Equal(t, 1, len(dg.Workflows))
 
 	assert.Equal(t, "prod", dg.Projects[0].Name)
@@ -234,7 +236,7 @@ workflows:
       steps:
       - init:
           extra_args: ["-lock=false"]
-      - plan: 
+      - plan:
           extra_args: ["-lock=false"]
       - run: echo "hello"
     apply:
@@ -283,7 +285,7 @@ workflows:
         - run: rm -rf .terraform
         - init
         - plan:
-          extra_args: ["-var-file=vars/dev.tfvars"]  
+          extra_args: ["-var-file=vars/dev.tfvars"]
   default:
     plan:
       steps:
@@ -567,7 +569,7 @@ workflows:
   default:
     plan:
       steps:
-      - init: 
+      - init:
       - plan:
         extra_args: ["-var-file=$ENV_NAME"]
 `
