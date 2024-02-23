@@ -96,6 +96,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if !strings.Contains(os.Getenv("DIGGER_HOSTNAME"), "cloud.digger.dev") {
 			usage.SendUsageRecord(githubActor, "log", "selfhosted")
 		}
+    
 		type Inputs struct {
 			JobString string `json:"job"`
 			Id        string `json:"id"`
