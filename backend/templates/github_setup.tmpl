@@ -39,6 +39,15 @@
       padding: .5em;
       width: 80%;
     }
+
+    pre#b64 {
+        white-space: pre-wrap;
+        white-space: -moz-pre-wrap;
+        white-space: -pre-wrap;
+        white-space: -o-pre-wrap;
+        word-wrap: break-word;
+    }
+
   </style>
 </head>
 <body>
@@ -67,7 +76,7 @@
         <li class="config"><strong>gh-app-id:</strong> <pre>{{ .ID }}</pre></li>
         <li class="config"><strong>gh-app-client-id:</strong> <pre>{{ .ClientID }}</pre></li>
         <li class="config"><strong>gh-app-client-secret:</strong> <pre>{{ .ClientSecret }}</pre></li>
-        <li class="config"><strong>gh-app-key-file:</strong> <pre>{{ .Key }}</pre></li>
+        <li class="config"><strong>gh-app-key-file Base64 encoded:</strong> <pre id="b64">{{ .KeyBase64 }}</pre></li>
         <li class="config"><strong>gh-webhook-secret:</strong> <pre>{{ .WebhookSecret }}</pre></li>
       </ul>
     {{ end }}
