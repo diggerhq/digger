@@ -20,7 +20,7 @@ require (
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v55 v55.0.0
-	github.com/google/go-github/v58 v58.0.0
+	github.com/google/go-github/v59 v59.0.0
 	github.com/google/go-github/v59 v59.0.0
 	github.com/google/uuid v1.6.0
 	github.com/migueleliasweb/go-github-mock v0.0.23
