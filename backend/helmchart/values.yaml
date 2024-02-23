@@ -87,15 +87,3 @@ postgres:
     existingSecretName: ""
 
     password: ""
-
-
-
-
-
-
-
-
-
-
-
-  

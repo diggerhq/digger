@@ -38,4 +38,3 @@ spec:
         {{- end }}
         - name: ALLOW_DIRTY
           value: "{{ .Values.digger.postgres.allow_dirty }}"
-
