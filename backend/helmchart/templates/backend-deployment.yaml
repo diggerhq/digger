@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "digger-backend.fullname" . }}-web
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "digger-backend.name" . }}-web
+  template:
+    metadata:
+      labels:
+        app: {{ include "digger-backend.name" . }}-web
+    spec:
+      containers:
+      - name: web
+
+        image: "{{ .Values.digger.image.repository }}:{{ .Values.digger.image.tag }}"
+        
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+        {{- if not .Values.digger.secret.useExistingSecret }}
+            name: {{ include "digger-backend.fullname" . }}-secret
+        {{- else }}
+            name: {{ .Values.digger.secret.existingSecretName }}       
+        {{- end }}
+        env:
+        - name: HTTP_BASIC_AUTH
+          value: "1"
+        - name: DATABASE_URL
+        {{- if .Values.postgres.enabled }}
+          value: "postgres://postgres:$(POSTGRES_PASSWORD)@{{ include "digger-backend.fullname" . }}-postgres:5432/postgres?sslmode=disable"
+        {{- else }}
+          value: "postgres://{{ .Values.digger.postgres.user }}:$(POSTGRES_PASSWORD)@{{ .Values.digger.postgres.host }}:{{ .Values.digger.postgres.port }}/{{ .Values.digger.postgres.database }}"
+        {{- end }}
+        - name: ALLOW_DIRTY
+          value: "{{ .Values.digger.postgres.allow_dirty }}"
+

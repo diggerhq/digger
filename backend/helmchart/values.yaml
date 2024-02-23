@@ -1,0 +1,101 @@
+# values.yaml
+namespace: digger-backend
+
+digger:
+
+  # image values
+  # repository: digger backend image repository
+  # tag: digger backend image tag
+  image:
+    repository: ghcr.io/diggerhq/digger_backend
+    tag: "v0.4.2"
+
+  # service values
+  # type: service type (ClusterIP, LoadBalancer, etc)
+  # port: port number to expose
+  service:
+    type: ClusterIP
+    port: 3000 # default port for digger backend
+
+  # ingress values
+  # enabled: enable ingress resource or not (default: true)
+  # host: hostname to use (default: "")
+  # path: path to expose (default: "/")
+  # tls: tls settings if using https
+  #   secretName: name of k8s secret for tls certs (default: "digger-backend-tls")
+  ingress:
+    enabled: true
+    #annotations:
+    #  kubernetes.io/ingress.class: nginx
+    #  kubernetes.io/tls-acme: 'true'
+    host: ""
+    path: /
+    tls:
+      secretName: "digger-backend-tls"
+
+
+  # digger requires a secret with the following key-value pairs: 
+  # HTTP_BASIC_AUTH_USERNAME: <value>
+  # HTTP_BASIC_AUTH_PASSWORD: <value>
+  # BEARER_AUTH_TOKEN: <value>
+  # HOSTNAME: <value>
+  # GITHUB_ORG: <value>
+  # GITHUB_APP_ID: <value>
+  # GITHUB_APP_CLIENT_ID: <value>
+  # GITHUB_APP_CLIENT_SECRET: <value>
+  # GITHUB_APP_PRIVATE_KEY: <value>
+  # GITHUB_WEBHOOK_SECRET: <value>
+  # POSTGRES_PASSWORD: <value>
+  # pass the content in clear or specify the name of the existing secret
+  secret:
+    useExistingSecret: false
+    existingSecretName: ""
+
+    httpBasicAuthUsername: ""
+    httpBasicAuthPassword: ""
+    bearerAuthToken: "" # You should generate
+    hostname: ""
+    githubOrg: ""
+    githubAppID: ""
+    githubAppClientID: ""
+    githubAppClientSecret: ""
+    githubAppKeyFile: #base64 encoded file
+    githubWebhookSecret: ""
+    postgresPassword: ""
+
+
+  # configure this section if you want to use an external postgres database
+
+  postgres:
+    user: ""
+    database: ""
+    host: ""
+    port: ""
+    allow_dirty: false # set to true if the database has already a schema
+
+# configure this section if you want to deploy a postgres db
+# WARNING: use only for test purposes, no persistency has been configured
+postgres:
+  enabled: false
+
+  # postgres requires a secret with the following key-value pairs: 
+  # postgres-password: <value>
+
+  # pass the content in clear or specify the name of the existing secret
+  secret:
+    useExistingSecret: false
+    existingSecretName: ""
+
+    password: ""
+
+
+
+
+
+
+
+
+
+
+
+  
