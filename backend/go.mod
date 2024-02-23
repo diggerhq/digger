@@ -8,11 +8,11 @@ replace github.com/diggerhq/digger/libs => ../libs
 replace github.com/ugorji/go => github.com/ugorji/go v1.2.12
 
 require (
-	ariga.io/atlas-provider-gorm v0.3.0
+	ariga.io/atlas-provider-gorm v0.3.1
 	github.com/alextanhongpin/go-gin-starter v0.0.0-20180719045109-df82f33e8aa1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.9.0
 	github.com/dchest/uniuri v1.2.0
-	github.com/diggerhq/digger/libs v0.4.1
+	github.com/diggerhq/digger/libs v0.4.2
 	github.com/dominikbraun/graph v0.23.0
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/gin-contrib/sessions v0.0.5
@@ -21,6 +21,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v55 v55.0.0
 	github.com/google/go-github/v58 v58.0.0
+	github.com/google/go-github/v59 v59.0.0
 	github.com/google/uuid v1.6.0
 	github.com/migueleliasweb/go-github-mock v0.0.22
 	github.com/robert-nix/ansihtml v1.0.1

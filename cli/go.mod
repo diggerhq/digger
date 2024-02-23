@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/storage v1.38.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.1.0
-	github.com/aws/aws-sdk-go v1.50.21
+	github.com/aws/aws-sdk-go v1.50.24
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/google/uuid v1.6.0
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
@@ -20,10 +20,11 @@ require (
 
 require (
 	github.com/caarlos0/env/v8 v8.0.0
-	github.com/diggerhq/digger/libs v0.4.1
+	github.com/diggerhq/digger/libs v0.4.2
 	github.com/dominikbraun/graph v0.23.0
 	github.com/goccy/go-json v0.10.2
 	github.com/google/go-github/v58 v58.0.0
+	github.com/google/go-github/v59 v59.0.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2

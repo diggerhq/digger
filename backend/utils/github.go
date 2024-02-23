@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
@@ -75,7 +76,24 @@ type GithubClientProvider interface {
 }
 
 func (gh *DiggerGithubRealClientProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
-	githubAppPrivateKey := os.Getenv("GITHUB_APP_PRIVATE_KEY")
+	githubAppPrivateKey := ""
+	githubAppPrivateKeyB64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
+	if githubAppPrivateKeyB64 != "" {
+		decodedBytes, err := base64.StdEncoding.DecodeString(githubAppPrivateKeyB64)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error initialising github app installation: please set GITHUB_APP_PRIVATE_KEY_BASE64 env variable\n")
+		}
+		githubAppPrivateKey = string(decodedBytes)
+	} else {
+		githubAppPrivateKey = os.Getenv("GITHUB_APP_PRIVATE_KEY")
+		if githubAppPrivateKey != "" {
+			log.Printf("WARNING: GITHUB_APP_PRIVATE_KEY will be deprecated in future releases, " +
+				"please use GITHUB_APP_PRIVATE_KEY_BASE64 instead")
+		} else {
+			return nil, nil, fmt.Errorf("error initialising github app installation: please set GITHUB_APP_PRIVATE_KEY_BASE64 env variable\n")
+		}
+	}
+
 	tr := net.DefaultTransport
 	itr, err := ghinstallation.New(tr, githubAppId, installationId, []byte(githubAppPrivateKey))
 	if err != nil {

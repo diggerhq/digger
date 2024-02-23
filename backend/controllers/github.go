@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -224,13 +225,16 @@ func GithubSetupExchangeCode(c *gin.Context) {
 		c.Error(fmt.Errorf("Failed to create github app record on callback"))
 	}
 
+	PEM := cfg.GetPEM()
+	PemBase64 := base64.StdEncoding.EncodeToString([]byte(PEM))
 	c.HTML(http.StatusOK, "github_setup.tmpl", gin.H{
 		"Target":        "",
 		"Manifest":      "",
 		"ID":            cfg.GetID(),
 		"ClientID":      cfg.GetClientID(),
 		"ClientSecret":  cfg.GetClientSecret(),
-		"Key":           cfg.GetPEM(),
+		"Key":           PEM,
+		"KeyBase64":     PemBase64,
 		"WebhookSecret": cfg.GetWebhookSecret(),
 		"URL":           cfg.GetHTMLURL(),
 	})

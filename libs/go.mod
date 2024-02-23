@@ -3,12 +3,13 @@ module github.com/diggerhq/digger/libs
 go 1.21.6
 
 require (
-	github.com/aws/aws-sdk-go v1.50.21
+	github.com/aws/aws-sdk-go v1.50.24
 	github.com/bmatcuk/doublestar/v4 v4.6.1
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/goccy/go-json v0.10.2
 	github.com/google/go-github/v58 v58.0.0
+	github.com/google/go-github/v59 v59.0.0
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/terragrunt v0.54.11
 	github.com/hashicorp/go-getter v1.7.3

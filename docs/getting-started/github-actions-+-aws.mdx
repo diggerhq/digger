@@ -7,7 +7,14 @@ In this tutorial, you will set up Digger to automate terraform pull requests usi
 # Prerequisites
 - A GitHub repository with valid terraform code. Here's a [demo repo](https://github.com/diggerhq/quickstart-actions-aws)
 - Your AWS credentials. See [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
-- Digger token from [cloud.digger.dev](https://cloud.digger.dev). You can also [self-host Digger](/self-host/deploy-binary)
+- Digger token from [cloud.digger.dev](https://cloud.digger.dev)
+- Digger GitHub App installed, also from [cloud.digger.dev](https://cloud.digger.dev)
+
+<Note>
+cloud.digger.dev does not need access to your cloud account, it just starts jobs in your CI.
+
+You can also [self-host Digger orchestrator](/self-host/deploy-docker) with a private GiHub app and issue your own token
+</Note>
 
 # Create Action Secrets
 In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
