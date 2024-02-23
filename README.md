@@ -48,6 +48,10 @@ Not sure where to get started? You can:
 -   [Book a free, non-pressure pairing session / code walkthrough with one of our teammates](https://calendly.com/diggerdev/digger-pro-demo-clone)!
 -   Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
 
+## Telemetry
+
+Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go) for detail. You can disable telemetry collection either by setting `telemetry: false` in digger.yml, or by setting the `TELEMETRY` env variable to `false`.
+
 ## Running migrations
 
 ```
