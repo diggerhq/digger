@@ -32,7 +32,7 @@ jobs:
         uses: diggerhq/digger@v0.1.23
         with:
           setup-aws: true
-        **aws-role-to-assume: arn:aws:sts::{AccountID}:assumed-role/{RoleName}/{FunctionName}**
+        **aws-role-to-assume: arn:aws:iam::{AccountID}:role/{RoleName}**
           aws-region: us-east-1
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
