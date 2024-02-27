@@ -226,7 +226,7 @@ runs:
     - name: Setup Terragrunt
       uses: autero1/action-terragrunt@v3.0.2
       with:
-        terragrunt_version: ${{ inputs.terragrunt-version }}
+        terragrunt-version: ${{ inputs.terragrunt-version }}
       if: inputs.setup-terragrunt == 'true'
 
     - name: Setup OpenTofu
