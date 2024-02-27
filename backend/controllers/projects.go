@@ -482,13 +482,18 @@ func CreateRunForProject(c *gin.Context) {
 
 func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
 	diggerYmlString := batch.DiggerConfig
-	diggerConfig, _, _, err := digger_config.LoadDiggerConfigFromString(diggerYmlString, "./")
+	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
 	if err != nil {
 		log.Printf("Error loading digger config from batch: %v", err)
 		return fmt.Errorf("error loading digger config from batch: %v", err)
-
 	}
-	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.BatchTypeApply && diggerConfig.AutoMerge == true {
+	var automerge bool
+	if diggerConfigYml.AutoMerge != nil {
+		automerge = *diggerConfigYml.AutoMerge
+	} else {
+		automerge = false
+	}
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.BatchTypeApply && automerge == true {
 		ghService, _, err := utils.GetGithubService(
 			gh,
 			batch.GithubInstallationId,
