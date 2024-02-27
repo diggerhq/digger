@@ -1,4 +1,4 @@
-name: release
+name: release cli multi architecture
 on:
   release:
     branches:
