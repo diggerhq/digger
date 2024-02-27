@@ -64,7 +64,7 @@ func sendPayload(payload interface{}) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error sending telmetry: %v. If you are using digger in a firewalled environment, "+
+		log.Printf("Error sending telemetry: %v. If you are using digger in a firewalled environment, "+
 			"please consider whitelisting analytics.digger.dev. You can also disable this message by setting "+
 			"telemetry: false in digger.yml", err)
 		return err
