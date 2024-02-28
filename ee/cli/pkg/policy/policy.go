@@ -36,9 +36,6 @@ func (p *DiggerRepoPolicyProvider) GetAccessPolicy(organisation string, repo str
 			regoPath = orgAccesspath
 		}
 
-		println("!!!!" + orgAccesspath)
-		println("!!!!" + regoPath)
-
 		var err error
 		policycontents, err = os.ReadFile(regoPath)
 		if err != nil {
