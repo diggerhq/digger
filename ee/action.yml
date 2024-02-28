@@ -1,0 +1,320 @@
+name: digger-ee
+description: Manage terraform collaboration
+author: Digger
+
+inputs:
+  setup-aws:
+    description: Setup AWS
+    required: false
+    default: 'false'
+  aws-access-key-id:
+    description: AWS access key id
+    required: false
+  aws-secret-access-key:
+    description: AWS secret access key
+    required: false
+  aws-role-to-assume:
+    description: ARN of AWS IAM role to assume using OIDC
+    required: false
+  aws-region:
+    description: AWS region
+    required: false
+    default: us-east-1
+  setup-google-cloud:
+    description: Setup google cloud
+    required: false
+    default: 'false'
+  google-auth-credentials:
+    description: Service account key used got Google auth (mutually exclusive with 'google-workload-identity-provider' input)
+    required: false
+  google-workload-identity-provider:
+    description: Workload identity provider to be used for Google OIDC auth (mutually exclusive with 'google-auth-credentials' input)
+    required: false
+  google-workload-identity-provider-audience:
+    description: "'audience' parameter configured in Google's Workload Identity Provider (if specified). To be used when the 'google-workload-identity-provider' input is specified"
+    required: false
+  google-service-account:
+    description: Service account to be used when the 'google-workload-identity-provider' input is specified)
+    required: false
+  setup-azure:
+    description: Setup Azure
+    required: false
+    default: 'false'
+  azure-client-id:
+    description: Azure Client ID to be used for Azure OIDC auth
+    required: false
+  azure-tenant-id:
+    description: AzureAD ID of the organization you are using
+    required: false
+  azure-subscription-id:
+    description: Subscription ID of you are using
+    required: false
+  setup-terragrunt:
+    description: Setup terragrunt
+    required: false
+    default: 'false'
+  setup-opentofu:
+    description: Setup OpenToFu
+    required: false
+    default: 'false'
+  terragrunt-version:
+    description: Terragrunt version
+    required: false
+    default: v0.55.5
+  opentofu-version:
+    description: OpenTofu version
+    required: false
+    default: v1.6.1
+  setup-terraform:
+    description: Setup terraform
+    required: false
+    default: 'false'
+  terraform-version:
+    description: Terraform version
+    required: false
+    default: v1.5.5
+  configure-checkout:
+    description: Configure checkout. Beware that this will overwrite any changes in the working directory
+    required: false
+    default: 'true'
+  upload-plan-destination:
+    description: Destination to upload the plan to. gcp and github are currently supported
+    required: false
+  setup-checkov:
+    description: Setup Checkov
+    required: false
+    default: 'false'
+  checkov-version:
+    description: Checkov version
+    required: false
+    default: '3.2.22'
+  disable-locking:
+    description: Disable locking
+    required: false
+    default: 'false'
+  digger-filename:
+    description: Alternative Digger configuration file name
+    required: false
+  digger-token:
+    description: Digger token
+    required: false
+  digger-hostname:
+    description: Digger hostname
+    required: false
+    default: 'https://cloud.digger.dev'
+  digger-organisation:
+    description: The name of your digger organisation
+    required: false
+  setup-tfenv:
+    description: Setup tfenv
+    required: false
+    default: 'false'
+  post-plans-as-one-comment:
+    description: Post plans as one comment
+    required: false
+    default: 'false'
+  reporting-strategy:
+    description: 'comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments'
+    required: false
+    default: 'comments_per_run'
+  mode:
+    description: 'manual, drift-detection or otherwise'
+    required: false
+    default: ''
+  no-backend:
+    description: 'run cli-only, without an orchestrator backend'
+    required: false
+    default: 'false'
+  command:
+    description: 'digger plan or digger apply in case of manual mode'
+    required: false
+    default: ''
+  project:
+    description: 'project name for digger to run in case of manual mode'
+    required: false
+    default: ''
+  drift-detection-slack-notification-url:
+    description: 'drift-detection slack notification url'
+    required: false
+    default: ''
+outputs:
+  output:
+    value: ${{ steps.digger.outputs.output }}
+    description: The terraform output
+
+runs:
+  using: composite
+  steps:
+    - name: digger run ${{github.event.inputs.id}}
+      run: echo digger run ${{ inputs.id }}
+      shell: bash
+
+    - name: Validate Input Configuration for Google
+      run: |
+        if [[ -z ${{ toJSON(inputs.google-auth-credentials) }} && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
+          echo "Either 'google-auth-credentials' or 'google-workload-identity-provider' input must be specified with 'setup-google-cloud'"
+        elif [[ ! -z "${{ inputs.google-workload-identity-provider }}" && -z "${{ inputs.google-service-account }}" ]]; then
+          echo "'google-service-account' input must be specified with 'google-workload-identity-provider'"
+        else
+          exit 0
+        fi
+        exit 1
+      shell: bash
+      if: inputs.setup-google-cloud == 'true'
+    - uses: actions/checkout@v4
+      with:
+        clean: false
+        ref: refs/pull/${{ github.event.issue.number }}/merge
+      if: ${{ github.event_name == 'issue_comment' && inputs.configure-checkout == 'true' }}
+    - uses: actions/checkout@v4
+      with:
+        clean: false
+      if: ${{ github.event_name != 'issue_comment' && inputs.configure-checkout == 'true' }}
+    - name: Set up Google Auth Using A Service Account Key
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ inputs.google-auth-credentials }}'
+      if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-auth-credentials != '' }}
+
+    - name: Set up Google Auth Using Workload Identity Federation
+      uses: google-github-actions/auth@v2
+      with:
+        token_format: access_token
+        service_account: ${{ inputs.google-service-account }}
+        workload_identity_provider: ${{ inputs.google-workload-identity-provider }}
+        audience: ${{ inputs.google-workload-identity-provider-audience }}
+      if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-workload-identity-provider != '' }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      if: inputs.setup-google-cloud == 'true'
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
+      if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume == '' }}
+
+    - name: Configure OIDC AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+      if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume != '' }}
+
+    - name: Configure OIDC Azure credentials
+      uses: azure/login@v1.6.1
+      with:
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
+      if: ${{ inputs.setup-azure == 'true' && inputs.azure-client-id != '' }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false
+      if: inputs.setup-terraform == 'true'
+
+    - name: Setup tfenv
+      uses: rhythmictech/actions-setup-tfenv@v0.1.2
+      if: inputs.setup-tfenv == 'true'
+
+    - name: Setup Terragrunt
+      uses: autero1/action-terragrunt@v3.0.2
+      with:
+        terragrunt-version: ${{ inputs.terragrunt-version }}
+      if: inputs.setup-terragrunt == 'true'
+
+    - name: Setup OpenTofu
+      uses: opentofu/setup-opentofu@v1.0.2
+      with:
+        tofu_version: ${{ inputs.opentofu-version }}
+      if: inputs.setup-opentofu == 'true'
+
+
+    - name: Setup Checkov
+      run: |
+        python3 -m venv .venv
+        source .venv/bin/activate
+        pip3 install --upgrade pip
+        pip3 install --upgrade setuptools
+        pip3 install -U checkov==${{ inputs.checkov-version }}
+      shell: bash
+      if: inputs.setup-checkov == 'true'
+
+    - name: setup go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '^1.21.1'
+      if: ${{ !startsWith(github.action_ref, 'v') }}
+
+    - name: Adding required env vars for next step
+      uses: actions/github-script@v7
+      env:
+        github-token: $GITHUB_TOKEN
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env['ACTIONS_CACHE_URL'])
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
+          core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
+
+
+    - name: build and run digger
+      if: ${{ !startsWith(github.action_ref, 'v') }}
+      shell: bash
+      env:
+        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
+        DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        DIGGER_TOKEN: ${{ inputs.digger-token }}
+        DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
+        DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
+        DIGGER_FILENAME: ${{ inputs.digger-filename }}
+        ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
+        REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
+        INPUT_DIGGER_PROJECT: ${{ inputs.project }}
+        INPUT_DIGGER_MODE: ${{ inputs.mode }}
+        INPUT_DIGGER_COMMAND: ${{ inputs.command }}
+        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        NO_BACKEND: ${{ inputs.no-backend }}
+        DEBUG: 'true'
+      run: |
+        cd $GITHUB_ACTION_PATH/ee/cli
+        go build -o digger ./cmd/digger
+        chmod +x digger
+        PATH=$PATH:$(pwd)
+        cd $GITHUB_WORKSPACE
+        digger
+    - name: run digger
+      if: ${{ startsWith(github.action_ref, 'v') }}
+      env:
+        actionref: ${{ github.action_ref }}
+        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
+        DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        DIGGER_TOKEN: ${{ inputs.digger-token }}
+        DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
+        DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
+        DIGGER_FILENAME: ${{ inputs.digger-filename }}
+        ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
+        REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
+        INPUT_DIGGER_PROJECT: ${{ inputs.project }}
+        INPUT_DIGGER_MODE: ${{ inputs.mode }}
+        INPUT_DIGGER_COMMAND: ${{ inputs.command }}
+        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        NO_BACKEND: ${{ inputs.no-backend }}
+      id: digger
+      shell: bash
+      run: |
+        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
+        chmod +x digger
+        PATH=$PATH:$(pwd)
+        cd $GITHUB_WORKSPACE
+        digger
+branding:
+  icon: globe
+  color: purple
