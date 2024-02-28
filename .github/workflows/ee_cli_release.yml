@@ -1,4 +1,4 @@
-name: release cli
+name: release ee cli
 on:
   release:
     branches:
