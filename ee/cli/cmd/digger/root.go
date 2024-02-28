@@ -13,6 +13,7 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	ee_policy "github.com/diggerhq/digger/ee/cli/pkg/policy"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/spf13/cobra"
@@ -100,11 +101,9 @@ func PreRun(cmd *cobra.Command, args []string) {
 			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action digger_config.")
 		}
 		PolicyChecker = policy.DiggerPolicyChecker{
-			PolicyProvider: &policy.DiggerHttpPolicyProvider{
-				DiggerHost:         os.Getenv("DIGGER_HOSTNAME"),
-				DiggerOrganisation: os.Getenv("DIGGER_ORGANISATION"),
-				AuthToken:          os.Getenv("DIGGER_TOKEN"),
-				HttpClient:         http.DefaultClient,
+			PolicyProvider: &ee_policy.DiggerRepoPolicyProvider{
+				ManagementRepoUrl: os.Getenv("DIGGER_MANAGEMENT_REPO"),
+				GitToken:          os.Getenv("GITHUB_TOKEN"),
 			}}
 		BackendApi = backend.DiggerApi{
 			DiggerHost: os.Getenv("DIGGER_HOSTNAME"),
