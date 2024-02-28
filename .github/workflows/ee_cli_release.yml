@@ -1,4 +1,4 @@
-name: release cli multi architecture
+name: release cli
 on:
   release:
     branches:
@@ -6,18 +6,7 @@ on:
     types: [released]
 jobs:
   binary:
-    strategy:
-      matrix:
-        arch: [arm, arm64, amd64, 386]
-        os: [linux, darwin, freebsd, windows]
-        exclude:
-          - os: darwin
-            arch: arm
-          - os: darwin
-            arch: 386
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Download Go
         uses: actions/setup-go@v5
@@ -30,7 +19,7 @@ jobs:
       - name: Build
         run: |
           echo "Tag that is going to be used as digger version: ${{ github.event.release.tag_name }}"
-          env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ github.event.release.tag_name }}" -o digger ./ee/cli/cmd/digger
+          env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-X digger/pkg/utils.version=${{ github.event.release.tag_name }}" -o digger ./ee/cli/cmd/digger
 
       - name: Publish linux-x64 exec to github
         id: upload-release-asset-linux-x64
@@ -40,5 +29,5 @@ jobs:
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: 'digger'
-          asset_name: digger-ee-cli-${{matrix.os}}-${{matrix.arch}}
+          asset_name: digger-ee-cli-Linux-X64
           asset_content_type: application/octet-stream
