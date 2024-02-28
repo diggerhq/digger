@@ -3,16 +3,17 @@ package orchestrator
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	url2 "net/url"
+	"os"
+
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	awssdkcreds "github.com/aws/aws-sdk-go/aws/credentials"
 	stscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	sts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/diggerhq/digger/libs/digger_config"
-	"log"
-	"net/http"
-	url2 "net/url"
-	"os"
 )
 
 func populateretrieveBackendConfigArgs(provider stscreds.WebIdentityRoleProvider) ([]string, error) {
@@ -115,7 +116,7 @@ func GetStateAndCommandProviders(project digger_config.Project) (*stscreds.WebId
 	var CommandEnvProvider *stscreds.WebIdentityRoleProvider
 	if project.AwsRoleToAssume != nil {
 
-		if project.AwsRoleToAssume.Command != "" {
+		if project.AwsRoleToAssume.State != "" {
 			StateEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.State)
 		} else {
 			StateEnvProvider = nil
