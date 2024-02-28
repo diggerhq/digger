@@ -1,7 +1,6 @@
-package main
+package models
 
 import (
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
@@ -17,7 +16,7 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
-func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
+func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
 	log.Println("setup suite")
 
 	// database file name
@@ -38,14 +37,14 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	}
 
 	// migrate tables
-	err = gdb.AutoMigrate(&models.Policy{}, &models.Organisation{}, &models.Repo{}, &models.Project{}, &models.Token{},
-		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.GithubApp{}, &models.GithubAppInstallationLink{},
-		&models.GithubDiggerJobLink{}, &models.DiggerJob{}, &models.DiggerJobParentLink{})
+	err = gdb.AutoMigrate(&Policy{}, &Organisation{}, &Repo{}, &Project{}, &Token{},
+		&User{}, &ProjectRun{}, &GithubAppInstallation{}, &GithubApp{}, &GithubAppInstallationLink{},
+		&GithubDiggerJobLink{}, &DiggerJob{}, &DiggerJobParentLink{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	database := &models.Database{GormDB: gdb}
+	database := &Database{GormDB: gdb}
 
 	orgTenantId := "11111111-1111-1111-1111-111111111111"
 	externalSource := "test"
@@ -80,7 +79,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 }
 
 func TestCreateDiggerJob(t *testing.T) {
-	teardownSuite, database := setupSuite(t)
+	teardownSuite, database := setupSuiteScheduler(t)
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
@@ -92,7 +91,7 @@ func TestCreateDiggerJob(t *testing.T) {
 }
 
 func TestCreateSingleJob(t *testing.T) {
-	teardownSuite, database := setupSuite(t)
+	teardownSuite, database := setupSuiteScheduler(t)
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
@@ -104,7 +103,7 @@ func TestCreateSingleJob(t *testing.T) {
 }
 
 func TestFindDiggerJobsByParentJobId(t *testing.T) {
-	teardownSuite, database := setupSuite(t)
+	teardownSuite, database := setupSuiteScheduler(t)
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
