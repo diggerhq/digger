@@ -30,9 +30,14 @@ func (p *DiggerRepoPolicyProvider) GetAccessPolicy(organisation string, repo str
 			if os.IsNotExist(err) {
 				return fmt.Errorf("Could not find org level path")
 			} else {
-				regoPath = orgAccesspath
+				return err
 			}
+		} else {
+			regoPath = orgAccesspath
 		}
+
+		println("!!!!" + orgAccesspath)
+		println("!!!!" + regoPath)
 
 		var err error
 		policycontents, err = os.ReadFile(regoPath)
