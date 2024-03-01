@@ -478,7 +478,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	batchType := getBatchType(jobsForImpactedProjects)
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr,, batchType)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -648,7 +648,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	batchType := getBatchType(jobs)
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr,, batchType)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
