@@ -83,7 +83,7 @@ func TestCreateDiggerJob(t *testing.T) {
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
-	job, err := database.CreateDiggerJob(batchId, []byte{100})
+	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
@@ -95,7 +95,7 @@ func TestCreateSingleJob(t *testing.T) {
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
-	job, err := database.CreateDiggerJob(batchId, []byte{100})
+	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
@@ -107,7 +107,7 @@ func TestFindDiggerJobsByParentJobId(t *testing.T) {
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
-	job, err := database.CreateDiggerJob(batchId, []byte{100})
+	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml")
 	parentJobId := job.DiggerJobID
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
