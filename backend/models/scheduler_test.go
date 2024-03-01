@@ -113,14 +113,14 @@ func TestFindDiggerJobsByParentJobId(t *testing.T) {
 	assert.NotNil(t, job)
 	assert.NotZero(t, job.ID)
 
-	job, err = database.CreateDiggerJob(batchId, []byte{100})
+	job, err = database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml")
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.NotZero(t, job.ID)
 	err = database.CreateDiggerJobParentLink(parentJobId, job.DiggerJobID)
 	assert.Nil(t, err)
 
-	job, err = database.CreateDiggerJob(batchId, []byte{100})
+	job, err = database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml")
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	err = database.CreateDiggerJobParentLink(parentJobId, job.DiggerJobID)
