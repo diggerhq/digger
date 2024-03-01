@@ -26,6 +26,7 @@ type ProjectYaml struct {
 	Terragrunt         bool                        `yaml:"terragrunt"`
 	OpenTofu           bool                        `yaml:"opentofu"`
 	Workflow           string                      `yaml:"workflow"`
+	WorkflowFile       *string                     `yaml:workflow_file`
 	IncludePatterns    []string                    `yaml:"include_patterns,omitempty"`
 	ExcludePatterns    []string                    `yaml:"exclude_patterns,omitempty"`
 	DependencyProjects []string                    `yaml:"depends_on,omitempty"`
