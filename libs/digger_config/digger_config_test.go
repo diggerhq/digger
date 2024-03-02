@@ -121,14 +121,16 @@ projects:
 - name: prod
   branch: /main/
   dir: path/to/module/test
-  aws_role_to_assume: "arn://abc:xyz:xxx"
+  aws_role_to_assume: 
+    state: "arn://abc:xyz:state"
+    command: "arn://abc:xyz:command"
   workspace: default
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
 	dg, _, _, err := LoadDiggerConfig(tempDir)
-
+	fmt.Printf("%v", err)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, 1, len(dg.Projects))
@@ -138,7 +140,8 @@ projects:
 
 	assert.Equal(t, "prod", dg.Projects[0].Name)
 	assert.Equal(t, "path/to/module/test", dg.Projects[0].Dir)
-	assert.Equal(t, "arn://abc:xyz:xxx", dg.Projects[0].AwsRoleToAssume)
+	assert.Equal(t, "arn://abc:xyz:command", dg.Projects[0].AwsRoleToAssume.Command)
+	assert.Equal(t, "arn://abc:xyz:state", dg.Projects[0].AwsRoleToAssume.State)
 
 	workflow := dg.Workflows["default"]
 	assert.NotNil(t, workflow, "expected workflow to be not nil")
