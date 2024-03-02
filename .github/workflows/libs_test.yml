@@ -1,4 +1,4 @@
-name: Cli tests
+name: Libs tests
 on:
   push:
   pull_request:
