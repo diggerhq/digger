@@ -125,6 +125,7 @@ projects:
     state: "arn://abc:xyz:state"
     command: "arn://abc:xyz:command"
   workspace: default
+  workflow_file: "test.yml"
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
@@ -139,6 +140,7 @@ projects:
 	assert.Equal(t, 1, len(dg.Workflows))
 
 	assert.Equal(t, "prod", dg.Projects[0].Name)
+	assert.Equal(t, "test.yml", dg.Projects[0].WorkflowFile)
 	assert.Equal(t, "path/to/module/test", dg.Projects[0].Dir)
 	assert.Equal(t, "arn://abc:xyz:command", dg.Projects[0].AwsRoleToAssume.Command)
 	assert.Equal(t, "arn://abc:xyz:state", dg.Projects[0].AwsRoleToAssume.State)
