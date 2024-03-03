@@ -88,6 +88,11 @@ func (m *MockPRManager) PublishComment(prNumber int, comment string) (int64, err
 	return 0, nil
 }
 
+func (m *MockPRManager) PublishIssue(body string) (int64, error) {
+	m.Commands = append(m.Commands, RunInfo{"PublishComment", body, time.Now()})
+	return 0, nil
+}
+
 func (m *MockPRManager) SetStatus(prNumber int, status string, statusContext string) error {
 	m.Commands = append(m.Commands, RunInfo{"SetStatus", strconv.Itoa(prNumber) + " " + status + " " + statusContext, time.Now()})
 	return nil

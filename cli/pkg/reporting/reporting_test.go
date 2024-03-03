@@ -1,6 +1,7 @@
 package reporting
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -184,6 +185,10 @@ func (t MockCiService) PublishComment(prNumber int, comment string) (int64, erro
 	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &orchestrator.Comment{Id: latestId + 1, Body: &comment})
 
 	return 0, nil
+}
+
+func (svc MockCiService) PublishIssue(body string) (int64, error) {
+	return 0, fmt.Errorf("implement me")
 }
 
 func (t MockCiService) SetStatus(prNumber int, status string, statusContext string) error {
