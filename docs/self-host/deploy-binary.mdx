@@ -28,6 +28,7 @@ DATABASE_URL=postgres://.....
 HTTP_BASIC_AUTH=1
 HTTP_BASIC_AUTH_USERNAME=myorg
 HTTP_BASIC_AUTH_PASSWORD=$(openssl rand -base64 12)
+ALLOW_DIRTY=false # set to true if the database has already a schema configured
 ```
 
 # Start the service

@@ -1,0 +1,13 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "digger-backend.fullname" . }}-postgres
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: {{ include "digger-backend.name" . }}-postgres
+{{- end }}

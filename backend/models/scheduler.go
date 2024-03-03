@@ -40,6 +40,7 @@ type DiggerJob struct {
 	DiggerJobSummary   DiggerJobSummary
 	DiggerJobSummaryID uint
 	SerializedJobSpec  []byte
+	WorkflowFile       string
 	WorkflowRunUrl     *string
 	StatusUpdatedAt    time.Time
 }

@@ -22,5 +22,7 @@ services:
     build: ./
     env_file:
       - .env.docker-compose
+    environment:
+      - ALLOW_DIRTY=false
     ports:
       - "3100:3000"

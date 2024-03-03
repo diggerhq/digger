@@ -7,15 +7,21 @@ In this guide you will set up Digger to use completely segregated AWS accounts f
 ## Prerequisites
 - 2 Terraform projects with remote backends - [example repo](https://github.com/diggerhq/demo-aws-multiacc)
 - 2 pairs of AWS keys
+- Using digger with orchestrator
 
-## Create 2 digger.yml files
+## Create digger.yml file
 
-Place `digger.prod.yml` and `digger.dev.yml` files in the root of your repo. Point `dir` to folders with terraform
+Place `digger.yml` file in the root of your repo. Point `dir` to folders with terraform
 
 ```
 projects:
+- name: develop
+  dir: dev
+  workflow_file: digger-run-dev.yml
+
 - name: production
   dir: prod
+  workflow_file: digger-run-prod.yml
 ```
 
 ## Create 2 environments in GitHub
@@ -60,7 +66,7 @@ jobs:
         run: |
           mv digger.dev.yml digger.yml           # CHANGE HERE
       - name: digger run
-        uses: diggerhq/digger@v0.2.0
+        uses: diggerhq/digger@latest
         with:
           setup-aws: true
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
