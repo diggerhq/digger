@@ -124,6 +124,10 @@ func (b BitbucketAPI) PublishComment(prNumber int, comment string) (int64, error
 	return 0, nil
 }
 
+func (svc BitbucketAPI) PublishIssue(body string) (int64, error) {
+	return 0, fmt.Errorf("implement me")
+}
+
 func (b BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) error {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments/%s", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber, id)
 

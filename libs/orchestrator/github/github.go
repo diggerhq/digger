@@ -75,6 +75,14 @@ func (svc GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	return fileNames, nil
 }
 
+func (svc GithubService) PublishIssue(body string) (int64, error) {
+	githubissue, _, err := svc.Client.Issues.Create(context.Background(), svc.Owner, svc.RepoName, &github.IssueRequest{Body: &body})
+	if err != nil {
+		return 0, fmt.Errorf("could not publish issue: %v", err)
+	}
+	return *githubissue.ID, err
+}
+
 func (svc GithubService) PublishComment(prNumber int, comment string) (int64, error) {
 	githubComment, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
 	if err != nil {

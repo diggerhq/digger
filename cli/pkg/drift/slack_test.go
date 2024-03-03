@@ -1,4 +1,4 @@
-package notification
+package drift
 
 import (
 	"github.com/stretchr/testify/assert"

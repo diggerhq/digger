@@ -295,7 +295,7 @@ func (db *Database) GetRepoById(orgIdKey any, repoId any) (*Repo, error) {
 	return &repo, nil
 }
 
-// GithubRepoAdded handles github notification that github repo has been added to the app installation
+// GithubRepoAdded handles github drift that github repo has been added to the app installation
 func (db *Database) GithubRepoAdded(installationId int64, appId int64, login string, accountId int64, repoFullName string) (*GithubAppInstallation, error) {
 
 	// check if item exist already
