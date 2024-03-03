@@ -24,6 +24,7 @@ type Project struct {
 	Terragrunt         bool
 	OpenTofu           bool
 	Workflow           string
+	WorkflowFile       string
 	IncludePatterns    []string
 	ExcludePatterns    []string
 	DependencyProjects []string
