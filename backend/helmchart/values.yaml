@@ -8,7 +8,7 @@ digger:
   # tag: digger backend image tag
   image:
     repository: ghcr.io/diggerhq/digger_backend
-    tag: "v0.4.2"
+    tag: "v0.4.6"
 
   # service values
   # type: service type (ClusterIP, LoadBalancer, etc)
