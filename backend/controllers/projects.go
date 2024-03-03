@@ -487,6 +487,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		log.Printf("Error loading digger config from batch: %v", err)
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
+
 	var automerge bool
 	if diggerConfigYml.AutoMerge != nil {
 		automerge = *diggerConfigYml.AutoMerge
