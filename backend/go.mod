@@ -29,7 +29,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
 	github.com/stripe/stripe-go/v76 v76.19.0
-	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/oauth2 v0.17.0
 	gorm.io/driver/postgres v1.5.6
 	gorm.io/driver/sqlite v1.5.5
