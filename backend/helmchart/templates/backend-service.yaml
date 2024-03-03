@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "digger-backend.fullname" . }}-web
+  namespace: {{ .Values.namespace }}
+spec:
+  type: {{ .Values.digger.service.type }}
+  ports:
+  - port: {{ .Values.digger.service.port }}
+    targetPort: 3000
+  selector:
+    app: {{ include "digger-backend.name" . }}-web

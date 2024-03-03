@@ -1,0 +1,31 @@
+{{- if .Values.digger.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "digger-backend.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+  {{- range $key, $value := .Values.digger.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  labels:
+    {{- include "digger-backend.labels" . | nindent 4 }}
+spec:
+{{- if .Values.digger.ingress.tls }}
+  tls:
+  - hosts:
+      - {{ .Values.digger.ingress.host }}
+    secretName: {{ .Values.digger.ingress.tls.secretName }}
+{{- end }}
+  rules:
+  - host: {{ .Values.digger.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.digger.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "digger-backend.fullname" . }}-web
+            port:
+              number: {{ .Values.digger.service.port }}
+{{- end }}
