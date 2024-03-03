@@ -515,6 +515,7 @@ func RunJob(
 	policyChecker policy.Checker,
 	planStorage storage.PlanStorage,
 	backendApi backend.Api,
+	driftNotification *core_drift.Notification,
 	workingDir string,
 ) error {
 	runStartedAt := time.Now()
@@ -648,7 +649,7 @@ func RunJob(
 			}
 
 		case "digger drift-detect":
-			output, err := runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor)
+			output, err := runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor, driftNotification)
 			if err != nil {
 				return fmt.Errorf("failed to Run digger drift-detect command. %v", err)
 			}
@@ -662,7 +663,7 @@ func RunJob(
 	return nil
 }
 
-func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor, notification core_drift.Notification) (string, error) {
+func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
 	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
 	if err != nil {
 		log.Printf("Failed to send usage report. %v", err)
@@ -687,9 +688,13 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 	}
 
 	if planPerformed && nonEmptyPlan {
-		err := notification.Send(projectName, plan)
+		if notification == nil {
+			log.Print("Warning: no notification configured, not sending any notifications")
+			return plan, nil
+		}
+		err := (*notification).Send(projectName, plan)
 		if err != nil {
-			log.Printf("Erorr sending drift drift: %v", err)
+			log.Printf("Error sending drift drift: %v", err)
 		}
 	} else if planPerformed && !nonEmptyPlan {
 		log.Printf("No drift detected")

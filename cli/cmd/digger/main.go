@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
+	"github.com/diggerhq/digger/cli/pkg/drift"
 	"log"
 	"net/http"
 	"os"
@@ -96,7 +98,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if !strings.Contains(os.Getenv("DIGGER_HOSTNAME"), "cloud.digger.dev") {
 			usage.SendUsageRecord(githubActor, "log", "selfhosted")
 		}
-    
+
 		type Inputs struct {
 			JobString string `json:"job"`
 			Id        string `json:"id"`
@@ -237,7 +239,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			StateEnvVars:      stateEnvVars,
 			CommandEnvVars:    commandEnvVars,
 		}
-		err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, currentDir)
+		err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, nil, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -266,7 +268,16 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				Namespace:        ghRepository,
 				EventName:        "drift-detect",
 			}
-			err := digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, currentDir)
+
+			slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
+			var notification core_drift.Notification
+			if slackNotificationUrl != "" {
+				notification = drift.SlackNotification{slackNotificationUrl}
+			} else {
+				reportErrorAndExit(githubActor, fmt.Sprintf("Could not identify drift mode, please specify slack webhook url"), 8)
+			}
+
+			err := digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
@@ -640,7 +651,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			StateEnvVars:      stateEnvVars,
 			CommandEnvVars:    commandEnvVars,
 		}
-		err := digger.RunJob(jobs, repository, actor, &bitbucketService, policyChecker, planStorage, backendApi, currentDir)
+		err := digger.RunJob(jobs, repository, actor, &bitbucketService, policyChecker, planStorage, backendApi, nil, currentDir)
 		if err != nil {
 			reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -669,7 +680,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				Namespace:        repository,
 				EventName:        "drift-detect",
 			}
-			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, nil, currentDir)
 			if err != nil {
 				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
@@ -699,7 +710,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 					Namespace:        repository,
 					EventName:        "commit_to_default",
 				}
-				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, nil, currentDir)
 				if err != nil {
 					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 				}
@@ -726,7 +737,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 					Namespace:        repository,
 					EventName:        "commit_to_default",
 				}
-				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, currentDir)
+				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, nil, currentDir)
 				if err != nil {
 					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 				}
