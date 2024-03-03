@@ -20,7 +20,7 @@ require (
 
 require (
 	github.com/caarlos0/env/v8 v8.0.0
-	github.com/diggerhq/digger/libs v0.4.2
+	github.com/diggerhq/digger/libs v0.4.6
 	github.com/dominikbraun/graph v0.23.0
 	github.com/goccy/go-json v0.10.2
 	github.com/google/go-github/v58 v58.0.0
