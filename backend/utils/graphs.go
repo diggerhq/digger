@@ -14,7 +14,7 @@ import (
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfig string, batchType orchestrator_scheduler.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfigStr string, batchType orchestrator_scheduler.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	result := make(map[string]*models.DiggerJob)
 
 	log.Printf("Number of Jobs: %v\n", len(jobsMap))
@@ -29,7 +29,7 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 
 	log.Printf("marshalledJobsMap: %v\n", marshalledJobsMap)
 
-	batch, err := models.DB.CreateDiggerBatch(githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfig, branch, batchType, &commentId)
+	batch, err := models.DB.CreateDiggerBatch(githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, batchType, &commentId)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
 	}
@@ -47,7 +47,8 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 	visit := func(value string) bool {
 		if predecessorMap[value] == nil || len(predecessorMap[value]) == 0 {
 			fmt.Printf("no parent for %v\n", value)
-			parentJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value])
+
+			parentJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile)
 			if err != nil {
 				log.Printf("failed to create a job, error: %v", err)
 				return false
@@ -65,7 +66,7 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 				parent := edge.Source
 				fmt.Printf("parent: %v\n", parent)
 				parentDiggerJob := result[parent]
-				childJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value])
+				childJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile)
 				if err != nil {
 					log.Printf("failed to create a job")
 					return false

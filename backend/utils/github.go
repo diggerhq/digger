@@ -221,7 +221,7 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 
 func TriggerGithubWorkflow(client *github.Client, repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error {
 	log.Printf("TriggerGithubWorkflow: repoOwner: %v, repoName: %v, commentId: %v", repoOwner, repoName, commentId)
-	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
+	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, job.WorkflowFile, github.CreateWorkflowDispatchEventRequest{
 		Ref:    job.Batch.BranchName,
 		Inputs: map[string]interface{}{"job": jobString, "id": job.DiggerJobID, "comment_id": strconv.FormatInt(commentId, 10)},
 	})
