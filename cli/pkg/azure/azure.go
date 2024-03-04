@@ -187,6 +187,10 @@ func (a *AzureReposService) PublishComment(prNumber int, comment string) (int64,
 	return 0, err
 }
 
+func (svc *AzureReposService) ListIssues() ([]*orchestrator.Issue, error) {
+	return nil, fmt.Errorf("implement me")
+}
+
 func (svc *AzureReposService) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }

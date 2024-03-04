@@ -7,12 +7,13 @@ import (
 )
 
 type DiggerConfigYaml struct {
-	DependencyConfiguration *DependencyConfigurationYaml `yaml:"dependency_configuration"`
-	Projects                []*ProjectYaml               `yaml:"projects"`
-	AutoMerge               *bool                        `yaml:"auto_merge"`
-	Workflows               map[string]*WorkflowYaml     `yaml:"workflows"`
-	Telemetry               *bool                        `yaml:"telemetry,omitempty"`
-	GenerateProjectsConfig  *GenerateProjectsConfigYaml  `yaml:"generate_projects"`
+	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
+	Projects                   []*ProjectYaml               `yaml:"projects"`
+	AutoMerge                  *bool                        `yaml:"auto_merge"`
+	Workflows                  map[string]*WorkflowYaml     `yaml:"workflows"`
+	Telemetry                  *bool                        `yaml:"telemetry,omitempty"`
+	GenerateProjectsConfig     *GenerateProjectsConfigYaml  `yaml:"generate_projects"`
+	MentionDriftedProjectsInPR *bool                        `yaml:"mention_drifted_projects_in_pr"`
 }
 
 type DependencyConfigurationYaml struct {

@@ -37,7 +37,11 @@ func (t MockCiService) PublishComment(prNumber int, comment string) (int64, erro
 	return int64(latestId), nil
 }
 
-func (svc MockCiService) PublishIssue(title string, body string) (int64, error) {
+func (t MockCiService) ListIssues() ([]*orchestrator.Issue, error) {
+	return nil, fmt.Errorf("implement me")
+}
+
+func (t MockCiService) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 

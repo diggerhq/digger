@@ -178,6 +178,10 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	}
 }
 
+func (svc GitLabService) ListIssues() ([]*orchestrator.Issue, error) {
+	return nil, fmt.Errorf("implement me")
+}
+
 func (svc GitLabService) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
