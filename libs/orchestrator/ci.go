@@ -3,6 +3,7 @@ package orchestrator
 type PullRequestService interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string) (int64, error)
+	ListIssues() ([]*Issue, error)
 	PublishIssue(title string, body string) (int64, error)
 	EditComment(prNumber int, id interface{}, comment string) error
 	GetComments(prNumber int) ([]Comment, error)
@@ -23,6 +24,12 @@ type PullRequestService interface {
 
 type OrgService interface {
 	GetUserTeams(organisation string, user string) ([]string, error)
+}
+
+type Issue struct {
+	ID    int64
+	Title string
+	Body  string
 }
 
 type Comment struct {
