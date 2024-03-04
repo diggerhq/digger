@@ -8,7 +8,7 @@ import (
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/drift"
-	comment_updater2 "github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
+	comment_updater_ee "github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
 	ee_drift "github.com/diggerhq/digger/ee/cli/pkg/drift"
 	"log"
 	"net/http"
@@ -143,7 +143,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
 		}
 
-		commentUpdater := comment_updater2.AdvancedCommentUpdater{}
+		commentUpdater := comment_updater_ee.AdvancedCommentUpdater{}
 		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
