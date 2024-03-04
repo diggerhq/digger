@@ -1,6 +1,9 @@
 package github
 
-import "github.com/diggerhq/digger/libs/orchestrator"
+import (
+	"fmt"
+	"github.com/diggerhq/digger/libs/orchestrator"
+)
 
 type MockCiService struct {
 	CommentsPerPr map[int][]*orchestrator.Comment
@@ -32,6 +35,14 @@ func (t MockCiService) PublishComment(prNumber int, comment string) (int64, erro
 	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &orchestrator.Comment{Id: latestId + 1, Body: &comment})
 
 	return int64(latestId), nil
+}
+
+func (t MockCiService) ListIssues() ([]*orchestrator.Issue, error) {
+	return nil, fmt.Errorf("implement me")
+}
+
+func (t MockCiService) PublishIssue(title string, body string) (int64, error) {
+	return 0, fmt.Errorf("implement me")
 }
 
 func (t MockCiService) SetStatus(prNumber int, status string, statusContext string) error {

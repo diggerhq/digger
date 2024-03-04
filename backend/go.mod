@@ -12,7 +12,7 @@ require (
 	github.com/alextanhongpin/go-gin-starter v0.0.0-20180719045109-df82f33e8aa1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.9.0
 	github.com/dchest/uniuri v1.2.0
-	github.com/diggerhq/digger/libs v0.4.2
+	github.com/diggerhq/digger/libs v0.4.6
 	github.com/dominikbraun/graph v0.23.0
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/gin-contrib/sessions v0.0.5
@@ -22,14 +22,15 @@ require (
 	github.com/google/go-github/v55 v55.0.0
 	github.com/google/go-github/v58 v58.0.0
 	github.com/google/go-github/v59 v59.0.0
+	github.com/google/go-github/v60 v60.0.0
 	github.com/google/uuid v1.6.0
 	github.com/migueleliasweb/go-github-mock v0.0.23
 	github.com/robert-nix/ansihtml v1.0.1
 	github.com/samber/lo v1.39.0
 	github.com/spf13/viper v1.18.2
-	github.com/stretchr/testify v1.8.4
-	github.com/stripe/stripe-go/v76 v76.18.0
-	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
+	github.com/stretchr/testify v1.9.0
+	github.com/stripe/stripe-go/v76 v76.19.0
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/oauth2 v0.17.0
 	gorm.io/driver/postgres v1.5.6
 	gorm.io/driver/sqlite v1.5.5
@@ -65,7 +66,7 @@ require (
 	github.com/apparentlymart/go-versions v1.0.1 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.50.24 // indirect
+	github.com/aws/aws-sdk-go v1.50.30 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/bmatcuk/doublestar v1.3.1 // indirect
@@ -209,7 +210,7 @@ require (
 	github.com/wader/gormstore/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/zclconf/go-cty v1.14.2 // indirect
+	github.com/zclconf/go-cty v1.14.3 // indirect
 	github.com/zclconf/go-cty-yaml v1.0.3 // indirect
 	go.mozilla.org/gopgagent v0.0.0-20170926210634-4d7ea76ff71a // indirect
 	go.mozilla.org/sops/v3 v3.7.3 // indirect

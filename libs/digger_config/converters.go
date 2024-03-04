@@ -31,12 +31,19 @@ func copyProjects(projects []*ProjectYaml) []Project {
 				Command: p.AwsRoleToAssume.Command,
 			}
 		}
+
+		workflowFile := "digger_workflow.yml"
+		if p.WorkflowFile != nil {
+			workflowFile = *p.WorkflowFile
+		}
+
 		item := Project{p.Name,
 			p.Dir,
 			p.Workspace,
 			p.Terragrunt,
 			p.OpenTofu,
 			p.Workflow,
+			workflowFile,
 			p.IncludePatterns,
 			p.ExcludePatterns,
 			p.DependencyProjects,
@@ -141,6 +148,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.AutoMerge = *diggerYaml.AutoMerge
 	} else {
 		diggerConfig.AutoMerge = false
+	}
+
+	if diggerYaml.MentionDriftedProjectsInPR != nil {
+		diggerConfig.MentionDriftedProjectsInPR = *diggerYaml.MentionDriftedProjectsInPR
+	} else {
+		diggerConfig.MentionDriftedProjectsInPR = false
 	}
 
 	if diggerYaml.Telemetry != nil {

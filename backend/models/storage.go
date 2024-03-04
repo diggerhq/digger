@@ -295,7 +295,7 @@ func (db *Database) GetRepoById(orgIdKey any, repoId any) (*Repo, error) {
 	return &repo, nil
 }
 
-// GithubRepoAdded handles github notification that github repo has been added to the app installation
+// GithubRepoAdded handles github drift that github repo has been added to the app installation
 func (db *Database) GithubRepoAdded(installationId int64, appId int64, login string, accountId int64, repoFullName string) (*GithubAppInstallation, error) {
 
 	// check if item exist already
@@ -620,7 +620,7 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 
 }
 
-func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*DiggerJob, error) {
+func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string) (*DiggerJob, error) {
 	if serializedJob == nil || len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
@@ -635,7 +635,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte) (*D
 
 	workflowUrl := "#"
 	job := &DiggerJob{DiggerJobID: jobId, Status: scheduler.DiggerJobCreated,
-		BatchID: &batchIdStr, SerializedJobSpec: serializedJob, DiggerJobSummary: *summary, WorkflowRunUrl: &workflowUrl}
+		BatchID: &batchIdStr, SerializedJobSpec: serializedJob, DiggerJobSummary: *summary, WorkflowRunUrl: &workflowUrl, WorkflowFile: workflowFile}
 	result = db.GormDB.Save(job)
 	if result.Error != nil {
 		return nil, result.Error

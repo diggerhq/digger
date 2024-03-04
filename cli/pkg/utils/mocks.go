@@ -79,6 +79,14 @@ func (t MockPullRequestManager) PublishComment(prNumber int, comment string) (in
 	return 0, nil
 }
 
+func (t MockPullRequestManager) ListIssues() ([]*orchestrator.Issue, error) {
+	return nil, nil
+}
+
+func (t MockPullRequestManager) PublishIssue(title string, body string) (int64, error) {
+	return 0, nil
+}
+
 func (t MockPullRequestManager) SetStatus(prNumber int, status string, statusContext string) error {
 	return nil
 }
