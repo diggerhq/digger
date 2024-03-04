@@ -3,6 +3,7 @@ package digger_config
 import (
 	"errors"
 	"fmt"
+
 	"github.com/dominikbraun/graph"
 )
 
@@ -146,6 +147,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.Telemetry = *diggerYaml.Telemetry
 	} else {
 		diggerConfig.Telemetry = true
+	}
+
+	if diggerYaml.TraverseToNestedProjects != nil {
+		diggerConfig.TraverseToNestedProjects = *diggerYaml.TraverseToNestedProjects
+	} else {
+		diggerConfig.TraverseToNestedProjects = false
 	}
 
 	// if workflow block is not specified in yaml we create a default one, and add it to every project

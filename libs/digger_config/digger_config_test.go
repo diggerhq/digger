@@ -97,6 +97,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
 	assert.Equal(t, true, dg.Telemetry)
+	assert.Equal(t, false, dg.TraverseToNestedProjects)
 	assert.Equal(t, 1, len(dg.Workflows))
 	assert.Equal(t, "default", dg.Projects[0].Name)
 	assert.Equal(t, "./", dg.Projects[0].Dir)
@@ -136,6 +137,7 @@ projects:
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
 	assert.Equal(t, true, dg.Telemetry)
+	assert.Equal(t, false, dg.TraverseToNestedProjects)
 	assert.Equal(t, 1, len(dg.Workflows))
 
 	assert.Equal(t, "prod", dg.Projects[0].Name)
@@ -1112,3 +1114,44 @@ func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
 }
 
 // todo test terragrunt digger_config with terragrunt_parsing block but without terragrunt: true
+
+// TestDiggerTraverseToNestedProjects test if traverse_to_nested_projects is set to true, digger will traverse to nested projects
+func TestDiggerTraverseToNestedProjects(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+traverse_to_nested_projects: true
+generate_projects:
+  blocks:
+    - include: dev/**
+      aws_role_to_assume:
+        state: "arn://abc:xyz:state"
+        command: "arn://abc:xyz:cmd"
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+	dirsToCreate := []string{"dev/test1", "dev/test2", "dev/project", "dev/project/test3", "testtt"}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	dg, _, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+	assert.Equal(t, true, dg.TraverseToNestedProjects)
+	assert.Equal(t, 4, len(dg.Projects))
+	assert.Equal(t, "arn://abc:xyz:cmd", dg.Projects[0].AwsRoleToAssume.Command)
+	assert.Equal(t, "arn://abc:xyz:state", dg.Projects[0].AwsRoleToAssume.State)
+	assert.Equal(t, "dev_project", dg.Projects[0].Name)
+	assert.Equal(t, "dev/project", dg.Projects[0].Dir)
+	assert.Equal(t, "dev_project_test3", dg.Projects[1].Name)
+	assert.Equal(t, "dev/project/test3", dg.Projects[1].Dir)
+	assert.Equal(t, "dev_test1", dg.Projects[2].Name)
+	assert.Equal(t, "dev/test1", dg.Projects[2].Dir)
+	assert.Equal(t, "dev_test2", dg.Projects[3].Name)
+	assert.Equal(t, "dev/test2", dg.Projects[3].Dir)
+}

@@ -16,7 +16,7 @@ import (
 )
 
 type DirWalker interface {
-	GetDirs(workingDir string) ([]string, error)
+	GetDirs(workingDir string, config DiggerConfigYaml) ([]string, error)
 }
 
 type FileSystemTopLevelTerraformDirWalker struct {
@@ -46,7 +46,7 @@ func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	return files, nil
 }
 
-func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string) ([]string, error) {
+func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string, configYaml *DiggerConfigYaml) ([]string, error) {
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
@@ -61,7 +61,9 @@ func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string) (
 				terraformFiles, _ := GetFilesWithExtension(path, ".tf")
 				if len(terraformFiles) > 0 {
 					dirs = append(dirs, strings.ReplaceAll(path, workingDir+string(os.PathSeparator), ""))
-					return filepath.SkipDir
+					if configYaml.TraverseToNestedProjects != nil && !*configYaml.TraverseToNestedProjects {
+						return filepath.SkipDir
+					}
 				}
 			}
 			return nil
@@ -72,7 +74,7 @@ func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string) (
 	return dirs, nil
 }
 
-func (walker *FileSystemModuleDirWalker) GetDirs(workingDir string) ([]string, error) {
+func (walker *FileSystemModuleDirWalker) GetDirs(workingDir string, configYaml *DiggerConfigYaml) ([]string, error) {
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
@@ -92,7 +94,7 @@ func (walker *FileSystemModuleDirWalker) GetDirs(workingDir string) ([]string, e
 	return dirs, nil
 }
 
-func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string) ([]string, error) {
+func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string, configYaml *DiggerConfigYaml) ([]string, error) {
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
@@ -199,7 +201,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 		}
 	} else if config.GenerateProjectsConfig != nil {
 		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
-		dirs, err := dirWalker.GetDirs(terraformDir)
+		dirs, err := dirWalker.GetDirs(terraformDir, config)
 
 		if err != nil {
 			fmt.Printf("Error while walking through directories: %v", err)
@@ -410,22 +412,25 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	telemetry := true
 	configYaml.Telemetry = &telemetry
 
+	TraverseToNestedProjects := false
+	configYaml.TraverseToNestedProjects = &TraverseToNestedProjects
+
 	terragruntDirWalker := &FileSystemTerragruntDirWalker{}
 	terraformDirWalker := &FileSystemTopLevelTerraformDirWalker{}
 	moduleDirWalker := &FileSystemModuleDirWalker{}
 
-	terragruntDirs, err := terragruntDirWalker.GetDirs(workingDir)
+	terragruntDirs, err := terragruntDirWalker.GetDirs(workingDir, configYaml)
 
 	if err != nil {
 		return nil, err
 	}
 
-	terraformDirs, err := terraformDirWalker.GetDirs(workingDir)
+	terraformDirs, err := terraformDirWalker.GetDirs(workingDir, configYaml)
 	if err != nil {
 		return nil, err
 	}
 
-	moduleDirs, err := moduleDirWalker.GetDirs(workingDir)
+	moduleDirs, err := moduleDirWalker.GetDirs(workingDir, configYaml)
 
 	var modulePatterns []string
 	for _, dir := range moduleDirs {
