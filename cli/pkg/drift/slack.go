@@ -1,4 +1,4 @@
-package notification
+package drift
 
 import (
 	"bytes"
@@ -10,10 +10,6 @@ import (
 	"regexp"
 	"strings"
 )
-
-type Notification interface {
-	Send(message string) error
-}
 
 type SlackNotification struct {
 	Url string
@@ -44,7 +40,8 @@ func SplitCodeBlocks(message string) []string {
 	return res
 }
 
-func (slack SlackNotification) Send(message string) error {
+func (slack SlackNotification) Send(projectName string, plan string) error {
+	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
 	httpClient := &http.Client{}
 	type SlackMessage struct {
 		Text string `json:"text"`
@@ -64,7 +61,7 @@ func (slack SlackNotification) Send(message string) error {
 
 		request, err := http.NewRequest("POST", slack.Url, bytes.NewBuffer(jsonData))
 		if err != nil {
-			msg := fmt.Sprintf("failed to create slack notification request. %v", err)
+			msg := fmt.Sprintf("failed to create slack drift request. %v", err)
 			log.Printf(msg)
 			return fmt.Errorf(msg)
 		}
@@ -72,7 +69,7 @@ func (slack SlackNotification) Send(message string) error {
 		request.Header.Set("Content-Type", "application/json")
 		resp, err := httpClient.Do(request)
 		if err != nil {
-			msg := fmt.Sprintf("failed to send slack notification request. %v", err)
+			msg := fmt.Sprintf("failed to send slack drift request. %v", err)
 			log.Printf(msg)
 			return fmt.Errorf(msg)
 		}
@@ -83,7 +80,7 @@ func (slack SlackNotification) Send(message string) error {
 				log.Printf(msg)
 				return fmt.Errorf(msg)
 			}
-			msg := fmt.Sprintf("failed to send slack notification request. %v. Message: %v", resp.Status, body)
+			msg := fmt.Sprintf("failed to send slack drift request. %v. Message: %v", resp.Status, body)
 			log.Printf(msg)
 			return fmt.Errorf(msg)
 		}
