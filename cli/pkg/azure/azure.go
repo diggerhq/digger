@@ -187,7 +187,7 @@ func (a *AzureReposService) PublishComment(prNumber int, comment string) (int64,
 	return 0, err
 }
 
-func (svc *AzureReposService) PublishIssue(body string) (int64, error) {
+func (svc *AzureReposService) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 

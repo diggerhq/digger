@@ -187,7 +187,7 @@ func (t MockCiService) PublishComment(prNumber int, comment string) (int64, erro
 	return 0, nil
 }
 
-func (svc MockCiService) PublishIssue(body string) (int64, error) {
+func (svc MockCiService) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
