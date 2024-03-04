@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
+	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	"github.com/diggerhq/digger/cli/pkg/core/policy"
@@ -19,7 +20,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	coreutils "github.com/diggerhq/digger/cli/pkg/core/utils"
 	"github.com/diggerhq/digger/cli/pkg/locking"
-	"github.com/diggerhq/digger/cli/pkg/notification"
 	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
@@ -456,14 +456,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			return nil, msg, fmt.Errorf(msg)
 		}
 
-	case "digger drift-detect":
-		plan, err := runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor)
-		if err != nil {
-			msg := fmt.Sprintf("Failed to run drift detection. %v", err)
-			return nil, msg, fmt.Errorf(msg)
-		}
-		result := execution.DiggerExecutorResult{}
-		return &result, plan, nil
 	default:
 		msg := fmt.Sprintf("Command '%s' is not supported", command)
 		return nil, msg, fmt.Errorf(msg)
@@ -523,6 +515,7 @@ func RunJob(
 	policyChecker policy.Checker,
 	planStorage storage.PlanStorage,
 	backendApi backend.Api,
+	driftNotification *core_drift.Notification,
 	workingDir string,
 ) error {
 	runStartedAt := time.Now()
@@ -656,7 +649,7 @@ func RunJob(
 			}
 
 		case "digger drift-detect":
-			output, err := runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor)
+			output, err := runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor, driftNotification)
 			if err != nil {
 				return fmt.Errorf("failed to Run digger drift-detect command. %v", err)
 			}
@@ -670,7 +663,7 @@ func RunJob(
 	return nil
 }
 
-func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor) (string, error) {
+func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
 	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
 	if err != nil {
 		log.Printf("Failed to send usage report. %v", err)
@@ -695,19 +688,13 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 	}
 
 	if planPerformed && nonEmptyPlan {
-		slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
-
-		if slackNotificationUrl == "" {
-			msg := "no INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL set, not sending notification"
-			log.Printf(msg)
-			return msg, fmt.Errorf(msg)
+		if notification == nil {
+			log.Print("Warning: no notification configured, not sending any notifications")
+			return plan, nil
 		}
-		// send notification
-		notificationMessage := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
-		notification := notification.SlackNotification{Url: slackNotificationUrl}
-		err := notification.Send(notificationMessage)
+		err := (*notification).Send(projectName, plan)
 		if err != nil {
-			log.Printf("Erorr sending drift notification: %v", err)
+			log.Printf("Error sending drift drift: %v", err)
 		}
 	} else if planPerformed && !nonEmptyPlan {
 		log.Printf("No drift detected")
