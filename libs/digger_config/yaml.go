@@ -13,6 +13,7 @@ type DiggerConfigYaml struct {
 	Workflows                  map[string]*WorkflowYaml     `yaml:"workflows"`
 	Telemetry                  *bool                        `yaml:"telemetry,omitempty"`
 	GenerateProjectsConfig     *GenerateProjectsConfigYaml  `yaml:"generate_projects"`
+	TraverseToNestedProjects   *bool                        `yaml:"traverse_to_nested_projects"`
 	MentionDriftedProjectsInPR *bool                        `yaml:"mention_drifted_projects_in_pr"`
 }
 
