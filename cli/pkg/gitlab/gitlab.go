@@ -178,7 +178,7 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 	}
 }
 
-func (svc GitLabService) PublishIssue(body string) (int64, error) {
+func (svc GitLabService) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 

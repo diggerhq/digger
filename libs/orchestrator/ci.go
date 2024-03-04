@@ -3,7 +3,7 @@ package orchestrator
 type PullRequestService interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string) (int64, error)
-	PublishIssue(body string) (int64, error)
+	PublishIssue(title string, body string) (int64, error)
 	EditComment(prNumber int, id interface{}, comment string) error
 	GetComments(prNumber int) ([]Comment, error)
 	GetApprovals(prNumber int) ([]string, error)

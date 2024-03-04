@@ -36,7 +36,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishComment
 	return 0, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishIssue(body string) (int64, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishIssue(title string, body string) (int64, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "PublishIssue")
 	return 0, nil
 }
