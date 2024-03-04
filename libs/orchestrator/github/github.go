@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"os"
 	"strings"
@@ -87,6 +88,11 @@ func (svc GithubService) ListIssues() ([]*orchestrator.Issue, error) {
 			log.Fatalf("error getting pull request files: %v", err)
 		}
 		for _, issue := range issues {
+			spew.Dump(issue)
+			fmt.Print("ID:: %v", *issue.ID)
+			fmt.Print("Title:: %v", *issue.Title)
+			fmt.Print("Body:: %v", *issue.Body)
+
 			allIssues = append(allIssues, &orchestrator.Issue{ID: *issue.ID, Title: *issue.Title, Body: *issue.Body})
 		}
 		if resp.NextPage == 0 {
