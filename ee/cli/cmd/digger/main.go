@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/drift"
+	comment_updater_ee "github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
 	ee_drift "github.com/diggerhq/digger/ee/cli/pkg/drift"
 	"log"
 	"net/http"
@@ -141,7 +143,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
 		}
 
-		digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+		commentUpdater := comment_updater_ee.AdvancedCommentUpdater{}
+		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
@@ -159,7 +162,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				log.Printf("Failed to report job status to backend. %v", reportingError)
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
-			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+			commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
@@ -167,13 +170,13 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
-		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, inputs.Id, true, commentId64, currentDir)
+		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, commentId64, currentDir)
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
-			digger.UpdateStatusComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+			commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
@@ -354,7 +357,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 0, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			// aggregate status checks: failure
@@ -471,7 +474,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		ReportStrategy: reportingStrategy,
 	}
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 0, currentDir)
 
 	if err != nil {
 		log.Printf("failed to execute command, %v", err)
@@ -559,7 +562,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 		ReportStrategy: reportingStrategy,
 	}
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 0, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -805,7 +808,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, backendApi, "", false, 0, currentDir)
+			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 0, currentDir)
 			if err != nil {
 				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
@@ -842,7 +845,7 @@ func exec(actor string, projectName string, repoNamespace string, command string
 	}
 
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, backendApi, "", false, 123, currentDir)
+	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 123, currentDir)
 }
 
 /*

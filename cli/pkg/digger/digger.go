@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	"log"
 	"os"
 	"path"
@@ -73,6 +74,7 @@ func RunJobs(
 	reporter core_reporting.Reporter,
 	planStorage storage.PlanStorage,
 	policyChecker policy.Checker,
+	commentUpdater comment_updater.CommentUpdater,
 	backendApi backend.Api,
 	batchId string,
 	reportFinalStatusToBackend bool,
@@ -145,7 +147,7 @@ func RunJobs(
 			return false, false, fmt.Errorf("error while running command: %v", err)
 		}
 
-		err = UpdateStatusComment(batchResult.Jobs, prNumber, prService, prCommentId)
+		err = commentUpdater.UpdateComment(batchResult.Jobs, prNumber, prService, prCommentId)
 		if err != nil {
 			log.Printf("error Updating status comment: %v.\n", err)
 			return false, false, err
