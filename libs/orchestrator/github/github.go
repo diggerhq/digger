@@ -88,6 +88,10 @@ func (svc GithubService) ListIssues() ([]*orchestrator.Issue, error) {
 			log.Fatalf("error getting pull request files: %v", err)
 		}
 		for _, issue := range issues {
+			if issue.PullRequestLinks != nil {
+				// this is an pull request, skip
+				continue
+			}
 			spew.Dump(issue)
 			fmt.Print("ID:: %v", *issue.ID)
 			fmt.Print("Title:: %v", *issue.Title)
