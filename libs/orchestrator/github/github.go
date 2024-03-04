@@ -75,6 +75,33 @@ func (svc GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	return fileNames, nil
 }
 
+func (svc GithubService) ListIssues() ([]*orchestrator.Issue, error) {
+	allIssues := make([]*orchestrator.Issue, 0)
+	opts := &github.IssueListByRepoOptions{
+		State:       "open",
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	for {
+		issues, resp, err := svc.Client.Issues.ListByRepo(context.Background(), svc.Owner, svc.RepoName, opts)
+		if err != nil {
+			log.Fatalf("error getting pull request files: %v", err)
+		}
+		for _, issue := range issues {
+			if issue.PullRequestLinks != nil {
+				// this is an pull request, skip
+				continue
+			}
+
+			allIssues = append(allIssues, &orchestrator.Issue{ID: int64(*issue.Number), Title: *issue.Title, Body: *issue.Body})
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return allIssues, nil
+}
+
 func (svc GithubService) PublishIssue(title string, body string) (int64, error) {
 	githubissue, _, err := svc.Client.Issues.Create(context.Background(), svc.Owner, svc.RepoName, &github.IssueRequest{Title: &title, Body: &body})
 	if err != nil {
