@@ -1,11 +1,12 @@
 package digger_config
 
 type DiggerConfig struct {
-	DependencyConfiguration DependencyConfiguration
-	Projects                []Project
-	AutoMerge               bool
-	Telemetry               bool
-	Workflows               map[string]Workflow
+	DependencyConfiguration    DependencyConfiguration
+	Projects                   []Project
+	AutoMerge                  bool
+	Telemetry                  bool
+	Workflows                  map[string]Workflow
+	MentionDriftedProjectsInPR bool
 }
 
 type DependencyConfiguration struct {
