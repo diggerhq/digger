@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 
 	"cloud.google.com/go/storage"
@@ -67,7 +68,15 @@ func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePat
 }
 
 func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
-	// TODO: implement me
+	fullPath := path.Join(artifactName, fileName)
+	obj := psg.Bucket.Object(fullPath)
+	writer := obj.NewWriter(context.Background())
+	defer writer.Close()
+
+	if _, err := writer.Write(fileContents); err != nil {
+		log.Printf("Failed to write file to bucket: %v", err)
+		return err
+	}
 	return nil
 }
 
