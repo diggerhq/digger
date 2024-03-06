@@ -122,6 +122,7 @@ type PlanPathProvider interface {
 }
 
 type ProjectPathProvider struct {
+	PRNumber         string
 	ProjectPath      string
 	ProjectNamespace string
 	ProjectName      string
@@ -132,7 +133,12 @@ func (d ProjectPathProvider) ArtifactName() string {
 }
 
 func (d ProjectPathProvider) PlanFileName() string {
-	return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.ProjectName + ".tfplan"
+	if d.PRNumber != "" {
+		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.PRNumber + "-" + d.ProjectName + ".tfplan"
+	} else {
+		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.ProjectName + ".tfplan"
+	}
+
 }
 
 func (d ProjectPathProvider) LocalPlanFilePath() string {
