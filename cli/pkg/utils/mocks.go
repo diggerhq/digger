@@ -146,11 +146,11 @@ func (t *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string
 	return nil
 }
 
-func (t MockPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
+func (t MockPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
 	return nil, nil
 }
 
-func (t MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
+func (t MockPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
 	return nil
 }
 

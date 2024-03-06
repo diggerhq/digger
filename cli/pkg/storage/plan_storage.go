@@ -79,7 +79,7 @@ func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName strin
 	return nil
 }
 
-func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
+func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	rc, err := obj.NewReader(psg.Context)
 	if err != nil {
@@ -103,7 +103,7 @@ func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFile
 	return &fileName, nil
 }
 
-func (psg *PlanStorageGcp) DeleteStoredPlan(storedPlanFilePath string) error {
+func (psg *PlanStorageGcp) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	err := obj.Delete(psg.Context)
 
@@ -199,8 +199,8 @@ func doRequest(method, url string, headers map[string]string, body []byte) (*htt
 	return resp, nil
 }
 
-func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
-	plansFilename, err := gps.DownloadLatestPlans(storedPlanFilePath)
+func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
+	plansFilename, err := gps.DownloadLatestPlans(artifactName)
 
 	if err != nil {
 		return nil, fmt.Errorf("error downloading plan: %v", err)
@@ -235,7 +235,7 @@ func (gps *GithubPlanStorage) PlanExists(artifactName string, storedPlanFilePath
 	return true, nil
 }
 
-func (gps *GithubPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
+func (gps *GithubPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
 	return nil
 }
 
