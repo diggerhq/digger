@@ -30,5 +30,15 @@ generate_projects:
 
 [Demo repo](https://github.com/diggerhq/generate_projects_demo)
 
+# Traversing nested directories
 
+You can optionally set the top-level argument `traverse_to_nested_projects` to generate a project for all sub-directories:
 
+```
+traverse_to_nested_projects: true
+generate_projects:
+  blocks:
+    - include: "environments/core/**"
+```
+
+This will create a project for all sub-directories under environments/core. If set to `false`, only the first directory with a .tf file will be evaluated.
