@@ -445,7 +445,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		if planStorage != nil {
 			err = planStorage.DeleteStoredPlan(planPathProvider.ArtifactName(), planPathProvider.PlanFileName())
 			if err != nil {
-				log.Printf("failed to delete stored plan file '%v':  %v", planPathProvider.StoredPlanFilePath(), err)
+				log.Printf("failed to delete stored plan file '%v':  %v", planPathProvider.PlanFileName(), err)
 			}
 		}
 	case "digger lock":

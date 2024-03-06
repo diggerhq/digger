@@ -44,28 +44,6 @@ func (psg *PlanStorageGcp) PlanExists(artifactName string, storedPlanFilePath st
 	return true, nil
 }
 
-func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
-	file, err := os.Open(localPlanFilePath)
-	if err != nil {
-		return fmt.Errorf("unable to open file: %v", err)
-	}
-	defer file.Close()
-
-	obj := psg.Bucket.Object(storedPlanFilePath)
-	wc := obj.NewWriter(psg.Context)
-
-	if _, err = io.Copy(wc, file); err != nil {
-		wc.Close()
-		return fmt.Errorf("unable to write data to bucket: %v", err)
-	}
-
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("unable to close writer: %v", err)
-	}
-
-	return nil
-}
-
 func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
 	fullPath := fileName
 	obj := psg.Bucket.Object(fullPath)
@@ -110,11 +88,6 @@ func (psg *PlanStorageGcp) DeleteStoredPlan(artifactName string, storedPlanFileP
 	if err != nil {
 		return fmt.Errorf("unable to delete file '%v' from bucket: %v", storedPlanFilePath, err)
 	}
-	return nil
-}
-
-func (gps *GithubPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
-	_ = fmt.Sprintf("Skipping storing plan %s. It should be achieved using actions/upload-artifact@v3", localPlanFilePath)
 	return nil
 }
 

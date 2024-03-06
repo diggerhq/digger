@@ -138,10 +138,6 @@ func (t MockPullRequestManager) SetOutput(prNumber int, key string, value string
 type MockPlanStorage struct {
 }
 
-func (t MockPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
-	return nil
-}
-
 func (t *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
 	return nil
 }
