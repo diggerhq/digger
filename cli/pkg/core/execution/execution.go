@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/diggerhq/digger/cli/pkg/core/locking"
@@ -122,7 +123,7 @@ type PlanPathProvider interface {
 }
 
 type ProjectPathProvider struct {
-	PRNumber         string
+	PRNumber         *int
 	ProjectPath      string
 	ProjectNamespace string
 	ProjectName      string
@@ -133,8 +134,9 @@ func (d ProjectPathProvider) ArtifactName() string {
 }
 
 func (d ProjectPathProvider) PlanFileName() string {
-	if d.PRNumber != "" {
-		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.PRNumber + "-" + d.ProjectName + ".tfplan"
+	if d.PRNumber != nil {
+		prNumber := strconv.Itoa(*d.PRNumber)
+		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + prNumber + "-" + d.ProjectName + ".tfplan"
 	} else {
 		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.ProjectName + ".tfplan"
 	}
