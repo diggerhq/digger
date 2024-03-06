@@ -32,7 +32,7 @@ type GithubPlanStorage struct {
 	ZipManager        utils.Zipper
 }
 
-func (psg *PlanStorageGcp) PlanExists(storedPlanFilePath string) (bool, error) {
+func (psg *PlanStorageGcp) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	_, err := obj.Attrs(psg.Context)
 	if err != nil {
@@ -118,7 +118,7 @@ func (gps *GithubPlanStorage) StorePlan(localPlanFilePath string, storedPlanFile
 	return nil
 }
 
-func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, storedPlanFilePath string) error {
 	actionsRuntimeToken := os.Getenv("ACTIONS_RUNTIME_TOKEN")
 	actionsRuntimeURL := os.Getenv("ACTIONS_RUNTIME_URL")
 	githubRunID := os.Getenv("GITHUB_RUN_ID")
@@ -147,7 +147,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
 
 	// Upload Data
-	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, fileName)
+	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, storedPlanFilePath)
 	uploadData := fileContents
 	dataLen := len(uploadData)
 	headers["Content-Type"] = "application/octet-stream"
@@ -218,7 +218,7 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanF
 	return &plansFilename, nil
 }
 
-func (gps *GithubPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
+func (gps *GithubPlanStorage) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
 	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
 		PerPage: 100,
 	})
@@ -227,7 +227,7 @@ func (gps *GithubPlanStorage) PlanExists(storedPlanFilePath string) (bool, error
 		return false, err
 	}
 
-	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, storedPlanFilePath)
+	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, artifactName)
 
 	if latestPlans == nil {
 		return false, nil
