@@ -119,7 +119,6 @@ type PlanPathProvider interface {
 	LocalPlanFilePath() string
 	StoredPlanFilePath() string
 	ArtifactName() string
-	PlanFileName() string
 }
 
 type ProjectPathProvider struct {
@@ -133,7 +132,7 @@ func (d ProjectPathProvider) ArtifactName() string {
 	return d.ProjectName
 }
 
-func (d ProjectPathProvider) PlanFileName() string {
+func (d ProjectPathProvider) StoredPlanFilePath() string {
 	if d.PRNumber != nil {
 		prNumber := strconv.Itoa(*d.PRNumber)
 		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + prNumber + "-" + d.ProjectName + ".tfplan"
@@ -144,24 +143,20 @@ func (d ProjectPathProvider) PlanFileName() string {
 }
 
 func (d ProjectPathProvider) LocalPlanFilePath() string {
-	return path.Join(d.ProjectPath, d.PlanFileName())
-}
-
-func (d ProjectPathProvider) StoredPlanFilePath() string {
-	return path.Join(d.ProjectNamespace, d.PlanFileName())
+	return path.Join(d.ProjectPath, d.StoredPlanFilePath())
 }
 
 func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 	executor := d
 	planStorage := executor.PlanStorage
 	planPathProvider := executor.PlanPathProvider
-	storedPlanExists, err := planStorage.PlanExists(planPathProvider.ArtifactName(), planPathProvider.PlanFileName())
+	storedPlanExists, err := planStorage.PlanExists(planPathProvider.ArtifactName(), planPathProvider.StoredPlanFilePath())
 	if err != nil {
 		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
 	}
 	if storedPlanExists {
 		log.Printf("Pre-apply plan retrieval: stored plan exists in artefact, retrieving")
-		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName(), planPathProvider.PlanFileName())
+		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName(), planPathProvider.StoredPlanFilePath())
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
 		}
@@ -226,7 +221,7 @@ func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, stri
 			}
 
 			if !isEmptyPlan {
-				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.PlanFileName(), "isNonEmptyPlan.txt", 1)
+				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
 				file, err := os.Create(nonEmptyPlanFilepath)
 				if err != nil {
 					return nil, false, false, "", "", fmt.Errorf("unable to create file: %v", err)
@@ -245,7 +240,7 @@ func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, stri
 					return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
 				}
 
-				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.PlanFileName())
+				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 				if err != nil {
 					fmt.Println("Error storing artifact file:", err)
 					return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
@@ -292,7 +287,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 	var plansFilename *string
 	if d.PlanStorage != nil {
 		var err error
-		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.PlanFileName())
+		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
 			return false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}
