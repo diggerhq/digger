@@ -67,7 +67,7 @@ func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePat
 }
 
 func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
-	fullPath := artifactName
+	fullPath := fileName
 	obj := psg.Bucket.Object(fullPath)
 	writer := obj.NewWriter(context.Background())
 	defer writer.Close()
