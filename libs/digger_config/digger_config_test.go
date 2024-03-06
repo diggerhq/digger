@@ -121,9 +121,9 @@ projects:
 - name: prod
   branch: /main/
   dir: path/to/module/test
-  aws_role_to_assume: 
+  aws_role_to_assume:
     state: "arn://abc:xyz:state"
-    command: "arn://abc:xyz:command"
+    command: "arn://abc:xyz:cmd"
   workspace: default
   workflow_file: "test.yml"
 `
@@ -142,7 +142,7 @@ projects:
 	assert.Equal(t, "prod", dg.Projects[0].Name)
 	assert.Equal(t, "test.yml", dg.Projects[0].WorkflowFile)
 	assert.Equal(t, "path/to/module/test", dg.Projects[0].Dir)
-	assert.Equal(t, "arn://abc:xyz:command", dg.Projects[0].AwsRoleToAssume.Command)
+	assert.Equal(t, "arn://abc:xyz:cmd", dg.Projects[0].AwsRoleToAssume.Command)
 	assert.Equal(t, "arn://abc:xyz:state", dg.Projects[0].AwsRoleToAssume.State)
 
 	workflow := dg.Workflows["default"]
