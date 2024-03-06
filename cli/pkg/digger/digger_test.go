@@ -191,11 +191,6 @@ type MockPlanStorage struct {
 	Commands []RunInfo
 }
 
-func (m *MockPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
-	m.Commands = append(m.Commands, RunInfo{"StorePlan", localPlanFilePath, time.Now()})
-	return nil
-}
-
 func (m *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
 	m.Commands = append(m.Commands, RunInfo{"StorePlanFile", artifactName, time.Now()})
 	return nil
