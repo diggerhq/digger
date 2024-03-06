@@ -7,6 +7,7 @@ type DiggerConfig struct {
 	Telemetry                  bool
 	Workflows                  map[string]Workflow
 	MentionDriftedProjectsInPR bool
+	TraverseToNestedProjects   bool
 }
 
 type DependencyConfiguration struct {
