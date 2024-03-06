@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 
 	"cloud.google.com/go/storage"
@@ -68,7 +67,7 @@ func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePat
 }
 
 func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
-	fullPath := path.Join(artifactName, fileName)
+	fullPath := artifactName
 	obj := psg.Bucket.Object(fullPath)
 	writer := obj.NewWriter(context.Background())
 	defer writer.Close()
