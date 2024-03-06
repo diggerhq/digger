@@ -201,12 +201,12 @@ func (m *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string
 	return nil
 }
 
-func (m *MockPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
+func (m *MockPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
 	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", localPlanFilePath, time.Now()})
 	return nil, nil
 }
 
-func (m *MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
+func (m *MockPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
 	m.Commands = append(m.Commands, RunInfo{"DeleteStoredPlan", storedPlanFilePath, time.Now()})
 	return nil
 }

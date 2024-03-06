@@ -161,7 +161,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 	}
 	if storedPlanExists {
 		log.Printf("Pre-apply plan retrieval: stored plan exists in artefact, retrieving")
-		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName())
+		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName(), planPathProvider.PlanFileName())
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
 		}
@@ -292,7 +292,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 	var plansFilename *string
 	if d.PlanStorage != nil {
 		var err error
-		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName())
+		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.PlanFileName())
 		if err != nil {
 			return false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}
