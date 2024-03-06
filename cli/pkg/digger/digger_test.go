@@ -211,7 +211,7 @@ func (m *MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
 	return nil
 }
 
-func (m *MockPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
+func (m *MockPlanStorage) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
 	m.Commands = append(m.Commands, RunInfo{"PlanExists", storedPlanFilePath, time.Now()})
 	return false, nil
 }

@@ -154,7 +154,7 @@ func (t MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
 	return nil
 }
 
-func (t MockPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
+func (t MockPlanStorage) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
 	return false, nil
 }
 

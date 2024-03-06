@@ -155,7 +155,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 	executor := d
 	planStorage := executor.PlanStorage
 	planPathProvider := executor.PlanPathProvider
-	storedPlanExists, err := planStorage.PlanExists(planPathProvider.ArtifactName())
+	storedPlanExists, err := planStorage.PlanExists(planPathProvider.ArtifactName(), planPathProvider.PlanFileName())
 	if err != nil {
 		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
 	}
