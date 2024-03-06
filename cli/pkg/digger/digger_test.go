@@ -220,18 +220,13 @@ func (m MockPlanPathProvider) ArtifactName() string {
 	return "plan"
 }
 
-func (m MockPlanPathProvider) PlanFileName() string {
-	m.Commands = append(m.Commands, RunInfo{"PlanFileName", "", time.Now()})
+func (m MockPlanPathProvider) StoredPlanFilePath() string {
+	m.Commands = append(m.Commands, RunInfo{"StoredPlanFilePath", "", time.Now()})
 	return "plan"
 }
 
 func (m MockPlanPathProvider) LocalPlanFilePath() string {
 	m.Commands = append(m.Commands, RunInfo{"LocalPlanFilePath", "", time.Now()})
-	return "plan"
-}
-
-func (m MockPlanPathProvider) StoredPlanFilePath() string {
-	m.Commands = append(m.Commands, RunInfo{"StoredPlanFilePath", "", time.Now()})
 	return "plan"
 }
 
