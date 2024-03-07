@@ -5,10 +5,16 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/gcp"
 	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/stretchr/testify/assert"
+	"log"
 	"os"
 	"strings"
 	"testing"
 )
+
+func init() {
+	log.SetOutput(os.Stdout)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+}
 
 func TestGCPPlanStorageStorageAndRetrieval(t *testing.T) {
 	fmt.Printf("in function")
