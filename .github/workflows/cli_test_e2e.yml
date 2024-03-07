@@ -24,15 +24,6 @@ jobs:
           go-version: 1.22.0
         id: go
 
-      - id: 'gcp_auth'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
-          create_credentials_file: true
-
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
@@ -47,9 +38,12 @@ jobs:
         working-directory: cli_e2e
 
       - name: Test
-        run: go test -v ./...
+        run: |
+          echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp.json
+          go test -v ./...
         working-directory: cli_e2e
         env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp.json
           GOOGLE_STORAGE_BUCKET: gcp-plan-artefacts
 
 
