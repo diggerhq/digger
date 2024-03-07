@@ -1,8 +1,6 @@
 name: Cli e2e tests
 on:
   push:
-    branches:
-      - "feat/plan-artefacts-gcp-implementation"
   pull_request:
     types: [opened, reopened]
 
@@ -23,7 +21,7 @@ jobs:
       - name: Download Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21.1
+          go-version: 1.22.0
         id: go
 
       - id: 'gcp_auth'
