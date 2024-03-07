@@ -12,12 +12,14 @@ import (
 
 func TestGCPPlanStorageStorageAndRetrieval(t *testing.T) {
 	fmt.Printf("in function")
-	file, err := os.CreateTemp("/tmp", "prefix")
+	file, err := os.CreateTemp(os.Getenv("RUNNER_TEMP"), "prefix")
 	fmt.Printf("%v", err)
 	assert.Nil(t, err)
 	defer os.Remove(file.Name())
 
+	fmt.Printf("getting cp client")
 	ctx, client := gcp.GetGoogleStorageClient()
+	fmt.Printf("getting bucket")
 	bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
 	bucket := client.Bucket(bucketName)
 	planStorage := &storage.PlanStorageGcp{
