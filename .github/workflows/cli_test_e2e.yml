@@ -35,9 +35,18 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
-      - name: Deps
+      - name: Deps cli
         run: |
-          pwd
+          go get -v ./...
+        working-directory: cli
+
+      - name: Build cli
+        run: |
+          go build -v ./cmd/digger
+        working-directory: cli
+
+      - name: Deps e2e
+        run: |
           go get -v ./...
         working-directory: cli_e2e
 
