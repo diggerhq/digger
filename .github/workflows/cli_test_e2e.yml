@@ -34,12 +34,6 @@ jobs:
           go get -v ./...
         working-directory: cli_e2e
 
-      - name: Build
-        run: |
-          pwd
-          go build -v ./cmd/digger
-        working-directory: cli_2e2
-
       - name: Test
         run: go test -v ./...
         working-directory: cli_e2e
