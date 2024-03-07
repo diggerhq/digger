@@ -191,27 +191,22 @@ type MockPlanStorage struct {
 	Commands []RunInfo
 }
 
-func (m *MockPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
-	m.Commands = append(m.Commands, RunInfo{"StorePlan", localPlanFilePath, time.Now()})
-	return nil
-}
-
 func (m *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
 	m.Commands = append(m.Commands, RunInfo{"StorePlanFile", artifactName, time.Now()})
 	return nil
 }
 
-func (m *MockPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
+func (m *MockPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
 	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", localPlanFilePath, time.Now()})
 	return nil, nil
 }
 
-func (m *MockPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
+func (m *MockPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
 	m.Commands = append(m.Commands, RunInfo{"DeleteStoredPlan", storedPlanFilePath, time.Now()})
 	return nil
 }
 
-func (m *MockPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
+func (m *MockPlanStorage) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
 	m.Commands = append(m.Commands, RunInfo{"PlanExists", storedPlanFilePath, time.Now()})
 	return false, nil
 }
@@ -225,18 +220,13 @@ func (m MockPlanPathProvider) ArtifactName() string {
 	return "plan"
 }
 
-func (m MockPlanPathProvider) PlanFileName() string {
-	m.Commands = append(m.Commands, RunInfo{"PlanFileName", "", time.Now()})
+func (m MockPlanPathProvider) StoredPlanFilePath() string {
+	m.Commands = append(m.Commands, RunInfo{"StoredPlanFilePath", "", time.Now()})
 	return "plan"
 }
 
 func (m MockPlanPathProvider) LocalPlanFilePath() string {
 	m.Commands = append(m.Commands, RunInfo{"LocalPlanFilePath", "", time.Now()})
-	return "plan"
-}
-
-func (m MockPlanPathProvider) StoredPlanFilePath() string {
-	m.Commands = append(m.Commands, RunInfo{"StoredPlanFilePath", "", time.Now()})
 	return "plan"
 }
 

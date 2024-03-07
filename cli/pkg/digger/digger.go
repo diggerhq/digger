@@ -106,7 +106,7 @@ func RunJobs(
 				continue
 			}
 
-			executorResult, output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
+			executorResult, output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.PullRequestNumber, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
 			if err != nil {
 				reportErr := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
 				if reportErr != nil {
@@ -181,7 +181,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, []string{})
@@ -225,6 +225,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		ProjectPath:      projectPath,
 		ProjectNamespace: projectNamespace,
 		ProjectName:      job.ProjectName,
+		PRNumber:         PRNumber,
 	}
 
 	diggerExecutor := execution.LockingExecutorWrapper{
@@ -442,7 +443,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		}
 
 		if planStorage != nil {
-			err = planStorage.DeleteStoredPlan(planPathProvider.StoredPlanFilePath())
+			err = planStorage.DeleteStoredPlan(planPathProvider.ArtifactName(), planPathProvider.StoredPlanFilePath())
 			if err != nil {
 				log.Printf("failed to delete stored plan file '%v':  %v", planPathProvider.StoredPlanFilePath(), err)
 			}
@@ -560,6 +561,7 @@ func RunJob(
 			ProjectPath:      projectPath,
 			ProjectNamespace: repo,
 			ProjectName:      job.ProjectName,
+			PRNumber:         job.PullRequestNumber,
 		}
 
 		diggerExecutor := execution.DiggerExecutor{
