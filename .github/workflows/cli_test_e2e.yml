@@ -1,0 +1,48 @@
+name: Cli e2e tests
+on:
+  push:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Download Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21.1
+        id: go
+
+      - id: 'gcp auth'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          create_credentials_file: true
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Deps
+        run: |
+          pwd
+          go get -v ./...
+        working-directory: cli_e2e
+
+      - name: Build
+        run: |
+          pwd
+          go build -v ./cmd/digger
+        working-directory: cli_2e2
+
+      - name: Test
+        run: go test -v ./...
+        working-directory: cli_e2e
+        env:
+          GOOGLE_STORAGE_BUCKET:
+
+
+
