@@ -40,11 +40,6 @@ jobs:
           go get -v ./...
         working-directory: cli
 
-      - name: Build cli
-        run: |
-          go build -v ./cmd/digger
-        working-directory: cli
-
       - name: Deps e2e
         run: |
           go get -v ./...
