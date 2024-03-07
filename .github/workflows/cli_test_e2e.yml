@@ -44,7 +44,7 @@ jobs:
         run: go test -v ./...
         working-directory: cli_e2e
         env:
-          GOOGLE_STORAGE_BUCKET:
+          GOOGLE_STORAGE_BUCKET: gcp-plan-artefacts
 
 
 
