@@ -28,7 +28,9 @@ func TestGCPPlanStorageStorageAndRetrieval(t *testing.T) {
 	contents := []byte{'a'}
 	artefactName := "myartefact"
 	fileName := "myplan.tfplan"
-	planStorage.StorePlanFile(contents, artefactName, fileName)
+	err = planStorage.StorePlanFile(contents, artefactName, fileName)
+	fmt.Printf("%v", err)
+	assert.Nil(t, err)
 	exists, err := planStorage.PlanExists(artefactName, fileName)
 	fmt.Printf("%v", err)
 	assert.Nil(t, err)
