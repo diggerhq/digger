@@ -1,6 +1,8 @@
 name: Cli e2e tests
 on:
   push:
+    branches:
+      - "feat/plan-artefacts-gcp-implementation"
   pull_request:
     types: [opened, reopened]
 
