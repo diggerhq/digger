@@ -18,7 +18,7 @@ func init() {
 
 func TestGCPPlanStorageStorageAndRetrieval(t *testing.T) {
 	fmt.Printf("in function")
-	file, err := os.CreateTemp(os.Getenv("RUNNER_TEMP"), "prefix")
+	file, err := os.CreateTemp("/tmp", "prefix")
 	fmt.Printf("%v", err)
 	assert.Nil(t, err)
 	defer os.Remove(file.Name())
