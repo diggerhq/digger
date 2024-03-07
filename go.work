@@ -1,11 +1,12 @@
-go 1.21.7
+go 1.22.0
 
 use (
 	./backend
 	./cli
-	./libs
+	./cli_e2e
+	./ee/backend
 
 	./ee/cli
-	./ee/backend
+	./libs
 
 )
