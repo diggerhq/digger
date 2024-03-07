@@ -27,13 +27,11 @@ jobs:
 
       - name: Deps
         run: |
-          pwd
           go get -v ./...
         working-directory: cli
 
       - name: Build
         run: |
-          pwd
           go build -v ./cmd/digger
         working-directory: cli
 

@@ -32,7 +32,7 @@ type GithubPlanStorage struct {
 	ZipManager        utils.Zipper
 }
 
-func (psg *PlanStorageGcp) PlanExists(storedPlanFilePath string) (bool, error) {
+func (psg *PlanStorageGcp) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	_, err := obj.Attrs(psg.Context)
 	if err != nil {
@@ -44,34 +44,20 @@ func (psg *PlanStorageGcp) PlanExists(storedPlanFilePath string) (bool, error) {
 	return true, nil
 }
 
-func (psg *PlanStorageGcp) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
-	file, err := os.Open(localPlanFilePath)
-	if err != nil {
-		return fmt.Errorf("unable to open file: %v", err)
-	}
-	defer file.Close()
-
-	obj := psg.Bucket.Object(storedPlanFilePath)
-	wc := obj.NewWriter(psg.Context)
-
-	if _, err = io.Copy(wc, file); err != nil {
-		wc.Close()
-		return fmt.Errorf("unable to write data to bucket: %v", err)
-	}
-
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("unable to close writer: %v", err)
-	}
-
-	return nil
-}
-
 func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
-	// TODO: implement me
+	fullPath := fileName
+	obj := psg.Bucket.Object(fullPath)
+	writer := obj.NewWriter(context.Background())
+	defer writer.Close()
+
+	if _, err := writer.Write(fileContents); err != nil {
+		log.Printf("Failed to write file to bucket: %v", err)
+		return err
+	}
 	return nil
 }
 
-func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
+func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	rc, err := obj.NewReader(psg.Context)
 	if err != nil {
@@ -95,7 +81,7 @@ func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, storedPlanFile
 	return &fileName, nil
 }
 
-func (psg *PlanStorageGcp) DeleteStoredPlan(storedPlanFilePath string) error {
+func (psg *PlanStorageGcp) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	err := obj.Delete(psg.Context)
 
@@ -105,12 +91,7 @@ func (psg *PlanStorageGcp) DeleteStoredPlan(storedPlanFilePath string) error {
 	return nil
 }
 
-func (gps *GithubPlanStorage) StorePlan(localPlanFilePath string, storedPlanFilePath string) error {
-	_ = fmt.Sprintf("Skipping storing plan %s. It should be achieved using actions/upload-artifact@v3", localPlanFilePath)
-	return nil
-}
-
-func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, storedPlanFilePath string) error {
 	actionsRuntimeToken := os.Getenv("ACTIONS_RUNTIME_TOKEN")
 	actionsRuntimeURL := os.Getenv("ACTIONS_RUNTIME_URL")
 	githubRunID := os.Getenv("GITHUB_RUN_ID")
@@ -139,7 +120,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
 
 	// Upload Data
-	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, fileName)
+	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, storedPlanFilePath)
 	uploadData := fileContents
 	dataLen := len(uploadData)
 	headers["Content-Type"] = "application/octet-stream"
@@ -191,8 +172,8 @@ func doRequest(method, url string, headers map[string]string, body []byte) (*htt
 	return resp, nil
 }
 
-func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanFilePath string) (*string, error) {
-	plansFilename, err := gps.DownloadLatestPlans(storedPlanFilePath)
+func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
+	plansFilename, err := gps.DownloadLatestPlans(artifactName)
 
 	if err != nil {
 		return nil, fmt.Errorf("error downloading plan: %v", err)
@@ -210,7 +191,7 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, storedPlanF
 	return &plansFilename, nil
 }
 
-func (gps *GithubPlanStorage) PlanExists(storedPlanFilePath string) (bool, error) {
+func (gps *GithubPlanStorage) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
 	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
 		PerPage: 100,
 	})
@@ -219,7 +200,7 @@ func (gps *GithubPlanStorage) PlanExists(storedPlanFilePath string) (bool, error
 		return false, err
 	}
 
-	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, storedPlanFilePath)
+	latestPlans := getLatestArtifactWithName(artifacts.Artifacts, artifactName)
 
 	if latestPlans == nil {
 		return false, nil
@@ -227,7 +208,7 @@ func (gps *GithubPlanStorage) PlanExists(storedPlanFilePath string) (bool, error
 	return true, nil
 }
 
-func (gps *GithubPlanStorage) DeleteStoredPlan(storedPlanFilePath string) error {
+func (gps *GithubPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
 	return nil
 }
 
