@@ -25,6 +25,7 @@ require (
 	github.com/goccy/go-json v0.10.2
 	github.com/google/go-github/v58 v58.0.0
 	github.com/google/go-github/v59 v59.0.0
+	github.com/google/go-github/v60 v60.0.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
