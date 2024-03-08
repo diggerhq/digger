@@ -7,7 +7,7 @@ digger:
   # repository: digger backend image repository
   # tag: digger backend image tag
   image:
-    repository: ghcr.io/diggerhq/digger_backend
+    repository: registry.digger.dev/diggerhq/digger_backend
     tag: "v0.4.6"
 
   # service values
