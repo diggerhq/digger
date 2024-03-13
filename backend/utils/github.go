@@ -194,14 +194,13 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
 	timeFilter := time.Now().Add(-5 * time.Minute)
 	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
-		Created: ">= " + timeFilter.Format(time.RFC3339),
+		Created: ">=" + timeFilter.Format(time.RFC3339),
 	})
 	if err != nil {
 		return 0, "#", fmt.Errorf("error listing workflow runs %v", err)
 	}
 
 	for _, workflowRun := range runs.WorkflowRuns {
-		println(*workflowRun.ID)
 		workflowjobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
 		if err != nil {
 			return 0, "#", fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
