@@ -676,7 +676,6 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 func TestGithubHandleIssueCommentEvent(t *testing.T) {
-	t.Skip("!!TODO: Fix this failing test and unskip it")
 	teardownSuite, _ := setupSuite(t)
 	defer teardownSuite(t)
 
