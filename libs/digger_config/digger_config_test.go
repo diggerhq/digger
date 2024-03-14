@@ -160,6 +160,52 @@ projects:
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
 }
 
+func TestDiggerConfigOneRole(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: prod
+  branch: /main/
+  dir: path/to/module/test
+  aws_role_to_assume:
+    command: "arn://abc:xyz:cmd"
+  workspace: default
+  workflow_file: "test.yml"
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	dg, _, _, err := LoadDiggerConfig(tempDir)
+	fmt.Printf("%v", err)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+	assert.Equal(t, 1, len(dg.Projects))
+	assert.Equal(t, false, dg.AutoMerge)
+	assert.Equal(t, true, dg.Telemetry)
+	assert.Equal(t, false, dg.TraverseToNestedProjects)
+	assert.Equal(t, 1, len(dg.Workflows))
+
+	assert.Equal(t, "prod", dg.Projects[0].Name)
+	assert.Equal(t, "test.yml", dg.Projects[0].WorkflowFile)
+	assert.Equal(t, "path/to/module/test", dg.Projects[0].Dir)
+	assert.Equal(t, "arn://abc:xyz:cmd", dg.Projects[0].AwsRoleToAssume.Command)
+	assert.Equal(t, "arn://abc:xyz:cmd", dg.Projects[0].AwsRoleToAssume.State)
+
+	workflow := dg.Workflows["default"]
+	assert.NotNil(t, workflow, "expected workflow to be not nil")
+	assert.NotNil(t, workflow.Plan)
+	assert.NotNil(t, workflow.Plan.Steps)
+
+	assert.NotNil(t, workflow.Apply)
+	assert.NotNil(t, workflow.Apply.Steps)
+	assert.NotNil(t, workflow.EnvVars)
+	assert.NotNil(t, workflow.Configuration)
+
+	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
+}
+
 func TestDiggerConfigDefaultWorkflow(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
