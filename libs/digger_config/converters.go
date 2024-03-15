@@ -26,6 +26,13 @@ func copyProjects(projects []*ProjectYaml) []Project {
 
 		var roleToAssume *AssumeRoleForProject = nil
 		if p.AwsRoleToAssume != nil {
+			if p.AwsRoleToAssume.State == "" {
+				p.AwsRoleToAssume.State = p.AwsRoleToAssume.Command
+			}
+			if p.AwsRoleToAssume.Command == "" {
+				p.AwsRoleToAssume.Command = p.AwsRoleToAssume.State
+			}
+
 			roleToAssume = &AssumeRoleForProject{
 				State:   p.AwsRoleToAssume.State,
 				Command: p.AwsRoleToAssume.Command,
