@@ -160,6 +160,28 @@ projects:
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
 }
 
+func TestDiggerConfigOneRole(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: prod
+  branch: /main/
+  aws_role_to_assume:
+    command: "arn://abc:xyz:cmd"
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	dg, _, _, err := LoadDiggerConfig(tempDir)
+	fmt.Printf("%v", err)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+	assert.Equal(t, "arn://abc:xyz:cmd", dg.Projects[0].AwsRoleToAssume.Command)
+	assert.Equal(t, "arn://abc:xyz:cmd", dg.Projects[0].AwsRoleToAssume.State)
+}
+
 func TestDiggerConfigDefaultWorkflow(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()

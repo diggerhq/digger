@@ -8,7 +8,9 @@ them directly in terraform you can use this as an [example repository](https://g
 
 You can also use digger.yml to specify which roles should be used for which repository. In this case you specify a main
 role in the workflow file using `aws-role-to-assume` (or using keys) and inside the repo if you wish to assume
-a differnt role for a specific project you specify an `aws_role_to_assume` under that project. Example digger.yml:
+a differnt role for a specific project you specify an `aws_role_to_assume` under that project. 
+If you only specify one role (either `state` or `command`) it is assumed that both options are the same role.
+Example digger.yml:
 
 ```
 projects:
