@@ -31,5 +31,6 @@ To configure the Digger backend deployment with the Helm chart, you'll need to s
 Remember to replace placeholders and default values with your specific, sensitive information before deploying the chart. For example, it's essential to generate a strong `bearerAuthToken` and `postgresPassword` rather than using the defaults for security reasons.
 
 You can also deploy a PostgreSQL database ONLY FOR TEST PURPOSES configuring the `postgres.*` section:
+
 - `postgres.enabled`: Set to `true` if you want to deploy a postgres database
 - `postgres.secret.*`: As for the digger secret, you can pass the `postgres` user password directly or through an existing secret
