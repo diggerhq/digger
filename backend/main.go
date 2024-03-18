@@ -160,6 +160,12 @@ func main() {
 
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 
+	// TODO: merge it with the api list
+	trunk := r.Group("/trunk")
+	trunk.Use(middleware.NoopApiAuth())
+	trunk.GET("/orgs/:organisation/projects", controllers.FindProjectsForOrganisation)
+	trunk.POST("/orgs/:organisation/projects/:projectid/runs", controllers.CreateNewRun)
+
 	r.Run(fmt.Sprintf(":%d", cfg.GetInt("port")))
 }
 
