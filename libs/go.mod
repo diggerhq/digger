@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/libs
 
-go 1.21.6
+go 1.22.1
 
 require (
 	github.com/aws/aws-sdk-go v1.51.1
