@@ -81,7 +81,9 @@ func jsonToStage(stageJson StageJson) *Stage {
 	for i, step := range stageJson.Steps {
 		steps[i] = Step{
 			Action:    step.Action,
+			Value:     step.Value,
 			ExtraArgs: step.ExtraArgs,
+			Shell:     step.Shell,
 		}
 	}
 	return &Stage{
