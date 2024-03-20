@@ -340,6 +340,8 @@ runs:
       with:
         path: ${{ github.workspace }}/cache
         key: ${{ runner.os }}-${{ hashFiles('**/cache') }}
+      if: ${{ inputs.cache-dependencies == 'true' }}
+
 branding:
   icon: globe
   color: purple
