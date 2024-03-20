@@ -137,6 +137,10 @@ inputs:
     description: 'drift-detection slack drift url'
     required: false
     default: ''
+  cache-dependencies:
+    description: 'Leverage actions/cache to cache dependencies to speed up execution"
+    required: false
+    default: 'false'
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -212,6 +216,17 @@ runs:
           subscription-id: ${{ inputs.azure-subscription-id }}
       if: ${{ inputs.setup-azure == 'true' && inputs.azure-client-id != '' }}
 
+    - uses: actions/cache/restore@v4
+      id: restore_cache
+      name: restore_cache
+      with:
+        path: ${{ github.workspace }}/cache
+        key: ${{ runner.os }}-cache-${{ hashFiles('**/cache') }}
+        restore-keys: |
+          ${{ runner.os }}-cache-${{ hashFiles('**/cache') }}
+          ${{ runner.os }}-cache
+      if: ${{ inputs.cache-dependencies == 'true' }}
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
@@ -262,6 +277,9 @@ runs:
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
           core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
 
+    - name: create cache dir
+      run: |
+        mkdir -p $GITHUB_WORKSPACE/cache
 
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
@@ -282,6 +300,7 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-drift-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
+        TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
       run: |
           cd $GITHUB_ACTION_PATH/cli
           go build -o digger ./cmd/digger
@@ -315,6 +334,12 @@ runs:
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         digger
+
+    - uses: actions/cache/save@v4
+      name: cache-save
+      with:
+        path: ${{ github.workspace }}/cache
+        key: ${{ runner.os }}-${{ hashFiles('**/cache') }}
 branding:
   icon: globe
   color: purple
