@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
-	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
-	"github.com/diggerhq/digger/cli/pkg/drift"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/cli/pkg/comment_updater"
+	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
+	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
+	"github.com/diggerhq/digger/cli/pkg/drift"
 
 	"github.com/diggerhq/digger/cli/pkg/azure"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
@@ -223,24 +224,27 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+		StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(projectConfig)
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
 
 		jobs := orchestrator.Job{
-			ProjectName:       project,
-			ProjectDir:        projectConfig.Dir,
-			ProjectWorkspace:  projectConfig.Workspace,
-			Terragrunt:        projectConfig.Terragrunt,
-			OpenTofu:          projectConfig.OpenTofu,
-			Commands:          []string{command},
-			ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-			PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
-			PullRequestNumber: nil,
-			EventName:         "manual_invocation",
-			RequestedBy:       githubActor,
-			Namespace:         ghRepository,
-			StateEnvVars:      stateEnvVars,
-			CommandEnvVars:    commandEnvVars,
+			ProjectName:        project,
+			ProjectDir:         projectConfig.Dir,
+			ProjectWorkspace:   projectConfig.Workspace,
+			Terragrunt:         projectConfig.Terragrunt,
+			OpenTofu:           projectConfig.OpenTofu,
+			Commands:           []string{command},
+			ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+			PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+			PullRequestNumber:  nil,
+			EventName:          "manual_invocation",
+			RequestedBy:        githubActor,
+			Namespace:          ghRepository,
+			StateEnvVars:       stateEnvVars,
+			CommandEnvVars:     commandEnvVars,
+			StateEnvProvider:   StateEnvProvider,
+			CommandEnvProvider: CommandEnvProvider,
 		}
 		err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, nil, currentDir)
 		if err != nil {

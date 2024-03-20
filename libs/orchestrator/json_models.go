@@ -1,6 +1,10 @@
 package orchestrator
 
-import "slices"
+import (
+	"slices"
+
+	stscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+)
 
 type StepJson struct {
 	Action    string   `json:"action"`
@@ -12,19 +16,21 @@ type StageJson struct {
 }
 
 type JobJson struct {
-	ProjectName       string            `json:"projectName"`
-	ProjectDir        string            `json:"projectDir"`
-	ProjectWorkspace  string            `json:"projectWorkspace"`
-	Terragrunt        bool              `json:"terragrunt"`
-	Commands          []string          `json:"commands"`
-	ApplyStage        StageJson         `json:"applyStage"`
-	PlanStage         StageJson         `json:"planStage"`
-	PullRequestNumber *int              `json:"pullRequestNumber"`
-	EventName         string            `json:"eventName"`
-	RequestedBy       string            `json:"requestedBy"`
-	Namespace         string            `json:"namespace"`
-	StateEnvVars      map[string]string `json:"stateEnvVars"`
-	CommandEnvVars    map[string]string `json:"commandEnvVars"`
+	ProjectName        string                            `json:"projectName"`
+	ProjectDir         string                            `json:"projectDir"`
+	ProjectWorkspace   string                            `json:"projectWorkspace"`
+	Terragrunt         bool                              `json:"terragrunt"`
+	Commands           []string                          `json:"commands"`
+	ApplyStage         StageJson                         `json:"applyStage"`
+	PlanStage          StageJson                         `json:"planStage"`
+	PullRequestNumber  *int                              `json:"pullRequestNumber"`
+	EventName          string                            `json:"eventName"`
+	RequestedBy        string                            `json:"requestedBy"`
+	Namespace          string                            `json:"namespace"`
+	StateEnvVars       map[string]string                 `json:"stateEnvVars"`
+	CommandEnvVars     map[string]string                 `json:"commandEnvVars"`
+	StateEnvProvider   *stscreds.WebIdentityRoleProvider `json:"stateEnvProvider"`
+	CommandEnvProvider *stscreds.WebIdentityRoleProvider `json:"commandEnvProvider"`
 }
 
 func (j *JobJson) IsPlan() bool {
@@ -37,37 +43,41 @@ func (j *JobJson) IsApply() bool {
 
 func JobToJson(job Job) JobJson {
 	return JobJson{
-		ProjectName:       job.ProjectName,
-		ProjectDir:        job.ProjectDir,
-		ProjectWorkspace:  job.ProjectWorkspace,
-		Terragrunt:        job.Terragrunt,
-		Commands:          job.Commands,
-		ApplyStage:        stageToJson(job.ApplyStage),
-		PlanStage:         stageToJson(job.PlanStage),
-		PullRequestNumber: job.PullRequestNumber,
-		EventName:         job.EventName,
-		RequestedBy:       job.RequestedBy,
-		Namespace:         job.Namespace,
-		StateEnvVars:      job.StateEnvVars,
-		CommandEnvVars:    job.CommandEnvVars,
+		ProjectName:        job.ProjectName,
+		ProjectDir:         job.ProjectDir,
+		ProjectWorkspace:   job.ProjectWorkspace,
+		Terragrunt:         job.Terragrunt,
+		Commands:           job.Commands,
+		ApplyStage:         stageToJson(job.ApplyStage),
+		PlanStage:          stageToJson(job.PlanStage),
+		PullRequestNumber:  job.PullRequestNumber,
+		EventName:          job.EventName,
+		RequestedBy:        job.RequestedBy,
+		Namespace:          job.Namespace,
+		StateEnvVars:       job.StateEnvVars,
+		CommandEnvVars:     job.CommandEnvVars,
+		StateEnvProvider:   job.StateEnvProvider,
+		CommandEnvProvider: job.CommandEnvProvider,
 	}
 }
 
 func JsonToJob(jobJson JobJson) Job {
 	return Job{
-		ProjectName:       jobJson.ProjectName,
-		ProjectDir:        jobJson.ProjectDir,
-		ProjectWorkspace:  jobJson.ProjectWorkspace,
-		Terragrunt:        jobJson.Terragrunt,
-		Commands:          jobJson.Commands,
-		ApplyStage:        jsonToStage(jobJson.ApplyStage),
-		PlanStage:         jsonToStage(jobJson.PlanStage),
-		PullRequestNumber: jobJson.PullRequestNumber,
-		EventName:         jobJson.EventName,
-		RequestedBy:       jobJson.RequestedBy,
-		Namespace:         jobJson.Namespace,
-		StateEnvVars:      jobJson.StateEnvVars,
-		CommandEnvVars:    jobJson.CommandEnvVars,
+		ProjectName:        jobJson.ProjectName,
+		ProjectDir:         jobJson.ProjectDir,
+		ProjectWorkspace:   jobJson.ProjectWorkspace,
+		Terragrunt:         jobJson.Terragrunt,
+		Commands:           jobJson.Commands,
+		ApplyStage:         jsonToStage(jobJson.ApplyStage),
+		PlanStage:          jsonToStage(jobJson.PlanStage),
+		PullRequestNumber:  jobJson.PullRequestNumber,
+		EventName:          jobJson.EventName,
+		RequestedBy:        jobJson.RequestedBy,
+		Namespace:          jobJson.Namespace,
+		StateEnvVars:       jobJson.StateEnvVars,
+		CommandEnvVars:     jobJson.CommandEnvVars,
+		StateEnvProvider:   jobJson.StateEnvProvider,
+		CommandEnvProvider: jobJson.CommandEnvProvider,
 	}
 }
 
