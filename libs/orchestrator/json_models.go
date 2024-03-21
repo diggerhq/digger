@@ -8,7 +8,9 @@ import (
 
 type StepJson struct {
 	Action    string   `json:"action"`
+	Value     string   `json:"value"`
 	ExtraArgs []string `json:"extraArgs"`
+	Shell     string   `json:"shell"`
 }
 
 type StageJson struct {
@@ -89,7 +91,9 @@ func jsonToStage(stageJson StageJson) *Stage {
 	for i, step := range stageJson.Steps {
 		steps[i] = Step{
 			Action:    step.Action,
+			Value:     step.Value,
 			ExtraArgs: step.ExtraArgs,
+			Shell:     step.Shell,
 		}
 	}
 	return &Stage{
@@ -105,7 +109,9 @@ func stageToJson(stage *Stage) StageJson {
 	for i, step := range stage.Steps {
 		steps[i] = StepJson{
 			Action:    step.Action,
+			Value:     step.Value,
 			ExtraArgs: step.ExtraArgs,
+			Shell:     step.Shell,
 		}
 	}
 	return StageJson{
