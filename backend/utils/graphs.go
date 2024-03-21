@@ -19,8 +19,8 @@ func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map
 
 	log.Printf("Number of Jobs: %v\n", len(jobsMap))
 	marshalledJobsMap := map[string][]byte{}
-	for _, job := range jobsMap {
-		marshalled, err := json.Marshal(orchestrator.JobToJson(job))
+	for projectName, job := range jobsMap {
+		marshalled, err := json.Marshal(orchestrator.JobToJson(job, projectMap[projectName]))
 		if err != nil {
 			return nil, nil, err
 		}
