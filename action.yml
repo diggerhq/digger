@@ -279,7 +279,7 @@ runs:
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
-        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-drift-url }}
+        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
       run: |
@@ -305,7 +305,7 @@ runs:
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
-        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-drift-url }}
+        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
       id: digger
       shell: bash
