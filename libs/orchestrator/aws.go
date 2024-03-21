@@ -105,6 +105,9 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 }
 
 func GetProviderFromRole(role string) *stscreds.WebIdentityRoleProvider {
+	if role == "" {
+		return nil
+	}
 	mySession := session.Must(session.NewSession())
 	stsSTS := sts.New(mySession, &awssdk.Config{Region: awssdk.String("us-east-1")})
 	x := stscreds.NewWebIdentityRoleProviderWithOptions(stsSTS, role, "diggerSess", GithubAwsTokenFetcher{})
