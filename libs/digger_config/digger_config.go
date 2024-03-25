@@ -3,6 +3,7 @@ package digger_config
 import (
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"os"
 	"path"
@@ -394,6 +395,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 
 	configYaml.AutoMerge = &atlantisConfig.AutoMerge
 
+	spew.Dump(atlantisConfig.Projects)
 	for _, atlantisProject := range atlantisConfig.Projects {
 		fmt.Printf("creating terragrunt project for: %v", atlantisProject.Dir)
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
