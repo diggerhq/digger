@@ -2,13 +2,15 @@
 title: 'Drift Detection'
 ---
 
+import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
+
 Digger supports drift detection alerting via Slack. To configure drift detection:
 
 ## Create a separate workflow file for drift
 
 To run digger in drift detection mode, pass `mode: drift-detection` in the workflow file and configure the relevant crontab to run it with the frequency you want:
 
-```
+<BlockCode version={latestversion} code={`
 name: Digger Drift Detection
 
 on:  
@@ -25,17 +27,17 @@ jobs:
       with:
         mode: drift-detection
         setup-aws: true
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-access-key-id: $\{\{ secrets.AWS_ACCESS_KEY_ID \}\}
+        aws-secret-access-key: $\{\{ secrets.AWS_SECRET_ACCESS_KEY \}\}
         aws-region: us-east-1
-        digger-token: ${{ secrets.DIGGER_TOKEN }}
+        digger-token: $\{\{ secrets.DIGGER_TOKEN \}\}
         digger-organisation: digger
         digger-hostname: https://cloud.digger.dev/
-        drift-detection-slack-notification-url: ${{ secrets.DRIFT_DETECTION_SLACK_NOTIFICATION }}
+        drift-detection-slack-notification-url: $\{\{ secrets.DRIFT_DETECTION_SLACK_NOTIFICATION \}\}
       env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+        GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
+        GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
+`}></BlockCode>
 
 ## Configure Slack notification URL
 
