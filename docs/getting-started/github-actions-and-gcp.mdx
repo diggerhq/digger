@@ -1,6 +1,7 @@
 ---
 title: "Github Actions + GCP"
 ---
+import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
 
 In this tutorial, you will set up Digger to automate terraform pull requests using Github Actions and GCP.
 
@@ -32,7 +33,7 @@ projects:
 # Create Github Actions workflow file
 Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 
-```
+<BlockCode version={latestversion} code={`
 name: Digger
 
 on:
@@ -60,7 +61,7 @@ jobs:
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
-        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+        credentials_json: '$\{\{ secrets.GCP_CREDENTIALS \}\}'
         create_credentials_file: true
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v1'
@@ -73,11 +74,11 @@ jobs:
           disable-locking: true
           digger-hostname: 'https://cloud.digger.dev'
           digger-organisation: 'digger'
-          digger-token: ${{ secrets.DIGGER_TOKEN }}
+          digger-token: $\{\{ secrets.DIGGER_TOKEN \}\}
         env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+          GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
+          GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
+`}></BlockCode>
 
 This file defines a workflow with 5 steps:
 - Checkout repository using Github's official [Checkout action](https://github.com/actions/checkout)
