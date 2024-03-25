@@ -394,10 +394,15 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 
 	configYaml.AutoMerge = &atlantisConfig.AutoMerge
 
+	pathPrefix := ""
+	if parsingConfig.GitRoot != nil {
+		pathPrefix = *parsingConfig.GitRoot
+	}
+
 	for _, atlantisProject := range atlantisConfig.Projects {
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
 			Name:            atlantisProject.Name,
-			Dir:             atlantisProject.Dir,
+			Dir:             path.Join(pathPrefix, atlantisProject.Dir),
 			Workspace:       atlantisProject.Workspace,
 			Terragrunt:      true,
 			Workflow:        atlantisProject.Workflow,
