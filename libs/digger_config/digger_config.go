@@ -395,6 +395,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 	configYaml.AutoMerge = &atlantisConfig.AutoMerge
 
 	for _, atlantisProject := range atlantisConfig.Projects {
+		fmt.Printf("creating terragrunt project for: %v", atlantisProject.Dir)
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
 			Name:            atlantisProject.Name,
 			Dir:             atlantisProject.Dir,
