@@ -28,6 +28,7 @@ type JobJson struct {
 	EventName         string            `json:"eventName"`
 	RequestedBy       string            `json:"requestedBy"`
 	Namespace         string            `json:"namespace"`
+	RunEnvVars        map[string]string `json:"runEnvVars"`
 	StateEnvVars      map[string]string `json:"stateEnvVars"`
 	CommandEnvVars    map[string]string `json:"commandEnvVars"`
 	StateRoleName     string            `json:"state_role_name"`
@@ -61,6 +62,7 @@ func JobToJson(job Job, project digger_config.Project) JobJson {
 		EventName:         job.EventName,
 		RequestedBy:       job.RequestedBy,
 		Namespace:         job.Namespace,
+		RunEnvVars:        job.RunEnvVars,
 		StateEnvVars:      job.StateEnvVars,
 		CommandEnvVars:    job.CommandEnvVars,
 		StateRoleName:     stateRole,
@@ -81,6 +83,7 @@ func JsonToJob(jobJson JobJson) Job {
 		EventName:          jobJson.EventName,
 		RequestedBy:        jobJson.RequestedBy,
 		Namespace:          jobJson.Namespace,
+		RunEnvVars:         jobJson.RunEnvVars,
 		StateEnvVars:       jobJson.StateEnvVars,
 		CommandEnvVars:     jobJson.CommandEnvVars,
 		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName),
