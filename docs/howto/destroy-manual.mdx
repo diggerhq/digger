@@ -2,11 +2,15 @@
 title: "Destroy via manual workflow"
 ---
 
+import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
+
 Normally Digger workflow is not supposed to be triggered manually. It is triggered ether by the orchestrator backend, or directly by an event from GitHub (in the "backendless" mode with `no-backend: true` option set). The Destroy operation is a special case, by design: the only way to run `terraform destroy` in Digger is by triggering a workflow manually. This way unwanted destroys are guaranteed to never happen.
 
 You can create a dedicated workflow accepting project name and action:
 
-```
+<BlockCode
+  version={latestversion}
+  code={`
 on:
   workflow_dispatch:
     inputs:
@@ -18,23 +22,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: digger destroy
-      uses: diggerhq/digger@develop
+      uses: diggerhq/digger@latest
       with:
         mode: manual
         command: "digger destroy"
-        project: "${{ inputs.project }}"
+        project: "$\{\{ inputs.project \}\}"
         setup-aws: true
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-access-key-id: $\{\{ secrets.AWS_ACCESS_KEY_ID \}\}
+        aws-secret-access-key: $\{\{ secrets.AWS_SECRET_ACCESS_KEY \}\}
         aws-region: us-east-2
-        # digger-token: ${{ secrets.DIGGER_TOKEN }}
+        # digger-token: $\{\{ secrets.DIGGER_TOKEN \}\}
         # digger-organisation: digger
         # digger-hostname: https://cloud.digger.dev/
       env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+        GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
+        GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
+`}
+></BlockCode>
 
-<Note>Note the arguments “mode: manual” and “command: digger destroy” above are different from the default workflow</Note>
-
-
+<Note>
+  Note the arguments “mode: manual” and “command: digger destroy” above are
+  different from the default workflow
+</Note>

@@ -2,11 +2,13 @@
 title: "Trigger workflow directly"
 ---
 
+import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
+
 By default Digger workflows are triggered by an orchestrator backend (Digger Cloud or self-hosted) that listens to events from GitHub and triggers jobs in Actions. Without an orchestrator backend it is not possible to start jobs in parallel, so all plans and applies have to run sequentially in one action job, which can be slow. Also without an orchestrator backend the action needs to start on every commit and every comment, even if there were no terraform changes; large monorepos this can get expensive.
 
 But in some scenarios e.g. small projects that have no need for concurrency, it might be easier to just use a standalone action triggered directly from GitHub events. You can achieve that by specifying triggers at the top of the workflow:
 
-```
+<BlockCode version={latestversion} code={`
 name: Digger Pull Request Workflow
 
 on:
@@ -23,15 +25,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: digger run
-      uses: diggerhq/digger@v0.3.4
+      uses: diggerhq/digger@latest
       with:
         disable-locking: true
         setup-terraform: true
         digger-hostname: 'https://cloud.digger.dev'
         digger-organisation: 'digger-playground'
-        digger-token: ${{ secrets.DIGGER_TOKEN }}        
+        digger-token: $\{\{ secrets.DIGGER_TOKEN \}\}
       env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
+        GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
+        GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
+`}></BlockCode>

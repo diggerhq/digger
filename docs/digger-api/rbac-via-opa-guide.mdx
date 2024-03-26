@@ -2,6 +2,8 @@
 title: "RBAC via OPA guide"
 ---
 
+import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
+
 Welcome to the Digger API. This guide aims to help you understand how to manage and use Digger's RBAC OPA policy rules and tokens.
 
 ### Authorization
@@ -63,7 +65,7 @@ Once you have an access token, you can use it in your GitHub Action `digger/digg
 
 Here is an example of how to use these parameters in a GitHub Actions workflow:
 
-```
+<BlockCode version={latestversion} code={`
 name: Digger Action
 on: [push]
 jobs:
@@ -71,11 +73,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Run Digger
-      uses: digger/digger@
+      uses: digger/digger@latest
       with:
-        digger-token: ${{ secrets.DIGGER_TOKEN }}
+        digger-token: $\{\{ secrets.DIGGER_TOKEN \}\}
         digger-host: 'https://cloud.uselemon.cloud'
-```
+`}></BlockCode>
 
 In this example, `secrets.DIGGER_TOKEN` is a GitHub secret where your Digger access token is stored.
 

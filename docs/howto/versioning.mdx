@@ -2,6 +2,7 @@
 title: "Specifying version"
 description: "For serious usecases always use a pinned version which is of the form @vX.Y.Z since this will download compiled binary. Addition to being faster to run, it is also more secure than using a commit from a branch"
 ---
+import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
 
 <Warning>For serious usecases always use a pinned version which is of the form @vX.Y.Z since this will download compiled binary. Addition to being faster to run, it is also more secure than using a commit from a branch</Warning>
 
@@ -9,12 +10,12 @@ description: "For serious usecases always use a pinned version which is of the f
 
 To pin a specific release of Digger, you can use `@vX.Y.Z` tag in your workflow file:
 
-```
+<BlockCode version={latestversion} code={`
 - name: digger
-  uses: diggerhq/digger@v0.1.10
+  uses: diggerhq/digger@latest
   env:
     ...
-```
+`}></BlockCode>
 
 ## Use latest commit from a branch
 
@@ -24,9 +25,9 @@ Only use this at your own risk in non-production scenarios. This can break thing
 
 <Warning>Only use this at your own risk in non-production scenarios. This can break things!</Warning>
 
-```
+<BlockCode version={latestversion} code={`
 - name: digger
   uses: diggerhq/digger@yolo-lets-do-it
   env:
     ...
-```
+`}></BlockCode>
