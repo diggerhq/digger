@@ -1,7 +1,8 @@
+---
 name: Backend Go Tests
-on:
+"on":
   push:
-    branches: [ develop ]
+    branches: ['develop']
   pull_request:
 
 jobs:
@@ -38,6 +39,3 @@ jobs:
         env:
           GITHUB_PAT_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         working-directory: backend
-
-
-          
