@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"log"
 	"math/rand"
 	"net/http"
@@ -288,7 +287,6 @@ func handleInstallationRepositoriesAddedEvent(ghClientProvider utils.GithubClien
 	appId := *payload.Installation.AppID
 
 	for _, repo := range payload.RepositoriesAdded {
-		spew.Dump(repo)
 		repoFullName := *repo.FullName
 		repoOwner := strings.Split(*repo.FullName, "/")[0]
 		repoName := *repo.Name
