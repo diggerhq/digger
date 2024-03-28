@@ -4,6 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
+	net "net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/orchestrator"
@@ -12,12 +19,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/v58/github"
-	"log"
-	net "net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func createTempDir() string {
@@ -194,19 +195,17 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
 	timeFilter := time.Now().Add(-5 * time.Minute)
 	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
-		Created: ">=" + timeFilter.Format(time.RFC3339),
+		Created: ">=" + timeFilter.Format("2006-01-02T15:04:05"),
 	})
 	if err != nil {
 		return 0, "#", fmt.Errorf("error listing workflow runs %v", err)
 	}
-
 	for _, workflowRun := range runs.WorkflowRuns {
 		println(*workflowRun.ID)
 		workflowjobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
 		if err != nil {
 			return 0, "#", fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
 		}
-
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
 				if strings.Contains(*step.Name, diggerJobID) {
