@@ -137,6 +137,10 @@ inputs:
     description: 'drift-detection slack drift url'
     required: false
     default: ''
+  id:
+    description: 'DiggerJobID'
+    required: false
+    default: ''
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
