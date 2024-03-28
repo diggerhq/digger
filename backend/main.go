@@ -158,6 +158,13 @@ func main() {
 
 	admin.POST("/tokens/issue-access-token", controllers.IssueAccessTokenForOrg)
 
+	apiGroup := r.Group("/api")
+	apiGroup.Use(middleware.CORSMiddleware())
+
+	projectsApiGroup := apiGroup.Group("/projects")
+	projectsApiGroup.Use(middleware.GetWebMiddleware())
+	projectsApiGroup.GET("/", controllers.FindProjectsForOrg)
+
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 
 	r.Run(fmt.Sprintf(":%d", cfg.GetInt("port")))

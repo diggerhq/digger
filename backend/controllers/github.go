@@ -268,7 +268,7 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, installationId in
 		return repo, org, nil
 	}
 
-	repo, err = models.DB.CreateRepo(diggerRepoName, org, `
+	repo, err = models.DB.CreateRepo(diggerRepoName, repo, "", "", org, `
 generate_projects:
  include: "."
 `)
@@ -288,6 +288,9 @@ func handleInstallationRepositoriesAddedEvent(ghClientProvider utils.GithubClien
 
 	for _, repo := range payload.RepositoriesAdded {
 		repoFullName := *repo.FullName
+		repoOwner := *repo.Owner.Login
+		repoName := *repo.Name
+		repoUrl := *repo.URL
 		_, err := models.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
 		if err != nil {
 			log.Printf("GithubRepoAdded failed, error: %v\n", err)
