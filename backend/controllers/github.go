@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"log"
 	"math/rand"
 	"net/http"
@@ -241,7 +242,7 @@ func GithubSetupExchangeCode(c *gin.Context) {
 
 }
 
-func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, installationId int64) (*models.Repo, *models.Organisation, error) {
+func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64) (*models.Repo, *models.Organisation, error) {
 	link, err := models.DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		log.Printf("Error fetching installation link: %v", err)
@@ -268,7 +269,7 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, installationId in
 		return repo, org, nil
 	}
 
-	repo, err = models.DB.CreateRepo(diggerRepoName, repo, "", "", org, `
+	repo, err = models.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
 generate_projects:
  include: "."
 `)
@@ -287,17 +288,18 @@ func handleInstallationRepositoriesAddedEvent(ghClientProvider utils.GithubClien
 	appId := *payload.Installation.AppID
 
 	for _, repo := range payload.RepositoriesAdded {
+		spew.Dump(repo)
 		repoFullName := *repo.FullName
-		repoOwner := *repo.Owner.Login
+		repoOwner := strings.Split(*repo.FullName, "/")[0]
 		repoName := *repo.Name
-		repoUrl := *repo.URL
+		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
 		_, err := models.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
 		if err != nil {
 			log.Printf("GithubRepoAdded failed, error: %v\n", err)
 			return err
 		}
 
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, installationId)
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId)
 		if err != nil {
 			log.Printf("createOrGetDiggerRepoForGithubRepo failed, error: %v\n", err)
 			return err
@@ -329,12 +331,16 @@ func handleInstallationCreatedEvent(installation *github.InstallationEvent) erro
 
 	for _, repo := range installation.Repositories {
 		repoFullName := *repo.FullName
+		repoOwner := strings.Split(*repo.FullName, "/")[0]
+		repoName := *repo.Name
+		repoUrl := *repo.URL
+
 		log.Printf("Adding a new installation %d for repo: %s", installationId, repoFullName)
 		_, err := models.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
 		if err != nil {
 			return err
 		}
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, installationId)
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId)
 		if err != nil {
 			return err
 		}

@@ -83,7 +83,10 @@ func (p *Project) MapToJsonStruct() interface{} {
 		OrganisationID        uint   `json:"organisation_id"`
 		OrganisationName      string `json:"organisation_name"`
 		RepoID                uint   `json:"repo_id"`
+		RepoFullName          string `json:"repo_full_name"`
 		RepoName              string `json:"repo_name"`
+		RepoOrg               string `json:"repo_org"`
+		RepoUrl               string `json:"repo_url"`
 		LastActivityTimestamp string `json:"last_activity_timestamp"`
 		LastActivityAuthor    string `json:"last_activity_author"`
 		LastActivityStatus    string `json:"last_activity_status"`
@@ -93,7 +96,10 @@ func (p *Project) MapToJsonStruct() interface{} {
 		OrganisationID:        p.OrganisationID,
 		RepoID:                p.RepoID,
 		OrganisationName:      p.Organisation.Name,
-		RepoName:              p.Repo.Name,
+		RepoFullName:          p.Repo.RepoFullName,
+		RepoName:              p.Repo.RepoName,
+		RepoOrg:               p.Repo.RepoOrganisation,
+		RepoUrl:               p.Repo.RepoUrl,
 		LastActivityTimestamp: p.UpdatedAt.String(),
 		LastActivityAuthor:    "unknown",
 		LastActivityStatus:    "Succeeded",
