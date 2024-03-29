@@ -14,10 +14,14 @@ type Organisation struct {
 
 type Repo struct {
 	gorm.Model
-	Name           string `gorm:"uniqueIndex:idx_org_repo"`
-	OrganisationID uint   `gorm:"uniqueIndex:idx_org_repo"`
-	Organisation   *Organisation
-	DiggerConfig   string
+	Name             string `gorm:"uniqueIndex:idx_org_repo"`
+	RepoFullName     string
+	RepoOrganisation string
+	RepoName         string
+	RepoUrl          string
+	OrganisationID   uint `gorm:"uniqueIndex:idx_org_repo"`
+	Organisation     *Organisation
+	DiggerConfig     string
 }
 
 type ProjectRun struct {
@@ -73,20 +77,34 @@ type Project struct {
 
 func (p *Project) MapToJsonStruct() interface{} {
 	return struct {
-		Id               uint   `json:"id"`
-		Name             string `json:"name"`
-		OrganisationID   uint   `json:"organisationId"`
-		OrganisationName string `json:"organisationName"`
-		RepoID           uint   `json:"repoId"`
-		RepoName         string `json:"repoName"`
+		Id                    uint   `json:"id"`
+		Name                  string `json:"name"`
+		Directory             string `json:"directory"`
+		OrganisationID        uint   `json:"organisation_id"`
+		OrganisationName      string `json:"organisation_name"`
+		RepoID                uint   `json:"repo_id"`
+		RepoFullName          string `json:"repo_full_name"`
+		RepoName              string `json:"repo_name"`
+		RepoOrg               string `json:"repo_org"`
+		RepoUrl               string `json:"repo_url"`
+		LastActivityTimestamp string `json:"last_activity_timestamp"`
+		LastActivityAuthor    string `json:"last_activity_author"`
+		LastActivityStatus    string `json:"last_activity_status"`
 	}{
-		Id:               p.ID,
-		Name:             p.Name,
-		OrganisationID:   p.OrganisationID,
-		RepoID:           p.RepoID,
-		OrganisationName: p.Organisation.Name,
-		RepoName:         p.Repo.Name,
+		Id:                    p.ID,
+		Name:                  p.Name,
+		OrganisationID:        p.OrganisationID,
+		RepoID:                p.RepoID,
+		OrganisationName:      p.Organisation.Name,
+		RepoFullName:          p.Repo.RepoFullName,
+		RepoName:              p.Repo.RepoName,
+		RepoOrg:               p.Repo.RepoOrganisation,
+		RepoUrl:               p.Repo.RepoUrl,
+		LastActivityTimestamp: p.UpdatedAt.String(),
+		LastActivityAuthor:    "unknown",
+		LastActivityStatus:    "Succeeded",
 	}
+
 }
 
 type Token struct {

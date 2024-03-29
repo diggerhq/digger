@@ -1,6 +1,9 @@
 package orchestrator
 
-import "slices"
+import (
+	"github.com/diggerhq/digger/libs/digger_config"
+	"slices"
+)
 
 type StepJson struct {
 	Action    string   `json:"action"`
@@ -25,8 +28,11 @@ type JobJson struct {
 	EventName         string            `json:"eventName"`
 	RequestedBy       string            `json:"requestedBy"`
 	Namespace         string            `json:"namespace"`
+	RunEnvVars        map[string]string `json:"runEnvVars"`
 	StateEnvVars      map[string]string `json:"stateEnvVars"`
 	CommandEnvVars    map[string]string `json:"commandEnvVars"`
+	StateRoleName     string            `json:"state_role_name"`
+	CommandRoleName   string            `json:"command_role_name"`
 }
 
 func (j *JobJson) IsPlan() bool {
@@ -37,7 +43,13 @@ func (j *JobJson) IsApply() bool {
 	return slices.Contains(j.Commands, "digger apply")
 }
 
-func JobToJson(job Job) JobJson {
+func JobToJson(job Job, project digger_config.Project) JobJson {
+	stateRole, commandRole := "", ""
+	if project.AwsRoleToAssume != nil {
+		stateRole = project.AwsRoleToAssume.State
+		commandRole = project.AwsRoleToAssume.Command
+
+	}
 	return JobJson{
 		ProjectName:       job.ProjectName,
 		ProjectDir:        job.ProjectDir,
@@ -50,26 +62,32 @@ func JobToJson(job Job) JobJson {
 		EventName:         job.EventName,
 		RequestedBy:       job.RequestedBy,
 		Namespace:         job.Namespace,
+		RunEnvVars:        job.RunEnvVars,
 		StateEnvVars:      job.StateEnvVars,
 		CommandEnvVars:    job.CommandEnvVars,
+		StateRoleName:     stateRole,
+		CommandRoleName:   commandRole,
 	}
 }
 
 func JsonToJob(jobJson JobJson) Job {
 	return Job{
-		ProjectName:       jobJson.ProjectName,
-		ProjectDir:        jobJson.ProjectDir,
-		ProjectWorkspace:  jobJson.ProjectWorkspace,
-		Terragrunt:        jobJson.Terragrunt,
-		Commands:          jobJson.Commands,
-		ApplyStage:        jsonToStage(jobJson.ApplyStage),
-		PlanStage:         jsonToStage(jobJson.PlanStage),
-		PullRequestNumber: jobJson.PullRequestNumber,
-		EventName:         jobJson.EventName,
-		RequestedBy:       jobJson.RequestedBy,
-		Namespace:         jobJson.Namespace,
-		StateEnvVars:      jobJson.StateEnvVars,
-		CommandEnvVars:    jobJson.CommandEnvVars,
+		ProjectName:        jobJson.ProjectName,
+		ProjectDir:         jobJson.ProjectDir,
+		ProjectWorkspace:   jobJson.ProjectWorkspace,
+		Terragrunt:         jobJson.Terragrunt,
+		Commands:           jobJson.Commands,
+		ApplyStage:         jsonToStage(jobJson.ApplyStage),
+		PlanStage:          jsonToStage(jobJson.PlanStage),
+		PullRequestNumber:  jobJson.PullRequestNumber,
+		EventName:          jobJson.EventName,
+		RequestedBy:        jobJson.RequestedBy,
+		Namespace:          jobJson.Namespace,
+		RunEnvVars:         jobJson.RunEnvVars,
+		StateEnvVars:       jobJson.StateEnvVars,
+		CommandEnvVars:     jobJson.CommandEnvVars,
+		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName),
+		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName),
 	}
 }
 

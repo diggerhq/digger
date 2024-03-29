@@ -8,19 +8,19 @@ require (
 	cloud.google.com/go/storage v1.39.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.1.0
-	github.com/aws/aws-sdk-go v1.51.1
+	github.com/aws/aws-sdk-go v1.51.7
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/google/uuid v1.6.0
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/open-policy-agent/opa v0.62.1
 	github.com/stretchr/testify v1.9.0
-	github.com/xanzy/go-gitlab v0.98.0
+	github.com/xanzy/go-gitlab v0.101.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/caarlos0/env/v8 v8.0.0
-	github.com/diggerhq/digger/libs v0.4.9
+	github.com/diggerhq/digger/libs v0.4.13
 	github.com/dominikbraun/graph v0.23.0
 	github.com/goccy/go-json v0.10.2
 	github.com/google/go-github/v58 v58.0.0

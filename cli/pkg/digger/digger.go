@@ -545,6 +545,12 @@ func RunJob(
 			}
 			return errors.New(msg)
 		}
+
+		err = job.PopulateAwsCredentialsEnvVarsForJob()
+		if err != nil {
+			log.Fatalf("failed to fetch AWS keys, %v", err)
+		}
+
 		var terraformExecutor terraform.TerraformExecutor
 		projectPath := path.Join(workingDir, job.ProjectDir)
 		if job.Terragrunt {
