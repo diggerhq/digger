@@ -17,6 +17,10 @@ import (
 	"time"
 )
 
+func ListProjects(c *gin.Context) {
+
+}
+
 func FindProjectsForRepo(c *gin.Context) {
 	repo := c.Param("repo")
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
@@ -54,8 +58,12 @@ func FindProjectsForRepo(c *gin.Context) {
 }
 
 func FindProjectsForOrg(c *gin.Context) {
-	requestedOrganisation := c.Param("organisation")
+	requestedOrganisation := c.Param("organisationId")
 	loggedInOrganisation, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+
+	if requestedOrganisation == "" {
+		requestedOrganisation = fmt.Sprintf("%v", loggedInOrganisation)
+	}
 
 	if !exists {
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
@@ -63,7 +71,7 @@ func FindProjectsForOrg(c *gin.Context) {
 	}
 
 	var org models.Organisation
-	err := models.DB.GormDB.Where("name = ?", requestedOrganisation).First(&org).Error
+	err := models.DB.GormDB.Where("id = ?", requestedOrganisation).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.String(http.StatusNotFound, "Could not find organisation: "+requestedOrganisation)
