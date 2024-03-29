@@ -2,6 +2,8 @@
 title: "Multiple AWS accounts"
 ---
 
+import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
+
 In this guide you will set up Digger to use completely segregated AWS accounts for Dev and Prod environments
 
 ## Prerequisites
@@ -39,7 +41,7 @@ In each environment, create 2 secrets corresponding to your AWS accounts:
 
 Don't forget to change `environment` and the Rename step from Dev to Prod
 
-```
+<BlockCode version={latestversion} code={`
 name: Digger Dev
 
 on:
@@ -69,13 +71,13 @@ jobs:
         uses: diggerhq/digger@latest
         with:
           setup-aws: true
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: $\{\{ secrets.AWS_ACCESS_KEY_ID \}\}
+          aws-secret-access-key: $\{\{ secrets.AWS_SECRET_ACCESS_KEY \}\}
           aws-region: us-east-1
         env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+          GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
+          GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
+`}></BlockCode>
 
 ## Verify that it works
 That's it! Now you can use Digger to automate your Terraform PRs.
