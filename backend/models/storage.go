@@ -645,6 +645,19 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	return job, nil
 }
 
+func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, error) {
+	job := &DiggerJob{}
+	result := db.GormDB.Take(job, "batch_id = ?", stage.BatchID)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		} else {
+			return nil, result.Error
+		}
+	}
+	return job, nil
+}
+
 func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*DiggerJob, error) {
 	diggerJob, err := db.GetDiggerJob(diggerJobId)
 	if err != nil {

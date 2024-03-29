@@ -3,6 +3,7 @@ package models
 import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"gorm.io/gorm"
+	"log"
 )
 
 type DiggerRunStatus string
@@ -38,10 +39,10 @@ type DiggerRun struct {
 
 type DiggerRunStage struct {
 	gorm.Model
-	Run   *DiggerRun
-	RunID uint `gorm:"index:idx_digger_run_stage_id"`
-	Job   *DiggerJob
-	JobID uint
+	Run     *DiggerRun
+	RunID   uint `gorm:"index:idx_digger_run_stage_id"`
+	Batch   *DiggerBatch
+	BatchID *string `gorm:"index:idx_digger_job_id"`
 }
 
 type SerializedRunStage struct {
@@ -55,13 +56,19 @@ type SerializedRunStage struct {
 }
 
 func (r *DiggerRunStage) MapToJsonStruct() (interface{}, error) {
+	job, err := DB.GetDiggerJobFromRunStage(*r)
+	if err != nil {
+		log.Printf("Could not retrive job from run")
+		return nil, err
+	}
+
 	return SerializedRunStage{
-		DiggerJobId:      r.Job.DiggerJobID,
-		Status:           r.Job.Status,
+		DiggerJobId:      job.DiggerJobID,
+		Status:           job.Status,
 		ProjectName:      r.Run.Project.Name,
-		WorkflowRunUrl:   r.Job.WorkflowRunUrl,
-		ResourcesCreated: r.Job.DiggerJobSummary.ResourcesCreated,
-		ResourcesUpdated: r.Job.DiggerJobSummary.ResourcesUpdated,
-		ResourcesDeleted: r.Job.DiggerJobSummary.ResourcesDeleted,
+		WorkflowRunUrl:   job.WorkflowRunUrl,
+		ResourcesCreated: job.DiggerJobSummary.ResourcesCreated,
+		ResourcesUpdated: job.DiggerJobSummary.ResourcesUpdated,
+		ResourcesDeleted: job.DiggerJobSummary.ResourcesDeleted,
 	}, nil
 }
