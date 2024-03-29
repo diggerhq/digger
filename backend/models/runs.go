@@ -38,27 +38,30 @@ type DiggerRun struct {
 
 type DiggerRunStage struct {
 	gorm.Model
-	DiggerRunStageID   string `gorm:"size:50,index:idx_digger_run_stage_id"`
-	ProjectName        string
-	Status             orchestrator_scheduler.DiggerJobStatus
-	Run                *DiggerRun
-	RunID              uint `gorm:"index:idx_digger_run_stage_id"`
-	DiggerJobSummary   DiggerJobSummary
-	DiggerJobSummaryID uint
-	SerializedJobSpec  []byte
-	WorkflowFile       string
-	WorkflowRunUrl     *string
+	Run   *DiggerRun
+	RunID uint `gorm:"index:idx_digger_run_stage_id"`
+	Job   *DiggerJob
+	JobID uint
+}
+
+type SerializedRunStage struct {
+	DiggerJobId      string                                 `json:"digger_job_id"`
+	Status           orchestrator_scheduler.DiggerJobStatus `json:"status"`
+	ProjectName      string                                 `json:"project_name"`
+	WorkflowRunUrl   *string                                `json:"workflow_run_url"`
+	ResourcesCreated uint                                   `json:"resources_created"`
+	ResourcesDeleted uint                                   `json:"resources_deleted"`
+	ResourcesUpdated uint                                   `json:"resources_updated"`
 }
 
 func (r *DiggerRunStage) MapToJsonStruct() (interface{}, error) {
-	return orchestrator_scheduler.SerializedJob{
-		DiggerJobId:      r.DiggerRunStageID,
-		Status:           r.Status,
-		JobString:        r.SerializedJobSpec,
-		ProjectName:      r.ProjectName,
-		WorkflowRunUrl:   r.WorkflowRunUrl,
-		ResourcesCreated: r.DiggerJobSummary.ResourcesCreated,
-		ResourcesUpdated: r.DiggerJobSummary.ResourcesUpdated,
-		ResourcesDeleted: r.DiggerJobSummary.ResourcesDeleted,
+	return SerializedRunStage{
+		DiggerJobId:      r.Job.DiggerJobID,
+		Status:           r.Job.Status,
+		ProjectName:      r.Run.Project.Name,
+		WorkflowRunUrl:   r.Job.WorkflowRunUrl,
+		ResourcesCreated: r.Job.DiggerJobSummary.ResourcesCreated,
+		ResourcesUpdated: r.Job.DiggerJobSummary.ResourcesUpdated,
+		ResourcesDeleted: r.Job.DiggerJobSummary.ResourcesDeleted,
 	}, nil
 }
