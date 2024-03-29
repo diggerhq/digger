@@ -331,7 +331,7 @@ func handleInstallationCreatedEvent(installation *github.InstallationEvent) erro
 		repoFullName := *repo.FullName
 		repoOwner := strings.Split(*repo.FullName, "/")[0]
 		repoName := *repo.Name
-		repoUrl := *repo.URL
+		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
 
 		log.Printf("Adding a new installation %d for repo: %s", installationId, repoFullName)
 		_, err := models.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
