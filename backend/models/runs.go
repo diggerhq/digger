@@ -4,6 +4,7 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"gorm.io/gorm"
 	"log"
+	"time"
 )
 
 type DiggerRunStatus string
@@ -21,6 +22,15 @@ const (
 	PlanAndApply RunType = "Plan and Apply"
 	PlanOnly     RunType = "Plan Only"
 )
+
+type DiggerRunQueue struct {
+	gorm.Model
+	ProjectId   uint `gorm:"index:idx_digger_run_queue_project_id"`
+	Project     *Project
+	DiggerRunId uint `gorm:"index:idx_digger_run_queue_run_id"`
+	DiggerRun   DiggerRun
+	time        time.Time
+}
 
 type DiggerRun struct {
 	gorm.Model
