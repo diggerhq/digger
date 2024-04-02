@@ -99,12 +99,15 @@ func FindProjectsForOrg(c *gin.Context) {
 		return
 	}
 
-	response := make([]interface{}, 0)
+	marshalledProjects := make([]interface{}, 0)
 
 	for _, p := range projects {
 		marshalled := p.MapToJsonStruct()
-		response = append(response, marshalled)
+		marshalledProjects = append(marshalledProjects, marshalled)
 	}
+
+	response := make(map[string]interface{}, 0)
+	response["projects"] = projects
 
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Unknown error occurred while marshalling response")
