@@ -854,7 +854,7 @@ func (db *Database) CreateProject(name string, org *Organisation, repo *Repo) (*
 	return project, nil
 }
 
-func (db *Database) CreateRepo(name string, org *Organisation, diggerConfig string) (*Repo, error) {
+func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *Organisation, diggerConfig string) (*Repo, error) {
 	var repo Repo
 	// check if repo exist already, do nothing in this case
 	result := db.GormDB.Where("name = ? AND organisation_id=?", name, org.ID).Find(&repo)
@@ -867,7 +867,15 @@ func (db *Database) CreateRepo(name string, org *Organisation, diggerConfig stri
 		// record already exist, do nothing
 		return &repo, nil
 	}
-	repo = Repo{Name: name, Organisation: org, DiggerConfig: diggerConfig}
+	repo = Repo{
+		Name:             name,
+		Organisation:     org,
+		DiggerConfig:     diggerConfig,
+		RepoFullName:     repoFullName,
+		RepoOrganisation: repoOrganisation,
+		RepoName:         repoName,
+		RepoUrl:          repoUrl,
+	}
 	result = db.GormDB.Save(&repo)
 	if result.Error != nil {
 		log.Printf("Failed to create repo: %v, error: %v\n", name, result.Error)
