@@ -8,6 +8,7 @@ import (
 	scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -656,6 +657,57 @@ func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, 
 		}
 	}
 	return job, nil
+}
+
+func (db *Database) GetFirstRunQueueForEveryProject() ([]DiggerRunQueue, error) {
+	var runqueues []DiggerRunQueue
+	query := `WITH RankedRuns AS (
+  SELECT
+    digger_run_queues.digger_run_id,
+    digger_run_queues.project_id,
+    digger_run_queues.created_at,
+    ROW_NUMBER() OVER (PARTITION BY digger_run_queues.project_id ORDER BY digger_run_queues.created_at  ASC) AS QueuePosition
+  FROM
+    digger_run_queues
+)
+SELECT
+  RankedRuns.digger_run_id ,
+  RankedRuns.project_id ,
+  RankedRuns.created_at
+FROM
+  RankedRuns
+WHERE
+  QueuePosition = 1`
+
+	// 1. Fetch the front of the queue for every projectID
+	tx := db.GormDB.
+		Raw(query).
+		Find(&runqueues)
+
+	if tx.Error != nil {
+		fmt.Printf("%v", tx.Error)
+		return nil, tx.Error
+	}
+
+	// 2. Preload Project and DiggerRun for every DiggerrunQueue item (front of queue)
+	var runqueuesWithData []DiggerRunQueue
+	projectIds := lo.Map(runqueues, func(run DiggerRunQueue, index int) uint {
+		return run.ProjectId
+	})
+	diggerRunIds := lo.Map(runqueues, func(run DiggerRunQueue, index int) uint {
+		return run.DiggerRunId
+	})
+
+	tx = db.GormDB.Preload("Project").Preload("DiggerRun").
+		Where("digger_run_queues.project_id in ?", projectIds).
+		Where("digger_run_queues.digger_run_id in ?", diggerRunIds).Find(&runqueuesWithData)
+
+	if tx.Error != nil {
+		fmt.Printf("%v", tx.Error)
+		return nil, tx.Error
+	}
+
+	return runqueuesWithData, nil
 }
 
 func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*DiggerJob, error) {
