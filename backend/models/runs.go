@@ -57,7 +57,7 @@ type DiggerRunStage struct {
 	Run     *DiggerRun
 	RunID   uint `gorm:"index:idx_digger_run_stage_id"`
 	Batch   *DiggerBatch
-	BatchID *string `gorm:"index:idx_digger_job_id"`
+	BatchID *string `gorm:"index:idx_digger_run_batch_id"`
 }
 
 type SerializedRunStage struct {
