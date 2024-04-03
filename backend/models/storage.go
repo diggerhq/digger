@@ -730,13 +730,13 @@ func (db *Database) UpdateDiggerRun(diggerRun *DiggerRun) error {
 	return nil
 }
 
-func (db *Database) DequeueRunItem(queue *DiggerRunQueueItem) error {
-	log.Printf("DiggerRunQueueItem Deleting: %v", queue.ID)
-	result := db.GormDB.Delete(queue)
+func (db *Database) DequeueRunItem(queueItem *DiggerRunQueueItem) error {
+	log.Printf("DiggerRunQueueItem Deleting: %v", queueItem.ID)
+	result := db.GormDB.Delete(queueItem)
 	if result.Error != nil {
 		return result.Error
 	}
-	log.Printf("diggerRunQueueItem %v has been deleted successfully\n")
+	log.Printf("diggerRunQueueItem %v has been deleted successfully\n", queueItem.ID)
 	return nil
 }
 
