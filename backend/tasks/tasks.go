@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/robfig/cron"
 	"log"
@@ -28,7 +29,8 @@ func main() {
 		}
 
 		for _, queue := range runQueues {
-			log.Printf("%v, %v, %v, %v\n", queue.DiggerRunId, queue.ProjectId, queue.DiggerRun.Status, queue.Project.Name)
+			ciBackend := ci_backends.GithubActionCi{nil}
+			RunQueuesStateMachine(&queue, ciBackend)
 		}
 	})
 
