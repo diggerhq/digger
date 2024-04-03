@@ -28,7 +28,7 @@ const (
 	PlanOnly     RunType = "Plan Only"
 )
 
-type DiggerRunQueue struct {
+type DiggerRunQueueItem struct {
 	gorm.Model
 	ProjectId   uint `gorm:"index:idx_digger_run_queue_project_id"`
 	Project     *Project

@@ -594,6 +594,15 @@ func (db *Database) CreateDiggerBatch(githubInstallationId int64, repoOwner stri
 	return batch, nil
 }
 
+func (db *Database) UpdateDiggerBatch(batch *DiggerBatch) error {
+	result := db.GormDB.Save(batch)
+	if result.Error != nil {
+		return result.Error
+	}
+	log.Printf("batch %v has been updated successfully\n", batch.ID)
+	return nil
+}
+
 func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 	if batch.Status == scheduler.BatchJobInvalidated || batch.Status == scheduler.BatchJobFailed || batch.Status == scheduler.BatchJobSucceeded {
 		return nil
@@ -646,6 +655,59 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	return job, nil
 }
 
+func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectID uint, RunType RunType) (*DiggerRun, error) {
+	dr := &DiggerRun{
+		Triggertype:          Triggertype,
+		PrNumber:             &PrNumber,
+		Status:               Status,
+		CommitId:             CommitId,
+		DiggerConfig:         DiggerConfig,
+		GithubInstallationId: GithubInstallationId,
+		RepoId:               RepoId,
+		ProjectID:            ProjectID,
+		RunType:              RunType,
+	}
+	result := db.GormDB.Save(dr)
+	if result.Error != nil {
+		log.Printf("Failed to create DiggerRun: %v, error: %v\n", dr.ID, result.Error)
+		return nil, result.Error
+	}
+	log.Printf("DiggerRun %v, has been created successfully\n", dr.ID)
+	return dr, nil
+}
+
+func (db *Database) GetDiggerRun(id uint) (*DiggerRun, error) {
+	dr := &DiggerRun{}
+	result := db.GormDB.Where("id=? ", id).Find(dr)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return dr, nil
+}
+
+func (db *Database) CreateDiggerRunQueueItem(projectId uint, diggeRrunId uint) (*DiggerRunQueueItem, error) {
+	drq := &DiggerRunQueueItem{
+		ProjectId:   projectId,
+		DiggerRunId: diggeRrunId,
+	}
+	result := db.GormDB.Save(drq)
+	if result.Error != nil {
+		log.Printf("Failed to create DiggerRunQueueItem: %v, error: %v\n", drq.ID, result.Error)
+		return nil, result.Error
+	}
+	log.Printf("DiggerRunQueueItem %v, has been created successfully\n", drq.ID)
+	return drq, nil
+}
+
+func (db *Database) GetDiggerRunQueueItem(id uint) (*DiggerRunQueueItem, error) {
+	dr := &DiggerRunQueueItem{}
+	result := db.GormDB.Preload("Project").Preload("DiggerRun").Where("id=? ", id).Find(dr)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return dr, nil
+}
+
 func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, error) {
 	job := &DiggerJob{}
 	result := db.GormDB.Take(job, "batch_id = ?", stage.BatchID)
@@ -659,18 +721,16 @@ func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, 
 	return job, nil
 }
 
-func (db *Database) UpdateDiggerRun(diggerRun *DiggerRun, Status DiggerRunStatus) (*DiggerRun, error) {
-	diggerRun.Status = Status
+func (db *Database) UpdateDiggerRun(diggerRun *DiggerRun) error {
 	result := db.GormDB.Save(diggerRun)
 	if result.Error != nil {
-		return nil, result.Error
+		return result.Error
 	}
-
 	log.Printf("diggerRun %v has been updated successfully\n", diggerRun.ID)
-	return diggerRun, nil
+	return nil
 }
 
-func (db *Database) DequeueRunItem(queue *DiggerRunQueue) error {
+func (db *Database) DequeueRunItem(queue *DiggerRunQueueItem) error {
 	log.Printf("DiggerRunQueueItem Deleting: %v", queue.ID)
 	result := db.GormDB.Delete(queue)
 	if result.Error != nil {
@@ -680,8 +740,8 @@ func (db *Database) DequeueRunItem(queue *DiggerRunQueue) error {
 	return nil
 }
 
-func (db *Database) GetFirstRunQueueForEveryProject() ([]DiggerRunQueue, error) {
-	var runqueues []DiggerRunQueue
+func (db *Database) GetFirstRunQueueForEveryProject() ([]DiggerRunQueueItem, error) {
+	var runqueues []DiggerRunQueueItem
 	query := `WITH RankedRuns AS (
   SELECT
     digger_run_queues.digger_run_id,
@@ -711,11 +771,11 @@ WHERE
 	}
 
 	// 2. Preload Project and DiggerRun for every DiggerrunQueue item (front of queue)
-	var runqueuesWithData []DiggerRunQueue
-	projectIds := lo.Map(runqueues, func(run DiggerRunQueue, index int) uint {
+	var runqueuesWithData []DiggerRunQueueItem
+	projectIds := lo.Map(runqueues, func(run DiggerRunQueueItem, index int) uint {
 		return run.ProjectId
 	})
-	diggerRunIds := lo.Map(runqueues, func(run DiggerRunQueue, index int) uint {
+	diggerRunIds := lo.Map(runqueues, func(run DiggerRunQueueItem, index int) uint {
 		return run.DiggerRunId
 	})
 

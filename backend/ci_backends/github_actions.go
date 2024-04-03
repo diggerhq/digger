@@ -9,11 +9,11 @@ import (
 )
 
 type GithubActionCi struct {
-	client *github.Client
+	Client *github.Client
 }
 
-func (g *GithubActionCi) TriggerWorkflow(repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error {
-	client := g.client
+func (g GithubActionCi) TriggerWorkflow(repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error {
+	client := g.Client
 	log.Printf("TriggerGithubWorkflow: repoOwner: %v, repoName: %v, commentId: %v", repoOwner, repoName, commentId)
 	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, "digger_workflow.yml", github.CreateWorkflowDispatchEventRequest{
 		Ref:    job.Batch.BranchName,
