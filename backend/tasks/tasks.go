@@ -28,7 +28,7 @@ func main() {
 		}
 
 		for _, queue := range runQueues {
-			log.Printf("%v, %v, %v, %v\n", queue.DiggerRunId, queue.ProjectId, queue.DiggerRun.Status, queue.Project.Name)
+			RunQueuesStateMachine(&queue)
 		}
 	})
 

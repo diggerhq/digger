@@ -659,6 +659,27 @@ func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, 
 	return job, nil
 }
 
+func (db *Database) UpdateDiggerRun(diggerRun *DiggerRun, Status DiggerRunStatus) (*DiggerRun, error) {
+	diggerRun.Status = Status
+	result := db.GormDB.Save(diggerRun)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	log.Printf("diggerRun %v has been updated successfully\n", diggerRun.ID)
+	return diggerRun, nil
+}
+
+func (db *Database) DequeueRunItem(queue *DiggerRunQueue) error {
+	log.Printf("DiggerRunQueueItem Deleting: %v", queue.ID)
+	result := db.GormDB.Delete(queue)
+	if result.Error != nil {
+		return result.Error
+	}
+	log.Printf("diggerRunQueueItem %v has been deleted successfully\n")
+	return nil
+}
+
 func (db *Database) GetFirstRunQueueForEveryProject() ([]DiggerRunQueue, error) {
 	var runqueues []DiggerRunQueue
 	query := `WITH RankedRuns AS (
