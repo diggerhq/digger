@@ -11,9 +11,14 @@ type DiggerRunStatus string
 
 const (
 	RunQueued          DiggerRunStatus = "Queued"
+	RunPendingPlan     DiggerRunStatus = "Pending Plan"
+	RunPlanning        DiggerRunStatus = "Running Plan"
+	RunPendingApproval DiggerRunStatus = "Pending Approval"
+	RunApproved        DiggerRunStatus = "Approved"
+	RunPendingApply    DiggerRunStatus = "Pending Apply"
+	RunApplying        DiggerRunStatus = "Running Apply"
 	RunSucceeded       DiggerRunStatus = "Succeeded"
 	RunFailed          DiggerRunStatus = "Failed"
-	RunPendingApproval DiggerRunStatus = "Pending Approval"
 )
 
 type RunType string
@@ -23,7 +28,7 @@ const (
 	PlanOnly     RunType = "Plan Only"
 )
 
-type DiggerRunQueue struct {
+type DiggerRunQueueItem struct {
 	gorm.Model
 	ProjectId   uint `gorm:"index:idx_digger_run_queue_project_id"`
 	Project     *Project
@@ -52,7 +57,7 @@ type DiggerRunStage struct {
 	Run     *DiggerRun
 	RunID   uint `gorm:"index:idx_digger_run_stage_id"`
 	Batch   *DiggerBatch
-	BatchID *string `gorm:"index:idx_digger_job_id"`
+	BatchID *string `gorm:"index:idx_digger_run_batch_id"`
 }
 
 type SerializedRunStage struct {
