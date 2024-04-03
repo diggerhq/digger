@@ -106,8 +106,8 @@ func FindProjectsForOrg(c *gin.Context) {
 		marshalledProjects = append(marshalledProjects, marshalled)
 	}
 
-	response := make(map[string]interface{}, 0)
-	response["projects"] = projects
+	response := make(map[string]interface{})
+	response["projects"] = marshalledProjects
 
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Unknown error occurred while marshalling response")
