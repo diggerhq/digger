@@ -345,6 +345,8 @@ github.com/bmatcuk/doublestar/v4 v4.6.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTS
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/bradleyfalzon/ghinstallation/v2 v2.9.0 h1:HmxIYqnxubRYcYGRc5v3wUekmo5Wv2uX3gukmWJ0AFk=
 github.com/bradleyfalzon/ghinstallation/v2 v2.9.0/go.mod h1:wmkTDJf8CmVypxE8ijIStFnKoTa6solK5QfdmJrP9KI=
+github.com/bradleyfalzon/ghinstallation/v2 v2.10.0 h1:XWuWBRFEpqVrHepQob9yPS3Xg4K3Wr9QCx4fu8HbUNg=
+github.com/bradleyfalzon/ghinstallation/v2 v2.10.0/go.mod h1:qoGA4DxWPaYTgVCrmEspVSjlTu4WYAiSxMIhorMRXXc=
 github.com/bwesterb/go-ristretto v1.2.3/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
 github.com/bytedance/sonic v1.5.0/go.mod h1:ED5hyg4y6t3/9Ku1R6dU/4KyJ48DZ4jPhfY1O2AihPM=
 github.com/bytedance/sonic v1.10.0-rc/go.mod h1:ElCzW+ufi8qKqNW0FY314xriJhyJhuoJ3gFZdAHF7NM=
@@ -606,6 +608,8 @@ github.com/google/go-github/v58 v58.0.0 h1:Una7GGERlF/37XfkPwpzYJe0Vp4dt2k1kCjlx
 github.com/google/go-github/v58 v58.0.0/go.mod h1:k4hxDKEfoWpSqFlc8LTpGd9fu2KrV1YAa6Hi6FmDNY4=
 github.com/google/go-github/v59 v59.0.0 h1:7h6bgpF5as0YQLLkEiVqpgtJqjimMYhBkD4jT5aN3VA=
 github.com/google/go-github/v59 v59.0.0/go.mod h1:rJU4R0rQHFVFDOkqGWxfLNo6vEk4dv40oDjhV/gH6wM=
+github.com/google/go-github/v60 v60.0.0 h1:oLG98PsLauFvvu4D/YPxq374jhSxFYdzQGNCyONLfn8=
+github.com/google/go-github/v60 v60.0.0/go.mod h1:ByhX2dP9XT9o/ll2yXAu2VD8l5eNVg8hD4Cr0S/LmQk=
 github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
 github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
