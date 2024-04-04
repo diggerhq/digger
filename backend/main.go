@@ -74,6 +74,7 @@ func main() {
 	r.GET("/", web.RedirectToLoginOrProjects)
 
 	r.POST("/github-app-webhook", controllers.GithubAppWebHook)
+	r.POST("/github-app-webhook/aam", controllers.GithubAppWebHookAfterMerge)
 
 	tenantActionsGroup := r.Group("/tenants")
 	tenantActionsGroup.Use(middleware.CORSMiddleware())

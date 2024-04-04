@@ -16,7 +16,13 @@ func ParseWorkspace(comment string) (string, error) {
 	if len(matches) > 1 {
 		return "", errors.New("more than one -w flag found")
 	}
-
+	workspaceOverride, err := orchestrator.ParseWorkspace(*payload.Comment.Body)
+	if err != nil {
+		return nil, err
+	}
+	if workspaceOverride != "" {
+		workspace = workspaceOverride
+	}
 	if len(matches[0]) < 2 || matches[0][1] == "" {
 		return "", errors.New("no value found after -w flag")
 	}
