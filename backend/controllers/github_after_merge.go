@@ -163,6 +163,9 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 		}
 		log.Printf("GitHub IssueComment event processed successfully\n")
 
+		// TODO: delete this line
+		fmt.Sprintf(diggerYmlStr, impactedProjects, requestedProject, service)
+
 		// create 2 jobspecs (digger plan, digger apply) using commitID
 
 		// create job for the jobSpecs

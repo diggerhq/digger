@@ -379,6 +379,7 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 	jobs := make([]orchestrator.Job, 0)
 	repoFullName := *payload.Repo.FullName
 	requestedBy := *payload.Sender.Login
+	issueNumber := *payload.Issue.Number
 
 	defaultBranch := *payload.Repo.DefaultBranch
 	prBranch := prBranchName
@@ -399,52 +400,59 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 	}
 	diggerCommand := strings.ToLower(*payload.Comment.Body)
 	diggerCommand = strings.TrimSpace(diggerCommand)
+	isSupportedCommand := false
 	for _, command := range supportedCommands {
 		if strings.HasPrefix(diggerCommand, command) {
-			for _, project := range runForProjects {
-				issueNumber := payload.Issue.Number
-				job, err := CreateJobForProject(&project, command, "issue_comment", repoFullName, requestedBy, workflows, issueNumber, nil, defaultBranch, prBranch)
-				if err != nil {
-					return nil, false, err
-				}
-				jobs = append(jobs, *job)
-
-			}
+			isSupportedCommand = true
 		}
 	}
+	if !isSupportedCommand {
+		return nil, false, fmt.Errorf("command is not supported: %v", diggerCommand)
+	}
+
+	jobs, err := CreateJobsForProjects(runForProjects, diggerCommand, "issue_comment", repoFullName, requestedBy, workflows, &issueNumber, nil, defaultBranch, prBranch)
+	if err != nil {
+		return nil, false, err
+	}
+
 	return jobs, coversAllImpactedProjects, nil
 }
 
-func CreateJobForProject(project *digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string) (*orchestrator.Job, error) {
-	workflow, ok := workflows[project.Workflow]
-	if !ok {
-		return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
-	}
-	runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
-	stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-	StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
-	workspace := project.Workspace
+func CreateJobsForProjects(projects []digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string) ([]orchestrator.Job, error) {
+	jobs := make([]orchestrator.Job, 0)
 
-	return &orchestrator.Job{
-		ProjectName:        project.Name,
-		ProjectDir:         project.Dir,
-		ProjectWorkspace:   workspace,
-		ProjectWorkflow:    project.Workflow,
-		Terragrunt:         project.Terragrunt,
-		OpenTofu:           project.OpenTofu,
-		Commands:           []string{command},
-		ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
-		PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
-		RunEnvVars:         runEnvVars,
-		CommandEnvVars:     commandEnvVars,
-		StateEnvVars:       stateEnvVars,
-		PullRequestNumber:  issueNumber,
-		EventName:          event, //"issue_comment",
-		Namespace:          repoFullName,
-		RequestedBy:        requestedBy,
-		StateEnvProvider:   StateEnvProvider,
-		CommandEnvProvider: CommandEnvProvider,
-	}, nil
+	for _, project := range projects {
+		workflow, ok := workflows[project.Workflow]
+		if !ok {
+			return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+		}
+
+		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+		StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
+		workspace := project.Workspace
+		jobs = append(jobs, orchestrator.Job{
+			ProjectName:        project.Name,
+			ProjectDir:         project.Dir,
+			ProjectWorkspace:   workspace,
+			ProjectWorkflow:    project.Workflow,
+			Terragrunt:         project.Terragrunt,
+			OpenTofu:           project.OpenTofu,
+			Commands:           []string{command},
+			ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+			PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+			RunEnvVars:         runEnvVars,
+			CommandEnvVars:     commandEnvVars,
+			StateEnvVars:       stateEnvVars,
+			PullRequestNumber:  issueNumber,
+			EventName:          event, //"issue_comment",
+			Namespace:          repoFullName,
+			RequestedBy:        requestedBy,
+			StateEnvProvider:   StateEnvProvider,
+			CommandEnvProvider: CommandEnvProvider,
+		})
+	}
+	return jobs, nil
 }
 
 func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerConfig, ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
