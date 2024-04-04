@@ -202,16 +202,17 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 		for i, _ := range planJobs {
 			planJob := planJobs[i]
 			applyJob := applyJobs[i]
+			projectName := planJob.ProjectName
 			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, impactedProjects[i]))
 			if err != nil {
-				log.Printf("Error creating jobspec: %v %v", planJob.ProjectName, err)
+				log.Printf("Error creating jobspec: %v %v", projectName, err)
 				return fmt.Errorf("error creating jobspec")
 
 			}
 
 			applyJobSpec, err := json.Marshal(orchestrator.JobToJson(applyJob, impactedProjects[i]))
 			if err != nil {
-				log.Printf("Error creating jobs: %v %v", applyJob.ProjectName, err)
+				log.Printf("Error creating jobs: %v %v", projectName, err)
 				return fmt.Errorf("error creating jobs")
 			}
 			// create batches
@@ -240,26 +241,26 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 				return fmt.Errorf("error creating digger job")
 			}
 
-			diggerRun, err := models.DB.CreateDiggerRun("push", 0, models.RunQueued, commitId, diggerYmlStr, installationId, 0, 0, models.PlanAndApply)
+			// creating run stages
+			planStage, err := models.DB.CreateDiggerRunStage(planBatch.ID.String())
+			if err != nil {
+				log.Printf("Error creating digger run stage: %v", err)
+				return fmt.Errorf("error creating digger run stage")
+			}
+
+			applyStage, err := models.DB.CreateDiggerRunStage(applyBatch.ID.String())
+			if err != nil {
+				log.Printf("Error creating digger run stage: %v", err)
+				return fmt.Errorf("error creating digger run stage")
+			}
+
+			diggerRun, err := models.DB.CreateDiggerRun("push", 0, models.RunQueued, commitId, diggerYmlStr, installationId, repo.ID, projectName, models.PlanAndApply, &planStage.ID, &applyStage.ID)
 			if err != nil {
 				log.Printf("Error creating digger run: %v", err)
 				return fmt.Errorf("error creating digger run")
 			}
 
-			// creating run stages
-			_, err = models.DB.CreateDiggerRunStage(diggerRun.ID, planBatch.ID.String())
-			if err != nil {
-				log.Printf("Error creating digger run stage: %v", err)
-				return fmt.Errorf("error creating digger run stage")
-			}
-
-			_, err = models.DB.CreateDiggerRunStage(diggerRun.ID, applyBatch.ID.String())
-			if err != nil {
-				log.Printf("Error creating digger run stage: %v", err)
-				return fmt.Errorf("error creating digger run stage")
-			}
-
-			models.DB.CreateDiggerRunQueueItem(0, diggerRun.ID)
+			models.DB.CreateDiggerRunQueueItem(diggerRun.ID)
 
 		}
 

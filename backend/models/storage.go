@@ -655,7 +655,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	return job, nil
 }
 
-func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectID uint, RunType RunType) (*DiggerRun, error) {
+func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectName string, RunType RunType, planStageId *uint, applyStageId *uint) (*DiggerRun, error) {
 	dr := &DiggerRun{
 		Triggertype:          Triggertype,
 		PrNumber:             &PrNumber,
@@ -664,8 +664,10 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 		DiggerConfig:         DiggerConfig,
 		GithubInstallationId: GithubInstallationId,
 		RepoId:               RepoId,
-		ProjectID:            ProjectID,
+		ProjectName:          ProjectName,
 		RunType:              RunType,
+		PlanStageId:          planStageId,
+		ApplyStageId:         applyStageId,
 	}
 	result := db.GormDB.Save(dr)
 	if result.Error != nil {
@@ -676,9 +678,8 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 	return dr, nil
 }
 
-func (db *Database) CreateDiggerRunStage(runId uint, batchId string) (*DiggerRunStage, error) {
+func (db *Database) CreateDiggerRunStage(batchId string) (*DiggerRunStage, error) {
 	drs := &DiggerRunStage{
-		RunID:   runId,
 		BatchID: &batchId,
 	}
 	result := db.GormDB.Save(drs)
@@ -709,9 +710,8 @@ func (db *Database) GetDiggerRun(id uint) (*DiggerRun, error) {
 	return dr, nil
 }
 
-func (db *Database) CreateDiggerRunQueueItem(projectId uint, diggeRrunId uint) (*DiggerRunQueueItem, error) {
+func (db *Database) CreateDiggerRunQueueItem(diggeRrunId uint) (*DiggerRunQueueItem, error) {
 	drq := &DiggerRunQueueItem{
-		ProjectId:   projectId,
 		DiggerRunId: diggeRrunId,
 	}
 	result := db.GormDB.Save(drq)
@@ -796,15 +796,11 @@ WHERE
 
 	// 2. Preload Project and DiggerRun for every DiggerrunQueue item (front of queue)
 	var runqueuesWithData []DiggerRunQueueItem
-	projectIds := lo.Map(runqueues, func(run DiggerRunQueueItem, index int) uint {
-		return run.ProjectId
-	})
 	diggerRunIds := lo.Map(runqueues, func(run DiggerRunQueueItem, index int) uint {
 		return run.DiggerRunId
 	})
 
-	tx = db.GormDB.Preload("Project").Preload("DiggerRun").
-		Where("digger_run_queues.project_id in ?", projectIds).
+	tx = db.GormDB.Preload("DiggerRun").
 		Where("digger_run_queues.digger_run_id in ?", diggerRunIds).Find(&runqueuesWithData)
 
 	if tx.Error != nil {

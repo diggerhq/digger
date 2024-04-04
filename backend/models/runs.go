@@ -30,8 +30,6 @@ const (
 
 type DiggerRunQueueItem struct {
 	gorm.Model
-	ProjectId   uint `gorm:"index:idx_digger_run_queue_project_id"`
-	Project     *Project
 	DiggerRunId uint `gorm:"index:idx_digger_run_queue_run_id"`
 	DiggerRun   DiggerRun
 	time        time.Time
@@ -47,15 +45,16 @@ type DiggerRun struct {
 	GithubInstallationId int64
 	RepoId               uint
 	Repo                 *Repo
-	Project              *Project
-	ProjectID            uint
+	ProjectName          string
 	RunType              RunType
+	PlanStage            *DiggerRunStage
+	PlanStageId          *uint
+	ApplyStage           *DiggerRunStage
+	ApplyStageId         *uint
 }
 
 type DiggerRunStage struct {
 	gorm.Model
-	Run     *DiggerRun
-	RunID   uint `gorm:"index:idx_digger_run_stage_id"`
 	Batch   *DiggerBatch
 	BatchID *string `gorm:"index:idx_digger_run_batch_id"`
 }
@@ -78,9 +77,9 @@ func (r *DiggerRunStage) MapToJsonStruct() (interface{}, error) {
 	}
 
 	return SerializedRunStage{
-		DiggerJobId:      job.DiggerJobID,
-		Status:           job.Status,
-		ProjectName:      r.Run.Project.Name,
+		DiggerJobId: job.DiggerJobID,
+		Status:      job.Status,
+		//ProjectName:      r.Run.Project.Name,
 		WorkflowRunUrl:   job.WorkflowRunUrl,
 		ResourcesCreated: job.DiggerJobSummary.ResourcesCreated,
 		ResourcesUpdated: job.DiggerJobSummary.ResourcesUpdated,
