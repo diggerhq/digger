@@ -676,6 +676,16 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 	return dr, nil
 }
 
+func (db *Database) GetLastDiggerRunForProject(projectId uint) (*DiggerRun, error) {
+	diggerRun := &DiggerRun{}
+	result := db.GormDB.Where("project_id = ? AND status <> ?", projectId, RunQueued).Order("created_at Desc").First(diggerRun)
+	if result.Error != nil {
+		log.Printf("error while fetching last digger run: %v", result.Error)
+		return nil, result.Error
+	}
+	return diggerRun, nil
+}
+
 func (db *Database) GetDiggerRun(id uint) (*DiggerRun, error) {
 	dr := &DiggerRun{}
 	result := db.GormDB.Where("id=? ", id).Find(dr)

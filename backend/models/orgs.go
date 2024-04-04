@@ -76,6 +76,11 @@ type Project struct {
 }
 
 func (p *Project) MapToJsonStruct() interface{} {
+	lastRun, _ := DB.GetLastDiggerRunForProject(p.ID)
+	status := RunSucceeded
+	if lastRun != nil {
+		status = lastRun.Status
+	}
 	return struct {
 		Id                    uint   `json:"id"`
 		Name                  string `json:"name"`
@@ -102,7 +107,7 @@ func (p *Project) MapToJsonStruct() interface{} {
 		RepoUrl:               p.Repo.RepoUrl,
 		LastActivityTimestamp: p.UpdatedAt.String(),
 		LastActivityAuthor:    "unknown",
-		LastActivityStatus:    "Succeeded",
+		LastActivityStatus:    string(status),
 	}
 
 }
