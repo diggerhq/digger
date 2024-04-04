@@ -676,6 +676,20 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 	return dr, nil
 }
 
+func (db *Database) CreateDiggerRunStage(runId uint, batchId string) (*DiggerRunStage, error) {
+	drs := &DiggerRunStage{
+		RunID:   runId,
+		BatchID: &batchId,
+	}
+	result := db.GormDB.Save(drs)
+	if result.Error != nil {
+		log.Printf("Failed to create DiggerRunStage: %v, error: %v\n", drs.ID, result.Error)
+		return nil, result.Error
+	}
+	log.Printf("DiggerRunStage %v, has been created successfully\n", drs.ID)
+	return drs, nil
+}
+
 func (db *Database) GetLastDiggerRunForProject(projectId uint) (*DiggerRun, error) {
 	diggerRun := &DiggerRun{}
 	result := db.GormDB.Where("project_id = ? AND status <> ?", projectId, RunQueued).Order("created_at Desc").First(diggerRun)
