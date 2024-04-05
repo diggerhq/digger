@@ -31,7 +31,7 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service orchest
 		}
 	case models.RunPlanning:
 		// Check the status of the batch
-		batchStatus := dr.PlanStage.Batch.Status
+		batchStatus := orchestrator_scheduler.BatchJobSucceeded //dr.PlanStage.Batch.Status
 		approvalRequired := true
 
 		// if failed then go straight to failed
@@ -68,9 +68,15 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service orchest
 		// do nothing
 	case models.RunApproved:
 		// trigger apply stage workflow
-		// ...
+		repoOwner := dr.Repo.RepoOrganisation
+		repoName := dr.Repo.RepoName
+		job, err := models.DB.GetDiggerJobFromRunStage(dr.ApplyStage)
+		jobSpec := string(job.SerializedJobSpec)
+		commentId := int64(2037675659)
+		utils.TriggerGithubWorkflow(service.(*github.GithubService).Client, repoOwner, repoName, *job, jobSpec, commentId)
+
 		dr.Status = models.RunApplying
-		err := models.DB.UpdateDiggerRun(&dr)
+		err = models.DB.UpdateDiggerRun(&dr)
 		if err != nil {
 			log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 		}

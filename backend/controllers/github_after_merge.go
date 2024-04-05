@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -175,14 +176,15 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 
 		// create 2 jobspecs (digger plan, digger apply) using commitID
 		// TODO: find a way to get issue number from github api PushEvent
+		// TODO: find a way to set the right PR branch
 		issueNumber := 14
-		planJobs, err := dg_github.CreateJobsForProjects(impactedProjects, "digger plan", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, defaultBranch, "")
+		planJobs, err := dg_github.CreateJobsForProjects(impactedProjects, "digger plan", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, defaultBranch, defaultBranch)
 		if err != nil {
 			log.Printf("Error creating jobs: %v", err)
 			return fmt.Errorf("error creating jobs")
 		}
 
-		applyJobs, err := dg_github.CreateJobsForProjects(impactedProjects, "digger apply", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, defaultBranch, "")
+		applyJobs, err := dg_github.CreateJobsForProjects(impactedProjects, "digger apply", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, defaultBranch, defaultBranch)
 		if err != nil {
 			log.Printf("Error creating jobs: %v", err)
 			return fmt.Errorf("error creating jobs")
@@ -207,6 +209,8 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 			planJob := planJobs[i]
 			applyJob := applyJobs[i]
 			projectName := planJob.ProjectName
+			println("!!!!!")
+			spew.Dump(planJob)
 			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, impactedProjects[i]))
 			if err != nil {
 				log.Printf("Error creating jobspec: %v %v", projectName, err)
@@ -220,13 +224,13 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 				return fmt.Errorf("error creating jobs")
 			}
 			// create batches
-			planBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, 0, diggerYmlStr, defaultBranch, scheduler.BatchTypePlan, nil)
+			planBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.BatchTypePlan, nil)
 			if err != nil {
 				log.Printf("Error creating batch: %v", err)
 				return fmt.Errorf("error creating batch")
 			}
 
-			applyBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, 0, diggerYmlStr, defaultBranch, scheduler.BatchTypeApply, nil)
+			applyBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.BatchTypeApply, nil)
 			if err != nil {
 				log.Printf("Error creating batch: %v", err)
 				return fmt.Errorf("error creating batch")
