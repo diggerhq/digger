@@ -167,6 +167,10 @@ func main() {
 	projectsApiGroup.GET("/", controllers.FindProjectsForOrg)
 	projectsApiGroup.GET("/:project_id/runs", controllers.RunsForProject)
 
+	runsApiGroup := apiGroup.Group("/runs")
+	runsApiGroup.Use(middleware.GetWebMiddleware())
+	runsApiGroup.GET("/:run_id", controllers.RunDetails)
+
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 
 	r.Run(fmt.Sprintf(":%d", cfg.GetInt("port")))
