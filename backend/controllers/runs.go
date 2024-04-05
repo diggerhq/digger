@@ -50,6 +50,13 @@ func RunsForProject(c *gin.Context) {
 		return
 	}
 
+	if project.OrganisationID != org.ID {
+		log.Printf("Forbidden access: not allowed to access projectID: %v logged in org: %v", project.OrganisationID, org.ID)
+		c.String(http.StatusForbidden, "No access to this project")
+		return
+
+	}
+
 	runs, err := models.DB.ListDiggerRunsForProject(project.Name, project.Repo.ID)
 	if err != nil {
 		log.Printf("could not fetch runs: %v", err)
@@ -67,5 +74,15 @@ func RunsForProject(c *gin.Context) {
 		}
 		serializedRuns = append(serializedRuns, serializedRun)
 	}
-	c.JSON(http.StatusOK, serializedRuns)
+	response := make(map[string]interface{})
+	response["runs"] = serializedRuns
+	c.JSON(http.StatusOK, response)
+}
+
+func RunDetails(c *gin.Context) {
+	//currentOrg, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+	//projectIdStr := c.Param("project_id")
+
+	response := make(map[string]interface{})
+	c.JSON(http.StatusOK, response)
 }
