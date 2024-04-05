@@ -51,6 +51,9 @@ type DiggerRun struct {
 	PlanStageId          *uint
 	ApplyStage           DiggerRunStage
 	ApplyStageId         *uint
+	IsApproved           bool
+	ApprovalAuthor       string
+	ApprovalDate         time.Time
 }
 
 type DiggerRunStage struct {
@@ -89,11 +92,11 @@ func (r *DiggerRun) MapToJsonStruct() (interface{}, error) {
 		Status                string             `json:"status"`
 		Type                  string             `json:"type"`
 		ApprovalAuthor        string             `json:"approval_author"`
-		ApprovalStatus        string             `json:"approval_status"`
 		ApprovalDate          string             `json:"approval_date"`
 		LastActivityTimeStamp string             `json:"last_activity_time_stamp"`
 		PlanStage             SerializedRunStage `json:"plan_stage"`
 		ApplyStage            SerializedRunStage `json:"apply_stage"`
+		IsApproved            bool               `json:"is_approved"`
 	}{
 		Id:                    r.ID,
 		Status:                string(r.Status),
@@ -101,6 +104,9 @@ func (r *DiggerRun) MapToJsonStruct() (interface{}, error) {
 		LastActivityTimeStamp: r.UpdatedAt.String(),
 		PlanStage:             *planStage,
 		ApplyStage:            *applyStage,
+		IsApproved:            r.IsApproved,
+		ApprovalAuthor:        r.ApprovalAuthor,
+		ApprovalDate:          r.ApprovalDate.String(),
 	}
 
 	return x, nil

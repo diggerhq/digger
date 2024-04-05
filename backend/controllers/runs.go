@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func RunsForProject(c *gin.Context) {
@@ -118,6 +119,75 @@ func RunDetails(c *gin.Context) {
 	if run.Repo.OrganisationID != org.ID {
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
+	}
+
+	response, err := run.MapToJsonStruct()
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Could not unmarshall data")
+		return
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+func ApproveRun(c *gin.Context) {
+
+	currentOrg, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+	runIdStr := c.Param("run_id")
+
+	if runIdStr == "" {
+		c.String(http.StatusBadRequest, "RunID not specified")
+		return
+	}
+
+	runId, err := strconv.Atoi(runIdStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "Invalid RunId")
+		return
+	}
+
+	if !exists {
+		c.String(http.StatusForbidden, "Not allowed to access this resource")
+		return
+	}
+
+	var org models.Organisation
+	err = models.DB.GormDB.Where("id = ?", currentOrg).First(&org).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.String(http.StatusNotFound, fmt.Sprintf("Could not find organisation: %v", currentOrg))
+		} else {
+			c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
+		}
+		return
+	}
+
+	run, err := models.DB.GetDiggerRun(uint(runId))
+	if err != nil {
+		log.Printf("Could not fetch run: %v", err)
+		c.String(http.StatusBadRequest, "Could not fetch run, please check that it exists")
+	}
+	if run.Repo.OrganisationID != org.ID {
+		c.String(http.StatusForbidden, "Not allowed to access this resource")
+		return
+	}
+
+	if run.Status != models.RunPendingApproval {
+		log.Printf("Run status not ready for approval: %v", run.ID)
+		c.String(http.StatusBadRequest, "Approval not possible for run (%v) because status is %v", run.ID, run.Status)
+		return
+	}
+
+	if run.IsApproved == false {
+		run.ApprovalAuthor = "a_user"
+		run.IsApproved = true
+		run.ApprovalDate = time.Now()
+		err := models.DB.UpdateDiggerRun(run)
+		if err != nil {
+			log.Printf("Could update run: %v", err)
+			c.String(http.StatusInternalServerError, "Could not update approval")
+		}
+	} else {
+		log.Printf("Run has already been approved")
 	}
 
 	response, err := run.MapToJsonStruct()

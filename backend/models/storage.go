@@ -699,6 +699,7 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 		RunType:              RunType,
 		PlanStageId:          planStageId,
 		ApplyStageId:         applyStageId,
+		IsApproved:           false,
 	}
 	result := db.GormDB.Save(dr)
 	if result.Error != nil {
