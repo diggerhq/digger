@@ -756,7 +756,7 @@ func (db *Database) CreateDiggerRunQueueItem(diggeRrunId uint) (*DiggerRunQueueI
 
 func (db *Database) GetDiggerRunQueueItem(id uint) (*DiggerRunQueueItem, error) {
 	dr := &DiggerRunQueueItem{}
-	result := db.GormDB.Preload("Project").Preload("DiggerRun").Where("id=? ", id).Find(dr)
+	result := db.GormDB.Preload("DiggerRun").Where("id=? ", id).Find(dr)
 	if result.Error != nil {
 		return nil, result.Error
 	}
