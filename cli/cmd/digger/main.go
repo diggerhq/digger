@@ -125,6 +125,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		var job orchestrator.JobJson
 
 		err = json.Unmarshal([]byte(inputs.JobString), &job)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Error unmarshalling json. Exiting. %s", err), 4)
+		}
 		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 
 		err = githubPrService.SetOutput(*job.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *job.PullRequestNumber))
