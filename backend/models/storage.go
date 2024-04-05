@@ -734,7 +734,10 @@ func (db *Database) GetLastDiggerRunForProject(projectId uint) (*DiggerRun, erro
 
 func (db *Database) GetDiggerRun(id uint) (*DiggerRun, error) {
 	dr := &DiggerRun{}
-	result := db.GormDB.Where("id=? ", id).Find(dr)
+	result := db.GormDB.Preload("Repo").
+		Preload("ApplyStage").
+		Preload("PlanStage").
+		Where("id=? ", id).Find(dr)
 	if result.Error != nil {
 		return nil, result.Error
 	}
