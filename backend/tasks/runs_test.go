@@ -139,8 +139,8 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 		ciBackend := MockCiBackend{}
 		batch, _ := models.DB.CreateDiggerBatch(123, "", "", "", 22, "", "", "", nil)
 		project, _ := models.DB.CreateProject(fmt.Sprintf("test%v", i), nil, nil)
-		diggerRun, _ := models.DB.CreateDiggerRun("", 1, testParam.InitialStatus, "sha", "", 123, 1, project.ID, "apply")
-		queueItem, _ := models.DB.CreateDiggerRunQueueItem(project.ID, diggerRun.ID)
+		diggerRun, _ := models.DB.CreateDiggerRun("", 1, testParam.InitialStatus, "sha", "", 123, 1, project.Name, "apply", nil, nil)
+		queueItem, _ := models.DB.CreateDiggerRunQueueItem(diggerRun.ID)
 		batch.Status = testParam.BatchStatus
 		models.DB.UpdateDiggerBatch(batch)
 		queueItem, _ = models.DB.GetDiggerRunQueueItem(queueItem.ID)

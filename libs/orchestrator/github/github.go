@@ -75,6 +75,30 @@ func (svc GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	return fileNames, nil
 }
 
+func (svc GithubService) GetChangedFilesForCommit(owner string, repo string, commitID string) ([]string, error) {
+	var fileNames []string
+	opts := github.ListOptions{PerPage: 100}
+
+	for {
+		commit, resp, err := svc.Client.Repositories.GetCommit(context.Background(), owner, repo, commitID, &opts)
+		if err != nil {
+			log.Fatalf("error getting commitfiles: %v", err)
+		}
+		for _, file := range commit.Files {
+			fileNames = append(fileNames, *file.Filename)
+			if file.PreviousFilename != nil {
+				fileNames = append(fileNames, *file.PreviousFilename)
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return fileNames, nil
+}
+
 func (svc GithubService) ListIssues() ([]*orchestrator.Issue, error) {
 	allIssues := make([]*orchestrator.Issue, 0)
 	opts := &github.IssueListByRepoOptions{
@@ -353,6 +377,9 @@ func GetRunEnvVars(defaultBranch string, prBranch string, projectName string, pr
 
 func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string) ([]orchestrator.Job, bool, error) {
 	jobs := make([]orchestrator.Job, 0)
+	repoFullName := *payload.Repo.FullName
+	requestedBy := *payload.Sender.Login
+	issueNumber := *payload.Issue.Number
 
 	defaultBranch := *payload.Repo.DefaultBranch
 	prBranch := prBranchName
@@ -371,53 +398,61 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 			return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
 		}
 	}
-
 	diggerCommand := strings.ToLower(*payload.Comment.Body)
 	diggerCommand = strings.TrimSpace(diggerCommand)
-
+	isSupportedCommand := false
 	for _, command := range supportedCommands {
 		if strings.HasPrefix(diggerCommand, command) {
-			for _, project := range runForProjects {
-				workflow, ok := workflows[project.Workflow]
-				if !ok {
-					return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
-				}
-				issueNumber := payload.Issue.Number
-				runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
-				stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-				StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
-				workspace := project.Workspace
-				workspaceOverride, err := orchestrator.ParseWorkspace(*payload.Comment.Body)
-				if err != nil {
-					return []orchestrator.Job{}, false, err
-				}
-				if workspaceOverride != "" {
-					workspace = workspaceOverride
-				}
-				jobs = append(jobs, orchestrator.Job{
-					ProjectName:        project.Name,
-					ProjectDir:         project.Dir,
-					ProjectWorkspace:   workspace,
-					ProjectWorkflow:    project.Workflow,
-					Terragrunt:         project.Terragrunt,
-					OpenTofu:           project.OpenTofu,
-					Commands:           []string{command},
-					ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
-					PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
-					RunEnvVars:         runEnvVars,
-					CommandEnvVars:     commandEnvVars,
-					StateEnvVars:       stateEnvVars,
-					PullRequestNumber:  issueNumber,
-					EventName:          "issue_comment",
-					Namespace:          *payload.Repo.FullName,
-					RequestedBy:        *payload.Sender.Login,
-					StateEnvProvider:   StateEnvProvider,
-					CommandEnvProvider: CommandEnvProvider,
-				})
-			}
+			isSupportedCommand = true
 		}
 	}
+	if !isSupportedCommand {
+		return nil, false, fmt.Errorf("command is not supported: %v", diggerCommand)
+	}
+
+	jobs, err := CreateJobsForProjects(runForProjects, diggerCommand, "issue_comment", repoFullName, requestedBy, workflows, &issueNumber, nil, defaultBranch, prBranch)
+	if err != nil {
+		return nil, false, err
+	}
+
 	return jobs, coversAllImpactedProjects, nil
+}
+
+func CreateJobsForProjects(projects []digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string) ([]orchestrator.Job, error) {
+	jobs := make([]orchestrator.Job, 0)
+
+	for _, project := range projects {
+		workflow, ok := workflows[project.Workflow]
+		if !ok {
+			return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
+		}
+
+		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+		StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
+		workspace := project.Workspace
+		jobs = append(jobs, orchestrator.Job{
+			ProjectName:        project.Name,
+			ProjectDir:         project.Dir,
+			ProjectWorkspace:   workspace,
+			ProjectWorkflow:    project.Workflow,
+			Terragrunt:         project.Terragrunt,
+			OpenTofu:           project.OpenTofu,
+			Commands:           []string{command},
+			ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+			PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+			RunEnvVars:         runEnvVars,
+			CommandEnvVars:     commandEnvVars,
+			StateEnvVars:       stateEnvVars,
+			PullRequestNumber:  issueNumber,
+			EventName:          event, //"issue_comment",
+			Namespace:          repoFullName,
+			RequestedBy:        requestedBy,
+			StateEnvProvider:   StateEnvProvider,
+			CommandEnvProvider: CommandEnvProvider,
+		})
+	}
+	return jobs, nil
 }
 
 func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerConfig, ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
@@ -529,6 +564,25 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 		}
 	}
 	return impactedProjectsWithDependantProjects, nil
+}
+
+func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
+	var impactedProjects []digger_config.Project
+	var prNumber int
+
+	commitId := *payload.After
+	owner := *payload.Repo.Owner.Login
+	repo := *payload.Repo.Name
+
+	// TODO: Refactor to make generic interface
+	changedFiles, err := ciService.(*GithubService).GetChangedFilesForCommit(owner, repo, commitId)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("could not get changed files")
+	}
+
+	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	return impactedProjects, nil, prNumber, nil
+
 }
 
 func ProcessGitHubIssueCommentEvent(payload *github.IssueCommentEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {

@@ -169,6 +169,22 @@ func (db *Database) GetProjectByProjectId(c *gin.Context, projectId uint, orgIdK
 	return &project, true
 }
 
+func (db *Database) GetProject(projectId uint) (*Project, error) {
+	log.Printf("GetProject, project id: %v\n", projectId)
+	var project Project
+
+	err := db.GormDB.Preload("Organisation").Preload("Repo").
+		Where("id = ?", projectId).
+		First(&project).Error
+
+	if err != nil {
+		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+		return nil, err
+	}
+
+	return &project, nil
+}
+
 // GetProjectByName return project for specified org and repo
 // if record doesn't exist return nil
 func (db *Database) GetProjectByName(orgId any, repo *Repo, name string) (*Project, error) {
@@ -655,7 +671,22 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	return job, nil
 }
 
-func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectID uint, RunType RunType) (*DiggerRun, error) {
+func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([]DiggerRun, error) {
+	var runs []DiggerRun
+
+	err := db.GormDB.Preload("PlanStage").Preload("ApplyStage").
+		Where("project_name = ? AND repo_id=  ?", projectName, repoId).Order("created_at desc").Find(&runs).Error
+
+	if err != nil {
+		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+		return nil, err
+	}
+
+	log.Printf("ListDiggerRunsForProject, number of runs:%d\n", len(runs))
+	return runs, nil
+}
+
+func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectName string, RunType RunType, planStageId *uint, applyStageId *uint) (*DiggerRun, error) {
 	dr := &DiggerRun{
 		Triggertype:          Triggertype,
 		PrNumber:             &PrNumber,
@@ -664,8 +695,10 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 		DiggerConfig:         DiggerConfig,
 		GithubInstallationId: GithubInstallationId,
 		RepoId:               RepoId,
-		ProjectID:            ProjectID,
+		ProjectName:          ProjectName,
 		RunType:              RunType,
+		PlanStageId:          planStageId,
+		ApplyStageId:         applyStageId,
 	}
 	result := db.GormDB.Save(dr)
 	if result.Error != nil {
@@ -674,6 +707,19 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 	}
 	log.Printf("DiggerRun %v, has been created successfully\n", dr.ID)
 	return dr, nil
+}
+
+func (db *Database) CreateDiggerRunStage(batchId string) (*DiggerRunStage, error) {
+	drs := &DiggerRunStage{
+		BatchID: &batchId,
+	}
+	result := db.GormDB.Save(drs)
+	if result.Error != nil {
+		log.Printf("Failed to create DiggerRunStage: %v, error: %v\n", drs.ID, result.Error)
+		return nil, result.Error
+	}
+	log.Printf("DiggerRunStage %v, has been created successfully\n", drs.ID)
+	return drs, nil
 }
 
 func (db *Database) GetLastDiggerRunForProject(projectId uint) (*DiggerRun, error) {
@@ -695,9 +741,8 @@ func (db *Database) GetDiggerRun(id uint) (*DiggerRun, error) {
 	return dr, nil
 }
 
-func (db *Database) CreateDiggerRunQueueItem(projectId uint, diggeRrunId uint) (*DiggerRunQueueItem, error) {
+func (db *Database) CreateDiggerRunQueueItem(diggeRrunId uint) (*DiggerRunQueueItem, error) {
 	drq := &DiggerRunQueueItem{
-		ProjectId:   projectId,
 		DiggerRunId: diggeRrunId,
 	}
 	result := db.GormDB.Save(drq)
@@ -711,7 +756,7 @@ func (db *Database) CreateDiggerRunQueueItem(projectId uint, diggeRrunId uint) (
 
 func (db *Database) GetDiggerRunQueueItem(id uint) (*DiggerRunQueueItem, error) {
 	dr := &DiggerRunQueueItem{}
-	result := db.GormDB.Preload("Project").Preload("DiggerRun").Where("id=? ", id).Find(dr)
+	result := db.GormDB.Preload("DiggerRun").Where("id=? ", id).Find(dr)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -782,15 +827,11 @@ WHERE
 
 	// 2. Preload Project and DiggerRun for every DiggerrunQueue item (front of queue)
 	var runqueuesWithData []DiggerRunQueueItem
-	projectIds := lo.Map(runqueues, func(run DiggerRunQueueItem, index int) uint {
-		return run.ProjectId
-	})
 	diggerRunIds := lo.Map(runqueues, func(run DiggerRunQueueItem, index int) uint {
 		return run.DiggerRunId
 	})
 
-	tx = db.GormDB.Preload("Project").Preload("DiggerRun").
-		Where("digger_run_queues.project_id in ?", projectIds).
+	tx = db.GormDB.Preload("DiggerRun").
 		Where("digger_run_queues.digger_run_id in ?", diggerRunIds).Find(&runqueuesWithData)
 
 	if tx.Error != nil {
