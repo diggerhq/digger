@@ -165,6 +165,7 @@ func main() {
 	projectsApiGroup := apiGroup.Group("/projects")
 	projectsApiGroup.Use(middleware.GetWebMiddleware())
 	projectsApiGroup.GET("/", controllers.FindProjectsForOrg)
+	projectsApiGroup.GET("/:project_id/runs", controllers.RunsForProject)
 
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 

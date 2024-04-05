@@ -575,7 +575,7 @@ func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_conf
 	repo := *payload.Repo.Name
 
 	// TODO: Refactor to make generic interface
-	changedFiles, err := ciService.(GithubService).GetChangedFilesForCommit(owner, repo, commitId)
+	changedFiles, err := ciService.(*GithubService).GetChangedFilesForCommit(owner, repo, commitId)
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("could not get changed files")
 	}
