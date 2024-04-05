@@ -425,9 +425,9 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	cloneURL := *payload.Repo.CloneURL
 	prNumber := *payload.PullRequest.Number
 
-	diggerYmlStr, ghService, config, projectsGraph, branch, err := getDiggerConfig(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
+	diggerYmlStr, ghService, config, projectsGraph, branch, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
-		log.Printf("getDiggerConfig error: %v", err)
+		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
 	}
 
@@ -502,23 +502,17 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	return nil
 }
 
-func getDiggerConfig(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, error) {
+func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	ghService, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
-		return "", nil, nil, nil, nil, fmt.Errorf("error getting github service")
-	}
-	var prBranch string
-	prBranch, err = ghService.GetBranchName(prNumber)
-	if err != nil {
-		log.Printf("Error getting branch name: %v", err)
-		return "", nil, nil, nil, nil, fmt.Errorf("error getting branch name")
+		return "", nil, nil, nil, fmt.Errorf("error getting github service")
 	}
 
 	var config *dg_configuration.DiggerConfig
 	var diggerYmlStr string
 	var dependencyGraph graph.Graph[string, dg_configuration.Project]
-	err = utils.CloneGitRepoAndDoAction(cloneUrl, prBranch, *token, func(dir string) error {
+	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, *token, func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir)
@@ -530,7 +524,31 @@ func getDiggerConfig(gh utils.GithubClientProvider, installationId int64, repoFu
 	})
 	if err != nil {
 		log.Printf("Error generating projects: %v", err)
-		return "", nil, nil, nil, nil, fmt.Errorf("error generating projects")
+		return "", nil, nil, nil, fmt.Errorf("error generating projects")
+	}
+
+	log.Printf("Digger config loadded successfully\n")
+	return diggerYmlStr, ghService, config, dependencyGraph, nil
+}
+
+func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, error) {
+	ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+	if err != nil {
+		log.Printf("Error getting github service: %v", err)
+		return "", nil, nil, nil, nil, fmt.Errorf("error getting github service")
+	}
+
+	var prBranch string
+	prBranch, err = ghService.GetBranchName(prNumber)
+	if err != nil {
+		log.Printf("Error getting branch name: %v", err)
+		return "", nil, nil, nil, nil, fmt.Errorf("error getting branch name")
+	}
+
+	diggerYmlStr, ghService, config, dependencyGraph, err := getDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch)
+	if err != nil {
+		log.Printf("Error loading digger.yml: %v", err)
+		return "", nil, nil, nil, nil, fmt.Errorf("error loading digger.yml")
 	}
 
 	log.Printf("Digger config loadded successfully\n")
@@ -583,9 +601,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return nil
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, branch, err := getDiggerConfig(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
+	diggerYmlStr, ghService, config, projectsGraph, branch, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
-		log.Printf("getDiggerConfig error: %v", err)
+		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
 	}
 

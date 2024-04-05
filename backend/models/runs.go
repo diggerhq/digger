@@ -30,8 +30,6 @@ const (
 
 type DiggerRunQueueItem struct {
 	gorm.Model
-	ProjectId   uint `gorm:"index:idx_digger_run_queue_project_id"`
-	Project     *Project
 	DiggerRunId uint `gorm:"index:idx_digger_run_queue_run_id"`
 	DiggerRun   DiggerRun
 	time        time.Time
@@ -47,43 +45,82 @@ type DiggerRun struct {
 	GithubInstallationId int64
 	RepoId               uint
 	Repo                 *Repo
-	Project              *Project
-	ProjectID            uint
+	ProjectName          string
 	RunType              RunType
+	PlanStage            DiggerRunStage
+	PlanStageId          *uint
+	ApplyStage           DiggerRunStage
+	ApplyStageId         *uint
 }
 
 type DiggerRunStage struct {
 	gorm.Model
-	Run     *DiggerRun
-	RunID   uint `gorm:"index:idx_digger_run_stage_id"`
 	Batch   *DiggerBatch
 	BatchID *string `gorm:"index:idx_digger_run_batch_id"`
 }
 
 type SerializedRunStage struct {
-	DiggerJobId      string                                 `json:"digger_job_id"`
-	Status           orchestrator_scheduler.DiggerJobStatus `json:"status"`
-	ProjectName      string                                 `json:"project_name"`
-	WorkflowRunUrl   *string                                `json:"workflow_run_url"`
-	ResourcesCreated uint                                   `json:"resources_created"`
-	ResourcesDeleted uint                                   `json:"resources_deleted"`
-	ResourcesUpdated uint                                   `json:"resources_updated"`
+	//DiggerRunId           uint                                   `json:"digger_run_id"`
+	DiggerJobId           string                                 `json:"digger_job_id"`
+	Status                orchestrator_scheduler.DiggerJobStatus `json:"status"`
+	ProjectName           string                                 `json:"project_name"`
+	WorkflowRunUrl        *string                                `json:"workflow_run_url"`
+	ResourcesCreated      uint                                   `json:"resources_created"`
+	ResourcesDeleted      uint                                   `json:"resources_deleted"`
+	ResourcesUpdated      uint                                   `json:"resources_updated"`
+	LastActivityTimeStamp string                                 `json:"last_activity_timestamp"`
 }
 
-func (r *DiggerRunStage) MapToJsonStruct() (interface{}, error) {
-	job, err := DB.GetDiggerJobFromRunStage(*r)
+func (r *DiggerRun) MapToJsonStruct() (interface{}, error) {
+	planStage, err := r.PlanStage.MapToJsonStruct()
+	if err != nil {
+		log.Printf("error serializing run: %v", err)
+		return nil, err
+	}
+
+	applyStage, err := r.ApplyStage.MapToJsonStruct()
+	if err != nil {
+		log.Printf("error serializing run: %v", err)
+		return nil, err
+	}
+
+	x := struct {
+		Id                    uint               `json:"id"`
+		Status                string             `json:"status"`
+		Type                  string             `json:"type"`
+		ApprovalAuthor        string             `json:"approval_author"`
+		ApprovalStatus        string             `json:"approval_status"`
+		ApprovalDate          string             `json:"approval_date"`
+		LastActivityTimeStamp string             `json:"last_activity_time_stamp"`
+		PlanStage             SerializedRunStage `json:"plan_stage"`
+		ApplyStage            SerializedRunStage `json:"apply_stage"`
+	}{
+		Id:                    r.ID,
+		Status:                string(r.Status),
+		Type:                  string(r.RunType),
+		LastActivityTimeStamp: r.UpdatedAt.String(),
+		PlanStage:             *planStage,
+		ApplyStage:            *applyStage,
+	}
+
+	return x, nil
+}
+
+func (r DiggerRunStage) MapToJsonStruct() (*SerializedRunStage, error) {
+	job, err := DB.GetDiggerJobFromRunStage(r)
 	if err != nil {
 		log.Printf("Could not retrive job from run")
 		return nil, err
 	}
 
-	return SerializedRunStage{
-		DiggerJobId:      job.DiggerJobID,
-		Status:           job.Status,
-		ProjectName:      r.Run.Project.Name,
-		WorkflowRunUrl:   job.WorkflowRunUrl,
-		ResourcesCreated: job.DiggerJobSummary.ResourcesCreated,
-		ResourcesUpdated: job.DiggerJobSummary.ResourcesUpdated,
-		ResourcesDeleted: job.DiggerJobSummary.ResourcesDeleted,
+	return &SerializedRunStage{
+		DiggerJobId: job.DiggerJobID,
+		Status:      job.Status,
+		//ProjectName:      r.Run.ProjectName,
+		WorkflowRunUrl:        job.WorkflowRunUrl,
+		ResourcesCreated:      job.DiggerJobSummary.ResourcesCreated,
+		ResourcesUpdated:      job.DiggerJobSummary.ResourcesUpdated,
+		ResourcesDeleted:      job.DiggerJobSummary.ResourcesDeleted,
+		LastActivityTimeStamp: r.UpdatedAt.String(),
 	}, nil
 }

@@ -157,6 +157,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.AutoMerge = false
 	}
 
+	if diggerYaml.ApplyAfterMerge != nil {
+		diggerConfig.ApplyAfterMerge = *diggerYaml.ApplyAfterMerge
+	} else {
+		diggerConfig.ApplyAfterMerge = false
+	}
+
 	if diggerYaml.MentionDriftedProjectsInPR != nil {
 		diggerConfig.MentionDriftedProjectsInPR = *diggerYaml.MentionDriftedProjectsInPR
 	} else {

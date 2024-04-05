@@ -74,6 +74,7 @@ func main() {
 	r.GET("/", web.RedirectToLoginOrProjects)
 
 	r.POST("/github-app-webhook", controllers.GithubAppWebHook)
+	r.POST("/github-app-webhook/aam", controllers.GithubAppWebHookAfterMerge)
 
 	tenantActionsGroup := r.Group("/tenants")
 	tenantActionsGroup.Use(middleware.CORSMiddleware())
@@ -164,6 +165,7 @@ func main() {
 	projectsApiGroup := apiGroup.Group("/projects")
 	projectsApiGroup.Use(middleware.GetWebMiddleware())
 	projectsApiGroup.GET("/", controllers.FindProjectsForOrg)
+	projectsApiGroup.GET("/:project_id/runs", controllers.RunsForProject)
 
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 

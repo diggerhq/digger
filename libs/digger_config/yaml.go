@@ -7,6 +7,7 @@ import (
 )
 
 type DiggerConfigYaml struct {
+	ApplyAfterMerge            *bool                        `yaml:"apply_after_merge"`
 	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
 	Projects                   []*ProjectYaml               `yaml:"projects"`
 	AutoMerge                  *bool                        `yaml:"auto_merge"`
