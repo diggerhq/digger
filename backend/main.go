@@ -170,6 +170,7 @@ func main() {
 	runsApiGroup := apiGroup.Group("/runs")
 	runsApiGroup.Use(middleware.GetWebMiddleware())
 	runsApiGroup.GET("/:run_id", controllers.RunDetails)
+	runsApiGroup.POST("/:run_id/approve", controllers.ApproveRun)
 
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 
