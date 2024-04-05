@@ -745,9 +745,10 @@ func (db *Database) GetDiggerRun(id uint) (*DiggerRun, error) {
 	return dr, nil
 }
 
-func (db *Database) CreateDiggerRunQueueItem(diggeRrunId uint) (*DiggerRunQueueItem, error) {
+func (db *Database) CreateDiggerRunQueueItem(diggeRrunId uint, projectId uint) (*DiggerRunQueueItem, error) {
 	drq := &DiggerRunQueueItem{
 		DiggerRunId: diggeRrunId,
+		ProjectId:   projectId,
 	}
 	result := db.GormDB.Save(drq)
 	if result.Error != nil {
@@ -769,7 +770,7 @@ func (db *Database) GetDiggerRunQueueItem(id uint) (*DiggerRunQueueItem, error) 
 
 func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, error) {
 	job := &DiggerJob{}
-	result := db.GormDB.Take(job, "batch_id = ?", stage.BatchID)
+	result := db.GormDB.Preload("Batch").Take(job, "batch_id = ?", stage.BatchID)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
@@ -803,12 +804,12 @@ func (db *Database) GetFirstRunQueueForEveryProject() ([]DiggerRunQueueItem, err
 	var runqueues []DiggerRunQueueItem
 	query := `WITH RankedRuns AS (
   SELECT
-    digger_run_queues.digger_run_id,
-    digger_run_queues.project_id,
-    digger_run_queues.created_at,
-    ROW_NUMBER() OVER (PARTITION BY digger_run_queues.project_id ORDER BY digger_run_queues.created_at  ASC) AS QueuePosition
+    digger_run_queue_items.digger_run_id,
+    digger_run_queue_items.project_id,
+    digger_run_queue_items.created_at,
+    ROW_NUMBER() OVER (PARTITION BY digger_run_queue_items.project_id ORDER BY digger_run_queue_items.created_at  ASC) AS QueuePosition
   FROM
-    digger_run_queues
+    digger_run_queue_items
 )
 SELECT
   RankedRuns.digger_run_id ,
@@ -835,8 +836,10 @@ WHERE
 		return run.DiggerRunId
 	})
 
-	tx = db.GormDB.Preload("DiggerRun").
-		Where("digger_run_queues.digger_run_id in ?", diggerRunIds).Find(&runqueuesWithData)
+	tx = db.GormDB.Preload("DiggerRun").Preload("DiggerRun.Repo").
+		Preload("DiggerRun.PlanStage").Preload("DiggerRun.ApplyStage").
+		Preload("DiggerRun.PlanStage.Batch").Preload("DiggerRun.ApplyStage.Batch").
+		Where("digger_run_queue_items.digger_run_id in ?", diggerRunIds).Find(&runqueuesWithData)
 
 	if tx.Error != nil {
 		fmt.Printf("%v", tx.Error)
