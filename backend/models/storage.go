@@ -169,6 +169,22 @@ func (db *Database) GetProjectByProjectId(c *gin.Context, projectId uint, orgIdK
 	return &project, true
 }
 
+func (db *Database) GetProject(projectId uint) (*Project, error) {
+	log.Printf("GetProject, project id: %v\n", projectId)
+	var project Project
+
+	err := db.GormDB.Preload("Organisation").Preload("Repo").
+		Where("id = ?", projectId).
+		First(&project).Error
+
+	if err != nil {
+		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+		return nil, err
+	}
+
+	return &project, nil
+}
+
 // GetProjectByName return project for specified org and repo
 // if record doesn't exist return nil
 func (db *Database) GetProjectByName(orgId any, repo *Repo, name string) (*Project, error) {
@@ -653,6 +669,21 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 
 	log.Printf("DiggerJob %v, (id: %v) has been created successfully\n", job.DiggerJobID, job.ID)
 	return job, nil
+}
+
+func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([]DiggerRun, error) {
+	var runs []DiggerRun
+
+	err := db.GormDB.Preload("PlanStage").Preload("ApplyStage").
+		Where("project_name = ? AND repo_id=  ?", projectName, repoId).Order("created_at desc").Find(&runs).Error
+
+	if err != nil {
+		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+		return nil, err
+	}
+
+	log.Printf("ListDiggerRunsForProject, number of runs:%d\n", len(runs))
+	return runs, nil
 }
 
 func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectName string, RunType RunType, planStageId *uint, applyStageId *uint) (*DiggerRun, error) {

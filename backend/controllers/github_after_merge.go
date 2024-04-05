@@ -74,26 +74,26 @@ func GithubAppWebHookAfterMerge(c *gin.Context) {
 			}
 		}
 
-	case *github.IssueCommentEvent:
-		log.Printf("IssueCommentEvent, action: %v  IN APPLY AFTER MERGE\n", *event.Action)
-		if event.Sender.Type != nil && *event.Sender.Type == "Bot" {
-			c.String(http.StatusOK, "OK")
-			return
-		}
-		err := handleIssueCommentEvent(gh, event)
-		if err != nil {
-			log.Printf("handleIssueCommentEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-	case *github.PullRequestEvent:
-		log.Printf("Got pull request event for %d  IN APPLY AFTER MERGE", *event.PullRequest.ID)
-		err := handlePullRequestEvent(gh, event)
-		if err != nil {
-			log.Printf("handlePullRequestEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
+	//case *github.IssueCommentEvent:
+	//	log.Printf("IssueCommentEvent, action: %v  IN APPLY AFTER MERGE\n", *event.Action)
+	//	if event.Sender.Type != nil && *event.Sender.Type == "Bot" {
+	//		c.String(http.StatusOK, "OK")
+	//		return
+	//	}
+	//	err := handleIssueCommentEvent(gh, event)
+	//	if err != nil {
+	//		log.Printf("handleIssueCommentEvent error: %v", err)
+	//		c.String(http.StatusInternalServerError, err.Error())
+	//		return
+	//	}
+	//case *github.PullRequestEvent:
+	//	log.Printf("Got pull request event for %d  IN APPLY AFTER MERGE", *event.PullRequest.ID)
+	//	err := handlePullRequestEvent(gh, event)
+	//	if err != nil {
+	//		log.Printf("handlePullRequestEvent error: %v", err)
+	//		c.String(http.StatusInternalServerError, err.Error())
+	//		return
+	//	}
 	case *github.PushEvent:
 		log.Printf("Got push event for %d", event.Repo.URL)
 		err := handlePushEventApplyAfterMerge(gh, event)
@@ -110,6 +110,7 @@ func GithubAppWebHookAfterMerge(c *gin.Context) {
 }
 
 func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *github.PushEvent) error {
+	print("*** HANDLING PUSH EVENT *****")
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoFullName := *payload.Repo.FullName
@@ -155,7 +156,8 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 		})
 
 		// ==== starting apply after merge part  =======
-		diggerYmlStr, ghService, config, projectsGraph, err := getDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, commitId)
+		// TODO: Replace branch with actual commitID
+		diggerYmlStr, ghService, config, projectsGraph, err := getDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch)
 		if err != nil {
 			log.Printf("getDiggerConfigForPR error: %v", err)
 			return fmt.Errorf("error getting digger config")
@@ -235,7 +237,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 				return fmt.Errorf("error creating digger job")
 			}
 
-			_, err = models.DB.CreateDiggerJob(planBatch.ID, applyJobSpec, impactedProjects[i].WorkflowFile)
+			_, err = models.DB.CreateDiggerJob(applyBatch.ID, applyJobSpec, impactedProjects[i].WorkflowFile)
 			if err != nil {
 				log.Printf("Error creating digger job: %v", err)
 				return fmt.Errorf("error creating digger job")
