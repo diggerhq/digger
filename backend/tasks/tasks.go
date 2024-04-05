@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
 	"github.com/robfig/cron"
 	"log"
 	"os"
@@ -24,13 +24,22 @@ func main() {
 	c.AddFunc("* * * * *", func() {
 		runQueues, err := models.DB.GetFirstRunQueueForEveryProject()
 		if err != nil {
-			log.Printf("Error fetching Latest queue runs: %v", err)
+			log.Printf("Error fetching Latest queueItem runs: %v", err)
 			return
 		}
 
-		for _, queue := range runQueues {
-			ciBackend := ci_backends.GithubActionCi{nil}
-			RunQueuesStateMachine(&queue, ciBackend)
+		for _, queueItem := range runQueues {
+			dr := queueItem.DiggerRun
+			repo := dr.Repo
+			repoFullName := repo.RepoFullName
+			repoOwner := repo.RepoOrganisation
+			repoName := repo.RepoName
+			service, _, err := utils.GetGithubService(&utils.DiggerGithubRealClientProvider{}, dr.GithubInstallationId, repoFullName, repoOwner, repoName)
+			if err != nil {
+				log.Printf("failed to get github service for DiggerRun ID: %v: %v", dr.ID, err)
+				continue
+			}
+			RunQueuesStateMachine(&queueItem, service)
 		}
 	})
 
