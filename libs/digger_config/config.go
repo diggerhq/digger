@@ -1,6 +1,7 @@
 package digger_config
 
 type DiggerConfig struct {
+	ApplyAfterMerge            bool
 	DependencyConfiguration    DependencyConfiguration
 	Projects                   []Project
 	AutoMerge                  bool

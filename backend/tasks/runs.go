@@ -18,7 +18,7 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, CIBackend ci_ba
 		dr.Status = models.RunPlanning
 		err := models.DB.UpdateDiggerRun(&dr)
 		if err != nil {
-			log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+			log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 		}
 	case models.RunPlanning:
 		// Check the status of the batch
@@ -30,11 +30,11 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, CIBackend ci_ba
 			dr.Status = models.RunFailed
 			err := models.DB.UpdateDiggerRun(&dr)
 			if err != nil {
-				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 			}
 			err = models.DB.DequeueRunItem(queueItem)
 			if err != nil {
-				log.Printf("ERROR: Failed to delete queueItem item: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+				log.Printf("ERROR: Failed to delete queueItem item: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 			}
 		}
 
@@ -43,13 +43,13 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, CIBackend ci_ba
 			dr.Status = models.RunPendingApproval
 			err := models.DB.UpdateDiggerRun(&dr)
 			if err != nil {
-				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 			}
 		} else {
 			dr.Status = models.RunApproved
 			err := models.DB.UpdateDiggerRun(&dr)
 			if err != nil {
-				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 			}
 		}
 
@@ -61,7 +61,7 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, CIBackend ci_ba
 		dr.Status = models.RunApplying
 		err := models.DB.UpdateDiggerRun(&dr)
 		if err != nil {
-			log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+			log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 		}
 
 	case models.RunApplying:
@@ -73,11 +73,11 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, CIBackend ci_ba
 			dr.Status = models.RunFailed
 			err := models.DB.UpdateDiggerRun(&dr)
 			if err != nil {
-				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 			}
 			err = models.DB.DequeueRunItem(queueItem)
 			if err != nil {
-				log.Printf("ERROR: Failed to delete queueItem item: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+				log.Printf("ERROR: Failed to delete queueItem item: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 			}
 		}
 
@@ -86,7 +86,7 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, CIBackend ci_ba
 			dr.Status = models.RunSucceeded
 			err := models.DB.UpdateDiggerRun(&dr)
 			if err != nil {
-				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 			}
 		}
 
@@ -94,13 +94,13 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, CIBackend ci_ba
 		// dequeue
 		err := models.DB.DequeueRunItem(queueItem)
 		if err != nil {
-			log.Printf("ERROR: Failed to delete queueItem item: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+			log.Printf("ERROR: Failed to delete queueItem item: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 		}
 	case models.RunFailed:
 		// dequeue
 		err := models.DB.DequeueRunItem(queueItem)
 		if err != nil {
-			log.Printf("ERROR: Failed to delete queueItem item: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.ProjectId)
+			log.Printf("ERROR: Failed to delete queueItem item: %v [%v %v]", queueItem.ID, queueItem.DiggerRunId, queueItem.DiggerRun.ProjectName)
 		}
 	default:
 		log.Printf("WARN: Recieived unknown DiggerRunStatus: %v", queueItem.DiggerRun.Status)
