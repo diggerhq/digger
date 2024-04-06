@@ -32,6 +32,8 @@ type DiggerRunQueueItem struct {
 	gorm.Model
 	DiggerRunId uint `gorm:"index:idx_digger_run_queue_run_id"`
 	DiggerRun   DiggerRun
+	ProjectId   uint
+	Project     *Project
 	time        time.Time
 }
 
