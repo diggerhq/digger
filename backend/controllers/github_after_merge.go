@@ -3,7 +3,6 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -209,8 +208,6 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 			planJob := planJobs[i]
 			applyJob := applyJobs[i]
 			projectName := planJob.ProjectName
-			println("!!!!!")
-			spew.Dump(planJob)
 			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, impactedProjects[i]))
 			if err != nil {
 				log.Printf("Error creating jobspec: %v %v", projectName, err)
