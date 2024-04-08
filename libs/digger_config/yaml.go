@@ -8,6 +8,7 @@ import (
 
 type DiggerConfigYaml struct {
 	ApplyAfterMerge            *bool                        `yaml:"apply_after_merge"`
+	AllowDraftPRs              *bool                        `yaml:"allow_draft_prs"`
 	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
 	Projects                   []*ProjectYaml               `yaml:"projects"`
 	AutoMerge                  *bool                        `yaml:"auto_merge"`

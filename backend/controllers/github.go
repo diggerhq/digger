@@ -424,11 +424,17 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	repoFullName := *payload.Repo.FullName
 	cloneURL := *payload.Repo.CloneURL
 	prNumber := *payload.PullRequest.Number
+	isDraft := payload.PullRequest.GetDraft()
 
 	diggerYmlStr, ghService, config, projectsGraph, branch, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
+	}
+
+	if !config.AllowDraftPRs && isDraft {
+		log.Printf("Draft PRs are disabled, skipping PR: %v", prNumber)
+		return nil
 	}
 
 	impactedProjects, _, err := dg_github.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
@@ -590,6 +596,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	repoFullName := *payload.Repo.FullName
 	cloneURL := *payload.Repo.CloneURL
 	issueNumber := *payload.Issue.Number
+	isDraft := payload.Issue.GetDraft()
 
 	if *payload.Action != "created" {
 		log.Printf("comment is not of type 'created', ignoring")
@@ -605,6 +612,11 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
+	}
+
+	if !config.AllowDraftPRs && isDraft {
+		log.Printf("AllowDraftPRs is enabled, skipping PR: %v", issueNumber)
+		return nil
 	}
 
 	commentReporter, err := utils.InitCommentReporter(ghService, issueNumber, ":construction_worker: Digger starting....")
