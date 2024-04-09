@@ -17,22 +17,25 @@ type StageJson struct {
 }
 
 type JobJson struct {
-	ProjectName       string            `json:"projectName"`
-	ProjectDir        string            `json:"projectDir"`
-	ProjectWorkspace  string            `json:"projectWorkspace"`
-	Terragrunt        bool              `json:"terragrunt"`
-	Commands          []string          `json:"commands"`
-	ApplyStage        StageJson         `json:"applyStage"`
-	PlanStage         StageJson         `json:"planStage"`
-	PullRequestNumber *int              `json:"pullRequestNumber"`
-	EventName         string            `json:"eventName"`
-	RequestedBy       string            `json:"requestedBy"`
-	Namespace         string            `json:"namespace"`
-	RunEnvVars        map[string]string `json:"runEnvVars"`
-	StateEnvVars      map[string]string `json:"stateEnvVars"`
-	CommandEnvVars    map[string]string `json:"commandEnvVars"`
-	StateRoleName     string            `json:"state_role_name"`
-	CommandRoleName   string            `json:"command_role_name"`
+	ProjectName             string            `json:"projectName"`
+	ProjectDir              string            `json:"projectDir"`
+	ProjectWorkspace        string            `json:"projectWorkspace"`
+	Terragrunt              bool              `json:"terragrunt"`
+	Commands                []string          `json:"commands"`
+	ApplyStage              StageJson         `json:"applyStage"`
+	PlanStage               StageJson         `json:"planStage"`
+	PullRequestNumber       *int              `json:"pullRequestNumber"`
+	EventName               string            `json:"eventName"`
+	RequestedBy             string            `json:"requestedBy"`
+	Namespace               string            `json:"namespace"`
+	RunEnvVars              map[string]string `json:"runEnvVars"`
+	StateEnvVars            map[string]string `json:"stateEnvVars"`
+	CommandEnvVars          map[string]string `json:"commandEnvVars"`
+	StateRoleName           string            `json:"state_role_name"`
+	CommandRoleName         string            `json:"command_role_name"`
+	BackendHostname         string            `json:"backend_hostname"`
+	BackendOrganisationName string            `json:"backend_organisation_hostname"`
+	BackendJobToken         string            `json:"backend_job_token"`
 }
 
 func (j *JobJson) IsPlan() bool {
@@ -43,7 +46,7 @@ func (j *JobJson) IsApply() bool {
 	return slices.Contains(j.Commands, "digger apply")
 }
 
-func JobToJson(job Job, project digger_config.Project) JobJson {
+func JobToJson(job Job, organisationName string, jobToken string, backendHostname string, project digger_config.Project) JobJson {
 	stateRole, commandRole := "", ""
 	if project.AwsRoleToAssume != nil {
 		stateRole = project.AwsRoleToAssume.State
@@ -51,22 +54,25 @@ func JobToJson(job Job, project digger_config.Project) JobJson {
 
 	}
 	return JobJson{
-		ProjectName:       job.ProjectName,
-		ProjectDir:        job.ProjectDir,
-		ProjectWorkspace:  job.ProjectWorkspace,
-		Terragrunt:        job.Terragrunt,
-		Commands:          job.Commands,
-		ApplyStage:        stageToJson(job.ApplyStage),
-		PlanStage:         stageToJson(job.PlanStage),
-		PullRequestNumber: job.PullRequestNumber,
-		EventName:         job.EventName,
-		RequestedBy:       job.RequestedBy,
-		Namespace:         job.Namespace,
-		RunEnvVars:        job.RunEnvVars,
-		StateEnvVars:      job.StateEnvVars,
-		CommandEnvVars:    job.CommandEnvVars,
-		StateRoleName:     stateRole,
-		CommandRoleName:   commandRole,
+		ProjectName:             job.ProjectName,
+		ProjectDir:              job.ProjectDir,
+		ProjectWorkspace:        job.ProjectWorkspace,
+		Terragrunt:              job.Terragrunt,
+		Commands:                job.Commands,
+		ApplyStage:              stageToJson(job.ApplyStage),
+		PlanStage:               stageToJson(job.PlanStage),
+		PullRequestNumber:       job.PullRequestNumber,
+		EventName:               job.EventName,
+		RequestedBy:             job.RequestedBy,
+		Namespace:               job.Namespace,
+		RunEnvVars:              job.RunEnvVars,
+		StateEnvVars:            job.StateEnvVars,
+		CommandEnvVars:          job.CommandEnvVars,
+		StateRoleName:           stateRole,
+		CommandRoleName:         commandRole,
+		BackendHostname:         backendHostname,
+		BackendJobToken:         jobToken,
+		BackendOrganisationName: organisationName,
 	}
 }
 

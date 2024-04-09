@@ -1037,6 +1037,38 @@ func (db *Database) GetToken(tenantId any) (*Token, error) {
 	return token, nil
 }
 
+func (db *Database) CreateDiggerJobToken(organisationId uint) (*JobToken, error) {
+
+	// create a digger job token
+	// prefixing token to make easier to retire this type of tokens later
+	token := "cli:" + uuid.New().String()
+	jobToken := &JobToken{
+		Value:          token,
+		OrganisationID: organisationId,
+		Type:           CliJobAccessType,
+		Expiry:         time.Now().Add(time.Hour * 2), // some jobs can take >30 mins (k8s cluster)
+	}
+	err := db.GormDB.Create(jobToken).Error
+	if err != nil {
+		log.Printf("failed to create token: %v", err)
+		return nil, err
+	}
+	return jobToken, nil
+}
+
+func (db *Database) GetJobToken(tenantId any) (*JobToken, error) {
+	token := &JobToken{}
+	result := db.GormDB.Take(token, "value = ?", tenantId)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		} else {
+			return nil, result.Error
+		}
+	}
+	return token, nil
+}
+
 func (db *Database) CreateGithubAppInstallation(installationId int64, githubAppId int64, login string, accountId int, repoFullName string) (*GithubAppInstallation, error) {
 	installation := &GithubAppInstallation{
 		GithubInstallationId: installationId,

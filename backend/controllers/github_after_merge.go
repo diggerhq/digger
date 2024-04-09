@@ -86,14 +86,14 @@ func GithubAppWebHookAfterMerge(c *gin.Context) {
 	//		c.String(http.StatusInternalServerError, err.Error())
 	//		return
 	//	}
-	//case *github.PullRequestEvent:
-	//	log.Printf("Got pull request event for %d  IN APPLY AFTER MERGE", *event.PullRequest.ID)
-	//	err := handlePullRequestEvent(gh, event)
-	//	if err != nil {
-	//		log.Printf("handlePullRequestEvent error: %v", err)
-	//		c.String(http.StatusInternalServerError, err.Error())
-	//		return
-	//	}
+	case *github.PullRequestEvent:
+		log.Printf("Got pull request event for %d  IN APPLY AFTER MERGE", *event.PullRequest.ID)
+		err := handlePullRequestEvent(gh, event)
+		if err != nil {
+			log.Printf("handlePullRequestEvent error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 	case *github.PushEvent:
 		log.Printf("Got push event for %d", event.Repo.URL)
 		err := handlePushEventApplyAfterMerge(gh, event)
@@ -120,6 +120,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 	requestedBy := *payload.Sender.Login
 	ref := *payload.Ref
 	defaultBranch := *payload.Repo.DefaultBranch
+	backendHostName := os.Getenv("HOSTNAME")
 
 	if strings.HasSuffix(ref, defaultBranch) {
 		link, err := models.DB.GetGithubAppInstallationLink(installationId)
@@ -129,6 +130,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 		}
 
 		orgId := link.OrganisationId
+		orgName := link.Organisation.Name
 		diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
 		repo, err := models.DB.GetRepo(orgId, diggerRepoName)
 		if err != nil {
@@ -208,18 +210,32 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 			planJob := planJobs[i]
 			applyJob := applyJobs[i]
 			projectName := planJob.ProjectName
-			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, impactedProjects[i]))
+
+			planJobToken, err := models.DB.CreateDiggerJobToken(orgId)
+			if err != nil {
+				log.Printf("Error creating job token: %v %v", projectName, err)
+				return fmt.Errorf("error creating job token")
+			}
+
+			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, orgName, planJobToken.Value, backendHostName, impactedProjects[i]))
 			if err != nil {
 				log.Printf("Error creating jobspec: %v %v", projectName, err)
 				return fmt.Errorf("error creating jobspec")
 
 			}
 
-			applyJobSpec, err := json.Marshal(orchestrator.JobToJson(applyJob, impactedProjects[i]))
+			applyJobToken, err := models.DB.CreateDiggerJobToken(orgId)
+			if err != nil {
+				log.Printf("Error creating job token: %v %v", projectName, err)
+				return fmt.Errorf("error creating job token")
+			}
+
+			applyJobSpec, err := json.Marshal(orchestrator.JobToJson(applyJob, orgName, applyJobToken.Value, backendHostName, impactedProjects[i]))
 			if err != nil {
 				log.Printf("Error creating jobs: %v %v", projectName, err)
 				return fmt.Errorf("error creating jobs")
 			}
+
 			// create batches
 			planBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.BatchTypePlan, nil)
 			if err != nil {
