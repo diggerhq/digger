@@ -96,9 +96,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	// this is used when called from api by the backend and exits in the end of if statement
 	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" && runningMode != "drift-detection" {
-		if !strings.Contains(os.Getenv("DIGGER_HOSTNAME"), "cloud.digger.dev") {
-			usage.SendUsageRecord(githubActor, "log", "selfhosted")
-		}
 
 		type Inputs struct {
 			JobString string `json:"job"`
@@ -125,7 +122,18 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		var job orchestrator.JobJson
 
 		err = json.Unmarshal([]byte(inputs.JobString), &job)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall job string: %v", err), 4)
+		}
 		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
+
+		if job.BackendHostname != "" && job.BackendOrganisationName != "" && job.BackendJobToken != "" {
+			log.Printf("Found settings sent by backend in job string, overriding backendApi and policyCheckecd r. setting: (orgName: %v BackedHost: %v token: %v)", job.BackendOrganisationName, job.BackendHostname, "****")
+			backendApi = NewBackendApi(job.BackendHostname, job.BackendJobToken)
+			policyChecker = NewPolicyChecker(job.BackendHostname, job.BackendOrganisationName, job.BackendJobToken)
+		} else {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Missing values from job spec: hostname, orgName, token: %v %v", job.BackendHostname, job.BackendOrganisationName), 4)
+		}
 
 		err = githubPrService.SetOutput(*job.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *job.PullRequestNumber))
 		if err != nil {

@@ -121,7 +121,7 @@ func main() {
 	checkoutGroup.GET("/checkout", web.Checkout)
 
 	authorized := r.Group("/")
-	authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(models.AccessPolicyType, models.AdminPolicyType))
+	authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(models.CliJobAccessType, models.AccessPolicyType, models.AdminPolicyType))
 
 	admin := r.Group("/")
 	admin.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(models.AdminPolicyType))

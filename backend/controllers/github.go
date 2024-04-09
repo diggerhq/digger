@@ -424,6 +424,12 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	repoFullName := *payload.Repo.FullName
 	cloneURL := *payload.Repo.CloneURL
 	prNumber := *payload.PullRequest.Number
+	link, err := models.DB.GetGithubAppInstallationLink(installationId)
+	if err != nil {
+		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
+		return fmt.Errorf("error getting github app link")
+	}
+	organisationId := link.OrganisationId
 
 	diggerYmlStr, ghService, config, projectsGraph, branch, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
@@ -485,7 +491,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	batchType := getBatchType(jobsForImpactedProjects)
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr, batchType)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -591,6 +597,13 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	cloneURL := *payload.Repo.CloneURL
 	issueNumber := *payload.Issue.Number
 
+	link, err := models.DB.GetGithubAppInstallationLink(installationId)
+	if err != nil {
+		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
+		return fmt.Errorf("error getting github app link")
+	}
+	orgId := link.OrganisationId
+
 	if *payload.Action != "created" {
 		log.Printf("comment is not of type 'created', ignoring")
 		return nil
@@ -673,7 +686,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	batchType := getBatchType(jobs)
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr, batchType)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr, batchType)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
