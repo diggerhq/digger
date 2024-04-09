@@ -52,6 +52,16 @@ type DiggerJobSummary struct {
 	ResourcesUpdated uint
 }
 
+// These tokens will be pre
+type JobToken struct {
+	gorm.Model
+	Value          string `gorm:"uniqueJobTokenIndex:idx_token"`
+	Expiry         time.Time
+	OrganisationID uint
+	Organisation   Organisation
+	Type           string // AccessTokenType starts with j:
+}
+
 type DiggerJobLinkStatus int8
 
 const (

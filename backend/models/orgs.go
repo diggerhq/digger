@@ -123,4 +123,5 @@ type Token struct {
 const (
 	AccessPolicyType = "access"
 	AdminPolicyType  = "admin"
+	CliJobAccessType = "cli_access"
 )
