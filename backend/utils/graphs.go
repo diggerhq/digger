@@ -11,16 +11,31 @@ import (
 	"github.com/dominikbraun/graph"
 	"github.com/google/uuid"
 	"log"
+	"os"
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfigStr string, batchType orchestrator_scheduler.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(organisationId uint, jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfigStr string, batchType orchestrator_scheduler.DiggerBatchType) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	result := make(map[string]*models.DiggerJob)
+	organisation, err := models.DB.GetOrganisationById(organisationId)
+	if err != nil {
+		log.Printf("Error getting organisation: %v %v", organisationId, err)
+		return nil, nil, fmt.Errorf("error retriving organisation")
+	}
+	organisationName := organisation.Name
+
+	backendHostName := os.Getenv("HOSTNAME")
 
 	log.Printf("Number of Jobs: %v\n", len(jobsMap))
 	marshalledJobsMap := map[string][]byte{}
 	for projectName, job := range jobsMap {
-		marshalled, err := json.Marshal(orchestrator.JobToJson(job, projectMap[projectName]))
+		jobToken, err := models.DB.CreateDiggerJobToken(organisationId)
+		if err != nil {
+			log.Printf("Error creating job token: %v %v", projectName, err)
+			return nil, nil, fmt.Errorf("error creating job token")
+		}
+
+		marshalled, err := json.Marshal(orchestrator.JobToJson(job, organisationName, jobToken.Value, backendHostName, projectMap[projectName]))
 		if err != nil {
 			return nil, nil, err
 		}
