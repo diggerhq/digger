@@ -7,7 +7,7 @@ replace github.com/diggerhq/digger/libs => ../libs
 require (
 	cloud.google.com/go/storage v1.39.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
-	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.1.0
+	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.2.0
 	github.com/aws/aws-sdk-go v1.51.7
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/google/uuid v1.6.0
@@ -64,7 +64,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-github/v35 v35.3.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
@@ -169,9 +169,9 @@ require (
 	cloud.google.com/go/compute v1.24.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v1.1.6 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.1 // indirect
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.10.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.2 // indirect
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230828082145-3c4c8a2d2371 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
