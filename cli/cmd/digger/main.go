@@ -263,7 +263,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-
+			
+			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(projectConfig)
+			
 			job := orchestrator.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
@@ -278,6 +280,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				RequestedBy:      githubActor,
 				Namespace:        ghRepository,
 				EventName:        "drift-detect",
+				StateEnvProvider:   StateEnvProvider,
+				CommandEnvProvider: CommandEnvProvider,
 			}
 
 			slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
@@ -676,6 +680,8 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
+			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(projectConfig)
+
 			job := orchestrator.Job{
 				ProjectName:      projectConfig.Name,
 				ProjectDir:       projectConfig.Dir,
@@ -690,6 +696,8 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				RequestedBy:      actor,
 				Namespace:        repository,
 				EventName:        "drift-detect",
+				CommandEnvProvider: CommandEnvProvider,
+				StateEnvProvider:   StateEnvProvider,
 			}
 			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, nil, currentDir)
 			if err != nil {
