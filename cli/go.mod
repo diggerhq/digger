@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/cli
 
-go 1.21.6
+go 1.22.2
 
 replace github.com/diggerhq/digger/libs => ../libs
 
@@ -89,7 +89,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault // indirect
-	github.com/hashicorp/hcl/v2 v2.20.0 // indirect
+	github.com/hashicorp/hcl/v2 v2.20.1 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/terraform v0.15.3 // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20231204233900-a34142ec2a72 // indirect
@@ -142,7 +142,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/zclconf/go-cty v1.14.3 // indirect
+	github.com/zclconf/go-cty v1.14.4 // indirect
 	github.com/zclconf/go-cty-yaml v1.0.3 // indirect
 	go.mozilla.org/gopgagent v0.0.0-20170926210634-4d7ea76ff71a // indirect
 	go.mozilla.org/sops/v3 v3.7.3 // indirect
