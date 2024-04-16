@@ -263,23 +263,23 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-			
+
 			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(projectConfig)
-			
+
 			job := orchestrator.Job{
-				ProjectName:      projectConfig.Name,
-				ProjectDir:       projectConfig.Dir,
-				ProjectWorkspace: projectConfig.Workspace,
-				Terragrunt:       projectConfig.Terragrunt,
-				OpenTofu:         projectConfig.OpenTofu,
-				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
-				RequestedBy:      githubActor,
-				Namespace:        ghRepository,
-				EventName:        "drift-detect",
+				ProjectName:        projectConfig.Name,
+				ProjectDir:         projectConfig.Dir,
+				ProjectWorkspace:   projectConfig.Workspace,
+				Terragrunt:         projectConfig.Terragrunt,
+				OpenTofu:           projectConfig.OpenTofu,
+				Commands:           []string{"digger drift-detect"},
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				RequestedBy:        githubActor,
+				Namespace:          ghRepository,
+				EventName:          "drift-detect",
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
 			}
@@ -300,6 +300,10 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	} else {
 
 		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
+		if impactedProjects == nil {
+			reportErrorAndExit(githubActor, "No projects impacted", 0)
+		}
+
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 		}
@@ -683,19 +687,19 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(projectConfig)
 
 			job := orchestrator.Job{
-				ProjectName:      projectConfig.Name,
-				ProjectDir:       projectConfig.Dir,
-				ProjectWorkspace: projectConfig.Workspace,
-				Terragrunt:       projectConfig.Terragrunt,
-				OpenTofu:         projectConfig.OpenTofu,
-				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
-				RequestedBy:      actor,
-				Namespace:        repository,
-				EventName:        "drift-detect",
+				ProjectName:        projectConfig.Name,
+				ProjectDir:         projectConfig.Dir,
+				ProjectWorkspace:   projectConfig.Workspace,
+				Terragrunt:         projectConfig.Terragrunt,
+				OpenTofu:           projectConfig.OpenTofu,
+				Commands:           []string{"digger drift-detect"},
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				RequestedBy:        actor,
+				Namespace:          repository,
+				EventName:          "drift-detect",
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
 			}

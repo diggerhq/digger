@@ -491,6 +491,8 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 		}
 		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
 
+	case github.MergeGroupEvent:
+		return nil, nil, 0, nil
 	default:
 		return nil, nil, 0, fmt.Errorf("unsupported event type")
 	}
