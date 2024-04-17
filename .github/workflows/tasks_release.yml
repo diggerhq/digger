@@ -3,7 +3,6 @@ name: Tasks Publish docker image
 on:
   release:
     types: ['released']
-  push:
 
 env:
   REGISTRY: ghcr.io
