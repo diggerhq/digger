@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,16 +9,14 @@ import (
 	url2 "net/url"
 	"os"
 
-	awssdk "github.com/aws/aws-sdk-go/aws"
-	awssdkcreds "github.com/aws/aws-sdk-go/aws/credentials"
-	stscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
-	sts "github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/config"
+	stscreds "github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	sts "github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/diggerhq/digger/libs/digger_config"
 )
 
 func populateretrieveBackendConfigArgs(provider stscreds.WebIdentityRoleProvider) ([]string, error) {
-	creds, err := provider.Retrieve()
+	creds, err := provider.Retrieve(context.Background())
 	var args []string
 	if err != nil {
 		return args, fmt.Errorf("populateKeys: Could not retrieve keys from provider %v", err)
@@ -30,7 +29,7 @@ func populateretrieveBackendConfigArgs(provider stscreds.WebIdentityRoleProvider
 }
 
 func populateKeys(envs map[string]string, provider stscreds.WebIdentityRoleProvider) (map[string]string, error) {
-	creds, err := provider.Retrieve()
+	creds, err := provider.Retrieve(context.Background())
 	if err != nil {
 		return envs, fmt.Errorf("populateKeys: Could not retrieve keys from provider %v", err)
 	}
@@ -79,7 +78,7 @@ func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
 
 type GithubAwsTokenFetcher struct{}
 
-func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]byte, error) {
+func (fetcher GithubAwsTokenFetcher) GetIdentityToken() ([]byte, error) {
 	var httpClient http.Client
 	type TokenResponse struct {
 		Value string `json:"value"`
@@ -89,6 +88,9 @@ func (fetcher GithubAwsTokenFetcher) FetchToken(context awssdkcreds.Context) ([]
 	audience := url2.QueryEscape("sts.amazonaws.com")
 	url := fmt.Sprintf("%v&audience=%v", tokenIdUrl, audience)
 	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Add("Authorization", fmt.Sprintf("bearer  %v", bearerToken))
 	req.Header.Add("Accept", "application/json; api-version=2.0")
 	req.Header.Add("Content-Type", "application/json")
@@ -108,9 +110,13 @@ func GetProviderFromRole(role string) *stscreds.WebIdentityRoleProvider {
 	if role == "" {
 		return nil
 	}
-	mySession := session.Must(session.NewSession())
-	stsSTS := sts.New(mySession, &awssdk.Config{Region: awssdk.String("us-east-1")})
-	x := stscreds.NewWebIdentityRoleProviderWithOptions(stsSTS, role, "diggerSess", GithubAwsTokenFetcher{})
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		log.Printf("Failed to create aws session: %v", err)
+		return nil
+	}
+	stsClient := sts.NewFromConfig(cfg)
+	x := stscreds.NewWebIdentityRoleProvider(stsClient, role, &GithubAwsTokenFetcher{})
 	return x
 }
 

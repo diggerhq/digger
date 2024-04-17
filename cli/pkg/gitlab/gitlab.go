@@ -2,12 +2,13 @@ package gitlab
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"log"
+	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
-	"log"
-	"strings"
 
 	"github.com/caarlos0/env/v8"
 	go_gitlab "github.com/xanzy/go-gitlab"
