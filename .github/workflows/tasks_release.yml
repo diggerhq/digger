@@ -11,7 +11,7 @@ env:
 
 jobs:
   build-and-push-image:
-    if: (startswith(github.event.release.tag_name, 'v'))
+#    if: (startswith(github.event.release.tag_name, 'v'))
 
     runs-on: ubuntu-latest
 
