@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
@@ -300,8 +301,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	} else {
 
 		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
-		if impactedProjects == nil {
-			reportErrorAndExit(githubActor, "No projects impacted", 0)
+		if errors.Is(err, &dg_github.EventToIgnoreError{}) {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Unsuported event, ignoring: %v", err), 0)
 		}
 
 		if err != nil {

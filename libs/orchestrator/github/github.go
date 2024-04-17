@@ -33,6 +33,14 @@ type GithubService struct {
 	Owner    string
 }
 
+type EventToIgnoreError struct {
+	Message string
+}
+
+func (e *EventToIgnoreError) Error() string {
+	return fmt.Sprintf("Unsupported event: %s", e.Message)
+}
+
 func (svc GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
 	teamsResponse, _, err := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
 	if err != nil {
@@ -494,7 +502,7 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 	case github.MergeGroupEvent:
 		return nil, nil, 0, nil
 	default:
-		return nil, nil, 0, fmt.Errorf("unsupported event type")
+		return nil, nil, 0, &EventToIgnoreError{"unsupported event type merge_group"}
 	}
 	return impactedProjects, nil, prNumber, nil
 }
