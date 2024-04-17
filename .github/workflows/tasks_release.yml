@@ -1,4 +1,4 @@
-name: Backend Publish docker image
+name: Tasks Publish docker image
 
 on:
   release:
