@@ -13,3 +13,5 @@ jobs:
           org_name: diggerhq
           repo_name: digger
           issue_number: 1352
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
