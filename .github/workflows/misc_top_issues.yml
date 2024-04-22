@@ -1,3 +1,5 @@
+
+name: Top issues updater
 on:
   schedule:
     - cron: "0 * * * *" # every hour
