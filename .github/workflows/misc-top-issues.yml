@@ -1,0 +1,12 @@
+on:
+  schedule:
+    - cron: "0 * * * *" # every hour
+  workflow_dispatch:
+
+jobs:
+  get-top-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: update-top-issues
+        uses: diggerhq/top-issues@main
+         
