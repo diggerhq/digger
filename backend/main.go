@@ -173,7 +173,6 @@ func main() {
 	runsApiGroup.POST("/:run_id/approve", controllers.ApproveRun)
 
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
-
 	r.Run(fmt.Sprintf(":%d", cfg.GetInt("port")))
 }
 
