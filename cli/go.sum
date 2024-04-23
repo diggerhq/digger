@@ -1168,6 +1168,8 @@ github.com/xanzy/go-gitlab v0.98.0 h1:psTMbnA0vSo512M8WUpM5YIFPxrdQ/11V0y/5SdzII
 github.com/xanzy/go-gitlab v0.98.0/go.mod h1:ETg8tcj4OhrB84UEgeE8dSuV/0h4BBL1uOV/qK0vlyI=
 github.com/xanzy/go-gitlab v0.101.0 h1:qRgvX8DNE19zRugB6rnnZMZ5ubhITSKPLNWEyc6UIPg=
 github.com/xanzy/go-gitlab v0.101.0/go.mod h1:ETg8tcj4OhrB84UEgeE8dSuV/0h4BBL1uOV/qK0vlyI=
+github.com/xanzy/go-gitlab v0.103.0 h1:J9pTQoq0GsEFqzd6srCM1QfdfKAxSNz6mT6ntrpNF2w=
+github.com/xanzy/go-gitlab v0.103.0/go.mod h1:ETg8tcj4OhrB84UEgeE8dSuV/0h4BBL1uOV/qK0vlyI=
 github.com/xanzy/ssh-agent v0.2.1/go.mod h1:mLlQY/MoOhWBj+gOGMQkOeiEvkx+8pJSI+0Bx9h2kr4=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
