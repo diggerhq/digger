@@ -71,6 +71,7 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[strin
 	err := cmd.Run()
 
 	if err != nil {
+		log.Printf("stdout: %v, stderr: %v", stdout.String(), stderr.String())
 		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
 	}
 
