@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 )
@@ -59,6 +60,8 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[strin
 	}
 
 	cmd.Env = env
+
+	log.Printf("Running command: terraform %v", RedactSecrets(args))
 
 	var stdout, stderr bytes.Buffer
 	mwout := io.MultiWriter(os.Stdout, &stdout)
