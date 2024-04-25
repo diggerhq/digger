@@ -4,6 +4,8 @@ ariga.io/atlas-provider-gorm v0.3.1 h1:+RrnoBwlqMj+B1x/Cf1BfwtZzq6v5vKzHdl2A6nZu
 ariga.io/atlas-provider-gorm v0.3.1/go.mod h1:NOXGkyHfWFm8vQO7T+je5Zj5DdLZhkzReXGfxnnK4VM=
 ariga.io/atlas-provider-gorm v0.3.2 h1:Y3vQ9HPNQQTSwSAAGv0T/ESUjarHTjmvSg09ODGcaus=
 ariga.io/atlas-provider-gorm v0.3.2/go.mod h1:NOXGkyHfWFm8vQO7T+je5Zj5DdLZhkzReXGfxnnK4VM=
+ariga.io/atlas-provider-gorm v0.3.4 h1:xsXHWq2cnrKTxdFZgFwbqtAhK+lR00p55/xgcCxyoYE=
+ariga.io/atlas-provider-gorm v0.3.4/go.mod h1:NOXGkyHfWFm8vQO7T+je5Zj5DdLZhkzReXGfxnnK4VM=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=
