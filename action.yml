@@ -280,6 +280,7 @@ runs:
     - name: create cache dir
       run: |
         mkdir -p $GITHUB_WORKSPACE/cache
+      shell: bash
 
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
