@@ -3,12 +3,13 @@ package digger
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
