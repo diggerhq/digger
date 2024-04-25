@@ -138,7 +138,7 @@ inputs:
     required: false
     default: ''
   cache-dependencies:
-    description: 'Leverage actions/cache to cache dependencies to speed up execution"
+    description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
     default: 'false'
 outputs:
