@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/cli/pkg/github"
+	github2 "github.com/diggerhq/digger/libs/orchestrator/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
@@ -140,7 +140,7 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 	}
 
 	for i, testParam := range testParameters {
-		ciService := github.MockCiService{}
+		ciService := github2.MockCiService{}
 		batch, _ := models.DB.CreateDiggerBatch(123, "", "", "", 22, "", "", "", nil)
 		project, _ := models.DB.CreateProject(fmt.Sprintf("test%v", i), nil, nil)
 		planStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())
