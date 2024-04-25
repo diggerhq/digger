@@ -24,7 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
 	github.com/aws/smithy-go v1.20.2
 	github.com/caarlos0/env/v8 v8.0.0
-	github.com/diggerhq/digger/libs v0.4.13
+	github.com/diggerhq/digger/libs v0.4.15
 	github.com/dominikbraun/graph v0.23.0
 	github.com/google/go-github/v58 v58.0.0
 	github.com/spf13/cobra v1.8.0
