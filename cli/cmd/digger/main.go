@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
-	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
-	"github.com/diggerhq/digger/cli/pkg/drift"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/cli/pkg/comment_updater"
+	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
+	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
+	"github.com/diggerhq/digger/cli/pkg/drift"
 
 	"github.com/diggerhq/digger/cli/pkg/azure"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
@@ -263,23 +264,23 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-			
+
 			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(projectConfig)
-			
+
 			job := orchestrator.Job{
-				ProjectName:      projectConfig.Name,
-				ProjectDir:       projectConfig.Dir,
-				ProjectWorkspace: projectConfig.Workspace,
-				Terragrunt:       projectConfig.Terragrunt,
-				OpenTofu:         projectConfig.OpenTofu,
-				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
-				RequestedBy:      githubActor,
-				Namespace:        ghRepository,
-				EventName:        "drift-detect",
+				ProjectName:        projectConfig.Name,
+				ProjectDir:         projectConfig.Dir,
+				ProjectWorkspace:   projectConfig.Workspace,
+				Terragrunt:         projectConfig.Terragrunt,
+				OpenTofu:           projectConfig.OpenTofu,
+				Commands:           []string{"digger drift-detect"},
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				RequestedBy:        githubActor,
+				Namespace:          ghRepository,
+				EventName:          "drift-detect",
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
 			}
@@ -683,19 +684,19 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(projectConfig)
 
 			job := orchestrator.Job{
-				ProjectName:      projectConfig.Name,
-				ProjectDir:       projectConfig.Dir,
-				ProjectWorkspace: projectConfig.Workspace,
-				Terragrunt:       projectConfig.Terragrunt,
-				OpenTofu:         projectConfig.OpenTofu,
-				Commands:         []string{"digger drift-detect"},
-				ApplyStage:       orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:        orchestrator.ToConfigStage(workflow.Plan),
-				CommandEnvVars:   commandEnvVars,
-				StateEnvVars:     stateEnvVars,
-				RequestedBy:      actor,
-				Namespace:        repository,
-				EventName:        "drift-detect",
+				ProjectName:        projectConfig.Name,
+				ProjectDir:         projectConfig.Dir,
+				ProjectWorkspace:   projectConfig.Workspace,
+				Terragrunt:         projectConfig.Terragrunt,
+				OpenTofu:           projectConfig.OpenTofu,
+				Commands:           []string{"digger drift-detect"},
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				RequestedBy:        actor,
+				Namespace:          repository,
+				EventName:          "drift-detect",
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
 			}
@@ -887,7 +888,8 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 	var planStorage core_storage.PlanStorage
 
 	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
-	if uploadDestination == "github" {
+	switch {
+	case uploadDestination == "github":
 		zipManager := utils.Zipper{}
 		planStorage = &storage.GithubPlanStorage{
 			Client:            github.NewTokenClient(context.Background(), ghToken),
@@ -896,11 +898,11 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			PullRequestNumber: *prNumber,
 			ZipManager:        zipManager,
 		}
-	} else if uploadDestination == "gcp" {
+	case uploadDestination == "gcp":
 		ctx, client := gcp.GetGoogleStorageClient()
 		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
 		if bucketName == "" {
-			reportErrorAndExit(requestedBy, fmt.Sprintf("GOOGLE_STORAGE_BUCKET is not defined"), 9)
+			reportErrorAndExit(requestedBy, "GOOGLE_STORAGE_BUCKET is not defined", 9)
 		}
 		bucket := client.Bucket(bucketName)
 		planStorage = &storage.PlanStorageGcp{
@@ -908,7 +910,21 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			Bucket:  bucket,
 			Context: ctx,
 		}
-	} else if uploadDestination == "gitlab" {
+	case uploadDestination == "aws":
+		ctx, client, err := storage.GetAWSStorageClient()
+		if err != nil {
+			reportErrorAndExit(requestedBy, fmt.Sprintf("Failed to create AWS storage client: %s", err), 9)
+		}
+		bucketName := strings.ToLower(os.Getenv("AWS_S3_BUCKET"))
+		if bucketName == "" {
+			reportErrorAndExit(requestedBy, "AWS_S3_BUCKET is not defined", 9)
+		}
+		planStorage = &storage.PlanStorageAWS{
+			Context: ctx,
+			Client:  client,
+			Bucket:  bucketName,
+		}
+	case uploadDestination == "gitlab":
 		//TODO implement me
 	}
 
