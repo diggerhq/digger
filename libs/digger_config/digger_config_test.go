@@ -1145,6 +1145,7 @@ func TestDiggerTraverseToNestedProjects(t *testing.T) {
 	defer teardown()
 
 	diggerCfg := `
+allow_draft_prs: true
 traverse_to_nested_projects: true
 generate_projects:
   blocks:
@@ -1178,4 +1179,23 @@ generate_projects:
 	assert.Equal(t, "dev/test1", dg.Projects[2].Dir)
 	assert.Equal(t, "dev_test2", dg.Projects[3].Name)
 	assert.Equal(t, "dev/test2", dg.Projects[3].Dir)
+	assert.Equal(t, true, dg.AllowDraftPRs)
+}
+
+// TestDiggerAllowDraftPRs tests if allow_draft_prs is set to true, digger will allow draft PRs. Defaults to false
+func TestDiggerAllowDraftPRs(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: .
+`
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
+
+	dg, _, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+	assert.Equal(t, false, dg.AllowDraftPRs)
 }

@@ -420,6 +420,9 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 	TraverseToNestedProjects := false
 	configYaml.TraverseToNestedProjects = &TraverseToNestedProjects
 
+	AllowDraftPRs := false
+	configYaml.AllowDraftPRs = &AllowDraftPRs
+
 	terragruntDirWalker := &FileSystemTerragruntDirWalker{}
 	terraformDirWalker := &FileSystemTopLevelTerraformDirWalker{}
 	moduleDirWalker := &FileSystemModuleDirWalker{}
