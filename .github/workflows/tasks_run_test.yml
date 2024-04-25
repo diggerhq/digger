@@ -1,4 +1,4 @@
-name: Libs tests
+name: Tasks run tests
 on:
   push:
   pull_request:
