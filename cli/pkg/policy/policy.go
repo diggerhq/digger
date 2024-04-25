@@ -352,7 +352,7 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisati
 	}
 
 	ctx := context.Background()
-	log.Printf("DEBUG: passing the following input policy: %v ||| text: %v", input, policy)
+	log.Printf("DEBUG: passing the following input policy: %v", policy)
 	query, err := rego.New(
 		rego.Query("data.digger.deny"),
 		rego.Module("digger", policy),
