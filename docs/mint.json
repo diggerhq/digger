@@ -93,7 +93,8 @@
               "self-host/auth-methods",
               "self-host/deploy-docker",
               "self-host/deploy-docker-compose",
-              "self-host/deploy-binary"
+              "self-host/deploy-binary",
+              "self-host/deploy-helm"
           ]
       },
         {
