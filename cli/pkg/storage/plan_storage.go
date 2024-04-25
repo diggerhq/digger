@@ -5,24 +5,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/utils"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 
-	"cloud.google.com/go/storage"
+	"github.com/diggerhq/digger/cli/pkg/utils"
+
 	"github.com/google/go-github/v58/github"
 )
-
-type PlanStorageGcp struct {
-	Client  *storage.Client
-	Bucket  *storage.BucketHandle
-	Context context.Context
-}
 
 type GithubPlanStorage struct {
 	Client            *github.Client
@@ -30,65 +23,6 @@ type GithubPlanStorage struct {
 	RepoName          string
 	PullRequestNumber int
 	ZipManager        utils.Zipper
-}
-
-func (psg *PlanStorageGcp) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
-	obj := psg.Bucket.Object(storedPlanFilePath)
-	_, err := obj.Attrs(psg.Context)
-	if err != nil {
-		if err == storage.ErrObjectNotExist {
-			return false, nil
-		}
-		return false, fmt.Errorf("unable to get object attributes: %v", err)
-	}
-	return true, nil
-}
-
-func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
-	fullPath := fileName
-	obj := psg.Bucket.Object(fullPath)
-	writer := obj.NewWriter(context.Background())
-	defer writer.Close()
-
-	if _, err := writer.Write(fileContents); err != nil {
-		log.Printf("Failed to write file to bucket: %v", err)
-		return err
-	}
-	return nil
-}
-
-func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
-	obj := psg.Bucket.Object(storedPlanFilePath)
-	rc, err := obj.NewReader(psg.Context)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read data from bucket: %v", err)
-	}
-	defer rc.Close()
-
-	file, err := os.Create(localPlanFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create file: %v", err)
-	}
-	defer file.Close()
-
-	if _, err = io.Copy(file, rc); err != nil {
-		return nil, fmt.Errorf("unable to write data to file: %v", err)
-	}
-	fileName, err := filepath.Abs(file.Name())
-	if err != nil {
-		return nil, fmt.Errorf("unable to get absolute path for file: %v", err)
-	}
-	return &fileName, nil
-}
-
-func (psg *PlanStorageGcp) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
-	obj := psg.Bucket.Object(storedPlanFilePath)
-	err := obj.Delete(psg.Context)
-
-	if err != nil {
-		return fmt.Errorf("unable to delete file '%v' from bucket: %v", storedPlanFilePath, err)
-	}
-	return nil
 }
 
 func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, storedPlanFilePath string) error {
@@ -109,7 +43,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 	createArtifactBody, _ := json.Marshal(createArtifactData)
 	createArtifactResponse, err := doRequest("POST", createArtifactURL, headers, createArtifactBody)
 	if createArtifactResponse == nil || err != nil {
-		return fmt.Errorf("Could not create artifact with github %v", err)
+		return fmt.Errorf("could not create artifact with github %v", err)
 	}
 	defer createArtifactResponse.Body.Close()
 
