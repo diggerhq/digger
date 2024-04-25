@@ -78,7 +78,13 @@ inputs:
     required: false
     default: 'true'
   upload-plan-destination:
-    description: Destination to upload the plan to. gcp and github are currently supported
+    description: Destination to upload the plan to. gcp, github and aws are currently supported.
+    required: false
+  upload-plan-destination-s3-bucket:
+    description: Name of the destination bucket for AWS S3. Should be provided if destination == aws
+    required: false
+  upload-plan-destination-gcp-bucket:
+    description: Name of the destination bucket for a GCP bucket. Should be provided if destination == gcp
     required: false
   setup-checkov:
     description: Setup Checkov
@@ -268,6 +274,8 @@ runs:
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        GOOGLE_STORAGE_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
+        AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
         DIGGER_TOKEN: ${{ inputs.digger-token }}
@@ -294,6 +302,8 @@ runs:
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        GOOGLE_STORAGE_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
+        AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
         DIGGER_TOKEN: ${{ inputs.digger-token }}
