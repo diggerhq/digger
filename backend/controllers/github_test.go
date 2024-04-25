@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"encoding/json"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
