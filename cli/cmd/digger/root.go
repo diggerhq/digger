@@ -8,7 +8,6 @@ import (
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
 	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
-	github_pkg "github.com/diggerhq/digger/cli/pkg/github"
 	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/reporting"
@@ -74,8 +73,8 @@ func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrat
 			ReportStrategy:    ReportStrategy,
 			IsSupportMarkdown: true,
 		}
-		prService = github_pkg.MockCiService{}
-		orgService = github_pkg.MockCiService{}
+		prService = orchestrator_github.MockCiService{}
+		orgService = orchestrator_github.MockCiService{}
 	default:
 		return nil, nil, nil, fmt.Errorf("unknown reporter: %v", r.Reporter)
 
