@@ -7,16 +7,31 @@ Digger has 2 main components: the CLI that runs within your CI and an orchestrat
 This guide describes self-hosting the orchestrator backend as a binary aka "roll your own". Self-hosting may come handy when using the cloud-based version of it is not an option (for example due to compliance requirements). More guides (docker, EC2, etc) are coming soon.
 
 <Note>
-This guide is about self-hosting Digger Community Edition which is free and open source (Apache 2.0 license) ([repo on GitHub](https://github.com/diggerhq/digger)). You do not need a license or an account on Digger Cloud to self-host Digger CE. If you require enterprise-grade features like Github Enterprise Server support, SSO / SAML, multi-team / multi-org - [Talk to us](https://calendly.com/diggerdev/digger-open-source-terraform-cloud-alternativ-clone)
+  This guide is about self-hosting Digger Community Edition which is free and
+  open source (Apache 2.0 license) ([repo on
+  GitHub](https://github.com/diggerhq/digger)). You do not need a license or an
+  account on Digger Cloud to self-host Digger CE. If you require
+  enterprise-grade features like Github Enterprise Server support, SSO / SAML,
+  multi-team / multi-org - [Talk to
+  us](https://calendly.com/diggerdev/digger-open-source-terraform-cloud-alternativ-clone)
 </Note>
 
 # Prerequisites
+
+- Cloned repository of Digger
+- AtlasGo [CLI](https://atlasgo.io/getting-started)
 - Postgres database (e.g. RDS)
 - Rights to install GitHub apps in your organisation
 
 # Download Digger API binary
 
-Get it from [releases](https://github.com/diggerhq/digger/releases/). Note that it's a separate binary, not to be confused the CLI agent that runs in the CI job. 
+Get it from [releases](https://github.com/diggerhq/digger/releases/). Note that it's a separate binary, not to be confused the CLI agent that runs in the CI job.
+
+# Clone the Digger Repository
+
+```
+git clone https://github.com/diggerhq/digger.git
+```
 
 # Set initial environment variables
 
@@ -34,9 +49,16 @@ ALLOW_DIRTY=false # set to true if the database has already a schema configured
 # Start the service
 
 ```
+cd digger/backend
+wget https://github.com/diggerhq/digger/releases/download/v<DIGGER_VERSION>/digger-api-<OS>-<CPU_ARCH> -C ./diggerapi
+chmod +x ./diggerapi
+atlas migrate apply --url $DATABASE_URL --allow-dirty
 ./diggerapi
 ```
-You should now see initial database migrations and tables being created. Go to your_digger_hostname:3000/projects; you should see the dashboard. The setup is not complete yet!
+
+Note: depending on the OS security settings you may need to allow the binary to run.
+
+Go to your_digger_hostname:3000/projects; you should see the dashboard. The setup is not complete yet!
 
 # Create GitHub app
 
@@ -59,6 +81,7 @@ GITHUB_WEBHOOK_SECRET=
 On the exchange-code page (see above) click the installation link at the top and select the repositories.
 
 From here on it's the same steps as in the [Quickstart](https://docs.digger.dev/getting-started/github-actions-+-aws):
+
 - Create digger.yml
 - Create workflow file
 - Create secrets
