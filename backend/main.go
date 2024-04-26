@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"embed"
 
 	"github.com/alextanhongpin/go-gin-starter/config"
 	"github.com/diggerhq/digger/backend/controllers"
@@ -21,6 +24,9 @@ import (
 
 // based on https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
 var Version = "dev"
+
+//go:embed templates
+var templates embed.FS
 
 func main() {
 
@@ -53,8 +59,6 @@ func main() {
 
 	r.Use(sentrygin.New(sentrygin.Options{Repanic: true}))
 
-	r.Static("/static", "./templates/static")
-
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"build_date":  cfg.GetString("build_date"),
@@ -70,7 +74,17 @@ func main() {
 		},
 	})
 
-	r.LoadHTMLGlob("templates/*.tmpl")
+	if _, err := os.Stat("templates"); err != nil {
+		matches, _ := fs.Glob(templates, "templates/*.tmpl")
+		for _, match := range matches {
+			r.LoadHTMLFiles(match)
+		}
+		r.StaticFS("/static", http.FS(templates))
+	} else {
+		r.Static("/static", "./templates/static")
+		r.LoadHTMLGlob("templates/*.tmpl")
+	}
+
 	r.GET("/", web.RedirectToLoginOrProjects)
 
 	r.POST("/github-app-webhook", controllers.GithubAppWebHook)
