@@ -221,10 +221,9 @@ runs:
       name: restore_cache
       with:
         path: ${{ github.workspace }}/cache
-        key: ${{ runner.os }}-cache-${{ hashFiles('**/cache') }}
+        key: digger-cache
         restore-keys: |
-          ${{ runner.os }}-cache-${{ hashFiles('**/cache') }}
-          ${{ runner.os }}-cache
+          digger-cache
       if: ${{ inputs.cache-dependencies == 'true' }}
 
     - name: Setup Terraform
