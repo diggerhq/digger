@@ -1,15 +1,20 @@
 package aws
 
 import (
+	"context"
+	"errors"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+
+	"github.com/aws/smithy-go"
 )
 
 const (
@@ -20,30 +25,27 @@ const (
 )
 
 type DynamoDbLock struct {
-	DynamoDb *dynamodb.DynamoDB
+	DynamoDb *dynamodb.Client
 }
 
 func isResourceNotFoundExceptionError(err error) bool {
 	if err != nil {
-		aerr, ok := err.(awserr.Error)
-		if !ok {
-			// not aws error
-			return false
-		}
-
-		if aerr.Code() == dynamodb.ErrCodeResourceNotFoundException {
-			// ErrCodeResourceNotFoundException code
-			return true
+		var apiError smithy.APIError
+		if errors.As(err, &apiError) {
+			switch apiError.(type) {
+			case *types.ResourceNotFoundException:
+				return true
+			}
 		}
 	}
 	return false
 }
 
-func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
+func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated(ctx context.Context) error {
 	input := &dynamodb.DescribeTableInput{
 		TableName: aws.String(TABLE_NAME),
 	}
-	status, err := dynamoDbLock.DynamoDb.DescribeTable(input)
+	status, err := dynamoDbLock.DynamoDb.DescribeTable(ctx, input)
 	cnt := 0
 
 	if err != nil {
@@ -52,9 +54,9 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 		}
 	}
 
-	for *status.Table.TableStatus != "ACTIVE" {
+	for status.Table.TableStatus != "ACTIVE" {
 		time.Sleep(TableCreationInterval)
-		status, err = dynamoDbLock.DynamoDb.DescribeTable(input)
+		status, err = dynamoDbLock.DynamoDb.DescribeTable(ctx, input)
 		if err != nil {
 			if !isResourceNotFoundExceptionError(err) {
 				return err
@@ -72,8 +74,8 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated() error {
 }
 
 // TODO: refactor func to return actual error and fail on callers
-func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() error {
-	_, err := dynamoDbLock.DynamoDb.DescribeTable(&dynamodb.DescribeTableInput{
+func (dynamoDbLock *DynamoDbLock) createTableIfNotExists(ctx context.Context) error {
+	_, err := dynamoDbLock.DynamoDb.DescribeTable(ctx, &dynamodb.DescribeTableInput{
 		TableName: aws.String(TABLE_NAME),
 	})
 
@@ -84,30 +86,31 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() error {
 	}
 
 	createtbl_input := &dynamodb.CreateTableInput{
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+
+		AttributeDefinitions: []types.AttributeDefinition{
 			{
 				AttributeName: aws.String("PK"),
-				AttributeType: aws.String("S"),
+				AttributeType: types.ScalarAttributeTypeS,
 			},
 			{
 				AttributeName: aws.String("SK"),
-				AttributeType: aws.String("S"),
+				AttributeType: types.ScalarAttributeTypeS,
 			},
 		},
-		KeySchema: []*dynamodb.KeySchemaElement{
+		KeySchema: []types.KeySchemaElement{
 			{
 				AttributeName: aws.String("PK"),
-				KeyType:       aws.String("HASH"),
+				KeyType:       types.KeyTypeHash,
 			},
 			{
 				AttributeName: aws.String("SK"),
-				KeyType:       aws.String("RANGE"),
+				KeyType:       types.KeyTypeRange,
 			},
 		},
-		BillingMode: aws.String("PAY_PER_REQUEST"),
+		BillingMode: types.BillingModePayPerRequest,
 		TableName:   aws.String(TABLE_NAME),
 	}
-	_, err = dynamoDbLock.DynamoDb.CreateTable(createtbl_input)
+	_, err = dynamoDbLock.DynamoDb.CreateTable(ctx, createtbl_input)
 	if err != nil {
 		if os.Getenv("DEBUG") != "" {
 			log.Printf("%v\n", err)
@@ -115,7 +118,7 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() error {
 		return err
 	}
 
-	err = dynamoDbLock.waitUntilTableCreated()
+	err = dynamoDbLock.waitUntilTableCreated(ctx)
 	if err != nil {
 		log.Printf("%v\n", err)
 		return err
@@ -125,7 +128,8 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists() error {
 }
 
 func (dynamoDbLock *DynamoDbLock) Lock(transactionId int, resource string) (bool, error) {
-	dynamoDbLock.createTableIfNotExists()
+	ctx := context.Background()
+	dynamoDbLock.createTableIfNotExists(ctx)
 	// TODO: remove timeout completely
 	now := time.Now().Format(time.RFC3339)
 	newTimeout := time.Now().Add(TableLockTimeout).Format(time.RFC3339)
@@ -143,24 +147,28 @@ func (dynamoDbLock *DynamoDbLock) Lock(transactionId int, resource string) (bool
 			).Set(expression.Name("timeout"), expression.Value(newTimeout)),
 		).
 		Build()
-
 	if err != nil {
 		return false, err
 	}
 
 	input := &dynamodb.UpdateItemInput{
-		TableName:                 aws.String(TABLE_NAME),
-		Key:                       map[string]*dynamodb.AttributeValue{"PK": {S: aws.String("LOCK")}, "SK": {S: aws.String("RES#" + resource)}},
+		TableName: aws.String(TABLE_NAME),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: "LOCK"},
+			"SK": &types.AttributeValueMemberS{Value: "RES#" + resource},
+		},
 		ConditionExpression:       expr.Condition(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		UpdateExpression:          expr.Update(),
 	}
 
-	_, err = dynamoDbLock.DynamoDb.UpdateItem(input)
+	_, err = dynamoDbLock.DynamoDb.UpdateItem(ctx, input)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
+		var apiError smithy.APIError
+		if errors.As(err, &apiError) {
+			switch apiError.(type) {
+			case *types.ConditionalCheckFailedException:
 				return false, nil
 			}
 		}
@@ -171,13 +179,17 @@ func (dynamoDbLock *DynamoDbLock) Lock(transactionId int, resource string) (bool
 }
 
 func (dynamoDbLock *DynamoDbLock) Unlock(resource string) (bool, error) {
-	dynamoDbLock.createTableIfNotExists()
+	ctx := context.Background()
+	dynamoDbLock.createTableIfNotExists(ctx)
 	input := &dynamodb.DeleteItemInput{
 		TableName: aws.String(TABLE_NAME),
-		Key:       map[string]*dynamodb.AttributeValue{"PK": {S: aws.String("LOCK")}, "SK": {S: aws.String("RES#" + resource)}},
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: "LOCK"},
+			"SK": &types.AttributeValueMemberS{Value: "RES#" + resource},
+		},
 	}
 
-	_, err := dynamoDbLock.DynamoDb.DeleteItem(input)
+	_, err := dynamoDbLock.DynamoDb.DeleteItem(ctx, input)
 	if err != nil {
 		return false, err
 	}
@@ -185,22 +197,32 @@ func (dynamoDbLock *DynamoDbLock) Unlock(resource string) (bool, error) {
 }
 
 func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
-	dynamoDbLock.createTableIfNotExists()
+	ctx := context.Background()
+	dynamoDbLock.createTableIfNotExists(ctx)
 	input := &dynamodb.GetItemInput{
 		TableName: aws.String(TABLE_NAME),
-		Key:       map[string]*dynamodb.AttributeValue{"PK": {S: aws.String("LOCK")}, "SK": {S: aws.String("RES#" + lockId)}},
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: "LOCK"},
+			"SK": &types.AttributeValueMemberS{Value: "RES#" + lockId},
+		},
 	}
 
-	result, err := dynamoDbLock.DynamoDb.GetItem(input)
+	result, err := dynamoDbLock.DynamoDb.GetItem(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 
-	if result.Item != nil {
-		transactionId := result.Item["transaction_id"].N
-		res, err := strconv.Atoi(*transactionId)
-		return &res, err
+	type TransactionLock struct {
+		TransactionID int `dynamodbav:"transaction_id"`
 	}
 
+	var t TransactionLock
+	err = attributevalue.UnmarshalMap(result.Item, &t)
+	if err != nil {
+		return nil, err
+	}
+	if t.TransactionID != 0 {
+		return &t.TransactionID, nil
+	}
 	return nil, nil
 }

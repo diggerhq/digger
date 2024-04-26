@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
 	ghmodels "github.com/diggerhq/digger/cli/pkg/github/models"
@@ -887,6 +888,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	backendApi := &utils.MockBackendApi{}
 
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	assert.NoError(t, err)
 
 	reporter := &reporting.CiReporter{
 		CiService: prManager,
@@ -895,7 +897,11 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	event := context.Event.(github.PullRequestEvent)
 	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, map[string]configuration.Workflow{})
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "123", false, 1, "dir")
+	if err != nil {
+		assert.NoError(t, err)
+		log.Println(err)
+	}
+	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, 1, "dir")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -916,6 +922,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	assert.NoError(t, err)
 	reporter := &reporting.CiReporter{
 		CiService: prManager,
 		PrNumber:  prNumber,
@@ -926,7 +933,8 @@ func TestGitHubNewCommentContext(t *testing.T) {
 
 	event := context.Event.(github.IssueCommentEvent)
 	jobs, _, err := dggithub.ConvertGithubIssueCommentEventToJobs(&event, impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch")
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, backendApi, "123", false, 1, "")
+	assert.NoError(t, err)
+	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, 1, "")
 	assert.NoError(t, err)
 	if err != nil {
 		log.Println(err)

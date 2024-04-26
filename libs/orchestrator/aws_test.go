@@ -1,10 +1,12 @@
 package orchestrator
 
 import (
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/stretchr/testify/assert"
+	"context"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/stretchr/testify/assert"
 )
 
 type AwsRoleProviderMock struct {
@@ -14,12 +16,11 @@ type AwsRoleProviderMock struct {
 	AwsProviderName string
 }
 
-func (a *AwsRoleProviderMock) Retrieve() (credentials.Value, error) {
-	return credentials.Value{
+func (a *AwsRoleProviderMock) Retrieve() (aws.Credentials, error) {
+	return aws.Credentials{
 		AccessKeyID:     a.AwsKey,
 		SecretAccessKey: a.AwsSecret,
 		SessionToken:    a.AwsSessionToken,
-		ProviderName:    a.AwsProviderName,
 	}, nil
 }
 
@@ -27,12 +28,11 @@ func (a *AwsRoleProviderMock) ExpiresAt() time.Time {
 	return time.Time{}
 }
 
-func (a *AwsRoleProviderMock) RetrieveWithContext(credentials.Context) (credentials.Value, error) {
-	return credentials.Value{
+func (a *AwsRoleProviderMock) RetrieveWithContext(context.Context) (aws.Credentials, error) {
+	return aws.Credentials{
 		AccessKeyID:     a.AwsKey,
 		SecretAccessKey: a.AwsSecret,
 		SessionToken:    a.AwsSessionToken,
-		ProviderName:    a.AwsProviderName,
 	}, nil
 }
 
