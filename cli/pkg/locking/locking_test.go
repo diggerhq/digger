@@ -1,13 +1,14 @@
 package locking
 
 import (
+	"testing"
+
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestLockingTwiceThrowsError(t *testing.T) {
-	mockDynamoDB := utils.MockLock{make(map[string]int)}
+	mockDynamoDB := utils.MockLock{MapLock: make(map[string]int)}
 	mockPrManager := utils.MockGithubPullrequestManager{}
 	reporter := utils.MockReporter{}
 	pl := PullRequestLock{

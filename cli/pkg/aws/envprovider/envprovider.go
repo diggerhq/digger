@@ -1,16 +1,16 @@
 package envprovider
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	awssdk "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"log"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 // EnvProviderName provides a name of Env provider
@@ -19,13 +19,13 @@ const EnvProviderName = "DiggerEnvProvider"
 var (
 	// ErrAccessKeyIDNotFound is returned when the AWS Access Key ID can't be
 	// found in the process's environment.
-	ErrAccessKeyIDNotFound = awserr.New("EnvAccessKeyNotFound", "DIGGER_AWS_ACCESS_KEY_ID or AWS_ACCESS_KEY_ID or AWS_ACCESS_KEY not found in environment", nil)
+	ErrAccessKeyIDNotFound = errors.New("EnvAccessKeyNotFound: DIGGER_AWS_ACCESS_KEY_ID or AWS_ACCESS_KEY_ID or AWS_ACCESS_KEY not found in environment")
 
 	// ErrSecretAccessKeyNotFound is returned when the AWS Secret Access Key
 	// can't be found in the process's environment.
-	ErrSecretAccessKeyNotFound = awserr.New("EnvSecretNotFound", "DIGGER_AWS_SECRET_ACCESS_KEY or AWS_SECRET_ACCESS_KEY or AWS_SECRET_KEY not found in environment", nil)
+	ErrSecretAccessKeyNotFound = errors.New("EnvSecretNotFound: DIGGER_AWS_SECRET_ACCESS_KEY or AWS_SECRET_ACCESS_KEY or AWS_SECRET_KEY not found in environment")
 
-	ErrRoleNotValid = awserr.New("EnvRoleNotValid", "AWS_ROLE_ARN not valid", nil)
+	ErrRoleNotValid = errors.New("EnvRoleNotValid: AWS_ROLE_ARN not valid")
 )
 
 // A EnvProvider retrieves credentials from the environment variables of the
@@ -37,34 +37,32 @@ var (
 //
 // * Secret Access Key: DIGGER_AWS_SECRET_ACCESS_KEY or DIGGER_AWS_SECRET_KEY, AWS_SECRET_ACCESS_KEY or AWS_SECRET_KEY
 type EnvProvider struct {
-	retrieved    bool
-	roleToAssume *string
+	retrieved bool
+	// roleToAssume *string
 }
 
 // TODO: Refactor this to start using the same Envprovider interface
 // Also it might be worth using `AssumeRoleProvider` interface
 type RoleProvider interface {
-	GetKeysFromRole(role string) (*credentials.Value, error)
+	GetKeysFromRole(role string) (*aws.Credentials, error)
 }
 
 type AwsRoleProvider struct{}
 
-func (a AwsRoleProvider) GetKeysFromRole(role string) (*credentials.Value, error) {
-
-	session, err := session.NewSession()
+func (a AwsRoleProvider) GetKeysFromRole(role string) (*aws.Credentials, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("GetKeysFromRole: Could not create aws session, %v", err)
 	}
-
-	stsService := sts.New(session, &awssdk.Config{})
+	stsService := sts.NewFromConfig(cfg)
 
 	params := &sts.AssumeRoleInput{
-		RoleArn:         awssdk.String(role),
-		RoleSessionName: awssdk.String(EnvProviderName),
-		ExternalId:      awssdk.String(EnvProviderName),
+		RoleArn:         aws.String(role),
+		RoleSessionName: aws.String(EnvProviderName),
+		ExternalId:      aws.String(EnvProviderName),
 	}
 
-	resp, err := stsService.AssumeRole(params)
+	resp, err := stsService.AssumeRole(context.Background(), params)
 	if err != nil {
 		log.Printf("error in GetkeysFromRole %v", err)
 		return nil, ErrRoleNotValid
@@ -73,37 +71,35 @@ func (a AwsRoleProvider) GetKeysFromRole(role string) (*credentials.Value, error
 	asecret := *resp.Credentials.SecretAccessKey
 	asesstoken := *resp.Credentials.SessionToken
 
-	return &credentials.Value{
+	return &aws.Credentials{
 		AccessKeyID:     akey,
 		SecretAccessKey: asecret,
 		SessionToken:    asesstoken,
-		ProviderName:    EnvProviderName,
 	}, nil
 }
 
 // Retrieve retrieves the keys from the environment.
-func (e *EnvProvider) Retrieve() (credentials.Value, error) {
+func (e *EnvProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	e.retrieved = false
 	//assign id from env vars
 	idEnvVars := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY"}
 	id, err := assignEnv(idEnvVars)
 	if err != nil {
-		return credentials.Value{ProviderName: EnvProviderName}, ErrAccessKeyIDNotFound
+		return aws.Credentials{}, ErrAccessKeyIDNotFound
 	}
 
 	//assign secret from env vars
 	secretEnvVars := []string{"DIGGER_AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY", "AWS_SECRET_KEY"}
 	secret, err := assignEnv(secretEnvVars)
 	if err != nil {
-		return credentials.Value{ProviderName: EnvProviderName}, ErrSecretAccessKeyNotFound
+		return aws.Credentials{}, ErrSecretAccessKeyNotFound
 	}
 
 	e.retrieved = true
-	return credentials.Value{
+	return aws.Credentials{
 		AccessKeyID:     id,
 		SecretAccessKey: secret,
 		SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
-		ProviderName:    EnvProviderName,
 	}, nil
 
 }

@@ -1,10 +1,11 @@
 package envprovider
 
 import (
+	"context"
 	"os"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,8 +25,8 @@ func TestRetrieve(t *testing.T) {
 			os.Setenv(tc.key, "key")
 			os.Setenv(tc.secret, "secret")
 			e := EnvProvider{}
-			act, _ := e.Retrieve()
-			exp := credentials.Value(credentials.Value{AccessKeyID: "key", SecretAccessKey: "secret", SessionToken: "", ProviderName: "DiggerEnvProvider"})
+			act, _ := e.Retrieve(context.TODO())
+			exp := aws.Credentials{AccessKeyID: "key", SecretAccessKey: "secret", SessionToken: ""}
 			assert.Equal(t, exp, act)
 		})
 	}
