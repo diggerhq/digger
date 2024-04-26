@@ -2,12 +2,13 @@ package integration
 
 import (
 	"context"
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	"log"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 
 	"github.com/diggerhq/digger/cli/pkg/aws"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
@@ -20,9 +21,8 @@ import (
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
 
-	awssdk "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/go-github/v58/github"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,13 +34,10 @@ func SkipCI(t *testing.T) {
 }
 
 func getProjectLockForTests() (error, *locking.PullRequestLock) {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Profile: "digger-test",
-		Config: awssdk.Config{
-			Region: awssdk.String("us-east-1"),
-		},
-	})
-	dynamoDb := dynamodb.New(sess)
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-east-1"), config.WithSharedConfigProfile("digger-test"))
+
+	dynamoDb := dynamodb.NewFromConfig(cfg)
 	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 
 	repoOwner := "diggerhq"
@@ -517,15 +514,11 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	diggerConfig, _, _, err := configuration.LoadDiggerConfig(dir)
 	assert.NoError(t, err)
 
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Profile: "digger-test",
-		Config: awssdk.Config{
-			Region: awssdk.String("us-east-1"),
-		},
-	})
-
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-east-1"), config.WithSharedConfigProfile("digger-test"))
 	assert.NoError(t, err)
-	dynamoDb := dynamodb.New(sess)
+
+	dynamoDb := dynamodb.NewFromConfig(cfg)
 	dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 
 	ghToken := os.Getenv("GITHUB_TOKEN")

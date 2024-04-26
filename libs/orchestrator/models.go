@@ -2,11 +2,12 @@ package orchestrator
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/diggerhq/digger/libs/digger_config"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log"
 	"slices"
+
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/diggerhq/digger/libs/digger_config"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 type Job struct {

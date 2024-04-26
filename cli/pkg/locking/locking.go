@@ -1,8 +1,14 @@
 package locking
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/cli/pkg/aws"
 	"github.com/diggerhq/digger/cli/pkg/aws/envprovider"
 	"github.com/diggerhq/digger/cli/pkg/azure"
@@ -11,18 +17,12 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/utils"
 	"github.com/diggerhq/digger/cli/pkg/gcp"
 	"github.com/diggerhq/digger/libs/orchestrator"
-	"log"
-	"os"
-	"strconv"
-	"strings"
-
-	"github.com/aws/aws-sdk-go/service/sts"
 
 	"cloud.google.com/go/storage"
-	awssdk "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	awssdk "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type PullRequestLock struct {
@@ -251,36 +251,37 @@ func GetLock() (locking.Lock, error) {
 	if lockProvider == "" || lockProvider == "aws" {
 		log.Println("Using AWS lock provider.")
 
-		// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html
-		options := session.Options{SharedConfigState: session.SharedConfigEnable}
-
+		// https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/
+		// https://aws.github.io/aws-sdk-go-v2/docs/migrating/
 		keysToCheck := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY"}
 		awsCredsProvided := DoEnvVarsExist(keysToCheck)
 
+		var cfg awssdk.Config
+		var err error
 		if awsCredsProvided {
-			options = session.Options{
-				Profile: awsProfile,
-				Config: awssdk.Config{
-					Region:      awssdk.String(awsRegion),
-					Credentials: credentials.NewCredentials(&envprovider.EnvProvider{}),
-				},
+			cfg, err = config.LoadDefaultConfig(context.Background(),
+				config.WithSharedConfigProfile(awsProfile),
+				config.WithRegion(awsRegion),
+				config.WithCredentialsProvider(&envprovider.EnvProvider{}))
+			if err != nil {
+				return nil, err
 			}
 		} else {
 			log.Printf("Using keyless aws digger_config\n")
+			cfg, err = config.LoadDefaultConfig(context.Background(), config.WithRegion(awsRegion))
+			if err != nil {
+				return nil, err
+			}
 		}
-		awsSession, err := session.NewSessionWithOptions(options)
+
+		stsClient := sts.NewFromConfig(cfg)
+		result, err := stsClient.GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
 		if err != nil {
-			return nil, err
-		}
-		svc := sts.New(awsSession)
-		input := &sts.GetCallerIdentityInput{}
-		result, err := svc.GetCallerIdentity(input)
-		if err != nil {
-			return nil, fmt.Errorf("failed to connect to AWS account. %v\n", err)
+			return nil, fmt.Errorf("failed to connect to AWS account. %v", err)
 		}
 		log.Printf("Successfully connected to AWS account %s, user Id: %s\n", *result.Account, *result.UserId)
 
-		dynamoDb := dynamodb.New(awsSession)
+		dynamoDb := dynamodb.NewFromConfig(cfg)
 		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 		return &dynamoDbLock, nil
 	} else if lockProvider == "gcp" {
