@@ -19,7 +19,7 @@ RUN go version
 RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o tasks_exe ./backend/tasks
 
 # Multi-stage build will just copy the binary to an alpine image.
-FROM ubuntu:22.04 as runner
+FROM ubuntu:24.04 as runner
 ENV ATLAS_VERSION v0.16.0
 ARG COMMIT_SHA
 WORKDIR /app
