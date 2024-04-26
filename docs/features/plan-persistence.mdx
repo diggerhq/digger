@@ -8,9 +8,15 @@ Use the following workflow option to use Artifacts plan storage:
 ```
 upload-plan-destination: github
 ```
-Or to use a GCP bucket:
+Or to use a GCP bucket (set environment variable: GOOGLE_STORAGE_BUCKET):
 ```
 upload-plan-destination: gcp
+```
+
+Similarly you can use an aws bucket (set environment variable: AWS_S3_BUCKET):
+
+```
+upload-plan-destination: aws
 ```
 
 ## Permissions
