@@ -339,7 +339,7 @@ runs:
       name: cache-save
       with:
         path: ${{ github.workspace }}/cache
-        key: ${{ runner.os }}-${{ hashFiles('**/cache') }}
+        key: digger-${{ hashFiles('**/cache') }}
       if: ${{ inputs.cache-dependencies == 'true' }}
 
 branding:
