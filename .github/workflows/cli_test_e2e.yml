@@ -35,6 +35,12 @@ jobs:
           go get -v ./...
         working-directory: cli_e2e
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_E2E_TEST_ROLE }}
+
       - name: Test
         run: |
           echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp.json
@@ -43,6 +49,7 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp.json
           GOOGLE_STORAGE_BUCKET: gcp-plan-artefacts
+          AWS_S3_BUCKET: digger-tests-bucket
 
 
 
