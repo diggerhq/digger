@@ -12,7 +12,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/google/uuid v1.6.0
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
-	github.com/open-policy-agent/opa v0.64.0
+	github.com/open-policy-agent/opa v0.64.1
 	github.com/stretchr/testify v1.9.0
 	github.com/xanzy/go-gitlab v0.103.0
 	gopkg.in/yaml.v3 v3.0.1
