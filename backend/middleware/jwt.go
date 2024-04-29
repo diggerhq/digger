@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) error {
@@ -195,30 +194,14 @@ func JWTBearerTokenAuth(auth services.Auth) gin.HandlerFunc {
 		}
 
 		if strings.HasPrefix(token, "cli:") {
-			var dbToken models.Token
-
-			jobToken, err := models.DB.GetJobToken(token)
-			if jobToken == nil {
-				c.String(http.StatusForbidden, "Invalid bearer token")
+			if jobToken, err := CheckJobToken(c, token); err != nil {
+				c.String(http.StatusForbidden, err.Error())
 				c.Abort()
 				return
+			} else {
+				c.Set(ORGANISATION_ID_KEY, jobToken.OrganisationID)
+				c.Set(ACCESS_LEVEL_KEY, jobToken.Type)
 			}
-
-			if time.Now().After(jobToken.Expiry) {
-				log.Printf("Token has already expired: %v", err)
-				c.String(http.StatusForbidden, "Token has expired")
-				c.Abort()
-				return
-			}
-
-			if err != nil {
-				log.Printf("Error while fetching token from database: %v", err)
-				c.String(http.StatusInternalServerError, "Error occurred while fetching database")
-				c.Abort()
-				return
-			}
-			c.Set(ORGANISATION_ID_KEY, dbToken.OrganisationID)
-			c.Set(ACCESS_LEVEL_KEY, dbToken.Type)
 		} else if strings.HasPrefix(token, "t:") {
 			var dbToken models.Token
 
