@@ -51,10 +51,23 @@ func HttpBasicApiAuth() gin.HandlerFunc {
 			return
 		}
 
-		if token == os.Getenv("BEARER_AUTH_TOKEN") {
+		if strings.HasPrefix(token, "cli:") {
+			if jobToken, err := CheckJobToken(c, token); err != nil {
+				c.String(http.StatusForbidden, err.Error())
+				c.Abort()
+				return
+			} else {
+				setDefaultOrganisationId(c)
+				c.Set(ACCESS_LEVEL_KEY, jobToken.Type)
+			}
+		} else if token == os.Getenv("BEARER_AUTH_TOKEN") {
 			setDefaultOrganisationId(c)
 			c.Set(ACCESS_LEVEL_KEY, models.AdminPolicyType)
 			c.Next()
+		} else {
+			c.String(http.StatusForbidden, "Invalid Bearer token")
+			c.Abort()
+			return
 		}
 		return
 	}
