@@ -205,6 +205,7 @@ func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
 			"PK": &types.AttributeValueMemberS{Value: "LOCK"},
 			"SK": &types.AttributeValueMemberS{Value: "RES#" + lockId},
 		},
+		ConsistentRead: aws.Bool(true),
 	}
 
 	result, err := dynamoDbLock.DynamoDb.GetItem(ctx, input)
