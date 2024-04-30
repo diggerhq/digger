@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/samber/lo"
 	"log"
 	"net/http"
 	"os"
@@ -176,6 +177,18 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
+
+		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./")
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+		}
+		log.Printf("Digger digger_config read successfully\n")
+
+		// Override the values of StateEnvVars and CommandEnvVars from workflow value_from values
+		workflow := diggerConfig.Workflows[job.ProjectName]
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+		job.StateEnvVars = lo.Assign(job.StateEnvVars, stateEnvVars)
+		job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandEnvVars)
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
