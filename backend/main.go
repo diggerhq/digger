@@ -173,17 +173,15 @@ func main() {
 
 	admin.POST("/tokens/issue-access-token", controllers.IssueAccessTokenForOrg)
 
-	apiGroup := r.Group("/api")
-	apiGroup.Use(middleware.CORSMiddleware())
-
-	projectsApiGroup := apiGroup.Group("/projects")
-	projectsApiGroup.Use(middleware.GetWebMiddleware())
+	r.Use(middleware.CORSMiddleware())
+	projectsApiGroup := r.Group("/api/projects")
+	projectsApiGroup.Use(middleware.GetApiMiddleware())
 	projectsApiGroup.GET("/", controllers.FindProjectsForOrg)
 	projectsApiGroup.GET("/:project_id", controllers.ProjectDetails)
 	projectsApiGroup.GET("/:project_id/runs", controllers.RunsForProject)
 
-	runsApiGroup := apiGroup.Group("/runs")
-	runsApiGroup.Use(middleware.GetWebMiddleware())
+	runsApiGroup := r.Group("/api/runs")
+	runsApiGroup.Use(middleware.CORSMiddleware(), middleware.GetApiMiddleware())
 	runsApiGroup.GET("/:run_id", controllers.RunDetails)
 	runsApiGroup.POST("/:run_id/approve", controllers.ApproveRun)
 
