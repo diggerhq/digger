@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -302,7 +303,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
+			if errors.Is(err, &dg_github.EventToIgnoreError{}) {
+				reportErrorAndExit(githubActor, fmt.Sprintf("Graceful handling of GitHub event. %s", err), 0)
+			} else {
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
+			}
 		}
 		impactedProjectsMsg := getImpactedProjectsAsString(impactedProjects, prNumber)
 		log.Println(impactedProjectsMsg)

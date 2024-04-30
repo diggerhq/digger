@@ -490,7 +490,8 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			}
 		}
 		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
-
+	case github.MergeGroupEvent:
+		return nil, nil, 0, &EventToIgnoreError{"ignoring event of type merge_group"}
 	default:
 		return nil, nil, 0, fmt.Errorf("unsupported event type")
 	}

@@ -81,6 +81,12 @@ func (g *GithubAction) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		g.Event = event
+	case "merge_group":
+		var event github.MergeGroupEvent
+		if err := json.Unmarshal(rawEvent, &event); err != nil {
+			return err
+		}
+		g.Event = event
 	case "schedule":
 		// TODO: Find appropriate event for workflow scheduled run
 		var event github.WorkflowDispatchEvent
