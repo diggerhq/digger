@@ -4,4 +4,4 @@ import (
 	"errors"
 )
 
-var UnhandledMergeGroupEventError = errors.New("vertex not found")
+var UnhandledMergeGroupEventError = errors.New("ignoring event: merge_group")
