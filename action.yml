@@ -309,6 +309,8 @@ runs:
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
         TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
+        TERRAGRUNT_PROVIDER_CACHE: "0"
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
       run: |
           cd $GITHUB_ACTION_PATH/cli
           go build -o digger ./cmd/digger
@@ -337,7 +339,8 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
-
+        TERRAGRUNT_PROVIDER_CACHE: "0"
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
       id: digger
       shell: bash
       run: |
