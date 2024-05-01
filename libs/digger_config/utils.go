@@ -7,6 +7,14 @@ import (
 	"path/filepath"
 )
 
+func GetPatternsRelativeToRepo(projectPath string, patterns []string) ([]string, error) {
+	res := make([]string, 0)
+	for _, pattern := range patterns {
+		res = append(res, path.Join(projectPath, pattern))
+	}
+	return res, nil
+}
+
 func NormalizeFileName(fileName string) string {
 	res, err := filepath.Abs(path.Join("/", fileName))
 	if err != nil {
