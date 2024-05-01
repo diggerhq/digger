@@ -400,6 +400,12 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 	}
 
 	for _, atlantisProject := range atlantisConfig.Projects {
+
+		// normalize paths
+		for i, whenModified := range atlantisProject.Autoplan.WhenModified {
+			atlantisProject.Autoplan.WhenModified[i] = path.Join(pathPrefix, atlantisProject.Dir, whenModified)
+		}
+
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
 			Name:            atlantisProject.Name,
 			Dir:             path.Join(pathPrefix, atlantisProject.Dir),
