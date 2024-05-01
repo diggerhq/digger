@@ -20,3 +20,21 @@ func TestMatchIncludeExcludePatternsToFile(t *testing.T) {
 	result = MatchIncludeExcludePatternsToFile("projects/dev/project", includePatterns, excludePatterns)
 	assert.Equal(t, false, result)
 }
+
+func TestGetPatternsRelativeToRepo(t *testing.T) {
+	projectDir := "myProject/terraform/environments/devel"
+	includePatterns := []string{"../../*.tf*"}
+	res, _ := GetPatternsRelativeToRepo(projectDir, includePatterns)
+	assert.Equal(t, "myProject/terraform/*.tf*", res[0])
+
+	projectDir = "myProject/terraform/environments/devel"
+	includePatterns = []string{"*.tf"}
+	res, _ = GetPatternsRelativeToRepo(projectDir, includePatterns)
+	assert.Equal(t, "myProject/terraform/environments/devel/*.tf", res[0])
+
+	projectDir = "myProject/terraform/environments/devel"
+	includePatterns = []string{"*.hcl"}
+	res, _ = GetPatternsRelativeToRepo(projectDir, includePatterns)
+	assert.Equal(t, "myProject/terraform/environments/devel/*.hcl", res[0])
+
+}

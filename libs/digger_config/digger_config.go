@@ -402,13 +402,15 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 	for _, atlantisProject := range atlantisConfig.Projects {
 
 		// normalize paths
-		for i, whenModified := range atlantisProject.Autoplan.WhenModified {
-			atlantisProject.Autoplan.WhenModified[i] = path.Join(pathPrefix, atlantisProject.Dir, whenModified)
+		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
+		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
+		if err != nil {
+			return fmt.Errorf("could not normalize patterns: %v", err)
 		}
 
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
 			Name:            atlantisProject.Name,
-			Dir:             path.Join(pathPrefix, atlantisProject.Dir),
+			Dir:             projectDir,
 			Workspace:       atlantisProject.Workspace,
 			Terragrunt:      true,
 			Workflow:        atlantisProject.Workflow,
