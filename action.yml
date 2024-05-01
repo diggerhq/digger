@@ -34,8 +34,11 @@ inputs:
       description: "'audience' parameter configured in Google's Workload Identity Provider (if specified). To be used when the 'google-workload-identity-provider' input is specified"
       required: false
   google-service-account:
-      description: Service account to be used when the 'google-workload-identity-provider' input is specified)
-      required: false
+    description: Service account to be used when the 'google-workload-identity-provider' input is specified)
+    required: false
+  google-lock-bucket:
+    description: The GCP bucket to use for locks
+    required: false
   setup-azure:
     description: Setup Azure
     required: false
@@ -292,7 +295,8 @@ runs:
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
-        GOOGLE_STORAGE_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
+        GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
+        GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
@@ -323,7 +327,8 @@ runs:
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
-        GOOGLE_STORAGE_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
+        GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
+        GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
