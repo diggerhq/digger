@@ -294,9 +294,9 @@ func GetLock() (locking.Lock, error) {
 			}
 		}(client)
 
-		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
+		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_LOCK_BUCKET"))
 		if bucketName == "" {
-			return nil, errors.New("GOOGLE_STORAGE_BUCKET is not set")
+			return nil, errors.New("GOOGLE_STORAGE_LOCK_BUCKET is not set")
 		}
 		bucket := client.Bucket(bucketName)
 		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}

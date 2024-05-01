@@ -918,9 +918,9 @@ func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 		}
 	case uploadDestination == "gcp":
 		ctx, client := gcp.GetGoogleStorageClient()
-		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
+		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET"))
 		if bucketName == "" {
-			reportErrorAndExit(requestedBy, "GOOGLE_STORAGE_BUCKET is not defined", 9)
+			reportErrorAndExit(requestedBy, "GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET is not defined", 9)
 		}
 		bucket := client.Bucket(bucketName)
 		planStorage = &storage.PlanStorageGcp{
