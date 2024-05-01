@@ -26,7 +26,7 @@ func TestGCPPlanStorageStorageAndRetrieval(t *testing.T) {
 	fmt.Printf("getting cp client")
 	ctx, client := gcp.GetGoogleStorageClient()
 	fmt.Printf("getting bucket")
-	bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_BUCKET"))
+	bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET"))
 	bucket := client.Bucket(bucketName)
 	planStorage := &storage.PlanStorageGcp{
 		Client:  client,
