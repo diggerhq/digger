@@ -361,8 +361,6 @@ runs:
       with:
         path: ${{ github.workspace }}/cache
         key: digger-cache-${{ hashFiles('**/cache') }}
-        restore-keys: |
-          digger-cache-
 
 branding:
   icon: globe
