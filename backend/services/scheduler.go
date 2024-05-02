@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 )
+import "github.com/diggerhq/digger/backend/config"
 
 func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoOwner string, repoName string, workflowFileName string) error {
 	log.Printf("DiggerJobCompleted parentJobId: %v", parentJob.DiggerJobID)
@@ -51,6 +52,13 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 
 func TriggerJob(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) {
 	log.Printf("TriggerJob jobId: %v", job.DiggerJobID)
+
+	maxConcurrencyForBatch := config.DiggerConfig.GetInt("max_concurrency_per_batch")
+	jobs, err := models.DB.GetDiggerJobsForBatchWithStatus(*batchId, orchestrator_scheduler.DiggerJobSucceeded)
+	if len(jobs) > maxConcurrencyForBatch {
+		log.Printf("max concurrency for jobs reached: %v, not triggering jobs until more jobs succeed", len(jobs))
+		return
+	}
 
 	batch, err := models.DB.GetDiggerBatch(batchId)
 	if err != nil {
