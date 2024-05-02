@@ -31,7 +31,8 @@ var templates embed.FS
 func main() {
 
 	initLogging()
-	web := controllers.WebController{Config: config.DiggerConfig}
+	cfg := config.DiggerConfig
+	web := controllers.WebController{Config: cfg}
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:           os.Getenv("SENTRY_DSN"),
