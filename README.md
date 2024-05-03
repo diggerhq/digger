@@ -39,6 +39,26 @@ Digger has 2 main components:
 
 Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB + S3 on AWS, equivalents in other cloud providers)
 
+## Compared to Atlantis
+
+- No need to host and maintain a server (although you [can](https://docs.digger.dev/self-host/deploy-helm))
+- Secure by design: jobs run in your CI, so sensitive data stays there
+- Scalable compute: jobs can run in parallel
+- RBAC and policies via OPA
+- Drift detection
+- Apply-after-merge workflows
+- Web UI (cloud based)
+- Read more about differences with Atlantis in our [blog post](https://medium.com/@DiggerHQ/digger-and-atlantis-key-differences-c08029ffe112)
+​
+## Compared to Terraform Cloud and other TACOs
+
+- Open source; orchestrator can be self-hosted
+- Unlimited runs and unlimited resources-under-management on all tiers
+- Jobs run in your CI, not on a third-party server
+- Supports PR automation (apply before merge)
+- No duplication of the CI/CD stack
+- Secrets not shared with a third party
+
 ## Contributing
 
 We love contributions. Check out our [contributing guide](CONTRIBUTING.md) to get started.
