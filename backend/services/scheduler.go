@@ -59,12 +59,16 @@ func ScheduleJob(client *github.Client, repoOwner string, repoName string, batch
 	} else {
 		// concurrency limits set
 		log.Printf("Scheduling job with concurrency limit: %v per batch", maxConcurrencyForBatch)
-		jobs, err := models.DB.GetDiggerJobsForBatchWithStatus(*batchId, orchestrator_scheduler.DiggerJobSucceeded)
+		jobs, err := models.DB.GetDiggerJobsForBatchWithStatus(*batchId, []orchestrator_scheduler.DiggerJobStatus{
+			orchestrator_scheduler.DiggerJobTriggered,
+			orchestrator_scheduler.DiggerJobStarted,
+		})
 		if err != nil {
 			log.Printf("GetDiggerJobsForBatchWithStatus err: %v\n", err)
 			return err
 		}
-		if len(jobs) > maxConcurrencyForBatch {
+		log.Printf("Length of jobs: %v", len(jobs))
+		if len(jobs) >= maxConcurrencyForBatch {
 			log.Printf("max concurrency for jobs reached: %v, queuing until more jobs succeed", len(jobs))
 			job.Status = orchestrator_scheduler.DiggerJobQueuedForRun
 			models.DB.UpdateDiggerJob(job)
@@ -98,14 +102,7 @@ func TriggerJob(client *github.Client, repoOwner string, repoName string, batchI
 		return err
 	}
 
-	_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, job.DiggerJobID)
-	if err != nil {
-		log.Printf("failed to find workflow url: %v\n", err)
-		return err
-	}
-
 	job.Status = orchestrator_scheduler.DiggerJobTriggered
-	job.WorkflowRunUrl = &workflowRunUrl
 	err = models.DB.UpdateDiggerJob(job)
 	if err != nil {
 		log.Printf("failed to Update digger job state: %v\n", err)

@@ -23,7 +23,7 @@ func main() {
 	c := cron.New()
 
 	// RunQueues state machine
-	c.AddFunc("* * * * *", func() {
+	c.AddFunc("0 * * * * *", func() {
 		runQueues, err := models.DB.GetFirstRunQueueForEveryProject()
 		if err != nil {
 			log.Printf("Error fetching Latest queueItem runs: %v", err)
@@ -46,7 +46,7 @@ func main() {
 	})
 
 	// Triggered queued jobs for a batch
-	c.AddFunc("* * * * *", func() {
+	c.AddFunc("30 * * * * *", func() {
 		jobs, err := models.DB.GetDiggerJobsWithStatus(scheduler.DiggerJobQueuedForRun)
 		if err != nil {
 			log.Printf("Failed to get Jobs %v", err)

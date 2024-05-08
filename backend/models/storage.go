@@ -893,11 +893,11 @@ func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error
 	return jobs, nil
 }
 
-func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status scheduler.DiggerJobStatus) ([]DiggerJob, error) {
+func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []scheduler.DiggerJobStatus) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
 	var where *gorm.DB
-	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status = ?", status)
+	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status IN ?", status)
 
 	result := where.Preload("Batch").Preload("DiggerJobSummary").Find(&jobs)
 	if result.Error != nil {
