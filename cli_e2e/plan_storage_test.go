@@ -52,18 +52,20 @@ func TestGCPPlanStorageStorageAndRetrieval(t *testing.T) {
 }
 
 func TestAWSPlanStorageStorageAndRetrieval(t *testing.T) {
-	file, err := os.CreateTemp("/tmp", "prefix")
-	fmt.Printf("error creating temp dir: %v", err)
+	file, err := os.CreateTemp("/tmp", "prefix2")
+	if err != nil {
+		log.Printf("error creating temp dir: %v", err)
+	}
 	assert.Nil(t, err)
 	defer os.Remove(file.Name())
 
-	fmt.Printf("getting AWS S3 client")
+	log.Printf("getting AWS S3 client")
 	ctx, client, err := storage.GetAWSStorageClient()
 	if err != nil {
 		t.Errorf("failed to get AWS storage client: %v", err)
 	}
 	bucketName := strings.ToLower(os.Getenv("AWS_S3_BUCKET"))
-	fmt.Printf("using AWS S3 bucket found by env var 'AWS_S3_BUCKET': %s", bucketName)
+	log.Printf("using AWS S3 bucket found by env var 'AWS_S3_BUCKET': %s", bucketName)
 	planStorage := &storage.PlanStorageAWS{
 		Client:  client,
 		Bucket:  bucketName,
@@ -73,16 +75,22 @@ func TestAWSPlanStorageStorageAndRetrieval(t *testing.T) {
 	artefactName := "myartefact"
 	fileName := "myplan.tfplan"
 	err = planStorage.StorePlanFile(contents, artefactName, fileName)
-	fmt.Printf("error StorePlanFile: %v", err)
+	if err != nil {
+		log.Printf("error StorePlanFile: %v", err)
+	}
 	assert.Nil(t, err)
 	exists, err := planStorage.PlanExists(artefactName, fileName)
-	fmt.Printf("error PlanExists: %v", err)
+	if err != nil {
+		log.Printf("error PlanExists: %v", err)
+	}
 	assert.Nil(t, err)
 	assert.True(t, exists)
 
 	planStorage.RetrievePlan(file.Name(), artefactName, fileName)
 	readContents, err := os.ReadFile(file.Name())
-	fmt.Printf("error RetrievePlan: %v", err)
+	if err != nil {
+		log.Printf("error RetrievePlan: %v", err)
+	}
 	assert.Nil(t, err)
 	assert.Equal(t, readContents, contents)
 }
