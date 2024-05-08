@@ -47,6 +47,8 @@ func (d *DiggerJobStatus) ToString() string {
 		return "running"
 	case DiggerJobCreated:
 		return "created"
+	case DiggerJobQueuedForRun:
+		return "created"
 	default:
 		return "unknown status"
 	}
@@ -63,6 +65,8 @@ func (d *DiggerJobStatus) ToEmoji() string {
 	case DiggerJobTriggered:
 		return ":arrows_counterclockwise:"
 	case DiggerJobCreated:
+		return ":clock11:"
+	case DiggerJobQueuedForRun:
 		return ":clock11:"
 	default:
 		return ":question:"
