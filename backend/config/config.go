@@ -21,7 +21,7 @@ func New() *Config {
 	v.SetDefault("usersvc_on", true)
 	v.SetDefault("build_date", "null")
 	v.SetDefault("deployed_at", time.Now().UTC().Format(time.RFC3339))
-	v.SetDefault("max_concurrency_per_batch", "5")
+	v.SetDefault("max_concurrency_per_batch", "0")
 	v.BindEnv()
 	return v
 }

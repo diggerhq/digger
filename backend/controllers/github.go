@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/services"
 	"log"
 	"math/rand"
 	"net/http"
@@ -716,7 +717,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 }
 
 func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService *dg_github.GithubService) error {
-	batch, err := models.DB.GetDiggerBatch(batchId)
+	_, err := models.DB.GetDiggerBatch(batchId)
 	if err != nil {
 		log.Printf("failed to get digger batch, %v\n", err)
 		return fmt.Errorf("failed to get digger batch, %v\n", err)
@@ -738,23 +739,10 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 		log.Printf("jobString: %v \n", jobString)
 
 		// TODO: make workflow file name configurable
-		err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, job, jobString, *batch.CommentId)
+		err = services.ScheduleJob(client, repoOwner, repoName, batchId, &job)
 		if err != nil {
 			log.Printf("failed to trigger github workflow, %v\n", err)
 			return fmt.Errorf("failed to trigger github workflow, %v\n", err)
-		} else {
-
-			_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, job.DiggerJobID)
-			if err != nil {
-				log.Printf("failed to find workflow url: %v\n", err)
-			}
-			job.Status = orchestrator_scheduler.DiggerJobTriggered
-			job.WorkflowRunUrl = &workflowRunUrl
-			err = models.DB.UpdateDiggerJob(&job)
-			if err != nil {
-				log.Printf("failed to Update digger job state: %v\n", err)
-				return fmt.Errorf("failed to Update digger job state: %v\n", err)
-			}
 		}
 	}
 	return nil
