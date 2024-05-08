@@ -27,11 +27,12 @@ const (
 type DiggerJobStatus int8
 
 const (
-	DiggerJobCreated   DiggerJobStatus = 1
-	DiggerJobTriggered DiggerJobStatus = 2
-	DiggerJobFailed    DiggerJobStatus = 3
-	DiggerJobStarted   DiggerJobStatus = 4
-	DiggerJobSucceeded DiggerJobStatus = 5
+	DiggerJobCreated      DiggerJobStatus = 1
+	DiggerJobTriggered    DiggerJobStatus = 2
+	DiggerJobFailed       DiggerJobStatus = 3
+	DiggerJobStarted      DiggerJobStatus = 4
+	DiggerJobSucceeded    DiggerJobStatus = 5
+	DiggerJobQueuedForRun DiggerJobStatus = 6
 )
 
 func (d *DiggerJobStatus) ToString() string {
