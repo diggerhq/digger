@@ -27,11 +27,12 @@ const (
 type DiggerJobStatus int8
 
 const (
-	DiggerJobCreated   DiggerJobStatus = 1
-	DiggerJobTriggered DiggerJobStatus = 2
-	DiggerJobFailed    DiggerJobStatus = 3
-	DiggerJobStarted   DiggerJobStatus = 4
-	DiggerJobSucceeded DiggerJobStatus = 5
+	DiggerJobCreated      DiggerJobStatus = 1
+	DiggerJobTriggered    DiggerJobStatus = 2
+	DiggerJobFailed       DiggerJobStatus = 3
+	DiggerJobStarted      DiggerJobStatus = 4
+	DiggerJobSucceeded    DiggerJobStatus = 5
+	DiggerJobQueuedForRun DiggerJobStatus = 6
 )
 
 func (d *DiggerJobStatus) ToString() string {
@@ -45,6 +46,8 @@ func (d *DiggerJobStatus) ToString() string {
 	case DiggerJobTriggered:
 		return "running"
 	case DiggerJobCreated:
+		return "created"
+	case DiggerJobQueuedForRun:
 		return "created"
 	default:
 		return "unknown status"
@@ -62,6 +65,8 @@ func (d *DiggerJobStatus) ToEmoji() string {
 	case DiggerJobTriggered:
 		return ":arrows_counterclockwise:"
 	case DiggerJobCreated:
+		return ":clock11:"
+	case DiggerJobQueuedForRun:
 		return ":clock11:"
 	default:
 		return ":question:"
