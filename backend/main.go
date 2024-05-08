@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/backend/config"
 	"html/template"
 	"io/fs"
 	"log"
@@ -11,7 +12,6 @@ import (
 
 	"embed"
 
-	"github.com/alextanhongpin/go-gin-starter/config"
 	"github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
@@ -31,8 +31,7 @@ var templates embed.FS
 func main() {
 
 	initLogging()
-	cfg := config.New()
-	cfg.AutomaticEnv()
+	cfg := config.DiggerConfig
 	web := controllers.WebController{Config: cfg}
 
 	if err := sentry.Init(sentry.ClientOptions{
