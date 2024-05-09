@@ -129,7 +129,8 @@
             "group": "GCP-specific",
             "pages": [
               "gcp/setting-up-gcp-+-gh-actions",
-              "gcp/federated-oidc-access"
+              "gcp/federated-oidc-access",
+              "gcp/using-gcp-bucket-for-locks",
             ]
         },
         {
