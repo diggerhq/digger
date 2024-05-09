@@ -130,7 +130,7 @@
             "pages": [
               "gcp/setting-up-gcp-+-gh-actions",
               "gcp/federated-oidc-access",
-              "gcp/using-gcp-bucket-for-locks",
+              "gcp/using-gcp-bucket-for-locks"
             ]
         },
         {
