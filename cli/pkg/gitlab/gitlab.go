@@ -10,7 +10,7 @@ import (
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 
-	"github.com/caarlos0/env/v8"
+	"github.com/caarlos0/env/v11"
 	go_gitlab "github.com/xanzy/go-gitlab"
 )
 
