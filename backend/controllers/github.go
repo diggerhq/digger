@@ -709,6 +709,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error convertingjobs")
 	}
 
+	segment.Track(strconv.Itoa(int(orgId)), "backend_trigger_job")
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, issueNumber, ghService)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
