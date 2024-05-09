@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/backend/segment"
 	"html/template"
 	"io/fs"
 	"log"
@@ -29,7 +30,7 @@ var Version = "dev"
 var templates embed.FS
 
 func main() {
-
+	defer segment.CloseClient()
 	initLogging()
 	cfg := config.New()
 	cfg.AutomaticEnv()
