@@ -12,7 +12,7 @@ import (
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	dggithub "github.com/diggerhq/digger/libs/orchestrator/github"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 
 	"testing"
 

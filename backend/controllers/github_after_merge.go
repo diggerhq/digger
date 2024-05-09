@@ -10,7 +10,7 @@ import (
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/gin-gonic/gin"
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 	"log"
 	"net/http"
 	"os"

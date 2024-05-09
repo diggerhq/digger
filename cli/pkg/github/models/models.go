@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/diggerhq/digger/libs/orchestrator/github/models"
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 )
 
 type GithubAction struct {
