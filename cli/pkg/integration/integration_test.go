@@ -23,7 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 	"github.com/stretchr/testify/assert"
 )
 
