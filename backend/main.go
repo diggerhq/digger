@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/config"
 	"html/template"
 	"io/fs"
@@ -29,7 +30,7 @@ var Version = "dev"
 var templates embed.FS
 
 func main() {
-
+	defer segment.CloseClient()
 	initLogging()
 	cfg := config.DiggerConfig
 	web := controllers.WebController{Config: cfg}

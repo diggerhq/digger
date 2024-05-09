@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
 	"log"
 	"math/rand"
@@ -506,6 +507,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error converting jobs")
 	}
 
+	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, prNumber, ghService)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
