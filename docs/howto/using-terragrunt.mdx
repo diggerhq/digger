@@ -76,7 +76,6 @@ jobs:
           google-lock-bucket: please-create-me-for-storing-locks
         env:
           LOCK_PROVIDER: gcp
-          GOOGLE_STORAGE_LOCK_BUCKET: please-create-me-for-storing-locks
           GOOGLE_ENCRYPTION_KEY: $\'{\'{ secrets.GOOGLE_ENCRYPTION_KEY \}\}
           GITHUB_CONTEXT: $\'{\'{ toJson(github) \}\}
           GITHUB_TOKEN: $\'{\'{ secrets.GITHUB_TOKEN \}\}
