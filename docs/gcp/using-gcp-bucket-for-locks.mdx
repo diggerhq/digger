@@ -2,7 +2,6 @@
 title: "Using GCP bucket for locks"
 ---
 
-You can configure Digger to use a GCP bucket for locks. To do that, set the following 2 settings with your bucket name:
+You can configure Digger to use a GCP bucket for locks. To do that, set the following setting in the workflow file:
 
-- `GOOGLE_STORAGE_LOCK_BUCKET` env variable
-- `google-lock-bucket` action input
+- `google-lock-bucket` action input pointing to your bucket
