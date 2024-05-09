@@ -79,6 +79,7 @@
               "howto/policy-overrides",
               "howto/project-level-roles",
               "howto/segregate-cloud-accounts",
+              "gcp/store-plans-in-a-bucket",
               "howto/trigger-directly",
               "howto/using-checkov",
               "howto/using-infracost",
@@ -128,8 +129,7 @@
             "group": "GCP-specific",
             "pages": [
               "gcp/setting-up-gcp-+-gh-actions",
-              "gcp/federated-oidc-access",
-              "gcp/store-plans-in-a-bucket"
+              "gcp/federated-oidc-access"
             ]
         },
         {
