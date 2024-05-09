@@ -14,7 +14,7 @@ import (
 
 	"github.com/diggerhq/digger/cli/pkg/utils"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 )
 
 type GithubPlanStorage struct {

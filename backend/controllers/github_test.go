@@ -13,7 +13,7 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
