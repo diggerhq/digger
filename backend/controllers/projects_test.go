@@ -4,7 +4,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 	"github.com/stretchr/testify/assert"
