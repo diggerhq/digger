@@ -25,17 +25,23 @@ const (
 )
 
 type DynamoDbLock struct {
-	DynamoDb *dynamodb.Client
+	DynamoDb DynamoDBClient
 }
 
-func isResourceNotFoundExceptionError(err error) bool {
-	if err != nil {
-		var apiError smithy.APIError
-		if errors.As(err, &apiError) {
-			switch apiError.(type) {
-			case *types.ResourceNotFoundException:
-				return true
-			}
+type DynamoDBClient interface {
+	DescribeTable(ctx context.Context, params *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error)
+	CreateTable(ctx context.Context, params *dynamodb.CreateTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error)
+	UpdateItem(ctx context.Context, params *dynamodb.UpdateItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error)
+	DeleteItem(ctx context.Context, params *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error)
+	GetItem(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error)
+}
+
+func isTableNotFoundExceptionError(err error) bool {
+	var apiError smithy.APIError
+	if errors.As(err, &apiError) {
+		switch apiError.(type) {
+		case *types.TableNotFoundException:
+			return true
 		}
 	}
 	return false
@@ -49,7 +55,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated(ctx context.Context) err
 	cnt := 0
 
 	if err != nil {
-		if !isResourceNotFoundExceptionError(err) {
+		if !isTableNotFoundExceptionError(err) {
 			return err
 		}
 	}
@@ -58,7 +64,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated(ctx context.Context) err
 		time.Sleep(TableCreationInterval)
 		status, err = dynamoDbLock.DynamoDb.DescribeTable(ctx, input)
 		if err != nil {
-			if !isResourceNotFoundExceptionError(err) {
+			if !isTableNotFoundExceptionError(err) {
 				return err
 			}
 		}
@@ -78,15 +84,14 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists(ctx context.Context) er
 	_, err := dynamoDbLock.DynamoDb.DescribeTable(ctx, &dynamodb.DescribeTableInput{
 		TableName: aws.String(TABLE_NAME),
 	})
-
-	if err != nil {
-		if !isResourceNotFoundExceptionError(err) {
-			return err
-		}
+	if err == nil { // Table exists
+		return nil
+	}
+	if !isTableNotFoundExceptionError(err) {
+		return err
 	}
 
 	createtbl_input := &dynamodb.CreateTableInput{
-
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
 				AttributeName: aws.String("PK"),
@@ -214,7 +219,8 @@ func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
 	}
 
 	type TransactionLock struct {
-		TransactionID int `dynamodbav:"transaction_id"`
+		TransactionID int    `dynamodbav:"transaction_id"`
+		Timeout       string `dynamodbav:"timeout"`
 	}
 
 	var t TransactionLock
