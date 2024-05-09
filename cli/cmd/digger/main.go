@@ -38,7 +38,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 )
 
 func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {

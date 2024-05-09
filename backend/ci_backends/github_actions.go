@@ -3,7 +3,7 @@ package ci_backends
 import (
 	"context"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 	"log"
 	"strconv"
 )
