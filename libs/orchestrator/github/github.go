@@ -11,7 +11,7 @@ import (
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/dominikbraun/graph"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v61/github"
 )
 
 func NewGitHubService(ghToken string, repoName string, owner string) GithubService {
