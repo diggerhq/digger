@@ -29,10 +29,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.7
 	github.com/aws/smithy-go v1.20.2
 	github.com/caarlos0/env/v11 v11.0.0
-	github.com/caarlos0/env/v11 v11.0.0
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/dominikbraun/graph v0.23.0
-	github.com/google/go-github/v61 v61.0.0
 	github.com/google/go-github/v61 v61.0.0
 	github.com/samber/lo v1.39.0
 	github.com/spf13/cobra v1.8.0
