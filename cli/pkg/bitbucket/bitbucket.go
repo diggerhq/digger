@@ -490,6 +490,6 @@ func FindImpactedProjectsInBitbucket(diggerConfig *configuration.DiggerConfig, p
 		return nil, err
 	}
 
-	impactedProjects := diggerConfig.GetModifiedProjects(changedFiles)
+	impactedProjects, _ := diggerConfig.GetModifiedProjects(changedFiles)
 	return impactedProjects, nil
 }

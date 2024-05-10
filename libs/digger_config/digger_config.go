@@ -3,6 +3,7 @@ package digger_config
 import (
 	"errors"
 	"fmt"
+	"github.com/samber/lo"
 	"log"
 	"os"
 	"path"
@@ -498,9 +499,16 @@ func (c *DiggerConfig) GetProjects(projectName string) []Project {
 	return []Project{*project}
 }
 
-func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
+type ProjectToSourceMapping struct {
+	ImpactingLocations []string
+}
+
+func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) ([]Project, map[string]ProjectToSourceMapping) {
 	var result []Project
+	mapping := make(map[string]ProjectToSourceMapping)
 	for _, project := range c.Projects {
+		sourceChangesForProject := make([]string, 0)
+		isProjectAdded := false
 		for _, changedFile := range changedFiles {
 			includePatterns := project.IncludePatterns
 			excludePatterns := project.ExcludePatterns
@@ -511,12 +519,21 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 			}
 			// all our patterns are the globale dir pattern + the include patterns specified by user
 			if MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
-				result = append(result, project)
-				break
+				if !isProjectAdded {
+					result = append(result, project)
+					isProjectAdded = true
+				}
+				changedDir := filepath.Dir(changedFile)
+				if !lo.Contains(sourceChangesForProject, changedDir) {
+					sourceChangesForProject = append(sourceChangesForProject, changedDir)
+				}
 			}
 		}
+		mapping[project.Name] = ProjectToSourceMapping{
+			ImpactingLocations: sourceChangesForProject,
+		}
 	}
-	return result
+	return result, mapping
 }
 
 func (c *DiggerConfig) GetDirectory(projectName string) string {

@@ -165,7 +165,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 			return fmt.Errorf("error getting digger config")
 		}
 
-		impactedProjects, requestedProject, _, err := dg_github.ProcessGitHubPushEvent(payload, config, projectsGraph, ghService)
+		impactedProjects, impactedProjectsSourceMapping, requestedProject, _, err := dg_github.ProcessGitHubPushEvent(payload, config, projectsGraph, ghService)
 		if err != nil {
 			log.Printf("Error processing event: %v", err)
 			return fmt.Errorf("error processing event")
@@ -217,7 +217,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 				return fmt.Errorf("error creating job token")
 			}
 
-			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, orgName, planJobToken.Value, backendHostName, impactedProjects[i]))
+			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, orgName, planJobToken.Value, backendHostName, impactedProjects[i], impactedProjectsSourceMapping))
 			if err != nil {
 				log.Printf("Error creating jobspec: %v %v", projectName, err)
 				return fmt.Errorf("error creating jobspec")
@@ -230,7 +230,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 				return fmt.Errorf("error creating job token")
 			}
 
-			applyJobSpec, err := json.Marshal(orchestrator.JobToJson(applyJob, orgName, applyJobToken.Value, backendHostName, impactedProjects[i]))
+			applyJobSpec, err := json.Marshal(orchestrator.JobToJson(applyJob, orgName, applyJobToken.Value, backendHostName, impactedProjects[i], impactedProjectsSourceMapping))
 			if err != nil {
 				log.Printf("Error creating jobs: %v %v", projectName, err)
 				return fmt.Errorf("error creating jobs")
