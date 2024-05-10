@@ -368,6 +368,13 @@ func SetJobStatusForProject(c *gin.Context) {
 		}
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			log.Printf("Error updating job status: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			return
+		}
+
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
