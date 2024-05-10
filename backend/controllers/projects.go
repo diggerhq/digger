@@ -9,6 +9,7 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -308,16 +309,10 @@ func RunHistoryForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-type JobSummary struct {
-	ResourcesCreated uint `json:"resources_created"`
-	ResourcesUpdated uint `json:"resources_updated"`
-	ResourcesDeleted uint `json:"resources_deleted"`
-}
-
 type SetJobStatusRequest struct {
-	Status     string      `json:"status"`
-	Timestamp  time.Time   `json:"timestamp"`
-	JobSummary *JobSummary `json:"job_summary"`
+	Status     string                       `json:"status"`
+	Timestamp  time.Time                    `json:"timestamp"`
+	JobSummary *terraform_utils.PlanSummary `json:"job_summary"`
 }
 
 func SetJobStatusForProject(c *gin.Context) {
