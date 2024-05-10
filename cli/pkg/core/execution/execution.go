@@ -2,6 +2,7 @@ package execution
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 	"log"
 	"os"
 	"path"
@@ -20,7 +21,7 @@ import (
 )
 
 type Executor interface {
-	Plan() (*terraform.PlanSummary, bool, bool, string, string, error)
+	Plan() (*terraform_utils.PlanSummary, bool, bool, string, string, error)
 	Apply() (bool, string, error)
 	Destroy() (bool, error)
 }
@@ -30,7 +31,7 @@ type LockingExecutorWrapper struct {
 	Executor    Executor
 }
 
-func (l LockingExecutorWrapper) Plan() (*terraform.PlanSummary, bool, bool, string, string, error) {
+func (l LockingExecutorWrapper) Plan() (*terraform_utils.PlanSummary, bool, bool, string, string, error) {
 	plan := ""
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
@@ -112,7 +113,8 @@ type DiggerExecutorApplyResult struct {
 }
 
 type DiggerExecutorPlanResult struct {
-	PlanSummary terraform.PlanSummary
+	PlanSummary   terraform_utils.PlanSummary
+	TerraformJson string
 }
 
 type PlanPathProvider interface {
@@ -178,10 +180,10 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 	}
 }
 
-func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, string, error) {
+func (d DiggerExecutor) Plan() (*terraform_utils.PlanSummary, bool, bool, string, string, error) {
 	plan := ""
 	terraformPlanOutput := ""
-	planSummary := &terraform.PlanSummary{}
+	planSummary := &terraform_utils.PlanSummary{}
 	isEmptyPlan := true
 	var planSteps []orchestrator.Step
 
@@ -215,7 +217,7 @@ func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, stri
 			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
 			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
 
-			isEmptyPlan, planSummary, err = terraform.GetPlanSummary(terraformPlanOutput)
+			isEmptyPlan, planSummary, err = terraform_utils.GetPlanSummary(terraformPlanOutput)
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
 			}

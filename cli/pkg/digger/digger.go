@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 	"log"
 	"os"
 	"path"
@@ -137,7 +138,7 @@ func RunJobs(
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
-		planSummary := terraform.PlanSummary{}
+		planSummary := terraform_utils.PlanSummary{}
 		if exectorResults[0].PlanResult != nil {
 			planSummary = exectorResults[0].PlanResult.PlanSummary
 		}
@@ -320,7 +321,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			result := execution.DiggerExecutorResult{
 				PlanResult: &execution.DiggerExecutorPlanResult{
-					PlanSummary: *planSummary,
+					PlanSummary:   *planSummary,
+					TerraformJson: planJsonOutput,
 				},
 			}
 			return &result, plan, nil

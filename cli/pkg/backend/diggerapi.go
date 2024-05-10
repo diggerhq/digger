@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 	"io"
 	"log"
 	"net/http"
@@ -25,7 +25,7 @@ func (n NoopApi) ReportProjectRun(namespace string, projectName string, startedA
 	return nil
 }
 
-func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform.PlanSummary) (*scheduler.SerializedBatch, error) {
+func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform_utils.PlanSummary) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 
@@ -117,7 +117,7 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	return nil
 }
 
-func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform.PlanSummary) (*scheduler.SerializedBatch, error) {
+func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform_utils.PlanSummary) (*scheduler.SerializedBatch, error) {
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
 		log.Fatalf("Not able to parse digger cloud url: %v", err)
