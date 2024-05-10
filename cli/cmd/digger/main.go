@@ -101,7 +101,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" && runningMode != "drift-detection" {
 
 		type Inputs struct {
-			JobString string `json:"job"`
+			JobString string `json:"jobSpec"`
 			Id        string `json:"id"`
 			CommentId string `json:"comment_id"`
 		}
@@ -111,7 +111,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		jobJson := wdEvent.Inputs
 
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal job json. %s", err), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal jobSpec json. %s", err), 4)
 		}
 
 		err = json.Unmarshal(jobJson, &inputs)
@@ -122,34 +122,34 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		repoName := strings.ReplaceAll(ghRepository, "/", "-")
 
-		var job orchestrator.JobJson
+		var jobSpec orchestrator.JobJson
 
-		err = json.Unmarshal([]byte(inputs.JobString), &job)
+		err = json.Unmarshal([]byte(inputs.JobString), &jobSpec)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall job string: %v", err), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall jobSpec string: %v", err), 4)
 		}
 		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 
-		if job.BackendHostname != "" && job.BackendOrganisationName != "" && job.BackendJobToken != "" {
-			log.Printf("Found settings sent by backend in job string, overriding backendApi and policyCheckecd r. setting: (orgName: %v BackedHost: %v token: %v)", job.BackendOrganisationName, job.BackendHostname, "****")
-			backendApi = NewBackendApi(job.BackendHostname, job.BackendJobToken)
-			policyChecker = NewPolicyChecker(job.BackendHostname, job.BackendOrganisationName, job.BackendJobToken)
+		if jobSpec.BackendHostname != "" && jobSpec.BackendOrganisationName != "" && jobSpec.BackendJobToken != "" {
+			log.Printf("Found settings sent by backend in jobSpec string, overriding backendApi and policyCheckecd r. setting: (orgName: %v BackedHost: %v token: %v)", jobSpec.BackendOrganisationName, jobSpec.BackendHostname, "****")
+			backendApi = NewBackendApi(jobSpec.BackendHostname, jobSpec.BackendJobToken)
+			policyChecker = NewPolicyChecker(jobSpec.BackendHostname, jobSpec.BackendOrganisationName, jobSpec.BackendJobToken)
 		} else {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Missing values from job spec: hostname, orgName, token: %v %v", job.BackendHostname, job.BackendOrganisationName), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Missing values from jobSpec spec: hostname, orgName, token: %v %v", jobSpec.BackendHostname, jobSpec.BackendOrganisationName), 4)
 		}
 
-		err = githubPrService.SetOutput(*job.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *job.PullRequestNumber))
+		err = githubPrService.SetOutput(*jobSpec.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *jobSpec.PullRequestNumber))
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set jobSpec output. Exiting. %s", err), 4)
 		}
 
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
-		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil)
+		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "started", time.Now(), nil)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %s", err), 4)
 		}
 
 		commentUpdater := comment_updater.BasicCommentUpdater{}
@@ -157,19 +157,19 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
-		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
+		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobSpec.PullRequestNumber)
 
 		reporter := &reporting.CiReporter{
 			CiService:         &githubPrService,
-			PrNumber:          *job.PullRequestNumber,
+			PrNumber:          *jobSpec.PullRequestNumber,
 			ReportStrategy:    reportingStrategy,
 			IsSupportMarkdown: true,
 		}
 
 		if err != nil {
-			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
-				log.Printf("Failed to report job status to backend. %v", reportingError)
+				log.Printf("Failed to report jobSpec status to backend. %v", reportingError)
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
 			commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
@@ -185,16 +185,16 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		log.Printf("Digger digger_config read successfully\n")
 
 		// Override the values of StateEnvVars and CommandEnvVars from workflow value_from values
-		workflow := diggerConfig.Workflows[job.ProjectName]
+		workflow := diggerConfig.Workflows[jobSpec.ProjectName]
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-		job.StateEnvVars = lo.Assign(job.StateEnvVars, stateEnvVars)
-		job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandEnvVars)
+		jobSpec.StateEnvVars = lo.Assign(jobSpec.StateEnvVars, stateEnvVars)
+		jobSpec.CommandEnvVars = lo.Assign(jobSpec.CommandEnvVars, commandEnvVars)
 
-		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
+		jobs := []orchestrator.Job{orchestrator.JsonToJob(jobSpec)}
 
 		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, commentId64, currentDir)
 		if err != nil {
-			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
