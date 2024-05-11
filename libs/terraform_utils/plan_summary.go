@@ -9,9 +9,9 @@ import (
 )
 
 type PlanSummary struct {
-	ResourcesCreated int
-	ResourcesUpdated int
-	ResourcesDeleted int
+	ResourcesCreated uint `json:"resources_created"`
+	ResourcesUpdated uint `json:"resources_updated"`
+	ResourcesDeleted uint `json:"resources_deleted"`
 }
 
 type TerraformPlan struct {
