@@ -95,7 +95,7 @@ func init() {
 		source = "azure"
 	}
 
-	config, _, _, err := configuration.LoadDiggerConfig(currentDir)
+	config, _, _, err := configuration.LoadDiggerConfig(currentDir, false)
 	if err != nil {
 		return
 	}
