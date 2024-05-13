@@ -312,6 +312,11 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 }
 
 func ValidateDiggerConfig(config *DiggerConfig) error {
+
+	if config.CommentRenderMode != CommentRenderModeBasic && config.CommentRenderMode != CommentRenderModeGroupByModule {
+		return fmt.Errorf("invalid value for comment_render_mode, %v expecting %v, %v", config.CommentRenderMode, CommentRenderModeBasic, CommentRenderModeGroupByModule)
+	}
+
 	for _, p := range config.Projects {
 		_, ok := config.Workflows[p.Workflow]
 		if !ok {

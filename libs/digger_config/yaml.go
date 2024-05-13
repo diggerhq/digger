@@ -12,6 +12,7 @@ type DiggerConfigYaml struct {
 	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
 	Projects                   []*ProjectYaml               `yaml:"projects"`
 	AutoMerge                  *bool                        `yaml:"auto_merge"`
+	CommentRenderMode          *string                      `yaml:"comment_render_mode"`
 	Workflows                  map[string]*WorkflowYaml     `yaml:"workflows"`
 	Telemetry                  *bool                        `yaml:"telemetry,omitempty"`
 	GenerateProjectsConfig     *GenerateProjectsConfigYaml  `yaml:"generate_projects"`

@@ -118,7 +118,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		repoName := strings.ReplaceAll(ghRepository, "/", "-")
 
 		var jobSpec orchestrator.JobJson
-		log.Printf("jobString: %v \n", inputs.JobString)
 		err = json.Unmarshal([]byte(inputs.JobString), &jobSpec)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall jobSpec string: %v", err), 4)
@@ -147,7 +146,20 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %s", err), 4)
 		}
 
-		commentUpdater := comment_updater.BasicCommentUpdater{}
+		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false)
+		if err != nil {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+		}
+		log.Printf("Digger digger_config read successfully\n")
+
+		var commentUpdater comment_updater.CommentUpdater
+		if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeBasic {
+			commentUpdater = comment_updater.BasicCommentUpdater{}
+		} else if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeGroupByModule {
+			commentUpdater = comment_updater.ModuleGroupingCommentUpdater{}
+		} else {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Unknown comment render mode found: %v", diggerConfig.CommentRenderMode), 8)
+		}
 
 		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
@@ -172,12 +184,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
-
-		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false)
-		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
-		}
-		log.Printf("Digger digger_config read successfully\n")
 
 		// Override the values of StateEnvVars and CommandEnvVars from workflow value_from values
 		workflow := diggerConfig.Workflows[jobSpec.ProjectName]
