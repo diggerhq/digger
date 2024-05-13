@@ -2,38 +2,4 @@
 title: "Plan Persistence"
 ---
 
-The output of \`terraform plan\` can be stored either in GitHub Artifacts, or in a GCP bucket. When you run apply, Digger will pick up the stored plan.
-
-Use the following workflow option to use Artifacts plan storage:
-```
-upload-plan-destination: github
-```
-Or to use a GCP bucket:
-```
-upload-plan-destination: gcp
-upload-plan-destination-gcp-bucket: "my-bucket"
-```
-
-Similarly you can use an aws bucket (set environment variable: AWS_S3_BUCKET):
-
-```
-upload-plan-destination: aws
-```
-
-## Permissions
-Make sure to set `actions:write` permission in your workflow; otherwise plan storage might fail
-
-## Plan json file naming convention
-
-The location of plan json output file is:
-
-```
-$GITHUB_WORKSPACE/$GITHUB_ORG-$REPO#DIGGER_PROJECT.tfplan
-```
-
-Note that `$GIHTUB_WORKSPACE` may contain repo name twice; it also may contain the project directory e.g "dev" because the workdir is relative to project. Repo name is then appended for the 3rd time between org name and project name. So the final file path for a repo named "myrepo" with a project named "development" at `/dev` may look like this:
-
-```
-/home/runner/work/myrepo/myrepo/dev/diggerhq-myrepo#development.tfplan
-```
-
+By default digger will run an apply based on the branch pull request files (no artefacts stored). In order to configure plan artefacts you can configure the inputs for storing as github artefacts or aws buckets or gcp buckets. The corresponding artefacts to be configured can be found in [storing plans in a bucket](/howto/store-plans-in-a-bucket)
