@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/backend/middleware"
@@ -347,6 +348,13 @@ func SetJobStatusForProject(c *gin.Context) {
 	switch request.Status {
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			log.Printf("Error updating job status: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			return
+		}
+
 		client, _, err := utils.GetGithubClient(&utils.DiggerGithubRealClientProvider{}, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
 		if err != nil {
 			log.Printf("Error Creating github client: %v", err)
@@ -364,6 +372,13 @@ func SetJobStatusForProject(c *gin.Context) {
 		}
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
+		if request.Footprint != nil {
+			job.PlanFootprint, err = json.Marshal(request.Footprint)
+			if err != nil {
+				log.Printf("Error marshalling plan footprint: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error marshalling plan footprint"})
+			}
+		}
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
 			log.Printf("Error updating job status: %v", err)

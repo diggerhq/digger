@@ -91,6 +91,7 @@ func (j *DiggerJob) MapToJsonStruct() (interface{}, error) {
 		DiggerJobId:      j.DiggerJobID,
 		Status:           j.Status,
 		JobString:        j.SerializedJobSpec,
+		PlanFootprint:    j.PlanFootprint,
 		ProjectName:      job.ProjectName,
 		WorkflowRunUrl:   j.WorkflowRunUrl,
 		ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,

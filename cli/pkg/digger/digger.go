@@ -3,7 +3,6 @@ package digger
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/terraform_utils"
 	"log"
 	"os"
 	"path"
@@ -138,12 +137,12 @@ func RunJobs(
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
-		planSummary := terraform_utils.PlanSummary{}
+		planResult := &execution.DiggerExecutorPlanResult{}
 		if exectorResults[0].PlanResult != nil {
-			planSummary = exectorResults[0].PlanResult.PlanSummary
+			planResult = exectorResults[0].PlanResult
 		}
 		prNumber := *currentJob.PullRequestNumber
-		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary)
+		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), planResult)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
