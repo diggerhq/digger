@@ -79,7 +79,7 @@
               "howto/policy-overrides",
               "howto/project-level-roles",
               "howto/segregate-cloud-accounts",
-              "gcp/store-plans-in-a-bucket",
+              "howto/store-plans-in-a-bucket",
               "howto/trigger-directly",
               "howto/using-checkov",
               "howto/using-infracost",
