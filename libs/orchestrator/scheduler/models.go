@@ -17,6 +17,20 @@ const (
 	BatchJobInvalidated DiggerBatchStatus = 5
 )
 
+type WorkflowInput struct {
+	JobString string `json:"job"`
+	Id        string `json:"id"`
+	CommentId string `json:"comment_id"`
+}
+
+func (w *WorkflowInput) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"id":         w.Id,
+		"job":        w.JobString,
+		"comment_id": w.CommentId,
+	}
+}
+
 type DiggerBatchType string
 
 const (
