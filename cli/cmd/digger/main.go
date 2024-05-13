@@ -101,7 +101,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" && runningMode != "drift-detection" {
 
 		type Inputs struct {
-			JobString string `json:"jobSpec"`
+			JobString string `json:"job"`
 			Id        string `json:"id"`
 			CommentId string `json:"comment_id"`
 		}
