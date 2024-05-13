@@ -123,7 +123,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		repoName := strings.ReplaceAll(ghRepository, "/", "-")
 
 		var jobSpec orchestrator.JobJson
-
+		log.Printf("jobString: %v \n", inputs.JobString)
 		err = json.Unmarshal([]byte(inputs.JobString), &jobSpec)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall jobSpec string: %v", err), 4)
