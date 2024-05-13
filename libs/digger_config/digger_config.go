@@ -132,9 +132,9 @@ func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string, configYa
 
 var ErrDiggerConfigConflict = errors.New("more than one digger digger_config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
-func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
+func LoadDiggerConfig(workingDir string, generateProjects bool) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
 	config := &DiggerConfig{}
-	configYaml, err := LoadDiggerConfigYaml(workingDir)
+	configYaml, err := LoadDiggerConfigYaml(workingDir, generateProjects)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -244,7 +244,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 	return nil
 }
 
-func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
+func LoadDiggerConfigYaml(workingDir string, generateProjects bool) (*DiggerConfigYaml, error) {
 	configYaml := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -280,9 +280,11 @@ func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
 		return configYaml, err
 	}
 
-	err = HandleYamlProjectGeneration(configYaml, workingDir)
-	if err != nil {
-		return configYaml, err
+	if generateProjects == true {
+		err = HandleYamlProjectGeneration(configYaml, workingDir)
+		if err != nil {
+			return configYaml, err
+		}
 	}
 
 	return configYaml, nil

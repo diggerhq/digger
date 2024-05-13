@@ -178,7 +178,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 
-		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./")
+		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 		}
@@ -205,7 +205,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
 	}
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig("./")
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true)
 	if err != nil {
 		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
@@ -432,7 +432,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 	log.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig(currentDir)
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig(currentDir, true)
 	if err != nil {
 		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
@@ -536,7 +536,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	}
 	log.Printf("main: working dir: %s \n", currentDir)
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig(currentDir)
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig(currentDir, true)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
@@ -628,7 +628,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 		reportErrorAndExit(actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
-	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./")
+	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true)
 	if err != nil {
 		reportErrorAndExit(actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
@@ -863,7 +863,7 @@ func exec(actor string, projectName string, repoNamespace string, command string
 
 	planStorage := newPlanStorage("", "", "", actor, nil)
 
-	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./")
+	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true)
 	if err != nil {
 		reportErrorAndExit(actor, fmt.Sprintf("Failed to load digger config. %s", err), 4)
 	}
