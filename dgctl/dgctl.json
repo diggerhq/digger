@@ -1,0 +1,14 @@
+{
+    "target": "diggerhq/tf-module-bundler@master",
+    "aws_region": "us-east-1",
+    "version": "0.0.32",
+    "id": "a7a7739f-9d89-4447-bd01-672dc525ce44",
+    "blocks": [
+        {
+            "aws_app_identifier": "default_network-8e38d890",
+            "name": "default_network",
+            "type": "vpc"
+        }
+    ],
+    "created": 1715462481906
+}

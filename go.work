@@ -4,9 +4,11 @@ use (
 	./backend
 	./cli
 	./cli_e2e
-	./ee/backend
+	./dgctl
 
+	./ee/backend
 	./ee/cli
+
 	./libs
 
 )
