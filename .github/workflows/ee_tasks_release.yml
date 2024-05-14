@@ -1,4 +1,4 @@
-name: Tasks Publish docker image
+name: EE Tasks Publish docker image
 
 on:
   release:
