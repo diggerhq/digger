@@ -150,3 +150,11 @@ func IsApplyJobSpecs(jobs []JobJson) bool {
 	}
 	return isApply
 }
+
+func JobsSpecsToProjectMap(jobSpecs []JobJson) (map[string]JobJson, error) {
+	res := make(map[string]JobJson)
+	for _, jobSpec := range jobSpecs {
+		res[jobSpec.ProjectName] = jobSpec
+	}
+	return res, nil
+}

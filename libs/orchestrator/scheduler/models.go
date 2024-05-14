@@ -170,3 +170,11 @@ func GetJobSpecs(jobs []SerializedJob) ([]orchestrator.JobJson, error) {
 	}
 	return jobSpecs, nil
 }
+
+func JobsToProjectMap(jobs []SerializedJob) (map[string]SerializedJob, error) {
+	res := make(map[string]SerializedJob)
+	for _, job := range jobs {
+		res[job.ProjectName] = job
+	}
+	return res, nil
+}

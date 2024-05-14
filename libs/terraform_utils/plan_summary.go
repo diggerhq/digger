@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/samber/lo"
-	"slices"
 	"sort"
 )
 
@@ -35,6 +34,16 @@ type Change struct {
 // as plan similarity check
 type TerraformPlanFootprint struct {
 	Addresses []string `json:"addresses"`
+}
+
+func (footprint TerraformPlanFootprint) hash() string {
+	addresses := make([]string, len(footprint.Addresses))
+	copy(addresses, footprint.Addresses)
+	sort.Strings(addresses)
+	// concatenate all the addreses after sorting to form the hash
+	return lo.Reduce(addresses, func(a string, b string, i int) string {
+		return a + b
+	}, "")
 }
 
 func (p *PlanSummary) ToJson() map[string]interface{} {
@@ -98,8 +107,19 @@ func GetPlanFootprint(planJson string) (*TerraformPlanFootprint, error) {
 }
 
 func PerformPlanSimilarityCheck(footprint1 TerraformPlanFootprint, footprint2 TerraformPlanFootprint) (bool, error) {
-	sort.Strings(footprint1.Addresses)
-	sort.Strings(footprint2.Addresses)
-	isSimilar := slices.Equal(footprint1.Addresses, footprint2.Addresses)
-	return isSimilar, nil
+	return footprint1.hash() == footprint2.hash(), nil
+}
+
+func SimilarityCheck(footprints []TerraformPlanFootprint) (bool, error) {
+	if len(footprints) < 2 {
+		return true, nil
+	}
+	footprintHashes := lo.Map(footprints, func(footprint TerraformPlanFootprint, i int) string {
+		return footprint.hash()
+	})
+	allSimilar := lo.EveryBy(footprintHashes, func(footprint string) bool {
+		return footprint == footprintHashes[0]
+	})
+	return allSimilar, nil
+
 }
