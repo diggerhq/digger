@@ -42,5 +42,5 @@ jobs:
           context: .
           file: "Dockerfile_backend"
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:fix-debug
+          tags:  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:fix-debug
           labels: ${{ steps.meta.outputs.labels }}
