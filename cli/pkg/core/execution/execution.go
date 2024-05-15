@@ -2,6 +2,7 @@ package execution
 
 import (
 	"fmt"
+	"github.com/samber/lo"
 	"log"
 	"os"
 	"path"
@@ -443,7 +444,7 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 }
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr *string) string {
-	var errorStr, start string
+	var errorStr string
 
 	// removes output of terraform -version command that terraform-exec executes on every run
 	i := strings.Index(stdout, "Initializing the backend...")
@@ -459,14 +460,21 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 			errorStr = stdout
 		}
 		return errorStr
-	} else if nonEmptyOutput {
-		start = "Terraform will perform the following actions:"
-	} else {
-		start = "No changes. Your infrastructure matches the digger_config."
 	}
 
-	startPos := strings.Index(stdout, start)
-	if startPos == -1 {
+	delimiters := []string{
+		"Terraform will perform the following actions:",
+		"OpenTofu will perform the following actions:",
+		"No changes. Your infrastructure matches the configuration.",
+	}
+	indices := lo.FilterMap(delimiters, func(delimiter string, i int) (int, bool) {
+		index := strings.Index(stdout, delimiter)
+		return index, index > 0
+	})
+	var startPos int
+	if len(indices) > 0 {
+		startPos = indices[0]
+	} else {
 		startPos = 0
 	}
 
