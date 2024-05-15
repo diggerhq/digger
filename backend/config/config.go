@@ -1,6 +1,8 @@
 package config
 
 import (
+	"github.com/spf13/cast"
+	"os"
 	"strings"
 	"time"
 
@@ -24,6 +26,14 @@ func New() *Config {
 	v.SetDefault("max_concurrency_per_batch", "0")
 	v.BindEnv()
 	return v
+}
+
+func GetPort() int {
+	port := cast.ToInt(os.Getenv("PORT"))
+	if port == 0 {
+		port = 3000
+	}
+	return port
 }
 
 func init() {
