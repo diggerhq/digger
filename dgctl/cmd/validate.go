@@ -6,10 +6,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/digger_config"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
+
+	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/spf13/cobra"
 )
 
 // validateCmd represents the validate command
@@ -18,7 +19,7 @@ var validateCmd = &cobra.Command{
 	Short: "Validate a digger.yml file",
 	Long:  `Validate a digger.yml file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		_, configYaml, _, err := digger_config.LoadDiggerConfig("./", false)
+		_, configYaml, _, err := digger_config.LoadDiggerConfig("./", true)
 		if err != nil {
 			log.Printf("Invalid digger config file: %v. Exiting.", err)
 			os.Exit(1)
