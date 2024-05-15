@@ -18,7 +18,7 @@ var validateCmd = &cobra.Command{
 	Short: "Validate a digger.yml file",
 	Long:  `Validate a digger.yml file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		_, configYaml, _, err := digger_config.LoadDiggerConfig("./")
+		_, configYaml, _, err := digger_config.LoadDiggerConfig("./", false)
 		if err != nil {
 			log.Printf("Invalid digger config file: %v. Exiting.", err)
 			os.Exit(1)
