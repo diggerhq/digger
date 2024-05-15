@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/config"
+	"github.com/diggerhq/digger/backend/segment"
 	"html/template"
 	"io/fs"
 	"log"
@@ -186,7 +186,9 @@ func main() {
 	runsApiGroup.POST("/:run_id/approve", controllers.ApproveRun)
 
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
-	r.Run(fmt.Sprintf(":%d", cfg.GetInt("port")))
+
+	port := config.GetPort()
+	r.Run(fmt.Sprintf(":%d", port))
 }
 
 func initLogging() {
