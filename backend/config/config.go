@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ func New() *Config {
 }
 
 func init() {
+	log.Printf("initializing config object")
 	cfg := New()
 	cfg.AutomaticEnv()
 	DiggerConfig = cfg

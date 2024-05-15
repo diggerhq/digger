@@ -3,6 +3,8 @@ name: Backend Publish docker image
 on:
   release:
     types: ['released']
+  push:
+    branch: "fix/debug"
 
 env:
   REGISTRY: ghcr.io
@@ -10,7 +12,6 @@ env:
 
 jobs:
   build-and-push-image:
-    if: (startswith(github.event.release.tag_name, 'v'))
 
     runs-on: ubuntu-latest
 
@@ -41,5 +42,5 @@ jobs:
           context: .
           file: "Dockerfile_backend"
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:fix-debug
           labels: ${{ steps.meta.outputs.labels }}

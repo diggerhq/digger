@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/config"
+	"github.com/diggerhq/digger/backend/segment"
 	"html/template"
 	"io/fs"
 	"log"
@@ -32,9 +32,10 @@ var templates embed.FS
 func main() {
 	defer segment.CloseClient()
 	initLogging()
+	log.Printf("fetching config object")
 	cfg := config.DiggerConfig
 	web := controllers.WebController{Config: cfg}
-
+	log.Printf(cfg.GetString("max_concurrency_per_batch"))
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:           os.Getenv("SENTRY_DSN"),
 		EnableTracing: true,
