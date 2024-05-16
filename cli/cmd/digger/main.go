@@ -167,7 +167,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		// using lazy reporter to be able to suppress empty plans
 		reporter := reporting.NewCiReporterLazy(*cireporter)
-		defer reporter.Flush()
 
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
@@ -383,7 +382,6 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			ReportStrategy:    reportingStrategy,
 			IsSupportMarkdown: true,
 		}
-		defer reporter.Flush()
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 

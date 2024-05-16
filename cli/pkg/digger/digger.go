@@ -82,6 +82,8 @@ func RunJobs(
 	prCommentId int64,
 	workingDir string,
 ) (bool, bool, error) {
+	defer reporter.Flush()
+
 	runStartedAt := time.Now()
 
 	exectorResults := make([]execution.DiggerExecutorResult, len(jobs))
