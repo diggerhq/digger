@@ -504,8 +504,9 @@ func reportEmptyPlanOutput(reporter core_reporting.Reporter, projectId string) {
 	identityFormatter := func(comment string) string {
 		return comment
 	}
-
 	err := reporter.Report("→ No changes in terraform output for "+projectId, identityFormatter)
+	// suppress the comment (if reporter is suppressible)
+	reporter.Suppress()
 	if err != nil {
 		log.Printf("Failed to report plan. %v", err)
 	}
