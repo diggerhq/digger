@@ -160,8 +160,10 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
 		log.Printf("Warn: Overriding commenting strategy to Comments-per-run")
+
 		strategy := &reporting.CommentPerRunStrategy{
 			Project:   job.ProjectName,
+			IsPlan:    job.IsPlan(),
 			TimeOfRun: time.Now(),
 		}
 		cireporter := &reporting.CiReporter{

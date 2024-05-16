@@ -271,7 +271,7 @@ func (d DiggerExecutor) Plan() (*terraform.PlanSummary, bool, bool, string, stri
 
 func reportError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init."))
+		commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
@@ -347,7 +347,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 
 func reportApplyError(r reporting.Reporter, err error) {
 	if r.SupportsMarkdown() {
-		commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying."))
+		commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", err)
 		}
@@ -362,9 +362,9 @@ func reportApplyError(r reporting.Reporter, err error) {
 func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOutput string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + projectId + "</b>")
+		formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply output", false)
 	} else {
-		formatter = utils.GetTerraformOutputAsComment("Apply for " + projectId)
+		formatter = utils.GetTerraformOutputAsComment("Apply output")
 	}
 
 	commentErr := r.Report(applyOutput, formatter)
@@ -375,7 +375,7 @@ func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOut
 
 func reportTerraformError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
+		commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
@@ -390,7 +390,7 @@ func reportTerraformError(r reporting.Reporter, stderr string) {
 func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>" + projectId + "</b>")
+		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>"+projectId+"</b>", false)
 	} else {
 		formatter = utils.GetTerraformOutputAsComment("Additional output for " + projectId)
 	}
