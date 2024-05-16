@@ -13,7 +13,7 @@ type Terragrunt struct {
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
-	return terragrunt.runTerragruntCommand(true, "init", envs, params...)
+	return terragrunt.runTerragruntCommand("init", true, envs, params...)
 
 }
 
@@ -23,28 +23,28 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, err := terragrunt.runTerragruntCommand(true, "apply", envs, params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("apply", true, envs, params...)
 	return stdout, stderr, err
 }
 
 func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
-	stdout, stderr, err := terragrunt.runTerragruntCommand(true, "destroy", envs, params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("destroy", true, envs, params...)
 	return stdout, stderr, err
 }
 
 func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand(true, "plan", envs, params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", true, envs, params...)
 	return true, stdout, stderr, err
 }
 
 func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand(false, "show", envs, params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("show", false, envs, params...)
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) runTerragruntCommand(printOutputToStdout bool, command string, envs map[string]string, arg ...string) (string, string, error) {
+func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, arg ...string) (string, string, error) {
 	args := []string{command}
 	args = append(args, arg...)
 	cmd := exec.Command("terragrunt", args...)
