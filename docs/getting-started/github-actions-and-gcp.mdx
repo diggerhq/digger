@@ -58,6 +58,8 @@ jobs:
       statuses: write      # required to validate combined PR status
     steps:
     - uses: actions/checkout@v4
+    - name: ${{github.event.inputs.id}}
+      run: echo job id ${{ inputs.id }}
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
