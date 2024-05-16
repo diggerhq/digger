@@ -67,6 +67,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: ${{github.event.inputs.id}}
+        run: echo job id ${{ inputs.id }}
       - uses: diggerhq/digger@latest
         with:
           setup-aws: true
