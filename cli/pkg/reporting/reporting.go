@@ -55,7 +55,6 @@ func (lazyReporter *CiReporterLazy) Report(report string, reportFormatter func(r
 }
 
 func (lazyReporter *CiReporterLazy) Flush() error {
-	log.Printf("flushing status comment ...")
 	if lazyReporter.isSuppressed {
 		log.Printf("Reporter is suprresed, ignoring messages ...")
 		return nil
