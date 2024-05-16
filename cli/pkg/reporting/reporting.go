@@ -114,7 +114,7 @@ func (strategy *CommentPerRunStrategy) Report(ciService orchestrator.PullRequest
 
 	var reportTitle string
 	if strategy.Project != "" {
-		reportTitle = fmt.Sprintf("Plan for %v (%v)", *strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
+		reportTitle = fmt.Sprintf("Plan for %v (%v)", strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
 	} else {
 		reportTitle = "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
 	}
