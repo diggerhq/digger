@@ -24,7 +24,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	firstJobSpec := jobSpecs[0]
 	isPlan := firstJobSpec.IsPlan()
 
-	message := ":construction_worker: Jobs status:\n\n"
+	message := ""
 	if isPlan {
 		message = message + fmt.Sprintf("| Project | Status | + | ~ | - |\n")
 		message = message + fmt.Sprintf("|---------|--------|---|---|---|\n")
