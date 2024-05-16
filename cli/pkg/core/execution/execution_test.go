@@ -1,9 +1,10 @@
 package execution
 
 import (
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCorrectCleanUpWithoutRegexDoesNotProduceException(t *testing.T) {
@@ -72,124 +73,189 @@ Plan: 2 to add, 0 to change, 0 to destroy.
 
 func TestCorrectCleanUpWithOpenTofuPlan(t *testing.T) {
 	stdout := `
-Initializing the backend...
-Initializing modules...
-Initializing provider plugins...
-- Reusing previous version of hashicorp/helm from the dependency lock file
-- Reusing previous version of hashicorp/google-beta from the dependency lock file
-- Reusing previous version of ns1-terraform/ns1 from the dependency lock file
-- Reusing previous version of hashicorp/google from the dependency lock file
-- Reusing previous version of hashicorp/time from the dependency lock file
-- Reusing previous version of hashicorp/random from the dependency lock file
-- Reusing previous version of integrations/github from the dependency lock file
-- Reusing previous version of hashicorp/kubernetes from the dependency lock file
-- Reusing previous version of hashicorp/tls from the dependency lock file
-- Reusing previous version of hashicorp/vault from the dependency lock file
-- Using previously-installed hashicorp/helm v2.10.1
-- Using previously-installed ns1-terraform/ns1 v2.0.3
-- Using previously-installed hashicorp/google v5.11.0
-- Using previously-installed hashicorp/time v0.9.1
-- Using previously-installed hashicorp/random v3.5.1
-- Using previously-installed hashicorp/vault v3.15.2
-- Using previously-installed hashicorp/google-beta v5.11.0
-- Using previously-installed integrations/github v5.26.0
-- Using previously-installed hashicorp/kubernetes v2.21.0
-- Using previously-installed hashicorp/tls v4.0.4
-OpenTofu has been successfully initialized!
-data.vault_generic_secret.ns1_api_key_terraform: Reading...
-data.vault_generic_secret.github_token: Reading...
-data.vault_generic_secret.ns1_api_key_terraform: Read complete after 0s [id=zon/v1/ns1/api/terraform]
-data.vault_generic_secret.github_token: Read complete after 0s [id=zon/v1/github/terraform/api-token]
-data.google_project.project: Reading...
-data.google_client_config.this: Reading...
-module.infra_data.data.google_client_config.this: Reading...
-module.infra_data.data.google_project.this: Reading...
-data.google_client_config.this: Read complete after 1s [id=projects/"xxx"/regions/"europe-west3"/zones/"europe-west3-a"]
-module.infra_data.data.google_client_config.this: Read complete after 1s [id=projects/"xxx"/regions/"europe-west3"/zones/"europe-west3-a"]
-data.google_project.project: Read complete after 1s [id=projects/xxx]
-module.infra_data.data.google_project.this: Read complete after 2s [id=projects/xxx]
-module.infra_data.data.vault_kv_secrets_list.cloudsql_instances[0]: Reading...
-module.infra_data.data.google_project.gke: Reading...
-module.infra_data.data.vault_kv_secrets_list.cloudsql_instances[0]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=main-staging-pg14]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=main-production-vivi-internal]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=staging-9f9d9107]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=devel-26e8a66a]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=production-a31270fe]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Reading...
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=main-production-pg14-rr]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=production-pg13]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=main-staging-pg15]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=main-production-pg14]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=main-devel-pg15]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=main-devel-pg14]
-module.infra_data.data.google_sql_database_instance.this["xxx"]: Read complete after 0s [id=staging-pg13]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/staging-pg13/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/main-devel-pg15/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/main-production-pg14-rr/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/staging-9f9d9107/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/devel-26e8a66a/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/main-devel-pg14/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/main-production-pg14/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/main-staging-pg15/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/production-a31270fe/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Reading...
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/main-production-vivi-internal/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/production-pg13/instance-credentials]
-module.infra_data.data.vault_generic_secret.cloudsql_credentials["xxx"]: Read complete after 0s [id=zon/v1/gcp/xxx/cloudsql/instances/main-staging-pg14/instance-credentials]
-module.infra_data.data.google_project.gke: Read complete after 0s [id=projects/xxx]
-module.infra_data.data.vault_generic_secret.cluster_credentials[0]: Reading...
-module.infra_data.data.vault_generic_secret.cluster_credentials[0]: Read complete after 0s [id=zon/v1/gcp/xxx/gke/staging/cluster_credentials]
-OpenTofu used the selected providers to generate the following execution
-plan. Resource actions are indicated with the following symbols:
+data.archive_file.code: Reading...
+data.archive_file.code: Read complete after 0s [id=b820080f55920896a4fea9e94200cd0287f05854]
+
+OpenTofu used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
   + create
+ <= read (data resources)
+
 OpenTofu will perform the following actions:
-  # google_storage_bucket.test1 will be created
-  + resource "google_storage_bucket" "test1" {
-      + effective_labels            = {
-          + "creator" = "terraform"
-        }
-      + force_destroy               = false
-      + id                          = (known after apply)
-      + labels                      = {
-          + "creator" = "terraform"
-        }
-      + location                    = "EUROPE-WEST3"
-      + name                        = "digger-poc-staging-test1"
-      + project                     = (known after apply)
-      + public_access_prevention    = (known after apply)
-      + rpo                         = (known after apply)
-      + self_link                   = (known after apply)
-      + storage_class               = "STANDARD"
-      + terraform_labels            = {
-          + "creator" = "terraform"
-        }
-      + uniform_bucket_level_access = true
-      + url                         = (known after apply)
+
+  # data.archive_file.layer will be read during apply
+  # (depends on a resource or a module with changes pending)
+ <= data "archive_file" "layer" {
+      + id                  = (known after apply)
+      + output_base64sha256 = (known after apply)
+      + output_base64sha512 = (known after apply)
+      + output_md5          = (known after apply)
+      + output_path         = "./layer.zip"
+      + output_sha          = (known after apply)
+      + output_sha256       = (known after apply)
+      + output_sha512       = (known after apply)
+      + output_size         = (known after apply)
+      + source_dir          = "./layer"
+      + type                = "zip"
     }
-Plan: 1 to add, 0 to change, 0 to destroy.
+
+  # aws_apigatewayv2_api.api will be created
+  + resource "aws_apigatewayv2_api" "api" {
+      + api_endpoint                 = (known after apply)
+      + api_key_selection_expression = "$request.header.x-api-key"
+      + arn                          = (known after apply)
+      + execution_arn                = (known after apply)
+      + id                           = (known after apply)
+      + name                         = "test-api"
+      + protocol_type                = "HTTP"
+      + route_selection_expression   = "$request.method $request.path"
+      + tags_all                     = (known after apply)
+    }
+
+  # aws_apigatewayv2_integration.integration will be created
+  + resource "aws_apigatewayv2_integration" "integration" {
+      + api_id                                    = (known after apply)
+      + connection_type                           = "INTERNET"
+      + id                                        = (known after apply)
+      + integration_response_selection_expression = (known after apply)
+      + integration_type                          = "AWS_PROXY"
+      + integration_uri                           = (known after apply)
+      + payload_format_version                    = "2.0"
+      + timeout_milliseconds                      = (known after apply)
+    }
+
+  # aws_apigatewayv2_route.route will be created
+  + resource "aws_apigatewayv2_route" "route" {
+      + api_id             = (known after apply)
+      + api_key_required   = false
+      + authorization_type = "NONE"
+      + id                 = (known after apply)
+      + route_key          = "ANY /test-api-lambda"
+      + target             = (known after apply)
+    }
+
+  # aws_apigatewayv2_stage.stage will be created
+  + resource "aws_apigatewayv2_stage" "stage" {
+      + api_id        = (known after apply)
+      + arn           = (known after apply)
+      + auto_deploy   = true
+      + deployment_id = (known after apply)
+      + execution_arn = (known after apply)
+      + id            = (known after apply)
+      + invoke_url    = (known after apply)
+      + name          = "test-stage"
+      + tags_all      = (known after apply)
+    }
+
+  # aws_iam_role.iam_role will be created
+  + resource "aws_iam_role" "iam_role" {
+      + arn                   = (known after apply)
+      + assume_role_policy    = jsonencode(
+            {
+              + Statement = [
+                  + {
+                      + Action    = "sts:AssumeRole"
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + Service = "lambda.amazonaws.com"
+                        }
+                      + Sid       = ""
+                    },
+                ]
+              + Version   = "2012-10-17"
+            }
+        )
+      + create_date           = (known after apply)
+      + force_detach_policies = false
+      + id                    = (known after apply)
+      + managed_policy_arns   = (known after apply)
+      + max_session_duration  = 3600
+      + name                  = "api-lambda-iam-role"
+      + name_prefix           = (known after apply)
+      + path                  = "/"
+      + tags_all              = (known after apply)
+      + unique_id             = (known after apply)
+    }
+
+  # aws_lambda_function.lambda will be created
+  + resource "aws_lambda_function" "lambda" {
+      + architectures                  = (known after apply)
+      + arn                            = (known after apply)
+      + filename                       = "./code.zip"
+      + function_name                  = "test-api-lambda"
+      + handler                        = "lambda.main"
+      + id                             = (known after apply)
+      + invoke_arn                     = (known after apply)
+      + last_modified                  = (known after apply)
+      + layers                         = (known after apply)
+      + memory_size                    = 128
+      + package_type                   = "Zip"
+      + publish                        = false
+      + qualified_arn                  = (known after apply)
+      + qualified_invoke_arn           = (known after apply)
+      + reserved_concurrent_executions = -1
+      + role                           = (known after apply)
+      + runtime                        = "python3.9"
+      + signing_job_arn                = (known after apply)
+      + signing_profile_version_arn    = (known after apply)
+      + skip_destroy                   = false
+      + source_code_hash               = "ublI6yckpbU+C/XOPeXreDe9BMtYmC5NmHtpxdFa0E0="
+      + source_code_size               = (known after apply)
+      + tags_all                       = (known after apply)
+      + timeout                        = 3
+      + version                        = (known after apply)
+
+      + environment {
+          + variables = {
+              + "MESSAGE" = "Terraform sends its regards"
+            }
+        }
+    }
+
+  # aws_lambda_layer_version.layer will be created
+  + resource "aws_lambda_layer_version" "layer" {
+      + arn                         = (known after apply)
+      + compatible_runtimes         = [
+          + "python3.6",
+          + "python3.7",
+          + "python3.8",
+          + "python3.9",
+        ]
+      + created_date                = (known after apply)
+      + filename                    = "./layer.zip"
+      + id                          = (known after apply)
+      + layer_arn                   = (known after apply)
+      + layer_name                  = "test-api-layer"
+      + signing_job_arn             = (known after apply)
+      + signing_profile_version_arn = (known after apply)
+      + skip_destroy                = false
+      + source_code_hash            = (known after apply)
+      + source_code_size            = (known after apply)
+      + version                     = (known after apply)
+    }
+
+  # aws_lambda_permission.api will be created
+  + resource "aws_lambda_permission" "api" {
+      + action              = "lambda:InvokeFunction"
+      + function_name       = (known after apply)
+      + id                  = (known after apply)
+      + principal           = "apigateway.amazonaws.com"
+      + source_arn          = (known after apply)
+      + statement_id        = "AllowExecutionFromAPIGateway"
+      + statement_id_prefix = (known after apply)
+    }
+
+  # null_resource.pip_install will be created
+  + resource "null_resource" "pip_install" {
+      + id       = (known after apply)
+      + triggers = {
+          + "shell_hash" = "e29a8fbd0127f5ea361fb998fc6a150bec13d9d834f2dad4fb4e6a5d8497bb71"
+        }
+    }
+
+Plan: 9 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + api_url = (known after apply)
 `
 	res := cleanupTerraformPlan(true, nil, stdout, "")
 	index := strings.Index(stdout, "OpenTofu will perform the following actions:")
