@@ -40,13 +40,11 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 			return fmt.Errorf("Failed to unmarshall serialized job: %v", err)
 		}
 
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
 		if isPlan {
-			message = message + fmt.Sprintf("| %v | **%v** <a href='%v'>%v</a> | %v | %v | %v\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted)
+			message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | %v | %v | %v|\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted)
 		} else {
-			message = message + fmt.Sprintf("| %v | **%v** <a href='%v'>%v</a> |\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString())
+			message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> |\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString())
 		}
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
 	}
 
 	prService.EditComment(prNumber, prCommentId, message)
