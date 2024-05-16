@@ -19,16 +19,16 @@ require (
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v61 v61.0.0
-	github.com/google/go-github/v61 v61.0.0
 	github.com/google/uuid v1.6.0
 	github.com/migueleliasweb/go-github-mock v0.0.23
 	github.com/robert-nix/ansihtml v1.0.1
 	github.com/robfig/cron v1.2.0
 	github.com/samber/lo v1.39.0
 	github.com/segmentio/analytics-go/v3 v3.3.0
+	github.com/spf13/cast v1.6.0
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
-	github.com/stripe/stripe-go/v76 v76.21.0
+	github.com/stripe/stripe-go/v76 v76.25.0
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
 	golang.org/x/oauth2 v0.20.0
 	gorm.io/driver/postgres v1.5.7
@@ -209,7 +209,6 @@ require (
 	github.com/sourcegraph/go-lsp v0.0.0-20200429204803-219e11d77f5d // indirect
 	github.com/sourcegraph/jsonrpc2 v0.2.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
-	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/terraform-linters/tflint v0.47.0 // indirect
