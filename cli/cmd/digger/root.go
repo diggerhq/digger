@@ -69,10 +69,7 @@ func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrat
 
 	case "stdout":
 		print("Using Stdout.")
-		reporter = &reporting.StdoutReporter{
-			ReportStrategy:    ReportStrategy,
-			IsSupportMarkdown: true,
-		}
+		reporter = &reporting.StdOutReporter{}
 		prService = orchestrator_github.MockCiService{}
 		orgService = orchestrator_github.MockCiService{}
 	default:

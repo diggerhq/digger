@@ -13,6 +13,14 @@ func (mockReporter *MockReporter) Report(report string, formatter func(string) s
 	return nil
 }
 
+func (mockReporter *MockReporter) Flush() error {
+	return nil
+}
+
+func (mockReporter *MockReporter) Suppress() error {
+	return nil
+}
+
 func (mockReporter *MockReporter) SupportsMarkdown() bool {
 	mockReporter.commands = append(mockReporter.commands, "SupportsMarkdown")
 	return false
