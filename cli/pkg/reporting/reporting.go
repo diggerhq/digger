@@ -16,28 +16,85 @@ type CiReporter struct {
 	ReportStrategy    ReportStrategy
 }
 
-type StdoutReporter struct {
-	IsSupportMarkdown bool
-	ReportStrategy    ReportStrategy
-}
-
 func (ciReporter *CiReporter) Report(report string, reportFormatter func(report string) string) error {
 	return ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatter, ciReporter.SupportsMarkdown())
+}
+
+func (ciReporter *CiReporter) Flush() error {
+	return nil
+}
+
+func (ciReporter *CiReporter) Suppress() error {
+	return nil
 }
 
 func (ciReporter *CiReporter) SupportsMarkdown() bool {
 	return ciReporter.IsSupportMarkdown
 }
 
+type CiReporterLazy struct {
+	CiReporter   CiReporter
+	isSuppressed bool
+	reports      []string
+	formatters   []func(report string) string
+}
+
+func NewCiReporterLazy(ciReporter CiReporter) *CiReporterLazy {
+	return &CiReporterLazy{
+		CiReporter:   ciReporter,
+		isSuppressed: false,
+		reports:      []string{},
+		formatters:   []func(report string) string{},
+	}
+}
+
+func (lazyReporter *CiReporterLazy) Report(report string, reportFormatter func(report string) string) error {
+	lazyReporter.reports = append(lazyReporter.reports, report)
+	lazyReporter.formatters = append(lazyReporter.formatters, reportFormatter)
+	return nil
+}
+
+func (lazyReporter *CiReporterLazy) Flush() error {
+	if lazyReporter.isSuppressed {
+		log.Printf("Reporter is suprresed, ignoring messages ...")
+		return nil
+	}
+	for i, _ := range lazyReporter.formatters {
+		err := lazyReporter.CiReporter.ReportStrategy.Report(lazyReporter.CiReporter.CiService, lazyReporter.CiReporter.PrNumber, lazyReporter.reports[i], lazyReporter.formatters[i], lazyReporter.SupportsMarkdown())
+		if err != nil {
+			log.Printf("failed to report strategy: ")
+			return err
+		}
+	}
+	return nil
+}
+
+func (lazyReporter *CiReporterLazy) Suppress() error {
+	lazyReporter.isSuppressed = true
+	return nil
+}
+
+func (lazyReporter *CiReporterLazy) SupportsMarkdown() bool {
+	return lazyReporter.CiReporter.IsSupportMarkdown
+}
+
 type StdOutReporter struct{}
 
 func (reporter *StdOutReporter) Report(report string, reportFormatter func(report string) string) error {
-	log.Println(reportFormatter(report))
+	log.Printf("Info: %v", report)
+	return nil
+}
+
+func (reporter *StdOutReporter) Flush() error {
 	return nil
 }
 
 func (reporter *StdOutReporter) SupportsMarkdown() bool {
 	return false
+}
+
+func (reporter *StdOutReporter) Suppress() error {
+	return nil
 }
 
 type ReportStrategy interface {
@@ -125,13 +182,4 @@ type MultipleCommentsStrategy struct{}
 func (strategy *MultipleCommentsStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, formatter func(string) string, supportsMarkdown bool) error {
 	_, err := ciService.PublishComment(PrNumber, formatter(report))
 	return err
-}
-
-func (ciReporter *StdoutReporter) Report(report string, reportFormatting func(report string) string) error {
-	log.Printf("Info: %v", report)
-	return nil
-}
-
-func (ciReporter *StdoutReporter) SupportsMarkdown() bool {
-	return ciReporter.IsSupportMarkdown
 }
