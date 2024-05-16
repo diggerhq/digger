@@ -33,12 +33,11 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []orchestrator.Job) error
 		message = message + ":construction_worker: No projects impacted"
 	} else {
 		message = message + ":construction_worker: The following projects are impacted\n\n"
+		message = message + fmt.Sprintf("| Project | Status |\n")
+		message = message + fmt.Sprintf("|---------|--------|\n")
 		for _, job := range jobs {
 			message = message + fmt.Sprintf(""+
-				"<!-- PROJECTHOLDER %v -->\n"+
-				":clock11: **%v**: pending...\n"+
-				"<!-- PROJECTHOLDEREND %v -->\n"+
-				"", job.ProjectName, job.ProjectName, job.ProjectName)
+				"|:clock11: **%v**|pending...|", job.ProjectName)
 		}
 	}
 	err := prService.EditComment(prNumber, commentId, message)
