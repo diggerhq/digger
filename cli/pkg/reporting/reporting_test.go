@@ -16,7 +16,7 @@ func TestCommentPerRunStrategyReport(t *testing.T) {
 	strategy := CommentPerRunStrategy{
 		TimeOfRun: timeOfRun,
 	}
-	existingCommentForOtherRun := utils.AsCollapsibleComment("Digger run report at some other time")("")
+	existingCommentForOtherRun := utils.AsCollapsibleComment("Digger run report at some other time", false)("")
 
 	prNumber := 1
 	ciService := &MockCiService{
@@ -31,25 +31,25 @@ func TestCommentPerRunStrategyReport(t *testing.T) {
 	}
 
 	report := "resource \"null_resource\" \"test\" {}"
-	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1")
+	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1", false)
 	err := strategy.Report(ciService, prNumber, report, reportFormatter, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report2 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2")
+	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2", false)
 	err = strategy.Report(ciService, prNumber, report2, reportFormatter2, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report3 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3")
+	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3", false)
 	err = strategy.Report(ciService, prNumber, report3, reportFormatter3, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report4 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4")
+	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4", false)
 	err = strategy.Report(ciService, prNumber, report4, reportFormatter4, true)
 
 	if err != nil {
@@ -65,7 +65,7 @@ func TestLatestCommentStrategyReport(t *testing.T) {
 	strategy := LatestRunCommentStrategy{
 		TimeOfRun: timeOfRun,
 	}
-	existingCommentForOtherRun := utils.AsCollapsibleComment("Digger run report at some other time")("")
+	existingCommentForOtherRun := utils.AsCollapsibleComment("Digger run report at some other time", false)("")
 
 	prNumber := 1
 	ciService := &MockCiService{
@@ -80,25 +80,25 @@ func TestLatestCommentStrategyReport(t *testing.T) {
 	}
 
 	report := "resource \"null_resource\" \"test\" {}"
-	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1")
+	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1", false)
 	err := strategy.Report(ciService, prNumber, report, reportFormatter, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report2 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2")
+	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2", false)
 	err = strategy.Report(ciService, prNumber, report2, reportFormatter2, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report3 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3")
+	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3", false)
 	err = strategy.Report(ciService, prNumber, report3, reportFormatter3, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report4 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4")
+	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4", false)
 	err = strategy.Report(ciService, prNumber, report4, reportFormatter4, true)
 
 	if err != nil {
@@ -111,7 +111,7 @@ func TestLatestCommentStrategyReport(t *testing.T) {
 
 func TestMultipleCommentStrategyReport(t *testing.T) {
 	strategy := MultipleCommentsStrategy{}
-	existingCommentForOtherRun := utils.AsCollapsibleComment("Digger run report at some other time")("")
+	existingCommentForOtherRun := utils.AsCollapsibleComment("Digger run report at some other time", false)("")
 
 	prNumber := 1
 	ciService := &MockCiService{
@@ -126,25 +126,25 @@ func TestMultipleCommentStrategyReport(t *testing.T) {
 	}
 
 	report := "resource \"null_resource\" \"test\" {}"
-	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1")
+	reportFormatter := utils.GetTerraformOutputAsCollapsibleComment("run1", false)
 	err := strategy.Report(ciService, prNumber, report, reportFormatter, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report2 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2")
+	reportFormatter2 := utils.GetTerraformOutputAsCollapsibleComment("run2", false)
 	err = strategy.Report(ciService, prNumber, report2, reportFormatter2, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report3 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3")
+	reportFormatter3 := utils.GetTerraformOutputAsCollapsibleComment("run3", false)
 	err = strategy.Report(ciService, prNumber, report3, reportFormatter3, true)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 	report4 := "resource \"null_resource\" \"test\" {}"
-	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4")
+	reportFormatter4 := utils.GetTerraformOutputAsCollapsibleComment("run4", false)
 	err = strategy.Report(ciService, prNumber, report4, reportFormatter4, true)
 
 	if err != nil {

@@ -97,7 +97,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 
 func reportingLockingSuccess(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
-		err := r.Report(comment, utils.AsCollapsibleComment("Locking successful"))
+		err := r.Report(comment, utils.AsCollapsibleComment("Locking successful", false))
 		if err != nil {
 			log.Println("failed to publish comment: " + err.Error())
 		}
@@ -111,7 +111,7 @@ func reportingLockingSuccess(r reporting.Reporter, comment string) {
 
 func reportLockingFailed(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
-		err := r.Report(comment, utils.AsCollapsibleComment("Locking failed"))
+		err := r.Report(comment, utils.AsCollapsibleComment("Locking failed", false))
 		if err != nil {
 			log.Println("failed to publish comment: " + err.Error())
 		}
@@ -183,7 +183,7 @@ func (projectLock *PullRequestLock) Unlock() (bool, error) {
 
 func reportSuccessfulUnlocking(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
-		err := r.Report(comment, utils.AsCollapsibleComment("Unlocking successful"))
+		err := r.Report(comment, utils.AsCollapsibleComment("Unlocking successful", false))
 		if err != nil {
 			log.Println("failed to publish comment: " + err.Error())
 		}

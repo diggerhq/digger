@@ -102,6 +102,7 @@ type ReportStrategy interface {
 }
 
 type CommentPerRunStrategy struct {
+	IsPlan    bool
 	Project   string
 	TimeOfRun time.Time
 }
@@ -114,7 +115,11 @@ func (strategy *CommentPerRunStrategy) Report(ciService orchestrator.PullRequest
 
 	var reportTitle string
 	if strategy.Project != "" {
-		reportTitle = fmt.Sprintf("Plan for %v (%v)", strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
+		if strategy.IsPlan {
+			reportTitle = fmt.Sprintf("Plan for %v (%v)", strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
+		} else {
+			reportTitle = fmt.Sprintf("Apply for %v (%v)", strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
+		}
 	} else {
 		reportTitle = "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
 	}
@@ -138,7 +143,7 @@ func upsertComment(ciService orchestrator.PullRequestService, PrNumber int, repo
 		if !supportsCollapsible {
 			comment = utils.AsComment(reportTitle)(report)
 		} else {
-			comment = utils.AsCollapsibleComment(reportTitle)(report)
+			comment = utils.AsCollapsibleComment(reportTitle, false)(report)
 		}
 		_, err := ciService.PublishComment(PrNumber, comment)
 		if err != nil {
@@ -158,7 +163,7 @@ func upsertComment(ciService orchestrator.PullRequestService, PrNumber int, repo
 	if !supportsCollapsible {
 		completeComment = utils.AsComment(reportTitle)(commentBody)
 	} else {
-		completeComment = utils.AsCollapsibleComment(reportTitle)(commentBody)
+		completeComment = utils.AsCollapsibleComment(reportTitle, false)(commentBody)
 	}
 
 	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
