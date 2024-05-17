@@ -76,7 +76,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.ProjectNamespace + "). The locking plan must be applied or discarded before future plans can execute"
 
 			reportLockingFailed(projectLock.Reporter, comment)
-			return false, nil
+			return false, fmt.Errorf(comment)
 		}
 	}
 	lockAcquired, err := projectLock.InternalLock.Lock(projectLock.PrNumber, lockId)

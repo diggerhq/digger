@@ -115,7 +115,10 @@ func RunJobs(
 				if reportErr != nil {
 					log.Printf("error reporting project Run err: %v.\n", reportErr)
 				}
-				return false, false, fmt.Errorf("error while running command: %v", err)
+				if executorResult != nil {
+					exectorResults[i] = *executorResult
+				}
+				break
 			}
 			exectorResults[i] = *executorResult
 
