@@ -4,9 +4,6 @@ on:
     branches:
       - 'go'
     types: [released]
-  push:
-    branches: 'release/dgctl'
-
 jobs:
   binary:
     strategy:
