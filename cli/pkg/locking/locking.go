@@ -76,7 +76,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.ProjectNamespace + "). The locking plan must be applied or discarded before future plans can execute"
 
 			reportLockingFailed(projectLock.Reporter, comment)
-			return false, nil
+			return false, fmt.Errorf(comment)
 		}
 	}
 	lockAcquired, err := projectLock.InternalLock.Lock(projectLock.PrNumber, lockId)
@@ -97,7 +97,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 
 func reportingLockingSuccess(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
-		err := r.Report(comment, utils.AsCollapsibleComment("Locking successful"))
+		err := r.Report(comment, utils.AsCollapsibleComment("Locking successful", false))
 		if err != nil {
 			log.Println("failed to publish comment: " + err.Error())
 		}
@@ -111,7 +111,7 @@ func reportingLockingSuccess(r reporting.Reporter, comment string) {
 
 func reportLockingFailed(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
-		err := r.Report(comment, utils.AsCollapsibleComment("Locking failed"))
+		err := r.Report(comment, utils.AsCollapsibleComment("Locking failed", false))
 		if err != nil {
 			log.Println("failed to publish comment: " + err.Error())
 		}
@@ -147,7 +147,7 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 			transactionIdStr := strconv.Itoa(*transactionId)
 			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
 			reportLockingFailed(projectLock.Reporter, comment)
-			return false, nil
+			return false, fmt.Errorf(comment)
 		}
 		return true, nil
 	}
@@ -183,7 +183,7 @@ func (projectLock *PullRequestLock) Unlock() (bool, error) {
 
 func reportSuccessfulUnlocking(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
-		err := r.Report(comment, utils.AsCollapsibleComment("Unlocking successful"))
+		err := r.Report(comment, utils.AsCollapsibleComment("Unlocking successful", false))
 		if err != nil {
 			log.Println("failed to publish comment: " + err.Error())
 		}

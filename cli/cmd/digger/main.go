@@ -159,12 +159,21 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
 
-		reporter := &reporting.CiReporter{
+		log.Printf("Warn: Overriding commenting strategy to Comments-per-run")
+
+		strategy := &reporting.CommentPerRunStrategy{
+			Project:   job.ProjectName,
+			IsPlan:    job.IsPlan(),
+			TimeOfRun: time.Now(),
+		}
+		cireporter := &reporting.CiReporter{
 			CiService:         &githubPrService,
 			PrNumber:          *job.PullRequestNumber,
-			ReportStrategy:    reportingStrategy,
+			ReportStrategy:    strategy,
 			IsSupportMarkdown: true,
 		}
+		// using lazy reporter to be able to suppress empty plans
+		reporter := reporting.NewCiReporterLazy(*cireporter)
 
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
@@ -192,8 +201,8 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
 
-		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, commentId64, currentDir)
-		if err != nil {
+		allAppliesSuccess, _, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, commentId64, currentDir)
+		if !allAppliesSuccess || err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil)
 			if reportingError != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)

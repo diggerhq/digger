@@ -1,14 +1,16 @@
 package utils
 
-func GetTerraformOutputAsCollapsibleComment(summary string) func(string) string {
+import "fmt"
+
+func GetTerraformOutputAsCollapsibleComment(summary string, open bool) func(string) string {
 
 	return func(comment string) string {
-		return `<details><summary>` + summary + `</summary>
-  
-` + "```terraform" + `
-` + comment + `
-  ` + "```" + `
-</details>`
+		return fmt.Sprintf(`<details open="%v"><summary>`+summary+`</summary>
+
+`+"```terraform"+`
+`+comment+`
+`+"```"+`
+</details>`, open)
 	}
 }
 
@@ -18,12 +20,11 @@ func GetTerraformOutputAsComment(summary string) func(string) string {
 	}
 }
 
-func AsCollapsibleComment(summary string) func(string) string {
-
+func AsCollapsibleComment(summary string, open bool) func(string) string {
 	return func(comment string) string {
-		return `<details><summary>` + summary + `</summary>
+		return fmt.Sprintf(`<details><summary>` + summary + `</summary>
   ` + comment + `
-</details>`
+</details>`)
 	}
 }
 

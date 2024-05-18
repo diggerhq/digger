@@ -13,7 +13,7 @@ type Terragrunt struct {
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
-	return terragrunt.runTerragruntCommand("init", envs, params...)
+	return terragrunt.runTerragruntCommand("init", true, envs, params...)
 
 }
 
@@ -23,28 +23,28 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, err := terragrunt.runTerragruntCommand("apply", envs, params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("apply", true, envs, params...)
 	return stdout, stderr, err
 }
 
 func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
-	stdout, stderr, err := terragrunt.runTerragruntCommand("destroy", envs, params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("destroy", true, envs, params...)
 	return stdout, stderr, err
 }
 
 func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", envs, params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("plan", true, envs, params...)
 	return true, stdout, stderr, err
 }
 
 func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (string, string, error) {
-	stdout, stderr, err := terragrunt.runTerragruntCommand("show", envs, params...)
+	stdout, stderr, err := terragrunt.runTerragruntCommand("show", false, envs, params...)
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[string]string, arg ...string) (string, string, error) {
+func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, arg ...string) (string, string, error) {
 	args := []string{command}
 	args = append(args, arg...)
 	cmd := exec.Command("terragrunt", args...)
@@ -58,13 +58,20 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, envs map[strin
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	cmd.Env = env
-
+	var mwout, mwerr io.Writer
 	var stdout, stderr bytes.Buffer
-	mwout := io.MultiWriter(os.Stdout, &stdout)
-	mwerr := io.MultiWriter(os.Stderr, &stderr)
+	if printOutputToStdout {
+		mwout = io.MultiWriter(os.Stdout, &stdout)
+		mwerr = io.MultiWriter(os.Stderr, &stderr)
+	} else {
+		mwout = io.Writer(&stdout)
+		mwerr = io.Writer(&stderr)
+	}
+
+	cmd.Env = env
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
+
 	err := cmd.Run()
 
 	if err != nil {

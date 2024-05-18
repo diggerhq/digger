@@ -33,8 +33,7 @@ func TestLockingTwiceThrowsError(t *testing.T) {
 	}
 	state2, err2 := pl2.Lock()
 	assert.False(t, state2)
-	// No error because the lock was not acquired
-	assert.NoError(t, err2)
+	assert.Error(t, err2)
 }
 
 func TestGetLock(t *testing.T) {
