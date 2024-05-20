@@ -28,7 +28,6 @@ func Bootstrap(templates embed.FS) *gin.Engine {
 	defer segment.CloseClient()
 	initLogging()
 	cfg := config.DiggerConfig
-	web := controllers.WebController{Config: cfg}
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:           os.Getenv("SENTRY_DSN"),
@@ -80,8 +79,6 @@ func Bootstrap(templates embed.FS) *gin.Engine {
 		r.LoadHTMLGlob("templates/*.tmpl")
 	}
 
-	r.GET("/", controllers.RedirectToLoginOrProjects)
-
 	r.POST("/github-app-webhook", controllers.GithubAppWebHook)
 	r.POST("/github-app-webhook/aam", controllers.GithubAppWebHookAfterMerge)
 
@@ -95,35 +92,6 @@ func Bootstrap(templates embed.FS) *gin.Engine {
 	githubGroup.GET("/repos", controllers.GithubReposPage)
 	githubGroup.GET("/setup", controllers.GithubAppSetup)
 	githubGroup.GET("/exchange-code", controllers.GithubSetupExchangeCode)
-
-	projectsGroup := r.Group("/projects")
-	projectsGroup.Use(middleware.GetWebMiddleware())
-	projectsGroup.GET("/", web.ProjectsPage)
-	projectsGroup.GET("/:projectid/details", web.ProjectDetailsPage)
-	projectsGroup.POST("/:projectid/details", web.ProjectDetailsUpdatePage)
-
-	runsGroup := r.Group("/runs")
-	runsGroup.Use(middleware.GetWebMiddleware())
-	runsGroup.GET("/", web.RunsPage)
-	runsGroup.GET("/:runid/details", web.RunDetailsPage)
-
-	reposGroup := r.Group("/repos")
-	reposGroup.Use(middleware.GetWebMiddleware())
-	reposGroup.GET("/", web.ReposPage)
-
-	repoGroup := r.Group("/repo")
-	repoGroup.Use(middleware.GetWebMiddleware())
-	repoGroup.GET("/", web.ReposPage)
-	repoGroup.GET("/:repoid/", web.UpdateRepoPage)
-	repoGroup.POST("/:repoid/", web.UpdateRepoPage)
-
-	policiesGroup := r.Group("/policies")
-	policiesGroup.Use(middleware.GetWebMiddleware())
-	policiesGroup.GET("/", web.PoliciesPage)
-	policiesGroup.GET("/add", web.AddPolicyPage)
-	policiesGroup.POST("/add", web.AddPolicyPage)
-	policiesGroup.GET("/:policyid/details", web.PolicyDetailsPage)
-	policiesGroup.POST("/:policyid/details", web.PolicyDetailsUpdatePage)
 
 	authorized := r.Group("/")
 	authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(models.CliJobAccessType, models.AccessPolicyType, models.AdminPolicyType))

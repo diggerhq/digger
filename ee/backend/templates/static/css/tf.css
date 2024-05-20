@@ -1,0 +1,74 @@
+.terraform-output-fg-black {
+    color: #171421;
+}
+.terraform-output-fg-red {
+    color: #C01C28;
+}
+.terraform-output-fg-green {
+    color: #26A269;
+}
+.terraform-output-fg-yellow {
+    color: #A2734C;
+}
+.terraform-output-fg-blue {
+    color: #12488B;
+}
+.terraform-output-fg-magenta {
+    color: #A347BA;
+}
+.terraform-output-fg-cyan {
+    color: #2AA1B3;
+}
+.terraform-output-fg-white {
+     color: #D0CFCC;
+ }
+.terraform-output-fg-bright-black {
+    color: #5E5C64;
+}
+.terraform-output-fg-bright-red {
+    color: #F66151;
+}
+.terraform-output-fg-bright-green {
+    color: #33D17A;
+}
+.terraform-output-fg-bright-yellow {
+    color: #E9AD0C;
+}
+.terraform-output-fg-bright-blue {
+    color: #2A7BDE;
+}
+.terraform-output-fg-bright-magenta {
+    color: #C061CB;
+}
+.terraform-output-fg-bright-cyan {
+    color: #33C7DE;
+}
+
+.terraform-output-fg-bright-white {
+    color: #FFFFFF;
+}
+
+.terraform-output-fg-green {
+    color: #26A269;
+}
+
+.terraform-output-fg-red {
+    color: #C01C28;
+}
+
+.terraform-output-fg-yellow {
+    color: #A2734C;
+}
+
+.terraform-output-fg-bright-black {
+    color: #5E5C64;
+}
+
+.terraform-output-bold {
+    color: white;
+}
+
+.terraform-output-bg {
+    background-color: #300A24;
+    font-family: Ubuntu Mono;
+}
