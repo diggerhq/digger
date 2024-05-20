@@ -1,4 +1,4 @@
-name: release cli multi architecture
+name: release dgctl
 on:
   release:
     branches:
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Build
         run: |
-          env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} CGO_ENABLED=0 go build -o dgctl ./dgctl/main.go
+          env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} CGO_ENABLED=0 go build -o dgctl_bin ./dgctl/main.go
 
       - name: Publish linux-x64 exec to github
         id: upload-release-asset-linux-x64
@@ -38,6 +38,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: 'dgctl'
+          asset_path: 'dgctl_bin'
           asset_name: dgctl-${{matrix.os}}-${{matrix.arch}}
           asset_content_type: application/octet-stream
