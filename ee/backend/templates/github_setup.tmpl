@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Digger github setup</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+
+    form {
+      width: 100%;
+    }
+
+    form button {
+      float: right;
+    }
+
+    textarea {
+      width: 100%;
+      height: 300px;
+      font-family: monospace;
+    }
+
+    .config {
+      display: flex;
+      flex-direction: row;
+      align-items: baseline;
+      border-bottom: 1px solid #eee;
+    }
+
+
+    .config strong {
+      width: 15%;
+    }
+
+    pre {
+      background-color: #eee;
+      padding: .5em;
+      width: 80%;
+    }
+
+    pre#b64 {
+        white-space: pre-wrap;
+        white-space: -moz-pre-wrap;
+        white-space: -pre-wrap;
+        white-space: -o-pre-wrap;
+        word-wrap: break-word;
+    }
+
+  </style>
+</head>
+<body>
+<div class="container">
+  <section class="header">
+    <p class="title-heading">Digger github setup</p>
+
+    <p class="js-discard-success"><strong>
+    {{ if .Target }}
+      Create a github app
+    {{ else }}
+      Github app created successfully!
+    {{ end }}
+    </strong></p>
+  </section>
+  <section>
+    {{ if .Target }}
+    <form action="{{ .Target }}" method="POST">
+      <textarea name="manifest">{{ .Manifest }}</textarea>
+      <button type="submit">Setup</button>
+    </form>
+    {{ else }}
+      <p>Visit <a href="{{ .URL }}/installations/new" target="_blank">{{ .URL }}/installations/new</a> to install the app for your user or organization:</p>
+
+      <ul>
+        <li class="config"><strong>gh-app-id:</strong> <pre>{{ .ID }}</pre></li>
+        <li class="config"><strong>gh-app-client-id:</strong> <pre>{{ .ClientID }}</pre></li>
+        <li class="config"><strong>gh-app-client-secret:</strong> <pre>{{ .ClientSecret }}</pre></li>
+        <li class="config"><strong>gh-app-key-file Base64 encoded:</strong> <pre id="b64">{{ .KeyBase64 }}</pre></li>
+        <li class="config"><strong>gh-webhook-secret:</strong> <pre>{{ .WebhookSecret }}</pre></li>
+      </ul>
+    {{ end }}
+  </section>
+</div>
+</body>
+</html>
