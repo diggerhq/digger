@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v5.3.0
         with:
           context: .
-          file: "Dockerfile_backend"
+          file: "Dockerfile_backend_ee"
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
           labels: ${{ steps.meta.outputs.labels }}
