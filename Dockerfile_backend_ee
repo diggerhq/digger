@@ -44,7 +44,7 @@ EXPOSE 3000
 COPY --from=builder /go/src/github.com/diggerhq/digger/backend_exe /app/backend
 COPY --from=builder /go/src/github.com/diggerhq/digger/backend/scripts/entrypoint.sh /app/entrypoint.sh
 COPY --from=builder /go/src/github.com/diggerhq/digger/backend/migrations /app/migrations
-ADD backend/templates ./templates
+ADD ee/backend/templates ./templates
 
 # Run the binary
 ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
