@@ -55,7 +55,11 @@ func ScheduleJob(client *github.Client, repoOwner string, repoName string, batch
 	maxConcurrencyForBatch := config.DiggerConfig.GetInt("max_concurrency_per_batch")
 	if maxConcurrencyForBatch == 0 {
 		// concurrency limits not set
-		TriggerJob(client, repoOwner, repoName, batchId, job)
+		err := TriggerJob(client, repoOwner, repoName, batchId, job)
+		if err != nil {
+			log.Printf("Could not trigger job: %v", err)
+			return err
+		}
 	} else {
 		// concurrency limits set
 		log.Printf("Scheduling job with concurrency limit: %v per batch", maxConcurrencyForBatch)
@@ -74,7 +78,11 @@ func ScheduleJob(client *github.Client, repoOwner string, repoName string, batch
 			models.DB.UpdateDiggerJob(job)
 			return nil
 		} else {
-			TriggerJob(client, repoOwner, repoName, batchId, job)
+			err := TriggerJob(client, repoOwner, repoName, batchId, job)
+			if err != nil {
+				log.Printf("Could not trigger job: %v", err)
+				return err
+			}
 		}
 	}
 	return nil
