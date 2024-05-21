@@ -90,6 +90,7 @@ type BlockYaml struct {
 }
 
 type AssumeRoleForProjectConfig struct {
+	Region  string `yaml:"region"`
 	State   string `yaml:"state"`
 	Command string `yaml:"command"`
 }

@@ -106,11 +106,11 @@ func (fetcher GithubAwsTokenFetcher) GetIdentityToken() ([]byte, error) {
 	return []byte(parsed.Value), nil
 }
 
-func GetProviderFromRole(role string) *stscreds.WebIdentityRoleProvider {
+func GetProviderFromRole(role string, region string) *stscreds.WebIdentityRoleProvider {
 	if role == "" {
 		return nil
 	}
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
 		log.Printf("Failed to create aws session: %v", err)
 		return nil
@@ -126,13 +126,13 @@ func GetStateAndCommandProviders(project digger_config.Project) (*stscreds.WebId
 	if project.AwsRoleToAssume != nil {
 
 		if project.AwsRoleToAssume.State != "" {
-			StateEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.State)
+			StateEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.State, project.AwsRoleToAssume.Region)
 		} else {
 			StateEnvProvider = nil
 		}
 
 		if project.AwsRoleToAssume.Command != "" {
-			CommandEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.Command)
+			CommandEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.Command, project.AwsRoleToAssume.Region)
 		} else {
 			CommandEnvProvider = nil
 		}
