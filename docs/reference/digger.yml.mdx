@@ -155,10 +155,11 @@ workflows:
 
 ### RoleToAssume
 
-| Key     | Type   | Default | Required | Description                                              | Notes |
-| ------- | ------ | ------- | -------- | -------------------------------------------------------- | ----- |
-| state   | string |         | yes      | ARN of the role to assume for state backend              |       |
-| command | string |         | yes      | ARN of the role to assume for commands e.g. plan / apply |       |
+| Key     | Type   | Default | Required | Description                                              | Notes                                                |
+| ------- | ------ | ------- | -------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| region  | string |         | no       | Regions used when performing sts web identity calls      |   This will default to  "us-east-1" if not set       |
+| state   | string |         | yes      | ARN of the role to assume for state backend              |   You can optionally set role and the same role      |
+| command | string |         | yes      | ARN of the role to assume for commands e.g. plan / apply |   will be used for both.                             |
 
 ### Plan
 
