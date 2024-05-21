@@ -3,8 +3,6 @@ title: "Federated OIDC access"
 description: "You can configure Digger to use OIDC instead of key-value pairs."
 ---
 
-import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
-
 If you already have configured GCP for that, skip to step 5.
 
 ## 1\. Create a Workload Identity Pool
@@ -57,7 +55,7 @@ Create 2 secrets in your Action Secrets with the following names:
 
 Set `EXT` env var intead of the usual key pair. See [oidc-gcp-example](https://github.com/diggerhq/digger-gcp-ocid-demo) repo for more detail. Sample config below:
 
-<BlockCode version={latestversion} code={`
+```
 - id: 'auth'
         uses: 'google-github-actions/auth@v1'
         with:
@@ -74,14 +72,14 @@ Set `EXT` env var intead of the usual key pair. See [oidc-gcp-example](https://g
           gcloud info
           gsutil ls gs://$\{\{ env.GOOGLE_STORAGE_BUCKET \}\}
       - name: digger
-        uses: diggerhq/digger@latest
+        uses: diggerhq/digger@vLatest
         env:
           LOCK_PROVIDER: gcp
           GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
           GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
           GOOGLE_STORAGE_BUCKET: digger-lock2
 
-`}></BlockCode>
+```
 
 ##
 
@@ -90,3 +88,4 @@ Set `EXT` env var intead of the usual key pair. See [oidc-gcp-example](https://g
   post](https://medium.com/google-cloud/how-does-the-gcp-workload-identity-federation-work-with-github-provider-a9397efd7158)
   by Pradeep Kumar Singh
 </Note>
+```
