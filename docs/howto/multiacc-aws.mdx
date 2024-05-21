@@ -70,7 +70,7 @@ statuses: write # required to validate combined PR status
         run: |
           mv digger.dev.yml digger.yml           # CHANGE HERE
       - name: digger run
-        uses: diggerhq/digger@latest
+        uses: diggerhq/digger@vLatest
         with:
           setup-aws: true
           aws-access-key-id: $\{\{ secrets.AWS_ACCESS_KEY_ID \}\}
