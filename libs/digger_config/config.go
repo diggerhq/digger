@@ -17,6 +17,7 @@ type DependencyConfiguration struct {
 }
 
 type AssumeRoleForProject struct {
+	Region  string
 	State   string
 	Command string
 }
