@@ -8,6 +8,7 @@ import (
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/samber/lo"
+	"log"
 )
 
 type ProjectNameSourceDetail struct {
@@ -41,9 +42,14 @@ func (b ModuleGroupingCommentUpdater) UpdateComment(jobs []scheduler.SerializedJ
 	projectNameToFootPrintMap := make(map[string]terraform_utils.TerraformPlanFootprint)
 	for _, job := range jobs {
 		var footprint terraform_utils.TerraformPlanFootprint
-		err := json.Unmarshal(job.PlanFootprint, &footprint)
-		if err != nil {
-			return fmt.Errorf("Could not unmarshal footprint: %v", err)
+		if job.PlanFootprint != nil {
+			err := json.Unmarshal(job.PlanFootprint, &footprint)
+			if err != nil {
+				log.Printf("could not unmarshal footprint: %v", err)
+				return fmt.Errorf("could not unmarshal footprint: %v", err)
+			}
+		} else {
+			footprint = terraform_utils.TerraformPlanFootprint{}
 		}
 		projectNameToFootPrintMap[job.ProjectName] = footprint
 	}
