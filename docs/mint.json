@@ -73,6 +73,7 @@
       "group": "How To",
       "pages": [
         "howto/apply-on-merge",
+        "howto/apply-requirements",
         "howto/auto-merge",
         "howto/backendless-mode",
         "howto/commenting-strategies",
