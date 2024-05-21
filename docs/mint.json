@@ -134,8 +134,11 @@
       ]
     },
     {
-      "group": "Troubleshooting Errors",
-      "pages": ["troubleshooting-errors/importing-existing-resources"]
+      "group": "Troubleshooting",
+      "pages": [
+        "troubleshooting/importing-existing-resources",
+        "troubleshooting/action-errors"
+      ]
     }
   ],
   "footerSocials": {

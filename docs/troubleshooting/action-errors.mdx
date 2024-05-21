@@ -1,0 +1,25 @@
+---
+title: "Action Errors"
+---
+
+### Failed to unmarshal job string
+
+```
+13:17:30 main.go:973: Failed unmarshall job string: invalid character 'd' looking for beginning of value
+Error: Process completed with exit code 4.
+```
+
+This may indicate mismatch of the job parameters that are being passed to the action and what the action expects.
+Things to check:
+
+- that you are running latest versions of BOTH orchestrator and action
+- value of the job that is passed to the workflow, under the “event” key when you expand the digger run event. Check that it looks like a valid json, smth like this:
+
+```
+   "event": {
+      "inputs": {
+        "comment_id": "2083250779",
+        "id": "EiUBxZHh0qXQ92PR",
+        "job": "{\"projectName\":\"dev\",\"projectDir\":\".\",\"projectWorkspace\":\"default\",\"terragrunt\":false,\"commands\":[\"digger plan\"],\"applyStage\":{\"steps\":[{\"action\":\"init\",\"value\":\"\",\"extraArgs\":[],\"shell\":\"\"},{\"action\":\"apply\",\"value\":\"\",\"extraArgs\":[],\"shell\":\"\"}]},\"planStage\":{\"steps\":[{\"action\":\"init\",\"value\":\"\",\"extraArgs\":[],\"shell\":\"\"},{\"action\":\"plan\",\"value\":\"\",\"extraArgs\":[],\"shell\":\"\"}]},\"pullRequestNumber\":9,\"eventName\":\"issue_comment\",\"requestedBy\":\"motatoes\",\"namespace\":\"diggerhq/demo-opentofu\",\"runEnvVars\":{\"DEFAULT_BRANCH\":\"main\",\"PROJECT_DIR\":\".\",\"PROJECT_NAME\":\"dev\",\"PR_BRANCH\":\"motatoes-patch-7\"},\"stateEnvVars\":{},\"commandEnvVars\":{},\"state_role_name\":\"\",\"command_role_name\":\"\",\"backend_hostname\":\"https://c1db-5-151-139-93.ngrok-free.app\",\"backend_organisation_hostname\":\"digger\",\"backend_job_token\":\"cli:f4bfd7a5-ec11-4d43-ab88-93d12674e1d7\"}"
+      },
+```
