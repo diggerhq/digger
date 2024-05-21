@@ -1,10 +1,10 @@
 package execution
 
 import (
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCorrectCleanUpWithoutRegexDoesNotProduceException(t *testing.T) {
