@@ -93,6 +93,7 @@ type SerializedJob struct {
 	ProjectName      string          `json:"project_name"`
 	JobString        []byte          `json:"job_string"`
 	PlanFootprint    []byte          `json:"plan_footprint"`
+	PRCommentUrl     string          `json:"pr_comment_url"`
 	WorkflowRunUrl   *string         `json:"workflow_run_url"`
 	ResourcesCreated uint            `json:"resources_created"`
 	ResourcesDeleted uint            `json:"resources_deleted"`

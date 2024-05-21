@@ -315,6 +315,7 @@ type SetJobStatusRequest struct {
 	Timestamp  time.Time                               `json:"timestamp"`
 	JobSummary *terraform_utils.PlanSummary            `json:"job_summary"`
 	Footprint  *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
+	PrCommentUrl string      `json:"pr_comment_url"`
 }
 
 func SetJobStatusForProject(c *gin.Context) {
@@ -379,13 +380,13 @@ func SetJobStatusForProject(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error marshalling plan footprint"})
 			}
 		}
+		job.PRCommentUrl = request.PrCommentUrl
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
-			log.Printf("Error updating job status: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			log.Printf("Error updating job status: %v", request.Status)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 			return
 		}
-
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {

@@ -1,0 +1,10 @@
+---
+title: "Apply Requirements"
+---
+
+Digger currently does not support `apply_requirements` (like in Atlantis). Coming soon - ([#1252](https://github.com/diggerhq/digger/issues/1252))
+
+## Workaround
+
+You can use mergeability requirements together with Status Checks to achieve the same.
+Digger will not apply if the pull request is not in a “mergable” state as specified by GitHub api. This means that if you have a separate status check and you have this check as “required” by branch protection rules then an attempt of digger apply will not go ahead.

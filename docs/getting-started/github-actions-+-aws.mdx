@@ -2,30 +2,27 @@
 title: "Github Actions + AWS"
 ---
 
-import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
-
 In this tutorial, you will set up Digger to automate terraform pull requests using Github Actions and AWS
 
 # Prerequisites
 
 - A GitHub repository with valid terraform code. Here's a [demo repo](https://github.com/diggerhq/quickstart-actions-aws)
 - Your AWS credentials. See [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
-- Digger token from [cloud.digger.dev](https://cloud.digger.dev)
-- Digger GitHub App installed, also from [cloud.digger.dev](https://cloud.digger.dev)
+- Digger [GitHub App](https://github.com/apps/digger-cloud/installations/select_target) installed
 
 <Note>
-cloud.digger.dev does not need access to your cloud account, it just starts jobs in your CI.
+Digger GitHub App does not need access to your cloud account, it just starts jobs in your CI. All sensitive data stays in your CI job.
 
 You can also [self-host Digger orchestrator](/self-host/deploy-docker) with a private GiHub app and issue your own token
 
 </Note>
 
-# Create Action Secrets
+# Create Action Secrets with AWS credentials (you can also [use OIDC](https://docs.digger.dev/cloud-providers/authenticating-with-oidc-on-aws))
 
 In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
 
-- `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` (you can also [use OIDC](https://docs.digger.dev/cloud-providers/authenticating-with-oidc-on-aws))
-- `DIGGER_TOKEN` - your Digger token (cloud or self-hosted)
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
 
 # Create digger.yml
 
@@ -39,53 +36,46 @@ projects:
 
 # Create Github Actions workflow file
 
-
 Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 
-<BlockCode version={latestversion} code={`
+```
 name: Digger Workflow
 
 on:
   workflow_dispatch:
-    inputs:
-      id:
-        description: 'run identifier'
-        required: false
-      job:
-        required: true
-      comment_id:
-        required: true
+  inputs:
+    id:
+      description: 'run identifier'
+      required: false
+    job:
+      required: true
+    comment_id:
+      required: true
+
 jobs:
   digger-job:
     runs-on: ubuntu-latest
     permissions:
-      contents: write      # required to merge PRs
-      actions: write       # required for plan persistence
-      id-token: write      # required for workload-identity-federation
+      contents: write # required to merge PRs
+      actions: write # required for plan persistence
+      id-token: write # required for workload-identity-federation
       pull-requests: write # required to post PR comments
-      statuses: write      # required to validate combined PR status
+      statuses: write # required to validate combined PR status
 
     steps:
       - uses: actions/checkout@v4
-      - uses: diggerhq/digger@latest
+      - name: ${{github.event.inputs.id}}
+        run: echo job id ${{ inputs.id }}
+      - uses: diggerhq/digger@vLatest
         with:
           setup-aws: true
           aws-access-key-id: $\{\{ secrets.AWS_ACCESS_KEY_ID \}\}
           aws-secret-access-key: $\{\{ secrets.AWS_SECRET_ACCESS_KEY \}\}
           disable-locking: true
-          digger-hostname: 'https://cloud.digger.dev'
-          digger-organisation: 'digger'
-          digger-token: $\{\{ secrets.DIGGER_TOKEN \}\}
         env:
           GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
           GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
-`}></BlockCode>
-
-
-This file defines a simple workflow that
-
-- Checks out repository using Github's official [Checkout action](https://github.com/actions/checkout)
-- Runs Digger. Note that `DIGGER_TOKEN` needs to be set as a secret in Actions (either repository secret, or environment secret), you also need to set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY parameter. OIDC is also supported if you prefer that route
+```
 
 # Create a PR to verify that it works
 
@@ -94,7 +84,3 @@ Terraform will run an existing plan against your code.
 Make any change to your terraform code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of Terraform Plan added as a comment to your PR.
 
 Then you can add a comment like `digger apply` and shortly after apply output will be added as comment too.
-
-```
-
-```

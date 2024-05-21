@@ -129,7 +129,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			backendApi = NewBackendApi(jobSpec.BackendHostname, jobSpec.BackendJobToken)
 			policyChecker = NewPolicyChecker(jobSpec.BackendHostname, jobSpec.BackendOrganisationName, jobSpec.BackendJobToken)
 		} else {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Missing values from jobSpec spec: hostname, orgName, token: %v %v", jobSpec.BackendHostname, jobSpec.BackendOrganisationName), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Missing values from job spec: hostname, orgName, token: %v %v", jobSpec.BackendHostname, jobSpec.BackendOrganisationName), 4)
 		}
 
 		err = githubPrService.SetOutput(*jobSpec.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *jobSpec.PullRequestNumber))
@@ -141,7 +141,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
-		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "started", time.Now(), nil)
+		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "started", time.Now(), nil, "")
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %s", err), 4)
 		}
@@ -166,15 +166,24 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobSpec.PullRequestNumber)
 
-		reporter := &reporting.CiReporter{
+		log.Printf("Warn: Overriding commenting strategy to Comments-per-run")
+
+		strategy := &reporting.CommentPerRunStrategy{
+			Project:   jobSpec.ProjectName,
+			IsPlan:    jobSpec.IsPlan(),
+			TimeOfRun: time.Now(),
+		}
+		cireporter := &reporting.CiReporter{
 			CiService:         &githubPrService,
 			PrNumber:          *jobSpec.PullRequestNumber,
-			ReportStrategy:    reportingStrategy,
+			ReportStrategy:    strategy,
 			IsSupportMarkdown: true,
 		}
+		// using lazy reporter to be able to suppress empty plans
+		reporter := reporting.NewCiReporterLazy(*cireporter)
 
 		if err != nil {
-			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil)
+			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "")
 			if reportingError != nil {
 				log.Printf("Failed to report jobSpec status to backend. %v", reportingError)
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
@@ -193,9 +202,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(jobSpec)}
 
-		_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, commentId64, currentDir)
-		if err != nil {
-			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil)
+		allAppliesSuccess, _, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, commentId64, currentDir)
+		if !allAppliesSuccess || err != nil {
+			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "")
 			if reportingError != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}

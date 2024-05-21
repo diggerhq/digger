@@ -3,6 +3,7 @@ package execution
 import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/terraform_utils"
+	"github.com/samber/lo"
 	"log"
 	"os"
 	"path"
@@ -272,12 +273,12 @@ func (d DiggerExecutor) Plan() (*terraform_utils.PlanSummary, bool, bool, string
 
 func reportError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init."))
+		_, _, commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
 	} else {
-		commentErr := r.Report(stderr, utils.AsComment("Error during init."))
+		_, _, commentErr := r.Report(stderr, utils.AsComment("Error during init."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
@@ -348,12 +349,12 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 
 func reportApplyError(r reporting.Reporter, err error) {
 	if r.SupportsMarkdown() {
-		commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying."))
+		_, _, commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", err)
 		}
 	} else {
-		commentErr := r.Report(err.Error(), utils.AsComment("Error during applying."))
+		_, _, commentErr := r.Report(err.Error(), utils.AsComment("Error during applying."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", err)
 		}
@@ -363,12 +364,12 @@ func reportApplyError(r reporting.Reporter, err error) {
 func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOutput string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply for <b>" + projectId + "</b>")
+		formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply output", false)
 	} else {
-		formatter = utils.GetTerraformOutputAsComment("Apply for " + projectId)
+		formatter = utils.GetTerraformOutputAsComment("Apply output")
 	}
 
-	commentErr := r.Report(applyOutput, formatter)
+	_, _, commentErr := r.Report(applyOutput, formatter)
 	if commentErr != nil {
 		log.Printf("error publishing comment: %v", commentErr)
 	}
@@ -376,12 +377,12 @@ func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOut
 
 func reportTerraformError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init."))
+		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
 	} else {
-		commentErr := r.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
+		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
@@ -391,7 +392,7 @@ func reportTerraformError(r reporting.Reporter, stderr string) {
 func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>" + projectId + "</b>")
+		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>"+projectId+"</b>", false)
 	} else {
 		formatter = utils.GetTerraformOutputAsComment("Additional output for " + projectId)
 	}
@@ -400,7 +401,7 @@ func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 		output, _ := os.ReadFile(diggerOutPath)
 		outputStr := string(output)
 		if len(outputStr) > 0 {
-			commentErr := r.Report(outputStr, formatter)
+			_, _, commentErr := r.Report(outputStr, formatter)
 			if commentErr != nil {
 				log.Printf("error publishing comment: %v", commentErr)
 			}
@@ -445,7 +446,7 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 }
 
 func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr *string) string {
-	var errorStr, start string
+	var errorStr string
 
 	// removes output of terraform -version command that terraform-exec executes on every run
 	i := strings.Index(stdout, "Initializing the backend...")
@@ -461,14 +462,21 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 			errorStr = stdout
 		}
 		return errorStr
-	} else if nonEmptyOutput {
-		start = "Terraform will perform the following actions:"
-	} else {
-		start = "No changes. Your infrastructure matches the digger_config."
 	}
 
-	startPos := strings.Index(stdout, start)
-	if startPos == -1 {
+	delimiters := []string{
+		"Terraform will perform the following actions:",
+		"OpenTofu will perform the following actions:",
+		"No changes. Your infrastructure matches the configuration.",
+	}
+	indices := lo.FilterMap(delimiters, func(delimiter string, i int) (int, bool) {
+		index := strings.Index(stdout, delimiter)
+		return index, index > 0
+	})
+	var startPos int
+	if len(indices) > 0 {
+		startPos = indices[0]
+	} else {
 		startPos = 0
 	}
 

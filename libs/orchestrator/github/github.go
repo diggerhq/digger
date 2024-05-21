@@ -149,6 +149,7 @@ func (svc GithubService) GetComments(prNumber int) ([]orchestrator.Comment, erro
 		commentBodies[i] = orchestrator.Comment{
 			Id:   *comment.ID,
 			Body: comment.Body,
+			Url:  *comment.URL,
 		}
 	}
 	return commentBodies, err

@@ -35,4 +35,9 @@ type Issue struct {
 type Comment struct {
 	Id   interface{}
 	Body *string
+	Url  string
+}
+
+type PullRequestComment interface {
+	GetUrl() (string, error)
 }
