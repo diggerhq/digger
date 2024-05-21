@@ -1,155 +1,149 @@
 {
-    "name": "Digger",
-    "logo": {
-      "light": "/logo/light.png",
-      "dark": "/logo/dark.png"
+  "name": "Digger",
+  "logo": {
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#8101E4",
+    "light": "#AF48FF",
+    "dark": "#8101E4",
+    "anchors": {
+      "from": "#c44778",
+      "to": "#af54e6"
+    }
+  },
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/diggerhq/digger"
+  },
+  "anchors": [
+    {
+      "name": "Slack",
+      "icon": "slack",
+      "url": "https://diggertalk.slack.com/join/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q#/shared-invite/email"
     },
-    "favicon": "/favicon.png",
-    "colors": {
-      "primary": "#8101E4",
-      "light": "#AF48FF",
-      "dark": "#8101E4",
-      "anchors": {
-        "from": "#c44778",
-        "to": "#af54e6"
-       }
-    },
-    "topbarCtaButton": {
-      "type": "github",
-      "url": "https://github.com/diggerhq/digger"
-    },
-    "anchors": [
-      {
-          "name": "Slack",
-          "icon": "slack",
-          "url": "https://diggertalk.slack.com/join/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q#/shared-invite/email"
-      },
-      {
-          "name": "Blog",
-          "icon": "newspaper",
-          "url": "https://blog.digger.dev/"
-      }
+    {
+      "name": "Blog",
+      "icon": "newspaper",
+      "url": "https://blog.digger.dev/"
+    }
   ],
-    "navigation": [
-        {
-            "group": "Introduction",
-            "pages": [
-              "readme/introduction",
-              "readme/howitworks",
-              "readme/pricing",
-              "readme/faq",
-              "readme/feedback"
-            ]
-        },
-        {
-            "group": "Getting Started",
-            "pages": [
-                "getting-started/github-actions-+-aws",
-                "getting-started/github-actions-and-gcp"
-            ]
-        },
-        {
-          "group": "Features",
-          "pages": [
-            "features/plan-preview",
-            "features/commentops",
-            "features/dashboard",
-            "features/opa-policies",
-            "features/concurrency",
-            "features/pr-level-locks",
-            "features/plan-persistence",
-            "features/rbac"
-          ]
-      },
-        {
-          "group": "How To",
-          "pages": [
-              "howto/apply-on-merge",
-              "howto/auto-merge",
-              "howto/backendless-mode",
-              "howto/commenting-strategies",
-              "howto/custom-commands",
-              "howto/destroy-manual",
-              "howto/disable-auto-checkout",
-              "howto/disable-telemetry",
-              "howto/drift-detection",
-              "howto/generate-projects",
-              "howto/include-exclude-patterns",
-              "howto/multiacc-aws",
-              "howto/policy-overrides",
-              "howto/project-level-roles",
-              "howto/segregate-cloud-accounts",
-              "howto/store-plans-in-a-bucket",
-              "howto/trigger-directly",
-              "howto/using-checkov",
-              "howto/using-infracost",
-              "howto/using-opa-conftest",
-              "howto/using-terragrunt",
-              "howto/versioning"
-          ]
-        },
-        {
-          "group": "Self-host Digger",
-          "pages": [
-              "self-host/auth-methods",
-              "self-host/deploy-docker",
-              "self-host/deploy-docker-compose",
-              "self-host/deploy-binary",
-              "self-host/deploy-helm"
-          ]
-      },
-        {
-            "group": "Reference",
-            "pages": [
-                "reference/digger.yml",
-                "reference/action-inputs"
-            ]
-        },
-        {
-          "group": "Digger Enterprise",
-          "pages": [
-              "ee/ee-setup"
-          ]
-        },
-        {
-            "group": "Digger API",
-            "pages": [
-              "digger-api/rbac-via-opa-guide"
-            ]
-        },
-        {
-            "group": "AWS-specific",
-            "pages": [
-              "cloud-providers/aws",
-              "cloud-providers/setting-up-separate-mgmt-account",
-              "cloud-providers/authenticating-with-oidc-on-aws"
-            ]
-        },
-        {
-            "group": "GCP-specific",
-            "pages": [
-              "gcp/setting-up-gcp-+-gh-actions",
-              "gcp/federated-oidc-access",
-              "gcp/using-gcp-bucket-for-locks"
-            ]
-        },
-        {
-            "group": "Azure-specific",
-            "pages": [
-              "azure-specific/azure",
-              "azure-specific/azure-devops-locking-connection-methods"
-            ]
-        },
-        {
-            "group": "Troubleshooting Errors",
-            "pages": [
-              "troubleshooting-errors/importing-existing-resources"
-            ]
-        }
-    ],
-    "footerSocials":
-      {
-          "slack": "https://diggertalk.slack.com/join/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q#/shared-invite/email",
-          "linkedin": "https://www.linkedin.com/company/diggerhq/"
-      }
+  "navigation": [
+    {
+      "group": "Introduction",
+      "pages": [
+        "readme/introduction",
+        "readme/howitworks",
+        "readme/pricing",
+        "readme/faq",
+        "readme/feedback"
+      ]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
+        "getting-started/github-actions-+-aws",
+        "getting-started/github-actions-and-gcp"
+      ]
+    },
+    {
+      "group": "Digger Enterprise",
+      "pages": [
+        "ee/ee-setup",
+        "ee/dashboard",
+        "ee/drift-detection",
+        "ee/rbac-opa"
+      ]
+    },
+    {
+      "group": "Features",
+      "pages": [
+        "features/plan-preview",
+        "features/commentops",
+        "features/opa-policies",
+        "features/concurrency",
+        "features/pr-level-locks",
+        "features/plan-persistence",
+        "features/rbac"
+      ]
+    },
+    {
+      "group": "How To",
+      "pages": [
+        "howto/apply-on-merge",
+        "howto/apply-requirements",
+        "howto/auto-merge",
+        "howto/backendless-mode",
+        "howto/commenting-strategies",
+        "howto/custom-commands",
+        "howto/destroy-manual",
+        "howto/disable-auto-checkout",
+        "howto/disable-telemetry",
+        "howto/drift-detection",
+        "howto/generate-projects",
+        "howto/include-exclude-patterns",
+        "howto/multiacc-aws",
+        "howto/policy-overrides",
+        "howto/project-level-roles",
+        "howto/segregate-cloud-accounts",
+        "howto/store-plans-in-a-bucket",
+        "howto/trigger-directly",
+        "howto/using-checkov",
+        "howto/using-infracost",
+        "howto/using-opa-conftest",
+        "howto/using-terragrunt",
+        "howto/versioning"
+      ]
+    },
+    {
+      "group": "Self-host Digger",
+      "pages": [
+        "self-host/auth-methods",
+        "self-host/deploy-docker",
+        "self-host/deploy-docker-compose",
+        "self-host/deploy-binary",
+        "self-host/deploy-helm"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": ["reference/digger.yml", "reference/action-inputs"]
+    },
+    {
+      "group": "AWS-specific",
+      "pages": [
+        "cloud-providers/aws",
+        "cloud-providers/setting-up-separate-mgmt-account",
+        "cloud-providers/authenticating-with-oidc-on-aws"
+      ]
+    },
+    {
+      "group": "GCP-specific",
+      "pages": [
+        "gcp/setting-up-gcp-+-gh-actions",
+        "gcp/federated-oidc-access",
+        "gcp/using-gcp-bucket-for-locks"
+      ]
+    },
+    {
+      "group": "Azure-specific",
+      "pages": [
+        "azure-specific/azure",
+        "azure-specific/azure-devops-locking-connection-methods"
+      ]
+    },
+    {
+      "group": "Troubleshooting",
+      "pages": [
+        "troubleshooting/importing-existing-resources",
+        "troubleshooting/action-errors"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "slack": "https://diggertalk.slack.com/join/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q#/shared-invite/email",
+    "linkedin": "https://www.linkedin.com/company/diggerhq/"
   }
+}
