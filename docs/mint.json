@@ -50,7 +50,12 @@
     },
     {
       "group": "Digger Enterprise",
-      "pages": ["ee/ee-setup", "ee/dashboard", "ee/drift-detection"]
+      "pages": [
+        "ee/ee-setup",
+        "ee/dashboard",
+        "ee/drift-detection",
+        "ee/rbac-opa"
+      ]
     },
     {
       "group": "Features",
