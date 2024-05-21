@@ -2,15 +2,11 @@
 title: "Destroy via manual workflow"
 ---
 
-import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
-
 Normally Digger workflow is not supposed to be triggered manually. It is triggered ether by the orchestrator backend, or directly by an event from GitHub (in the "backendless" mode with `no-backend: true` option set). The Destroy operation is a special case, by design: the only way to run `terraform destroy` in Digger is by triggering a workflow manually. This way unwanted destroys are guaranteed to never happen.
 
 You can create a dedicated workflow accepting project name and action:
 
-<BlockCode
-  version={latestversion}
-  code={`
+```
 on:
   workflow_dispatch:
     inputs:
@@ -34,8 +30,7 @@ jobs:
       env:
         GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
         GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
-`}
-></BlockCode>
+```
 
 <Note>
   Note the arguments “mode: manual” and “command: digger destroy” above are
