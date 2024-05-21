@@ -48,4 +48,5 @@ func TestPlanFootprintSimilarity(t *testing.T) {
 	footPrints = []TerraformPlanFootprint{*footprint1, *footprint2}
 	isSimilar, _ = SimilarityCheck(footPrints)
 	assert.False(t, isSimilar)
+
 }

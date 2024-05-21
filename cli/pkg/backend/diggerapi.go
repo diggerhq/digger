@@ -134,7 +134,6 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 		planJson := planResult.TerraformJson
 		planSummary := planResult.PlanSummary
 		planSummaryJson = planSummary.ToJson()
-		log.Printf("Plan Json is: %v", planJson)
 		planFootprint, err = terraform_utils.GetPlanFootprint(planJson)
 		if err != nil {
 			log.Printf("Error, could not get footprint from json plan: %v", err)
@@ -147,7 +146,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 		"status":             status,
 		"timestamp":          timestamp,
 		"job_summary":        planSummaryJson,
-		"job_plan_footprint": planFootprint,
+		"job_plan_footprint": planFootprint.ToJson(),
 		"pr_comment_url":     PrCommentUrl,
 	}
 

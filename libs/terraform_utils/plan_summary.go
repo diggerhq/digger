@@ -36,6 +36,15 @@ type TerraformPlanFootprint struct {
 	Addresses []string `json:"addresses"`
 }
 
+func (f *TerraformPlanFootprint) ToJson() map[string]interface{} {
+	if f == nil {
+		return map[string]interface{}{}
+	}
+	return map[string]interface{}{
+		"addresses": f.Addresses,
+	}
+}
+
 func (footprint TerraformPlanFootprint) hash() string {
 	addresses := make([]string, len(footprint.Addresses))
 	copy(addresses, footprint.Addresses)
