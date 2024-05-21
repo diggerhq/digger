@@ -37,6 +37,7 @@ type DiggerJob struct {
 	Status             orchestrator_scheduler.DiggerJobStatus
 	Batch              *DiggerBatch
 	BatchID            *string `gorm:"index:idx_digger_job_id"`
+	PRCommentUrl       string
 	DiggerJobSummary   DiggerJobSummary
 	DiggerJobSummaryID uint
 	SerializedJobSpec  []byte
@@ -91,6 +92,7 @@ func (j *DiggerJob) MapToJsonStruct() (interface{}, error) {
 		JobString:        j.SerializedJobSpec,
 		ProjectName:      job.ProjectName,
 		WorkflowRunUrl:   j.WorkflowRunUrl,
+		PRCommentUrl:     j.PRCommentUrl,
 		ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
 		ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
 		ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,

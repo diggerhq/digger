@@ -315,9 +315,10 @@ type JobSummary struct {
 }
 
 type SetJobStatusRequest struct {
-	Status     string      `json:"status"`
-	Timestamp  time.Time   `json:"timestamp"`
-	JobSummary *JobSummary `json:"job_summary"`
+	Status       string      `json:"status"`
+	Timestamp    time.Time   `json:"timestamp"`
+	JobSummary   *JobSummary `json:"job_summary"`
+	PrCommentUrl string      `json:"pr_comment_url"`
 }
 
 func SetJobStatusForProject(c *gin.Context) {
@@ -368,6 +369,13 @@ func SetJobStatusForProject(c *gin.Context) {
 		}
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
+		job.PRCommentUrl = request.PrCommentUrl
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			log.Printf("Unexpected status %v", request.Status)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
+			return
+		}
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -460,7 +468,6 @@ func SetJobStatusForProject(c *gin.Context) {
 
 	}
 
-	log.Printf("!!!Batch to json struct: %v", res)
 	c.JSON(http.StatusOK, res)
 }
 
