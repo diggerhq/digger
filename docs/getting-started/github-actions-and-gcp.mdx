@@ -1,29 +1,32 @@
 ---
 title: "Github Actions + GCP"
 ---
-import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
 
 In this tutorial, you will set up Digger to automate terraform pull requests using Github Actions and GCP.
 
 # Prerequisites
+
 - A GitHub repository with valid terraform code. Here's a [demo repo](https://github.com/diggerhq/demo-conftest-gcp/) for inspiration.
 - A GCP Service Account Key json file. See [Hashicorp's GCP tutorial](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
-- Digger token from [cloud.digger.dev](https://cloud.digger.dev)
-- Digger GitHub App installed, also from [cloud.digger.dev](https://cloud.digger.dev)
+- Digger [GitHub App](https://github.com/apps/digger-cloud/installations/select_target) installed
 
 <Note>
-cloud.digger.dev does not need access to your cloud account, it just starts jobs in your CI.
+Digger GitHub App does not need access to your cloud account, it just starts jobs in your CI. All sensitive data stays in your CI job.
 
 You can also [self-host Digger orchestrator](/self-host/deploy-docker) with a private GiHub app and issue your own token
+
 </Note>
 
 # Create Action Secrets
+
 In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
-- `GCP_CREDENTIALS` - contents of your GCP Service Account Key json file
-- `DIGGER_TOKEN` - your Digger token (cloud or self-hosted)
+
+- `GCP_CREDENTIALS` - contents of your GCP Service Account Key json file. You can also [use OIDC](/gcp/federated-oidc-access/))
 
 # Create digger.yml
+
 This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
+
 ```
 projects:
 - name: production
@@ -31,9 +34,10 @@ projects:
 ```
 
 # Create Github Actions workflow file
+
 Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 
-<BlockCode version={latestversion} code={`
+```
 name: Digger
 
 on:
@@ -50,7 +54,7 @@ jobs:
   digger-job:
     name: Digger
     runs-on: ubuntu-latest
-    permissions:    
+    permissions:
       contents: write      # required to merge PRs
       actions: write       # required for plan persistence
       id-token: write      # required for workload-identity-federation
@@ -70,25 +74,22 @@ jobs:
     - name: 'Use gcloud CLI'
       run: 'gcloud info'
     - name: digger run
-        uses: diggerhq/digger@latest
+        uses: diggerhq/digger@vLatest
         with:
           setup-aws: false
           disable-locking: true
-          digger-hostname: 'https://cloud.digger.dev'
-          digger-organisation: 'digger'
-          digger-token: $\{\{ secrets.DIGGER_TOKEN \}\}
         env:
           GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
           GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
-`}></BlockCode>
+```
 
 This file defines a workflow with 5 steps:
+
 - Checkout repository using Github's official [Checkout action](https://github.com/actions/checkout)
 - Authenticate into GCP using Google's official [Auth action](https://github.com/google-github-actions/auth). Note the `create_credentials_file: true` option; without it, subsequent steps that rely [Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc) will not work.
 - Set up Google Cloud SDK for use in the subsequent steps via Google's official [Setup-gcloud action](https://github.com/google-github-actions/setup-gcloud)
 - Verify that GCP is configured correctly by running `gcloud info`
-- Run Digger. Note that `DIGGER_TOKEN` needs to be set as a secret in Actions (either repository secret, or environment secret)
-
+- Run Digger.
 
 # Create a PR to verify that it works
 
@@ -105,7 +106,7 @@ Terraform will perform the following actions:
       + deletion_protection  = false
       + guest_accelerator    = (known after apply)
       + id                   = (known after apply)
-      
+
  ... (further content omitted)
 ```
 

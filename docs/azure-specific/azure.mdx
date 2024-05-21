@@ -2,11 +2,9 @@
 title: "Setting up Azure + GH Actions"
 ---
 
-import { latestversion, BlockCode } from "/snippets/versioncode.mdx";
-
 ## Prerequisites
 
-* Azure Cloud account
+- Azure Cloud account
 
 ## 1\. Create Storage Account for locks
 
@@ -26,9 +24,9 @@ Click New Registration; give name; click Register
 
 Take note of
 
-* Directory (Tenant) ID
+- Directory (Tenant) ID
 
-* Application (Client) ID
+- Application (Client) ID
 
 Go to Certificates and Secrets. Click New Client Secret. Give it a name; click Add. Take note of the Secret Value.
 
@@ -36,19 +34,19 @@ Go to **subscription** in the portal and select your subscription ID, select **A
 
 ### In Github
 
-* Go to Settings → Secrets and Variables
+- Go to Settings → Secrets and Variables
 
-* Click “New Repository Secret” button
+- Click “New Repository Secret” button
 
-* Add a secret named ARM\_CLIENT\_ID with the value of your Application (Client) ID from above
+- Add a secret named ARM_CLIENT_ID with the value of your Application (Client) ID from above
 
-* Add a secret named ARM\_TENANT\_ID with the value of your Directory (Tenant) ID from above
+- Add a secret named ARM_TENANT_ID with the value of your Directory (Tenant) ID from above
 
-* Add a secret named ARM\_CLIENT\_SECRET with the value of your Client Secret from above
+- Add a secret named ARM_CLIENT_SECRET with the value of your Client Secret from above
 
-* Add a secret named ARM\_SUBSCRIPTION\_ID with the value of your Subscription ID from above
+- Add a secret named ARM_SUBSCRIPTION_ID with the value of your Subscription ID from above
 
-* Add a secret named DIGGER\_AZURE\_CONNECTION\_STRING with the value of your Connection String from Step 1
+- Add a secret named DIGGER_AZURE_CONNECTION_STRING with the value of your Connection String from Step 1
 
 In your repository settings > Actions ensure that the Workflow Read and Write permissions are assigned. This will allow the workflow to post comments on your PRs.
 
@@ -66,7 +64,7 @@ projects:
 
 In your repository, create a file at `.github/workflows/infra.yml`
 
-<BlockCode version={latestversion} code={`
+```
 name: CI
 
 on:
@@ -94,9 +92,9 @@ jobs:
           echo "Checking out from PR #$PR_NUM based on URL: $PR_URL"
           hub pr checkout $PR_NUM
         if: github.event_name == 'issue_comment'
-    
+
       - name: digger
-        uses: diggerhq/digger@latest
+        uses: diggerhq/digger@vLatest
         env:
           GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
           GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
@@ -106,8 +104,8 @@ jobs:
           ARM_CLIENT_ID: $\{\{ secrets.ARM_CLIENT_ID \}\}
           ARM_CLIENT_SECRET: $\{\{ secrets.ARM_CLIENT_SECRET \}\}
           ARM_TENANT_ID: $\{\{ secrets.ARM_TENANT_ID \}\}
-          ARM_SUBSCRIPTION_ID: $\{\{ secrets.ARM_SUBSCRIPTION_ID \}\}          
-`}></BlockCode>
+          ARM_SUBSCRIPTION_ID: $\{\{ secrets.ARM_SUBSCRIPTION_ID \}\}
+```
 
 ## 6\. Create a PR to verify that it works
 
@@ -118,8 +116,3 @@ An action should start. After some time you should see a comment of lock being a
 ```
 Project diggerhq/azure-onboarding-test#infra-prod has been locked by PR #1
 ```
-
-
-
-
-
