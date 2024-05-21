@@ -30,14 +30,6 @@ func (ciReporter *CiReporter) Suppress() error {
 	return nil
 }
 
-func (ciReporter *CiReporter) GetCommentUrl() (string, error) {
-	if ciReporter.CommentId == nil {
-		return "#", nil
-	} else {
-		return fmt.Sprintf("https://github.com/diggerhq/digger-poc/pull/%v#issuecomment-%v", ciReporter.PrNumber, ciReporter.CommentId), nil
-	}
-}
-
 func (ciReporter *CiReporter) SupportsMarkdown() bool {
 	return ciReporter.IsSupportMarkdown
 }
