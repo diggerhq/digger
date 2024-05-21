@@ -5,6 +5,7 @@ title: "Action inputs"
 Full list of supported options from [action.yml](https://github.com/diggerhq/digger/blob/develop/action.yml)
 
 ```
+inputs:
   setup-aws:
     description: Setup AWS
     required: false
@@ -36,8 +37,11 @@ Full list of supported options from [action.yml](https://github.com/diggerhq/dig
       description: "'audience' parameter configured in Google's Workload Identity Provider (if specified). To be used when the 'google-workload-identity-provider' input is specified"
       required: false
   google-service-account:
-      description: Service account to be used when the 'google-workload-identity-provider' input is specified)
-      required: false
+    description: Service account to be used when the 'google-workload-identity-provider' input is specified)
+    required: false
+  google-lock-bucket:
+    description: The GCP bucket to use for locks
+    required: false
   setup-azure:
     description: Setup Azure
     required: false
@@ -62,11 +66,11 @@ Full list of supported options from [action.yml](https://github.com/diggerhq/dig
   terragrunt-version:
     description: Terragrunt version
     required: false
-    default: v0.48.6
+    default: v0.55.5
   opentofu-version:
     description: OpenTofu version
     required: false
-    default: v1.6.0-alpha3
+    default: v1.6.1
   setup-terraform:
     description: Setup terraform
     required: false
@@ -80,7 +84,13 @@ Full list of supported options from [action.yml](https://github.com/diggerhq/dig
     required: false
     default: 'true'
   upload-plan-destination:
-    description: Destination to upload the plan to. gcp and github are currently supported
+    description: Destination to upload the plan to. gcp, github and aws are currently supported.
+    required: false
+  upload-plan-destination-s3-bucket:
+    description: Name of the destination bucket for AWS S3. Should be provided if destination == aws
+    required: false
+  upload-plan-destination-gcp-bucket:
+    description: Name of the destination bucket for a GCP bucket. Should be provided if destination == gcp
     required: false
   setup-checkov:
     description: Setup Checkov
@@ -89,7 +99,7 @@ Full list of supported options from [action.yml](https://github.com/diggerhq/dig
   checkov-version:
     description: Checkov version
     required: false
-    default: '2.3.360'
+    default: '3.2.22'
   disable-locking:
     description: Disable locking
     required: false
@@ -136,11 +146,15 @@ Full list of supported options from [action.yml](https://github.com/diggerhq/dig
     required: false
     default: ''
   drift-detection-slack-notification-url:
-    description: 'drift-detection slack notification url'
+    description: 'drift-detection slack drift url'
     required: false
+    default: ''
   cache-dependencies:
     description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
-    default: 'false'    
-    default: ''
+    default: 'false'
+outputs:
+  output:
+    value: ${{ steps.digger.outputs.output }}
+    description: The terraform output
 ```

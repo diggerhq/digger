@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: digger destroy
-      uses: diggerhq/digger@latest
+      uses: diggerhq/digger@vLatest
       with:
         mode: manual
         command: "digger destroy"
@@ -31,9 +31,6 @@ jobs:
         aws-access-key-id: $\{\{ secrets.AWS_ACCESS_KEY_ID \}\}
         aws-secret-access-key: $\{\{ secrets.AWS_SECRET_ACCESS_KEY \}\}
         aws-region: us-east-2
-        # digger-token: $\{\{ secrets.DIGGER_TOKEN \}\}
-        # digger-organisation: digger
-        # digger-hostname: https://cloud.digger.dev/
       env:
         GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
         GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
