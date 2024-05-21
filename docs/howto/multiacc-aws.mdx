@@ -44,42 +44,43 @@ In each environment, create 2 secrets corresponding to your AWS accounts:
 Don't forget to change `environment` and the Rename step from Dev to Prod
 
 ```
-name: Digger Dev
+name: Digger Workflow
 
 on:
-pull_request:
-branches: [ "main" ]
-types: [ opened, synchronize ]
-issue_comment:
-types: [created]
-workflow_dispatch:
+  workflow_dispatch:
+  inputs:
+    id:
+      description: 'run identifier'
+      required: false
+    job:
+      required: true
+    comment_id:
+      required: true
 
 jobs:
-plan:
-runs-on: ubuntu-latest
-environment: development # CHANGE HERE
-permissions:
- contents: write # required to merge PRs
-id-token: write # required for workload-identity-federation
-pull-requests: write # required to post PR comments
-statuses: write # required to validate combined PR status
+  digger-job:
+    runs-on: ubuntu-latest
+    environment: development                      # CHANGE ME !!!
+    permissions:
+      contents: write # required to merge PRs
+      actions: write # required for plan persistence
+      id-token: write # required for workload-identity-federation
+      pull-requests: write # required to post PR comments
+      statuses: write # required to validate combined PR status
 
     steps:
       - uses: actions/checkout@v4
-      - name: Rename       # workaround until passing custom digger.yml is supported
-        run: |
-          mv digger.dev.yml digger.yml           # CHANGE HERE
-      - name: digger run
-        uses: diggerhq/digger@vLatest
+      - name: ${{github.event.inputs.id}}
+        run: echo job id ${{ inputs.id }}
+      - uses: diggerhq/digger@vLatest
         with:
           setup-aws: true
           aws-access-key-id: $\{\{ secrets.AWS_ACCESS_KEY_ID \}\}
           aws-secret-access-key: $\{\{ secrets.AWS_SECRET_ACCESS_KEY \}\}
-          aws-region: us-east-1
+          disable-locking: true
         env:
           GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
           GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
-
 ```
 
 ## Verify that it works
