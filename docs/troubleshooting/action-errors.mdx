@@ -2,7 +2,16 @@
 title: "Action Errors"
 ---
 
-### Failed to unmarshal job string
+## DIGGER_TOKEN is not specified
+
+```
+DIGGER_TOKEN not specified. You can get one ... or self-manage a backend of Digger Community Edition (change DIGGER_HOSTNAME). You can also pass 'no-backend: true' option; in this case some of the features may not be available.
+```
+
+- starting from [v0.4.14](https://github.com/diggerhq/digger/releases/tag/v0.4.14) Digger no longer requires a token (a temporary one is generated instead). Check that you are using the latest version of BOTH cli in the workflow and the orchestrator.
+- if you intend to use [backendless mode](/howto/backendless-mode), you need to pass `no-backend: true` option in the workflow
+
+## Failed to unmarshal job string
 
 ```
 13:17:30 main.go:973: Failed unmarshall job string: invalid character 'd' looking for beginning of value
