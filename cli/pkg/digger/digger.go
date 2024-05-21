@@ -335,7 +335,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			result := execution.DiggerExecutorResult{
 				PlanResult: &execution.DiggerExecutorPlanResult{
-					PlanSummary: *planSummary,
+					PlanSummary:   *planSummary,
+					TerraformJson: planJsonOutput,
 				},
 			}
 			return &result, plan, nil
