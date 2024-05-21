@@ -468,7 +468,6 @@ func SetJobStatusForProject(c *gin.Context) {
 
 	}
 
-	log.Printf("!!!Batch to json struct: %v", res)
 	c.JSON(http.StatusOK, res)
 }
 
