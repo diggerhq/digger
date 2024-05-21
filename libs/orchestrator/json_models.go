@@ -96,8 +96,8 @@ func JsonToJob(jobJson JobJson) Job {
 		RunEnvVars:         jobJson.RunEnvVars,
 		StateEnvVars:       jobJson.StateEnvVars,
 		CommandEnvVars:     jobJson.CommandEnvVars,
-		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName),
-		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName),
+		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName, jobJson.Region),
+		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName, jobJson.Region),
 	}
 }
 
