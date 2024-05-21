@@ -106,10 +106,6 @@
       "pages": ["reference/digger.yml", "reference/action-inputs"]
     },
     {
-      "group": "Digger API",
-      "pages": ["digger-api/rbac-via-opa-guide"]
-    },
-    {
       "group": "AWS-specific",
       "pages": [
         "cloud-providers/aws",
