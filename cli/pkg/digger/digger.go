@@ -145,6 +145,8 @@ func RunJobs(
 			return false, false, fmt.Errorf("error while sending job comments %v", err)
 		}
 
+		log.Printf("Comment url: %v", jobPrCommentUrl)
+
 		currentJob := jobs[0]
 		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
 		projectNameForBackendReporting := currentJob.ProjectName
