@@ -34,8 +34,7 @@ projects:
     dir: staging
     workflow: staging
     include_patterns: ["../modules/**"]
-    exclude_patterns: []
-    skip_mergeable_check: true
+    exclude_patterns: []    
 generate_projects:
   include: "../projects/**"
   exclude: "../.terraform/**"
@@ -120,7 +119,6 @@ workflows:
 | exclude\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to exclude, e.g. `.terraform`      | see [Include / Exclude Patterns](/howto/include-exclude-patterns)                                         |
 | depends\_on              | array of strings                                     | \[\]    | no       | list of project names that need to be completed before the project | it doesn't force terraform run, but affects the order of commands for projects modified in the current PR |
 | aws_role_to_assume       | [RoleToAssume](/reference/digger.yml#roletoassume)   |         | no       | A string representing the AWS role to assume for this project      |                                                                                                           |
-| skip_mergeable_check     | boolean                                              | false   | no       | whether to skip mergeable checks on apply step                     | Default behavior is to block applies if PR is not mergeable from status checks or approval requirements.  |
 
 ### GenerateProjects
 

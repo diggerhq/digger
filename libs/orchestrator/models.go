@@ -29,7 +29,6 @@ type Job struct {
 	CommandEnvVars     map[string]string
 	StateEnvProvider   *stscreds.WebIdentityRoleProvider
 	CommandEnvProvider *stscreds.WebIdentityRoleProvider
-	SkipMergeableCheck bool
 }
 
 type Step struct {

@@ -20,14 +20,9 @@ func copyProjects(projects []*ProjectYaml) []Project {
 	result := make([]Project, len(projects))
 	for i, p := range projects {
 		driftDetection := true
-		skipMergeableCheck := false
 
 		if p.DriftDetection != nil {
 			driftDetection = *p.DriftDetection
-		}
-
-		if p.SkipMergeableCheck != nil {
-			skipMergeableCheck = *p.SkipMergeableCheck
 		}
 
 		var roleToAssume *AssumeRoleForProject = nil
@@ -69,7 +64,6 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.DependencyProjects,
 			driftDetection,
 			roleToAssume,
-			skipMergeableCheck,
 		}
 		result[i] = item
 	}

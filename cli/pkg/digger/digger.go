@@ -359,7 +359,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 		// Allow project custom configuration to bypass the PR mergeability check
 		log.Printf("PR status, mergeable: %v, merged: %v\n", isMergeable, isMerged)
-		if !isMergeable && !isMerged && !job.SkipMergeableCheck {
+		if !isMergeable && !isMerged {
 			comment := reportApplyMergeabilityError(reporter)
 
 			return nil, comment, fmt.Errorf(comment)

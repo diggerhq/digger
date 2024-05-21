@@ -36,7 +36,6 @@ type ProjectYaml struct {
 	DependencyProjects []string                    `yaml:"depends_on,omitempty"`
 	DriftDetection     *bool                       `yaml:"drift_detection,omitempty"`
 	AwsRoleToAssume    *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	SkipMergeableCheck *bool                       `yaml:"skip_mergeable_check,omitempty"`
 }
 
 type WorkflowYaml struct {

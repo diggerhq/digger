@@ -35,7 +35,6 @@ type Project struct {
 	DependencyProjects []string
 	DriftDetection     bool
 	AwsRoleToAssume    *AssumeRoleForProject
-	SkipMergeableCheck bool
 }
 
 type Workflow struct {
