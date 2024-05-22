@@ -109,8 +109,7 @@ type ReportStrategy interface {
 }
 
 type CommentPerRunStrategy struct {
-	IsPlan    bool
-	Project   string
+	Title     string
 	TimeOfRun time.Time
 }
 
@@ -121,12 +120,8 @@ func (strategy *CommentPerRunStrategy) Report(ciService orchestrator.PullRequest
 	}
 
 	var reportTitle string
-	if strategy.Project != "" {
-		if strategy.IsPlan {
-			reportTitle = fmt.Sprintf("Plan for %v (%v)", strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
-		} else {
-			reportTitle = fmt.Sprintf("Apply for %v (%v)", strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
-		}
+	if strategy.Title != "" {
+		reportTitle = strategy.Title + " " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
 	} else {
 		reportTitle = "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
 	}

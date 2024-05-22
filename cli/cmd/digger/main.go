@@ -169,8 +169,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		log.Printf("Warn: Overriding commenting strategy to Comments-per-run")
 
 		strategy := &reporting.CommentPerRunStrategy{
-			Project:   jobSpec.ProjectName,
-			IsPlan:    jobSpec.IsPlan(),
+			Title:     fmt.Sprintf("%v for %v", jobSpec.JobType, jobSpec.ProjectName),
 			TimeOfRun: time.Now(),
 		}
 		cireporter := &reporting.CiReporter{
