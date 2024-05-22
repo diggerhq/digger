@@ -34,7 +34,6 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	for i, job := range jobs {
 		jobSpec := jobSpecs[i]
 		prCommentUrl := job.PRCommentUrl
-		log.Printf("job Pr comment url: %v | %v", job.ProjectName, prCommentUrl)
 		if isPlan {
 			message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>plan</a> | %v | %v | %v|\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), prCommentUrl, job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted)
 		} else {
