@@ -1,10 +1,16 @@
 package terraform_utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/samber/lo"
 	"sort"
+
+	"github.com/dineshba/tf-summarize/terraformstate"
+	"github.com/dineshba/tf-summarize/writer"
+	tfjson "github.com/hashicorp/terraform-json"
+
+	"github.com/samber/lo"
 )
 
 type PlanSummary struct {
@@ -131,4 +137,18 @@ func SimilarityCheck(footprints []TerraformPlanFootprint) (bool, error) {
 	})
 	return allSimilar, nil
 
+}
+
+func GetTfSummarizePlan(planJson string) (string, error) {
+	plan := tfjson.Plan{}
+	err := json.Unmarshal([]byte(planJson), &plan)
+	if err != nil {
+		return "", err
+	}
+
+	buf := new(bytes.Buffer)
+	w := writer.NewTableWriter(terraformstate.GetAllResourceChanges(plan), terraformstate.GetAllOutputChanges(plan), true)
+	w.Write(buf)
+
+	return buf.String(), nil
 }
