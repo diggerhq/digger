@@ -349,7 +349,7 @@ runs:
       id: digger
       shell: bash
       run: |
-        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
+        curl -sL https://github.com/larhauga/digger/releases/download/${actionref}/digger-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
         chmod +x digger
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
