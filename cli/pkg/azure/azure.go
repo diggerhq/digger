@@ -339,6 +339,11 @@ func (a *AzureReposService) EditComment(prNumber int, id interface{}, comment st
 	return err
 }
 
+func (a *AzureReposService) CreateCommentReaction(id interface{}, reaction string) error {
+	// TODO implement me
+	return nil
+}
+
 func (a *AzureReposService) GetBranchName(prNumber int) (string, error) {
 	//TODO implement me
 	return "", nil

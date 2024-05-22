@@ -143,6 +143,11 @@ func (m *MockPRManager) EditComment(prNumber int, id interface{}, comment string
 	return nil
 }
 
+func (m *MockPRManager) CreateCommentReaction(id interface{}, reaction string) error {
+	m.Commands = append(m.Commands, RunInfo{"EditComment", strconv.Itoa(id.(int)) + " " + reaction, time.Now()})
+	return nil
+}
+
 func (m *MockPRManager) GetBranchName(prNumber int) (string, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetBranchName", strconv.Itoa(prNumber), time.Now()})
 	return "", nil

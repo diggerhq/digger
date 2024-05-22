@@ -243,6 +243,11 @@ func (gitlabService GitLabService) EditComment(prNumber int, id interface{}, com
 	return nil
 }
 
+func (gitlabService GitLabService) CreateCommentReaction(id interface{}, reaction string) error {
+	// TODO implement me
+	return nil
+}
+
 func (gitlabService GitLabService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
 	//TODO implement me
 	return nil, nil

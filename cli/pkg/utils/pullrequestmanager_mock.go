@@ -104,6 +104,11 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(pr
 	return nil
 }
 
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) CreateCommentReaction(id interface{}, reaction string) error {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "CreateCommentReaction")
+	return nil
+}
+
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetBranchName(prNumber int) (string, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetBranchName")
 	return "", nil

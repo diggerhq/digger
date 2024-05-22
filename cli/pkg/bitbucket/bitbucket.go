@@ -157,6 +157,11 @@ func (b BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) 
 	return nil
 }
 
+func (a BitbucketAPI) CreateCommentReaction(id interface{}, reaction string) error {
+	// TODO implement me
+	return nil
+}
+
 type Comment struct {
 	Size     int    `json:"size"`
 	Page     int    `json:"page"`

@@ -172,6 +172,26 @@ func (svc GithubService) EditComment(prNumber int, id interface{}, comment strin
 	return err
 }
 
+type GithubCommentReaction string
+
+const GithubCommentPlusOneReaction GithubCommentReaction = "+1"
+const GithubCommentMinusOneReaction GithubCommentReaction = "-1"
+const GithubCommentLaughReaction GithubCommentReaction = "laugh"
+const GithubCommentConfusedReaction GithubCommentReaction = "confused"
+const GithubCommentHeartReaction GithubCommentReaction = "heart"
+const GithubCommentHoorayReaction GithubCommentReaction = "hooray"
+const GithubCommentRocketReaction GithubCommentReaction = "rocket"
+const GithubCommentEyesReaction GithubCommentReaction = "eyes"
+
+func (svc GithubService) CreateCommentReaction(id interface{}, reaction string) error {
+	_, _, err := svc.Client.Reactions.CreateIssueCommentReaction(context.Background(), svc.Owner, svc.RepoName, id.(int64), reaction)
+	if err != nil {
+		log.Printf("could not addd reaction to comment: %v", err)
+		return fmt.Errorf("could not addd reaction to comment: %v", err)
+	}
+	return nil
+}
+
 func (svc GithubService) SetStatus(prNumber int, status string, statusContext string) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
