@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/backend/middleware"
@@ -9,6 +10,7 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -308,16 +310,11 @@ func RunHistoryForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-type JobSummary struct {
-	ResourcesCreated uint `json:"resources_created"`
-	ResourcesUpdated uint `json:"resources_updated"`
-	ResourcesDeleted uint `json:"resources_deleted"`
-}
-
 type SetJobStatusRequest struct {
-	Status       string      `json:"status"`
-	Timestamp    time.Time   `json:"timestamp"`
-	JobSummary   *JobSummary `json:"job_summary"`
+	Status     string                                  `json:"status"`
+	Timestamp  time.Time                               `json:"timestamp"`
+	JobSummary *terraform_utils.PlanSummary            `json:"job_summary"`
+	Footprint  *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
 	PrCommentUrl string      `json:"pr_comment_url"`
 }
 
@@ -352,6 +349,13 @@ func SetJobStatusForProject(c *gin.Context) {
 	switch request.Status {
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			log.Printf("Error updating job status: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			return
+		}
+
 		client, _, err := utils.GetGithubClient(&utils.DiggerGithubRealClientProvider{}, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
 		if err != nil {
 			log.Printf("Error Creating github client: %v", err)
@@ -369,10 +373,17 @@ func SetJobStatusForProject(c *gin.Context) {
 		}
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
+		if request.Footprint != nil {
+			job.PlanFootprint, err = json.Marshal(request.Footprint)
+			if err != nil {
+				log.Printf("Error marshalling plan footprint: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error marshalling plan footprint"})
+			}
+		}
 		job.PRCommentUrl = request.PrCommentUrl
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
-			log.Printf("Unexpected status %v", request.Status)
+			log.Printf("Error updating job status: %v", request.Status)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 			return
 		}
@@ -468,6 +479,7 @@ func SetJobStatusForProject(c *gin.Context) {
 
 	}
 
+	log.Printf("!!!Batch to json struct: %v", res)
 	c.JSON(http.StatusOK, res)
 }
 

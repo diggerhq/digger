@@ -41,9 +41,11 @@ type DiggerJob struct {
 	DiggerJobSummary   DiggerJobSummary
 	DiggerJobSummaryID uint
 	SerializedJobSpec  []byte
-	WorkflowFile       string
-	WorkflowRunUrl     *string
-	StatusUpdatedAt    time.Time
+	// represents a footprint of terraform plan json for similarity checks
+	PlanFootprint   []byte
+	WorkflowFile    string
+	WorkflowRunUrl  *string
+	StatusUpdatedAt time.Time
 }
 
 type DiggerJobSummary struct {
@@ -90,6 +92,7 @@ func (j *DiggerJob) MapToJsonStruct() (interface{}, error) {
 		DiggerJobId:      j.DiggerJobID,
 		Status:           j.Status,
 		JobString:        j.SerializedJobSpec,
+		PlanFootprint:    j.PlanFootprint,
 		ProjectName:      job.ProjectName,
 		WorkflowRunUrl:   j.WorkflowRunUrl,
 		PRCommentUrl:     j.PRCommentUrl,

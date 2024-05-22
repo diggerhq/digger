@@ -1199,3 +1199,35 @@ projects:
 	assert.NoError(t, err)
 	assert.Equal(t, false, dg.AllowDraftPRs)
 }
+
+func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
+	changedFiles := []string{"modules/bucket/main.tf", "dev/main.tf"}
+	projects := []Project{
+		Project{
+			Name:            "dev",
+			Dir:             "dev",
+			IncludePatterns: []string{"modules/**"},
+		},
+		Project{
+			Name:            "prod",
+			Dir:             "prod",
+			IncludePatterns: []string{"modules/**"},
+		},
+	}
+	c := DiggerConfig{
+		Projects: projects,
+	}
+	expectedImpactingLocations := map[string]ProjectToSourceMapping{
+		"dev":  {ImpactingLocations: []string{"modules/bucket", "dev"}},
+		"prod": {ImpactingLocations: []string{"modules/bucket"}},
+	}
+
+	impactedProjects, projectSourceMapping := c.GetModifiedProjects(changedFiles)
+	assert.Equal(t, 2, len(impactedProjects))
+	assert.Equal(t, 2, len(projectSourceMapping))
+	assert.Equal(t, 2, len(projectSourceMapping["dev"].ImpactingLocations))
+	assert.Equal(t, 1, len(projectSourceMapping["prod"].ImpactingLocations))
+	assert.Equal(t, expectedImpactingLocations["dev"].ImpactingLocations, projectSourceMapping["dev"].ImpactingLocations)
+	assert.Equal(t, expectedImpactingLocations["prod"].ImpactingLocations, projectSourceMapping["prod"].ImpactingLocations)
+
+}

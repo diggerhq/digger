@@ -150,12 +150,12 @@ func RunJobs(
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
-		planSummary := terraform.PlanSummary{}
+		planResult := &execution.DiggerExecutorPlanResult{}
 		if exectorResults[0].PlanResult != nil {
-			planSummary = exectorResults[0].PlanResult.PlanSummary
+			planResult = exectorResults[0].PlanResult
 		}
 		prNumber := *currentJob.PullRequestNumber
-		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary, jobPrCommentUrl)
+		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), planResult, jobPrCommentUrl)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
@@ -333,7 +333,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 			result := execution.DiggerExecutorResult{
 				PlanResult: &execution.DiggerExecutorPlanResult{
-					PlanSummary: *planSummary,
+					PlanSummary:   *planSummary,
+					TerraformJson: planJsonOutput,
 				},
 			}
 			return &result, plan, nil

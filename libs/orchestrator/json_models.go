@@ -17,25 +17,26 @@ type StageJson struct {
 }
 
 type JobJson struct {
-	ProjectName             string            `json:"projectName"`
-	ProjectDir              string            `json:"projectDir"`
-	ProjectWorkspace        string            `json:"projectWorkspace"`
-	Terragrunt              bool              `json:"terragrunt"`
-	Commands                []string          `json:"commands"`
-	ApplyStage              StageJson         `json:"applyStage"`
-	PlanStage               StageJson         `json:"planStage"`
-	PullRequestNumber       *int              `json:"pullRequestNumber"`
-	EventName               string            `json:"eventName"`
-	RequestedBy             string            `json:"requestedBy"`
-	Namespace               string            `json:"namespace"`
-	RunEnvVars              map[string]string `json:"runEnvVars"`
-	StateEnvVars            map[string]string `json:"stateEnvVars"`
-	CommandEnvVars          map[string]string `json:"commandEnvVars"`
-	StateRoleName           string            `json:"state_role_name"`
-	CommandRoleName         string            `json:"command_role_name"`
-	BackendHostname         string            `json:"backend_hostname"`
-	BackendOrganisationName string            `json:"backend_organisation_hostname"`
-	BackendJobToken         string            `json:"backend_job_token"`
+	ProjectName             string                                          `json:"projectName"`
+	ProjectDir              string                                          `json:"projectDir"`
+	ProjectWorkspace        string                                          `json:"projectWorkspace"`
+	Terragrunt              bool                                            `json:"terragrunt"`
+	Commands                []string                                        `json:"commands"`
+	ApplyStage              StageJson                                       `json:"applyStage"`
+	PlanStage               StageJson                                       `json:"planStage"`
+	PullRequestNumber       *int                                            `json:"pullRequestNumber"`
+	EventName               string                                          `json:"eventName"`
+	RequestedBy             string                                          `json:"requestedBy"`
+	Namespace               string                                          `json:"namespace"`
+	RunEnvVars              map[string]string                               `json:"runEnvVars"`
+	StateEnvVars            map[string]string                               `json:"stateEnvVars"`
+	CommandEnvVars          map[string]string                               `json:"commandEnvVars"`
+	StateRoleName           string                                          `json:"state_role_name"`
+	CommandRoleName         string                                          `json:"command_role_name"`
+	BackendHostname         string                                          `json:"backend_hostname"`
+	BackendOrganisationName string                                          `json:"backend_organisation_hostname"`
+	BackendJobToken         string                                          `json:"backend_job_token"`
+	ImpactedSources         map[string]digger_config.ProjectToSourceMapping `json:"impacted_sources"`
 }
 
 func (j *JobJson) IsPlan() bool {
@@ -46,7 +47,7 @@ func (j *JobJson) IsApply() bool {
 	return slices.Contains(j.Commands, "digger apply")
 }
 
-func JobToJson(job Job, organisationName string, jobToken string, backendHostname string, project digger_config.Project) JobJson {
+func JobToJson(job Job, organisationName string, jobToken string, backendHostname string, project digger_config.Project, impactedSources map[string]digger_config.ProjectToSourceMapping) JobJson {
 	stateRole, commandRole := "", ""
 	if project.AwsRoleToAssume != nil {
 		stateRole = project.AwsRoleToAssume.State
@@ -73,6 +74,7 @@ func JobToJson(job Job, organisationName string, jobToken string, backendHostnam
 		BackendHostname:         backendHostname,
 		BackendJobToken:         jobToken,
 		BackendOrganisationName: organisationName,
+		ImpactedSources:         impactedSources,
 	}
 }
 
@@ -147,4 +149,12 @@ func IsApplyJobSpecs(jobs []JobJson) bool {
 		isApply = isApply && job.IsApply()
 	}
 	return isApply
+}
+
+func JobsSpecsToProjectMap(jobSpecs []JobJson) (map[string]JobJson, error) {
+	res := make(map[string]JobJson)
+	for _, jobSpec := range jobSpecs {
+		res[jobSpec.ProjectName] = jobSpec
+	}
+	return res, nil
 }

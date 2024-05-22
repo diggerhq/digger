@@ -388,7 +388,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2
 			return nil, nil, 0, fmt.Errorf("could not get changed files: %v", err)
 		}
 
-		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
 	case AzureCommentEvent:
 		prNumber = azureEvent.(AzureCommentEvent).Resource.PullRequest.PullRequestId
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
@@ -397,7 +397,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2
 			return nil, nil, 0, fmt.Errorf("could not get changed files: %v", err)
 		}
 
-		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
 		requestedProject := utils.ParseProjectName(azureEvent.(AzureCommentEvent).Resource.Comment.Content)
 
 		if requestedProject == "" {

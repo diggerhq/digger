@@ -163,6 +163,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.ApplyAfterMerge = false
 	}
 
+	if diggerYaml.CommentRenderMode != nil {
+		diggerConfig.CommentRenderMode = *diggerYaml.CommentRenderMode
+	} else {
+		diggerConfig.CommentRenderMode = CommentRenderModeBasic
+	}
+
 	if diggerYaml.MentionDriftedProjectsInPR != nil {
 		diggerConfig.MentionDriftedProjectsInPR = *diggerYaml.MentionDriftedProjectsInPR
 	} else {
