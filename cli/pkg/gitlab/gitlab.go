@@ -100,7 +100,7 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *digger_confi
 		return nil, nil, fmt.Errorf("could not get changed files")
 	}
 
-	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
 
 	switch gitlabContext.EventType {
 	case MergeRequestComment:

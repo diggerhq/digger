@@ -1,8 +1,12 @@
 package digger_config
 
+const CommentRenderModeBasic = "basic"
+const CommentRenderModeGroupByModule = "group_by_module"
+
 type DiggerConfig struct {
 	ApplyAfterMerge            bool
 	AllowDraftPRs              bool
+	CommentRenderMode          string
 	DependencyConfiguration    DependencyConfiguration
 	Projects                   []Project
 	AutoMerge                  bool

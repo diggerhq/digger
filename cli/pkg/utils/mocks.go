@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/diggerhq/digger/cli/pkg/core/terraform"
+	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"time"
 
@@ -165,6 +165,6 @@ func (t MockBackendApi) ReportProjectRun(repo string, projectName string, starte
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform.PlanSummary, PrCommentUrl string) (*scheduler.SerializedBatch, error) {
+func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, planResult *execution.DiggerExecutorPlanResult, PrCommentUrl string) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }

@@ -469,7 +469,7 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
 		}
 
-		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
 	case github.IssueCommentEvent:
 		prNumber = *event.GetIssue().Number
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
@@ -478,7 +478,7 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
 		}
 
-		impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
 		requestedProject := orchestrator.ParseProjectName(*event.Comment.Body)
 
 		if requestedProject == "" {
@@ -499,25 +499,25 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 	return impactedProjects, nil, prNumber, nil
 }
 
-func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, int, error) {
+func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, int, error) {
 	var impactedProjects []digger_config.Project
 	var prNumber int
 	prNumber = *payload.PullRequest.Number
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 	if err != nil {
-		return nil, prNumber, fmt.Errorf("could not get changed files")
+		return nil, nil, prNumber, fmt.Errorf("could not get changed files")
 	}
-	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	impactedProjects, impactedProjectsSourceLocations := diggerConfig.GetModifiedProjects(changedFiles)
 
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
 		impactedProjects, err = FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
 		if err != nil {
-			return nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
+			return nil, nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}
 	}
 
-	return impactedProjects, prNumber, nil
+	return impactedProjects, impactedProjectsSourceLocations, prNumber, nil
 }
 
 func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config.Project, dependencyGraph graph.Graph[string, digger_config.Project]) ([]digger_config.Project, error) {
@@ -568,7 +568,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 	return impactedProjectsWithDependantProjects, nil
 }
 
-func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
+func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, *digger_config.Project, int, error) {
 	var impactedProjects []digger_config.Project
 	var prNumber int
 
@@ -579,15 +579,14 @@ func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_conf
 	// TODO: Refactor to make generic interface
 	changedFiles, err := ciService.(*GithubService).GetChangedFilesForCommit(owner, repo, commitId)
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("could not get changed files")
+		return nil, nil, nil, 0, fmt.Errorf("could not get changed files")
 	}
 
-	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
-	return impactedProjects, nil, prNumber, nil
-
+	impactedProjects, impactedProjectsSourceMapping := diggerConfig.GetModifiedProjects(changedFiles)
+	return impactedProjects, impactedProjectsSourceMapping, nil, prNumber, nil
 }
 
-func ProcessGitHubIssueCommentEvent(payload *github.IssueCommentEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {
+func ProcessGitHubIssueCommentEvent(payload *github.IssueCommentEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService orchestrator.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, *digger_config.Project, int, error) {
 	var impactedProjects []digger_config.Project
 	var prNumber int
 
@@ -595,30 +594,30 @@ func ProcessGitHubIssueCommentEvent(payload *github.IssueCommentEvent, diggerCon
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("could not get changed files")
+		return nil, nil, nil, 0, fmt.Errorf("could not get changed files")
 	}
 
-	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	impactedProjects, impactedProjectsSourceMapping := diggerConfig.GetModifiedProjects(changedFiles)
 
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
 		impactedProjects, err = FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
 		if err != nil {
-			return nil, nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
+			return nil, nil, nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}
 	}
 
 	requestedProject := orchestrator.ParseProjectName(*payload.Comment.Body)
 
 	if requestedProject == "" {
-		return impactedProjects, nil, prNumber, nil
+		return impactedProjects, impactedProjectsSourceMapping, nil, prNumber, nil
 	}
 
 	for _, project := range impactedProjects {
 		if project.Name == requestedProject {
-			return impactedProjects, &project, prNumber, nil
+			return impactedProjects, impactedProjectsSourceMapping, &project, prNumber, nil
 		}
 	}
-	return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
+	return nil, nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
 }
 
 func issueCommentEventContainsComment(event interface{}, comment string) bool {
