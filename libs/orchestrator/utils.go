@@ -36,5 +36,5 @@ func GetCommandFromComment(comment string) (*DiggerCommand, error) {
 			return &value, nil
 		}
 	}
-	return nil, fmt.Errorf("Unreqcognised command: %v", comment)
+	return nil, fmt.Errorf("Unrecognised command: %v", comment)
 }
