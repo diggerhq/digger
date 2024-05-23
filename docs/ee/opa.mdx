@@ -1,0 +1,32 @@
+---
+title: "OPA Policies"
+---
+
+Digger Enterprise supports Open Policy Agent (OPA) policies written in Rego language.
+
+There are 2 types of policies in Digger:
+
+- Access policy - controls whether or not a given operation (e.g. apply) can go ahead, based on who and how initiated it
+- Plan policy - controls whether or not the plan can be applied (e.g. only has allowed types of resources, cost threshold, etc)
+
+## Management repository
+
+In Digger Enterprise, OPA policies can be stored in a dedicated repository ([example](https://github.com/diggerhq/mgmt-repo-one/tree/main/policies)) that is separate from repositories that it controls
+In this management repo, policies can be structured using 3 levels:
+
+- organisation level (applies to all repos and projects)
+- repo level (applies to all project within a specific repo; overrides org-level)
+- project level (applies only to specific project; overrides repo-level and org-level)
+
+## Set policies via API
+
+Alternatively, you can use the (unofficial) [Digger API](/reference/api) directly to set your policies. In this case Digger Orchestrator will use its Postgres database to store and retrieve the policies. These endpoints are available in the Community Edition for free.
+
+<Note>
+  The current status of the API is "unofficial" - meaning that it is subject to
+  change and no stability / backwards compatibility guarantees can be provided.
+</Note>
+
+## Inline policies via custom commands
+
+The most basic way use OPA policies with Digger is via [custom commands](/howto/using-opa-conftest) - you can have a script that downloads policies from your storage of choice, and then invoke Conftest CLI directly as a custom workflow step in Digger. This is also a free feature of Digger Community Edition.
