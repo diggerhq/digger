@@ -150,7 +150,7 @@ func RunJobs(
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
-		planResult := &execution.DiggerExecutorPlanResult{}
+		var planResult *execution.DiggerExecutorPlanResult = nil
 		if exectorResults[0].PlanResult != nil {
 			planResult = exectorResults[0].PlanResult
 		}
