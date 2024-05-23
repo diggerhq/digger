@@ -1,0 +1,21 @@
+---
+title: "RBAC"
+---
+
+Digger Enterprise supports granular Role-based Access Contros at 3 levels:
+
+- Organisation
+- Repository
+- Project
+
+You can set up RBAC in Digger by configuring an Access Policy at the appropriate level of your Management Repo. See [OPA Policies](/ee/opa) for more detail.
+
+Every Access Policy is passed the following details about the attempted operation from GitHub:
+
+- user ID of the user who initiated the operation
+- team
+- list of PR approvers
+
+This way you can implement advanced workflows such as [policy overrides](https://github.com/diggerhq/demo-policy-overrides/pull/9) based on roles and granular permissions.
+
+[Book a demo](https://calendly.com/diggerdev/diggerdemo)
