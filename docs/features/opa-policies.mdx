@@ -1,10 +1,11 @@
 ---
-title: "OPA policies"
+title: "Policies (OPA)"
 ---
 
 Digger supports granular policy-as-code governance via Open Policy Agent (OPA). You can specify policies at project as well as organisation level.
 
 There are 2 types of policies in Digger:
+
 - Plan policies
 - Access policies
 
@@ -15,9 +16,19 @@ With plan policies you can check `terraform plan` output for compliance with you
 # Access policies
 
 With access policies you can control which Digger operations are allowed at any given time based on various inputs. Access policy is checked before every plan and apply and is passed the following data:
+
 - user id (from github)
 - plan policy violations, if any
 - list of users who approved the PR
 
 This way you can implement custom logic, for example allowing to apply a PR that has policy violations in case certain users approved it.
 
+# Ways to configure policies
+
+In Digger there are 3 ways to use OPA policies:
+
+- via Management Repo (EE)
+- via (unofficial) Orchestrator API (CE)
+- inline via Conftest (CE)
+
+See [OPA policies](/ee/opa) for more detail
