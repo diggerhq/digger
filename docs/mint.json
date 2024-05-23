@@ -54,7 +54,8 @@
         "ee/ee-setup",
         "ee/dashboard",
         "ee/drift-detection",
-        "ee/rbac-opa"
+        "ee/rbac",
+        "ee/opa"
       ]
     },
     {
@@ -65,8 +66,7 @@
         "features/opa-policies",
         "features/concurrency",
         "features/pr-level-locks",
-        "features/plan-persistence",
-        "features/rbac"
+        "features/plan-persistence"
       ]
     },
     {
