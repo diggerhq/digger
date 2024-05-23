@@ -1,0 +1,51 @@
+---
+title: "Orchestrator API"
+---
+
+<Note>
+  The API of the Digger Orchestrator is neither stable, nor fully documented.
+  Use at your own risk. For full reference of API endpoints, check out
+  [/backend/bootstrap/main.go](https://github.com/diggerhq/digger/blob/develop/backend/bootstrap/main.go)
+</Note>
+
+## Authorization
+
+Every request you make to the API must include a Bearer token for authorization. You can pass this token in the headers of your HTTP request with the key `Authorization` and the value `Bearer YOUR_TOKEN`.
+
+```
+headers = {"Authorization": "Bearer YOUR_TOKEN"}
+```
+
+Replace `YOUR_TOKEN` with your admin or access token.
+
+## Retrieve Policy Rules
+
+- For a specific project:
+
+```
+GET /repos/:namespace/projects/:projectName/access-policy
+```
+
+- For an entire organisation:
+
+```
+GET /orgs/:organisation/access-policy
+```
+
+`:namespace` and `:projectName` or `:organisation` should be replaced with actual values that represent your project or organization.
+
+## Update Policy Rules
+
+- For a specific project:
+
+```
+PUT /repos/:namespace/projects/:projectName/access-policy
+```
+
+- For an entire organisation:
+
+```
+PUT /orgs/:organisation/access-policy
+```
+
+For these requests, your request body should contain a policy document written as an OPA policy with package digger and expected to have the "allow" rule.

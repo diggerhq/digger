@@ -81,7 +81,6 @@
         "howto/destroy-manual",
         "howto/disable-auto-checkout",
         "howto/disable-telemetry",
-        "howto/drift-detection",
         "howto/generate-projects",
         "howto/include-exclude-patterns",
         "howto/multiacc-aws",
@@ -109,7 +108,11 @@
     },
     {
       "group": "Reference",
-      "pages": ["reference/digger.yml", "reference/action-inputs"]
+      "pages": [
+        "reference/digger.yml",
+        "reference/action-inputs",
+        "reference/api"
+      ]
     },
     {
       "group": "AWS-specific",
