@@ -93,6 +93,11 @@ func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment 
 	return nil
 }
 
+func (t MockCiService) CreateCommentReaction(id interface{}, reaction string) error {
+	// TODO implement me
+	return nil
+}
+
 func (t MockCiService) GetBranchName(prNumber int) (string, error) {
 	return "", nil
 }
