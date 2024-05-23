@@ -6,6 +6,7 @@ type PullRequestService interface {
 	ListIssues() ([]*Issue, error)
 	PublishIssue(title string, body string) (int64, error)
 	EditComment(prNumber int, id interface{}, comment string) error
+	CreateCommentReaction(id interface{}, reaction string) error
 	GetComments(prNumber int) ([]Comment, error)
 	GetApprovals(prNumber int) ([]string, error)
 	// SetStatus set status of specified pull/merge request, status could be: "pending", "failure", "success"
