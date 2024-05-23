@@ -896,7 +896,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	}
 
 	event := context.Event.(github.PullRequestEvent)
-	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs("", &event, impactedProjects, requestedProject, map[string]configuration.Workflow{})
 	if err != nil {
 		assert.NoError(t, err)
 		log.Println(err)
