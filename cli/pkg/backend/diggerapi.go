@@ -26,7 +26,7 @@ func (n NoopApi) ReportProjectRun(namespace string, projectName string, startedA
 	return nil
 }
 
-func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, planResult *execution.DiggerExecutorPlanResult, PrCommentUrl string) (*scheduler.SerializedBatch, error) {
+func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *execution.DiggerExecutorPlanResult, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 
@@ -118,7 +118,7 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	return nil
 }
 
-func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, planResult *execution.DiggerExecutorPlanResult, PrCommentUrl string) (*scheduler.SerializedBatch, error) {
+func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, planResult *execution.DiggerExecutorPlanResult, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
 		log.Fatalf("Not able to parse digger cloud url: %v", err)
@@ -148,6 +148,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 		"job_summary":        planSummaryJson,
 		"job_plan_footprint": planFootprint.ToJson(),
 		"pr_comment_url":     PrCommentUrl,
+		"terraform_output":   terraformOutput,
 	}
 
 	jsonData, err := json.Marshal(request)

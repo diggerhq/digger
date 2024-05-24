@@ -311,11 +311,12 @@ func RunHistoryForProject(c *gin.Context) {
 }
 
 type SetJobStatusRequest struct {
-	Status     string                                  `json:"status"`
-	Timestamp  time.Time                               `json:"timestamp"`
-	JobSummary *terraform_utils.PlanSummary            `json:"job_summary"`
-	Footprint  *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
-	PrCommentUrl string      `json:"pr_comment_url"`
+	Status          string                                  `json:"status"`
+	Timestamp       time.Time                               `json:"timestamp"`
+	JobSummary      *terraform_utils.PlanSummary            `json:"job_summary"`
+	Footprint       *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
+	PrCommentUrl    string                                  `json:"pr_comment_url"`
+	TerraformOutput string                                  `json:"terraform_output""`
 }
 
 func SetJobStatusForProject(c *gin.Context) {
@@ -373,6 +374,7 @@ func SetJobStatusForProject(c *gin.Context) {
 		}
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
+		job.TerraformOutput = request.TerraformOutput
 		if request.Footprint != nil {
 			job.PlanFootprint, err = json.Marshal(request.Footprint)
 			if err != nil {
@@ -441,6 +443,14 @@ func SetJobStatusForProject(c *gin.Context) {
 
 	case "failed":
 		job.Status = orchestrator_scheduler.DiggerJobFailed
+		job.TerraformOutput = request.TerraformOutput
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			log.Printf("Error updating job status: %v", request.Status)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
+			return
+		}
+
 	default:
 		log.Printf("Unexpected status %v", request.Status)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})

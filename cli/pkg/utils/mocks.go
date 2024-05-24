@@ -169,6 +169,6 @@ func (t MockBackendApi) ReportProjectRun(repo string, projectName string, starte
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, planResult *execution.DiggerExecutorPlanResult, PrCommentUrl string) (*scheduler.SerializedBatch, error) {
+func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *execution.DiggerExecutorPlanResult, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
