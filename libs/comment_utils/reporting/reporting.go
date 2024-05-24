@@ -10,7 +10,6 @@ import (
 )
 
 type CiReporter struct {
-	CommentId         *int64
 	CiService         orchestrator.PullRequestService
 	PrNumber          int
 	IsSupportMarkdown bool
@@ -113,7 +112,7 @@ type CommentPerRunStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy *CommentPerRunStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
+func (strategy CommentPerRunStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
 	comments, err := ciService.GetComments(PrNumber)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting comments: %v", err)

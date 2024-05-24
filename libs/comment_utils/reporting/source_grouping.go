@@ -1,4 +1,4 @@
-package comment_updater
+package reporting
 
 import (
 	"encoding/json"
@@ -19,34 +19,37 @@ type ProjectNameSourceDetail struct {
 	PlanFootPrint terraform_utils.TerraformPlanFootprint
 }
 
-type ModuleGroupingCommentUpdater struct {
+type SourceGroupingReporter struct {
+	Jobs      []scheduler.SerializedJob
+	PrNumber  int
+	PrService orchestrator.PullRequestService
 }
 
-func (b ModuleGroupingCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService orchestrator.PullRequestService, prCommentId int64) error {
-	jobSpecs, err := scheduler.GetJobSpecs(jobs)
+func (r SourceGroupingReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
+	jobSpecs, err := scheduler.GetJobSpecs(r.Jobs)
 	if err != nil {
-		return fmt.Errorf("could not get job specs: %v", err)
+		return "", "", fmt.Errorf("could not get job specs: %v", err)
 	}
 
 	impactedSources := jobSpecs[0].ImpactedSources
-	projectNameToJobMap, err := scheduler.JobsToProjectMap(jobs)
+	projectNameToJobMap, err := scheduler.JobsToProjectMap(r.Jobs)
 	if err != nil {
-		return fmt.Errorf("could not convert jobs to map: %v", err)
+		return "", "", fmt.Errorf("could not convert jobs to map: %v", err)
 	}
 
 	projectNameToJobSpecMap, err := orchestrator.JobsSpecsToProjectMap(jobSpecs)
 	if err != nil {
-		return fmt.Errorf("could not convert jobs to map: %v", err)
+		return "", "", fmt.Errorf("could not convert jobs to map: %v", err)
 	}
 
 	projectNameToFootPrintMap := make(map[string]terraform_utils.TerraformPlanFootprint)
-	for _, job := range jobs {
+	for _, job := range r.Jobs {
 		var footprint terraform_utils.TerraformPlanFootprint
 		if job.PlanFootprint != nil {
 			err := json.Unmarshal(job.PlanFootprint, &footprint)
 			if err != nil {
 				log.Printf("could not unmarshal footprint: %v", err)
-				return fmt.Errorf("could not unmarshal footprint: %v", err)
+				return "", "", fmt.Errorf("could not unmarshal footprint: %v", err)
 			}
 		} else {
 			footprint = terraform_utils.TerraformPlanFootprint{}
@@ -63,7 +66,7 @@ func (b ModuleGroupingCommentUpdater) UpdateComment(jobs []scheduler.SerializedJ
 		})
 		allSimilarInGroup, err := terraform_utils.SimilarityCheck(footprints)
 		if err != nil {
-			return fmt.Errorf("error performing similar check: %v", err)
+			return "", "", fmt.Errorf("error performing similar check: %v", err)
 		}
 
 		message = message + fmt.Sprintf("# Group: %v (similar: %v)", sourceLocation, allSimilarInGroup)
@@ -78,7 +81,19 @@ func (b ModuleGroupingCommentUpdater) UpdateComment(jobs []scheduler.SerializedJ
 
 	}
 
-	prService.EditComment(prNumber, prCommentId, message)
+	r.PrService.PublishComment(r.PrNumber, message)
+	return "", "", nil
+}
+
+func (reporter SourceGroupingReporter) Flush() (string, string, error) {
+	return "", "", nil
+}
+
+func (reporter SourceGroupingReporter) SupportsMarkdown() bool {
+	return false
+}
+
+func (reporter SourceGroupingReporter) Suppress() error {
 	return nil
 }
 
