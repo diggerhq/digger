@@ -18,7 +18,7 @@ require (
 	github.com/gruntwork-io/terragrunt v0.54.11
 	github.com/hashicorp/go-getter v1.7.4
 	github.com/hashicorp/hcl/v2 v2.20.1
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20231204233900-a34142ec2a72
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20240509232506-4708120f8f30
 	github.com/hashicorp/terraform-json v0.22.1
 	github.com/samber/lo v1.39.0
 	github.com/sirupsen/logrus v1.9.3
