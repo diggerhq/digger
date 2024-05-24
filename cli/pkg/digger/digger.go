@@ -67,21 +67,8 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(
-	jobs []orchestrator.Job,
-	prService orchestrator.PullRequestService,
-	orgService orchestrator.OrgService,
-	lock core_locking.Lock,
-	reporter reporting.Reporter,
-	planStorage storage.PlanStorage,
-	policyChecker policy.Checker,
-	commentUpdater comment_updater.CommentUpdater,
-	backendApi backend.Api,
-	batchId string,
-	reportFinalStatusToBackend bool,
-	prCommentId int64,
-	workingDir string,
-) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, batchId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
+
 	defer reporter.Flush()
 
 	runStartedAt := time.Now()
@@ -154,8 +141,12 @@ func RunJobs(
 		if exectorResults[0].PlanResult != nil {
 			planResult = exectorResults[0].PlanResult
 		}
+		terraformOutput := ""
+		if reportTerraformOutput {
+			terraformOutput = exectorResults[0].TerraformOutput
+		}
 		prNumber := *currentJob.PullRequestNumber
-		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), planResult, jobPrCommentUrl)
+		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), planResult, jobPrCommentUrl, terraformOutput)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
@@ -342,6 +333,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				return nil, msg, fmt.Errorf(msg)
 			}
 			result := execution.DiggerExecutorResult{
+				TerraformOutput: plan,
 				PlanResult: &execution.DiggerExecutorPlanResult{
 					PlanSummary:   *planSummary,
 					TerraformJson: planJsonOutput,
@@ -437,7 +429,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				appliesPerProject[job.ProjectName] = true
 			}
 			result := execution.DiggerExecutorResult{
-				ApplyResult: &execution.DiggerExecutorApplyResult{},
+				TerraformOutput: output,
+				ApplyResult:     &execution.DiggerExecutorApplyResult{},
 			}
 			return &result, output, nil
 		}

@@ -41,6 +41,7 @@ type DiggerJob struct {
 	DiggerJobSummary   DiggerJobSummary
 	DiggerJobSummaryID uint
 	SerializedJobSpec  []byte
+	TerraformOutput    string
 	// represents a footprint of terraform plan json for similarity checks
 	PlanFootprint   []byte
 	WorkflowFile    string
