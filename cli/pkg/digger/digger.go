@@ -9,22 +9,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
+	"github.com/diggerhq/digger/libs/comment_utils/summary"
 
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	"github.com/diggerhq/digger/cli/pkg/core/policy"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/core/runners"
 	"github.com/diggerhq/digger/cli/pkg/core/storage"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	coreutils "github.com/diggerhq/digger/cli/pkg/core/utils"
 	"github.com/diggerhq/digger/cli/pkg/locking"
-	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	config "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/terraform_utils"
@@ -68,7 +67,8 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock core_locking.Lock, reporter core_reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, batchId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, batchId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
+
 	defer reporter.Flush()
 
 	runStartedAt := time.Now()
@@ -170,7 +170,7 @@ func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService,
 	return allAppliesSuccess, atLeastOneApply, nil
 }
 
-func reportPolicyError(projectName string, command string, requestedBy string, reporter core_reporting.Reporter) string {
+func reportPolicyError(projectName string, command string, requestedBy string, reporter reporting.Reporter) string {
 	msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
 	if reporter.SupportsMarkdown() {
 		_, _, err := reporter.Report(msg, coreutils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command), false))
@@ -186,7 +186,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, []string{})
@@ -484,7 +484,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	return &execution.DiggerExecutorResult{}, "", nil
 }
 
-func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {
+func reportApplyMergeabilityError(reporter reporting.Reporter) string {
 	comment := "cannot perform Apply since the PR is not currently mergeable"
 	log.Println(comment)
 
@@ -502,7 +502,7 @@ func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {
 	return comment
 }
 
-func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId string, plan string) {
+func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, plan string) {
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
@@ -517,7 +517,7 @@ func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId strin
 	}
 }
 
-func reportEmptyPlanOutput(reporter core_reporting.Reporter, projectId string) {
+func reportEmptyPlanOutput(reporter reporting.Reporter, projectId string) {
 	identityFormatter := func(comment string) string {
 		return comment
 	}
