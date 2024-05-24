@@ -4,7 +4,7 @@ import (
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -14,7 +14,7 @@ import (
 
 var vipPlan *viper.Viper
 
-func plan(actor string, projectName string, repoNamespace string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, reporter core_reporting.Reporter, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, backendApi core_backend.Api) {
+func plan(actor string, projectName string, repoNamespace string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, reporter reporting.Reporter, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, backendApi core_backend.Api) {
 	exec(actor, projectName, repoNamespace, "digger plan", prNumber, lock, policyChecker, prService, orgService, reporter, backendApi)
 }
 

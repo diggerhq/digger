@@ -16,8 +16,8 @@ import (
 
 	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/drift"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 
 	"github.com/diggerhq/digger/cli/pkg/azure"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
@@ -29,7 +29,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/gcp"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
 	"github.com/diggerhq/digger/cli/pkg/gitlab"
-	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
@@ -860,7 +859,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	reportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
-func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter core_reporting.Reporter, backendApi core_backend.Api) {
+func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter reporting.Reporter, backendApi core_backend.Api) {
 
 	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
 	currentDir, err := os.Getwd()

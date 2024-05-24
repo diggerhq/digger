@@ -7,11 +7,10 @@ import (
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/policy"
-	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/spf13/cobra"
@@ -31,10 +30,10 @@ type RunConfig struct {
 	BitbucketToken string `mapstructure:"bitbucket-token"`
 }
 
-func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrator.OrgService, *core_reporting.Reporter, error) {
+func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrator.OrgService, *reporting.Reporter, error) {
 	var prService orchestrator.PullRequestService
 	var orgService orchestrator.OrgService
-	var reporter core_reporting.Reporter
+	var reporter reporting.Reporter
 	switch r.Reporter {
 	case "github":
 		repoOwner, repositoryName := utils.ParseRepoNamespace(r.RepoNamespace)
