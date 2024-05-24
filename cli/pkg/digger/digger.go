@@ -27,6 +27,7 @@ import (
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
 	config "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 
 	"github.com/dominikbraun/graph"
 )
@@ -302,6 +303,12 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				} else {
 					planPolicyFormatter = coreutils.AsComment(summary)
 				}
+
+				planSummary, err := terraform_utils.GetTfSummarizePlan(planJsonOutput)
+				if err != nil {
+					log.Printf("Failed to summarize plan. %v", err)
+				}
+
 				if !planIsAllowed {
 					planReportMessage := "Terraform plan failed validation checks :x:<br>"
 					preformattedMessaged := make([]string, 0)
@@ -321,6 +328,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					_, _, err := reporter.Report("Terraform plan validation checks succeeded :white_check_mark:", planPolicyFormatter)
 					if err != nil {
 						log.Printf("Failed to report plan. %v", err)
+					}
+					_, _, err = reporter.Report(planSummary, coreutils.AsComment("Terraform plan summary"))
+					if err != nil {
+						log.Printf("Failed to report summary of plan. %v", err)
 					}
 				}
 			} else {
