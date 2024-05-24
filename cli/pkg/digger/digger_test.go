@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
-	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 
