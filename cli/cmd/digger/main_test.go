@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
+	"github.com/diggerhq/digger/libs/comment_utils/summary"
 	"log"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
 	ghmodels "github.com/diggerhq/digger/cli/pkg/github/models"
-	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	dggithub "github.com/diggerhq/digger/libs/orchestrator/github"
