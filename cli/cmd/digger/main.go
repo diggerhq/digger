@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
+	"github.com/diggerhq/digger/libs/comment_utils/summary"
 
 	"github.com/diggerhq/digger/cli/pkg/azure"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
