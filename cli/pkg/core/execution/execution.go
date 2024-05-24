@@ -106,8 +106,9 @@ type DiggerExecutor struct {
 }
 
 type DiggerExecutorResult struct {
-	PlanResult  *DiggerExecutorPlanResult
-	ApplyResult *DiggerExecutorApplyResult
+	TerraformOutput string
+	PlanResult      *DiggerExecutorPlanResult
+	ApplyResult     *DiggerExecutorApplyResult
 }
 
 type DiggerExecutorApplyResult struct {
