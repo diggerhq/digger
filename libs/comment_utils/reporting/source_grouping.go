@@ -92,7 +92,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 		if isPlan {
 			commenter = utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", project), expanded)
 		} else {
-			commenter = utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Apply for %v", project), expanded)
+			commenter = utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Apply for %v", project), false)
 		}
 		message = message + commenter(terraformOutputs[project]) + "\n"
 	}

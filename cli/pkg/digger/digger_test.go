@@ -281,7 +281,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply -lock-timeout=3m", "PublishComment 1 <details open=\"false\"><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply -lock-timeout=3m", "PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
