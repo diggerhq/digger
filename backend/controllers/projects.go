@@ -580,8 +580,9 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
-	if diggerConfigYml.CommentRenderMode != nil &&
-		*diggerConfigYml.CommentRenderMode != digger_config.CommentRenderModeGroupByModule {
+	if batch.BatchType != orchestrator.DiggerCommandPlan ||
+		(diggerConfigYml.CommentRenderMode != nil &&
+			*diggerConfigYml.CommentRenderMode != digger_config.CommentRenderModeGroupByModule) {
 		log.Printf("render mode is not group_by_module, skipping")
 		return nil
 	}

@@ -28,10 +28,6 @@ type SourceGroupingReporter struct {
 }
 
 func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, location string, terraformOutputs map[string]string) error {
-	jobSpecs, err := scheduler.GetJobSpecs(r.Jobs)
-	if err != nil {
-		return fmt.Errorf("could not get job specs: %v", err)
-	}
 
 	sourceDetaiItem, found := lo.Find(sourceDetails, func(item SourceDetails) bool {
 		return item.SourceLocation == location
@@ -43,11 +39,6 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 	}
 
 	projectNameToJobMap, err := scheduler.JobsToProjectMap(r.Jobs)
-	if err != nil {
-		return fmt.Errorf("could not convert jobs to map: %v", err)
-	}
-
-	projectNameToJobSpecMap, err := orchestrator.JobsSpecsToProjectMap(jobSpecs)
 	if err != nil {
 		return fmt.Errorf("could not convert jobs to map: %v", err)
 	}
@@ -85,15 +76,8 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 		if job.Status != scheduler.DiggerJobSucceeded {
 			continue
 		}
-		jobSpec := projectNameToJobSpecMap[project]
-		isPlan := jobSpec.JobType == orchestrator.DiggerCommandPlan
 		expanded := i == 0 || !allSimilarInGroup
-		var commenter func(terraformOutput string) string
-		if isPlan {
-			commenter = utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", project), expanded)
-		} else {
-			commenter = utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Apply for %v", project), false)
-		}
+		commenter := utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", project), expanded)
 		message = message + commenter(terraformOutputs[project]) + "\n"
 	}
 
