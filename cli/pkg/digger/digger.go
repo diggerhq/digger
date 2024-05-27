@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
 	"log"
 	"os"
 	"path"
@@ -19,7 +20,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/runners"
 	"github.com/diggerhq/digger/cli/pkg/core/storage"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
-	coreutils "github.com/diggerhq/digger/cli/pkg/core/utils"
 	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	utils "github.com/diggerhq/digger/cli/pkg/utils"

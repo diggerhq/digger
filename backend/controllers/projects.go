@@ -8,6 +8,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
@@ -490,7 +491,8 @@ func SetJobStatusForProject(c *gin.Context) {
 
 	}
 
-	log.Printf("!!!Batch to json struct: %v", res)
+	UpdateCommentsForBatchGroup(&utils.DiggerGithubRealClientProvider{}, batch, res.Jobs)
+
 	c.JSON(http.StatusOK, res)
 }
 
@@ -568,6 +570,53 @@ func CreateRunForProject(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, run.MapToJsonStruct())
+}
+
+func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.DiggerBatch, serializedJobs []orchestrator_scheduler.SerializedJob) error {
+	diggerYmlString := batch.DiggerConfig
+	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
+	if err != nil {
+		log.Printf("Error loading digger config from batch: %v", err)
+		return fmt.Errorf("error loading digger config from batch: %v", err)
+	}
+
+	if diggerConfigYml.CommentRenderMode != nil &&
+		*diggerConfigYml.CommentRenderMode != digger_config.CommentRenderModeGroupByModule {
+		log.Printf("render mode is not group_by_module, skipping")
+		return nil
+	}
+
+	ghService, _, err := utils.GetGithubService(
+		gh,
+		batch.GithubInstallationId,
+		batch.RepoFullName,
+		batch.RepoOwner,
+		batch.RepoName,
+	)
+
+	var sourceDetails []reporting.SourceDetails
+	err = json.Unmarshal(batch.SourceDetails, &sourceDetails)
+	if err != nil {
+		log.Printf("failed to unmarshall sourceDetails: %v", err)
+		return fmt.Errorf("failed to unmarshall sourceDetails: %v", err)
+	}
+
+	// project_name => terraform output
+	projectToTerraformOutput := make(map[string]string)
+	// TODO: add projectName as a field of Job
+	for _, serialJob := range serializedJobs {
+		job, err := models.DB.GetDiggerJob(serialJob.DiggerJobId)
+		if err != nil {
+			return fmt.Errorf("Could not get digger job: %v", err)
+		}
+		projectToTerraformOutput[serialJob.ProjectName] = job.TerraformOutput
+	}
+
+	for _, detail := range sourceDetails {
+		reporter := reporting.SourceGroupingReporter{serializedJobs, batch.PrNumber, ghService}
+		reporter.UpdateComment(sourceDetails, detail.SourceLocation, projectToTerraformOutput)
+	}
+	return nil
 }
 
 func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {

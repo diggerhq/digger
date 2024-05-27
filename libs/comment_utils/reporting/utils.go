@@ -1,8 +1,7 @@
-package comment_updater
+package reporting
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"log"
@@ -26,10 +25,10 @@ func PostInitialSourceComments(ghService *dg_github.GithubService, prNumber int,
 		}
 	}
 	for location, projects := range locations {
-		reporter := reporting.CiReporter{
+		reporter := CiReporter{
 			PrNumber:       prNumber,
 			CiService:      ghService,
-			ReportStrategy: reporting.CommentPerRunStrategy{fmt.Sprintf("Report for location: %v", location), time.Now()},
+			ReportStrategy: CommentPerRunStrategy{fmt.Sprintf("Report for location: %v", location), time.Now()},
 		}
 		commentId, _, err := reporter.Report("Comment Reporter", func(report string) string { return "" })
 		if err != nil {
