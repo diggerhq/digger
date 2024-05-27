@@ -3,12 +3,14 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/samber/lo"
 	"log"
+	"strconv"
 )
 
 type ProjectNameSourceDetail struct {
@@ -25,24 +27,29 @@ type SourceGroupingReporter struct {
 	PrService orchestrator.PullRequestService
 }
 
-func (r SourceGroupingReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
+func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, location string, terraformOutputs map[string]string) error {
 	jobSpecs, err := scheduler.GetJobSpecs(r.Jobs)
 	if err != nil {
-		return "", "", fmt.Errorf("could not get job specs: %v", err)
+		return fmt.Errorf("could not get job specs: %v", err)
 	}
 
-	//impactedSources := jobSpecs[0].ImpactedSources
-	// TODO: populate from batch field
-	var impactedSources map[string]digger_config.ProjectToSourceMapping
+	sourceDetaiItem, found := lo.Find(sourceDetails, func(item SourceDetails) bool {
+		return item.SourceLocation == location
+	})
+
+	if !found {
+		log.Printf("location not found in sourcedetails list")
+		return fmt.Errorf("location not found in sourcedetails list")
+	}
 
 	projectNameToJobMap, err := scheduler.JobsToProjectMap(r.Jobs)
 	if err != nil {
-		return "", "", fmt.Errorf("could not convert jobs to map: %v", err)
+		return fmt.Errorf("could not convert jobs to map: %v", err)
 	}
 
 	projectNameToJobSpecMap, err := orchestrator.JobsSpecsToProjectMap(jobSpecs)
 	if err != nil {
-		return "", "", fmt.Errorf("could not convert jobs to map: %v", err)
+		return fmt.Errorf("could not convert jobs to map: %v", err)
 	}
 
 	projectNameToFootPrintMap := make(map[string]terraform_utils.TerraformPlanFootprint)
@@ -52,7 +59,7 @@ func (r SourceGroupingReporter) Report(report string, reportFormatting func(repo
 			err := json.Unmarshal(job.PlanFootprint, &footprint)
 			if err != nil {
 				log.Printf("could not unmarshal footprint: %v", err)
-				return "", "", fmt.Errorf("could not unmarshal footprint: %v", err)
+				return fmt.Errorf("could not unmarshal footprint: %v", err)
 			}
 		} else {
 			footprint = terraform_utils.TerraformPlanFootprint{}
@@ -60,43 +67,42 @@ func (r SourceGroupingReporter) Report(report string, reportFormatting func(repo
 		projectNameToFootPrintMap[job.ProjectName] = footprint
 	}
 
-	groupsToProjectMap := ImpactedSourcesMapToGroupMapping(impactedSources, projectNameToJobMap, projectNameToJobSpecMap, projectNameToFootPrintMap)
-
-	message := ":construction_worker: Jobs status:\n\n"
-	for sourceLocation, projectSourceDetailList := range groupsToProjectMap {
-		footprints := lo.Map(projectSourceDetailList, func(detail ProjectNameSourceDetail, i int) terraform_utils.TerraformPlanFootprint {
-			return detail.PlanFootPrint
-		})
-		allSimilarInGroup, err := terraform_utils.SimilarityCheck(footprints)
-		if err != nil {
-			return "", "", fmt.Errorf("error performing similar check: %v", err)
+	footprints := lo.FilterMap(sourceDetaiItem.Projects, func(project string, i int) (terraform_utils.TerraformPlanFootprint, bool) {
+		if projectNameToJobMap[project].Status == scheduler.DiggerJobSucceeded {
+			return projectNameToFootPrintMap[project], true
 		}
-
-		message = message + fmt.Sprintf("# Group: %v (similar: %v)", sourceLocation, allSimilarInGroup)
-		for _, projectSourceDetail := range projectSourceDetailList {
-			job := projectSourceDetail.Job
-			jobSpec := projectSourceDetail.JobSpec
-			isPlan := jobSpec.IsPlan()
-			message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-			message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v\n", job.Status.ToEmoji(), job.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan))
-			message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
-		}
-
+		return terraform_utils.TerraformPlanFootprint{}, false
+	})
+	allSimilarInGroup, err := terraform_utils.SimilarityCheck(footprints)
+	if err != nil {
+		return fmt.Errorf("error performing similar check: %v", err)
 	}
 
-	r.PrService.PublishComment(r.PrNumber, message)
-	return "", "", nil
-}
+	message := ""
+	message = message + fmt.Sprintf("# Group: %v (similar: %v)\n", location, allSimilarInGroup)
+	for i, project := range sourceDetaiItem.Projects {
+		job := projectNameToJobMap[project]
+		if job.Status != scheduler.DiggerJobSucceeded {
+			continue
+		}
+		jobSpec := projectNameToJobSpecMap[project]
+		isPlan := jobSpec.JobType == orchestrator.DiggerCommandPlan
+		expanded := i == 0 || !allSimilarInGroup
+		var commenter func(terraformOutput string) string
+		if isPlan {
+			commenter = utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", project), expanded)
+		} else {
+			commenter = utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Apply for %v", project), expanded)
+		}
+		message = message + commenter(terraformOutputs[project]) + "\n"
+	}
 
-func (reporter SourceGroupingReporter) Flush() (string, string, error) {
-	return "", "", nil
-}
-
-func (reporter SourceGroupingReporter) SupportsMarkdown() bool {
-	return false
-}
-
-func (reporter SourceGroupingReporter) Suppress() error {
+	CommentId, err := strconv.ParseInt(sourceDetaiItem.CommentId, 10, 64)
+	if err != nil {
+		log.Printf("Could not convert commentId to int64: %v", err)
+		return fmt.Errorf("could not convert commentId to int64: %v", err)
+	}
+	r.PrService.EditComment(r.PrNumber, CommentId, message)
 	return nil
 }
 

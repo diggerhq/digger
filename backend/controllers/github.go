@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/google/uuid"
 	"log"
