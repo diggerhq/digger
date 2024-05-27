@@ -1,0 +1,25 @@
+---
+title: "Group plans by source module"
+---
+
+With large monorepos, especially with Terragrunt, one comment per project may result in too much noise in the pull request.
+You can configure Digger to group plans by source module that triggered the change, and only show one from each group if they are similar.
+
+## Grouping by module
+
+To enable grouping by module, set the following flag in digger.yml:
+
+```
+comment_render_mode: "group_by_module"
+```
+
+In this mode, Digger will render only 1 comment per group, each group corresponding to a source module that triggered the change. A project may belong in multiple groups if it's affected by changes from multiple modules. In each group, if the plans are similar, then only the first plan will be shown.
+
+Plan imilarity is determined by comparing the set of resource keys in the plan json. If the set of keys for all projects in the groups is the same, plans are considered similar, and only one is un-collapsed.
+
+<Note>
+  The grouping mode introduces a few significant changes to how Digger handles
+  plans and comments: a) comment rendering has moved to the backend instead of
+  CLI (only in this mode) and b) plan summaries (not json) are now stored on the
+  backend (only in this mode)
+</Note>

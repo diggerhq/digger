@@ -82,6 +82,7 @@
         "howto/disable-auto-checkout",
         "howto/disable-telemetry",
         "howto/generate-projects",
+        "howto/group-plans-by-source",
         "howto/include-exclude-patterns",
         "howto/multiacc-aws",
         "howto/policy-overrides",
