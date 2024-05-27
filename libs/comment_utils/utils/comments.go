@@ -3,14 +3,20 @@ package utils
 import "fmt"
 
 func GetTerraformOutputAsCollapsibleComment(summary string, open bool) func(string) string {
+	var openTag string
+	if open {
+		openTag = "open=\"true\""
+	} else {
+		openTag = ""
+	}
 
 	return func(comment string) string {
-		return fmt.Sprintf(`<details open="%v"><summary>`+summary+`</summary>
+		return fmt.Sprintf(`<details %v><summary>`+summary+`</summary>
 
 `+"```terraform"+`
 `+comment+`
 `+"```"+`
-</details>`, open)
+</details>`, openTag)
 	}
 }
 
