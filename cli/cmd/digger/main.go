@@ -151,24 +151,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		log.Printf("Digger digger_config read successfully\n")
 
-		reportTerraformOutput := false
-		var commentUpdater comment_updater.CommentUpdater
-		if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeBasic {
-			commentUpdater = comment_updater.BasicCommentUpdater{}
-		} else if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeGroupByModule {
-			commentUpdater = comment_updater.ModuleGroupingCommentUpdater{}
-			reportTerraformOutput = true
-		} else {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Unknown comment render mode found: %v", diggerConfig.CommentRenderMode), 8)
-		}
-
-		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
-		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
-
-		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobSpec.PullRequestNumber)
-
 		log.Printf("Warn: Overriding commenting strategy to Comments-per-run")
-
 		strategy := &reporting.CommentPerRunStrategy{
 			Title:     fmt.Sprintf("%v for %v", jobSpec.JobType, jobSpec.ProjectName),
 			TimeOfRun: time.Now(),
@@ -180,7 +163,24 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			IsSupportMarkdown: true,
 		}
 		// using lazy reporter to be able to suppress empty plans
-		reporter := reporting.NewCiReporterLazy(*cireporter)
+		var reporter reporting.Reporter = reporting.NewCiReporterLazy(*cireporter)
+
+		reportTerraformOutput := false
+		var commentUpdater comment_updater.CommentUpdater
+		if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeBasic {
+			commentUpdater = comment_updater.BasicCommentUpdater{}
+		} else if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeGroupByModule {
+			reporter = reporting.NoopReporter{}
+			commentUpdater = comment_updater.BasicCommentUpdater{}
+			reportTerraformOutput = true
+		} else {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Unknown comment render mode found: %v", diggerConfig.CommentRenderMode), 8)
+		}
+
+		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
+
+		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobSpec.PullRequestNumber)
 
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "", "")

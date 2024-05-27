@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
@@ -65,7 +66,7 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 		RepoFullName:         "diggerhq/github-job-scheduler",
 		RepoOwner:            "diggerhq",
 		RepoName:             "github-job-scheduler",
-		BatchType:            orchestrator_scheduler.BatchTypeApply,
+		BatchType:            orchestrator.DiggerCommandApply,
 	}
 	err := AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
@@ -76,7 +77,7 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 		"  - name: dev\n" +
 		"    dir: dev\n" +
 		"auto_merge: true"
-	batch.BatchType = orchestrator_scheduler.BatchTypePlan
+	batch.BatchType = orchestrator.DiggerCommandPlan
 	err = AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
 	assert.False(t, isMergeCalled)
@@ -86,7 +87,7 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 		"  - name: dev\n" +
 		"    dir: dev\n" +
 		"auto_merge: true"
-	batch.BatchType = orchestrator_scheduler.BatchTypeApply
+	batch.BatchType = orchestrator.DiggerCommandApply
 	err = AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
 	assert.True(t, isMergeCalled)

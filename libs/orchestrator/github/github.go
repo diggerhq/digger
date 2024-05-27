@@ -134,12 +134,16 @@ func (svc GithubService) PublishIssue(title string, body string) (int64, error) 
 	return *githubissue.ID, err
 }
 
-func (svc GithubService) PublishComment(prNumber int, comment string) (int64, error) {
+func (svc GithubService) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
 	githubComment, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
 	if err != nil {
-		return 0, fmt.Errorf("could not publish comment to PR %v, %v", prNumber, err)
+		return nil, fmt.Errorf("could not publish comment to PR %v, %v", prNumber, err)
 	}
-	return *githubComment.ID, err
+	return &orchestrator.Comment{
+		Id:   *githubComment.ID,
+		Body: githubComment.Body,
+		Url:  *githubComment.HTMLURL,
+	}, err
 }
 
 func (svc GithubService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
