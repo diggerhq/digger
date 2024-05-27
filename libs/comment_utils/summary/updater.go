@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"log"
-	"strings"
 )
 
 type CommentUpdater interface {
@@ -24,7 +25,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	firstJobSpec := jobSpecs[0]
 	jobType := firstJobSpec.JobType
 	isPlan := jobType == orchestrator.DiggerCommandPlan
-	jobTypeTitle := strings.ToTitle(string(jobType))
+	jobTypeTitle := cases.Title(language.AmericanEnglish).String(string(jobType))
 	message := ""
 	if isPlan {
 		message = message + fmt.Sprintf("| Project | Status | %v | + | ~ | - |\n", jobTypeTitle)
