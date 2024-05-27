@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/google/uuid"
 	"log"
 	"math/rand"
 	"net/http"
@@ -17,10 +19,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
-
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
-	"github.com/google/uuid"
 
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
@@ -509,8 +507,29 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule {
-		err = PostInitialSourceComments(batchId, ghService, prNumber, impactedProjectsSourceMapping)
+		sourceDetails, err := comment_updater.PostInitialSourceComments(ghService, prNumber, impactedProjectsSourceMapping)
 		if err != nil {
+			log.Printf("PostInitialSourceComments error: %v", err)
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
+			return fmt.Errorf("error posting initial comments")
+		}
+		batch, err := models.DB.GetDiggerBatch(batchId)
+		if err != nil {
+			log.Printf("GetDiggerBatch error: %v", err)
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
+			return fmt.Errorf("error getting digger batch")
+		}
+		batch.SourceDetails, err = json.Marshal(sourceDetails)
+		if err != nil {
+			log.Printf("sourceDetails, json Marshal error: %v", err)
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: json Marshal error: %v", err))
+			return fmt.Errorf("error marshalling sourceDetails")
+		}
+		err = models.DB.UpdateDiggerBatch(batch)
+		if err != nil {
+			log.Printf("UpdateDiggerBatch error: %v", err)
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: UpdateDiggerBatch error: %v", err))
+			return fmt.Errorf("error updating digger batch")
 		}
 	}
 
@@ -522,66 +541,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error triggerring GitHub Actions for Digger Jobs")
 	}
 
-	return nil
-}
-
-func PostInitialSourceComments(batchId *uuid.UUID, ghService *dg_github.GithubService, prNumber int, impactedProjectsSourceMapping map[string]dg_configuration.ProjectToSourceMapping) error {
-	// updating digger batch with module sources
-	batch, err := models.DB.GetDiggerBatch(batchId)
-	if err != nil {
-		log.Printf("GetDiggerBatch error: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: GetDiggerBatch error: %v", err))
-		return fmt.Errorf("error getting digger batch")
-	}
-
-	//
-	type Locations struct {
-		// source_location => commentId
-		CommentIds map[string]string `json:"comment_ids"`
-		// source_location => list of project names
-		LocationToProjects map[string][]string `json:"location_to_projects"`
-	}
-
-	locations := make(map[string][]string)
-	commentIds := make(map[string]string)
-	for projectName, sourceMapping := range impactedProjectsSourceMapping {
-		for _, location := range sourceMapping.ImpactingLocations {
-			locations[location] = append(locations[location], projectName)
-		}
-	}
-	for location, _ := range locations {
-		reporter := reporting.CiReporter{
-			PrNumber:       prNumber,
-			CiService:      ghService,
-			ReportStrategy: reporting.CommentPerRunStrategy{fmt.Sprintf("Report for location: %v", location), time.Now()},
-		}
-		commentId, _, err := reporter.Report("Comment Reporter", func(report string) string { return "" })
-		if err != nil {
-			log.Printf("Error reporting source module comment: %v", err)
-			return fmt.Errorf("error reporting source module comment: %v", err)
-		}
-		commentIds[location] = commentId
-	}
-
-	// TODO, not sure if we should be storing a map of projectName => list of locations impacted
-	// or if it should be the inverse .. aka  location => list of projects impacted
-	// inverse seems to match more what we want to do for sure
-	locationsAndComments := Locations{
-		LocationToProjects: locations,
-		CommentIds:         commentIds,
-	}
-	batch.ImpactingSources, err = json.Marshal(locationsAndComments)
-	if err != nil {
-		log.Printf("json Marhsalling error: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: json Marhsalling error: %v", err))
-		return fmt.Errorf("json Marhsalling error: %v", err)
-	}
-	err = models.DB.UpdateDiggerBatch(batch)
-	if err != nil {
-		log.Printf("UpdateDiggerBatch error: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: UpdateDiggerBatch error: %v", err))
-		return fmt.Errorf("UpdateDiggerBatch error: %v", err)
-	}
 	return nil
 }
 
@@ -789,8 +748,30 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule {
-		err = PostInitialSourceComments(batchId, ghService, issueNumber, impactedProjectsSourceMapping)
+		sourceDetails, err := comment_updater.PostInitialSourceComments(ghService, issueNumber, impactedProjectsSourceMapping)
 		if err != nil {
+			log.Printf("PostInitialSourceComments error: %v", err)
+			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
+			return fmt.Errorf("error posting initial comments")
+		}
+		batch, err := models.DB.GetDiggerBatch(batchId)
+		if err != nil {
+			log.Printf("GetDiggerBatch error: %v", err)
+			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
+			return fmt.Errorf("error getting digger batch")
+		}
+
+		batch.SourceDetails, err = json.Marshal(sourceDetails)
+		if err != nil {
+			log.Printf("sourceDetails, json Marshal error: %v", err)
+			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: json Marshal error: %v", err))
+			return fmt.Errorf("error marshalling sourceDetails")
+		}
+		err = models.DB.UpdateDiggerBatch(batch)
+		if err != nil {
+			log.Printf("UpdateDiggerBatch error: %v", err)
+			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: UpdateDiggerBatch error: %v", err))
+			return fmt.Errorf("error updating digger batch")
 		}
 	}
 

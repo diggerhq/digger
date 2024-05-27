@@ -143,17 +143,17 @@ func upsertComment(ciService orchestrator.PullRequestService, PrNumber int, repo
 	}
 
 	if commentIdForThisRun == nil {
-		var comment string
+		var commentMessage string
 		if !supportsCollapsible {
-			comment = utils.AsComment(reportTitle)(report)
+			commentMessage = utils.AsComment(reportTitle)(report)
 		} else {
-			comment = utils.AsCollapsibleComment(reportTitle, false)(report)
+			commentMessage = utils.AsCollapsibleComment(reportTitle, false)(report)
 		}
-		_, err := ciService.PublishComment(PrNumber, comment)
+		comment, err := ciService.PublishComment(PrNumber, commentMessage)
 		if err != nil {
 			return "", "", fmt.Errorf("error publishing comment: %v", err)
 		}
-		return "", "", nil
+		return fmt.Sprintf("%v", comment.Id), comment.Url, nil
 	}
 
 	// strip first and last lines

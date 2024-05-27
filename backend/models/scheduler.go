@@ -30,7 +30,7 @@ type DiggerBatch struct {
 	RepoName             string
 	BatchType            orchestrator.DiggerCommand
 	// used for module source grouping comments
-	ImpactingSources []byte
+	SourceDetails []byte
 }
 
 type DiggerJob struct {

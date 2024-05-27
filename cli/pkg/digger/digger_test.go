@@ -83,9 +83,9 @@ func (m *MockPRManager) GetApprovals(prNumber int) ([]string, error) {
 	return []string{}, nil
 }
 
-func (m *MockPRManager) PublishComment(prNumber int, comment string) (int64, error) {
+func (m *MockPRManager) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", strconv.Itoa(prNumber) + " " + comment, time.Now()})
-	return 0, nil
+	return nil, nil
 }
 
 func (m *MockPRManager) ListIssues() ([]*orchestrator.Issue, error) {

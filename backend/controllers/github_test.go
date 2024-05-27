@@ -728,8 +728,6 @@ func TestJobsTreeWithOneJobsAndTwoProjects(t *testing.T) {
 	projectMap := make(map[string]configuration.Project)
 	projectMap["dev"] = project1
 
-	impactedProjectsSourceMapping := make(map[string]configuration.ProjectToSourceMapping)
-
 	graph, err := configuration.CreateProjectDependencyGraph(projects)
 	assert.NoError(t, err)
 
@@ -761,8 +759,6 @@ func TestJobsTreeWithTwoDependantJobs(t *testing.T) {
 	projectMap := make(map[string]configuration.Project)
 	projectMap["dev"] = project1
 	projectMap["prod"] = project2
-
-	impactedProjectsSourceMapping := make(map[string]configuration.ProjectToSourceMapping)
 
 	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test")
 	assert.NoError(t, err)
@@ -796,8 +792,6 @@ func TestJobsTreeWithTwoIndependentJobs(t *testing.T) {
 	projectMap := make(map[string]configuration.Project)
 	projectMap["dev"] = project1
 	projectMap["prod"] = project2
-
-	impactedProjectsSourceMapping := make(map[string]configuration.ProjectToSourceMapping)
 
 	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test")
 	assert.NoError(t, err)
@@ -843,8 +837,6 @@ func TestJobsTreeWithThreeLevels(t *testing.T) {
 	projectMap["444"] = project4
 	projectMap["555"] = project5
 	projectMap["666"] = project6
-
-	impactedProjectsSourceMapping := make(map[string]configuration.ProjectToSourceMapping)
 
 	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test")
 	assert.NoError(t, err)
