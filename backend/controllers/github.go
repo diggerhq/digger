@@ -788,6 +788,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error convertingjobs")
 	}
 
+	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule {
+		err = PostInitialSourceComments(batchId, ghService, issueNumber, impactedProjectsSourceMapping)
+		if err != nil {
+		}
+	}
+
 	segment.Track(strconv.Itoa(int(orgId)), "backend_trigger_job")
 	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, issueNumber, ghService)
 	if err != nil {

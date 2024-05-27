@@ -31,7 +31,10 @@ func (r SourceGroupingReporter) Report(report string, reportFormatting func(repo
 		return "", "", fmt.Errorf("could not get job specs: %v", err)
 	}
 
-	impactedSources := jobSpecs[0].ImpactedSources
+	//impactedSources := jobSpecs[0].ImpactedSources
+	// TODO: populate from batch field
+	var impactedSources map[string]digger_config.ProjectToSourceMapping
+
 	projectNameToJobMap, err := scheduler.JobsToProjectMap(r.Jobs)
 	if err != nil {
 		return "", "", fmt.Errorf("could not convert jobs to map: %v", err)
