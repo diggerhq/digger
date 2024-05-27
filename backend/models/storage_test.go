@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -143,7 +143,7 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	repoFullName := "test/test"
 	diggerconfig := ""
 	branchName := "main"
-	batchType := scheduler.BatchTypePlan
+	batchType := orchestrator.DiggerCommandPlan
 	commentId := int64(123)
 	jobSpec := "abc"
 

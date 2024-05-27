@@ -28,7 +28,9 @@ type DiggerBatch struct {
 	RepoFullName         string
 	RepoOwner            string
 	RepoName             string
-	BatchType            orchestrator_scheduler.DiggerBatchType
+	BatchType            orchestrator.DiggerCommand
+	// used for module source grouping comments
+	SourceDetails []byte
 }
 
 type DiggerJob struct {

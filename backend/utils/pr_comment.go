@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	github2 "github.com/diggerhq/digger/libs/orchestrator/github"
+	"log"
+	"strconv"
 )
 
 type CommentReporter struct {
@@ -12,10 +14,15 @@ type CommentReporter struct {
 	CommentId int64
 }
 
-func InitCommentReporter(prService *github2.GithubService, prNumber int, comment string) (*CommentReporter, error) {
-	commentId, err := prService.PublishComment(prNumber, comment)
+func InitCommentReporter(prService *github2.GithubService, prNumber int, commentMessage string) (*CommentReporter, error) {
+	comment, err := prService.PublishComment(prNumber, commentMessage)
 	if err != nil {
 		return nil, fmt.Errorf("count not initialize comment reporter: %v", err)
+	}
+	commentId, err := strconv.ParseInt(fmt.Sprintf("%v", comment.Id), 10, 64)
+	if err != nil {
+		log.Printf("could not convert to int64, %v", err)
+		return nil, fmt.Errorf("could not convert to int64, %v", err)
 	}
 	return &CommentReporter{
 		PrNumber:  prNumber,

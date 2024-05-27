@@ -101,15 +101,15 @@ type SerializedJob struct {
 }
 
 type SerializedBatch struct {
-	ID           string            `json:"id"`
-	PrNumber     int               `json:"pr_number"`
-	Status       DiggerBatchStatus `json:"status"`
-	BranchName   string            `json:"branch_name"`
-	RepoFullName string            `json:"repo_full_name"`
-	RepoOwner    string            `json:"repo_owner"`
-	RepoName     string            `json:"repo_name"`
-	BatchType    DiggerBatchType   `json:"batch_type"`
-	Jobs         []SerializedJob   `json:"jobs"`
+	ID           string                     `json:"id"`
+	PrNumber     int                        `json:"pr_number"`
+	Status       DiggerBatchStatus          `json:"status"`
+	BranchName   string                     `json:"branch_name"`
+	RepoFullName string                     `json:"repo_full_name"`
+	RepoOwner    string                     `json:"repo_owner"`
+	RepoName     string                     `json:"repo_name"`
+	BatchType    orchestrator.DiggerCommand `json:"batch_type"`
+	Jobs         []SerializedJob            `json:"jobs"`
 }
 
 func (b *SerializedBatch) IsPlan() (bool, error) {

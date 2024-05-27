@@ -507,7 +507,8 @@ func (c *DiggerConfig) GetProjects(projectName string) []Project {
 }
 
 type ProjectToSourceMapping struct {
-	ImpactingLocations []string `json:"impacting_locations"`
+	ImpactingLocations []string          `json:"impacting_locations"`
+	CommentIds         map[string]string `json:"comment_ids"` // impactingLocation => PR commentId
 }
 
 func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) ([]Project, map[string]ProjectToSourceMapping) {

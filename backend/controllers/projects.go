@@ -9,6 +9,7 @@ import (
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/gin-gonic/gin"
@@ -583,7 +584,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 	} else {
 		automerge = false
 	}
-	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.BatchTypeApply && automerge == true {
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator.DiggerCommandApply && automerge == true {
 		ghService, _, err := utils.GetGithubService(
 			gh,
 			batch.GithubInstallationId,

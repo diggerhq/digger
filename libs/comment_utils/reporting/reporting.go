@@ -10,7 +10,6 @@ import (
 )
 
 type CiReporter struct {
-	CommentId         *int64
 	CiService         orchestrator.PullRequestService
 	PrNumber          int
 	IsSupportMarkdown bool
@@ -113,7 +112,7 @@ type CommentPerRunStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy *CommentPerRunStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
+func (strategy CommentPerRunStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
 	comments, err := ciService.GetComments(PrNumber)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting comments: %v", err)
@@ -144,17 +143,17 @@ func upsertComment(ciService orchestrator.PullRequestService, PrNumber int, repo
 	}
 
 	if commentIdForThisRun == nil {
-		var comment string
+		var commentMessage string
 		if !supportsCollapsible {
-			comment = utils.AsComment(reportTitle)(report)
+			commentMessage = utils.AsComment(reportTitle)(report)
 		} else {
-			comment = utils.AsCollapsibleComment(reportTitle, false)(report)
+			commentMessage = utils.AsCollapsibleComment(reportTitle, false)(report)
 		}
-		_, err := ciService.PublishComment(PrNumber, comment)
+		comment, err := ciService.PublishComment(PrNumber, commentMessage)
 		if err != nil {
 			return "", "", fmt.Errorf("error publishing comment: %v", err)
 		}
-		return "", "", nil
+		return fmt.Sprintf("%v", comment.Id), comment.Url, nil
 	}
 
 	// strip first and last lines

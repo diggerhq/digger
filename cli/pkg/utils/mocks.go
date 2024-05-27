@@ -75,8 +75,8 @@ func (t MockPullRequestManager) GetUserTeams(organisation string, user string) (
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
 	return t.ChangedFiles, nil
 }
-func (t MockPullRequestManager) PublishComment(prNumber int, comment string) (int64, error) {
-	return 0, nil
+func (t MockPullRequestManager) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
+	return nil, nil
 }
 
 func (t MockPullRequestManager) ListIssues() ([]*orchestrator.Issue, error) {
