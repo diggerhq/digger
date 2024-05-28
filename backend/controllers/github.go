@@ -747,7 +747,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error convertingjobs")
 	}
 
-	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule {
+	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule &&
+		(*diggerCommand == orchestrator.DiggerCommandPlan || *diggerCommand == orchestrator.DiggerCommandApply) {
+
 		sourceDetails, err := comment_updater.PostInitialSourceComments(ghService, issueNumber, impactedProjectsSourceMapping)
 		if err != nil {
 			log.Printf("PostInitialSourceComments error: %v", err)
