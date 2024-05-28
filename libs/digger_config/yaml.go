@@ -126,7 +126,7 @@ type TerragruntParsingConfig struct {
 	CreateHclProjectChilds         bool     `yaml:"createHclProjectChilds"`
 	CreateHclProjectExternalChilds *bool    `yaml:"createHclProjectExternalChilds,omitempty"`
 	UseProjectMarkers              bool     `yaml:"useProjectMarkers"`
-	//ExecutionOrderGroups           bool	`yaml:"executionOrderGroups"`
+	ExecutionOrderGroups           *bool    `yaml:"executionOrderGroups"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
