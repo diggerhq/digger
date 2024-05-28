@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"log"
 	"os"
 	"strconv"
@@ -13,9 +14,8 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/aws/envprovider"
 	"github.com/diggerhq/digger/cli/pkg/azure"
 	"github.com/diggerhq/digger/cli/pkg/core/locking"
-	"github.com/diggerhq/digger/cli/pkg/core/reporting"
-	"github.com/diggerhq/digger/cli/pkg/core/utils"
 	"github.com/diggerhq/digger/cli/pkg/gcp"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/orchestrator"
 
 	"cloud.google.com/go/storage"

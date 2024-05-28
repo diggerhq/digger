@@ -3,30 +3,30 @@ package digger
 import (
 	"errors"
 	"fmt"
+	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
+	"github.com/diggerhq/digger/libs/comment_utils/summary"
 
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	"github.com/diggerhq/digger/cli/pkg/core/policy"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/core/runners"
 	"github.com/diggerhq/digger/cli/pkg/core/storage"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
-	coreutils "github.com/diggerhq/digger/cli/pkg/core/utils"
 	"github.com/diggerhq/digger/cli/pkg/locking"
-	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	config "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 
 	"github.com/dominikbraun/graph"
 )
@@ -67,21 +67,8 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(
-	jobs []orchestrator.Job,
-	prService orchestrator.PullRequestService,
-	orgService orchestrator.OrgService,
-	lock core_locking.Lock,
-	reporter core_reporting.Reporter,
-	planStorage storage.PlanStorage,
-	policyChecker policy.Checker,
-	commentUpdater comment_updater.CommentUpdater,
-	backendApi backend.Api,
-	batchId string,
-	reportFinalStatusToBackend bool,
-	prCommentId int64,
-	workingDir string,
-) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, batchId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
+
 	defer reporter.Flush()
 
 	runStartedAt := time.Now()
@@ -145,19 +132,21 @@ func RunJobs(
 			return false, false, fmt.Errorf("error while sending job comments %v", err)
 		}
 
-		log.Printf("Comment url: %v", jobPrCommentUrl)
-
 		currentJob := jobs[0]
 		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
-		planSummary := terraform.PlanSummary{}
+		var planResult *execution.DiggerExecutorPlanResult = nil
 		if exectorResults[0].PlanResult != nil {
-			planSummary = exectorResults[0].PlanResult.PlanSummary
+			planResult = exectorResults[0].PlanResult
+		}
+		terraformOutput := ""
+		if reportTerraformOutput {
+			terraformOutput = exectorResults[0].TerraformOutput
 		}
 		prNumber := *currentJob.PullRequestNumber
-		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), &planSummary, jobPrCommentUrl)
+		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), planResult, jobPrCommentUrl, terraformOutput)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
@@ -181,7 +170,7 @@ func RunJobs(
 	return allAppliesSuccess, atLeastOneApply, nil
 }
 
-func reportPolicyError(projectName string, command string, requestedBy string, reporter core_reporting.Reporter) string {
+func reportPolicyError(projectName string, command string, requestedBy string, reporter reporting.Reporter) string {
 	msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
 	if reporter.SupportsMarkdown() {
 		_, _, err := reporter.Report(msg, coreutils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command), false))
@@ -197,7 +186,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter core_reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, []string{})
@@ -304,6 +293,12 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				} else {
 					planPolicyFormatter = coreutils.AsComment(summary)
 				}
+
+				planSummary, err := terraform_utils.GetTfSummarizePlan(planJsonOutput)
+				if err != nil {
+					log.Printf("Failed to summarize plan. %v", err)
+				}
+
 				if !planIsAllowed {
 					planReportMessage := "Terraform plan failed validation checks :x:<br>"
 					preformattedMessaged := make([]string, 0)
@@ -324,6 +319,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					if err != nil {
 						log.Printf("Failed to report plan. %v", err)
 					}
+					_, _, err = reporter.Report(planSummary, coreutils.AsComment("Terraform plan summary"))
+					if err != nil {
+						log.Printf("Failed to report summary of plan. %v", err)
+					}
 				}
 			} else {
 				reportEmptyPlanOutput(reporter, projectLock.LockId())
@@ -334,8 +333,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				return nil, msg, fmt.Errorf(msg)
 			}
 			result := execution.DiggerExecutorResult{
+				TerraformOutput: plan,
 				PlanResult: &execution.DiggerExecutorPlanResult{
-					PlanSummary: *planSummary,
+					PlanSummary:   *planSummary,
+					TerraformJson: planJsonOutput,
 				},
 			}
 			return &result, plan, nil
@@ -428,7 +429,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				appliesPerProject[job.ProjectName] = true
 			}
 			result := execution.DiggerExecutorResult{
-				ApplyResult: &execution.DiggerExecutorApplyResult{},
+				TerraformOutput: output,
+				ApplyResult:     &execution.DiggerExecutorApplyResult{},
 			}
 			return &result, output, nil
 		}
@@ -482,7 +484,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	return &execution.DiggerExecutorResult{}, "", nil
 }
 
-func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {
+func reportApplyMergeabilityError(reporter reporting.Reporter) string {
 	comment := "cannot perform Apply since the PR is not currently mergeable"
 	log.Println(comment)
 
@@ -500,7 +502,7 @@ func reportApplyMergeabilityError(reporter core_reporting.Reporter) string {
 	return comment
 }
 
-func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId string, plan string) {
+func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, plan string) {
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
@@ -515,7 +517,7 @@ func reportTerraformPlanOutput(reporter core_reporting.Reporter, projectId strin
 	}
 }
 
-func reportEmptyPlanOutput(reporter core_reporting.Reporter, projectId string) {
+func reportEmptyPlanOutput(reporter reporting.Reporter, projectId string) {
 	identityFormatter := func(comment string) string {
 		return comment
 	}

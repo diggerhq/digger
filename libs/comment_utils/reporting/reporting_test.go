@@ -20,7 +20,7 @@ func (t MockCiService) GetApprovals(prNumber int) ([]string, error) {
 func (t MockCiService) GetChangedFiles(prNumber int) ([]string, error) {
 	return nil, nil
 }
-func (t MockCiService) PublishComment(prNumber int, comment string) (int64, error) {
+func (t MockCiService) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
 
 	latestId := 0
 
@@ -34,7 +34,7 @@ func (t MockCiService) PublishComment(prNumber int, comment string) (int64, erro
 
 	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &orchestrator.Comment{Id: latestId + 1, Body: &comment})
 
-	return 0, nil
+	return nil, nil
 }
 
 func (t MockCiService) ListIssues() ([]*orchestrator.Issue, error) {
@@ -93,7 +93,12 @@ func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment 
 	return nil
 }
 
-func (t MockCiService) GetBranchName(prNumber int) (string, error) {
+func (svc MockCiService) CreateCommentReaction(id interface{}, reaction string) error {
+	// TODO implement me
+	return nil
+}
+
+func (svc MockCiService) GetBranchName(prNumber int) (string, error) {
 	return "", nil
 }
 

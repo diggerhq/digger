@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/samber/lo"
 	"log"
 	"net/http"
@@ -13,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/drift"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
+	"github.com/diggerhq/digger/libs/comment_utils/summary"
 
 	"github.com/diggerhq/digger/cli/pkg/azure"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
@@ -28,7 +29,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/gcp"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
 	"github.com/diggerhq/digger/cli/pkg/gitlab"
-	"github.com/diggerhq/digger/cli/pkg/reporting"
 	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
@@ -100,18 +100,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	// this is used when called from api by the backend and exits in the end of if statement
 	if wdEvent, ok := ghEvent.(github.WorkflowDispatchEvent); ok && runningMode != "manual" && runningMode != "drift-detection" {
 
-		type Inputs struct {
-			JobString string `json:"job"`
-			Id        string `json:"id"`
-			CommentId string `json:"comment_id"`
-		}
-
-		var inputs Inputs
+		var inputs scheduler.WorkflowInput
 
 		jobJson := wdEvent.Inputs
 
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal job json. %s", err), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal jobSpec json. %s", err), 4)
 		}
 
 		err = json.Unmarshal(jobJson, &inputs)
@@ -122,69 +116,33 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		repoName := strings.ReplaceAll(ghRepository, "/", "-")
 
-		var job orchestrator.JobJson
-
-		err = json.Unmarshal([]byte(inputs.JobString), &job)
+		var jobSpec orchestrator.JobJson
+		err = json.Unmarshal([]byte(inputs.JobString), &jobSpec)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall job string: %v", err), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall jobSpec string: %v", err), 4)
 		}
 		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 
-		if job.BackendHostname != "" && job.BackendOrganisationName != "" && job.BackendJobToken != "" {
-			log.Printf("Found settings sent by backend in job string, overriding backendApi and policyCheckecd r. setting: (orgName: %v BackedHost: %v token: %v)", job.BackendOrganisationName, job.BackendHostname, "****")
-			backendApi = NewBackendApi(job.BackendHostname, job.BackendJobToken)
-			policyChecker = NewPolicyChecker(job.BackendHostname, job.BackendOrganisationName, job.BackendJobToken)
+		if jobSpec.BackendHostname != "" && jobSpec.BackendOrganisationName != "" && jobSpec.BackendJobToken != "" {
+			log.Printf("Found settings sent by backend in jobSpec string, overriding backendApi and policyCheckecd r. setting: (orgName: %v BackedHost: %v token: %v)", jobSpec.BackendOrganisationName, jobSpec.BackendHostname, "****")
+			backendApi = NewBackendApi(jobSpec.BackendHostname, jobSpec.BackendJobToken)
+			policyChecker = NewPolicyChecker(jobSpec.BackendHostname, jobSpec.BackendOrganisationName, jobSpec.BackendJobToken)
 		} else {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Missing values from job spec: hostname, orgName, token: %v %v", job.BackendHostname, job.BackendOrganisationName), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Missing values from job spec: hostname, orgName, token: %v %v", jobSpec.BackendHostname, jobSpec.BackendOrganisationName), 4)
 		}
 
-		err = githubPrService.SetOutput(*job.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *job.PullRequestNumber))
+		err = githubPrService.SetOutput(*jobSpec.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *jobSpec.PullRequestNumber))
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set jobSpec output. Exiting. %s", err), 4)
 		}
 
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
-		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "started", time.Now(), nil, "")
+		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "started", time.Now(), nil, "", "")
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report job status to backend. Exiting. %s", err), 4)
-		}
-
-		commentUpdater := comment_updater.BasicCommentUpdater{}
-
-		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
-		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
-
-		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, job.PullRequestNumber)
-
-		log.Printf("Warn: Overriding commenting strategy to Comments-per-run")
-
-		strategy := &reporting.CommentPerRunStrategy{
-			Project:   job.ProjectName,
-			IsPlan:    job.IsPlan(),
-			TimeOfRun: time.Now(),
-		}
-		cireporter := &reporting.CiReporter{
-			CiService:         &githubPrService,
-			PrNumber:          *job.PullRequestNumber,
-			ReportStrategy:    strategy,
-			IsSupportMarkdown: true,
-		}
-		// using lazy reporter to be able to suppress empty plans
-		reporter := reporting.NewCiReporterLazy(*cireporter)
-
-		if err != nil {
-			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil, "")
-			if reportingError != nil {
-				log.Printf("Failed to report job status to backend. %v", reportingError)
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
-			}
-			commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
-			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
-
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %s", err), 4)
 		}
 
 		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false)
@@ -193,17 +151,60 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		log.Printf("Digger digger_config read successfully\n")
 
+		log.Printf("Warn: Overriding commenting strategy to Comments-per-run")
+		strategy := &reporting.CommentPerRunStrategy{
+			Title:     fmt.Sprintf("%v for %v", jobSpec.JobType, jobSpec.ProjectName),
+			TimeOfRun: time.Now(),
+		}
+		cireporter := &reporting.CiReporter{
+			CiService:         &githubPrService,
+			PrNumber:          *jobSpec.PullRequestNumber,
+			ReportStrategy:    strategy,
+			IsSupportMarkdown: true,
+		}
+		// using lazy reporter to be able to suppress empty plans
+		var reporter reporting.Reporter = reporting.NewCiReporterLazy(*cireporter)
+
+		reportTerraformOutput := false
+		var commentUpdater comment_updater.CommentUpdater
+		if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeBasic {
+			commentUpdater = comment_updater.BasicCommentUpdater{}
+		} else if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeGroupByModule {
+			reporter = reporting.NoopReporter{}
+			commentUpdater = comment_updater.BasicCommentUpdater{}
+			reportTerraformOutput = true
+		} else {
+			reportErrorAndExit(githubActor, fmt.Sprintf("Unknown comment render mode found: %v", diggerConfig.CommentRenderMode), 8)
+		}
+
+		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
+
+		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobSpec.PullRequestNumber)
+
+		if err != nil {
+			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "", "")
+			if reportingError != nil {
+				log.Printf("Failed to report jobSpec status to backend. %v", reportingError)
+				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
+			}
+			commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
+			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
+
+			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
+		}
+
 		// Override the values of StateEnvVars and CommandEnvVars from workflow value_from values
-		workflow := diggerConfig.Workflows[job.ProjectName]
+		workflow := diggerConfig.Workflows[jobSpec.ProjectName]
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-		job.StateEnvVars = lo.Assign(job.StateEnvVars, stateEnvVars)
-		job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandEnvVars)
+		jobSpec.StateEnvVars = lo.Assign(jobSpec.StateEnvVars, stateEnvVars)
+		jobSpec.CommandEnvVars = lo.Assign(jobSpec.CommandEnvVars, commandEnvVars)
 
-		jobs := []orchestrator.Job{orchestrator.JsonToJob(job)}
+		jobs := []orchestrator.Job{orchestrator.JsonToJob(jobSpec)}
 
-		allAppliesSuccess, _, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, commentId64, currentDir)
+		allAppliesSuccess, _, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, reportTerraformOutput, commentId64, currentDir)
 		if !allAppliesSuccess || err != nil {
-			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, job.ProjectName, inputs.Id, "failed", time.Now(), nil, "")
+			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "", "")
 			if reportingError != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
@@ -392,7 +393,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 0, currentDir)
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
 		if err != nil {
 			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			// aggregate status checks: failure
@@ -509,7 +510,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		ReportStrategy: reportingStrategy,
 	}
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 0, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, gitlabService, gitlabService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
 
 	if err != nil {
 		log.Printf("failed to execute command, %v", err)
@@ -597,7 +598,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 		ReportStrategy: reportingStrategy,
 	}
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 0, currentDir)
+	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
 	if err != nil {
 		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
@@ -847,7 +848,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 0, currentDir)
+			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
 			if err != nil {
 				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
@@ -860,7 +861,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	reportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
-func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter core_reporting.Reporter, backendApi core_backend.Api) {
+func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter reporting.Reporter, backendApi core_backend.Api) {
 
 	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
 	currentDir, err := os.Getwd()
@@ -884,7 +885,7 @@ func exec(actor string, projectName string, repoNamespace string, command string
 	}
 
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, 123, currentDir)
+	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 123, currentDir)
 }
 
 /*

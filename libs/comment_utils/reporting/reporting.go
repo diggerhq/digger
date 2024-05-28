@@ -2,7 +2,7 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/core/utils"
+	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"log"
 	"strings"
@@ -10,7 +10,6 @@ import (
 )
 
 type CiReporter struct {
-	CommentId         *int64
 	CiService         orchestrator.PullRequestService
 	PrNumber          int
 	IsSupportMarkdown bool
@@ -109,24 +108,19 @@ type ReportStrategy interface {
 }
 
 type CommentPerRunStrategy struct {
-	IsPlan    bool
-	Project   string
+	Title     string
 	TimeOfRun time.Time
 }
 
-func (strategy *CommentPerRunStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
+func (strategy CommentPerRunStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
 	comments, err := ciService.GetComments(PrNumber)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting comments: %v", err)
 	}
 
 	var reportTitle string
-	if strategy.Project != "" {
-		if strategy.IsPlan {
-			reportTitle = fmt.Sprintf("Plan for %v (%v)", strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
-		} else {
-			reportTitle = fmt.Sprintf("Apply for %v (%v)", strategy.Project, strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)"))
-		}
+	if strategy.Title != "" {
+		reportTitle = strategy.Title + " " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
 	} else {
 		reportTitle = "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
 	}
@@ -149,17 +143,17 @@ func upsertComment(ciService orchestrator.PullRequestService, PrNumber int, repo
 	}
 
 	if commentIdForThisRun == nil {
-		var comment string
+		var commentMessage string
 		if !supportsCollapsible {
-			comment = utils.AsComment(reportTitle)(report)
+			commentMessage = utils.AsComment(reportTitle)(report)
 		} else {
-			comment = utils.AsCollapsibleComment(reportTitle, false)(report)
+			commentMessage = utils.AsCollapsibleComment(reportTitle, false)(report)
 		}
-		_, err := ciService.PublishComment(PrNumber, comment)
+		comment, err := ciService.PublishComment(PrNumber, commentMessage)
 		if err != nil {
 			return "", "", fmt.Errorf("error publishing comment: %v", err)
 		}
-		return "", "", nil
+		return fmt.Sprintf("%v", comment.Id), comment.Url, nil
 	}
 
 	// strip first and last lines

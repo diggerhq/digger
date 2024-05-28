@@ -1,14 +1,18 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -308,17 +312,13 @@ func RunHistoryForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-type JobSummary struct {
-	ResourcesCreated uint `json:"resources_created"`
-	ResourcesUpdated uint `json:"resources_updated"`
-	ResourcesDeleted uint `json:"resources_deleted"`
-}
-
 type SetJobStatusRequest struct {
-	Status       string      `json:"status"`
-	Timestamp    time.Time   `json:"timestamp"`
-	JobSummary   *JobSummary `json:"job_summary"`
-	PrCommentUrl string      `json:"pr_comment_url"`
+	Status          string                                  `json:"status"`
+	Timestamp       time.Time                               `json:"timestamp"`
+	JobSummary      *terraform_utils.PlanSummary            `json:"job_summary"`
+	Footprint       *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
+	PrCommentUrl    string                                  `json:"pr_comment_url"`
+	TerraformOutput string                                  `json:"terraform_output""`
 }
 
 func SetJobStatusForProject(c *gin.Context) {
@@ -352,6 +352,13 @@ func SetJobStatusForProject(c *gin.Context) {
 	switch request.Status {
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			log.Printf("Error updating job status: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			return
+		}
+
 		client, _, err := utils.GetGithubClient(&utils.DiggerGithubRealClientProvider{}, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
 		if err != nil {
 			log.Printf("Error Creating github client: %v", err)
@@ -369,10 +376,18 @@ func SetJobStatusForProject(c *gin.Context) {
 		}
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
+		job.TerraformOutput = request.TerraformOutput
+		if request.Footprint != nil {
+			job.PlanFootprint, err = json.Marshal(request.Footprint)
+			if err != nil {
+				log.Printf("Error marshalling plan footprint: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error marshalling plan footprint"})
+			}
+		}
 		job.PRCommentUrl = request.PrCommentUrl
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
-			log.Printf("Unexpected status %v", request.Status)
+			log.Printf("Error updating job status: %v", request.Status)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 			return
 		}
@@ -430,6 +445,14 @@ func SetJobStatusForProject(c *gin.Context) {
 
 	case "failed":
 		job.Status = orchestrator_scheduler.DiggerJobFailed
+		job.TerraformOutput = request.TerraformOutput
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			log.Printf("Error updating job status: %v", request.Status)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
+			return
+		}
+
 	default:
 		log.Printf("Unexpected status %v", request.Status)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
@@ -467,6 +490,8 @@ func SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
 
 	}
+
+	UpdateCommentsForBatchGroup(&utils.DiggerGithubRealClientProvider{}, batch, res.Jobs)
 
 	c.JSON(http.StatusOK, res)
 }
@@ -547,6 +572,58 @@ func CreateRunForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, run.MapToJsonStruct())
 }
 
+func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.DiggerBatch, serializedJobs []orchestrator_scheduler.SerializedJob) error {
+	diggerYmlString := batch.DiggerConfig
+	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
+	if err != nil {
+		log.Printf("Error loading digger config from batch: %v", err)
+		return fmt.Errorf("error loading digger config from batch: %v", err)
+	}
+
+	if diggerConfigYml.CommentRenderMode != nil &&
+		*diggerConfigYml.CommentRenderMode != digger_config.CommentRenderModeGroupByModule {
+		log.Printf("render mode is not group_by_module, skipping")
+		return nil
+	}
+
+	if batch.BatchType != orchestrator.DiggerCommandPlan && batch.BatchType != orchestrator.DiggerCommandApply {
+		log.Printf("command is not plan or apply, skipping")
+		return nil
+	}
+
+	ghService, _, err := utils.GetGithubService(
+		gh,
+		batch.GithubInstallationId,
+		batch.RepoFullName,
+		batch.RepoOwner,
+		batch.RepoName,
+	)
+
+	var sourceDetails []reporting.SourceDetails
+	err = json.Unmarshal(batch.SourceDetails, &sourceDetails)
+	if err != nil {
+		log.Printf("failed to unmarshall sourceDetails: %v", err)
+		return fmt.Errorf("failed to unmarshall sourceDetails: %v", err)
+	}
+
+	// project_name => terraform output
+	projectToTerraformOutput := make(map[string]string)
+	// TODO: add projectName as a field of Job
+	for _, serialJob := range serializedJobs {
+		job, err := models.DB.GetDiggerJob(serialJob.DiggerJobId)
+		if err != nil {
+			return fmt.Errorf("Could not get digger job: %v", err)
+		}
+		projectToTerraformOutput[serialJob.ProjectName] = job.TerraformOutput
+	}
+
+	for _, detail := range sourceDetails {
+		reporter := reporting.SourceGroupingReporter{serializedJobs, batch.PrNumber, ghService}
+		reporter.UpdateComment(sourceDetails, detail.SourceLocation, projectToTerraformOutput)
+	}
+	return nil
+}
+
 func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
 	diggerYmlString := batch.DiggerConfig
 	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
@@ -561,7 +638,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 	} else {
 		automerge = false
 	}
-	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.BatchTypeApply && automerge == true {
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator.DiggerCommandApply && automerge == true {
 		ghService, _, err := utils.GetGithubService(
 			gh,
 			batch.GithubInstallationId,

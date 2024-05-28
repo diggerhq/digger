@@ -100,7 +100,7 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *digger_confi
 		return nil, nil, fmt.Errorf("could not get changed files")
 	}
 
-	impactedProjects = diggerConfig.GetModifiedProjects(changedFiles)
+	impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
 
 	switch gitlabContext.EventType {
 	case MergeRequestComment:
@@ -152,13 +152,13 @@ func (gitlabService GitLabService) GetUserTeams(organisation string, user string
 	return make([]string, 0), nil
 }
 
-func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment string) (int64, error) {
+func (gitlabService GitLabService) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	commentOpt := &go_gitlab.AddMergeRequestDiscussionNoteOptions{Body: &comment}
 
-	log.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestID, projectId, mergeRequestIID, discussionId)
+	log.Printf("PublishComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestIID, projectId, mergeRequestIID, discussionId)
 
 	if discussionId == "" {
 		commentOpt := &go_gitlab.CreateMergeRequestDiscussionOptions{Body: &comment}
@@ -168,14 +168,14 @@ func (gitlabService GitLabService) PublishComment(mergeRequestID int, comment st
 			print(err.Error())
 		}
 		discussionId = discussion.ID
-		return 0, err
+		return nil, err
 	} else {
 		_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 		if err != nil {
 			log.Printf("Failed to publish a comment. %v\n", err)
 			print(err.Error())
 		}
-		return 0, err
+		return nil, err
 	}
 }
 
@@ -240,6 +240,11 @@ func (gitlabService GitLabService) IsMerged(mergeRequestID int) (bool, error) {
 
 func (gitlabService GitLabService) EditComment(prNumber int, id interface{}, comment string) error {
 	//TODO implement me
+	return nil
+}
+
+func (gitlabService GitLabService) CreateCommentReaction(id interface{}, reaction string) error {
+	// TODO implement me
 	return nil
 }
 

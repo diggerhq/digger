@@ -39,9 +39,9 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetChangedFile
 	return nil, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishComment(prNumber int, comment string) (int64, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "PublishComment")
-	return 0, nil
+	return nil, nil
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) ListIssues() ([]*orchestrator.Issue, error) {
@@ -101,6 +101,11 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetApprovals(p
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(prNumber int, commentId interface{}, comment string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "EditComment")
+	return nil
+}
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) CreateCommentReaction(id interface{}, reaction string) error {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "CreateCommentReaction")
 	return nil
 }
 

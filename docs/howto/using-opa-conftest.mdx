@@ -1,15 +1,19 @@
 ---
-title: "Using OPA (Conftest)"
-description: "This feature is in active development. If you find something that can be improved, please let us know by [filing an issue](https://github.com/diggerhq/digger/issues)"
+title: "Inline policies (conftest)"
 ---
 
-You can configure Digger to use Conftest to check your Terraform plan output against Open Policy Agent policies.
+<Note>
+  This is the most basic way to use OPA policies with Digger. For more advanced
+  use cases check out [OPA policies](/ee/opa)
+</Note>
+
+You can configure Digger CLI to run Conftest ito check your Terraform plan output against Open Policy Agent policies.
 
 ## Pre-requisites
 
-* Conftest binary needs to be installed into your CI pipeline (see [Conftest Docs](https://www.conftest.dev/install/))
+- Conftest binary needs to be installed into your CI pipeline (see [Conftest Docs](https://www.conftest.dev/install/))
 
-* OPA policies (rego files) under `/policies` directory in your repo
+- OPA policies (rego files) under `/policies` directory in your repo
 
 ## Digger.yml configuration
 
@@ -34,4 +38,3 @@ workflows:
       on_pull_request_closed: [digger unlock]
       on_commit_to_default: [digger apply]
 ```
-

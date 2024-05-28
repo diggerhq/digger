@@ -54,7 +54,8 @@
         "ee/ee-setup",
         "ee/dashboard",
         "ee/drift-detection",
-        "ee/rbac-opa"
+        "ee/rbac",
+        "ee/opa"
       ]
     },
     {
@@ -65,8 +66,7 @@
         "features/opa-policies",
         "features/concurrency",
         "features/pr-level-locks",
-        "features/plan-persistence",
-        "features/rbac"
+        "features/plan-persistence"
       ]
     },
     {
@@ -81,8 +81,8 @@
         "howto/destroy-manual",
         "howto/disable-auto-checkout",
         "howto/disable-telemetry",
-        "howto/drift-detection",
         "howto/generate-projects",
+        "howto/group-plans-by-source",
         "howto/include-exclude-patterns",
         "howto/multiacc-aws",
         "howto/policy-overrides",
@@ -109,7 +109,11 @@
     },
     {
       "group": "Reference",
-      "pages": ["reference/digger.yml", "reference/action-inputs"]
+      "pages": [
+        "reference/digger.yml",
+        "reference/action-inputs",
+        "reference/api"
+      ]
     },
     {
       "group": "AWS-specific",

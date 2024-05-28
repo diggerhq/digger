@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"log"
 )
 
@@ -21,23 +23,24 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 		return err
 	}
 	firstJobSpec := jobSpecs[0]
-	isPlan := firstJobSpec.IsPlan()
-
+	jobType := firstJobSpec.JobType
+	isPlan := jobType == orchestrator.DiggerCommandPlan
+	jobTypeTitle := cases.Title(language.AmericanEnglish).String(string(jobType))
 	message := ""
 	if isPlan {
-		message = message + fmt.Sprintf("| Project | Status | Plan | + | ~ | - |\n")
+		message = message + fmt.Sprintf("| Project | Status | %v | + | ~ | - |\n", jobTypeTitle)
 		message = message + fmt.Sprintf("|---------|--------|------|---|---|---|\n")
 	} else {
-		message = message + fmt.Sprintf("| Project | Status | Apply |\n")
+		message = message + fmt.Sprintf("| Project | Status | %v |\n", jobTypeTitle)
 		message = message + fmt.Sprintf("|---------|--------|-------|\n")
 	}
 	for i, job := range jobs {
 		jobSpec := jobSpecs[i]
 		prCommentUrl := job.PRCommentUrl
 		if isPlan {
-			message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>plan</a> | %v | %v | %v|\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), prCommentUrl, job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted)
+			message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>%v</a> | %v | %v | %v|\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), prCommentUrl, jobTypeTitle, job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted)
 		} else {
-			message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>apply</a> |\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), prCommentUrl)
+			message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>%v</a> |\n", job.Status.ToEmoji(), jobSpec.ProjectName, *job.WorkflowRunUrl, job.Status.ToString(), prCommentUrl, jobTypeTitle)
 		}
 	}
 

@@ -8,7 +8,6 @@ import (
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v61/github"
 	"log"
@@ -165,7 +164,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 			return fmt.Errorf("error getting digger config")
 		}
 
-		impactedProjects, requestedProject, _, err := dg_github.ProcessGitHubPushEvent(payload, config, projectsGraph, ghService)
+		impactedProjects, _, requestedProject, _, err := dg_github.ProcessGitHubPushEvent(payload, config, projectsGraph, ghService)
 		if err != nil {
 			log.Printf("Error processing event: %v", err)
 			return fmt.Errorf("error processing event")
@@ -217,7 +216,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 				return fmt.Errorf("error creating job token")
 			}
 
-			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, orgName, planJobToken.Value, backendHostName, impactedProjects[i]))
+			planJobSpec, err := json.Marshal(orchestrator.JobToJson(planJob, orchestrator.DiggerCommandPlan, orgName, planJobToken.Value, backendHostName, impactedProjects[i]))
 			if err != nil {
 				log.Printf("Error creating jobspec: %v %v", projectName, err)
 				return fmt.Errorf("error creating jobspec")
@@ -230,20 +229,20 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 				return fmt.Errorf("error creating job token")
 			}
 
-			applyJobSpec, err := json.Marshal(orchestrator.JobToJson(applyJob, orgName, applyJobToken.Value, backendHostName, impactedProjects[i]))
+			applyJobSpec, err := json.Marshal(orchestrator.JobToJson(applyJob, orchestrator.DiggerCommandApply, orgName, applyJobToken.Value, backendHostName, impactedProjects[i]))
 			if err != nil {
 				log.Printf("Error creating jobs: %v %v", projectName, err)
 				return fmt.Errorf("error creating jobs")
 			}
 
 			// create batches
-			planBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.BatchTypePlan, nil)
+			planBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, orchestrator.DiggerCommandPlan, nil)
 			if err != nil {
 				log.Printf("Error creating batch: %v", err)
 				return fmt.Errorf("error creating batch")
 			}
 
-			applyBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.BatchTypeApply, nil)
+			applyBatch, err := models.DB.CreateDiggerBatch(installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, orchestrator.DiggerCommandApply, nil)
 			if err != nil {
 				log.Printf("Error creating batch: %v", err)
 				return fmt.Errorf("error creating batch")

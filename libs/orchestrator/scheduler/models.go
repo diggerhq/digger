@@ -17,6 +17,20 @@ const (
 	BatchJobInvalidated DiggerBatchStatus = 5
 )
 
+type WorkflowInput struct {
+	JobString string `json:"job"`
+	Id        string `json:"id"`
+	CommentId string `json:"comment_id"`
+}
+
+func (w *WorkflowInput) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"id":         w.Id,
+		"job":        w.JobString,
+		"comment_id": w.CommentId,
+	}
+}
+
 type DiggerBatchType string
 
 const (
@@ -78,6 +92,7 @@ type SerializedJob struct {
 	Status           DiggerJobStatus `json:"status"`
 	ProjectName      string          `json:"project_name"`
 	JobString        []byte          `json:"job_string"`
+	PlanFootprint    []byte          `json:"plan_footprint"`
 	PRCommentUrl     string          `json:"pr_comment_url"`
 	WorkflowRunUrl   *string         `json:"workflow_run_url"`
 	ResourcesCreated uint            `json:"resources_created"`
@@ -86,15 +101,15 @@ type SerializedJob struct {
 }
 
 type SerializedBatch struct {
-	ID           string            `json:"id"`
-	PrNumber     int               `json:"pr_number"`
-	Status       DiggerBatchStatus `json:"status"`
-	BranchName   string            `json:"branch_name"`
-	RepoFullName string            `json:"repo_full_name"`
-	RepoOwner    string            `json:"repo_owner"`
-	RepoName     string            `json:"repo_name"`
-	BatchType    DiggerBatchType   `json:"batch_type"`
-	Jobs         []SerializedJob   `json:"jobs"`
+	ID           string                     `json:"id"`
+	PrNumber     int                        `json:"pr_number"`
+	Status       DiggerBatchStatus          `json:"status"`
+	BranchName   string                     `json:"branch_name"`
+	RepoFullName string                     `json:"repo_full_name"`
+	RepoOwner    string                     `json:"repo_owner"`
+	RepoName     string                     `json:"repo_name"`
+	BatchType    orchestrator.DiggerCommand `json:"batch_type"`
+	Jobs         []SerializedJob            `json:"jobs"`
 }
 
 func (b *SerializedBatch) IsPlan() (bool, error) {
@@ -155,4 +170,12 @@ func GetJobSpecs(jobs []SerializedJob) ([]orchestrator.JobJson, error) {
 		jobSpecs = append(jobSpecs, jobSpec)
 	}
 	return jobSpecs, nil
+}
+
+func JobsToProjectMap(jobs []SerializedJob) (map[string]SerializedJob, error) {
+	res := make(map[string]SerializedJob)
+	for _, job := range jobs {
+		res[job.ProjectName] = job
+	}
+	return res, nil
 }
