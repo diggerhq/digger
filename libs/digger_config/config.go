@@ -17,9 +17,9 @@ type DependencyConfiguration struct {
 }
 
 type AssumeRoleForProject struct {
-	Region  string
-	State   string
-	Command string
+	AwsRoleRegion string
+	State         string
+	Command       string
 }
 
 type Project struct {

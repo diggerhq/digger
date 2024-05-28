@@ -347,13 +347,13 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if project.AwsRoleToAssume != nil {
 
 				if project.AwsRoleToAssume.Command != "" {
-					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State, project.AwsRoleToAssume.Region)
+					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State, project.AwsRoleToAssume.AwsRoleRegion)
 				} else {
 					StateEnvProvider = nil
 				}
 
 				if project.AwsRoleToAssume.Command != "" {
-					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command, project.AwsRoleToAssume.Region)
+					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command, project.AwsRoleToAssume.AwsRoleRegion)
 				} else {
 					CommandEnvProvider = nil
 				}

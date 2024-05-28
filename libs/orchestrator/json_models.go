@@ -32,7 +32,7 @@ type JobJson struct {
 	RunEnvVars              map[string]string `json:"runEnvVars"`
 	StateEnvVars            map[string]string `json:"stateEnvVars"`
 	CommandEnvVars          map[string]string `json:"commandEnvVars"`
-	Region                  string            `json:"region"`
+	AwsRoleRegion           string            `json:"aws_role_region"`
 	StateRoleName           string            `json:"state_role_name"`
 	CommandRoleName         string            `json:"command_role_name"`
 	BackendHostname         string            `json:"backend_hostname"`
@@ -51,7 +51,7 @@ func (j *JobJson) IsApply() bool {
 func JobToJson(job Job, organisationName string, jobToken string, backendHostname string, project digger_config.Project) JobJson {
 	stateRole, commandRole, region := "", "", ""
 	if project.AwsRoleToAssume != nil {
-		region = project.AwsRoleToAssume.Region
+		region = project.AwsRoleToAssume.AwsRoleRegion
 		stateRole = project.AwsRoleToAssume.State
 		commandRole = project.AwsRoleToAssume.Command
 
@@ -71,7 +71,7 @@ func JobToJson(job Job, organisationName string, jobToken string, backendHostnam
 		RunEnvVars:              job.RunEnvVars,
 		StateEnvVars:            job.StateEnvVars,
 		CommandEnvVars:          job.CommandEnvVars,
-		Region:                  region,
+		AwsRoleRegion:           region,
 		StateRoleName:           stateRole,
 		CommandRoleName:         commandRole,
 		BackendHostname:         backendHostname,
@@ -96,8 +96,8 @@ func JsonToJob(jobJson JobJson) Job {
 		RunEnvVars:         jobJson.RunEnvVars,
 		StateEnvVars:       jobJson.StateEnvVars,
 		CommandEnvVars:     jobJson.CommandEnvVars,
-		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName, jobJson.Region),
-		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName, jobJson.Region),
+		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName, jobJson.AwsRoleRegion),
+		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName, jobJson.AwsRoleRegion),
 	}
 }
 

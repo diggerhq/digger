@@ -126,13 +126,13 @@ func GetStateAndCommandProviders(project digger_config.Project) (*stscreds.WebId
 	if project.AwsRoleToAssume != nil {
 
 		if project.AwsRoleToAssume.State != "" {
-			StateEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.State, project.AwsRoleToAssume.Region)
+			StateEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.State, project.AwsRoleToAssume.AwsRoleRegion)
 		} else {
 			StateEnvProvider = nil
 		}
 
 		if project.AwsRoleToAssume.Command != "" {
-			CommandEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.Command, project.AwsRoleToAssume.Region)
+			CommandEnvProvider = GetProviderFromRole(project.AwsRoleToAssume.Command, project.AwsRoleToAssume.AwsRoleRegion)
 		} else {
 			CommandEnvProvider = nil
 		}

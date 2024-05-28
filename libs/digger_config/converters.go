@@ -29,8 +29,8 @@ func copyProjects(projects []*ProjectYaml) []Project {
 		if p.AwsRoleToAssume != nil {
 
 			// set a default region to us-east-1 the same default AWS uses
-			if p.AwsRoleToAssume.Region == "" {
-				p.AwsRoleToAssume.Region = "us-east-1"
+			if p.AwsRoleToAssume.AwsRoleRegion == "" {
+				p.AwsRoleToAssume.AwsRoleRegion = "us-east-1"
 			}
 
 			if p.AwsRoleToAssume.State == "" {
@@ -41,9 +41,9 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			}
 
 			roleToAssume = &AssumeRoleForProject{
-				Region:  p.AwsRoleToAssume.Region,
-				State:   p.AwsRoleToAssume.State,
-				Command: p.AwsRoleToAssume.Command,
+				AwsRoleRegion: p.AwsRoleToAssume.AwsRoleRegion,
+				State:         p.AwsRoleToAssume.State,
+				Command:       p.AwsRoleToAssume.Command,
 			}
 		}
 

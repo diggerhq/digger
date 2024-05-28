@@ -33,7 +33,7 @@ Using a workflow file as usual. Here is an [example repository](https://github.c
 NOTE: for locking to be configured user needs to also pass aws-role-to-assume in the workflow file as a
 parameter within the workflow file. This role needs to have ability to assume all the other roles and also have access to a common account where the locks are to live. 
 
-If you are not using a aws-role-to-assume setting it workflow you **must** add ```region``` property to project level ```aws_role_to_assume```
+If you are not using a aws-role-to-assume setting it workflow you **must** add ```AwsRoleRegion``` property to project level ```aws_role_to_assume```
 </Note>
 
 You can also use project-level assume role with [generated projects](/howto/generate-projects):
@@ -43,7 +43,7 @@ generate_projects:
   blocks:
     - include: "environments/core/**"
       aws_role_to_assume:
-        region: "us-east-2" 
+        aws_role_region: "us-east-2" 
         state: "arn:/blabla/accid/backenddev"
         command: "arn:/blabla/accid/devaccount"
 ```
