@@ -586,6 +586,11 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 		return nil
 	}
 
+	if batch.BatchType != orchestrator.DiggerCommandPlan && batch.BatchType != orchestrator.DiggerCommandApply {
+		log.Printf("command is not plan or apply, skipping")
+		return nil
+	}
+
 	ghService, _, err := utils.GetGithubService(
 		gh,
 		batch.GithubInstallationId,
