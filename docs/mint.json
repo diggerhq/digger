@@ -142,7 +142,8 @@
       "group": "Troubleshooting",
       "pages": [
         "troubleshooting/importing-existing-resources",
-        "troubleshooting/action-errors"
+        "troubleshooting/action-errors",
+        "troubleshooting/comments"
       ]
     }
   ],

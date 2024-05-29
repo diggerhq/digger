@@ -1,0 +1,14 @@
+---
+title: "PR Comment Issues"
+---
+
+## Links to jobs not working
+
+Sometimes the link to job status leads to the PR instead of the Action job. E.g. if the job has failed, you click on "failed" in the summary comment, but it goes to the same PR.
+
+The likely reason is that the step that exposes the job id is missing from the workflow file. Add it right after checkout (most importantly, before Digger):
+
+```
+- name: ${{github.event.inputs.id}}
+        run: echo job id ${{ inputs.id }}
+```
