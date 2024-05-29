@@ -394,6 +394,7 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8Yc
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/diggerhq/digger/cli v0.0.0-20240524095424-de040e7a4485 h1:JFNLBgizjiqq3tzbvyGhQLwLBjEHZOxItybj7N2OJGw=
 github.com/diggerhq/digger/cli v0.0.0-20240524095424-de040e7a4485/go.mod h1:ylWCspbErB/FoOr0TeBpxRQHlSeyBCaX5yny9mOn9iE=
+github.com/diggerhq/digger/cli v0.0.0-20240528102721-72f425be5b11/go.mod h1:ylWCspbErB/FoOr0TeBpxRQHlSeyBCaX5yny9mOn9iE=
 github.com/dimchansky/utfbom v1.1.0/go.mod h1:rO41eb7gLfo8SF1jd9F8HplJm1Fewwi4mQvIirEdv+8=
 github.com/dimchansky/utfbom v1.1.1 h1:vV6w1AhK4VMnhBno/TPVCoK9U/LP0PkLCS9tbxHdi/U=
 github.com/dimchansky/utfbom v1.1.1/go.mod h1:SxdoEBH5qIqFocHMyGOXVAybYJdr71b1Q/j0mACtrfE=

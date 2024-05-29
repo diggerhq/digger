@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.12
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.7
 	github.com/bmatcuk/doublestar/v4 v4.6.1
-	github.com/diggerhq/digger/cli v0.0.0-20240524095424-de040e7a4485
+	github.com/diggerhq/digger/cli v0.0.0-20240528102721-72f425be5b11
 	github.com/dineshba/tf-summarize v0.3.10
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.11.0
@@ -25,6 +25,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/zclconf/go-cty v1.14.4
 	golang.org/x/sync v0.7.0
+	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -186,7 +187,6 @@ require (
 	golang.org/x/oauth2 v0.18.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
 	google.golang.org/api v0.170.0 // indirect
