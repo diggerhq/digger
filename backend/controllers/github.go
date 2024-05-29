@@ -734,7 +734,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	// if commands are locking or unlocking we don't need to trigger any jobs
 	if *diggerCommand == orchestrator.DiggerCommandUnlock ||
-		*diggerCommand == orchestrator.DiggerCommandUnlock {
+		*diggerCommand == orchestrator.DiggerCommandLock {
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
 		return nil
 
