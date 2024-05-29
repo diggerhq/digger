@@ -368,6 +368,11 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		cascadeDependencies = *parsingConfig.CascadeDependencies
 	}
 
+	executionOrderGroups := false
+	if parsingConfig.ExecutionOrderGroups != nil {
+		executionOrderGroups = *parsingConfig.ExecutionOrderGroups
+	}
+
 	atlantisConfig, _, err := atlantis.Parse(
 		root,
 		parsingConfig.ProjectHclFiles,
@@ -387,6 +392,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.CreateWorkspace,
 		parsingConfig.PreserveProjects,
 		parsingConfig.UseProjectMarkers,
+		executionOrderGroups,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
