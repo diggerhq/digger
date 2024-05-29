@@ -12,7 +12,7 @@ require (
 	github.com/dineshba/tf-summarize v0.3.10
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.12.0
-	github.com/goccy/go-json v0.10.2
+	github.com/goccy/go-json v0.10.3
 	github.com/google/go-github/v61 v61.0.0
 	github.com/google/go-github/v62 v62.0.0
 	github.com/gruntwork-io/go-commons v0.17.1
