@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/diggerhq/digger/cli/pkg/locking"
+	"github.com/diggerhq/digger/libs/locking"
 )
 
 func TestAWSDynamoDBLockE2E(t *testing.T) {

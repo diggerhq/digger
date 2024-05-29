@@ -5,14 +5,13 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/backend"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
-	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
-	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	ee_policy "github.com/diggerhq/digger/ee/cli/pkg/policy"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	core_reporting "github.com/diggerhq/digger/libs/comment_utils/summary"
+	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/spf13/cobra"
@@ -84,7 +83,7 @@ func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrat
 var PolicyChecker core_policy.Checker
 var BackendApi core_backend.Api
 var ReportStrategy reporting.ReportStrategy
-var lock core_locking.Lock
+var lock locking.Lock
 
 func PreRun(cmd *cobra.Command, args []string) {
 

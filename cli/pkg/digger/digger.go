@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
+	locking2 "github.com/diggerhq/digger/libs/locking"
 	"log"
 	"os"
 	"path"
@@ -15,12 +16,10 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
-	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	"github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/cli/pkg/core/runners"
 	"github.com/diggerhq/digger/cli/pkg/core/storage"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
-	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -67,7 +66,7 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock core_locking.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, batchId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, batchId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
 
 	defer reporter.Flush()
 
@@ -186,7 +185,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock core_locking.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, []string{})
@@ -206,7 +205,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		log.Fatalf("failed to fetch AWS keys, %v", err)
 	}
 
-	projectLock := &locking.PullRequestLock{
+	projectLock := &locking2.PullRequestLock{
 		InternalLock:     lock,
 		Reporter:         reporter,
 		CIService:        prService,
