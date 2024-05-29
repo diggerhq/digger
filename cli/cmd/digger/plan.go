@@ -2,9 +2,9 @@ package main
 
 import (
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
-	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
+	core_locking "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
