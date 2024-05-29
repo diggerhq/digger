@@ -1190,3 +1190,36 @@ func (db *Database) UpdateRepoDiggerConfig(orgId any, diggerConfigYaml string, r
 	}
 	return messages, nil
 }
+
+func (db *Database) CreateDiggerLock(resource string, lockId int) (*DiggerLock, error) {
+	lock := &DiggerLock{
+		Resource: resource,
+		LockId:   lockId,
+	}
+	result := db.GormDB.Save(lock)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	log.Printf("CreateDiggerLock (id: %v %v) has been created successfully\n", lock.LockId, lock.Resource)
+	return lock, nil
+}
+
+func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
+	lock := &DiggerLock{}
+	result := db.GormDB.Where("resource=? ", resource).Find(lock)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return lock, nil
+}
+
+func (db *Database) DeleteDiggerLock(lock *DiggerLock) error {
+	log.Printf("DeleteDiggerLock Deleting: %v, %v", lock.LockId, lock.Resource)
+	result := db.GormDB.Delete(lock)
+	if result.Error != nil {
+		return result.Error
+	}
+	log.Printf("DeleteDiggerLock %v %v has been deleted successfully\n", lock.LockId, lock.Resource)
+	return nil
+}

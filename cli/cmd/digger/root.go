@@ -104,7 +104,13 @@ func PreRun(cmd *cobra.Command, args []string) {
 	}
 
 	var err error
-	lock, err = locking2.GetLock()
+	if os.Getenv("NO_BACKEND") == "true" {
+		lock, err = locking2.GetLock()
+	} else {
+		log.Printf("Warning: not performing locking in cli since digger is invoked with orchestrator mode, any arguments to LOCKING_PROVIDER will be ignored")
+		lock = locking2.NoOpLock{}
+		err = nil
+	}
 	if err != nil {
 		log.Printf("Failed to create lock provider. %s\n", err)
 		os.Exit(2)
