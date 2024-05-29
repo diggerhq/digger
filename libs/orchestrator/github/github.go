@@ -425,22 +425,25 @@ func ConvertGithubIssueCommentEventToJobs(payload *github.IssueCommentEvent, imp
 	}
 	diggerCommand := strings.ToLower(*payload.Comment.Body)
 	diggerCommand = strings.TrimSpace(diggerCommand)
+	var commandToRun string
 	isSupportedCommand := false
 	for _, command := range supportedCommands {
 		if strings.HasPrefix(diggerCommand, command) {
 			isSupportedCommand = true
+			commandToRun = command
 		}
 	}
 	if !isSupportedCommand {
 		return nil, false, fmt.Errorf("command is not supported: %v", diggerCommand)
 	}
 
-	jobs, err := CreateJobsForProjects(runForProjects, diggerCommand, "issue_comment", repoFullName, requestedBy, workflows, &issueNumber, nil, defaultBranch, prBranch)
+	jobs, err := CreateJobsForProjects(runForProjects, commandToRun, "issue_comment", repoFullName, requestedBy, workflows, &issueNumber, nil, defaultBranch, prBranch)
 	if err != nil {
 		return nil, false, err
 	}
 
 	return jobs, coversAllImpactedProjects, nil
+
 }
 
 func CreateJobsForProjects(projects []digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string) ([]orchestrator.Job, error) {
