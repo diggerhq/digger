@@ -90,8 +90,9 @@ type BlockYaml struct {
 }
 
 type AssumeRoleForProjectConfig struct {
-	State   string `yaml:"state"`
-	Command string `yaml:"command"`
+	AwsRoleRegion string `yaml:"aws_role_region"`
+	State         string `yaml:"state"`
+	Command       string `yaml:"command"`
 }
 
 type GenerateProjectsConfigYaml struct {

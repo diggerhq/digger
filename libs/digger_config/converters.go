@@ -20,12 +20,19 @@ func copyProjects(projects []*ProjectYaml) []Project {
 	result := make([]Project, len(projects))
 	for i, p := range projects {
 		driftDetection := true
+
 		if p.DriftDetection != nil {
 			driftDetection = *p.DriftDetection
 		}
 
 		var roleToAssume *AssumeRoleForProject = nil
 		if p.AwsRoleToAssume != nil {
+
+			// set a default region to us-east-1 the same default AWS uses
+			if p.AwsRoleToAssume.AwsRoleRegion == "" {
+				p.AwsRoleToAssume.AwsRoleRegion = "us-east-1"
+			}
+
 			if p.AwsRoleToAssume.State == "" {
 				p.AwsRoleToAssume.State = p.AwsRoleToAssume.Command
 			}
@@ -34,8 +41,9 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			}
 
 			roleToAssume = &AssumeRoleForProject{
-				State:   p.AwsRoleToAssume.State,
-				Command: p.AwsRoleToAssume.Command,
+				AwsRoleRegion: p.AwsRoleToAssume.AwsRoleRegion,
+				State:         p.AwsRoleToAssume.State,
+				Command:       p.AwsRoleToAssume.Command,
 			}
 		}
 

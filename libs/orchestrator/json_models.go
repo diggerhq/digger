@@ -1,8 +1,9 @@
 package orchestrator
 
 import (
-	"github.com/diggerhq/digger/libs/digger_config"
 	"slices"
+
+	"github.com/diggerhq/digger/libs/digger_config"
 )
 
 type StepJson struct {
@@ -32,6 +33,7 @@ type JobJson struct {
 	RunEnvVars              map[string]string `json:"runEnvVars"`
 	StateEnvVars            map[string]string `json:"stateEnvVars"`
 	CommandEnvVars          map[string]string `json:"commandEnvVars"`
+	AwsRoleRegion           string            `json:"aws_role_region"`
 	StateRoleName           string            `json:"state_role_name"`
 	CommandRoleName         string            `json:"command_role_name"`
 	BackendHostname         string            `json:"backend_hostname"`
@@ -48,11 +50,12 @@ func (j *JobJson) IsApply() bool {
 }
 
 func JobToJson(job Job, jobType DiggerCommand, organisationName string, jobToken string, backendHostname string, project digger_config.Project) JobJson {
-	stateRole, commandRole := "", ""
+	stateRole, commandRole, region := "", "", ""
+
 	if project.AwsRoleToAssume != nil {
+		region = project.AwsRoleToAssume.AwsRoleRegion
 		stateRole = project.AwsRoleToAssume.State
 		commandRole = project.AwsRoleToAssume.Command
-
 	}
 	return JobJson{
 		JobType:                 jobType,
@@ -70,6 +73,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, jobToken
 		RunEnvVars:              job.RunEnvVars,
 		StateEnvVars:            job.StateEnvVars,
 		CommandEnvVars:          job.CommandEnvVars,
+		AwsRoleRegion:           region,
 		StateRoleName:           stateRole,
 		CommandRoleName:         commandRole,
 		BackendHostname:         backendHostname,
@@ -94,8 +98,8 @@ func JsonToJob(jobJson JobJson) Job {
 		RunEnvVars:         jobJson.RunEnvVars,
 		StateEnvVars:       jobJson.StateEnvVars,
 		CommandEnvVars:     jobJson.CommandEnvVars,
-		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName),
-		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName),
+		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName, jobJson.AwsRoleRegion),
+		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName, jobJson.AwsRoleRegion),
 	}
 }
 
