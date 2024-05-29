@@ -65,7 +65,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMerged(prNum
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetComments(prNumber int) ([]Comment, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetComments")
-	return []orchestrator.Comment{}, nil
+	return []Comment{}, nil
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetApprovals(prNumber int) ([]string, error) {
