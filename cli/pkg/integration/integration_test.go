@@ -2,6 +2,8 @@ package integration
 
 import (
 	"context"
+	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/locking/aws"
 	"log"
 	"math/rand"
 	"os"
@@ -10,11 +12,9 @@ import (
 
 	"github.com/diggerhq/digger/libs/comment_utils/summary"
 
-	"github.com/diggerhq/digger/cli/pkg/aws"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
-	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"

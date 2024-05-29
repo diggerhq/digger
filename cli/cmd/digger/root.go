@@ -5,12 +5,11 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/backend"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
-	core_locking "github.com/diggerhq/digger/cli/pkg/core/locking"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
-	"github.com/diggerhq/digger/cli/pkg/locking"
 	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
+	locking2 "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/spf13/cobra"
@@ -82,7 +81,7 @@ func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrat
 var PolicyChecker core_policy.Checker
 var BackendApi core_backend.Api
 var ReportStrategy reporting.ReportStrategy
-var lock core_locking.Lock
+var lock locking2.Lock
 
 func PreRun(cmd *cobra.Command, args []string) {
 
@@ -105,7 +104,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 	}
 
 	var err error
-	lock, err = locking.GetLock()
+	lock, err = locking2.GetLock()
 	if err != nil {
 		log.Printf("Failed to create lock provider. %s\n", err)
 		os.Exit(2)

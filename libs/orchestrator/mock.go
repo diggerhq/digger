@@ -1,30 +1,4 @@
-package utils
-
-import (
-	"github.com/diggerhq/digger/libs/orchestrator"
-)
-
-type MockReporter struct {
-	commands []string
-}
-
-func (mockReporter *MockReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
-	mockReporter.commands = append(mockReporter.commands, "Report")
-	return "", "", nil
-}
-
-func (mockReporter *MockReporter) Flush() (string, string, error) {
-	return "", "", nil
-}
-
-func (mockReporter *MockReporter) Suppress() error {
-	return nil
-}
-
-func (mockReporter *MockReporter) SupportsMarkdown() bool {
-	mockReporter.commands = append(mockReporter.commands, "SupportsMarkdown")
-	return false
-}
+package orchestrator
 
 type MockGithubPullrequestManager struct {
 	commands []string
@@ -39,12 +13,12 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetChangedFile
 	return nil, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishComment(prNumber int, comment string) (*Comment, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "PublishComment")
 	return nil, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) ListIssues() ([]*orchestrator.Issue, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) ListIssues() ([]*Issue, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "ListIssues")
 	return nil, nil
 }
@@ -89,9 +63,9 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMerged(prNum
 	return false, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetComments(prNumber int) ([]Comment, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetComments")
-	return []orchestrator.Comment{}, nil
+	return []Comment{}, nil
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetApprovals(prNumber int) ([]string, error) {

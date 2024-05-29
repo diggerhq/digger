@@ -5,17 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
+	"github.com/diggerhq/digger/libs/locking/aws"
+	"github.com/diggerhq/digger/libs/locking/azure"
+	"github.com/diggerhq/digger/libs/locking/gcp"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/diggerhq/digger/cli/pkg/aws"
-	"github.com/diggerhq/digger/cli/pkg/aws/envprovider"
-	"github.com/diggerhq/digger/cli/pkg/azure"
-	"github.com/diggerhq/digger/cli/pkg/core/locking"
-	"github.com/diggerhq/digger/cli/pkg/gcp"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
+	"github.com/diggerhq/digger/libs/locking/aws/envprovider"
 	"github.com/diggerhq/digger/libs/orchestrator"
 
 	"cloud.google.com/go/storage"
@@ -26,7 +25,7 @@ import (
 )
 
 type PullRequestLock struct {
-	InternalLock     locking.Lock
+	InternalLock     Lock
 	CIService        orchestrator.PullRequestService
 	Reporter         reporting.Reporter
 	ProjectName      string
@@ -238,7 +237,7 @@ func DoEnvVarsExist(envVars []string) bool {
 	return result
 }
 
-func GetLock() (locking.Lock, error) {
+func GetLock() (Lock, error) {
 	awsRegion := strings.ToLower(os.Getenv("AWS_REGION"))
 	awsProfile := strings.ToLower(os.Getenv("AWS_PROFILE"))
 	lockProvider := strings.ToLower(os.Getenv("LOCK_PROVIDER"))
