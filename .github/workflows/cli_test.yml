@@ -34,12 +34,6 @@ jobs:
           go build -v ./cmd/digger
         working-directory: cli
 
-      - name: Install Azurite
-        run: npm install -g azurite
-
-      - name: Start Azurite service
-        run: azurite --silent &
-
       - name: Test
         run: go test -v ./...
         working-directory: cli
