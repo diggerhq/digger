@@ -660,7 +660,7 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 	return uniqueHclFileAbsPaths
 }
 
-func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPath string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool) (*AtlantisConfig, map[string][]string, error) {
+func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPath string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool, executionOrderGroups bool) (*AtlantisConfig, map[string][]string, error) {
 	// Ensure the gitRoot has a trailing slash and is an absolute path
 	absoluteGitRoot, err := filepath.Abs(gitRoot)
 	if err != nil {
@@ -812,56 +812,56 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	// Sort the projects in atlantisConfig by Dir
 	sort.Slice(atlantisConfig.Projects, func(i, j int) bool { return atlantisConfig.Projects[i].Dir < atlantisConfig.Projects[j].Dir })
 	//
-	//if parsingConfig.ExecutionOrderGroups {
-	//	projectsMap := make(map[string]*AtlantisProject, len(atlantisConfig.Projects))
-	//	for i := range atlantisConfig.Projects {
-	//		projectsMap[atlantisConfig.Projects[i].Dir] = &atlantisConfig.Projects[i]
-	//	}
-	//
-	//	// Compute order groups in the cycle to avoid incorrect values in cascade dependencies
-	//	hasChanges := true
-	//	for i := 0; hasChanges && i <= len(atlantisConfig.Projects); i++ {
-	//		hasChanges = false
-	//		for _, project := range atlantisConfig.Projects {
-	//			executionOrderGroup := 0
-	//			// choose order group based on dependencies
-	//			for _, dep := range project.Autoplan.WhenModified {
-	//				depPath := filepath.Dir(filepath.Join(project.Dir, dep))
-	//				if depPath == project.Dir {
-	//					// skip dependency on oneself
-	//					continue
-	//				}
-	//
-	//				depProject, ok := projectsMap[depPath]
-	//				if !ok {
-	//					// skip not project dependencies
-	//					continue
-	//				}
-	//				if depProject.ExecutionOrderGroup+1 > executionOrderGroup {
-	//					executionOrderGroup = depProject.ExecutionOrderGroup + 1
-	//				}
-	//			}
-	//			if projectsMap[project.Dir].ExecutionOrderGroup != executionOrderGroup {
-	//				projectsMap[project.Dir].ExecutionOrderGroup = executionOrderGroup
-	//				// repeat the main cycle when changed some project
-	//				hasChanges = true
-	//			}
-	//		}
-	//	}
-	//
-	//	if hasChanges {
-	//		// Should be unreachable
-	//		log.Warn("Computing execution_order_groups failed. Probably cycle exists")
-	//	}
-	//
-	//	// Sort by execution_order_group
-	//	sort.Slice(atlantisConfig.Projects, func(i, j int) bool {
-	//		if atlantisConfig.Projects[i].ExecutionOrderGroup == atlantisConfig.Projects[j].ExecutionOrderGroup {
-	//			return atlantisConfig.Projects[i].Dir < atlantisConfig.Projects[j].Dir
-	//		}
-	//		return atlantisConfig.Projects[i].ExecutionOrderGroup < atlantisConfig.Projects[j].ExecutionOrderGroup
-	//	})
-	//}
+	if executionOrderGroups {
+		projectsMap := make(map[string]*AtlantisProject, len(atlantisConfig.Projects))
+		for i := range atlantisConfig.Projects {
+			projectsMap[atlantisConfig.Projects[i].Dir] = &atlantisConfig.Projects[i]
+		}
+
+		// Compute order groups in the cycle to avoid incorrect values in cascade dependencies
+		hasChanges := true
+		for i := 0; hasChanges && i <= len(atlantisConfig.Projects); i++ {
+			hasChanges = false
+			for _, project := range atlantisConfig.Projects {
+				executionOrderGroup := 0
+				// choose order group based on dependencies
+				for _, dep := range project.Autoplan.WhenModified {
+					depPath := filepath.Dir(filepath.Join(project.Dir, dep))
+					if depPath == project.Dir {
+						// skip dependency on oneself
+						continue
+					}
+
+					depProject, ok := projectsMap[depPath]
+					if !ok {
+						// skip not project dependencies
+						continue
+					}
+					if depProject.ExecutionOrderGroup+1 > executionOrderGroup {
+						executionOrderGroup = depProject.ExecutionOrderGroup + 1
+					}
+				}
+				if projectsMap[project.Dir].ExecutionOrderGroup != executionOrderGroup {
+					projectsMap[project.Dir].ExecutionOrderGroup = executionOrderGroup
+					// repeat the main cycle when changed some project
+					hasChanges = true
+				}
+			}
+		}
+
+		if hasChanges {
+			// Should be unreachable
+			log.Warn("Computing execution_order_groups failed. Probably cycle exists")
+		}
+
+		// Sort by execution_order_group
+		sort.Slice(atlantisConfig.Projects, func(i, j int) bool {
+			if atlantisConfig.Projects[i].ExecutionOrderGroup == atlantisConfig.Projects[j].ExecutionOrderGroup {
+				return atlantisConfig.Projects[i].Dir < atlantisConfig.Projects[j].Dir
+			}
+			return atlantisConfig.Projects[i].ExecutionOrderGroup < atlantisConfig.Projects[j].ExecutionOrderGroup
+		})
+	}
 
 	dependsOn := make(map[string][]string)
 
