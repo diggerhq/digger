@@ -24,7 +24,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	}
 	firstJobSpec := jobSpecs[0]
 	jobType := firstJobSpec.JobType
-	isPlan := jobType == orchestrator.DiggerCommandPlan
+	isPlan := jobType == string(orchestrator.DiggerCommandPlan)
 	jobTypeTitle := cases.Title(language.AmericanEnglish).String(string(jobType))
 	message := ""
 	if isPlan {
