@@ -737,7 +737,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		*diggerCommand == orchestrator.DiggerCommandLock {
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
 		return nil
-
 	}
 
 	jobs, _, err := dg_github.ConvertGithubIssueCommentEventToJobs(payload, impactedProjects, requestedProject, config.Workflows, prBranchName)
