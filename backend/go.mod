@@ -9,7 +9,7 @@ replace github.com/ugorji/go => github.com/ugorji/go v1.2.12
 
 require (
 	ariga.io/atlas-provider-gorm v0.3.4
-	github.com/bradleyfalzon/ghinstallation/v2 v2.10.0
+	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/dominikbraun/graph v0.23.0
@@ -129,6 +129,7 @@ require (
 	github.com/google/go-github/v35 v35.3.0 // indirect
 	github.com/google/go-github/v59 v59.0.0 // indirect
 	github.com/google/go-github/v60 v60.0.0 // indirect
+	github.com/google/go-github/v62 v62.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
