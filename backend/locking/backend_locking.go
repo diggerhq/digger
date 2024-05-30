@@ -38,7 +38,6 @@ func (lock BackendDBLock) Unlock(resource string) (bool, error) {
 
 func (lock BackendDBLock) GetLock(resource string) (*int, error) {
 	theLock, err := models.DB.GetDiggerLock(resource)
-	log.Printf("!!! %v", err)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Printf("its an error not found")
 		return nil, nil

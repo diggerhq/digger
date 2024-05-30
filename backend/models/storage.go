@@ -1209,7 +1209,6 @@ func (db *Database) CreateDiggerLock(resource string, lockId int, orgId uint) (*
 func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
 	lock := &DiggerLock{}
 	result := db.GormDB.Where("resource=? ", resource).First(lock)
-	log.Printf("result.Error %v", result.Error)
 	if result.Error != nil {
 		return nil, result.Error
 	}
