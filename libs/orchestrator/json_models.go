@@ -18,7 +18,7 @@ type StageJson struct {
 }
 
 type JobJson struct {
-	JobType                 DiggerCommand     `json:"job_type"`
+	JobType                 string            `json:"job_type"`
 	ProjectName             string            `json:"projectName"`
 	ProjectDir              string            `json:"projectDir"`
 	ProjectWorkspace        string            `json:"projectWorkspace"`
@@ -58,7 +58,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, jobToken
 		commandRole = project.AwsRoleToAssume.Command
 	}
 	return JobJson{
-		JobType:                 jobType,
+		JobType:                 string(jobType),
 		ProjectName:             job.ProjectName,
 		ProjectDir:              job.ProjectDir,
 		ProjectWorkspace:        job.ProjectWorkspace,
