@@ -484,7 +484,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error initializing comment reporter")
 	}
 
-	// perform unlocking in backend
+	// perform locking/unlocking in backend
 	for _, project := range impactedProjects {
 		prLock := dg_locking.PullRequestLock{
 			InternalLock: locking.BackendDBLock{
@@ -501,6 +501,13 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
 			return fmt.Errorf("failed to perform lock action on project: %v, %v", project.Name, err)
 		}
+	}
+
+	// if commands are locking or unlocking we don't need to trigger any jobs
+	if *diggerCommand == orchestrator.DiggerCommandUnlock ||
+		*diggerCommand == orchestrator.DiggerCommandLock {
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
+		return nil
 	}
 
 	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)

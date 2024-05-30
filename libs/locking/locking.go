@@ -126,6 +126,7 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 	lockId := projectLock.LockId()
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 
+	log.Printf("verifying no hangling locks: %v %v", transactionId, err)
 	if err != nil {
 		return false, err
 	}
