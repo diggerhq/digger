@@ -1191,10 +1191,11 @@ func (db *Database) UpdateRepoDiggerConfig(orgId any, diggerConfigYaml string, r
 	return messages, nil
 }
 
-func (db *Database) CreateDiggerLock(resource string, lockId int) (*DiggerLock, error) {
+func (db *Database) CreateDiggerLock(resource string, lockId int, orgId uint) (*DiggerLock, error) {
 	lock := &DiggerLock{
-		Resource: resource,
-		LockId:   lockId,
+		Resource:       resource,
+		LockId:         lockId,
+		OrganisationID: orgId,
 	}
 	result := db.GormDB.Save(lock)
 	if result.Error != nil {
@@ -1207,7 +1208,8 @@ func (db *Database) CreateDiggerLock(resource string, lockId int) (*DiggerLock, 
 
 func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
 	lock := &DiggerLock{}
-	result := db.GormDB.Where("resource=? ", resource).Find(lock)
+	result := db.GormDB.Where("resource=? ", resource).First(lock)
+	log.Printf("result.Error %v", result.Error)
 	if result.Error != nil {
 		return nil, result.Error
 	}
