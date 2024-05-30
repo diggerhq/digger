@@ -36,15 +36,15 @@ type PullRequestLock struct {
 type NoOpLock struct {
 }
 
-func (noOpLock *NoOpLock) Lock(transactionId int, resource string) (bool, error) {
+func (noOpLock NoOpLock) Lock(transactionId int, resource string) (bool, error) {
 	return true, nil
 }
 
-func (noOpLock *NoOpLock) Unlock(resource string) (bool, error) {
+func (noOpLock NoOpLock) Unlock(resource string) (bool, error) {
 	return true, nil
 }
 
-func (noOpLock *NoOpLock) GetLock(resource string) (*int, error) {
+func (noOpLock NoOpLock) GetLock(resource string) (*int, error) {
 	return nil, nil
 }
 

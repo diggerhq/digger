@@ -38,3 +38,22 @@ func GetCommandFromComment(comment string) (*DiggerCommand, error) {
 	}
 	return nil, fmt.Errorf("Unrecognised command: %v", comment)
 }
+
+func GetCommandFromJob(job Job) (*DiggerCommand, error) {
+	supportedCommands := map[string]DiggerCommand{
+		"digger plan":   DiggerCommandPlan,
+		"digger apply":  DiggerCommandApply,
+		"digger unlock": DiggerCommandUnlock,
+		"digger lock":   DiggerCommandLock,
+	}
+
+	diggerCommands := job.Commands
+	for command, value := range supportedCommands {
+		for _, diggerCommand := range diggerCommands {
+			if strings.HasPrefix(diggerCommand, command) {
+				return &value, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("could not figure out command: %v", job.Commands)
+}
