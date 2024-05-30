@@ -1,8 +1,10 @@
 package locking
 
 import (
+	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
+	"gorm.io/gorm"
 )
 
 type BackendDBLock struct {
@@ -34,6 +36,9 @@ func (lock BackendDBLock) Unlock(resource string) (bool, error) {
 
 func (lock BackendDBLock) GetLock(resource string) (*int, error) {
 	theLock, err := models.DB.GetDiggerLock(resource)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("could not get lock record: %v", err)
 	}
