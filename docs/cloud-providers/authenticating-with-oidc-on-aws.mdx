@@ -2,21 +2,21 @@
 title: "Authenticating with OIDC on AWS"
 ---
 
-support for AWS OIDC assume role paramter will be in v0.1.23
-
 In order to set up OIDC simply swap the AWS Keys with assume role ARN and you are good to go. Here is an example, don't forget to replace the line starting in \*\* with your own ARN for the account.
 
 ```
-name: CI
+name: Digger Workflow
 
 on:
-  pull_request:
-    branches: [ "main" ]
-    types: [ closed, opened, synchronize, reopened ]
-  issue_comment:
-    types: [created]
-    if: contains(github.event.comment.body, 'digger')
   workflow_dispatch:
+    inputs:
+      id:
+        description: 'run identifier'
+        required: false
+      job:
+        required: true
+      comment_id:
+        required: true
 
 jobs:
   build:
