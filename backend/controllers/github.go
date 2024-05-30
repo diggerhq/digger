@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/locking"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
+	dg_locking "github.com/diggerhq/digger/libs/locking"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/google/uuid"
 	"log"
@@ -24,7 +26,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/orchestrator"
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
@@ -469,10 +471,43 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return nil
 	}
 
+	diggerCommand, err := orchestrator.GetCommandFromJob(jobsForImpactedProjects[0])
+	if err != nil {
+		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not determine digger command from job: %v", err))
+		return fmt.Errorf("unkown digger command in comment %v", err)
+	}
+
 	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
 	if err != nil {
 		log.Printf("Error initializing comment reporter: %v", err)
 		return fmt.Errorf("error initializing comment reporter")
+	}
+
+	// perform locking/unlocking in backend
+	for _, project := range impactedProjects {
+		prLock := dg_locking.PullRequestLock{
+			InternalLock: locking.BackendDBLock{
+				OrgId: organisationId,
+			},
+			CIService:        ghService,
+			Reporter:         comment_updater.NoopReporter{},
+			ProjectName:      project.Name,
+			ProjectNamespace: repoFullName,
+			PrNumber:         prNumber,
+		}
+		err = PerformLockingActionFromCommand(prLock, *diggerCommand)
+		if err != nil {
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
+			return fmt.Errorf("failed to perform lock action on project: %v, %v", project.Name, err)
+		}
+	}
+
+	// if commands are locking or unlocking we don't need to trigger any jobs
+	if *diggerCommand == orchestrator.DiggerCommandUnlock ||
+		*diggerCommand == orchestrator.DiggerCommandLock {
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
+		return nil
 	}
 
 	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
@@ -499,7 +534,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		impactedJobsMap[j.ProjectName] = j
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(orchestrator.DiggerCommandPlan, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, *branch, prNumber, repoOwner, repoName, repoFullName, commentReporter.CommentId, diggerYmlStr)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -664,7 +699,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	if !config.AllowDraftPRs && isDraft {
-		log.Printf("AllowDraftPRs is enabled, skipping PR: %v", issueNumber)
+		log.Printf("AllowDraftPRs is disabled, skipping PR: %v", issueNumber)
 		return nil
 	}
 
@@ -696,9 +731,30 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
-	if err != nil {
-		log.Printf("GetGithubService error: %v", err)
-		return fmt.Errorf("error getting github prservice")
+	// perform unlocking in backend
+	for _, project := range impactedProjects {
+		prLock := dg_locking.PullRequestLock{
+			InternalLock: locking.BackendDBLock{
+				OrgId: orgId,
+			},
+			CIService:        ghService,
+			Reporter:         comment_updater.NoopReporter{},
+			ProjectName:      project.Name,
+			ProjectNamespace: repoFullName,
+			PrNumber:         issueNumber,
+		}
+		err = PerformLockingActionFromCommand(prLock, *diggerCommand)
+		if err != nil {
+			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
+			return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
+		}
+	}
+
+	// if commands are locking or unlocking we don't need to trigger any jobs
+	if *diggerCommand == orchestrator.DiggerCommandUnlock ||
+		*diggerCommand == orchestrator.DiggerCommandLock {
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
+		return nil
 	}
 
 	jobs, _, err := dg_github.ConvertGithubIssueCommentEventToJobs(payload, impactedProjects, requestedProject, config.Workflows, prBranchName)
@@ -785,6 +841,33 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error triggerring GitHub Actions for Digger Jobs")
 	}
 	return nil
+}
+
+func PerformLockingActionFromCommand(prLock dg_locking.PullRequestLock, command orchestrator.DiggerCommand) error {
+	var err error
+	switch command {
+	case orchestrator.DiggerCommandUnlock:
+		_, err = prLock.Unlock()
+		if err != nil {
+			err = fmt.Errorf("failed to unlock project: %v", err)
+		}
+	case orchestrator.DiggerCommandPlan:
+		_, err = prLock.Lock()
+		if err != nil {
+			err = fmt.Errorf("failed to lock project: %v", err)
+		}
+	case orchestrator.DiggerCommandApply:
+		_, err = prLock.Lock()
+		if err != nil {
+			err = fmt.Errorf("failed to lock project: %v", err)
+		}
+	case orchestrator.DiggerCommandLock:
+		_, err = prLock.Lock()
+		if err != nil {
+			err = fmt.Errorf("failed to lock project: %v", err)
+		}
+	}
+	return err
 }
 
 func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService *dg_github.GithubService) error {
