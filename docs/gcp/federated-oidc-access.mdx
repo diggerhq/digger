@@ -60,8 +60,8 @@ Set `EXT` env var intead of the usual key pair. See [oidc-gcp-example](https://g
         uses: 'google-github-actions/auth@v1'
         with:
           token_format: access_token
-          workload_identity_provider: $\{\{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER \}\}
-          service_account: $\{\{ env.GCP_SERVICE_ACCOUNT \}\}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
           audience: google-wif
 
       - name: 'Set up Cloud SDK'
@@ -70,13 +70,13 @@ Set `EXT` env var intead of the usual key pair. See [oidc-gcp-example](https://g
       - name: 'Use gcloud CLI'
         run: |
           gcloud info
-          gsutil ls gs://$\{\{ env.GOOGLE_STORAGE_BUCKET \}\}
+          gsutil ls gs://${{ env.GOOGLE_STORAGE_BUCKET }}
       - name: digger
         uses: diggerhq/digger@vLatest
         env:
           LOCK_PROVIDER: gcp
-          GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
-          GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOGLE_STORAGE_BUCKET: digger-lock2
 
 ```
