@@ -67,7 +67,7 @@ jobs:
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
-        credentials_json: '$\{\{ secrets.GCP_CREDENTIALS \}\}'
+        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
         create_credentials_file: true
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v1'
@@ -79,8 +79,8 @@ jobs:
           setup-aws: false
           disable-locking: true
         env:
-          GITHUB_CONTEXT: $\{\{ toJson(github) \}\}
-          GITHUB_TOKEN: $\{\{ secrets.GITHUB_TOKEN \}\}
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 This file defines a workflow with 5 steps:
