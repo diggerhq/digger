@@ -17,6 +17,7 @@ func ParseProjectName(comment string) string {
 
 type DiggerCommand string
 
+const DiggerCommandNoop DiggerCommand = "noop"
 const DiggerCommandPlan DiggerCommand = "plan"
 const DiggerCommandApply DiggerCommand = "apply"
 const DiggerCommandLock DiggerCommand = "lock"
@@ -24,6 +25,7 @@ const DiggerCommandUnlock DiggerCommand = "unlock"
 
 func GetCommandFromComment(comment string) (*DiggerCommand, error) {
 	supportedCommands := map[string]DiggerCommand{
+		"digger noop":   DiggerCommandNoop,
 		"digger plan":   DiggerCommandPlan,
 		"digger apply":  DiggerCommandApply,
 		"digger unlock": DiggerCommandUnlock,

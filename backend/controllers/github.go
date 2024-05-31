@@ -478,6 +478,11 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("unkown digger command in comment %v", err)
 	}
 
+	if *diggerCommand == orchestrator.DiggerCommandNoop {
+		log.Printf("job is of type noop, no actions top perform")
+		return nil
+	}
+
 	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
 	if err != nil {
 		log.Printf("Error initializing comment reporter: %v", err)
