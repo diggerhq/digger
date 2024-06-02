@@ -50,7 +50,7 @@ type WorkflowConfigurationYaml struct {
 	OnPullRequestPushed []string `yaml:"on_pull_request_pushed"`
 	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
 	// pull request converted to draft
-	OnPullRequestToDraft []string `yaml:"on_pull_request_to_draft"`
+	OnPullRequestConvertedToDraft []string `yaml:"on_pull_request_to_draft"`
 	// pull request converted to be "ready for review
 	OnPullRequestReadyForReview []string `yaml:"on_pull_request_ready_for_review"`
 	OnCommitToDefault           []string `yaml:"on_commit_to_default"`

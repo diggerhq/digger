@@ -43,10 +43,16 @@ func GetCommandFromComment(comment string) (*DiggerCommand, error) {
 
 func GetCommandFromJob(job Job) (*DiggerCommand, error) {
 	supportedCommands := map[string]DiggerCommand{
+		"digger noop":   DiggerCommandNoop,
 		"digger plan":   DiggerCommandPlan,
 		"digger apply":  DiggerCommandApply,
 		"digger unlock": DiggerCommandUnlock,
 		"digger lock":   DiggerCommandLock,
+	}
+
+	if len(job.Commands) == 0 {
+		res := DiggerCommandNoop
+		return &res, nil
 	}
 
 	diggerCommands := job.Commands

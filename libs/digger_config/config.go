@@ -49,11 +49,11 @@ type Workflow struct {
 }
 
 type WorkflowConfiguration struct {
-	OnPullRequestPushed         []string
-	OnPullRequestClosed         []string
-	OnPullRequestToDraft        []string
-	OnPullRequestReadyForReview []string
-	OnCommitToDefault           []string
+	OnPullRequestPushed           []string
+	OnPullRequestClosed           []string
+	OnPullRequestConvertedToDraft []string
+	OnPullRequestReadyForReview   []string
+	OnCommitToDefault             []string
 }
 
 type TerraformEnvConfig struct {
@@ -81,11 +81,11 @@ type Stage struct {
 func defaultWorkflow() *Workflow {
 	return &Workflow{
 		Configuration: &WorkflowConfiguration{
-			OnCommitToDefault:           []string{"digger unlock"},
-			OnPullRequestPushed:         []string{"digger plan"},
-			OnPullRequestToDraft:        []string{"digger noop"},
-			OnPullRequestReadyForReview: []string{"digger noop"},
-			OnPullRequestClosed:         []string{"digger unlock"},
+			OnCommitToDefault:             []string{"digger unlock"},
+			OnPullRequestPushed:           []string{"digger plan"},
+			OnPullRequestConvertedToDraft: []string{"digger noop"},
+			OnPullRequestReadyForReview:   []string{"digger noop"},
+			OnPullRequestClosed:           []string{"digger unlock"},
 		},
 		Plan: &Stage{
 			Steps: []Step{

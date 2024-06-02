@@ -386,7 +386,50 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
 			})
+		} else if *payload.Action == "ready_for_review" {
+			jobs = append(jobs, orchestrator.Job{
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				ProjectWorkflow:    project.Workflow,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           workflow.Configuration.OnPullRequestReadyForReview,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				RunEnvVars:         runEnvVars,
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				PullRequestNumber:  pullRequestNumber,
+				EventName:          "pull_request_ready_for_review",
+				Namespace:          *payload.Repo.FullName,
+				RequestedBy:        *payload.Sender.Login,
+				CommandEnvProvider: CommandEnvProvider,
+				StateEnvProvider:   StateEnvProvider,
+			})
+		} else if *payload.Action == "converted_to_draft" {
+			jobs = append(jobs, orchestrator.Job{
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				ProjectWorkflow:    project.Workflow,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           workflow.Configuration.OnPullRequestConvertedToDraft,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				RunEnvVars:         runEnvVars,
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				PullRequestNumber:  pullRequestNumber,
+				EventName:          "pull_request_converted_to_draft",
+				Namespace:          *payload.Repo.FullName,
+				RequestedBy:        *payload.Sender.Login,
+				CommandEnvProvider: CommandEnvProvider,
+				StateEnvProvider:   StateEnvProvider,
+			})
 		}
+
 	}
 	return jobs, true, nil
 }
