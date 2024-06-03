@@ -984,7 +984,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 		},
 	}
 	projects := []configuration.Project{dev, prod}
-	diggerConfig := configuration.DiggerConfig{Projects: projects}
+	diggerConfig := configuration.DiggerConfig{Projects: projects, Workflows: workflows}
 
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
