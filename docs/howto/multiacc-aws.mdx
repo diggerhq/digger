@@ -56,6 +56,10 @@ on:
       required: true
     comment_id:
       required: true
+    run_name:
+      required: false
+
+run-name: '${{inputs.run_name}}'
 
 jobs:
   digger-job:
