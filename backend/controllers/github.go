@@ -1055,12 +1055,7 @@ func GithubAppCallbackPage(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
 		return
 	}
-	//TODO move to config; same for all other os.Getenv() calls in this file
-	callbackSuccessRedirectURL := os.Getenv("CALLBACK_SUCCESS_REDIRECT_URL")
-	if callbackSuccessRedirectURL == "" {
-		callbackSuccessRedirectURL = "/repos"
-	}
-	c.Redirect(http.StatusFound, callbackSuccessRedirectURL)
+	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
 }
 
 func GithubReposPage(c *gin.Context) {
