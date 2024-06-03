@@ -396,7 +396,7 @@ func TestHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	event := ghEvent.(github.PullRequestEvent)
-	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig.Workflows)
+	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, *diggerConfig)
 	assert.NoError(t, err)
 	zipManager := utils.Zipper{}
 	planStorage := &storage.GithubPlanStorage{

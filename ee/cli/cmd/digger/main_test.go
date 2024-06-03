@@ -16,7 +16,6 @@ import (
 
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -994,12 +993,12 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
-	lock := &utils.MockLock{}
+	//lock := locking.MockLock{}
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 	assert.NoError(t, err)
 	event := context.Event.(github.PullRequestEvent)
-	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, workflows)
-	spew.Dump(lock.MapLock)
+	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig)
+
 	assert.Equal(t, pullRequestNumber, prNumber)
 	assert.Equal(t, 1, len(jobs))
 	assert.NoError(t, err)
