@@ -50,32 +50,14 @@ And the workflow for this needs to use `setup-terragrunt: true` as follows:
 name: Digger
 
 on:
-  pull_request:
-    branches:
-      - main
-      - master
-    types: [ closed, opened, synchronize, reopened ]
-  issue_comment:
-    types: [created]
-    if: contains(github.event.comment.body, 'digger')
   workflow_dispatch:
 
 jobs:
-  build:
+  digger-job:
     runs-on: ubuntu-latest
     steps:
-
-      - name: digger run
-        uses: diggerhq/digger@vLatest
+      - uses: diggerhq/digger@vLatest
         with:
-          setup-google-cloud: true # FOR aws use setup-aws instead
-          google-auth-credentials: '$\'{\'{ secrets.DIGGER_GCP_CREDENTIALS \}\}'
           setup-terragrunt: true
           terragrunt-version: 0.44.1
-          google-lock-bucket: please-create-me-for-storing-locks
-        env:
-          LOCK_PROVIDER: gcp
-          GOOGLE_ENCRYPTION_KEY: $\'{\'{ secrets.GOOGLE_ENCRYPTION_KEY \}\}
-          GITHUB_CONTEXT: $\'{\'{ toJson(github) \}\}
-          GITHUB_TOKEN: $\'{\'{ secrets.GITHUB_TOKEN \}\}
 ```
