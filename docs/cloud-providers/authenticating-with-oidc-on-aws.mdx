@@ -17,11 +17,15 @@ on:
         required: true
       comment_id:
         required: true
+      run_name:
+        required: false
+
+run-name: '${{inputs.run_name}}'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:    
+    permissions:
       contents: write      # required to merge PRs
       id-token: write      # required for workload-identity-federation
       pull-requests: write # required to post PR comments
