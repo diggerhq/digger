@@ -231,15 +231,16 @@ func TriggerGithubWorkflow(client *github.Client, repoOwner string, repoName str
 		return fmt.Errorf("could not marshal json string: %v", err)
 	}
 
+	batchIdShort := job.Batch.ID.String()[:8]
+	diggerCommand := fmt.Sprintf("digger %v", job.Batch.BatchType)
+	projectName := jobSpec.ProjectName
+	requestedBy := jobSpec.RequestedBy
+	prNumber := *jobSpec.PullRequestNumber
 	inputs := orchestrator_scheduler.WorkflowInput{
-		Id:            job.DiggerJobID,
-		BatchId:       job.Batch.ID.String()[:8],
-		JobString:     jobString,
-		CommentId:     strconv.FormatInt(commentId, 10),
-		DiggerCommand: fmt.Sprintf("digger %v", job.Batch.BatchType),
-		ProjectName:   jobSpec.ProjectName,
-		RequestedBy:   jobSpec.RequestedBy,
-		PrNumber:      fmt.Sprintf("%v", *jobSpec.PullRequestNumber),
+		Id:        job.DiggerJobID,
+		JobString: jobString,
+		CommentId: strconv.FormatInt(commentId, 10),
+		RunName:   fmt.Sprintf("[%v] %v %v By: %v PR: %v", batchIdShort, diggerCommand, projectName, requestedBy, prNumber),
 	}
 
 	_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), repoOwner, repoName, job.WorkflowFile, github.CreateWorkflowDispatchEventRequest{

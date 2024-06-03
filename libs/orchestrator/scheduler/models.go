@@ -18,26 +18,18 @@ const (
 )
 
 type WorkflowInput struct {
-	JobString     string `json:"job"`
-	Id            string `json:"id"`
-	BatchId       string `json:batch_id`
-	CommentId     string `json:"comment_id"`
-	DiggerCommand string `json:"job_type"`
-	ProjectName   string `json:"project_name"`
-	RequestedBy   string `json:"requested_by"`
-	PrNumber      string `json:"pr_number"`
+	JobString string `json:"job"`
+	Id        string `json:"id"`
+	CommentId string `json:"comment_id"`
+	RunName   string `json:"run_name"`
 }
 
 func (w *WorkflowInput) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id":             w.Id,
-		"batch_id":       w.BatchId,
-		"job":            w.JobString,
-		"comment_id":     w.CommentId,
-		"digger_command": w.DiggerCommand,
-		"project_name":   w.ProjectName,
-		"requested_by":   w.RequestedBy,
-		"pr_number":      w.PrNumber,
+		"id":         w.Id,
+		"job":        w.JobString,
+		"comment_id": w.CommentId,
+		"run_name":   w.RunName,
 	}
 }
 
