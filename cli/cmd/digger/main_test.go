@@ -992,7 +992,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 	assert.NoError(t, err)
 	event := context.Event.(github.PullRequestEvent)
-	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, workflows)
+	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig)
 	spew.Dump(lock.MapLock)
 	assert.Equal(t, pullRequestNumber, prNumber)
 	assert.Equal(t, 1, len(jobs))
