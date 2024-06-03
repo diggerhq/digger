@@ -119,6 +119,7 @@ func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfi
 	result.OnPullRequestClosed = config.OnPullRequestClosed
 	result.OnPullRequestPushed = config.OnPullRequestPushed
 	result.OnCommitToDefault = config.OnCommitToDefault
+	result.OnPullRequestConvertedToDraft = config.OnPullRequestConvertedToDraft
 	return &result
 }
 

@@ -896,7 +896,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	}
 
 	event := context.Event.(github.PullRequestEvent)
-	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig)
 	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, 1, "dir")
 
 	assert.NoError(t, err)
@@ -984,7 +984,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 		},
 	}
 	projects := []configuration.Project{dev, prod}
-	diggerConfig := configuration.DiggerConfig{Projects: projects}
+	diggerConfig := configuration.DiggerConfig{Projects: projects, Workflows: workflows}
 
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
@@ -992,7 +992,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
 	assert.NoError(t, err)
 	event := context.Event.(github.PullRequestEvent)
-	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, workflows)
+	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig)
 	spew.Dump(lock.MapLock)
 	assert.Equal(t, pullRequestNumber, prNumber)
 	assert.Equal(t, 1, len(jobs))

@@ -306,7 +306,8 @@ func (svc GithubService) GetBranchName(prNumber int) (string, error) {
 	return pr.Head.GetRef(), nil
 }
 
-func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
+func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, config digger_config.DiggerConfig) ([]orchestrator.Job, bool, error) {
+	workflows := config.Workflows
 	jobs := make([]orchestrator.Job, 0)
 
 	defaultBranch := *payload.Repo.DefaultBranch
@@ -386,7 +387,36 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
 			})
+		} else if *payload.Action == "converted_to_draft" {
+			var commands []string
+			if config.AllowDraftPRs == false && len(workflow.Configuration.OnPullRequestConvertedToDraft) == 0 {
+				commands = []string{"digger unlock"}
+			} else {
+				commands = workflow.Configuration.OnPullRequestConvertedToDraft
+			}
+
+			jobs = append(jobs, orchestrator.Job{
+				ProjectName:        project.Name,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				ProjectWorkflow:    project.Workflow,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Commands:           commands,
+				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
+				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				RunEnvVars:         runEnvVars,
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				PullRequestNumber:  pullRequestNumber,
+				EventName:          "pull_request_converted_to_draft",
+				Namespace:          *payload.Repo.FullName,
+				RequestedBy:        *payload.Sender.Login,
+				CommandEnvProvider: CommandEnvProvider,
+				StateEnvProvider:   StateEnvProvider,
+			})
 		}
+
 	}
 	return jobs, true, nil
 }
