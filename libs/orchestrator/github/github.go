@@ -389,7 +389,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 			})
 		} else if *payload.Action == "converted_to_draft" {
 			var commands []string
-			if config.UnlockOnDraftPRs == true && len(workflow.Configuration.OnPullRequestConvertedToDraft) == 0 {
+			if config.AllowDraftPRs == false && len(workflow.Configuration.OnPullRequestConvertedToDraft) == 0 {
 				commands = []string{"digger unlock"}
 			} else {
 				commands = workflow.Configuration.OnPullRequestConvertedToDraft

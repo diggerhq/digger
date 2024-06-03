@@ -6,7 +6,6 @@ const CommentRenderModeGroupByModule = "group_by_module"
 type DiggerConfig struct {
 	ApplyAfterMerge            bool
 	AllowDraftPRs              bool
-	UnlockOnDraftPRs           bool
 	CommentRenderMode          string
 	DependencyConfiguration    DependencyConfiguration
 	Projects                   []Project

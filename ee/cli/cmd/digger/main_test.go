@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/diggerhq/digger/libs/locking"
 	"log"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
@@ -880,7 +881,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	ghEvent := context.Event
 
 	diggerConfig := configuration.DiggerConfig{}
-	lock := &utils.MockLock{}
+	lock := &locking.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
 	policyChecker := &utils.MockPolicyChecker{}
@@ -895,7 +896,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	}
 
 	event := context.Event.(github.PullRequestEvent)
-	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs("", &event, impactedProjects, requestedProject, map[string]configuration.Workflow{})
+	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig)
 	if err != nil {
 		assert.NoError(t, err)
 		log.Println(err)
@@ -917,7 +918,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	}
 	ghEvent := context.Event
 	diggerConfig := configuration.DiggerConfig{}
-	lock := &utils.MockLock{}
+	lock := &locking.MockLock{}
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := &utils.MockPlanStorage{}
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
@@ -989,7 +990,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 		},
 	}
 	projects := []configuration.Project{dev, prod}
-	diggerConfig := configuration.DiggerConfig{Projects: projects}
+	diggerConfig := configuration.DiggerConfig{Projects: projects, Workflows: workflows}
 
 	// PullRequestManager Mock
 	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
