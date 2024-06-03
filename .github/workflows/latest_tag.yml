@@ -5,13 +5,6 @@ on:
     types:
       - released
 
-permissions:
-  contents: write
-  actions: read
-  pull-requests: write
-  issues: read
-  discussions: read
-
 jobs:
   update_latest_tag:
     runs-on: ubuntu-latest
