@@ -1,0 +1,16 @@
+---
+title: "Draft PRs"
+---
+
+By default, Digger ignores Draft pull requests. You can enable support of draft PRs by setting `allow_draft_prs` flag in digger.yml:
+
+```
+  allow_draft_prs: true
+```
+
+## Unlocking on changing back to draft
+
+When a PR changes status from "ready to review" back to "draft":
+
+- if `allow_draft_prs` is `false`, digger will release the lock
+- if `allow_draft_prs` is `true`, digger will not do anything (because it's considered a PR like any other)
