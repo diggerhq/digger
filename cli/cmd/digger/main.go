@@ -360,7 +360,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		coversAllImpactedProjects := false
 		err = nil
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
-			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
 			prBranchName, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
 			if err != nil {

@@ -49,7 +49,9 @@ type WorkflowYaml struct {
 type WorkflowConfigurationYaml struct {
 	OnPullRequestPushed []string `yaml:"on_pull_request_pushed"`
 	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
-	OnCommitToDefault   []string `yaml:"on_commit_to_default"`
+	// pull request converted to draft
+	OnPullRequestConvertedToDraft []string `yaml:"on_pull_request_to_draft"`
+	OnCommitToDefault             []string `yaml:"on_commit_to_default"`
 }
 
 func (s *StageYaml) ToCoreStage() Stage {
