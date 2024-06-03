@@ -6,6 +6,7 @@ const CommentRenderModeGroupByModule = "group_by_module"
 type DiggerConfig struct {
 	ApplyAfterMerge            bool
 	AllowDraftPRs              bool
+	UnlockOnDraftPR            bool
 	CommentRenderMode          string
 	DependencyConfiguration    DependencyConfiguration
 	Projects                   []Project
@@ -52,7 +53,6 @@ type WorkflowConfiguration struct {
 	OnPullRequestPushed           []string
 	OnPullRequestClosed           []string
 	OnPullRequestConvertedToDraft []string
-	OnPullRequestReadyForReview   []string
 	OnCommitToDefault             []string
 }
 
@@ -84,7 +84,6 @@ func defaultWorkflow() *Workflow {
 			OnCommitToDefault:             []string{"digger unlock"},
 			OnPullRequestPushed:           []string{"digger plan"},
 			OnPullRequestConvertedToDraft: []string{"digger noop"},
-			OnPullRequestReadyForReview:   []string{"digger noop"},
 			OnPullRequestClosed:           []string{"digger unlock"},
 		},
 		Plan: &Stage{

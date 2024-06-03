@@ -9,6 +9,7 @@ import (
 type DiggerConfigYaml struct {
 	ApplyAfterMerge            *bool                        `yaml:"apply_after_merge"`
 	AllowDraftPRs              *bool                        `yaml:"allow_draft_prs"`
+	UnlockOnDraftPR            *bool                        `yaml:"unlock_on_draft_pr"`
 	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
 	Projects                   []*ProjectYaml               `yaml:"projects"`
 	AutoMerge                  *bool                        `yaml:"auto_merge"`
@@ -51,9 +52,7 @@ type WorkflowConfigurationYaml struct {
 	OnPullRequestClosed []string `yaml:"on_pull_request_closed"`
 	// pull request converted to draft
 	OnPullRequestConvertedToDraft []string `yaml:"on_pull_request_to_draft"`
-	// pull request converted to be "ready for review
-	OnPullRequestReadyForReview []string `yaml:"on_pull_request_ready_for_review"`
-	OnCommitToDefault           []string `yaml:"on_commit_to_default"`
+	OnCommitToDefault             []string `yaml:"on_commit_to_default"`
 }
 
 func (s *StageYaml) ToCoreStage() Stage {

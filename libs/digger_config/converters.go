@@ -119,7 +119,6 @@ func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfi
 	result.OnPullRequestClosed = config.OnPullRequestClosed
 	result.OnPullRequestPushed = config.OnPullRequestPushed
 	result.OnCommitToDefault = config.OnCommitToDefault
-	result.OnPullRequestReadyForReview = config.OnPullRequestReadyForReview
 	result.OnPullRequestConvertedToDraft = config.OnPullRequestConvertedToDraft
 	return &result
 }
@@ -201,6 +200,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.AllowDraftPRs = *diggerYaml.AllowDraftPRs
 	} else {
 		diggerConfig.AllowDraftPRs = false
+	}
+
+	if diggerYaml.UnlockOnDraftPR != nil {
+		diggerConfig.UnlockOnDraftPR = *diggerYaml.UnlockOnDraftPR
+	} else {
+		diggerConfig.UnlockOnDraftPR = false
 	}
 
 	// if workflow block is not specified in yaml we create a default one, and add it to every project
