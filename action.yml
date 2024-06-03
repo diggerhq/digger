@@ -256,6 +256,7 @@ runs:
       uses: opentofu/setup-opentofu@v1.0.3
       with:
         tofu_version: ${{ inputs.opentofu-version }}
+        tofu_wrapper: false
       if: inputs.setup-opentofu == 'true'
 
 
