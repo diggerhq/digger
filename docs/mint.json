@@ -79,6 +79,7 @@
         "howto/commenting-strategies",
         "howto/custom-commands",
         "howto/destroy-manual",
+        "howto/draft-prs",
         "howto/disable-auto-checkout",
         "howto/disable-telemetry",
         "howto/generate-projects",
