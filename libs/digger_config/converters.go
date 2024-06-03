@@ -202,10 +202,10 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.AllowDraftPRs = false
 	}
 
-	if diggerYaml.UnlockOnDraftPR != nil {
-		diggerConfig.UnlockOnDraftPR = *diggerYaml.UnlockOnDraftPR
+	if diggerYaml.UnlockOnDraftPRs != nil {
+		diggerConfig.UnlockOnDraftPRs = *diggerYaml.UnlockOnDraftPRs
 	} else {
-		diggerConfig.UnlockOnDraftPR = false
+		diggerConfig.UnlockOnDraftPRs = false
 	}
 
 	// if workflow block is not specified in yaml we create a default one, and add it to every project
