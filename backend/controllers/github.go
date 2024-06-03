@@ -443,11 +443,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error getting digger config")
 	}
 
-	if !config.AllowDraftPRs && isDraft {
-		log.Printf("Draft PRs are disabled, skipping PR: %v", prNumber)
-		return nil
-	}
-
 	impactedProjects, impactedProjectsSourceMapping, _, err := dg_github.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
@@ -483,12 +478,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return nil
 	}
 
-	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
-	if err != nil {
-		log.Printf("Error initializing comment reporter: %v", err)
-		return fmt.Errorf("error initializing comment reporter")
-	}
-
 	// perform locking/unlocking in backend
 	for _, project := range impactedProjects {
 		prLock := dg_locking.PullRequestLock{
@@ -513,6 +502,17 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		*diggerCommand == orchestrator.DiggerCommandLock {
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
 		return nil
+	}
+
+	if !config.AllowDraftPRs && isDraft {
+		log.Printf("Draft PRs are disabled, skipping PR: %v", prNumber)
+		return nil
+	}
+
+	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
+	if err != nil {
+		log.Printf("Error initializing comment reporter: %v", err)
+		return fmt.Errorf("error initializing comment reporter")
 	}
 
 	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
