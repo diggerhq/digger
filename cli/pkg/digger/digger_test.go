@@ -148,9 +148,9 @@ func (m *MockPRManager) CreateCommentReaction(id interface{}, reaction string) e
 	return nil
 }
 
-func (m *MockPRManager) GetBranchName(prNumber int) (string, error) {
+func (m *MockPRManager) GetBranchName(prNumber int) (string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetBranchName", strconv.Itoa(prNumber), time.Now()})
-	return "", nil
+	return "", "", nil
 }
 
 func (m *MockPRManager) SetOutput(prNumber int, key string, value string) error {

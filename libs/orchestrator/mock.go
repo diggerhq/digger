@@ -83,9 +83,9 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) CreateCommentR
 	return nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetBranchName(prNumber int) (string, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetBranchName(prNumber int) (string, string, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "GetBranchName")
-	return "", nil
+	return "", "", nil
 }
 
 func (mockGithubPullrequestManager MockGithubPullrequestManager) SetOutput(prNumber int, key string, value string) error {

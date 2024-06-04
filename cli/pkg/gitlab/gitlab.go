@@ -259,9 +259,9 @@ func (gitlabService *GitLabService) GetApprovals(prNumber int) ([]string, error)
 	return approvals, nil
 }
 
-func (gitlabService GitLabService) GetBranchName(prNumber int) (string, error) {
+func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, error) {
 	//TODO implement me
-	return "", nil
+	return "", "", nil
 }
 
 func (svc *GitLabService) SetOutput(prNumber int, key string, value string) error {
