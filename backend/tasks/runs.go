@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/orchestrator/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
@@ -20,7 +20,9 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service orchest
 		job, err := models.DB.GetDiggerJobFromRunStage(dr.PlanStage)
 		jobSpec := string(job.SerializedJobSpec)
 		commentId := int64(2037675659)
-		utils.TriggerGithubWorkflow(service.(*github.GithubService).Client, repoOwner, repoName, *job, jobSpec, commentId)
+		client := service.(*github.GithubService).Client
+		ciBackend := ci_backends.GithubActionCi{Client: client}
+		ciBackend.TriggerWorkflow(repoOwner, repoName, *job, jobSpec, commentId)
 
 		// change status to RunPendingPlan
 		log.Printf("Updating run queueItem item to planning state")
@@ -73,7 +75,9 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service orchest
 		job, err := models.DB.GetDiggerJobFromRunStage(dr.ApplyStage)
 		jobSpec := string(job.SerializedJobSpec)
 		commentId := int64(2037675659)
-		utils.TriggerGithubWorkflow(service.(*github.GithubService).Client, repoOwner, repoName, *job, jobSpec, commentId)
+		client := service.(*github.GithubService).Client
+		ciBackend := ci_backends.GithubActionCi{Client: client}
+		ciBackend.TriggerWorkflow(repoOwner, repoName, *job, jobSpec, commentId)
 
 		dr.Status = models.RunApplying
 		err = models.DB.UpdateDiggerRun(&dr)
