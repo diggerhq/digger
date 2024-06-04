@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/locking"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
@@ -574,7 +575,8 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
-	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, prNumber, ghService)
+	ciBackend := ci_backends.GithubActionCi{Client: ghService.Client}
+	err = TriggerDiggerJobs(ciBackend, repoOwner, repoName, batchId, prNumber, ghService)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
@@ -839,7 +841,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	segment.Track(strconv.Itoa(int(orgId)), "backend_trigger_job")
-	err = TriggerDiggerJobs(ghService.Client, repoOwner, repoName, batchId, issueNumber, ghService)
+
+	ciBackend := ci_backends.GithubActionCi{Client: ghService.Client}
+	err = TriggerDiggerJobs(ciBackend, repoOwner, repoName, batchId, issueNumber, ghService)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
@@ -875,7 +879,7 @@ func PerformLockingActionFromCommand(prLock dg_locking.PullRequestLock, command 
 	return err
 }
 
-func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService *dg_github.GithubService) error {
+func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService *dg_github.GithubService) error {
 	_, err := models.DB.GetDiggerBatch(batchId)
 	if err != nil {
 		log.Printf("failed to get digger batch, %v\n", err)
@@ -898,7 +902,7 @@ func TriggerDiggerJobs(client *github.Client, repoOwner string, repoName string,
 		log.Printf("jobString: %v \n", jobString)
 
 		// TODO: make workflow file name configurable
-		err = services.ScheduleJob(client, repoOwner, repoName, batchId, &job)
+		err = services.ScheduleJob(ciBackend, repoOwner, repoName, batchId, &job)
 		if err != nil {
 			log.Printf("failed to trigger github workflow, %v\n", err)
 			return fmt.Errorf("failed to trigger github workflow, %v\n", err)
