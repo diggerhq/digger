@@ -706,7 +706,7 @@ func TestGithubHandleIssueCommentEvent(t *testing.T) {
 	var payload github.IssueCommentEvent
 	err := json.Unmarshal([]byte(issueCommentPayload), &payload)
 	assert.NoError(t, err)
-	err = handleIssueCommentEvent(gh, &payload)
+	err = handleIssueCommentEvent(gh, &payload, nil)
 	assert.NoError(t, err)
 
 	jobs, err := models.DB.GetPendingParentDiggerJobs(nil)

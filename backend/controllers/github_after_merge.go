@@ -87,7 +87,7 @@ func GithubAppWebHookAfterMerge(c *gin.Context) {
 	//	}
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d  IN APPLY AFTER MERGE", *event.PullRequest.ID)
-		err := handlePullRequestEvent(gh, event)
+		err := handlePullRequestEvent(gh, event, nil)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
 			c.String(http.StatusInternalServerError, err.Error())

@@ -36,7 +36,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func GithubAppWebHook(c *gin.Context) {
+type GithubController struct {
+	CiBackendProvider ci_backends.CiBackendProvider
+}
+
+func (g GithubController) GithubAppWebHook(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	gh := &utils.DiggerGithubRealClientProvider{}
 	log.Printf("GithubAppWebHook")
@@ -96,7 +100,7 @@ func GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusOK, "OK")
 			return
 		}
-		err := handleIssueCommentEvent(gh, event)
+		err := handleIssueCommentEvent(gh, event, g.CiBackendProvider)
 		if err != nil {
 			log.Printf("handleIssueCommentEvent error: %v", err)
 			c.String(http.StatusInternalServerError, err.Error())
@@ -104,7 +108,7 @@ func GithubAppWebHook(c *gin.Context) {
 		}
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
-		err := handlePullRequestEvent(gh, event)
+		err := handlePullRequestEvent(gh, event, g.CiBackendProvider)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
 			c.String(http.StatusInternalServerError, err.Error())
@@ -422,7 +426,7 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 	return nil
 }
 
-func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent) error {
+func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -578,7 +582,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
 
-	ciBackend, err := ci_backends.GetCiBackend(
+	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
 			GithubInstallationId: installationId,
 			RepoName:             repoName,
@@ -683,7 +687,7 @@ func getBatchType(jobs []orchestrator.Job) orchestrator_scheduler.DiggerBatchTyp
 	}
 }
 
-func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent) error {
+func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -858,7 +862,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	segment.Track(strconv.Itoa(int(orgId)), "backend_trigger_job")
 
-	ciBackend, err := ci_backends.GetCiBackend(
+	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
 			GithubInstallationId: installationId,
 			RepoName:             repoName,

@@ -3,35 +3,24 @@ package ci_backends
 import (
 	"fmt"
 	"github.com/buildkite/go-buildkite/v3/buildkite"
-	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/utils"
 	"log"
 	"os"
 )
 
-type CiBackend interface {
-	TriggerWorkflow(repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error
-}
+type EEBackendProvider struct{}
 
-type JenkinsCi struct{}
-
-type CiBackendOptions struct {
-	GithubInstallationId int64
-	RepoFullName         string
-	RepoOwner            string
-	RepoName             string
-}
-
-func GetCiBackend(options CiBackendOptions) (CiBackend, error) {
+func (b EEBackendProvider) GetCiBackend(options ci_backends.CiBackendOptions) (ci_backends.CiBackend, error) {
 	ciBackendType := os.Getenv("CI_BACKEND")
 	switch ciBackendType {
 	case "github_actions", "":
 		client, _, err := utils.GetGithubClient(&utils.DiggerGithubRealClientProvider{}, options.GithubInstallationId, options.RepoFullName)
 		if err != nil {
-			log.Printf("GetCiBackend: could not get buildkite ci: %v", err)
-			return nil, fmt.Errorf("could not get buildkite ci: %v", err)
+			log.Printf("GetCiBackend: could not get github client: %v", err)
+			return nil, fmt.Errorf("could not get github client: %v", err)
 		}
-		backend := &GithubActionCi{
+		backend := &ci_backends.GithubActionCi{
 			Client: client,
 		}
 		return backend, nil

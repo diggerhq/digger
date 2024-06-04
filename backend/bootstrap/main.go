@@ -24,7 +24,7 @@ import (
 // based on https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
 var Version = "dev"
 
-func Bootstrap(templates embed.FS) *gin.Engine {
+func Bootstrap(templates embed.FS, githubController controllers.GithubController) *gin.Engine {
 	defer segment.CloseClient()
 	initLogging()
 	cfg := config.DiggerConfig
@@ -79,7 +79,7 @@ func Bootstrap(templates embed.FS) *gin.Engine {
 		r.LoadHTMLGlob("templates/*.tmpl")
 	}
 
-	r.POST("/github-app-webhook", controllers.GithubAppWebHook)
+	r.POST("/github-app-webhook", githubController.GithubAppWebHook)
 	r.POST("/github-app-webhook/aam", controllers.GithubAppWebHookAfterMerge)
 
 	tenantActionsGroup := r.Group("/api/tenants")
