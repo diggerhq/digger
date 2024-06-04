@@ -2,9 +2,9 @@ package services
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
@@ -44,18 +44,19 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 			if err != nil {
 				return err
 			}
-			ScheduleJob(client, repoOwner, repoName, batchId, job)
+			ciBackend := ci_backends.GithubActionCi{Client: client}
+			ScheduleJob(ciBackend, repoOwner, repoName, batchId, job)
 		}
 
 	}
 	return nil
 }
 
-func ScheduleJob(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
+func ScheduleJob(ciBackend ci_backends.CiBackend, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
 	maxConcurrencyForBatch := config.DiggerConfig.GetInt("max_concurrency_per_batch")
 	if maxConcurrencyForBatch == 0 {
 		// concurrency limits not set
-		err := TriggerJob(client, repoOwner, repoName, batchId, job)
+		err := TriggerJob(ciBackend, repoOwner, repoName, batchId, job)
 		if err != nil {
 			log.Printf("Could not trigger job: %v", err)
 			return err
@@ -78,7 +79,7 @@ func ScheduleJob(client *github.Client, repoOwner string, repoName string, batch
 			models.DB.UpdateDiggerJob(job)
 			return nil
 		} else {
-			err := TriggerJob(client, repoOwner, repoName, batchId, job)
+			err := TriggerJob(ciBackend, repoOwner, repoName, batchId, job)
 			if err != nil {
 				log.Printf("Could not trigger job: %v", err)
 				return err
@@ -88,7 +89,7 @@ func ScheduleJob(client *github.Client, repoOwner string, repoName string, batch
 	return nil
 }
 
-func TriggerJob(client *github.Client, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
+func TriggerJob(ciBackend ci_backends.CiBackend, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
 	log.Printf("TriggerJob jobId: %v", job.DiggerJobID)
 
 	batch, err := models.DB.GetDiggerBatch(batchId)
@@ -104,7 +105,7 @@ func TriggerJob(client *github.Client, repoOwner string, repoName string, batchI
 	jobString := string(job.SerializedJobSpec)
 	log.Printf("jobString: %v \n", jobString)
 
-	err = utils.TriggerGithubWorkflow(client, repoOwner, repoName, *job, jobString, *batch.CommentId)
+	err = ciBackend.TriggerWorkflow(repoOwner, repoName, *job, jobString, *batch.CommentId)
 	if err != nil {
 		log.Printf("TriggerJob err: %v\n", err)
 		return err

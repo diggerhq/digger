@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
@@ -61,7 +62,9 @@ func main() {
 			if err != nil {
 				log.Printf("Failed to get github service: %v", err)
 			}
-			services.ScheduleJob(service.Client, repoOwner, repoName, &batch.ID, &job)
+
+			ciBackend := ci_backends.GithubActionCi{Client: service.Client}
+			services.ScheduleJob(ciBackend, repoOwner, repoName, &batch.ID, &job)
 		}
 	})
 
