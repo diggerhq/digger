@@ -106,8 +106,8 @@ func (t *MockPullRequestManager) CreateCommentReaction(id interface{}, reaction 
 	return nil
 }
 
-func (t MockPullRequestManager) GetBranchName(prNumber int) (string, error) {
-	return "", nil
+func (t MockPullRequestManager) GetBranchName(prNumber int) (string, string, error) {
+	return "", "", nil
 }
 
 func (t MockPullRequestManager) SetOutput(prNumber int, key string, value string) error {

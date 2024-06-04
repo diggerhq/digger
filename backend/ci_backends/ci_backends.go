@@ -2,7 +2,6 @@ package ci_backends
 
 import (
 	"github.com/diggerhq/digger/backend/models"
-	"os"
 )
 
 type CiBackend interface {
@@ -11,11 +10,9 @@ type CiBackend interface {
 
 type JenkinsCi struct{}
 
-func GetCiBackend() {
-	ciBackend := os.Getenv("CI_BACKEND")
-	switch ciBackend {
-
-	default:
-	}
-
+type CiBackendOptions struct {
+	GithubInstallationId int64
+	RepoFullName         string
+	RepoOwner            string
+	RepoName             string
 }

@@ -98,8 +98,8 @@ func (t MockCiService) CreateCommentReaction(id interface{}, reaction string) er
 	return nil
 }
 
-func (t MockCiService) GetBranchName(prNumber int) (string, error) {
-	return "", nil
+func (t MockCiService) GetBranchName(prNumber int) (string, string, error) {
+	return "", "", nil
 }
 
 func (svc MockCiService) SetOutput(prNumber int, key string, value string) error {
