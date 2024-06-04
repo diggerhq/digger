@@ -731,7 +731,7 @@ func TestJobsTreeWithOneJobsAndTwoProjects(t *testing.T) {
 	graph, err := configuration.CreateProjectDependencyGraph(projects)
 	assert.NoError(t, err)
 
-	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 41584295, "", 2, "diggerhq", "parallel_jobs_demo", "diggerhq/parallel_jobs_demo", 123, "test")
+	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 41584295, "", 2, "diggerhq", "parallel_jobs_demo", "diggerhq/parallel_jobs_demo", "", 123, "test")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result))
 	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["dev"].DiggerJobID)
@@ -760,7 +760,7 @@ func TestJobsTreeWithTwoDependantJobs(t *testing.T) {
 	projectMap["dev"] = project1
 	projectMap["prod"] = project2
 
-	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test")
+	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", "", 123, "test")
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(result))
 
@@ -793,7 +793,7 @@ func TestJobsTreeWithTwoIndependentJobs(t *testing.T) {
 	projectMap["dev"] = project1
 	projectMap["prod"] = project2
 
-	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test")
+	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", "", 123, "test")
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(result))
 	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["dev"].DiggerJobID)
@@ -838,7 +838,7 @@ func TestJobsTreeWithThreeLevels(t *testing.T) {
 	projectMap["555"] = project5
 	projectMap["666"] = project6
 
-	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", 123, "test")
+	_, result, err := utils.ConvertJobsToDiggerJobs("", 1, jobs, projectMap, graph, 123, "", 2, "", "", "test", "", 123, "test")
 	assert.NoError(t, err)
 	assert.Equal(t, 6, len(result))
 	parentLinks, err := models.DB.GetDiggerJobParentLinksChildId(&result["111"].DiggerJobID)

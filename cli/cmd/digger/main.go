@@ -362,7 +362,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
 			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
-			prBranchName, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
+			prBranchName, _, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
 			if err != nil {
 				reportErrorAndExit(githubActor, fmt.Sprintf("Error while retriving default branch from Issue: %v", err), 6)
 			}

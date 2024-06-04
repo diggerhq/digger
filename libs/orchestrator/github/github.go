@@ -297,13 +297,14 @@ func (svc GithubService) SetOutput(prNumber int, key string, value string) error
 	return nil
 }
 
-func (svc GithubService) GetBranchName(prNumber int) (string, error) {
+func (svc GithubService) GetBranchName(prNumber int) (string, string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Fatalf("error getting pull request: %v", err)
-		return "", err
+		return "", "", err
 	}
-	return pr.Head.GetRef(), nil
+
+	return pr.Head.GetRef(), pr.Head.GetSHA(), nil
 }
 
 func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, config digger_config.DiggerConfig) ([]orchestrator.Job, bool, error) {
