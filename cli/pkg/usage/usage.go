@@ -107,3 +107,12 @@ func init() {
 		telemetry = true
 	}
 }
+
+func ReportErrorAndExit(repoOwner string, message string, exitCode int) {
+	log.Println(message)
+	err := SendLogRecord(repoOwner, message)
+	if err != nil {
+		log.Printf("Failed to send log record. %s\n", err)
+	}
+	os.Exit(exitCode)
+}

@@ -5,6 +5,7 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/azure"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -20,7 +21,7 @@ var defaultCmd = &cobra.Command{
 		switch ci {
 		case digger.GitHub:
 			logLeader = os.Getenv("GITHUB_ACTOR")
-			gitHubCI(lock, PolicyChecker, BackendApi, ReportStrategy)
+			gitHubCI(lock, PolicyChecker, BackendApi, ReportStrategy, comment_updater.CommentUpdaterProviderBasic{})
 		case digger.GitLab:
 			logLeader = os.Getenv("CI_PROJECT_NAME")
 			gitLabCI(lock, PolicyChecker, BackendApi, ReportStrategy)
