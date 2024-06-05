@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestLicenseKeyGeneration(t *testing.T) {
+func TestLicenseKeyChecker(t *testing.T) {
 	err := LicenseKeyChecker{}.Check()
 	assert.NoError(t, err)
 }
