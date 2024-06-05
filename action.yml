@@ -3,6 +3,10 @@ description: Manage terraform collaboration
 author: Digger
 
 inputs:
+  ee:
+    description: use ee cli?
+    required: false
+    default: 'false'
   setup-aws:
     description: Setup AWS
     required: false
@@ -350,7 +354,11 @@ runs:
       id: digger
       shell: bash
       run: |
-        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
+        if [[ -z ${{ inputs.ee }} ]]; then
+        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
+        else
+          curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
+        fi
         chmod +x digger
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
