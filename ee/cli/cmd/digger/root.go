@@ -90,7 +90,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
 		PolicyChecker = policy.NoOpPolicyChecker{}
 		BackendApi = backend.NoopApi{}
-	} else if os.Getenv("DIGGER_TOKEN") != "" {
+	} else {
 		if os.Getenv("DIGGER_ORGANISATION") == "" {
 			log.Fatalf("Token specified but missing organisation: DIGGER_ORGANISATION. Please set this value in action digger_config.")
 		}
@@ -104,8 +104,6 @@ func PreRun(cmd *cobra.Command, args []string) {
 			AuthToken:  os.Getenv("DIGGER_TOKEN"),
 			HttpClient: http.DefaultClient,
 		}
-	} else {
-		reportErrorAndExit("", "DIGGER_TOKEN not specified. You can get one at https://cloud.digger.dev, or self-manage a backend of Digger Community Edition (change DIGGER_HOSTNAME). You can also pass 'no-backend: true' option; in this case some of the features may not be available.", 1)
 	}
 
 	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
