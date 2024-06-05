@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/comment_updater"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	core_reporting "github.com/diggerhq/digger/cli/pkg/core/reporting"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	comment_updater_ee "github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
 	ee_drift "github.com/diggerhq/digger/ee/cli/pkg/drift"
+	"github.com/diggerhq/digger/libs/comment_utils/summary"
 	core_locking "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"log"
@@ -324,7 +323,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		coversAllImpactedProjects := false
 		err = nil
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
-			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
 			prBranchName, _, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
 			if err != nil {
@@ -821,7 +820,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	reportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
-func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter core_reporting.Reporter, backendApi core_backend.Api) {
+func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter reporting.Reporter, backendApi core_backend.Api) {
 
 	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
 	currentDir, err := os.Getwd()

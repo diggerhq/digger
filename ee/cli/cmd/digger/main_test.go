@@ -594,7 +594,7 @@ var githubContextCommentJson = `{
       "action": "created",
       "comment": {
         "author_association": "CONTRIBUTOR",
-        "body": "test",
+        "body": "digger plan",
         "created_at": "2023-03-13T15:14:08Z",
         "html_url": "https://github.com/diggerhq/tfrun_demo_multienv/pull/11#issuecomment-1466341992",
         "id": 1466341992,

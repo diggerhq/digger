@@ -9,6 +9,7 @@ import (
 	"github.com/diggerhq/digger/backend/middleware"
 	ci_backends2 "github.com/diggerhq/digger/ee/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/backend/controllers"
+	"github.com/diggerhq/digger/libs/license"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -20,6 +21,7 @@ var Version = "dev"
 var templates embed.FS
 
 func main() {
+	license.LicenseKeyChecker{}.Check()
 	ghController := ce_controllers.GithubController{
 		CiBackendProvider: ci_backends2.EEBackendProvider{},
 	}

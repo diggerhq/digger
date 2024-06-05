@@ -1,7 +1,6 @@
-name: Libs tests
+name: EE Cli tests
 on:
   push:
-    branches: [ 'develop' ]
   pull_request:
 
 jobs:
@@ -10,29 +9,31 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
+
       - name: Download Go
         uses: actions/setup-go@v5
         with:
           go-version: 1.21.1
         id: go
 
+      - name: Setup Opentofu
+        uses: opentofu/setup-opentofu@v1.0.3
+        with:
+          tofu_version: 1.6.0-alpha3
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
       - name: Deps
         run: |
-          pwd
           go get -v ./...
-        working-directory: libs
+        working-directory: ee/cli
 
-      - name: Install Azurite
-        run: npm install -g azurite
-
-      - name: Start Azurite service
-        run: azurite --silent &
+      - name: Build
+        run: |
+          go build -v ./cmd/digger
+        working-directory: ee/cli
 
       - name: Test
         run: go test -v ./...
-        env:
-          DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY}}
-        working-directory: libs
+        working-directory: ee/cli
