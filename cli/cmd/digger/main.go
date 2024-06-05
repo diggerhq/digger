@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/backend"
+	"github.com/diggerhq/digger/cli/pkg/policy"
 	core_locking "github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/locking/gcp"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/samber/lo"
 	"log"
@@ -41,7 +41,7 @@ import (
 	"github.com/google/go-github/v61/github"
 )
 
-func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
+func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, commentUpdaterProvider comment_updater.CommentUpdaterProvider) {
 	log.Printf("Using GitHub.\n")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -52,7 +52,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
-		reportErrorAndExit(githubActor, "GITHUB_TOKEN is not defined", 1)
+		usage.ReportErrorAndExit(githubActor, "GITHUB_TOKEN is not defined", 1)
 	}
 
 	diggerGitHubToken := os.Getenv("DIGGER_GITHUB_TOKEN")
@@ -63,7 +63,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	ghContext := os.Getenv("GITHUB_CONTEXT")
 	if ghContext == "" {
-		reportErrorAndExit(githubActor, "GITHUB_CONTEXT is not defined", 2)
+		usage.ReportErrorAndExit(githubActor, "GITHUB_CONTEXT is not defined", 2)
 	}
 
 	diggerOutPath := os.Getenv("DIGGER_OUT")
@@ -77,7 +77,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	parsedGhActionContext, err := github_models.GetGitHubContext(ghContext)
 	parsedGhContext := parsedGhActionContext.ToEventPackage()
 	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
+		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 	}
 	log.Printf("GitHub context parsed successfully\n")
 
@@ -86,7 +86,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	ghRepository := os.Getenv("GITHUB_REPOSITORY")
 
 	if ghRepository == "" {
-		reportErrorAndExit(githubActor, "GITHUB_REPOSITORY is not defined", 3)
+		usage.ReportErrorAndExit(githubActor, "GITHUB_REPOSITORY is not defined", 3)
 	}
 
 	repoOwner, repositoryName := utils.ParseRepoNamespace(ghRepository)
@@ -94,7 +94,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	currentDir, err := os.Getwd()
 	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
 	// this is used when called from api by the backend and exits in the end of if statement
@@ -105,13 +105,13 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		jobJson := wdEvent.Inputs
 
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal jobSpec json. %s", err), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to marshal jobSpec json. %s", err), 4)
 		}
 
 		err = json.Unmarshal(jobJson, &inputs)
 
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
 		repoName := strings.ReplaceAll(ghRepository, "/", "-")
@@ -119,35 +119,35 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		var jobSpec orchestrator.JobJson
 		err = json.Unmarshal([]byte(inputs.JobString), &jobSpec)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall jobSpec string: %v", err), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed unmarshall jobSpec string: %v", err), 4)
 		}
 		commentId64, err := strconv.ParseInt(inputs.CommentId, 10, 64)
 
 		if jobSpec.BackendHostname != "" && jobSpec.BackendOrganisationName != "" && jobSpec.BackendJobToken != "" {
 			log.Printf("Found settings sent by backend in jobSpec string, overriding backendApi and policyCheckecd r. setting: (orgName: %v BackedHost: %v token: %v)", jobSpec.BackendOrganisationName, jobSpec.BackendHostname, "****")
-			backendApi = NewBackendApi(jobSpec.BackendHostname, jobSpec.BackendJobToken)
-			policyChecker = NewPolicyChecker(jobSpec.BackendHostname, jobSpec.BackendOrganisationName, jobSpec.BackendJobToken)
+			backendApi = backend.NewBackendApi(jobSpec.BackendHostname, jobSpec.BackendJobToken)
+			policyChecker = policy.NewPolicyChecker(jobSpec.BackendHostname, jobSpec.BackendOrganisationName, jobSpec.BackendJobToken)
 		} else {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Missing values from job spec: hostname, orgName, token: %v %v", jobSpec.BackendHostname, jobSpec.BackendOrganisationName), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Missing values from job spec: hostname, orgName, token: %v %v", jobSpec.BackendHostname, jobSpec.BackendOrganisationName), 4)
 		}
 
 		err = githubPrService.SetOutput(*jobSpec.PullRequestNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", *jobSpec.PullRequestNumber))
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set jobSpec output. Exiting. %s", err), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to set jobSpec output. Exiting. %s", err), 4)
 		}
 
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse jobs json. %s", err), 4)
 		}
 
 		serializedBatch, err := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "started", time.Now(), nil, "", "")
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %s", err), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %s", err), 4)
 		}
 
 		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 		}
 		log.Printf("Digger digger_config read successfully\n")
 
@@ -166,32 +166,33 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		var reporter reporting.Reporter = reporting.NewCiReporterLazy(*cireporter)
 
 		reportTerraformOutput := false
-		var commentUpdater comment_updater.CommentUpdater
+		commentUpdater, err := commentUpdaterProvider.Get(*diggerConfig)
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get comment updater: %v", err), 8)
+		}
 		if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeBasic {
-			commentUpdater = comment_updater.BasicCommentUpdater{}
 		} else if diggerConfig.CommentRenderMode == digger_config.CommentRenderModeGroupByModule {
 			reporter = reporting.NoopReporter{}
-			commentUpdater = comment_updater.BasicCommentUpdater{}
 			reportTerraformOutput = true
 		} else {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Unknown comment render mode found: %v", diggerConfig.CommentRenderMode), 8)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Unknown comment render mode found: %v", diggerConfig.CommentRenderMode), 8)
 		}
 
 		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
-		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobSpec.PullRequestNumber)
+		planStorage := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobSpec.PullRequestNumber)
 
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "", "")
 			if reportingError != nil {
 				log.Printf("Failed to report jobSpec status to backend. %v", reportingError)
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
 			commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
 
 		// Override the values of StateEnvVars and CommandEnvVars from workflow value_from values
@@ -206,18 +207,18 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if !allAppliesSuccess || err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "", "")
 			if reportingError != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed run commands. %s", err), 5)
 			}
 			commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 			digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 5)
 		}
-		reportErrorAndExit(githubActor, "Digger finished successfully", 0)
+		usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
 	}
 
 	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true)
 	if err != nil {
-		reportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
 	log.Printf("Digger digger_config read successfully\n")
 
@@ -240,11 +241,11 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	if runningMode == "manual" {
 		command := os.Getenv("INPUT_DIGGER_COMMAND")
 		if command == "" {
-			reportErrorAndExit(githubActor, "provide 'command' to run in 'manual' mode", 1)
+			usage.ReportErrorAndExit(githubActor, "provide 'command' to run in 'manual' mode", 1)
 		}
 		project := os.Getenv("INPUT_DIGGER_PROJECT")
 		if project == "" {
-			reportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
+			usage.ReportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
 		var projectConfig digger_config.Project
@@ -257,7 +258,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
+		planStorage := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
 
 		jobs := orchestrator.Job{
 			ProjectName:       project,
@@ -277,7 +278,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		}
 		err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, nil, currentDir)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
 
@@ -314,12 +315,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			if slackNotificationUrl != "" {
 				notification = drift.SlackNotification{slackNotificationUrl}
 			} else {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Could not identify drift mode, please specify slack webhook url"), 8)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Could not identify drift mode, please specify slack webhook url"), 8)
 			}
 
 			err := digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
 		}
 	} else {
@@ -327,9 +328,9 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 		if err != nil {
 			if errors.Is(err, dg_github.UnhandledMergeGroupEventError) {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Graceful handling of GitHub event. %s", err), 0)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Graceful handling of GitHub event. %s", err), 0)
 			} else {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 			}
 		}
 		impactedProjectsMsg := getImpactedProjectsAsString(impactedProjects, prNumber)
@@ -340,7 +341,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reply := utils.GetCommands()
 			_, err := githubPrService.PublishComment(prNumber, reply)
 			if err != nil {
-				reportErrorAndExit(githubActor, "Failed to publish help command output", 1)
+				usage.ReportErrorAndExit(githubActor, "Failed to publish help command output", 1)
 			}
 		}
 
@@ -348,12 +349,12 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			reply := impactedProjectsMsg
 			_, err := githubPrService.PublishComment(prNumber, reply)
 			if err != nil {
-				reportErrorAndExit(githubActor, "Failed to publish show-projects command output", 1)
+				usage.ReportErrorAndExit(githubActor, "Failed to publish show-projects command output", 1)
 			}
 		}
 
 		if len(impactedProjects) == 0 {
-			reportErrorAndExit(githubActor, "No projects impacted", 0)
+			usage.ReportErrorAndExit(githubActor, "No projects impacted", 0)
 		}
 
 		var jobs []orchestrator.Job
@@ -362,27 +363,27 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
 			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
-			prBranchName, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
+			prBranchName, _, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
 			if err != nil {
-				reportErrorAndExit(githubActor, fmt.Sprintf("Error while retriving default branch from Issue: %v", err), 6)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while retriving default branch from Issue: %v", err), 6)
 			}
 			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubIssueCommentEventToJobs(&commentEvent, impactedProjects, requestedProject, diggerConfig.Workflows, prBranchName)
 		} else {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Unsupported GitHub event type. %s", err), 6)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Unsupported GitHub event type. %s", err), 6)
 		}
 
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 		}
 		log.Println("GitHub event converted to commands successfully")
 		logCommands(jobs)
 
 		err = githubPrService.SetOutput(prNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", prNumber))
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
 		}
 
-		planStorage := newPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
+		planStorage := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
 
 		reporter := &reporting.CiReporter{
 			CiService:         &githubPrService,
@@ -395,7 +396,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
 		if err != nil {
-			reportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			// aggregate status checks: failure
 			if allAppliesSuccessful {
 				if atLeastOneApply {
@@ -423,7 +424,7 @@ func gitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		log.Println("Commands executed successfully")
 	}
 
-	reportErrorAndExit(githubActor, "Digger finished successfully", 0)
+	usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
 }
 
 func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
@@ -438,13 +439,13 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	currentDir, err := os.Getwd()
 	if err != nil {
-		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+		usage.ReportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 	log.Printf("main: working dir: %s \n", currentDir)
 
 	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig(currentDir, true)
 	if err != nil {
-		reportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+		usage.ReportErrorAndExit(projectNamespace, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
 	log.Println("Digger digger_config read successfully")
 
@@ -503,7 +504,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		log.Printf("command: %s, project: %s\n", strings.Join(v.Commands, ", "), v.ProjectName)
 	}
 
-	planStorage := newPlanStorage("", "", "", gitLabContext.GitlabUserName, gitLabContext.MergeRequestIId)
+	planStorage := storage.NewPlanStorage("", "", "", gitLabContext.GitlabUserName, gitLabContext.MergeRequestIId)
 	reporter := &reporting.CiReporter{
 		CiService:      gitlabService,
 		PrNumber:       *gitLabContext.MergeRequestIId,
@@ -524,7 +525,7 @@ func gitLabCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 	log.Println("Commands executed successfully")
 
-	reportErrorAndExit(projectName, "Digger finished successfully", 0)
+	usage.ReportErrorAndExit(projectName, "Digger finished successfully", 0)
 }
 
 func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
@@ -542,13 +543,13 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 
 	currentDir, err := os.Getwd()
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+		usage.ReportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 	log.Printf("main: working dir: %s \n", currentDir)
 
 	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig(currentDir, true)
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+		usage.ReportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
 	log.Println("Digger digger_config read successfully")
 
@@ -570,18 +571,18 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 
 	azureService, err := azure.NewAzureReposService(azureToken, parsedAzureContext.BaseUrl, parsedAzureContext.ProjectName, parsedAzureContext.RepositoryId)
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to initialise azure service. %s", err), 5)
+		usage.ReportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to initialise azure service. %s", err), 5)
 	}
 
 	impactedProjects, requestedProject, prNumber, err := azure.ProcessAzureReposEvent(parsedAzureContext.Event, diggerConfig, azureService)
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
+		usage.ReportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to process Azure event. %s", err), 6)
 	}
 	log.Println("Azure event processed successfully")
 
 	jobs, coversAllImpactedProjects, err := azure.ConvertAzureEventToCommands(parsedAzureContext, impactedProjects, requestedProject, diggerConfig.Workflows)
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
+		usage.ReportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to convert event to command. %s", err), 7)
 
 	}
 	log.Println(fmt.Sprintf("Azure event converted to commands successfully: %v", jobs))
@@ -600,7 +601,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 	allAppliesSuccess, atLeastOneApply, err := digger.RunJobs(jobs, azureService, azureService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
 	if err != nil {
-		reportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		usage.ReportErrorAndExit(parsedAzureContext.BaseUrl, fmt.Sprintf("Failed to run commands. %s", err), 8)
 	}
 
 	if diggerConfig.AutoMerge && allAppliesSuccess && atLeastOneApply && coversAllImpactedProjects {
@@ -610,7 +611,7 @@ func azureCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendA
 
 	log.Println("Commands executed successfully")
 
-	reportErrorAndExit(parsedAzureContext.BaseUrl, "Digger finished successfully", 0)
+	usage.ReportErrorAndExit(parsedAzureContext.BaseUrl, "Digger finished successfully", 0)
 }
 
 func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy) {
@@ -627,7 +628,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	repository := os.Getenv("BITBUCKET_REPO_FULL_NAME")
 
 	if repository == "" {
-		reportErrorAndExit(actor, "BITBUCKET_REPO_FULL_NAME is not defined", 3)
+		usage.ReportErrorAndExit(actor, "BITBUCKET_REPO_FULL_NAME is not defined", 3)
 	}
 
 	splitRepositoryName := strings.Split(repository, "/")
@@ -635,19 +636,19 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 	currentDir, err := os.Getwd()
 	if err != nil {
-		reportErrorAndExit(actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+		usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
 	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true)
 	if err != nil {
-		reportErrorAndExit(actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+		usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
 	log.Printf("Digger digger_config read successfully\n")
 
 	authToken := os.Getenv("BITBUCKET_AUTH_TOKEN")
 
 	if authToken == "" {
-		reportErrorAndExit(actor, "BITBUCKET_AUTH_TOKEN is not defined", 3)
+		usage.ReportErrorAndExit(actor, "BITBUCKET_AUTH_TOKEN is not defined", 3)
 	}
 
 	bitbucketService := bitbucket.BitbucketAPI{
@@ -660,11 +661,11 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 	if runningMode == "manual" {
 		command := os.Getenv("INPUT_DIGGER_COMMAND")
 		if command == "" {
-			reportErrorAndExit(actor, "provide 'command' to run in 'manual' mode", 1)
+			usage.ReportErrorAndExit(actor, "provide 'command' to run in 'manual' mode", 1)
 		}
 		project := os.Getenv("INPUT_DIGGER_PROJECT")
 		if project == "" {
-			reportErrorAndExit(actor, "provide 'project' to run in 'manual' mode", 2)
+			usage.ReportErrorAndExit(actor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
 		var projectConfig digger_config.Project
@@ -677,7 +678,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-		planStorage := newPlanStorage("", repoOwner, repositoryName, actor, nil)
+		planStorage := storage.NewPlanStorage("", repoOwner, repositoryName, actor, nil)
 
 		jobs := orchestrator.Job{
 			ProjectName:       project,
@@ -697,7 +698,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 		}
 		err := digger.RunJob(jobs, repository, actor, &bitbucketService, policyChecker, planStorage, backendApi, nil, currentDir)
 		if err != nil {
-			reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+			usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
 
@@ -730,7 +731,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 			}
 			err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, nil, currentDir)
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
 		}
 	} else {
@@ -760,7 +761,7 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				}
 				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, nil, currentDir)
 				if err != nil {
-					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+					usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 				}
 			}
 		} else if os.Getenv("BITBUCKET_PR_ID") == "" {
@@ -787,27 +788,27 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 				}
 				err := digger.RunJob(job, repository, actor, &bitbucketService, policyChecker, nil, backendApi, nil, currentDir)
 				if err != nil {
-					reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+					usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 				}
 			}
 		} else if os.Getenv("BITBUCKET_PR_ID") != "" {
 			prNumber, err := strconv.Atoi(os.Getenv("BITBUCKET_PR_ID"))
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to parse PR number. %s", err), 4)
+				usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to parse PR number. %s", err), 4)
 			}
 			impactedProjects, err := bitbucket.FindImpactedProjectsInBitbucket(diggerConfig, prNumber, &bitbucketService)
 
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to find impacted projects. %s", err), 5)
+				usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to find impacted projects. %s", err), 5)
 			}
 			if len(impactedProjects) == 0 {
-				reportErrorAndExit(actor, "No projects impacted", 0)
+				usage.ReportErrorAndExit(actor, "No projects impacted", 0)
 			}
 
 			impactedProjectsMsg := getImpactedProjectsAsString(impactedProjects, prNumber)
 			log.Println(impactedProjectsMsg)
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to find impacted projects. %s", err), 5)
+				usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to find impacted projects. %s", err), 5)
 			}
 
 			for _, project := range impactedProjects {
@@ -844,21 +845,21 @@ func bitbucketCI(lock core_locking.Lock, policyChecker core_policy.Checker, back
 
 			logCommands(jobs)
 
-			planStorage := newPlanStorage("", repoOwner, repositoryName, actor, nil)
+			planStorage := storage.NewPlanStorage("", repoOwner, repositoryName, actor, nil)
 
 			jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
 			_, _, err = digger.RunJobs(jobs, &bitbucketService, &bitbucketService, lock, &reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
 			if err != nil {
-				reportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
 		} else {
-			reportErrorAndExit(actor, "Failed to detect running mode", 1)
+			usage.ReportErrorAndExit(actor, "Failed to detect running mode", 1)
 		}
 
 	}
 
-	reportErrorAndExit(actor, "Digger finished successfully", 0)
+	usage.ReportErrorAndExit(actor, "Digger finished successfully", 0)
 }
 
 func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter reporting.Reporter, backendApi core_backend.Api) {
@@ -867,21 +868,21 @@ func exec(actor string, projectName string, repoNamespace string, command string
 	currentDir, err := os.Getwd()
 	if err != nil {
 
-		reportErrorAndExit(actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+		usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 
 	}
 
-	planStorage := newPlanStorage("", "", "", actor, nil)
+	planStorage := storage.NewPlanStorage("", "", "", actor, nil)
 
 	diggerConfig, _, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true)
 	if err != nil {
-		reportErrorAndExit(actor, fmt.Sprintf("Failed to load digger config. %s", err), 4)
+		usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to load digger config. %s", err), 4)
 	}
 	//impactedProjects := diggerConfig.GetModifiedProjects(strings.Split(runConfig.FilesChanged, ","))
 	impactedProjects := diggerConfig.GetProjects(projectName)
 	jobs, _, err := orchestrator.ConvertProjectsToJobs(actor, repoNamespace, command, prNumber, impactedProjects, nil, diggerConfig.Workflows)
 	if err != nil {
-		reportErrorAndExit(actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
+		usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
 	}
 
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
@@ -907,56 +908,9 @@ func main() {
 		os.Args = append([]string{os.Args[0]}, "default")
 	}
 	if err := rootCmd.Execute(); err != nil {
-		reportErrorAndExit("", fmt.Sprintf("Error occured during command exec: %v", err), 8)
+		usage.ReportErrorAndExit("", fmt.Sprintf("Error occured during command exec: %v", err), 8)
 	}
 
-}
-
-func newPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber *int) core_storage.PlanStorage {
-	var planStorage core_storage.PlanStorage
-
-	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
-	switch {
-	case uploadDestination == "github":
-		zipManager := utils.Zipper{}
-		planStorage = &storage.GithubPlanStorage{
-			Client:            github.NewTokenClient(context.Background(), ghToken),
-			Owner:             ghRepoOwner,
-			RepoName:          ghRepositoryName,
-			PullRequestNumber: *prNumber,
-			ZipManager:        zipManager,
-		}
-	case uploadDestination == "gcp":
-		ctx, client := gcp.GetGoogleStorageClient()
-		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET"))
-		if bucketName == "" {
-			reportErrorAndExit(requestedBy, "GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET is not defined", 9)
-		}
-		bucket := client.Bucket(bucketName)
-		planStorage = &storage.PlanStorageGcp{
-			Client:  client,
-			Bucket:  bucket,
-			Context: ctx,
-		}
-	case uploadDestination == "aws":
-		ctx, client, err := storage.GetAWSStorageClient()
-		if err != nil {
-			reportErrorAndExit(requestedBy, fmt.Sprintf("Failed to create AWS storage client: %s", err), 9)
-		}
-		bucketName := strings.ToLower(os.Getenv("AWS_S3_BUCKET"))
-		if bucketName == "" {
-			reportErrorAndExit(requestedBy, "AWS_S3_BUCKET is not defined", 9)
-		}
-		planStorage = &storage.PlanStorageAWS{
-			Context: ctx,
-			Client:  client,
-			Bucket:  bucketName,
-		}
-	case uploadDestination == "gitlab":
-		//TODO implement me
-	}
-
-	return planStorage
 }
 
 func getImpactedProjectsAsString(projects []digger_config.Project, prNumber int) string {
@@ -977,15 +931,6 @@ func logCommands(projectCommands []orchestrator.Job) {
 		logMessage += "\n"
 	}
 	log.Print(logMessage)
-}
-
-func reportErrorAndExit(repoOwner string, message string, exitCode int) {
-	log.Println(message)
-	err := usage.SendLogRecord(repoOwner, message)
-	if err != nil {
-		log.Printf("Failed to send log record. %s\n", err)
-	}
-	os.Exit(exitCode)
 }
 
 func init() {

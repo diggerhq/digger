@@ -28,6 +28,8 @@ type JobJson struct {
 	ApplyStage              StageJson         `json:"applyStage"`
 	PlanStage               StageJson         `json:"planStage"`
 	PullRequestNumber       *int              `json:"pullRequestNumber"`
+	Commit                  string            `json:"commit"`
+	Branch                  string            `json:"branch"`
 	EventName               string            `json:"eventName"`
 	RequestedBy             string            `json:"requestedBy"`
 	Namespace               string            `json:"namespace"`
@@ -50,7 +52,7 @@ func (j *JobJson) IsApply() bool {
 	return slices.Contains(j.Commands, "digger apply")
 }
 
-func JobToJson(job Job, jobType DiggerCommand, organisationName string, jobToken string, backendHostname string, project digger_config.Project) JobJson {
+func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch string, commitSha string, jobToken string, backendHostname string, project digger_config.Project) JobJson {
 	stateRole, commandRole, region := "", "", ""
 
 	if project.AwsRoleToAssume != nil {
@@ -69,6 +71,8 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, jobToken
 		ApplyStage:              stageToJson(job.ApplyStage),
 		PlanStage:               stageToJson(job.PlanStage),
 		PullRequestNumber:       job.PullRequestNumber,
+		Commit:                  commitSha,
+		Branch:                  branch,
 		EventName:               job.EventName,
 		RequestedBy:             job.RequestedBy,
 		Namespace:               job.Namespace,

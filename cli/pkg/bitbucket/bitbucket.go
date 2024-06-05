@@ -447,17 +447,17 @@ func (b BitbucketAPI) IsClosed(prNumber int) (bool, error) {
 	return pullRequest.State != "OPEN", nil
 }
 
-func (b BitbucketAPI) GetBranchName(prNumber int) (string, error) {
+func (b BitbucketAPI) GetBranchName(prNumber int) (string, string, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to get pull request. Status code: %d", resp.StatusCode)
+		return "", "", fmt.Errorf("failed to get pull request. Status code: %d", resp.StatusCode)
 	}
 
 	var pullRequest struct {
@@ -470,10 +470,10 @@ func (b BitbucketAPI) GetBranchName(prNumber int) (string, error) {
 
 	err = json.NewDecoder(resp.Body).Decode(&pullRequest)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return pullRequest.Source.Branch.Name, nil
+	return pullRequest.Source.Branch.Name, "", nil
 }
 
 func (svc BitbucketAPI) SetOutput(prNumber int, key string, value string) error {

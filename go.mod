@@ -1,3 +1,3 @@
-module github.com/diggerhq/digger/dgctl
+module github.com/diggerhq/digger
 
-go 1.22.1
+go 1.22.4

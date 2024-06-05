@@ -5,12 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/core/storage"
+	"github.com/diggerhq/digger/cli/pkg/usage"
+	"github.com/diggerhq/digger/libs/locking/gcp"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/diggerhq/digger/cli/pkg/utils"
 
@@ -202,4 +206,51 @@ func getLatestArtifactWithName(artifacts []*github.Artifact, name string) *githu
 	}
 
 	return latest
+}
+
+func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber *int) storage.PlanStorage {
+	var planStorage storage.PlanStorage
+
+	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
+	switch {
+	case uploadDestination == "github":
+		zipManager := utils.Zipper{}
+		planStorage = &GithubPlanStorage{
+			Client:            github.NewTokenClient(context.Background(), ghToken),
+			Owner:             ghRepoOwner,
+			RepoName:          ghRepositoryName,
+			PullRequestNumber: *prNumber,
+			ZipManager:        zipManager,
+		}
+	case uploadDestination == "gcp":
+		ctx, client := gcp.GetGoogleStorageClient()
+		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET"))
+		if bucketName == "" {
+			usage.ReportErrorAndExit(requestedBy, "GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET is not defined", 9)
+		}
+		bucket := client.Bucket(bucketName)
+		planStorage = &PlanStorageGcp{
+			Client:  client,
+			Bucket:  bucket,
+			Context: ctx,
+		}
+	case uploadDestination == "aws":
+		ctx, client, err := GetAWSStorageClient()
+		if err != nil {
+			usage.ReportErrorAndExit(requestedBy, fmt.Sprintf("Failed to create AWS storage client: %s", err), 9)
+		}
+		bucketName := strings.ToLower(os.Getenv("AWS_S3_BUCKET"))
+		if bucketName == "" {
+			usage.ReportErrorAndExit(requestedBy, "AWS_S3_BUCKET is not defined", 9)
+		}
+		planStorage = &PlanStorageAWS{
+			Context: ctx,
+			Client:  client,
+			Bucket:  bucketName,
+		}
+	case uploadDestination == "gitlab":
+		//TODO implement me
+	}
+
+	return planStorage
 }

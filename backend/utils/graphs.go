@@ -14,7 +14,7 @@ import (
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobType orchestrator.DiggerCommand, organisationId uint, jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commentId int64, diggerConfigStr string) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobType orchestrator.DiggerCommand, organisationId uint, jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId int64, diggerConfigStr string) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	result := make(map[string]*models.DiggerJob)
 	organisation, err := models.DB.GetOrganisationById(organisationId)
 	if err != nil {
@@ -34,7 +34,7 @@ func ConvertJobsToDiggerJobs(jobType orchestrator.DiggerCommand, organisationId 
 			return nil, nil, fmt.Errorf("error creating job token")
 		}
 
-		marshalled, err := json.Marshal(orchestrator.JobToJson(job, jobType, organisationName, jobToken.Value, backendHostName, projectMap[projectName]))
+		marshalled, err := json.Marshal(orchestrator.JobToJson(job, jobType, organisationName, branch, commitSha, jobToken.Value, backendHostName, projectMap[projectName]))
 		if err != nil {
 			return nil, nil, err
 		}

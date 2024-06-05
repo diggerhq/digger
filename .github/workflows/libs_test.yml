@@ -33,4 +33,6 @@ jobs:
 
       - name: Test
         run: go test -v ./...
+        env:
+          DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY}}
         working-directory: libs

@@ -46,7 +46,7 @@ func (p *DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectNam
 				if os.IsNotExist(err) {
 					return nil
 				} else {
-					fmt.Errorf("Could not find any matching policy for %v,%v,%v", repo, projectName)
+					fmt.Errorf("could not find any matching policy for %v,%v", repo, projectName)
 				}
 			} else {
 				return err

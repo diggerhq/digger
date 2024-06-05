@@ -88,8 +88,8 @@ func PreRun(cmd *cobra.Command, args []string) {
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
 	orgName := os.Getenv("DIGGER_ORGANISATION")
-	BackendApi = NewBackendApi(hostName, token)
-	PolicyChecker = NewPolicyChecker(hostName, orgName, token)
+	BackendApi = backend.NewBackendApi(hostName, token)
+	PolicyChecker = policy.NewPolicyChecker(hostName, orgName, token)
 
 	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
 		ReportStrategy = &reporting.CommentPerRunStrategy{
@@ -116,38 +116,6 @@ func PreRun(cmd *cobra.Command, args []string) {
 		os.Exit(2)
 	}
 	log.Println("Lock provider has been created successfully")
-}
-
-func NewBackendApi(hostName string, authToken string) core_backend.Api {
-	var backendApi core_backend.Api
-	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
-		backendApi = backend.NoopApi{}
-	} else {
-		backendApi = backend.DiggerApi{
-			DiggerHost: hostName,
-			AuthToken:  authToken,
-			HttpClient: http.DefaultClient,
-		}
-	}
-	return backendApi
-}
-
-func NewPolicyChecker(hostname string, organisationName string, authToken string) core_policy.Checker {
-	var policyChecker core_policy.Checker
-	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
-		policyChecker = policy.NoOpPolicyChecker{}
-	} else {
-		policyChecker = policy.DiggerPolicyChecker{
-			PolicyProvider: &policy.DiggerHttpPolicyProvider{
-				DiggerHost:         hostname,
-				DiggerOrganisation: organisationName,
-				AuthToken:          authToken,
-				HttpClient:         http.DefaultClient,
-			}}
-	}
-	return policyChecker
 }
 
 var rootCmd = &cobra.Command{
