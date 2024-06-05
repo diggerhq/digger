@@ -321,7 +321,12 @@ runs:
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
       run: |
-          cd $GITHUB_ACTION_PATH/cli
+          if [[ ${{ inputs.ee }} == "true" ]]; then
+            cd $GITHUB_ACTION_PATH/ee/cli
+          else
+            cd $GITHUB_ACTION_PATH/cli
+          fi
+        
           go build -o digger ./cmd/digger
           chmod +x digger
           PATH=$PATH:$(pwd)
@@ -354,8 +359,8 @@ runs:
       id: digger
       shell: bash
       run: |
-        if [[ -z ${{ inputs.ee }} ]]; then
-        curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
+        if [[ ${{ inputs.ee }} == "true" ]]; then
+          curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
         else
           curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os  }}-${{ runner.arch }} -o digger
         fi
