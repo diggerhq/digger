@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/backend"
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
-	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
@@ -32,7 +31,7 @@ import (
 	"time"
 )
 
-func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, commentUpdaterProvider comment_updater.CommentUpdaterProvider) {
+func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotifcationProvider drift.DriftNotificationProvider) {
 	log.Printf("Using GitHub.\n")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -301,15 +300,12 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 				CommandEnvProvider: CommandEnvProvider,
 			}
 
-			slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
-			var notification core_drift.Notification
-			if slackNotificationUrl != "" {
-				notification = drift.SlackNotification{slackNotificationUrl}
-			} else {
-				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Could not identify drift mode, please specify slack webhook url"), 8)
+			notification, err := driftNotifcationProvider.Get(githubPrService)
+			if err != nil {
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get drift notification type: %v", err), 8)
 			}
 
-			err := digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
+			err = digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
 				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}

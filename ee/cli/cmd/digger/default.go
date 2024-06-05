@@ -6,6 +6,7 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/github"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
+	"github.com/diggerhq/digger/ee/cli/pkg/drift"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -21,7 +22,7 @@ var defaultCmd = &cobra.Command{
 		switch ci {
 		case digger.GitHub:
 			logLeader = os.Getenv("GITHUB_ACTOR")
-			github.GitHubCI(lock, PolicyChecker, BackendApi, ReportStrategy, comment_updater.CommentUpdaterProviderAdvanced{})
+			github.GitHubCI(lock, PolicyChecker, BackendApi, ReportStrategy, comment_updater.CommentUpdaterProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
 		case digger.None:
 			print("No CI detected.")
 			os.Exit(10)
