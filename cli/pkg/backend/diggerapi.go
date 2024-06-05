@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
@@ -11,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -184,4 +186,19 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 	json.Unmarshal(body, &response)
 
 	return &response, nil
+}
+
+func NewBackendApi(hostName string, authToken string) backend.Api {
+	var backendApi backend.Api
+	if os.Getenv("NO_BACKEND") == "true" {
+		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
+		backendApi = NoopApi{}
+	} else {
+		backendApi = DiggerApi{
+			DiggerHost: hostName,
+			AuthToken:  authToken,
+			HttpClient: http.DefaultClient,
+		}
+	}
+	return backendApi
 }
