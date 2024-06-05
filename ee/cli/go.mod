@@ -3,6 +3,7 @@ module github.com/diggerhq/digger/ee/cli
 go 1.22.4
 
 replace github.com/diggerhq/digger/libs => ../../libs
+replace github.com/diggerhq/digger/cli => ../../cli
 
 require (
 	github.com/go-git/go-git/v5 v5.12.0

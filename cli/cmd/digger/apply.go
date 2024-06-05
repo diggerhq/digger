@@ -3,6 +3,7 @@ package main
 import (
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
+	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	core_locking "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/orchestrator"
@@ -28,7 +29,7 @@ var applyCmd = &cobra.Command{
 
 		prService, orgService, reporter, err := runConfig.GetServices()
 		if err != nil {
-			reportErrorAndExit(runConfig.Actor, "Unrecognised reporter: "+runConfig.Reporter, 1)
+			usage.ReportErrorAndExit(runConfig.Actor, "Unrecognised reporter: "+runConfig.Reporter, 1)
 		}
 
 		apply(runConfig.Actor, args[0], runConfig.RepoNamespace, runConfig.PRNumber, lock, PolicyChecker, *reporter, *prService, *orgService, BackendApi)

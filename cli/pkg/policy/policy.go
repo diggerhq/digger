@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/libs/orchestrator"
@@ -440,4 +441,21 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	}
 
 	return true, nil
+}
+
+func NewPolicyChecker(hostname string, organisationName string, authToken string) policy.Checker {
+	var policyChecker policy.Checker
+	if os.Getenv("NO_BACKEND") == "true" {
+		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
+		policyChecker = NoOpPolicyChecker{}
+	} else {
+		policyChecker = DiggerPolicyChecker{
+			PolicyProvider: &DiggerHttpPolicyProvider{
+				DiggerHost:         hostname,
+				DiggerOrganisation: organisationName,
+				AuthToken:          authToken,
+				HttpClient:         http.DefaultClient,
+			}}
+	}
+	return policyChecker
 }
