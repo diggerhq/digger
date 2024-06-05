@@ -9,6 +9,7 @@ import (
 	comment_updater_ee "github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
 	ee_drift "github.com/diggerhq/digger/ee/cli/pkg/drift"
 	"github.com/diggerhq/digger/libs/comment_utils/summary"
+	"github.com/diggerhq/digger/libs/license"
 	core_locking "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"log"
@@ -862,6 +863,11 @@ Exit codes:
 */
 
 func main() {
+	err := license.LicenseKeyChecker{}.Check()
+	if err != nil {
+		log.Printf("error checking license %v", err)
+		os.Exit(1)
+	}
 	if len(os.Args) == 1 {
 		os.Args = append([]string{os.Args[0]}, "default")
 	}

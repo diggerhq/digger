@@ -11,7 +11,9 @@ import (
 	"github.com/diggerhq/digger/ee/backend/controllers"
 	"github.com/diggerhq/digger/libs/license"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
+	"os"
 )
 
 // based on https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
@@ -21,7 +23,11 @@ var Version = "dev"
 var templates embed.FS
 
 func main() {
-	license.LicenseKeyChecker{}.Check()
+	err := license.LicenseKeyChecker{}.Check()
+	if err != nil {
+		log.Printf("error checking license %v", err)
+		os.Exit(1)
+	}
 	ghController := ce_controllers.GithubController{
 		CiBackendProvider: ci_backends2.EEBackendProvider{},
 	}
@@ -66,4 +72,9 @@ func main() {
 
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
+}
+
+func init() {
+	log.SetOutput(os.Stdout)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
