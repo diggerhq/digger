@@ -1,0 +1,39 @@
+---
+title: "Specify terraform version"
+---
+
+In order to specify which terraform version to run you can do so in the digger_workflow.yml file.
+
+This example shows how you can do it for terraform:
+
+```
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: digger destroy
+      uses: diggerhq/digger@vLatest
+      with:
+        setup-terraform: true
+        terraform-version: v1.5.5
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+And similarly for openTofu:
+
+```
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: digger destroy
+      uses: diggerhq/digger@vLatest
+      with:
+        setup-opentofu: true
+        opentofu-version: v1.6.1
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
