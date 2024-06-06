@@ -3,11 +3,13 @@ package spec
 import "github.com/diggerhq/digger/libs/orchestrator"
 
 type ReporterSpec struct {
-	Reporting_strategy string `json:"reporting_strategy"`
+	ReporterType      string `json:"reporter_type"`
+	ReportingStrategy string `json:"reporting_strategy"`
 }
 
 type LockSpec struct {
-	LockType string `json:"lock_type"`
+	LockType     string `json:"lock_type"`
+	LockProvider string `json:"lock_provider"`
 }
 
 type BackendSpec struct {
@@ -17,9 +19,15 @@ type BackendSpec struct {
 	BackendJobToken         string `json:"backend_job_token"`
 }
 
+type VcsSpec struct {
+	RepoName  string `json:"repo_name"`
+	RepoOwner string `json:"repo_owner"`
+	VcsType   string `json:"vcs_type"`
+}
 type Spec struct {
 	Job      orchestrator.JobJson `json:"job"`
-	reporter ReporterSpec         `json:"reporter"`
-	lock     LockSpec             `json:"lock"`
-	backend  BackendSpec          `json:"backend"`
+	Reporter ReporterSpec         `json:"reporter"`
+	Lock     LockSpec             `json:"lock"`
+	Backend  BackendSpec          `json:"backend"`
+	VCS      VcsSpec              `json:"vcs"`
 }
