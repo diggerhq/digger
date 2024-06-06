@@ -72,6 +72,7 @@
     {
       "group": "How To",
       "pages": [
+        "howto/specify-terraform-version",
         "howto/apply-on-merge",
         "howto/apply-requirements",
         "howto/auto-merge",
