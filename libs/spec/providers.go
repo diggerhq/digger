@@ -139,6 +139,15 @@ func (r ReporterProvider) GetReporter(reporterSpec ReporterSpec, ciService orche
 			IsSupportMarkdown: true,
 			ReportStrategy:    strategy,
 		}, nil
+	case "lazy":
+		strategy := getStrategy(reporterSpec.ReportingStrategy)
+		ciReporter := reporting.CiReporter{
+			CiService:         ciService,
+			PrNumber:          prNumber,
+			IsSupportMarkdown: true,
+			ReportStrategy:    strategy,
+		}
+		return reporting.NewCiReporterLazy(ciReporter), nil
 	default:
 		return reporting.NoopReporter{}, nil
 	}

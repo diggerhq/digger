@@ -20,6 +20,7 @@ type BackendSpec struct {
 }
 
 type VcsSpec struct {
+	Actor     string `json:"actor"`
 	RepoName  string `json:"repo_name"`
 	RepoOwner string `json:"repo_owner"`
 	VcsType   string `json:"vcs_type"`
@@ -30,6 +31,11 @@ type PolicySpec struct {
 }
 
 type Spec struct {
+	// TODO: replace these three to be nested into one of the other specs
+	JobId     string `json:"job_id"`
+	CommentId string `json:"comment_id"`
+	RunName   string `json:"run_name"`
+
 	Job      orchestrator.JobJson `json:"job"`
 	Reporter ReporterSpec         `json:"reporter"`
 	Lock     LockSpec             `json:"lock"`
