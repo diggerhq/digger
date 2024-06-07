@@ -24,10 +24,16 @@ type VcsSpec struct {
 	RepoOwner string `json:"repo_owner"`
 	VcsType   string `json:"vcs_type"`
 }
+
+type PolicySpec struct {
+	PolicyType string `json:"policy_type"`
+}
+
 type Spec struct {
 	Job      orchestrator.JobJson `json:"job"`
 	Reporter ReporterSpec         `json:"reporter"`
 	Lock     LockSpec             `json:"lock"`
 	Backend  BackendSpec          `json:"backend"`
 	VCS      VcsSpec              `json:"vcs"`
+	Policy   PolicySpec           `json:"policyProvider"`
 }

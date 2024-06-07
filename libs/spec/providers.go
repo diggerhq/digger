@@ -11,6 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	backend2 "github.com/diggerhq/digger/cli/pkg/backend"
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
+	"github.com/diggerhq/digger/cli/pkg/core/policy"
+	policy2 "github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/locking/aws"
@@ -21,6 +23,7 @@ import (
 	"github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/samber/lo"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -166,5 +169,23 @@ func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (orchestrator.PullRequestServ
 		return github.NewGitHubService(token, vcsSpec.RepoName, vcsSpec.RepoOwner), nil
 	default:
 		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
+	}
+}
+
+type PolicyProvider struct{}
+
+func (p PolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error) {
+	switch policySpec.PolicyType {
+	case "http":
+		return policy2.DiggerPolicyChecker{
+			PolicyProvider: policy2.DiggerHttpPolicyProvider{
+				DiggerHost:         diggerHost,
+				DiggerOrganisation: diggerOrg,
+				AuthToken:          token,
+				HttpClient:         http.DefaultClient,
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("could not find ")
 	}
 }
