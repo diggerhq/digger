@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	backend2 "github.com/diggerhq/digger/cli/pkg/backend"
+	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/locking/aws"
@@ -16,6 +18,7 @@ import (
 	"github.com/diggerhq/digger/libs/locking/azure"
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/samber/lo"
 	"log"
 	"os"
@@ -106,23 +109,62 @@ func (l LockProvider) GetLock(lockSpec LockSpec) (locking.Lock, error) {
 
 type ReporterProvider struct{}
 
-func (r ReporterProvider) GetReporter(reporterSpec ReporterSpec) (reporting.Reporter, error) {
-	switch reporterSpec.ReporterType {
-		case "noop":
-			return reporting.NoopReporter{}, nil
+func (r ReporterProvider) GetReporter(reporterSpec ReporterSpec, ciService orchestrator.PullRequestService, prNumber int) (reporting.Reporter, error) {
+	getStrategy := func(strategy string) reporting.ReportStrategy {
+		switch reporterSpec.ReportingStrategy {
+		case "comments_per_run":
+			return reporting.CommentPerRunStrategy{
+				TimeOfRun: time.Now(),
+			}
+		case "latest_run_comment":
+			return reporting.LatestRunCommentStrategy{
+				TimeOfRun: time.Now(),
+			}
+		default:
+			return reporting.MultipleCommentsStrategy{}
+		}
+	}
 
-	}
-	switch reporterSpec.ReportingStrategy {
-	case "comments_per_run":
-		return reporting.CommentPerRunStrategy{
-				TimeOfRun: time.Now(),
-			}, nil
-	case "latest_run_comment":
-		return reporting.LatestRunCommentStrategy{
-				TimeOfRun: time.Now(),
-			}, nil
+	switch reporterSpec.ReporterType {
+	case "noop":
+		return reporting.NoopReporter{}, nil
+	case "basic":
+		strategy := getStrategy(reporterSpec.ReportingStrategy)
+		return reporting.CiReporter{
+			CiService:         ciService,
+			PrNumber:          prNumber,
+			IsSupportMarkdown: true,
+			ReportStrategy:    strategy,
+		}, nil
 	default:
-		return reporting.MultipleCommentsStrategy{}, nil
+		return reporting.NoopReporter{}, nil
 	}
-	reporting.
+}
+
+type BackendApiProvider struct{}
+
+func (b BackendApiProvider) GetBackendApi(backendSpec BackendSpec) (backend.Api, error) {
+	switch backendSpec.BackendType {
+	case "noop":
+		return backend2.NoopApi{}, nil
+	case "backend":
+		return backend2.NewBackendApi(backendSpec.BackendHostname, backendSpec.BackendJobToken), nil
+	default:
+		return backend2.NoopApi{}, nil
+	}
+}
+
+type VCSProvider struct{}
+
+func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (orchestrator.PullRequestService, error) {
+	switch vcsSpec.VcsType {
+	case "github":
+		token := os.Getenv("GITHUB_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get githbu service: GITHUB_TOKEN not specified")
+		}
+		return github.NewGitHubService(token, vcsSpec.RepoName, vcsSpec.RepoOwner), nil
+	default:
+		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
+	}
 }

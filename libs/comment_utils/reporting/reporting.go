@@ -16,20 +16,20 @@ type CiReporter struct {
 	ReportStrategy    ReportStrategy
 }
 
-func (ciReporter *CiReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
+func (ciReporter CiReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
 	commentId, commentUrl, err := ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatting, ciReporter.SupportsMarkdown())
 	return commentId, commentUrl, err
 }
 
-func (ciReporter *CiReporter) Flush() (string, string, error) {
+func (ciReporter CiReporter) Flush() (string, string, error) {
 	return "", "", nil
 }
 
-func (ciReporter *CiReporter) Suppress() error {
+func (ciReporter CiReporter) Suppress() error {
 	return nil
 }
 
-func (ciReporter *CiReporter) SupportsMarkdown() bool {
+func (ciReporter CiReporter) SupportsMarkdown() bool {
 	return ciReporter.IsSupportMarkdown
 }
 
@@ -182,7 +182,7 @@ type LatestRunCommentStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy *LatestRunCommentStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
+func (strategy LatestRunCommentStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
 	comments, err := ciService.GetComments(PrNumber)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting comments: %v", err)
@@ -195,7 +195,7 @@ func (strategy *LatestRunCommentStrategy) Report(ciService orchestrator.PullRequ
 
 type MultipleCommentsStrategy struct{}
 
-func (strategy *MultipleCommentsStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
+func (strategy MultipleCommentsStrategy) Report(ciService orchestrator.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
 	_, err := ciService.PublishComment(PrNumber, reportFormatter(report))
 	return "", "", err
 }
