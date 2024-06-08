@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	spec2 "github.com/diggerhq/digger/cli/pkg/spec"
 	"github.com/diggerhq/digger/cli/pkg/usage"
-	"github.com/diggerhq/digger/libs/spec"
+	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
+	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -24,12 +26,24 @@ var runSpecCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var runSpecConfig RunSpecConfig
 		viperRunSpec.Unmarshal(&runSpecConfig)
-		var spec spec.Spec
+		var spec lib_spec.Spec
 		err := json.Unmarshal([]byte(runSpecConfig.Spec), &spec)
 		if err != nil {
 			usage.ReportErrorAndExit("", fmt.Sprintf("could not load spec json: %v", err), 1)
 		}
-
+		err = spec2.RunSpec(
+			spec,
+			lib_spec.VCSProvider{},
+			lib_spec.JobSpecProvider{},
+			lib_spec.LockProvider{},
+			lib_spec.ReporterProvider{},
+			lib_spec.BackendApiProvider{},
+			lib_spec.PolicyProvider{},
+			comment_summary.CommentUpdaterProviderBasic{},
+		)
+		if err != nil {
+			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error running spec: %v", err), 1)
+		}
 	},
 }
 
