@@ -181,9 +181,9 @@ func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, pr
 }
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
-func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo string, projectName string) (string, error) {
+func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo string, projectName string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
-	content, resp, err := getAccessPolicyForNamespace(p, namespace, projectName)
+	content, resp, err := getAccessPolicyForNamespace(&p, namespace, projectName)
 	if err != nil {
 		return "", fmt.Errorf("error while fetching access policy for namespace: %v", err)
 	}
@@ -195,7 +195,7 @@ func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo str
 
 	// check if project policy was empty or not found (retrieve org policy if so)
 	if (resp.StatusCode == 200 && content == "") || resp.StatusCode == 404 {
-		content, resp, err := getAccessPolicyForOrganisation(p)
+		content, resp, err := getAccessPolicyForOrganisation(&p)
 		if err != nil {
 			return "", fmt.Errorf("error while fetching access policy for organisation: %v", err)
 		}
@@ -211,9 +211,9 @@ func (p *DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo str
 	}
 }
 
-func (p *DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo string, projectName string) (string, error) {
+func (p DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo string, projectName string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
-	content, resp, err := getPlanPolicyForNamespace(p, namespace, projectName)
+	content, resp, err := getPlanPolicyForNamespace(&p, namespace, projectName)
 	if err != nil {
 		return "", err
 	}
@@ -225,7 +225,7 @@ func (p *DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo strin
 
 	// check if project policy was empty or not found (retrieve org policy if so)
 	if (resp.StatusCode == 200 && content == "") || resp.StatusCode == 404 {
-		content, resp, err := getPlanPolicyForOrganisation(p)
+		content, resp, err := getPlanPolicyForOrganisation(&p)
 		if err != nil {
 			return "", err
 		}
@@ -241,8 +241,8 @@ func (p *DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo strin
 	}
 }
 
-func (p *DiggerHttpPolicyProvider) GetDriftPolicy() (string, error) {
-	content, resp, err := getDriftPolicyForOrganisation(p)
+func (p DiggerHttpPolicyProvider) GetDriftPolicy() (string, error) {
+	content, resp, err := getDriftPolicyForOrganisation(&p)
 	if err != nil {
 		return "", err
 	}
@@ -255,7 +255,7 @@ func (p *DiggerHttpPolicyProvider) GetDriftPolicy() (string, error) {
 	}
 }
 
-func (p *DiggerHttpPolicyProvider) GetOrganisation() string {
+func (p DiggerHttpPolicyProvider) GetOrganisation() string {
 	return p.DiggerOrganisation
 }
 

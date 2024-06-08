@@ -84,6 +84,9 @@ var ReportStrategy reporting.ReportStrategy
 var lock locking2.Lock
 
 func PreRun(cmd *cobra.Command, args []string) {
+	if cmd.Name() == "run_spec" {
+		return
+	}
 
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
