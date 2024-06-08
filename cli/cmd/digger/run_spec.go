@@ -18,15 +18,14 @@ type RunSpecConfig struct {
 }
 
 var runSpecCmd = &cobra.Command{
-	Use:   "run a spec",
+	Use:   "run_spec [flags]",
 	Short: "run a spec",
 	Long:  `run a spec`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var runSpecConfig RunSpecConfig
 		vipApply.Unmarshal(&runSpecConfig)
-
 		var spec spec.Spec
-		err := json.Unmarshal([]byte(runSpecConfig.Spec), spec)
+		err := json.Unmarshal([]byte(runSpecConfig.Spec), &spec)
 		if err != nil {
 			usage.ReportErrorAndExit("", fmt.Sprintf("could not load spec json: %v", err), 1)
 		}
@@ -45,9 +44,9 @@ func init() {
 	viperRunSpec.AutomaticEnv()
 
 	for _, flag := range flags {
-		applyCmd.Flags().String(flag.Name, "", flag.Usage)
-		vipApply.BindPFlag(flag.Name, applyCmd.Flags().Lookup(flag.Name))
+		runSpecCmd.Flags().String(flag.Name, "", flag.Usage)
+		vipApply.BindPFlag(flag.Name, runSpecCmd.Flags().Lookup(flag.Name))
 	}
 
-	rootCmd.AddCommand(applyCmd)
+	rootCmd.AddCommand(runSpecCmd)
 }

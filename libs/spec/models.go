@@ -41,5 +41,5 @@ type Spec struct {
 	Lock     LockSpec             `json:"lock"`
 	Backend  BackendSpec          `json:"backend"`
 	VCS      VcsSpec              `json:"vcs"`
-	Policy   PolicySpec           `json:"policyProvider"`
+	Policy   PolicySpec           `json:"policy_provider"`
 }
