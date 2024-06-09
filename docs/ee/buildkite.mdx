@@ -1,0 +1,69 @@
+---
+title: "Buildkite CI backend"
+---
+
+You can use digger with buildkite as a CI backend. Currently this is an EE feature only.
+Github is the VCS which is supported with this flow.
+
+### Prerequisites:
+
+- Having a valid digger EE license key. If you don't have a license key please [contact us](https://calendly.com/diggerdev/diggerdemo) to request an EE trial
+- A buildkite account and your buildkite CI agent set up to receive jobs.
+
+### Install the digger EE orchestrator:
+
+You need to install the digger EE orchestrator. The installation steps are the same as the steps in [self hosting docker](/self-host/deploy-docker)
+with some differences:
+
+- For the docker image you will need to use the ee image: https://github.com/diggerhq/digger/pkgs/container/digger_backend
+- You will need to include the license key environment variable to the backend and the cli: `DIGGER_LICENSE_KEY=xxxyyy`
+
+Other than that if you folllow the steps in the self hosting guide you should end up with the orchestrator up and running
+along with a github app successfully installed. The repo you wish to try with digger should be installed onto the orchestrator.
+
+### Install digger cli in your buildkite agent
+
+You will need to install digger cli onto the buildkite agent. To achieve this we can run the following
+we need to download the appropriate binary from the releases: https://github.com/diggerhq/digger/releases/tag/vLatest.
+For example:
+
+```
+curl -L -o digger-ee https://github.com/diggerhq/digger/releases/download/vLatest/digger-ee-cli-{OS}-{ARCH}
+chmod +x digger-ee
+mv digger-ee /usr/local/bin/digger
+```
+
+### Prepare your repo with a digger.yml
+
+You need to prepare a digger.yml to configure your terraform projects. For that refer to our quickstart
+guides. For a quick one all you need would be a path to a director and project name:
+
+```
+projects:
+  - name: dev
+    dir: dev/
+```
+
+### Create digger pipeline in your buildkite setup:
+
+Create the buildkite pipeline associating it with your repository, give it a name and a description.
+For environment variables you only need to set your digger license key: `DIGGER_LICENSE_KEY=xxxyyy`.
+In the steps of the pipeline you just need to add a step to invoke digger as follows:
+
+```
+digger run_spec --spec "$DIGGER_SPEC"
+```
+
+This will instruct digger to run the "spec" which is composed and sent from the backend. That should be
+all you need to set up and try digger!
+
+## Test your setup
+
+In order to test your setup try to create a pull request in your repo. You should see in the backend logs
+that a webhook event was received and an initial comment should be triggered in your pull request. Your
+buildkite should also trigger and also perform a plan
+
+![](/images/buildkite/buildkite.png)
+
+![](/images/buildkite/github_comment.png)
+
