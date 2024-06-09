@@ -17,6 +17,13 @@ with some differences:
 
 - For the docker image you will need to use the ee image: https://github.com/diggerhq/digger/pkgs/container/digger_backend
 - You will need to include the license key environment variable to the backend and the cli: `DIGGER_LICENSE_KEY=xxxyyy`
+- For buildkite CI configuration you need to specify the following environment variables:
+
+```
+BUILDKITE_TOKEN=bkua_xxxxxxxxxxx
+BUILDKITE_ORG=myorg
+BUILDKITE_PIPELINE=my_digger_pipeline
+```
 
 Other than that if you folllow the steps in the self hosting guide you should end up with the orchestrator up and running
 along with a github app successfully installed. The repo you wish to try with digger should be installed onto the orchestrator.
