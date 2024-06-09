@@ -55,7 +55,8 @@
         "ee/dashboard",
         "ee/drift-detection",
         "ee/rbac",
-        "ee/opa"
+        "ee/opa",
+        "ee/buildkite"
       ]
     },
     {
