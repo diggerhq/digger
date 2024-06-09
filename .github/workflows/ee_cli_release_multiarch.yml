@@ -40,5 +40,5 @@ jobs:
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: 'digger'
-          asset_name: digger-cli-${{matrix.os}}-${{matrix.arch}}
+          asset_name: digger-ee-cli-${{matrix.os}}-${{matrix.arch}}
           asset_content_type: application/octet-stream
