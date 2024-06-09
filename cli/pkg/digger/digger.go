@@ -66,7 +66,7 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, batchId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
 
 	defer reporter.Flush()
 
@@ -145,7 +145,7 @@ func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService,
 			terraformOutput = exectorResults[0].TerraformOutput
 		}
 		prNumber := *currentJob.PullRequestNumber
-		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, batchId, "succeeded", time.Now(), planResult, jobPrCommentUrl, terraformOutput)
+		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, jobId, "succeeded", time.Now(), planResult, jobPrCommentUrl, terraformOutput)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)

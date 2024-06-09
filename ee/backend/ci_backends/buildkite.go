@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/buildkite/go-buildkite/v3/buildkite"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/spec"
 	"log"
@@ -64,14 +65,28 @@ func (b BuildkiteCi) TriggerWorkflow(repoOwner string, repoName string, job mode
 		},
 	}
 
+	_, ghToken, err := utils.GetGithubService(
+		utils.DiggerGithubRealClientProvider{},
+		job.Batch.GithubInstallationId,
+		job.Batch.RepoFullName,
+		job.Batch.RepoOwner,
+		job.Batch.RepoName,
+	)
+	if err != nil {
+		return fmt.Errorf("TriggerWorkflow: could not retrieve token: %v", err)
+	}
+
 	specBytes, err := json.Marshal(spec)
 	client := b.Client
 	_, _, err = client.Builds.Create(b.Org, b.Pipeline, &buildkite.CreateBuild{
-		Commit:        commitSha,
-		Branch:        branch,
-		Message:       runName,
-		Author:        buildkite.Author{Username: requestedBy},
-		Env:           map[string]string{"spec": string(specBytes)},
+		Commit:  commitSha,
+		Branch:  branch,
+		Message: runName,
+		Author:  buildkite.Author{Username: requestedBy},
+		Env: map[string]string{
+			"DIGGER_SPEC":  string(specBytes),
+			"GITHUB_TOKEN": *ghToken,
+		},
 		PullRequestID: int64(prNumber),
 	})
 
