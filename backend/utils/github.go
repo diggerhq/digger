@@ -74,7 +74,7 @@ type GithubClientProvider interface {
 	Get(githubAppId int64, installationId int64) (*github.Client, *string, error)
 }
 
-func (gh *DiggerGithubRealClientProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
+func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
 	githubAppPrivateKey := ""
 	githubAppPrivateKeyB64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
 	if githubAppPrivateKeyB64 != "" {

@@ -387,7 +387,7 @@ func SetJobStatusForProject(c *gin.Context) {
 		job.PRCommentUrl = request.PrCommentUrl
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
-			log.Printf("Error updating job status: %v", request.Status)
+			log.Printf("Error updating job status: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 			return
 		}

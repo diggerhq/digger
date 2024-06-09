@@ -69,8 +69,8 @@ func RunSpec(
 
 	jobs := []orchestrator.Job{job}
 
-	fullRepoName := fmt.Sprintf("%v/%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
-	serializedBatch, err := backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
+	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
+	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err), 4)
 	}
@@ -82,7 +82,7 @@ func RunSpec(
 
 	// TODO: do not require conversion to gh service
 	ghService := prService.(orchestrator_github.GithubService)
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, ghService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, serializedBatch.ID, true, false, commentId64, "")
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, ghService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId64, "")
 	if !allAppliesSuccess || err != nil {
 		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {
