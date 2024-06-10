@@ -1,7 +1,9 @@
+---
 name: Cli e2e tests
-on:
+
+"on":
   push:
-    branches: [ 'develop' ]
+    branches: ['develop']
 
 jobs:
   build:
@@ -11,8 +13,8 @@ jobs:
 
     name: Build
     runs-on: ubuntu-latest
-    steps:
 
+    steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
@@ -51,6 +53,3 @@ jobs:
           GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: gcp-plan-artefacts
           AWS_S3_BUCKET: digger-tests-bucket
           AWS_REGION: us-east-1
-
-
-

@@ -3,7 +3,8 @@ name: Backend release
 
 "on":
   release:
-    types: [released]
+    types:
+      - 'released'
 
 jobs:
   binary:
@@ -16,10 +17,13 @@ jobs:
             arch: arm
           - os: darwin
             arch: "386"
+
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
       - name: Build and publish binary artifact to GitHub
         id: build-and-release-binary
         uses: wangyoucao577/go-release-action@8fa1e8368c8465264d64e0198208e10f71474c87  # v1.50

@@ -1,12 +1,17 @@
+---
 name: release ee cli
-on:
+
+"on":
   release:
     branches:
       - 'go'
-    types: [released]
+    types:
+      - 'released'
+
 jobs:
   binary:
     runs-on: ubuntu-latest
+
     steps:
       - name: Download Go
         uses: actions/setup-go@v5
@@ -16,6 +21,7 @@ jobs:
 
       - name: Check out repository
         uses: actions/checkout@v4
+
       - name: Build
         run: |
           echo "Tag that is going to be used as digger version: ${{ github.event.release.tag_name }}"

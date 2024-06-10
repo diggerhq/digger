@@ -1,7 +1,9 @@
+---
 name: Backend Build&Push to Prod ECR
-on:
+
+"on":
   push:
-    branches: [ 'develop' ]
+    branches: ['develop']
 
 permissions:
   id-token: write

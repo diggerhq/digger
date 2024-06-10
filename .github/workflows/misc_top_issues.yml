@@ -1,14 +1,16 @@
-
+---
 name: Top issues updater
-on:
+
+"on":
   schedule:
-    - cron: "0 * * * *" # every hour
+    - cron: "0 * * * *"  # every hour
   workflow_dispatch:
 
 jobs:
   get-top-issues:
     if: github.repository_owner == 'diggerhq'
     runs-on: ubuntu-latest
+
     steps:
       - name: update-top-issues
         uses: diggerhq/top-issues@main
