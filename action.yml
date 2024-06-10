@@ -264,7 +264,6 @@ runs:
         tofu_wrapper: false
       if: inputs.setup-opentofu == 'true'
 
-
     - name: Setup Checkov
       run: |
         python3 -m venv .venv
@@ -278,8 +277,36 @@ runs:
     - name: setup go
       uses: actions/setup-go@v5
       with:
-        go-version: '^1.21.1'
+        go-version-file: '${{ github.action_path }}/cli/go.mod'
+        cache: false
       if: ${{ !startsWith(github.action_ref, 'v') }}
+
+    - name: Determine Golang cache paths
+      id: golang-env
+      run: |
+        echo "build-cache-path=$(go env GOCACHE)" >>"$GITHUB_OUTPUT"
+        echo "module-cache-path=$(go env GOMODCACHE)" >>"$GITHUB_OUTPUT"
+      shell: bash
+      if: ${{ !startsWith(github.action_ref, 'v') }}
+
+    - name: Copy Digger CLI go.sum for cache key
+      run: |
+        if [[ ${{ inputs.ee }} == "true" ]]; then
+          cp "$GITHUB_ACTION_PATH/ee/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
+        else
+          cp "$GITHUB_ACTION_PATH/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
+        fi
+      shell: bash
+      if: ${{ !startsWith(github.action_ref, 'v') }}
+
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ${{ steps.golang-env.outputs.build-cache-path }}
+          ${{ steps.golang-env.outputs.module-cache-path }}
+        key: digger-cli-cache-${{ hashFiles('.digger.go.sum') }}
+        restore-keys: digger-cli-cache-
+      if: ${{ !startsWith(github.action_ref, 'v') && inputs.cache-dependencies == 'true' }}
 
     - name: Adding required env vars for next step
       uses: actions/github-script@v7
