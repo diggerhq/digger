@@ -606,7 +606,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	return nil
 }
 
-func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	ghService, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
@@ -616,10 +616,16 @@ func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	var config *dg_configuration.DiggerConfig
 	var diggerYmlStr string
 	var dependencyGraph graph.Graph[string, dg_configuration.Project]
+
+	changedFiles, err := ghService.GetChangedFiles(prNumber)
+	if err != nil {
+		log.Printf("Error getting changed files: %v", err)
+		return "", nil, nil, nil, fmt.Errorf("error getting changed files")
+	}
 	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, *token, func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
-		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true)
+		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
 		if err != nil {
 			log.Printf("Error loading digger config: %v", err)
 			return err
@@ -649,7 +655,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, r
 		return "", nil, nil, nil, nil, nil, fmt.Errorf("error getting branch name")
 	}
 
-	diggerYmlStr, ghService, config, dependencyGraph, err := getDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch)
+	diggerYmlStr, ghService, config, dependencyGraph, err := getDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch, prNumber)
 	if err != nil {
 		log.Printf("Error loading digger.yml: %v", err)
 		return "", nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml")

@@ -26,12 +26,6 @@ func RunSpec(
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
 
-	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", true)
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
-	}
-	log.Printf("Digger digger_config read successfully\n")
-
 	job, err := jobProvider.GetJob(spec.Job)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
@@ -59,6 +53,19 @@ func RunSpec(
 	}
 
 	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
+	}
+
+	changedFiles, err := prService.GetChangedFiles(*spec.Job.PullRequestNumber)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get changed files: %v", err), 1)
+	}
+	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", true, changedFiles)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+	}
+	log.Printf("Digger digger_config read successfully\n")
 
 	commentUpdater, err := commentUpdaterProvider.Get(*diggerConfig)
 	if err != nil {

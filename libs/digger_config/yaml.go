@@ -85,9 +85,18 @@ type EnvVarYaml struct {
 }
 
 type BlockYaml struct {
-	Include         string                      `yaml:"include"`
-	Exclude         string                      `yaml:"exclude"`
+	// these flags for terraform only
+	Include string `yaml:"include"`
+	Exclude string `yaml:"exclude"`
+
+	// these flags are only for terragrunt only
+	Terragrunt bool   `yaml:"terragrunt"`
+	RootDir    string `yaml:"root_dir"`
+
+	// these flags for both terraform and terragrunt
+	BlockName       bool                        `yaml:"block_name"`
 	Workflow        string                      `yaml:"workflow"`
+	WorkflowFile    string                      `yaml:"workflow_file"`
 	AwsRoleToAssume *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 }
 
