@@ -1,13 +1,15 @@
+---
 name: Update latest tag for every new latest release
 
-on:
+"on":
   release:
     types:
-      - released
+      - 'released'
 
 jobs:
   update_latest_tag:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -20,8 +22,8 @@ jobs:
           latest_release=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name')
           echo "Latest release: $latest_release"
           echo "Current release: ${{ github.ref }}"
-          if [[ "refs/tags/$latest_release" == "${{ github.ref }}" ]]; then            
-            echo "is_latest=true" >> $GITHUB_OUTPUT            
+          if [[ "refs/tags/$latest_release" == "${{ github.ref }}" ]]; then
+            echo "is_latest=true" >> $GITHUB_OUTPUT
           else
             echo "is_latest=false" >> $GITHUB_OUTPUT
           fi

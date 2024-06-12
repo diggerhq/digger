@@ -1,20 +1,24 @@
+---
 name: release dgctl
-on:
+
+"on":
   release:
     branches:
       - 'go'
-    types: [released]
+    types:
+      - 'released'
+
 jobs:
   binary:
     strategy:
       matrix:
-        arch: [arm, arm64, amd64, 386]
+        arch: [arm, arm64, amd64, "386"]
         os: [linux, darwin, freebsd, windows]
         exclude:
           - os: darwin
             arch: arm
           - os: darwin
-            arch: 386
+            arch: "386"
 
     runs-on: ubuntu-latest
 

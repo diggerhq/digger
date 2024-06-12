@@ -1,8 +1,10 @@
+---
 name: EE Tasks Publish docker image
 
-on:
+"on":
   release:
-    types: ['released']
+    types:
+      - 'released'
 
 env:
   REGISTRY: ghcr.io

@@ -1,14 +1,16 @@
+---
 name: Libs tests
-on:
+
+"on":
   push:
-    branches: [ 'develop' ]
+    branches: ['develop']
   pull_request:
 
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
+
     steps:
       - name: Download Go
         uses: actions/setup-go@v5
