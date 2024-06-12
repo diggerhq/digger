@@ -90,11 +90,11 @@ type BlockYaml struct {
 	Exclude string `yaml:"exclude"`
 
 	// these flags are only for terragrunt only
-	Terragrunt bool   `yaml:"terragrunt"`
-	RootDir    string `yaml:"root_dir"`
+	Terragrunt bool    `yaml:"terragrunt"`
+	Dir        *string `yaml:"dir"`
 
 	// these flags for both terraform and terragrunt
-	BlockName       bool                        `yaml:"block_name"`
+	BlockName       string                      `yaml:"block_name"`
 	Workflow        string                      `yaml:"workflow"`
 	WorkflowFile    string                      `yaml:"workflow_file"`
 	AwsRoleToAssume *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
@@ -139,6 +139,7 @@ type TerragruntParsingConfig struct {
 	CreateHclProjectExternalChilds *bool    `yaml:"createHclProjectExternalChilds,omitempty"`
 	UseProjectMarkers              bool     `yaml:"useProjectMarkers"`
 	ExecutionOrderGroups           *bool    `yaml:"executionOrderGroups"`
+	WorkflowFile                   string   `yaml:"workflow_file"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {

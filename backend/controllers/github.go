@@ -633,8 +633,8 @@ func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 		return nil
 	})
 	if err != nil {
-		log.Printf("Error generating projects: %v", err)
-		return "", nil, nil, nil, fmt.Errorf("error generating projects")
+		log.Printf("Error cloning and loading config: %v", err)
+		return "", nil, nil, nil, fmt.Errorf("error cloning and loading config")
 	}
 
 	log.Printf("Digger config loadded successfully\n")
