@@ -1,13 +1,15 @@
+---
 name: Tasks run tests
-on:
+
+"on":
   push:
   pull_request:
 
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
+
     steps:
       - name: Download Go
         uses: actions/setup-go@v5
@@ -23,7 +25,6 @@ jobs:
           pwd
           go get -v ./...
         working-directory: backend/tasks
-
 
       - name: Test
         run: go test -v ./...
