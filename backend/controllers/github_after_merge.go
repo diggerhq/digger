@@ -158,7 +158,7 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 
 		// ==== starting apply after merge part  =======
 		// TODO: Replace branch with actual commitID
-		diggerYmlStr, ghService, config, projectsGraph, err := getDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch)
+		diggerYmlStr, ghService, config, projectsGraph, err := getDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch, 0)
 		if err != nil {
 			log.Printf("getDiggerConfigForPR error: %v", err)
 			return fmt.Errorf("error getting digger config")

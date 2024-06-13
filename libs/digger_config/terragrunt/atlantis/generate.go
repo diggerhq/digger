@@ -809,7 +809,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 		}
 	}
 
-	// Sort the projects in atlantisConfig by Dir
+	// Sort the projects in atlantisConfig by RootDir
 	sort.Slice(atlantisConfig.Projects, func(i, j int) bool { return atlantisConfig.Projects[i].Dir < atlantisConfig.Projects[j].Dir })
 	//
 	if executionOrderGroups {

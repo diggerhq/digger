@@ -135,7 +135,12 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %s", err), 4)
 		}
 
-		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false)
+		files, err := githubPrService.GetChangedFiles(*jobSpec.PullRequestNumber)
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get changed files: %v", err), 4)
+		}
+		
+		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, files)
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 		}
@@ -206,7 +211,7 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
 	}
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true)
+	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true, nil)
 	if err != nil {
 		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
