@@ -24,6 +24,11 @@ This will perform a `terragrunt apply` after changes are detected within this di
 
 # Dynamically generating Terragrunt projects
 
+<Note>
+This is not the prefered way of generating terragrunt projects and we advise you to instead use the [blocks declarative](/howto/generate-projects#blocks-syntax-with-terragrunt)
+since this way may be depracated in the future
+</Note>
+
 [Demo repo](https://github.com/diggerhq/test-terragrunt-racecondition)
 
 In many cases with terragrunt you don't want to mention all of your terragrunt components since there can be tens or hundreds of those (not to mention all the dependencies of those). In this case you can just liase it to digger and it will perform dynamic generation of projects for you and trigger the relevant `terragrunt apply` commands on all impacated projects per pull request. It will also handle dependencies of these projects. You can configure this using the following:

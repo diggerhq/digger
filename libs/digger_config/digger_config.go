@@ -192,7 +192,7 @@ func LoadDiggerConfigYamlFromString(yamlString string) (*DiggerConfigYaml, error
 func validateBlockYaml(blocks []BlockYaml) error {
 	for _, b := range blocks {
 		if b.Terragrunt {
-			if b.Dir == nil {
+			if b.RootDir == nil {
 				return fmt.Errorf("block %v is a terragrunt block but does not have root_dir specified", b.BlockName)
 			}
 		}
@@ -200,13 +200,27 @@ func validateBlockYaml(blocks []BlockYaml) error {
 	return nil
 }
 
+func checkBlockInChangedFiles(dir string, changedFiles []string) bool {
+	if changedFiles == nil {
+		return true
+	}
+	for _, file := range changedFiles {
+		if strings.HasPrefix(NormalizeFileName(file), NormalizeFileName(dir)) {
+			return true
+		}
+	}
+	return false
+}
+
 func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, changedFiles []string) error {
 	if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.TerragruntParsingConfig != nil {
+		log.Printf("Warning if you would like to use terragrunt generation we recommend using blocks since top level will be deprecated in the future: %v", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 		err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir)
 		if err != nil {
 			return err
 		}
 	} else if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.Terragrunt {
+		log.Printf("Warning if you would like to use terragrunt generation we recommend using blocks since top level will be deprecated in the future: %v", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 		err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir)
 		if err != nil {
 			return err
@@ -240,19 +254,8 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			// if blocks of include/exclude patterns defined
 			for _, b := range config.GenerateProjectsConfig.Blocks {
 				if b.Terragrunt == true {
-					checkBlockInChangedFiles := func(dir string, changedFiles []string) bool {
-						if changedFiles == nil {
-							return true
-						}
-						for _, file := range changedFiles {
-							if strings.HasPrefix(NormalizeFileName(file), NormalizeFileName(dir)) {
-								return true
-							}
-						}
-						return false
-					}
 
-					if checkBlockInChangedFiles(*b.Dir, changedFiles) {
+					if checkBlockInChangedFiles(*b.RootDir, changedFiles) {
 						log.Printf("generating projects for block: %v", b.BlockName)
 						workflow := "default"
 						if b.Workflow != "" {
@@ -263,7 +266,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 							CreateProjectName: true,
 							DefaultWorkflow:   workflow,
 							WorkflowFile:      b.WorkflowFile,
-							FilterPath:        path.Join(terraformDir, *b.Dir),
+							FilterPath:        path.Join(terraformDir, *b.RootDir),
 						}, terraformDir)
 						if err != nil {
 							return err

@@ -91,7 +91,7 @@ type BlockYaml struct {
 
 	// these flags are only for terragrunt only
 	Terragrunt bool    `yaml:"terragrunt"`
-	Dir        *string `yaml:"dir"`
+	RootDir    *string `yaml:"root_dir"`
 
 	// these flags for both terraform and terragrunt
 	BlockName       string                      `yaml:"block_name"`

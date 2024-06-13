@@ -63,7 +63,7 @@ func TestAllFieldsInJobAreAlsoInJobJson(t *testing.T) {
 func TestIsPlanForDiggerPlanJobCorrect(t *testing.T) {
 	j := JobJson{
 		ProjectName:      "project.Name",
-		ProjectDir:       "project.Dir",
+		ProjectDir:       "project.RootDir",
 		ProjectWorkspace: "workspace",
 		Terragrunt:       false,
 		Commands:         []string{"run echo 'hello", "digger plan"},
@@ -76,7 +76,7 @@ func TestIsPlanForDiggerPlanJobCorrect(t *testing.T) {
 func TestIsApplyForDiggerApplyJobCorrect(t *testing.T) {
 	j := JobJson{
 		ProjectName:      "project.Name",
-		ProjectDir:       "project.Dir",
+		ProjectDir:       "project.RootDir",
 		ProjectWorkspace: "workspace",
 		Terragrunt:       false,
 		Commands:         []string{"digger apply"},
