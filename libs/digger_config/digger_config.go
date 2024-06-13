@@ -132,9 +132,9 @@ func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string, configYa
 
 var ErrDiggerConfigConflict = errors.New("more than one digger digger_config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
-func LoadDiggerConfig(workingDir string, generateProjects bool) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
+func LoadDiggerConfig(workingDir string, generateProjects bool, changedFiles []string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
 	config := &DiggerConfig{}
-	configYaml, err := LoadDiggerConfigYaml(workingDir, generateProjects)
+	configYaml, err := LoadDiggerConfigYaml(workingDir, generateProjects, changedFiles)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -163,7 +163,7 @@ func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*Digger
 		return nil, nil, nil, err
 	}
 
-	err = HandleYamlProjectGeneration(configYaml, terraformDir)
+	err = HandleYamlProjectGeneration(configYaml, terraformDir, nil)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -189,13 +189,38 @@ func LoadDiggerConfigYamlFromString(yamlString string) (*DiggerConfigYaml, error
 	return configYaml, nil
 }
 
-func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) error {
+func validateBlockYaml(blocks []BlockYaml) error {
+	for _, b := range blocks {
+		if b.Terragrunt {
+			if b.RootDir == nil {
+				return fmt.Errorf("block %v is a terragrunt block but does not have root_dir specified", b.BlockName)
+			}
+		}
+	}
+	return nil
+}
+
+func checkBlockInChangedFiles(dir string, changedFiles []string) bool {
+	if changedFiles == nil {
+		return true
+	}
+	for _, file := range changedFiles {
+		if strings.HasPrefix(NormalizeFileName(file), NormalizeFileName(dir)) {
+			return true
+		}
+	}
+	return false
+}
+
+func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, changedFiles []string) error {
 	if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.TerragruntParsingConfig != nil {
+		log.Printf("Warning if you would like to use terragrunt generation we recommend using blocks since top level will be deprecated in the future: %v", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 		err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir)
 		if err != nil {
 			return err
 		}
 	} else if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.Terragrunt {
+		log.Printf("Warning if you would like to use terragrunt generation we recommend using blocks since top level will be deprecated in the future: %v", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 		err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir)
 		if err != nil {
 			return err
@@ -222,20 +247,45 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 			}
 		}
 		if config.GenerateProjectsConfig.Blocks != nil && len(config.GenerateProjectsConfig.Blocks) > 0 {
+			err = validateBlockYaml(config.GenerateProjectsConfig.Blocks)
+			if err != nil {
+				return err
+			}
 			// if blocks of include/exclude patterns defined
 			for _, b := range config.GenerateProjectsConfig.Blocks {
-				includePatterns = []string{b.Include}
-				excludePatterns = []string{b.Exclude}
-				workflow := "default"
-				if b.Workflow != "" {
-					workflow = b.Workflow
-				}
+				if b.Terragrunt == true {
 
-				for _, dir := range dirs {
-					if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
-						projectName := strings.ReplaceAll(dir, "/", "_")
-						project := ProjectYaml{Name: projectName, Dir: dir, Workflow: workflow, Workspace: "default", AwsRoleToAssume: b.AwsRoleToAssume}
-						config.Projects = append(config.Projects, &project)
+					if checkBlockInChangedFiles(*b.RootDir, changedFiles) {
+						log.Printf("generating projects for block: %v", b.BlockName)
+						workflow := "default"
+						if b.Workflow != "" {
+							workflow = b.Workflow
+						}
+
+						err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{
+							CreateProjectName: true,
+							DefaultWorkflow:   workflow,
+							WorkflowFile:      b.WorkflowFile,
+							FilterPath:        path.Join(terraformDir, *b.RootDir),
+						}, terraformDir)
+						if err != nil {
+							return err
+						}
+					}
+				} else {
+					includePatterns = []string{b.Include}
+					excludePatterns = []string{b.Exclude}
+					workflow := "default"
+					if b.Workflow != "" {
+						workflow = b.Workflow
+					}
+
+					for _, dir := range dirs {
+						if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
+							projectName := strings.ReplaceAll(dir, "/", "_")
+							project := ProjectYaml{Name: projectName, Dir: dir, Workflow: workflow, Workspace: "default", AwsRoleToAssume: b.AwsRoleToAssume}
+							config.Projects = append(config.Projects, &project)
+						}
 					}
 				}
 			}
@@ -244,7 +294,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 	return nil
 }
 
-func LoadDiggerConfigYaml(workingDir string, generateProjects bool) (*DiggerConfigYaml, error) {
+func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles []string) (*DiggerConfigYaml, error) {
 	configYaml := &DiggerConfigYaml{}
 	fileName, err := retrieveConfigFile(workingDir)
 	if err != nil {
@@ -281,7 +331,7 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool) (*DiggerConf
 	}
 
 	if generateProjects == true {
-		err = HandleYamlProjectGeneration(configYaml, workingDir)
+		err = HandleYamlProjectGeneration(configYaml, workingDir, changedFiles)
 		if err != nil {
 			return configYaml, err
 		}
@@ -373,6 +423,11 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		executionOrderGroups = *parsingConfig.ExecutionOrderGroups
 	}
 
+	workflowFile := "digger_workflow.yml"
+	if parsingConfig.WorkflowFile != "" {
+		workflowFile = parsingConfig.WorkflowFile
+	}
+
 	atlantisConfig, _, err := atlantis.Parse(
 		root,
 		parsingConfig.ProjectHclFiles,
@@ -428,6 +483,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			Workspace:       atlantisProject.Workspace,
 			Terragrunt:      true,
 			Workflow:        atlantisProject.Workflow,
+			WorkflowFile:    &workflowFile,
 			IncludePatterns: atlantisProject.Autoplan.WhenModified,
 		})
 	}

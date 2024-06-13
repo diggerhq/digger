@@ -42,3 +42,29 @@ generate_projects:
 ```
 
 This will create a project for all sub-directories under environments/core. If set to `false`, only the first directory with a .tf file will be evaluated.
+
+# Blocks syntax with Terragrunt
+
+You can use blocks generation with terragrunt as well. In order to acheive this all you need to do is specify
+`terragrunt: true` for each block. Normally you would only have one terragrunt structure and so you will have
+one block entry. However you may be also interested to specify different structure and different parameters
+for different folders. For example, you may have a dev, staging and prod account heirarchy and therefore you
+would specify the blocks in that way. Alternatively maybe you have different providers and you would like to
+specify those different providers as well. Note that for very large terragrunt monorepos segragating by blocks
+will lead to improved performance since it will not unnecessarily traverse an entire tree if no files have been
+changed within it.
+
+```
+generate_projects
+    blocks:
+      - block_name: dev
+        terragrunt: true
+        root_dir: "dev/"
+        workflow: default
+        workflow_file: digger_workflow_dev.yml
+      - block_name: staging
+        terragrunt: true
+        root_dir: "staging/"
+        workflow: default
+        workflow_file: digger_workflow_staging.yml
+```
