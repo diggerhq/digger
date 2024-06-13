@@ -3,16 +3,16 @@ title: "Store plans in a Bucket"
 ---
 
 ### Github 
-Digger can Github Artifacts to store `terraform plan` outputs. In order to enable it you can set the following argument in digger_workflow.yml:
+Digger can use Github Artifacts to store `terraform plan` outputs. In order to enable it you can set the following argument in digger_workflow.yml:
 
 ```
 upload-plan-destination: github
 ```
 
 ### GCP 
-You can also configure plan outputs to be uploaded to GCP Buckets instead. This is handy in case you want your plan outputs to stay within your organisation's network for security or compliance reasons.
+You can also configure plan outputs to be uploaded to GCP Buckets instead. This is handy in case you want your plan outputs to stay within your organisation's approved storage providers for security or compliance reasons.
 
-To change change digger to upload the plan to GCP set the follow argument in the digger_workflow.yml file
+To change digger to upload the plan to GCP set the follow argument in the digger_workflow.yml file
 
 ```
 with:
