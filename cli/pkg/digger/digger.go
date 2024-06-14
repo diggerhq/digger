@@ -3,15 +3,16 @@ package digger
 import (
 	"errors"
 	"fmt"
-	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
-	locking2 "github.com/diggerhq/digger/libs/locking"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/libs/comment_utils/summary"
+	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
+	locking2 "github.com/diggerhq/digger/libs/locking"
+
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
@@ -105,7 +106,14 @@ func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService,
 				if executorResult != nil {
 					exectorResults[i] = *executorResult
 				}
-				log.Printf("Project %v command %v failed, skipping job", job.ProjectName, command)
+
+				diggerRunError := fmt.Errorf(":exclamation: Run Error: error while running command: %v in project %v error: %v", command, job.ProjectName, output)
+				_, err = prService.PublishComment(*job.PullRequestNumber, diggerRunError.Error())
+				if err != nil {
+					log.Printf("error publishing comment: %v\n", err)
+				}
+
+				log.Printf("Project %v command %v failed, skipping job %v", job.ProjectName, command, output)				
 				break
 			}
 			exectorResults[i] = *executorResult
