@@ -486,9 +486,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	// perform locking/unlocking in backend
-	if dg_configuration.PrLocks{
+	if config.PrLocks {
 		for _, project := range impactedProjects {
 			prLock := dg_locking.PullRequestLock{
+				Enable: config.PrLocks,
 				InternalLock: locking.BackendDBLock{
 					OrgId: organisationId,
 				},
@@ -767,21 +768,24 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
 	// perform unlocking in backend
-	for _, project := range impactedProjects {
-		prLock := dg_locking.PullRequestLock{
-			InternalLock: locking.BackendDBLock{
-				OrgId: orgId,
-			},
-			CIService:        ghService,
-			Reporter:         comment_updater.NoopReporter{},
-			ProjectName:      project.Name,
-			ProjectNamespace: repoFullName,
-			PrNumber:         issueNumber,
-		}
-		err = PerformLockingActionFromCommand(prLock, *diggerCommand)
-		if err != nil {
-			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
-			return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
+	if config.PrLocks {
+		for _, project := range impactedProjects {
+			prLock := dg_locking.PullRequestLock{
+				Enable: config.PrLocks,
+				InternalLock: locking.BackendDBLock{
+					OrgId: orgId,
+				},
+				CIService:        ghService,
+				Reporter:         comment_updater.NoopReporter{},
+				ProjectName:      project.Name,
+				ProjectNamespace: repoFullName,
+				PrNumber:         issueNumber,
+			}
+			err = PerformLockingActionFromCommand(prLock, *diggerCommand)
+			if err != nil {
+				utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
+				return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
+			}
 		}
 	}
 
