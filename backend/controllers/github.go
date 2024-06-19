@@ -192,10 +192,7 @@ func GithubAppSetup(c *gin.Context) {
 		},
 	}
 
-	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
-	if githubHostname == "" {
-		githubHostname = "github.com"
-	}
+	githubHostname := getGithubHostname()
 	url := &url.URL{
 		Scheme: "https",
 		Host:   githubHostname,
@@ -217,6 +214,14 @@ func GithubAppSetup(c *gin.Context) {
 	c.HTML(http.StatusOK, "github_setup.tmpl", gin.H{"Target": url.String(), "Manifest": string(jsonManifest)})
 }
 
+func getGithubHostname() string {
+	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
+	if githubHostname == "" {
+		githubHostname = "github.com"
+	}
+	return githubHostname
+}
+
 // GithubSetupExchangeCode handles the user coming back from creating their app
 // A code query parameter is exchanged for this app's ID, key, and webhook_secret
 // Implements https://developer.github.com/apps/building-github-apps/creating-github-apps-from-a-manifest/#implementing-the-github-app-manifest-flow
@@ -225,6 +230,15 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 	if code == "" {
 		c.Error(fmt.Errorf("Ignoring callback, missing code query parameter"))
 	}
+
+	// TODO: to make tls verification configurable for debug purposes
+	//var transport *http.Transport = nil
+	//_, exists := os.LookupEnv("DIGGER_GITHUB_SKIP_TLS")
+	//if exists {
+	//	transport = &http.Transport{
+	//		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	//	}
+	//}
 
 	client, err := d.GithubClientProvider.NewClient(nil)
 	if err != nil {
@@ -1164,7 +1178,8 @@ func validateGithubCallback(githubClientProvider utils.GithubClientProvider, cli
 	}
 	httpClient := http.Client{}
 
-	reqURL := fmt.Sprintf("https://github.com/login/oauth/access_token?client_id=%s&client_secret=%s&code=%s", clientId, clientSecret, code)
+	githubHostname := getGithubHostname()
+	reqURL := fmt.Sprintf("https://%v/login/oauth/access_token?client_id=%s&client_secret=%s&code=%s", githubHostname, clientId, clientSecret, code)
 	req, err := http.NewRequest(http.MethodPost, reqURL, nil)
 	if err != nil {
 		return false, fmt.Errorf("could not create HTTP request: %v\n", err)
@@ -1189,6 +1204,13 @@ func validateGithubCallback(githubClientProvider utils.GithubClientProvider, cli
 		&oauth2.Token{AccessToken: t.AccessToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
+	//tc := &http.Client{
+	//	Transport: &oauth2.Transport{
+	//		Base:   httpClient.Transport,
+	//		Source: oauth2.ReuseTokenSource(nil, ts),
+	//	},
+	//}
+
 	client, err := githubClientProvider.NewClient(tc)
 	if err != nil {
 		log.Printf("could create github client: %v", err)
@@ -1198,6 +1220,11 @@ func validateGithubCallback(githubClientProvider utils.GithubClientProvider, cli
 	installationIdMatch := false
 	// list all installations for the user
 	installations, _, err := client.Apps.ListUserInstallations(ctx, nil)
+	if err != nil {
+		log.Printf("could not retrieve installations: %v", err)
+		return false, fmt.Errorf("could not retrieve installations: %v", installationId)
+	}
+	log.Printf("installations %v", installations)
 	for _, v := range installations {
 		log.Printf("installation id: %v\n", *v.ID)
 		if *v.ID == installationId {
