@@ -7,14 +7,16 @@ import (
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/controllers"
+	"github.com/diggerhq/digger/backend/utils"
 )
 
 //go:embed templates
 var templates embed.FS
 
 func main() {
-	ghController := controllers.GithubController{
-		CiBackendProvider: ci_backends.DefaultBackendProvider{},
+	ghController := controllers.DiggerController{
+		CiBackendProvider:    ci_backends.DefaultBackendProvider{},
+		GithubClientProvider: utils.DiggerGithubRealClientProvider{},
 	}
 	r := bootstrap.Bootstrap(templates, ghController)
 	r.GET("/", controllers.Home)
