@@ -321,7 +321,7 @@ type SetJobStatusRequest struct {
 	TerraformOutput string                                  `json:"terraform_output""`
 }
 
-func SetJobStatusForProject(c *gin.Context) {
+func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
@@ -359,7 +359,7 @@ func SetJobStatusForProject(c *gin.Context) {
 			return
 		}
 
-		client, _, err := utils.GetGithubClient(&utils.DiggerGithubRealClientProvider{}, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
+		client, _, err := utils.GetGithubClient(d.GithubClientProvider, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
 		if err != nil {
 			log.Printf("Error Creating github client: %v", err)
 		} else {
@@ -397,7 +397,7 @@ func SetJobStatusForProject(c *gin.Context) {
 					log.Printf("Recovered from panic while executing goroutine dispatching digger jobs: %v ", r)
 				}
 			}()
-			ghClientProvider := &utils.DiggerGithubRealClientProvider{}
+			ghClientProvider := d.GithubClientProvider
 			installationLink, err := models.DB.GetGithubInstallationLinkForOrg(orgId)
 			if err != nil {
 				log.Printf("Error fetching installation link: %v", err)
@@ -477,7 +477,7 @@ func SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
-	err = AutomergePRforBatchIfEnabled(&utils.DiggerGithubRealClientProvider{}, batch)
+	err = AutomergePRforBatchIfEnabled(d.GithubClientProvider, batch)
 	if err != nil {
 		log.Printf("Error merging PR with automerge option: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
@@ -491,7 +491,7 @@ func SetJobStatusForProject(c *gin.Context) {
 
 	}
 
-	UpdateCommentsForBatchGroup(&utils.DiggerGithubRealClientProvider{}, batch, res.Jobs)
+	UpdateCommentsForBatchGroup(d.GithubClientProvider, batch, res.Jobs)
 
 	c.JSON(http.StatusOK, res)
 }

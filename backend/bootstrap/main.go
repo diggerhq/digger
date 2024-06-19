@@ -24,7 +24,7 @@ import (
 // based on https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
 var Version = "dev"
 
-func Bootstrap(templates embed.FS, githubController controllers.GithubController) *gin.Engine {
+func Bootstrap(templates embed.FS, diggerController controllers.DiggerController) *gin.Engine {
 	defer segment.CloseClient()
 	initLogging()
 	cfg := config.DiggerConfig
@@ -79,8 +79,8 @@ func Bootstrap(templates embed.FS, githubController controllers.GithubController
 		r.LoadHTMLGlob("templates/*.tmpl")
 	}
 
-	r.POST("/github-app-webhook", githubController.GithubAppWebHook)
-	r.POST("/github-app-webhook/aam", controllers.GithubAppWebHookAfterMerge)
+	r.POST("/github-app-webhook", diggerController.GithubAppWebHook)
+	r.POST("/github-app-webhook/aam", diggerController.GithubAppWebHookAfterMerge)
 
 	tenantActionsGroup := r.Group("/api/tenants")
 	tenantActionsGroup.Use(middleware.CORSMiddleware())
@@ -88,10 +88,10 @@ func Bootstrap(templates embed.FS, githubController controllers.GithubController
 
 	githubGroup := r.Group("/github")
 	githubGroup.Use(middleware.GetWebMiddleware())
-	githubGroup.GET("/callback", controllers.GithubAppCallbackPage)
-	githubGroup.GET("/repos", controllers.GithubReposPage)
+	githubGroup.GET("/callback", diggerController.GithubAppCallbackPage)
+	githubGroup.GET("/repos", diggerController.GithubReposPage)
 	githubGroup.GET("/setup", controllers.GithubAppSetup)
-	githubGroup.GET("/exchange-code", controllers.GithubSetupExchangeCode)
+	githubGroup.GET("/exchange-code", diggerController.GithubSetupExchangeCode)
 
 	authorized := r.Group("/")
 	authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(models.CliJobAccessType, models.AccessPolicyType, models.AdminPolicyType))
@@ -114,7 +114,7 @@ func Bootstrap(templates embed.FS, githubController controllers.GithubController
 	authorized.GET("/repos/:repo/projects/:projectName/runs", controllers.RunHistoryForProject)
 	authorized.POST("/repos/:repo/projects/:projectName/runs", controllers.CreateRunForProject)
 
-	authorized.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", controllers.SetJobStatusForProject)
+	authorized.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", diggerController.SetJobStatusForProject)
 
 	authorized.GET("/repos/:repo/projects", controllers.FindProjectsForRepo)
 	authorized.POST("/repos/:repo/report-projects", controllers.ReportProjectsForRepo)
