@@ -14,7 +14,13 @@ import (
 	"github.com/google/go-github/v61/github"
 )
 
-func NewGitHubService(ghToken string, repoName string, owner string) GithubService {
+type GithubServiceProvider interface {
+	NewService(ghToken string, repoName string, owner string) GithubService
+}
+
+type GithubServiceProviderBasic struct{}
+
+func (_ GithubServiceProviderBasic) NewService(ghToken string, repoName string, owner string) GithubService {
 	client := github.NewClient(nil)
 	if ghToken != "" {
 		client = client.WithAuthToken(ghToken)
