@@ -19,7 +19,7 @@ func (gh DiggerGithubEEClientProvider) NewClient(netClient *net.Client) (*github
 	var err error
 	// checking for enterprise state
 	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
-	if githubHostname == "1" {
+	if githubHostname != "" {
 		githubEnterpriseBaseUrl := fmt.Sprintf("https://%v/api/v3/", githubHostname)
 		githubEnterpriseUploadUrl := fmt.Sprintf("https://%v/api/uploads/", githubHostname)
 		log.Printf("Info: Using digger enterprise instance: base url: %v", githubEnterpriseBaseUrl)
