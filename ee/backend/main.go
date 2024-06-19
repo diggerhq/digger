@@ -9,6 +9,7 @@ import (
 	"github.com/diggerhq/digger/backend/middleware"
 	ci_backends2 "github.com/diggerhq/digger/ee/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/backend/controllers"
+	"github.com/diggerhq/digger/ee/backend/providers/github"
 	"github.com/diggerhq/digger/libs/license"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -28,8 +29,9 @@ func main() {
 		log.Printf("error checking license %v", err)
 		os.Exit(1)
 	}
-	ghController := ce_controllers.GithubController{
-		CiBackendProvider: ci_backends2.EEBackendProvider{},
+	ghController := ce_controllers.DiggerController{
+		CiBackendProvider:    ci_backends2.EEBackendProvider{},
+		GithubClientProvider: github.DiggerGithubEEClientProvider{},
 	}
 
 	r := bootstrap.Bootstrap(templates, ghController)
