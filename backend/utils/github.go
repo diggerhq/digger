@@ -71,7 +71,13 @@ type DiggerGithubClientMockProvider struct {
 }
 
 type GithubClientProvider interface {
+	NewClient(netClient *net.Client) (*github.Client, error)
 	Get(githubAppId int64, installationId int64) (*github.Client, *string, error)
+}
+
+func (gh DiggerGithubRealClientProvider) NewClient(netClient *net.Client) (*github.Client, error) {
+	ghClient := github.NewClient(netClient)
+	return ghClient, nil
 }
 
 func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
@@ -103,12 +109,20 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 	if err != nil {
 		return nil, nil, fmt.Errorf("error initialising git app token: %v\n", err)
 	}
-	ghClient := github.NewClient(&net.Client{Transport: itr})
+	ghClient, err := gh.NewClient(&net.Client{Transport: itr})
+	if err != nil {
+		log.Printf("error creating new client: %v", err)
+	}
 	return ghClient, &token, nil
 }
 
-func (gh *DiggerGithubClientMockProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
+func (gh DiggerGithubClientMockProvider) NewClient(netClient *net.Client) (*github.Client, error) {
 	ghClient := github.NewClient(gh.MockedHTTPClient)
+	return ghClient, nil
+}
+
+func (gh *DiggerGithubClientMockProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
+	ghClient, _ := gh.NewClient(gh.MockedHTTPClient)
 	token := "token"
 	return ghClient, &token, nil
 }

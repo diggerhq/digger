@@ -191,9 +191,13 @@ func GithubAppSetup(c *gin.Context) {
 		},
 	}
 
+	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
+	if githubHostname == "" {
+		githubHostname = "github.com"
+	}
 	url := &url.URL{
 		Scheme: "https",
-		Host:   "github.com",
+		Host:   githubHostname,
 		Path:   "/settings/apps/new",
 	}
 
@@ -215,7 +219,7 @@ func GithubAppSetup(c *gin.Context) {
 // GithubSetupExchangeCode handles the user coming back from creating their app
 // A code query parameter is exchanged for this app's ID, key, and webhook_secret
 // Implements https://developer.github.com/apps/building-github-apps/creating-github-apps-from-a-manifest/#implementing-the-github-app-manifest-flow
-func GithubSetupExchangeCode(c *gin.Context) {
+func (d controllers.D) GithubSetupExchangeCode(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
 		c.Error(fmt.Errorf("Ignoring callback, missing code query parameter"))
