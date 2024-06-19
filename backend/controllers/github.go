@@ -36,13 +36,14 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type GithubController struct {
-	CiBackendProvider ci_backends.CiBackendProvider
+type DiggerController struct {
+	CiBackendProvider    ci_backends.CiBackendProvider
+	GithubClientProvider utils.GithubClientProvider
 }
 
-func (g GithubController) GithubAppWebHook(c *gin.Context) {
+func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
-	gh := &utils.DiggerGithubRealClientProvider{}
+	gh := d.GithubClientProvider
 	log.Printf("GithubAppWebHook")
 
 	payload, err := github.ValidatePayload(c.Request, []byte(os.Getenv("GITHUB_WEBHOOK_SECRET")))
@@ -100,7 +101,7 @@ func (g GithubController) GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusOK, "OK")
 			return
 		}
-		err := handleIssueCommentEvent(gh, event, g.CiBackendProvider)
+		err := handleIssueCommentEvent(gh, event, d.CiBackendProvider)
 		if err != nil {
 			log.Printf("handleIssueCommentEvent error: %v", err)
 			c.String(http.StatusInternalServerError, err.Error())
@@ -108,7 +109,7 @@ func (g GithubController) GithubAppWebHook(c *gin.Context) {
 		}
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
-		err := handlePullRequestEvent(gh, event, g.CiBackendProvider)
+		err := handlePullRequestEvent(gh, event, d.CiBackendProvider)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
 			c.String(http.StatusInternalServerError, err.Error())
@@ -191,9 +192,10 @@ func GithubAppSetup(c *gin.Context) {
 		},
 	}
 
+	githubHostname := getGithubHostname()
 	url := &url.URL{
 		Scheme: "https",
-		Host:   "github.com",
+		Host:   githubHostname,
 		Path:   "/settings/apps/new",
 	}
 
@@ -212,16 +214,36 @@ func GithubAppSetup(c *gin.Context) {
 	c.HTML(http.StatusOK, "github_setup.tmpl", gin.H{"Target": url.String(), "Manifest": string(jsonManifest)})
 }
 
+func getGithubHostname() string {
+	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
+	if githubHostname == "" {
+		githubHostname = "github.com"
+	}
+	return githubHostname
+}
+
 // GithubSetupExchangeCode handles the user coming back from creating their app
 // A code query parameter is exchanged for this app's ID, key, and webhook_secret
 // Implements https://developer.github.com/apps/building-github-apps/creating-github-apps-from-a-manifest/#implementing-the-github-app-manifest-flow
-func GithubSetupExchangeCode(c *gin.Context) {
+func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
 		c.Error(fmt.Errorf("Ignoring callback, missing code query parameter"))
 	}
 
-	client := github.NewClient(nil)
+	// TODO: to make tls verification configurable for debug purposes
+	//var transport *http.Transport = nil
+	//_, exists := os.LookupEnv("DIGGER_GITHUB_SKIP_TLS")
+	//if exists {
+	//	transport = &http.Transport{
+	//		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	//	}
+	//}
+
+	client, err := d.GithubClientProvider.NewClient(nil)
+	if err != nil {
+		c.Error(fmt.Errorf("could not create github client: %v", err))
+	}
 	cfg, _, err := client.Apps.CompleteAppManifest(context.Background(), code)
 	if err != nil {
 		c.Error(fmt.Errorf("Failed to exchange code for github app: %s", err))
@@ -584,6 +606,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
+			GithubClientProvider: gh,
 			GithubInstallationId: installationId,
 			RepoName:             repoName,
 			RepoOwner:            repoOwner,
@@ -870,6 +893,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
+			GithubClientProvider: gh,
 			GithubInstallationId: installationId,
 			RepoName:             repoName,
 			RepoOwner:            repoOwner,
@@ -1057,7 +1081,7 @@ jobs:
 	return nil
 }
 
-func GithubAppCallbackPage(c *gin.Context) {
+func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
 	//setupAction := c.Request.URL.Query()["setup_action"][0]
 	code := c.Request.URL.Query()["code"][0]
@@ -1077,7 +1101,7 @@ func GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	result, err := validateGithubCallback(clientId, clientSecret, code, installationId64)
+	result, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
 	if !result {
 		log.Printf("Failed to validated installation id, %v\n", err)
 		c.String(http.StatusInternalServerError, "Failed to validate installation_id.")
@@ -1100,7 +1124,7 @@ func GithubAppCallbackPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
 }
 
-func GithubReposPage(c *gin.Context) {
+func (d DiggerController) GithubReposPage(c *gin.Context) {
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 	if !exists {
 		log.Printf("Organisation ID not found in context")
@@ -1127,7 +1151,7 @@ func GithubReposPage(c *gin.Context) {
 		return
 	}
 
-	gh := &utils.DiggerGithubRealClientProvider{}
+	gh := d.GithubClientProvider
 	client, _, err := gh.Get(installations[0].GithubAppId, installations[0].GithubInstallationId)
 	if err != nil {
 		log.Printf("failed to create github client, %v", err)
@@ -1147,14 +1171,15 @@ func GithubReposPage(c *gin.Context) {
 
 // why this validation is needed: https://roadie.io/blog/avoid-leaking-github-org-data/
 // validation based on https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app , step 3
-func validateGithubCallback(clientId string, clientSecret string, code string, installationId int64) (bool, error) {
+func validateGithubCallback(githubClientProvider utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, error) {
 	ctx := context.Background()
 	type OAuthAccessResponse struct {
 		AccessToken string `json:"access_token"`
 	}
 	httpClient := http.Client{}
 
-	reqURL := fmt.Sprintf("https://github.com/login/oauth/access_token?client_id=%s&client_secret=%s&code=%s", clientId, clientSecret, code)
+	githubHostname := getGithubHostname()
+	reqURL := fmt.Sprintf("https://%v/login/oauth/access_token?client_id=%s&client_secret=%s&code=%s", githubHostname, clientId, clientSecret, code)
 	req, err := http.NewRequest(http.MethodPost, reqURL, nil)
 	if err != nil {
 		return false, fmt.Errorf("could not create HTTP request: %v\n", err)
@@ -1179,11 +1204,27 @@ func validateGithubCallback(clientId string, clientSecret string, code string, i
 		&oauth2.Token{AccessToken: t.AccessToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
+	//tc := &http.Client{
+	//	Transport: &oauth2.Transport{
+	//		Base:   httpClient.Transport,
+	//		Source: oauth2.ReuseTokenSource(nil, ts),
+	//	},
+	//}
+
+	client, err := githubClientProvider.NewClient(tc)
+	if err != nil {
+		log.Printf("could create github client: %v", err)
+		return false, fmt.Errorf("could not create github client: %v", err)
+	}
 
 	installationIdMatch := false
 	// list all installations for the user
 	installations, _, err := client.Apps.ListUserInstallations(ctx, nil)
+	if err != nil {
+		log.Printf("could not retrieve installations: %v", err)
+		return false, fmt.Errorf("could not retrieve installations: %v", installationId)
+	}
+	log.Printf("installations %v", installations)
 	for _, v := range installations {
 		log.Printf("installation id: %v\n", *v.ID)
 		if *v.ID == installationId {

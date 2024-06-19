@@ -18,9 +18,9 @@ import (
 	"strings"
 )
 
-func GithubAppWebHookAfterMerge(c *gin.Context) {
+func (d DiggerController) GithubAppWebHookAfterMerge(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
-	gh := &utils.DiggerGithubRealClientProvider{}
+	gh := d.GithubClientProvider
 	log.Printf("GithubAppWebHook")
 
 	payload, err := github.ValidatePayload(c.Request, []byte(os.Getenv("GITHUB_WEBHOOK_SECRET")))
