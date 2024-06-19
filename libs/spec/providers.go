@@ -175,7 +175,7 @@ func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (orchestrator.PullRequestServ
 		if token == "" {
 			return nil, fmt.Errorf("failed to get githbu service: GITHUB_TOKEN not specified")
 		}
-		return github.NewGitHubService(token, vcsSpec.RepoName, vcsSpec.RepoOwner), nil
+		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner), nil
 	default:
 		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
 	}

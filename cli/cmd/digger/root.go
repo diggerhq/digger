@@ -36,8 +36,8 @@ func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrat
 	switch r.Reporter {
 	case "github":
 		repoOwner, repositoryName := utils.ParseRepoNamespace(r.RepoNamespace)
-		prService = orchestrator_github.NewGitHubService(r.GithubToken, repositoryName, repoOwner)
-		orgService = orchestrator_github.NewGitHubService(r.GithubToken, r.RepoNamespace, r.Actor)
+		prService = orchestrator_github.GithubServiceProviderBasic{}.NewService(r.GithubToken, repositoryName, repoOwner)
+		orgService = orchestrator_github.GithubServiceProviderBasic{}.NewService(r.GithubToken, r.RepoNamespace, r.Actor)
 		reporter = &reporting.CiReporter{
 			CiService:         prService,
 			ReportStrategy:    ReportStrategy,

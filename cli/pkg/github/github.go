@@ -31,7 +31,7 @@ import (
 	"time"
 )
 
-func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotifcationProvider drift.DriftNotificationProvider) {
+func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotifcationProvider drift.DriftNotificationProvider) {
 	log.Printf("Using GitHub.\n")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -80,7 +80,7 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 
 	repoOwner, repositoryName := utils.ParseRepoNamespace(ghRepository)
-	githubPrService := dg_github.NewGitHubService(ghToken, repositoryName, repoOwner)
+	githubPrService := githubServiceProvider.NewService(ghToken, repositoryName, repoOwner)
 
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -139,7 +139,7 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get changed files: %v", err), 4)
 		}
-		
+
 		diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, files)
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
