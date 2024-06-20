@@ -20,8 +20,7 @@ func (gh DiggerGithubEEClientProvider) NewClient(netClient *net.Client) (*github
 	// checking for enterprise state
 	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
 	if githubHostname != "" {
-		githubEnterpriseBaseUrl := fmt.Sprintf("https://%v/api/v3/", githubHostname)
-		githubEnterpriseUploadUrl := fmt.Sprintf("https://%v/api/uploads/", githubHostname)
+		githubEnterpriseBaseUrl, githubEnterpriseUploadUrl := getGithubEnterpriseUrls(githubHostname)
 		log.Printf("Info: Using digger enterprise instance: base url: %v", githubEnterpriseBaseUrl)
 		ghClient, err = ghClient.WithEnterpriseURLs(githubEnterpriseBaseUrl, githubEnterpriseUploadUrl)
 		if err != nil {
@@ -29,6 +28,12 @@ func (gh DiggerGithubEEClientProvider) NewClient(netClient *net.Client) (*github
 		}
 	}
 	return ghClient, nil
+}
+
+func getGithubEnterpriseUrls(githubHostname string) (string, string) {
+	githubEnterpriseBaseUrl := fmt.Sprintf("https://%v/api/v3/", githubHostname)
+	githubEnterpriseUploadUrl := fmt.Sprintf("https://%v/api/uploads/", githubHostname)
+	return githubEnterpriseBaseUrl, githubEnterpriseUploadUrl
 }
 
 func (gh DiggerGithubEEClientProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
@@ -65,9 +70,9 @@ func (gh DiggerGithubEEClientProvider) Get(githubAppId int64, installationId int
 		return nil, nil, fmt.Errorf("could not get digger client: %v", err)
 	}
 	// checking for enterprise state
-	useGithubEnterprise := os.Getenv("DIGGER_USE_GITHUB_ENTERPRISE")
-	if useGithubEnterprise != "" {
-		githubEnterpriseBaseUrl := os.Getenv("DIGGER_GITHUB_ENTERPRISE_BASE_URL")
+	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
+	if githubHostname != "" {
+		githubEnterpriseBaseUrl, _ := getGithubEnterpriseUrls(githubHostname)
 		itr.BaseURL = githubEnterpriseBaseUrl
 	}
 	token, err := itr.Token(context.Background())
