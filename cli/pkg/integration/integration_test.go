@@ -43,7 +43,7 @@ func getProjectLockForTests() (error, *locking.PullRequestLock) {
 	repoOwner := "diggerhq"
 	repositoryName := "test_dynamodb_lock"
 	ghToken := "token"
-	githubPrService := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
+	githubPrService, _ := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
 	reporter := reporting.CiReporter{
 		CiService:      &githubPrService,
 		PrNumber:       1,
@@ -388,7 +388,7 @@ func TestHappyPath(t *testing.T) {
 	ghEvent := parsedNewPullRequestContext.Event
 	repoOwner := parsedNewPullRequestContext.RepositoryOwner
 	repositoryName := parsedNewPullRequestContext.Repository
-	githubPrService := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
+	githubPrService, _ := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
@@ -545,7 +545,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	repoOwner := parsedNewPullRequestContext.RepositoryOwner
 	repositoryName := parsedNewPullRequestContext.Repository
 	diggerProjectNamespace := repoOwner + "/" + repositoryName
-	githubPrService := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
+	githubPrService, _ := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)
 
@@ -765,7 +765,7 @@ workflows:
 	ghEvent := parsedNewPullRequestContext.Event
 	repoOwner := parsedNewPullRequestContext.RepositoryOwner
 	repositoryName := parsedNewPullRequestContext.Repository
-	githubPrService := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
+	githubPrService, _ := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
 	diggerProjectNamespace := repoOwner + "/" + repositoryName
 
 	assert.Equal(t, "pull_request", parsedNewPullRequestContext.EventName)

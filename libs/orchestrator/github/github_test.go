@@ -115,7 +115,7 @@ func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
 }
 
 func TestFindAllChangedFilesOfPR(t *testing.T) {
-	githubPrService := GithubServiceProviderBasic{}.NewService("", "digger", "diggerhq")
+	githubPrService, _ := GithubServiceProviderBasic{}.NewService("", "digger", "diggerhq")
 	files, _ := githubPrService.GetChangedFiles(98)
 	// 45 changed files including 1 renamed file so the previous filename is included
 	assert.Equal(t, 46, len(files))
