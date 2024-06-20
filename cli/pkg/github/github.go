@@ -80,7 +80,10 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 
 	repoOwner, repositoryName := utils.ParseRepoNamespace(ghRepository)
-	githubPrService := githubServiceProvider.NewService(ghToken, repositoryName, repoOwner)
+	githubPrService, err := githubServiceProvider.NewService(ghToken, repositoryName, repoOwner)
+	if err != nil {
+		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not create pr service: %v", err), 4)
+	}
 
 	currentDir, err := os.Getwd()
 	if err != nil {

@@ -15,12 +15,12 @@ import (
 )
 
 type GithubServiceProvider interface {
-	NewService(ghToken string, repoName string, owner string) GithubService
+	NewService(ghToken string, repoName string, owner string) (GithubService, error)
 }
 
 type GithubServiceProviderBasic struct{}
 
-func (_ GithubServiceProviderBasic) NewService(ghToken string, repoName string, owner string) GithubService {
+func (_ GithubServiceProviderBasic) NewService(ghToken string, repoName string, owner string) (GithubService, error) {
 	client := github.NewClient(nil)
 	if ghToken != "" {
 		client = client.WithAuthToken(ghToken)
@@ -30,7 +30,7 @@ func (_ GithubServiceProviderBasic) NewService(ghToken string, repoName string, 
 		Client:   client,
 		RepoName: repoName,
 		Owner:    owner,
-	}
+	}, nil
 }
 
 type GithubService struct {
