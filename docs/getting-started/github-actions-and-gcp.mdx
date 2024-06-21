@@ -82,7 +82,6 @@ jobs:
         uses: diggerhq/digger@vLatest
         with:
           setup-aws: false
-          disable-locking: true
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

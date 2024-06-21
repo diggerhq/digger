@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
 	locking2 "github.com/diggerhq/digger/libs/locking"
 	"log"
@@ -204,7 +205,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	}
 
 	projectLock := &locking2.PullRequestLock{
-		Enable:           config.PrLocks,
 		InternalLock:     lock,
 		Reporter:         reporter,
 		CIService:        prService,

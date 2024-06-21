@@ -511,7 +511,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	if config.PrLocks {
 		for _, project := range impactedProjects {
 			prLock := dg_locking.PullRequestLock{
-				Enable: config.PrLocks,
 				InternalLock: locking.BackendDBLock{
 					OrgId: organisationId,
 				},
@@ -794,7 +793,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	if config.PrLocks {
 		for _, project := range impactedProjects {
 			prLock := dg_locking.PullRequestLock{
-				Enable: config.PrLocks,
 				InternalLock: locking.BackendDBLock{
 					OrgId: orgId,
 				},
