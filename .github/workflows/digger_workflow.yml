@@ -10,6 +10,8 @@ on:
         required: true
       comment_id:
         required: true
+      run_name:
+        required: false
 
 jobs:
   digger-job:
