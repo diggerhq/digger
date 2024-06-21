@@ -22,6 +22,7 @@ auto_merge: true
 ```yml
 traverse_to_nested_projects: true
 auto_merge: false
+pr_locks: true
 projects:
   - name: prod
     dir: prod
@@ -101,6 +102,7 @@ workflows:
 | --------------------------- | ---------------------------------------------------------- | ------- | -------- | ------------------------------------------------------ | ----- |
 | telemetry                   | boolean                                                    | true    | no       | allows collecting anonymised usage and debugging data  |       |
 | auto_merge                  | boolean                                                    | false   | no       | automatically merge pull requests when all checks pass |       |
+| pr_locks                    | boolean                                                    | true    | no       | Enable PR-level locking                                |       |
 | projects                    | array of [Projects](/reference/digger.yml#project)         | \[\]    | no       | list of projects to manage                             |       |
 | generate_projects           | [GenerateProjects](/reference/digger.yml#generateprojects) | {}      | no       | generate projects from a directory structure           |       |
 | workflows                   | map of [Workflows](/reference/digger.yml#workflows)        | {}      | no       | workflows and configurations to run on events          |       |
