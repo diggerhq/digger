@@ -89,7 +89,7 @@ func RunSpec(
 
 	// TODO: do not require conversion to gh service
 	ghService := prService.(orchestrator_github.GithubService)
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, ghService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId64, "")
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, ghService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId64, "", true)
 	if !allAppliesSuccess || err != nil {
 		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {

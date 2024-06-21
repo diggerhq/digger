@@ -201,7 +201,7 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(jobSpec)}
 
-		allAppliesSuccess, _, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, reportTerraformOutput, commentId64, currentDir)
+		allAppliesSuccess, _, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, reportTerraformOutput, commentId64, currentDir, true)
 		if !allAppliesSuccess || err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "", "")
 			if reportingError != nil {
@@ -383,7 +383,7 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir, diggerConfig.PrLocks)
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			// aggregate status checks: failure
