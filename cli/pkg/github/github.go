@@ -201,7 +201,7 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs := []orchestrator.Job{orchestrator.JsonToJob(jobSpec)}
 
-		allAppliesSuccess, _, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, reportTerraformOutput, commentId64, currentDir, true)
+		allAppliesSuccess, _, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, inputs.Id, true, reportTerraformOutput, commentId64, currentDir)
 		if !allAppliesSuccess || err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "", "")
 			if reportingError != nil {
@@ -219,6 +219,11 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
 	log.Printf("Digger digger_config read successfully\n")
+
+	if diggerConfig.PrLocks == false {
+		log.Printf("info: Using noop lock as configured in digger.yml")
+		lock = core_locking.NoOpLock{}
+	}
 
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
@@ -383,7 +388,7 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir, diggerConfig.PrLocks)
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			// aggregate status checks: failure

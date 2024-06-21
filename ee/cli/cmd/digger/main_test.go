@@ -901,7 +901,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		assert.NoError(t, err)
 		log.Println(err)
 	}
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, 1, "dir", true)
+	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, 1, "dir")
 
 	assert.NoError(t, err)
 	if err != nil {

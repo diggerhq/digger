@@ -65,7 +65,7 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string, enableLocking bool) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
 
 	defer reporter.Flush()
 
@@ -94,7 +94,7 @@ func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService,
 				continue
 			}
 
-			executorResult, output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.PullRequestNumber, job.RequestedBy, reporter, lock, enableLocking, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
+			executorResult, output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.PullRequestNumber, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
 			if err != nil {
 				reportErr := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
 				if reportErr != nil {
@@ -184,7 +184,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, enableLocking bool, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, command, job.PullRequestNumber, requestedBy, []string{})
@@ -205,7 +205,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	}
 
 	projectLock := &locking2.PullRequestLock{
-		Enable:           enableLocking,
 		InternalLock:     lock,
 		Reporter:         reporter,
 		CIService:        prService,

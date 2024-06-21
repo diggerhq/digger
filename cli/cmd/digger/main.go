@@ -44,7 +44,7 @@ func exec(actor string, projectName string, repoNamespace string, command string
 	}
 
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 123, currentDir, true)
+	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 123, currentDir)
 }
 
 /*
