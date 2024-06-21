@@ -184,6 +184,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.MentionDriftedProjectsInPR = false
 	}
 
+	if diggerYaml.PrLocks != nil {
+		diggerConfig.PrLocks = *diggerYaml.PrLocks
+	} else {
+		diggerConfig.PrLocks = true
+	}
+
 	if diggerYaml.Telemetry != nil {
 		diggerConfig.Telemetry = *diggerYaml.Telemetry
 	} else {

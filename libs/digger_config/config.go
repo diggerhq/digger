@@ -8,6 +8,7 @@ type DiggerConfig struct {
 	AllowDraftPRs              bool
 	CommentRenderMode          string
 	DependencyConfiguration    DependencyConfiguration
+	PrLocks                    bool
 	Projects                   []Project
 	AutoMerge                  bool
 	Telemetry                  bool

@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/libs/comment_utils/summary"
-
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
@@ -206,6 +204,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	}
 
 	projectLock := &locking2.PullRequestLock{
+		Enable:           config.PrLocks,
 		InternalLock:     lock,
 		Reporter:         reporter,
 		CIService:        prService,

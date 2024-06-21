@@ -25,6 +25,7 @@ import (
 )
 
 type PullRequestLock struct {
+	Enable           bool
 	InternalLock     Lock
 	CIService        orchestrator.PullRequestService
 	Reporter         reporting.Reporter
@@ -62,7 +63,11 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 		return false, nil
 	}
 
-	existingLockTransactionId, err := projectLock.InternalLock.GetLock(lockId)
+	var existingLockTransactionId *int
+	if projectLock.Enable {
+		existingLockTransactionId, err = projectLock.InternalLock.GetLock(lockId)
+	}
+
 	if err != nil {
 		log.Printf("failed to get lock: %v\n", err)
 		return false, err
