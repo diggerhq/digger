@@ -220,6 +220,11 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	}
 	log.Printf("Digger digger_config read successfully\n")
 
+	if diggerConfig.PrLocks == false {
+		log.Printf("info: Using noop lock as configured in digger.yml")
+		lock = core_locking.NoOpLock{}
+	}
+
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
 		log.Fatalf("error: %v", err)

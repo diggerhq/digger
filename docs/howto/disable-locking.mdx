@@ -1,0 +1,13 @@
+---
+title: "Disable locking"
+---
+
+In order to disable locking repo wide you can add a top-level flag to your digger.yml:
+
+```
+pr_locks: false
+
+projects:
+   - name: dev
+     dir: dev/
+```
