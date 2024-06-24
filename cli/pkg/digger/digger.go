@@ -87,7 +87,7 @@ func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService,
 			}
 
 			if !allowedToPerformCommand {
-				msg := reportPolicyError(job.ProjectName, job.RequestedBy, command, reporter)
+				msg := reportPolicyError(job.ProjectName, command, job.RequestedBy, reporter)
 				log.Printf("Skipping command ... %v for project %v", command, job.ProjectName)
 				log.Println(msg)
 				appliesPerProject[job.ProjectName] = false
