@@ -11,7 +11,7 @@ type CommentUpdaterProviderAdvanced struct {
 
 func (c CommentUpdaterProviderAdvanced) Get(config digger_config.DiggerConfig) (comment_updater.CommentUpdater, error) {
 	if config.CommentRenderMode == digger_config.CommentRenderModeBasic {
-		return AdvancedCommentUpdater{}, nil
+		return comment_updater.BasicCommentUpdater{}, nil
 	} else if config.CommentRenderMode == digger_config.CommentRenderModeGroupByModule {
 		commentUpdater := comment_updater.BasicCommentUpdater{}
 		return commentUpdater, nil
