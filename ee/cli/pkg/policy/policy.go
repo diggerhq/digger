@@ -40,11 +40,11 @@ func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName
 
 		log.Printf("loading repo orgAccess %v repoAccess %v projectAcces %v", orgAccesspath, repoAccesspath, projectAccessPath)
 		var err error
-		contents, err = getContents(orgAccesspath)
+		contents, err = getContents(projectAccessPath)
 		if os.IsNotExist(err) {
 			contents, err = getContents(repoAccesspath)
 			if os.IsNotExist(err) {
-				contents, err = getContents(projectAccessPath)
+				contents, err = getContents(orgAccesspath)
 				if os.IsNotExist(err) {
 					return nil
 				} else {
