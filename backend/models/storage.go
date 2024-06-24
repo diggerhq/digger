@@ -1013,8 +1013,8 @@ func (db *Database) CreateOrganisation(name string, externalSource string, tenan
 	return org, nil
 }
 
-func (db *Database) CreateProject(name string, org *Organisation, repo *Repo) (*Project, error) {
-	project := &Project{Name: name, Organisation: org, Repo: repo, Status: ProjectActive}
+func (db *Database) CreateProject(name string, dir string, org *Organisation, repo *Repo) (*Project, error) {
+	project := &Project{Name: name, Dir dir, Organisation: org, Repo: repo, Status: ProjectActive}
 	result := db.GormDB.Save(project)
 	if result.Error != nil {
 		log.Printf("Failed to create project: %v, error: %v\n", name, result.Error)
@@ -1118,77 +1118,35 @@ func (db *Database) CreateGithubAppInstallation(installationId int64, githubAppI
 	return installation, nil
 }
 
-func validateDiggerConfigYaml(configYaml string) (*configuration.DiggerConfig, error) {
-	diggerConfig, _, _, err := configuration.LoadDiggerConfigFromString(configYaml, "./")
-	if err != nil {
-		return nil, fmt.Errorf("validation error, %w", err)
-	}
-	return diggerConfig, nil
-}
-
-func (db *Database) UpdateRepoDiggerConfig(orgId any, diggerConfigYaml string, repo *Repo) ([]string, error) {
-	messages := make([]string, 0)
-	if diggerConfigYaml == "" {
-		return nil, fmt.Errorf("digger config can't be empty")
-	}
-
+func (db *Database) UpdateRepoDiggerConfig(orgId any, config configuration.DiggerConfig, diggerYmlStr string, repo *Repo) error {
 	log.Printf("UpdateRepoDiggerConfig, repo: %v\n", repo)
 
 	org, err := db.GetOrganisationById(orgId)
 	if err != nil {
-		return nil, err
+		return  err
 	}
 
-	diggerConfig, err := validateDiggerConfigYaml(diggerConfigYaml)
-	if err != nil {
-		return nil, err
-	}
-
-	repo.DiggerConfig = diggerConfigYaml
+	repo.DiggerConfig = diggerYmlStr
 	tx := db.GormDB.Save(&repo)
 	if tx.Error != nil {
-		return nil, fmt.Errorf("failed to save digger config to database, %v", err)
+		return fmt.Errorf("failed to save digger config to database, %v", err)
 	}
 
-	for _, dc := range diggerConfig.Projects {
+	for _, dc := range config.Projects {
 		projectName := dc.Name
 		p, err := db.GetProjectByName(orgId, repo, projectName)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if p == nil {
-			_, err := db.CreateProject(projectName, org, repo)
+			_, err := db.CreateProject(projectName, p.Dir, org, repo)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			messages = append(messages, fmt.Sprintf("Project %s has been created\n", projectName))
-		} else {
-			messages = append(messages, fmt.Sprintf("Project %s already exist\n", projectName))
 		}
 	}
 
-	// check if there are any projects in this repo that are not in the config anymore,
-	repoProjects, err := db.GetProjectByRepo(orgId, repo)
-	if err != nil {
-		return nil, err
-	}
-	for _, rp := range repoProjects {
-		projectFound := false
-		for _, cp := range diggerConfig.Projects {
-			if cp.Name == rp.Name {
-				projectFound = true
-			}
-		}
-		if !projectFound {
-			log.Printf("Project %v is not in a config anymore\n", rp.Name)
-			rp.Status = ProjectInactive
-			result := db.GormDB.Save(&rp)
-			if result.Error != nil {
-				return nil, result.Error
-			}
-		}
-	}
-	return messages, nil
+	return nil
 }
 
 func (db *Database) CreateDiggerLock(resource string, lockId int, orgId uint) (*DiggerLock, error) {

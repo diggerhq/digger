@@ -67,7 +67,8 @@ const (
 type Project struct {
 	gorm.Model
 	Name              string `gorm:"uniqueIndex:idx_project"`
-	OrganisationID    uint   `gorm:"uniqueIndex:idx_project"`
+	Dir               string
+	OrganisationID    uint `gorm:"uniqueIndex:idx_project"`
 	Organisation      *Organisation
 	RepoID            uint `gorm:"uniqueIndex:idx_project"`
 	Repo              *Repo

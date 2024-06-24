@@ -436,11 +436,19 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 		}
 		utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
 			dat, err := os.ReadFile(path.Join(dir, "digger.yml"))
-			//TODO: fail here and return failure to main fn (need to refactor CloneGitRepoAndDoAction for that
 			if err != nil {
 				log.Printf("ERROR fetching digger.yml file: %v", err)
+				return err
 			}
-			models.DB.UpdateRepoDiggerConfig(link.OrganisationId, string(dat), repo)
+			config, _, _, err := dg_configuration.LoadDiggerConfig(dir, true, nil)
+			if err != nil {
+				log.Printf("failed to load digger config: %v", err)
+				return err
+			}
+			err = models.DB.UpdateRepoDiggerConfig(link.OrganisationId, *config, string(dat), repo)
+			if err != nil {
+				log.Printf("failed to update database with digger config: %v", err)
+			}
 			return nil
 		})
 	}
