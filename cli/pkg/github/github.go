@@ -10,7 +10,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
-	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
@@ -31,7 +30,7 @@ import (
 	"time"
 )
 
-func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotifcationProvider drift.DriftNotificationProvider) {
+func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotifcationProvider drift.DriftNotificationProvider) {
 	log.Printf("Using GitHub.\n")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -39,6 +38,12 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 	} else {
 		usage.SendUsageRecord("", "log", "non github initialisation")
 	}
+
+	// default policy checker for backwards compatability, will be overriden in orchestrator flow
+	hostName := os.Getenv("DIGGER_HOSTNAME")
+	token := os.Getenv("DIGGER_TOKEN")
+	orgName := os.Getenv("DIGGER_ORGANISATION")
+	var policyChecker, _ = policyCheckerProvider.Get(hostName, token, orgName)
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
@@ -119,7 +124,8 @@ func GitHubCI(lock core_locking.Lock, policyChecker core_policy.Checker, backend
 		if jobSpec.BackendHostname != "" && jobSpec.BackendOrganisationName != "" && jobSpec.BackendJobToken != "" {
 			log.Printf("Found settings sent by backend in jobSpec string, overriding backendApi and policyCheckecd r. setting: (orgName: %v BackedHost: %v token: %v)", jobSpec.BackendOrganisationName, jobSpec.BackendHostname, "****")
 			backendApi = backend.NewBackendApi(jobSpec.BackendHostname, jobSpec.BackendJobToken)
-			policyChecker = policy.NewPolicyChecker(jobSpec.BackendHostname, jobSpec.BackendOrganisationName, jobSpec.BackendJobToken)
+			policyChecker, _ = policyCheckerProvider.Get(jobSpec.BackendHostname, jobSpec.BackendOrganisationName, jobSpec.BackendJobToken)
+
 		} else {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Missing values from job spec: hostname, orgName, token: %v %v", jobSpec.BackendHostname, jobSpec.BackendOrganisationName), 4)
 		}

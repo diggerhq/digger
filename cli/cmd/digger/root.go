@@ -6,7 +6,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
-	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	locking2 "github.com/diggerhq/digger/libs/locking"
@@ -90,9 +89,9 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
-	orgName := os.Getenv("DIGGER_ORGANISATION")
+	//orgName := os.Getenv("DIGGER_ORGANISATION")
 	BackendApi = backend.NewBackendApi(hostName, token)
-	PolicyChecker = policy.NewPolicyChecker(hostName, orgName, token)
+	//PolicyChecker = policy.NewPolicyChecker(hostName, orgName, token)
 
 	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
 		ReportStrategy = &reporting.CommentPerRunStrategy{
