@@ -18,6 +18,10 @@ type Checker interface {
 	CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectname string) (bool, error)
 }
 
+type PolicyCheckerProvider interface {
+	Get(hostname string, organisationName string, authToken string) (Checker, error)
+}
+
 type AccessPolicyContext struct {
 	SCMOrganisation  string
 	SCMrepository    string
