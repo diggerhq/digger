@@ -2,3 +2,6 @@ projects:
   - name: dev
     dir: .
     opentofu: true
+  - name: staging
+    dir: .
+    opentofu: true
