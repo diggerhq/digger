@@ -59,7 +59,7 @@ func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName
 	var contents string
 	err := utils.CloneGitRepoAndDoAction(p.ManagementRepoUrl, "main", p.GitToken, func(basePath string) error {
 		// we start with the project directory path prefixes as the highest priority
-		prefixes := GetPrefixesForPath(projectDir, fileName)
+		prefixes := GetPrefixesForPath(path.Join(basePath, projectDir), fileName)
 
 		// we also add a known location as a least priority item
 		orgAccesspath := path.Join(basePath, "policies", fileName)
