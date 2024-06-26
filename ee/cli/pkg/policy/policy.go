@@ -75,7 +75,6 @@ func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName
 		prefixes = append(prefixes, repoAccesspath)
 		prefixes = append(prefixes, orgAccesspath)
 
-		log.Printf("loading repo with following presedence %v", prefixes)
 		for _, pathPrefix := range prefixes {
 			var err error
 			contents, err = getContents(pathPrefix)
