@@ -50,11 +50,11 @@ func (s *OpaExamplePolicyProvider) GetOrganisation() string {
 type DiggerDefaultPolicyProvider struct {
 }
 
-func (s *DiggerDefaultPolicyProvider) GetAccessPolicy(_ string, _ string, _ string) (string, error) {
+func (s *DiggerDefaultPolicyProvider) GetAccessPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return DefaultAccessPolicy, nil
 }
 
-func (s *DiggerDefaultPolicyProvider) GetPlanPolicy(_ string, _ string, _ string) (string, error) {
+func (s *DiggerDefaultPolicyProvider) GetPlanPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n", nil
 }
 
@@ -69,7 +69,7 @@ func (s *DiggerDefaultPolicyProvider) GetOrganisation() string {
 type DiggerExamplePolicyProvider struct {
 }
 
-func (s *DiggerExamplePolicyProvider) GetAccessPolicy(_ string, _ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider) GetAccessPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"user_permissions := {\n" +
@@ -85,7 +85,7 @@ func (s *DiggerExamplePolicyProvider) GetAccessPolicy(_ string, _ string, _ stri
 		"", nil
 }
 
-func (s *DiggerExamplePolicyProvider) GetPlanPolicy(_ string, _ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider) GetPlanPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n", nil
 }
 
@@ -100,7 +100,7 @@ func (s *DiggerExamplePolicyProvider) GetOrganisation() string {
 type DiggerExamplePolicyProvider2 struct {
 }
 
-func (s *DiggerExamplePolicyProvider2) GetAccessPolicy(_ string, _ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider2) GetAccessPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n" +
 		"\n" +
 		"user_permissions := {\n" +
@@ -119,7 +119,7 @@ func (s *DiggerExamplePolicyProvider2) GetAccessPolicy(_ string, _ string, _ str
 		"", nil
 }
 
-func (s *DiggerExamplePolicyProvider2) GetPlanPolicy(_ string, _ string, _ string) (string, error) {
+func (s *DiggerExamplePolicyProvider2) GetPlanPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n\ndeny[sprintf(message, [resource.address])] {\n  message := \"Cannot create EC2 instances!\"\n  resource := input.terraform.resource_changes[_]\n  resource.change.actions[_] == \"create\"\n  resource[type] == \"aws_instance\"\n}\n", nil
 }
 
@@ -223,7 +223,7 @@ func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
 			ciService := utils.MockPullRequestManager{Teams: []string{"engineering"}}
-			got, err := p.CheckAccessPolicy(ciService, nil, tt.organisation, tt.name, tt.name, tt.command, nil, tt.requestedBy, tt.planPolicyViolations)
+			got, err := p.CheckAccessPolicy(ciService, nil, tt.organisation, tt.name, tt.name, "", tt.command, nil, tt.requestedBy, tt.planPolicyViolations)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.CheckAccessPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -275,7 +275,7 @@ func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 			var p = &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
-			got, _, err := p.CheckPlanPolicy("", "", "", tt.planJsonOutput)
+			got, _, err := p.CheckPlanPolicy("", "", "", "", tt.planJsonOutput)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.CheckPlanPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
