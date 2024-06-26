@@ -48,7 +48,12 @@ func GetPrefixesForPath(path string, fileName string) []string {
 		prefixes = append(prefixes, filepath.Join(parts[:i+1]...))
 	}
 	prefixes = lo.Map(prefixes, func(item string, index int) string {
-		return item + string(filepath.Separator) + fileName
+		// if it was an absolute path to start with then result should be absolute
+		if parts[0] == "" {
+			return string(filepath.Separator) + item + string(filepath.Separator) + fileName
+		} else {
+			return item + string(filepath.Separator) + fileName
+		}
 	})
 	slices.Reverse(prefixes)
 
