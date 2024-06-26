@@ -25,11 +25,11 @@ func (tf *MockTerraform) Plan() (bool, string, string, error) {
 type MockPolicyChecker struct {
 }
 
-func (t MockPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, command string, ptr *int, requestedBy string, planPolicyViolations []string) (bool, error) {
+func (t MockPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 	return false, nil
 }
 
-func (t MockPolicyChecker) CheckPlanPolicy(projectName string, SCMOrganisation string, command string, requestedBy string) (bool, []string, error) {
+func (t MockPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectname string, projectDir string, planOutput string) (bool, []string, error) {
 	return false, nil, nil
 }
 
