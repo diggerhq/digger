@@ -35,11 +35,11 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) CheckAccessPolicy(_ orchestrator.OrgService, _ *orchestrator.PullRequestService, _ string, _ string, _ string, _ string, _ *int, _ string, _ []string) (bool, error) {
+func (p NoOpPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 	return true, nil
 }
 
-func (p NoOpPolicyChecker) CheckPlanPolicy(_ string, _ string, _ string, _ string) (bool, []string, error) {
+func (p NoOpPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectname string, projectDir string, planOutput string) (bool, []string, error) {
 	return true, nil, nil
 }
 
@@ -181,7 +181,7 @@ func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, pr
 }
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
-func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo string, projectName string) (string, error) {
+func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo string, projectName string, projectDir string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 	content, resp, err := getAccessPolicyForNamespace(&p, namespace, projectName)
 	if err != nil {
@@ -211,7 +211,7 @@ func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo stri
 	}
 }
 
-func (p DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo string, projectName string) (string, error) {
+func (p DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo string, projectName string, projectDir string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 	content, resp, err := getPlanPolicyForNamespace(&p, namespace, projectName)
 	if err != nil {
@@ -264,9 +264,9 @@ type DiggerPolicyChecker struct {
 }
 
 // TODO refactor to use AccessPolicyContext - too many arguments
-func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
+func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 
-	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName)
+	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName, projectDir)
 
 	if err != nil {
 		log.Printf("Error while fetching policy: %v", err)
@@ -331,8 +331,8 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService
 	return true, nil
 }
 
-func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectName string, planOutput string) (bool, []string, error) {
-	policy, err := p.PolicyProvider.GetPlanPolicy(SCMOrganisation, SCMrepository, projectName)
+func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectname string, projectDir string, planOutput string) (bool, []string, error) {
+	policy, err := p.PolicyProvider.GetPlanPolicy(SCMOrganisation, SCMrepository, projectname, projectDir)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed get plan policy: %v", err)
 	}
