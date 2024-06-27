@@ -468,6 +468,12 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
+		ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+		if err != nil {
+			log.Printf("GetGithubService error: %v", err)
+			return fmt.Errorf("error getting ghService to post error comment")
+		}
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
 	}
@@ -747,6 +753,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
+		ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+		if err != nil {
+			log.Printf("GetGithubService error: %v", err)
+			return fmt.Errorf("error getting ghService to post error comment")
+		}
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
 	}
