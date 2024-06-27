@@ -672,6 +672,7 @@ func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	return diggerYmlStr, ghService, config, dependencyGraph, nil
 }
 
+// TODO: Refactor this func to receive ghService as input
 func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, error) {
 	ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
