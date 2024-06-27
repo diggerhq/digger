@@ -468,6 +468,12 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
+		ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+		if err != nil {
+			log.Printf("GetGithubService error: %v", err)
+			return fmt.Errorf("error getting ghService to post error comment")
+		}
+		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
 	}
@@ -666,6 +672,7 @@ func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	return diggerYmlStr, ghService, config, dependencyGraph, nil
 }
 
+// TODO: Refactor this func to receive ghService as input
 func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, error) {
 	ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
@@ -747,6 +754,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
+		ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+		if err != nil {
+			log.Printf("GetGithubService error: %v", err)
+			return fmt.Errorf("error getting ghService to post error comment")
+		}
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
 	}
