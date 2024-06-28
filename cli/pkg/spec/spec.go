@@ -3,7 +3,6 @@ package spec
 import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
-	storage2 "github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -23,6 +22,7 @@ func RunSpec(
 	reporterProvider spec.ReporterProvider,
 	backedProvider spec.BackendApiProvider,
 	policyProvider spec.PolicyProvider,
+	PlanStorageProvider spec.PlanStorageProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
 
@@ -72,8 +72,11 @@ func RunSpec(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get comment updater: %v", err), 8)
 	}
 
-	planStorage := storage2.NewPlanStorage("", "", "", "", nil)
-
+	planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
+	}
+	
 	jobs := []orchestrator.Job{job}
 
 	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)

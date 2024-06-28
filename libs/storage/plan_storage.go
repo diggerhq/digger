@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/core/storage"
-	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"io"
 	"log"
@@ -16,8 +14,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/diggerhq/digger/cli/pkg/utils"
-
 	"github.com/google/go-github/v61/github"
 )
 
@@ -26,7 +22,7 @@ type GithubPlanStorage struct {
 	Owner             string
 	RepoName          string
 	PullRequestNumber int
-	ZipManager        utils.Zipper
+	ZipManager        Zipper
 }
 
 func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, storedPlanFilePath string) error {
@@ -208,13 +204,14 @@ func getLatestArtifactWithName(artifacts []*github.Artifact, name string) *githu
 	return latest
 }
 
-func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, requestedBy string, prNumber *int) storage.PlanStorage {
-	var planStorage storage.PlanStorage
+// TODO: refactor this function to make it fully parametarised and no reliance on env variables
+func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, prNumber *int) (PlanStorage, error) {
+	var planStorage PlanStorage
 
 	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
 	switch {
 	case uploadDestination == "github":
-		zipManager := utils.Zipper{}
+		zipManager := Zipper{}
 		planStorage = &GithubPlanStorage{
 			Client:            github.NewTokenClient(context.Background(), ghToken),
 			Owner:             ghRepoOwner,
@@ -226,7 +223,7 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 		ctx, client := gcp.GetGoogleStorageClient()
 		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET"))
 		if bucketName == "" {
-			usage.ReportErrorAndExit(requestedBy, "GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET is not defined", 9)
+			return nil, fmt.Errorf("GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET is not defined")
 		}
 		bucket := client.Bucket(bucketName)
 		planStorage = &PlanStorageGcp{
@@ -237,11 +234,11 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 	case uploadDestination == "aws":
 		ctx, client, err := GetAWSStorageClient()
 		if err != nil {
-			usage.ReportErrorAndExit(requestedBy, fmt.Sprintf("Failed to create AWS storage client: %s", err), 9)
+			return nil, fmt.Errorf(fmt.Sprintf("Failed to create AWS storage client: %s", err))
 		}
 		bucketName := strings.ToLower(os.Getenv("AWS_S3_BUCKET"))
 		if bucketName == "" {
-			usage.ReportErrorAndExit(requestedBy, "AWS_S3_BUCKET is not defined", 9)
+			return nil, fmt.Errorf("AWS_S3_BUCKET is not defined")
 		}
 		planStorage = &PlanStorageAWS{
 			Context: ctx,
@@ -252,5 +249,5 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 		//TODO implement me
 	}
 
-	return planStorage
+	return planStorage, nil
 }

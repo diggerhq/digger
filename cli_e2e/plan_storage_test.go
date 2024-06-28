@@ -3,12 +3,12 @@ package cli_e2e
 import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/locking/gcp"
+	storage2 "github.com/diggerhq/digger/libs/storage"
 	"log"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +28,7 @@ func TestGCPPlanStorageStorageAndRetrieval(t *testing.T) {
 	fmt.Printf("getting bucket")
 	bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET"))
 	bucket := client.Bucket(bucketName)
-	planStorage := &storage.PlanStorageGcp{
+	planStorage := &storage2.PlanStorageGcp{
 		Client:  client,
 		Bucket:  bucket,
 		Context: ctx,
@@ -60,13 +60,13 @@ func TestAWSPlanStorageStorageAndRetrieval(t *testing.T) {
 	defer os.Remove(file.Name())
 
 	log.Printf("getting AWS S3 client")
-	ctx, client, err := storage.GetAWSStorageClient()
+	ctx, client, err := storage2.GetAWSStorageClient()
 	if err != nil {
 		t.Errorf("failed to get AWS storage client: %v", err)
 	}
 	bucketName := strings.ToLower(os.Getenv("AWS_S3_BUCKET"))
 	log.Printf("using AWS S3 bucket found by env var 'AWS_S3_BUCKET': %s", bucketName)
-	planStorage := &storage.PlanStorageAWS{
+	planStorage := &storage2.PlanStorageAWS{
 		Client:  client,
 		Bucket:  bucketName,
 		Context: ctx,

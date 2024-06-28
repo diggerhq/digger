@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/storage"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/samber/lo"
 	"log"
@@ -14,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/diggerhq/digger/cli/pkg/core/runners"
-	"github.com/diggerhq/digger/cli/pkg/core/storage"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"

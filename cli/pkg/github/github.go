@@ -10,7 +10,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
-	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -20,6 +19,7 @@ import (
 	"github.com/diggerhq/digger/libs/orchestrator"
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/storage"
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
 	"gopkg.in/yaml.v3"
@@ -185,7 +185,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, &githubPrService, commentId64)
 		digger.UpdateAggregateStatus(serializedBatch, &githubPrService)
 
-		planStorage := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, githubActor, jobSpec.PullRequestNumber)
+		planStorage, err := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, jobSpec.PullRequestNumber)
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to get plan storage. %s", err), 4)
+		}
 
 		if err != nil {
 			serializedBatch, reportingError := backendApi.ReportProjectJobStatus(repoName, jobSpec.ProjectName, inputs.Id, "failed", time.Now(), nil, "", "")
@@ -267,7 +270,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-		planStorage := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, githubActor, nil)
+		planStorage, err := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, nil)
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to get plan storage. %s", err), 4)
+		}
 
 		jobs := orchestrator.Job{
 			ProjectName:       project,
@@ -285,7 +291,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			StateEnvVars:      stateEnvVars,
 			CommandEnvVars:    commandEnvVars,
 		}
-		err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, nil, currentDir)
+		err = digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, nil, currentDir)
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
@@ -383,7 +389,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to set job output. Exiting. %s", err), 4)
 		}
 
-		planStorage := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, githubActor, &prNumber)
+		planStorage, err := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, &prNumber)
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to get plan storage. %s", err), 4)
+		}
 
 		reporter := &reporting.CiReporter{
 			CiService:         &githubPrService,
