@@ -89,5 +89,5 @@ This is what a signed spec payload will look like:
 ```
 
 When the cli sees that a signature has been sent it will verify it based on the public key that was supplied to it as an environment variable.
-If verification fails the cli will halt with a `signatureCerificationFailed` error. In this way we are only allowing the orchestrator to trigger
-jobs in. It is advised to turn on signature verification if you are using digger for any usecase outside of a POC phase.
+If verification fails the cli will halt with a `signatureCerificationFailed` error. It will also check that the payload has not expired.
+In this way we are only allowing the orchestrator to trigger jobs in the CI. It is advised to turn on signature verification if you are using digger for any usecase outside of a POC phase.
