@@ -21,6 +21,7 @@ import (
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/orchestrator/github"
+	storage2 "github.com/diggerhq/digger/libs/storage"
 	"github.com/samber/lo"
 	"log"
 	"net/http"
@@ -173,7 +174,7 @@ func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (orchestrator.PullRequestServ
 	case "github":
 		token := os.Getenv("GITHUB_TOKEN")
 		if token == "" {
-			return nil, fmt.Errorf("failed to get githbu service: GITHUB_TOKEN not specified")
+			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
 		}
 		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
 	default:
@@ -197,4 +198,15 @@ func (p PolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost stri
 	default:
 		return nil, fmt.Errorf("could not find ")
 	}
+}
+
+type PlanStorageProvider struct{}
+
+func (p PlanStorageProvider) GetPlanStorage(repoOwner string, repositoryName string, prNumber int) (storage2.PlanStorage, error) {
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
+	}
+	storage, err := storage2.NewPlanStorage(token, repoOwner, repositoryName, &prNumber)
+	return storage, err
 }

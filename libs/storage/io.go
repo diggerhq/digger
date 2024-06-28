@@ -1,4 +1,4 @@
-package utils
+package storage
 
 import (
 	"archive/zip"
