@@ -5,13 +5,13 @@ import (
 	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/cli/pkg/digger"
-	"github.com/diggerhq/digger/cli/pkg/storage"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 	core_locking "github.com/diggerhq/digger/libs/locking"
 	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/storage"
 	"log"
 	"os"
 )
@@ -26,7 +26,12 @@ func exec(actor string, projectName string, repoNamespace string, command string
 
 	}
 
-	planStorage := storage.NewPlanStorage("", "", "", actor, nil)
+	planStorage, err := storage.NewPlanStorage("", "", "", nil)
+	if err != nil {
+
+		usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to get plan storage. %s", err), 4)
+
+	}
 
 	changedFiles, err := prService.GetChangedFiles(prNumber)
 	if err != nil {
