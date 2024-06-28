@@ -1,0 +1,16 @@
+---
+title: "External providers code execution"
+---
+
+Digger executes terraform in github actions within previlliged environments. Since terraform has the ability
+to execute arbitrary code based on data blocks or external providers this can lead to a user with mallicious
+intent to expose the environment variables within the CI environment, potentially leaking cloud secrets.
+
+How to avoid this?
+---
+Currently we are exploring solutions to avoid this security threat. The first thing you should do is to
+not use long-lived credentials to connect to your cloud account. Instead rely on OIDC for short-lived
+credentials to minimise the exposure from this threat. Secondly its important to ensure that only trusted
+individuals are allowed to update the terraform code. We are also working on additional solutions to secure
+against this threat. For more details and to engage in the discussion please take a look at this github issue:
+https://github.com/diggerhq/digger/issues/1530

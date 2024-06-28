@@ -149,6 +149,13 @@
         "troubleshooting/action-errors",
         "troubleshooting/comments"
       ]
+    },
+    {
+      "group": "Securing Digger",
+      "pages": [
+        "securing-digger/external-provider",
+        "securing-digger/spec-signing"
+      ]
     }
   ],
   "footerSocials": {
