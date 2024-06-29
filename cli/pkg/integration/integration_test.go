@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/locking/aws"
+	"github.com/diggerhq/digger/libs/storage"
 	"log"
 	"math/rand"
 	"os"
@@ -15,8 +16,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
-	"github.com/diggerhq/digger/cli/pkg/storage"
-	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
@@ -398,7 +397,7 @@ func TestHappyPath(t *testing.T) {
 	event := ghEvent.(github.PullRequestEvent)
 	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, *diggerConfig)
 	assert.NoError(t, err)
-	zipManager := utils.Zipper{}
+	zipManager := storage.Zipper{}
 	planStorage := &storage.GithubPlanStorage{
 		Client:            github.NewTokenClient(context.Background(), ghToken),
 		Owner:             repoOwner,
@@ -556,7 +555,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&pEvent, impactedProjects, requestedProject, *diggerConfig)
 	assert.NoError(t, err)
 
-	zipManager := utils.Zipper{}
+	zipManager := storage.Zipper{}
 	planStorage := &storage.GithubPlanStorage{
 		Client:            github.NewTokenClient(context.Background(), ghToken),
 		Owner:             repoOwner,
@@ -777,7 +776,7 @@ workflows:
 	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&pEvent, impactedProjects, requestedProject, *diggerConfig)
 	assert.NoError(t, err)
 
-	zipManager := utils.Zipper{}
+	zipManager := storage.Zipper{}
 	planStorage := &storage.GithubPlanStorage{
 		Client:            github.NewTokenClient(context.Background(), ghToken),
 		Owner:             repoOwner,
