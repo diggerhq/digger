@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/orchestrator/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
@@ -14,15 +15,28 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service orchest
 	switch queueItem.DiggerRun.Status {
 	case models.RunQueued:
 		// trigger plan workflow (trigger the batch)
-
-		repoOwner := dr.Repo.RepoOrganisation
-		repoName := dr.Repo.RepoName
 		job, err := models.DB.GetDiggerJobFromRunStage(dr.PlanStage)
-		jobSpec := string(job.SerializedJobSpec)
-		commentId := int64(2037675659)
 		client := service.(*github.GithubService).Client
 		ciBackend := ci_backends.GithubActionCi{Client: client}
-		ciBackend.TriggerWorkflow(repoOwner, repoName, *job, jobSpec, commentId)
+		runName, err := services.GetRunNameFromJob(*job)
+		if err != nil {
+			log.Printf("could not get run name: %v", err)
+			return
+		}
+
+		spec, err := services.GetSpecFromJob(*job)
+		if err != nil {
+			log.Printf("could not get spec: %v", err)
+			return
+		}
+
+		vcsToken, err := services.GetVCSTokenFromJob(*job)
+		if err != nil {
+			log.Printf("could not get vcs token: %v", err)
+			return
+		}
+
+		ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
 
 		// change status to RunPendingPlan
 		log.Printf("Updating run queueItem item to planning state")
@@ -70,14 +84,32 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service orchest
 		// do nothing
 	case models.RunApproved:
 		// trigger apply stage workflow
-		repoOwner := dr.Repo.RepoOrganisation
-		repoName := dr.Repo.RepoName
 		job, err := models.DB.GetDiggerJobFromRunStage(dr.ApplyStage)
-		jobSpec := string(job.SerializedJobSpec)
-		commentId := int64(2037675659)
 		client := service.(*github.GithubService).Client
 		ciBackend := ci_backends.GithubActionCi{Client: client}
-		ciBackend.TriggerWorkflow(repoOwner, repoName, *job, jobSpec, commentId)
+		if err != nil {
+			log.Printf("could not get run name: %v", err)
+			return
+		}
+		runName, err := services.GetRunNameFromJob(*job)
+		if err != nil {
+			log.Printf("could not get run name: %v", err)
+			return
+		}
+
+		spec, err := services.GetSpecFromJob(*job)
+		if err != nil {
+			log.Printf("could not get spec: %v", err)
+			return
+		}
+
+		vcsToken, err := services.GetVCSTokenFromJob(*job)
+		if err != nil {
+			log.Printf("could not get vcs token: %v", err)
+			return
+		}
+
+		ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
 
 		dr.Status = models.RunApplying
 		err = models.DB.UpdateDiggerRun(&dr)
