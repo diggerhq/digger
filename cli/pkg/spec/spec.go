@@ -10,6 +10,7 @@ import (
 	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/diggerhq/digger/libs/spec"
 	"log"
+	"os"
 	"strconv"
 	"time"
 )
@@ -76,7 +77,7 @@ func RunSpec(
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
 	}
-	
+
 	jobs := []orchestrator.Job{job}
 
 	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
@@ -90,9 +91,14 @@ func RunSpec(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("failed to get comment ID: %v", err), 4)
 	}
 
+	currentDir, err := os.Getwd()
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+	}
+
 	// TODO: do not require conversion to gh service
 	ghService := prService.(orchestrator_github.GithubService)
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, ghService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId64, "")
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, ghService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId64, currentDir)
 	if !allAppliesSuccess || err != nil {
 		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {
