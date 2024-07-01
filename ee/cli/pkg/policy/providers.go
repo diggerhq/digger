@@ -8,14 +8,9 @@ import (
 	"os"
 )
 
-type PolicyProviderAdvanced struct{}
+type AdvancedPolicyProvider struct{}
 
-func (p PolicyProviderAdvanced) GetPolicyProvider(policySpec lib_spec.PolicySpec, diggerHost string, diggerOrg string, token string) (core_policy.Checker, error) {
-	checker, err := lib_spec.PolicyProviderBasic{}.GetPolicyProvider(policySpec, diggerHost, diggerOrg, token)
-	if err != nil {
-		return checker, nil
-	}
-
+func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec, diggerHost string, diggerOrg string, token string) (core_policy.Checker, error) {
 	managementRepo := os.Getenv("DIGGER_MANAGEMENT_REPO")
 	if managementRepo != "" {
 		token := os.Getenv("GITHUB_TOKEN")
@@ -30,7 +25,8 @@ func (p PolicyProviderAdvanced) GetPolicyProvider(policySpec lib_spec.PolicySpec
 		}, nil
 	}
 
-	return nil, fmt.Errorf("Could not retrieve policy provider: %v", err)
+	checker, err := lib_spec.BasicPolicyProvider{}.GetPolicyProvider(policySpec, diggerHost, diggerOrg, token)
+	return checker, err
 }
 
 type PolicyCheckerProviderAdvanced struct{}

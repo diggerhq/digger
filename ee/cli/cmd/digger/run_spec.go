@@ -39,7 +39,7 @@ var runSpecCmd = &cobra.Command{
 			lib_spec.LockProvider{},
 			lib_spec.ReporterProvider{},
 			lib_spec.BackendApiProvider{},
-			policy.PolicyProviderAdvanced{},
+			policy.AdvancedPolicyProvider{},
 			lib_spec.PlanStorageProvider{},
 			comment_summary.CommentUpdaterProviderBasic{},
 		)

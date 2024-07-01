@@ -186,9 +186,9 @@ type SpecPolicyProvider interface {
 	GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error)
 }
 
-type PolicyProviderBasic struct{}
+type BasicPolicyProvider struct{}
 
-func (p PolicyProviderBasic) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error) {
+func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error) {
 	switch policySpec.PolicyType {
 	case "http":
 		return policy2.DiggerPolicyChecker{
