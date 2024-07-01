@@ -182,9 +182,13 @@ func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (orchestrator.PullRequestServ
 	}
 }
 
-type PolicyProvider struct{}
+type SpecPolicyProvider interface {
+	GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error)
+}
 
-func (p PolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error) {
+type BasicPolicyProvider struct{}
+
+func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error) {
 	switch policySpec.PolicyType {
 	case "http":
 		return policy2.DiggerPolicyChecker{
