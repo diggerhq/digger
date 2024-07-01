@@ -18,18 +18,14 @@ const (
 )
 
 type WorkflowInput struct {
-	JobString string `json:"job"`
-	Id        string `json:"id"`
-	CommentId string `json:"comment_id"`
-	RunName   string `json:"run_name"`
+	Spec    string `json:"spec"`
+	RunName string `json:"run_name"`
 }
 
 func (w *WorkflowInput) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id":         w.Id,
-		"job":        w.JobString,
-		"comment_id": w.CommentId,
-		"run_name":   w.RunName,
+		"spec":     w.Spec,
+		"run_name": w.RunName,
 	}
 }
 

@@ -20,10 +20,11 @@ type BackendSpec struct {
 }
 
 type VcsSpec struct {
-	Actor     string `json:"actor"`
-	RepoName  string `json:"repo_name"`
-	RepoOwner string `json:"repo_owner"`
-	VcsType   string `json:"vcs_type"`
+	Actor        string `json:"actor"`
+	RepoName     string `json:"repo_name"`
+	RepoOwner    string `json:"repo_owner"`
+	VcsType      string `json:"vcs_type"`
+	WorkflowFile string `json:"workflow_file"`
 }
 
 type PolicySpec struct {
