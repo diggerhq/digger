@@ -5,6 +5,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	github2 "github.com/diggerhq/digger/libs/orchestrator/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/spec"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -22,7 +23,7 @@ func init() {
 type MockCiBackend struct {
 }
 
-func (m MockCiBackend) TriggerWorkflow(repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error {
+func (m MockCiBackend) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
 	return nil
 }
 

@@ -92,20 +92,32 @@ func ScheduleJob(ciBackend ci_backends.CiBackend, repoOwner string, repoName str
 func TriggerJob(ciBackend ci_backends.CiBackend, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
 	log.Printf("TriggerJob jobId: %v", job.DiggerJobID)
 
-	batch, err := models.DB.GetDiggerBatch(batchId)
-	if err != nil {
-		log.Printf("TriggerJob err: %v\n", err)
-		return err
-	}
-
 	if job.SerializedJobSpec == nil {
-		log.Printf("GitHub job can't be nil")
+		log.Printf("Jobspec can't be nil")
 		return fmt.Errorf("JobSpec is nil, skipping")
 	}
 	jobString := string(job.SerializedJobSpec)
 	log.Printf("jobString: %v \n", jobString)
 
-	err = ciBackend.TriggerWorkflow(repoOwner, repoName, *job, jobString, *batch.CommentId)
+	runName, err := GetRunNameFromJob(*job)
+	if err != nil {
+		log.Printf("could not get run name: %v", err)
+		return fmt.Errorf("coult not get run name %v", err)
+	}
+
+	spec, err := GetSpecFromJob(*job)
+	if err != nil {
+		log.Printf("could not get spec: %v", err)
+		return fmt.Errorf("coult not get spec %v", err)
+	}
+
+	vcsToken, err := GetVCSTokenFromJob(*job)
+	if err != nil {
+		log.Printf("could not get vcs token: %v", err)
+		return fmt.Errorf("coult not get vcs token: %v", err)
+	}
+
+	err = ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
 	if err != nil {
 		log.Printf("TriggerJob err: %v\n", err)
 		return err
