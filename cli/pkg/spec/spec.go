@@ -22,7 +22,7 @@ func RunSpec(
 	lockProvider spec.LockProvider,
 	reporterProvider spec.ReporterProvider,
 	backedProvider spec.BackendApiProvider,
-	policyProvider spec.PolicyProvider,
+	policyProvider spec.SpecPolicyProvider,
 	PlanStorageProvider spec.PlanStorageProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {

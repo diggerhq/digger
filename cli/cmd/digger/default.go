@@ -36,7 +36,7 @@ var defaultCmd = &cobra.Command{
 				lib_spec.LockProvider{},
 				lib_spec.ReporterProvider{},
 				lib_spec.BackendApiProvider{},
-				lib_spec.PolicyProvider{},
+				lib_spec.PolicyProviderBasic{},
 				lib_spec.PlanStorageProvider{},
 				comment_updater.CommentUpdaterProviderBasic{},
 			)

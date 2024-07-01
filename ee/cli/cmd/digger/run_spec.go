@@ -5,6 +5,7 @@ import (
 	"fmt"
 	spec2 "github.com/diggerhq/digger/cli/pkg/spec"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	"github.com/diggerhq/digger/ee/cli/pkg/policy"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
@@ -38,7 +39,7 @@ var runSpecCmd = &cobra.Command{
 			lib_spec.LockProvider{},
 			lib_spec.ReporterProvider{},
 			lib_spec.BackendApiProvider{},
-			lib_spec.PolicyProvider{},
+			policy.PolicyProviderAdvanced{},
 			lib_spec.PlanStorageProvider{},
 			comment_summary.CommentUpdaterProviderBasic{},
 		)
