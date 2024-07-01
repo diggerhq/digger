@@ -155,6 +155,11 @@ inputs:
     description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
     default: 'false'
+  digger-spec:
+    description: "(orchestrator only) the spec to pass onto digger cli"
+    required: false
+    default: ''
+
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
@@ -348,6 +353,7 @@ runs:
         TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
+        DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
           if [[ ${{ inputs.ee }} == "true" ]]; then
             cd $GITHUB_ACTION_PATH/ee/cli
@@ -384,6 +390,7 @@ runs:
         TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
+        DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
       shell: bash
       run: |

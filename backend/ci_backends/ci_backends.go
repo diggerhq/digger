@@ -1,12 +1,12 @@
 package ci_backends
 
 import (
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/spec"
 )
 
 type CiBackend interface {
-	TriggerWorkflow(repoOwner string, repoName string, job models.DiggerJob, jobString string, commentId int64) error
+	TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error
 }
 
 type JenkinsCi struct{}

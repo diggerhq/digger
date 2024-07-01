@@ -43,12 +43,7 @@ name: Digger
 on:
   workflow_dispatch:
     inputs:
-      id:
-        description: 'run identifier'
-        required: false
-      job:
-        required: true
-      comment_id:
+      spec:
         required: true
       run_name:
         required: false
@@ -81,6 +76,7 @@ jobs:
     - name: digger run
         uses: diggerhq/digger@vLatest
         with:
+          digger-spec: ${{ inputs.spec }}
           setup-aws: false
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}

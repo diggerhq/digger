@@ -2,48 +2,32 @@
 title: "Setting up Digger EE"
 ---
 
-## Prerequesites
+Welcome to digger EE trial! In order to get started with EE as a self-hosted option, the first step to get started with digger EE is to have the license key at hand.
+This would have been shared with you by the digger team. If you don't have a license key, please contact us to arrange a demo: https://digger.dev/pricing
 
-- Digger CE configured
-- Automatic access to Actions via Github Connect enabled in Github Enterprise Server - [github docs](https://docs.github.com/en/enterprise-server@3.11/admin/github-actions/managing-access-to-actions-from-githubcom/enabling-automatic-access-to-githubcom-actions-using-github-connect)
+# **Step 1: Setting up the orchestrator:**
 
-## Update your workflow file to use Digger EE
+Setting up the backend is the same as in CE so you can follow the relevant guide to setup using a docker image here:
 
-- point `uses` to `diggerhq/digger-ee@v0.3.0-ee` (use relevant version)
-- set your Digger token as `DIGGER_TOKEN`
+- Helm chart guide: https://docs.digger.dev/self-host/deploy-helm
+- Docker image guide: https://docs.digger.dev/self-host/deploy-docker
 
-```
-name: Digger Plan
+By the end of this you should have your orchestrator up and running internally, you will also have setup the internal github app for your org internally.
 
-on:
-  pull_request:
-    branches: [ "main" ]
-    types: [ opened, synchronize ]
-  issue_comment:
-    types: [created]
-  workflow_dispatch:
+# Step 2: Setting up the POC Repo
 
-jobs:
-  plan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write      # required to merge PRs
-      id-token: write      # required for workload-identity-federation
-      pull-requests: write # required to post PR comments
-      statuses: write      # required to validate combined PR status
+After you have the orchestrator up and running you will need a repo to test digger on. For using it with terragrunt you can rely on this example as a starting point:  https://github.com/diggerhq/demo-terragrunt-parallel-ee feel free to fork it or clone and re-push it as an internal repo, or you can just copy the same structure, with digger.yml in the root of the repo as well as a workflow file `digger_workflow.yml`
 
-    steps:
-      - name: digger run
-        uses: diggerhq/digger-ee@vLatest  # Updaate version here
-        with:
-          setup-aws: true
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-          setup-terraform: true
-          github-ee-base-url: "https://ghe.digger.dev/"                 # < replace with your GHE instance name
-          github-ee-upload-url: "https://ghe.digger.dev/api/uploads/"   # < replace with your GHE instance name
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+Once you have the repo ready you need to install it to the image. So make sure to install the github app in your organisation, adding the POC repository to it.
+
+In order to proceed with an example plan you will also need to set a secret called `DIGGER_LICENSE_KEY` and the value of the license key that has been provided above.
+
+Since you are using
+
+# Step 3: Test an example plan
+
+To test digger with a plan you can create a PR to one of your terragrunt directories. You will see that digger will start performing a plan and comment it in your Pull request like in the image below:
+
+![Screenshot 2024-06-05 at 18.56.26.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/3f5b7835-e421-4ee4-82ea-ac3b7af79507/81a7a374-6a6f-4472-b8f9-dbf26615fd36/Screenshot_2024-06-05_at_18.56.26.png)
+
+Now in order to perform the apply for this change you just need to comment `digger apply` which will go ahead and apply the changes in the right environment.

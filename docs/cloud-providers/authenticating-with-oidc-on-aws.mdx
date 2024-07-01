@@ -13,12 +13,8 @@ on:
       id:
         description: 'run identifier'
         required: false
-      job:
+      spec:
         required: true
-      comment_id:
-        required: true
-      run_name:
-        required: false
 
 run-name: '${{inputs.run_name}}'
 
@@ -35,6 +31,7 @@ jobs:
       - name: digger run
         uses: diggerhq/digger@vLatest
         with:
+          digger-spec: ${{ inputs.spec }}
           setup-aws: true
         **aws-role-to-assume: arn:aws:iam::{AccountID}:role/{RoleName}**
           aws-region: us-east-1
