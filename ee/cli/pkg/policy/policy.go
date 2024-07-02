@@ -3,7 +3,6 @@ package policy
 import (
 	"github.com/diggerhq/digger/ee/cli/pkg/utils"
 	"github.com/samber/lo"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -78,7 +77,6 @@ func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName
 		for _, pathPrefix := range prefixes {
 			var err error
 			contents, err = getContents(pathPrefix)
-			log.Printf("path: %v contents: %v, err: %v", pathPrefix, contents, err)
 			if err == nil {
 				return nil
 			}
