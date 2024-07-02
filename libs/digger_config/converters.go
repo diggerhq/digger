@@ -64,6 +64,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.DependencyProjects,
 			driftDetection,
 			roleToAssume,
+			p.Generated,
 		}
 		result[i] = item
 	}

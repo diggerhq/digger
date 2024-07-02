@@ -38,6 +38,7 @@ type ProjectYaml struct {
 	DependencyProjects []string                    `yaml:"depends_on,omitempty"`
 	DriftDetection     *bool                       `yaml:"drift_detection,omitempty"`
 	AwsRoleToAssume    *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	Generated          bool                        `yaml:"generated"`
 }
 
 type WorkflowYaml struct {
