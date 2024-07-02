@@ -434,19 +434,21 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 		return fmt.Errorf("error getting github service")
 	}
 
+	var isMainBranch bool
 	if strings.HasSuffix(ref, defaultBranch) {
-		utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
-			dat, err := os.ReadFile(path.Join(dir, "digger.yml"))
-			//TODO: fail here and return failure to main fn (need to refactor CloneGitRepoAndDoAction for that
-			if err != nil {
-				log.Printf("ERROR fetching digger.yml file: %v", err)
-			}
-			models.DB.UpdateRepoDiggerConfig(link.OrganisationId, string(dat), repo)
-			return nil
-		})
+		isMainBranch = true
 	} else {
-
+		isMainBranch = false
 	}
+
+	utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
+		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
+		if err != nil {
+			log.Printf("ERROR load digger.yml: %v", err)
+		}
+		models.DB.UpdateRepoDiggerConfig(link.OrganisationId, *config, repo, isMainBranch)
+		return nil
+	})
 
 	return nil
 }

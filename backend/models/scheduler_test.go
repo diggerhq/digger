@@ -61,7 +61,7 @@ func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
 	}
 
 	projectName := "test project"
-	_, err = database.CreateProject(projectName, org, repo)
+	_, err = database.CreateProject(projectName, org, repo, false, false)
 	if err != nil {
 		log.Fatal(err)
 	}

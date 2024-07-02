@@ -1013,8 +1013,15 @@ func (db *Database) CreateOrganisation(name string, externalSource string, tenan
 	return org, nil
 }
 
-func (db *Database) CreateProject(name string, org *Organisation, repo *Repo) (*Project, error) {
-	project := &Project{Name: name, Organisation: org, Repo: repo, Status: ProjectActive}
+func (db *Database) CreateProject(name string, org *Organisation, repo *Repo, isGenerated bool, isInMainBranch bool) (*Project, error) {
+	project := &Project{
+		Name:           name,
+		Organisation:   org,
+		Repo:           repo,
+		Status:         ProjectActive,
+		IsGenerated:    isGenerated,
+		IsInMainBranch: isInMainBranch,
+	}
 	result := db.GormDB.Save(project)
 	if result.Error != nil {
 		log.Printf("Failed to create project: %v, error: %v\n", name, result.Error)
@@ -1022,6 +1029,15 @@ func (db *Database) CreateProject(name string, org *Organisation, repo *Repo) (*
 	}
 	log.Printf("Project %s, (id: %v) has been created successfully\n", name, project.ID)
 	return project, nil
+}
+
+func (db *Database) UpdateProject(project *Project) error {
+	result := db.GormDB.Save(project)
+	if result.Error != nil {
+		return result.Error
+	}
+	log.Printf("project %v has been updated successfully\n", project.ID)
+	return nil
 }
 
 func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *Organisation, diggerConfig string) (*Repo, error) {
@@ -1126,7 +1142,7 @@ func validateDiggerConfigYaml(configYaml string) (*configuration.DiggerConfig, e
 	return diggerConfig, nil
 }
 
-func (db *Database) UpdateRepoDiggerConfig(orgId any, diggerConfigYaml string, repo *Repo) ([]string, error) {
+func (db *Database) UpdateRepoDiggerConfig(orgId any, config configuration.DiggerConfigYaml, repo *Repo, isMainBranch bool) ([]string, error) {
 	messages := make([]string, 0)
 	if diggerConfigYaml == "" {
 		return nil, fmt.Errorf("digger config can't be empty")
@@ -1157,12 +1173,16 @@ func (db *Database) UpdateRepoDiggerConfig(orgId any, diggerConfigYaml string, r
 			return nil, err
 		}
 		if p == nil {
-			_, err := db.CreateProject(projectName, org, repo)
+
+			_, err := db.CreateProject(projectName, org, repo, dc.Generated, isMainBranch)
 			if err != nil {
 				return nil, err
 			}
 			messages = append(messages, fmt.Sprintf("Project %s has been created\n", projectName))
 		} else {
+			p.IsInMainBranch = isMainBranch
+			p.IsGenerated = dc.Generated
+			db.UpdateProject(p)
 			messages = append(messages, fmt.Sprintf("Project %s already exist\n", projectName))
 		}
 	}

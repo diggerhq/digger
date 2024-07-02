@@ -73,6 +73,8 @@ type Project struct {
 	Repo              *Repo
 	ConfigurationYaml string // TODO: probably needs to be deleted
 	Status            ProjectStatus
+	IsGenerated       bool
+	IsInMainBranch    bool
 }
 
 func (p *Project) MapToJsonStruct() interface{} {
