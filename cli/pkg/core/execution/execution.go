@@ -77,7 +77,7 @@ func (l LockingExecutorWrapper) Destroy() (bool, error) {
 func (l LockingExecutorWrapper) Unlock() error {
 	err := l.ProjectLock.ForceUnlock()
 	if err != nil {
-		return fmt.Errorf("failed to aquire lock: %s, %v", l.ProjectLock.LockId(), err)
+		return fmt.Errorf("failed to acquire lock: %s, %v", l.ProjectLock.LockId(), err)
 	}
 	return nil
 }
@@ -88,7 +88,7 @@ func (l LockingExecutorWrapper) Lock() error {
 	}
 	_, err := l.ProjectLock.Lock()
 	if err != nil {
-		return fmt.Errorf("failed to aquire lock: %s, %v", l.ProjectLock.LockId(), err)
+		return fmt.Errorf("failed to acquire lock: %s, %v", l.ProjectLock.LockId(), err)
 	}
 	return nil
 }
