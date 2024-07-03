@@ -78,7 +78,7 @@ type Project struct {
 }
 
 func (p *Project) MapToJsonStruct() interface{} {
-	lastRun, _ := DB.GetLastDiggerRunForProject(p.ID)
+	lastRun, _ := DB.GetLastDiggerRunForProject(p.Name)
 	status := RunSucceeded
 	if lastRun != nil {
 		status = lastRun.Status
@@ -94,6 +94,8 @@ func (p *Project) MapToJsonStruct() interface{} {
 		RepoName              string `json:"repo_name"`
 		RepoOrg               string `json:"repo_org"`
 		RepoUrl               string `json:"repo_url"`
+		IsInMainBranch        bool   `json:"is_in_main_branch"`
+		IsGenerated           bool   `json:"is_generated"`
 		LastActivityTimestamp string `json:"last_activity_timestamp"`
 		LastActivityAuthor    string `json:"last_activity_author"`
 		LastActivityStatus    string `json:"last_activity_status"`
@@ -110,6 +112,8 @@ func (p *Project) MapToJsonStruct() interface{} {
 		LastActivityTimestamp: p.UpdatedAt.String(),
 		LastActivityAuthor:    "unknown",
 		LastActivityStatus:    string(status),
+		IsGenerated:           p.IsGenerated,
+		IsInMainBranch:        p.IsInMainBranch,
 	}
 
 }

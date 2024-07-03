@@ -724,9 +724,9 @@ func (db *Database) CreateDiggerRunStage(batchId string) (*DiggerRunStage, error
 	return drs, nil
 }
 
-func (db *Database) GetLastDiggerRunForProject(projectId uint) (*DiggerRun, error) {
+func (db *Database) GetLastDiggerRunForProject(projectName string) (*DiggerRun, error) {
 	diggerRun := &DiggerRun{}
-	result := db.GormDB.Where("project_id = ? AND status <> ?", projectId, RunQueued).Order("created_at Desc").First(diggerRun)
+	result := db.GormDB.Where("project_name = ? AND status <> ?", projectName, RunQueued).Order("created_at Desc").First(diggerRun)
 	if result.Error != nil {
 		log.Printf("error while fetching last digger run: %v", result.Error)
 		return nil, result.Error
@@ -1142,73 +1142,55 @@ func validateDiggerConfigYaml(configYaml string) (*configuration.DiggerConfig, e
 	return diggerConfig, nil
 }
 
-func (db *Database) UpdateRepoDiggerConfig(orgId any, config configuration.DiggerConfigYaml, repo *Repo, isMainBranch bool) ([]string, error) {
-	messages := make([]string, 0)
-	if diggerConfigYaml == "" {
-		return nil, fmt.Errorf("digger config can't be empty")
-	}
-
+func (db *Database) UpdateRepoDiggerConfig(orgId any, config configuration.DiggerConfigYaml, repo *Repo, isMainBranch bool) error {
 	log.Printf("UpdateRepoDiggerConfig, repo: %v\n", repo)
 
 	org, err := db.GetOrganisationById(orgId)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	diggerConfig, err := validateDiggerConfigYaml(diggerConfigYaml)
-	if err != nil {
-		return nil, err
-	}
-
-	repo.DiggerConfig = diggerConfigYaml
-	tx := db.GormDB.Save(&repo)
-	if tx.Error != nil {
-		return nil, fmt.Errorf("failed to save digger config to database, %v", err)
-	}
-
-	for _, dc := range diggerConfig.Projects {
-		projectName := dc.Name
-		p, err := db.GetProjectByName(orgId, repo, projectName)
-		if err != nil {
-			return nil, err
-		}
-		if p == nil {
-
-			_, err := db.CreateProject(projectName, org, repo, dc.Generated, isMainBranch)
+	err = db.GormDB.Transaction(func(tx *gorm.DB) error {
+		if isMainBranch {
+			// we reset all projects already in main branch to create new projects
+			repoProjects, err := db.GetProjectByRepo(orgId, repo)
 			if err != nil {
-				return nil, err
+				return fmt.Errorf("could not get repo projects: %v", err)
 			}
-			messages = append(messages, fmt.Sprintf("Project %s has been created\n", projectName))
-		} else {
-			p.IsInMainBranch = isMainBranch
-			p.IsGenerated = dc.Generated
-			db.UpdateProject(p)
-			messages = append(messages, fmt.Sprintf("Project %s already exist\n", projectName))
+			for _, rp := range repoProjects {
+				rp.IsInMainBranch = false
+				err = db.UpdateProject(&rp)
+				if err != nil {
+					return fmt.Errorf("could not update existing main branch projects: %v", err)
+				}
+			}
 		}
-	}
 
-	// check if there are any projects in this repo that are not in the config anymore,
-	repoProjects, err := db.GetProjectByRepo(orgId, repo)
+		for _, dc := range config.Projects {
+			projectName := dc.Name
+			p, err := db.GetProjectByName(orgId, repo, projectName)
+			if err != nil {
+				return fmt.Errorf("error retriving project by name: %v", err)
+			}
+			if p == nil {
+				_, err := db.CreateProject(projectName, org, repo, dc.Generated, isMainBranch)
+				if err != nil {
+					return fmt.Errorf("could not create project: %v", err)
+				}
+			} else {
+				if isMainBranch == true {
+					p.IsInMainBranch = isMainBranch
+				}
+				p.IsGenerated = dc.Generated
+				db.UpdateProject(p)
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("error while updating projects from config: %v", err)
 	}
-	for _, rp := range repoProjects {
-		projectFound := false
-		for _, cp := range diggerConfig.Projects {
-			if cp.Name == rp.Name {
-				projectFound = true
-			}
-		}
-		if !projectFound {
-			log.Printf("Project %v is not in a config anymore\n", rp.Name)
-			rp.Status = ProjectInactive
-			result := db.GormDB.Save(&rp)
-			if result.Error != nil {
-				return nil, result.Error
-			}
-		}
-	}
-	return messages, nil
+	return nil
 }
 
 func (db *Database) CreateDiggerLock(resource string, lockId int, orgId uint) (*DiggerLock, error) {

@@ -441,14 +441,18 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 		isMainBranch = false
 	}
 
-	utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
+	err = utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
 		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
 			log.Printf("ERROR load digger.yml: %v", err)
+			return fmt.Errorf("error loading digger.yml %v", err)
 		}
 		models.DB.UpdateRepoDiggerConfig(link.OrganisationId, *config, repo, isMainBranch)
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("error while cloning repo: %v", err)
+	}
 
 	return nil
 }
