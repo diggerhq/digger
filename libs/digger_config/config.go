@@ -40,6 +40,7 @@ type Project struct {
 	DependencyProjects []string
 	DriftDetection     bool
 	AwsRoleToAssume    *AssumeRoleForProject
+	Generated          bool
 }
 
 type Workflow struct {

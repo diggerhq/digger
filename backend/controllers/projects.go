@@ -97,7 +97,11 @@ func FindProjectsForOrg(c *gin.Context) {
 	err = models.DB.GormDB.Preload("Organisation").Preload("Repo").
 		Joins("LEFT JOIN repos ON projects.repo_id = repos.id").
 		Joins("LEFT JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", org.ID).Find(&projects).Error
+		Where("projects.organisation_id = ?", org.ID).
+		Order("is_in_main_branch").
+		Order("repos.repo_full_name").
+		Order("name").
+		Find(&projects).Error
 
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")

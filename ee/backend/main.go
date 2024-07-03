@@ -61,8 +61,6 @@ func main() {
 	repoGroup := r.Group("/repo")
 	repoGroup.Use(middleware.GetWebMiddleware())
 	repoGroup.GET("/", web.ReposPage)
-	repoGroup.GET("/:repoid/", web.UpdateRepoPage)
-	repoGroup.POST("/:repoid/", web.UpdateRepoPage)
 
 	policiesGroup := r.Group("/policies")
 	policiesGroup.Use(middleware.GetWebMiddleware())
