@@ -76,7 +76,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 
 	// create test project
 	projectName := "test project"
-	_, err = database.CreateProject(projectName, org, repo)
+	_, err = database.CreateProject(projectName, org, repo, false, false)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 	for i, testParam := range testParameters {
 		ciService := github2.MockCiService{}
 		batch, _ := models.DB.CreateDiggerBatch(123, "", "", "", 22, "", "", "", nil)
-		project, _ := models.DB.CreateProject(fmt.Sprintf("test%v", i), nil, nil)
+		project, _ := models.DB.CreateProject(fmt.Sprintf("test%v", i), nil, nil, false, false)
 		planStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())
 		applyStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())
 		diggerRun, _ := models.DB.CreateDiggerRun("", 1, testParam.InitialStatus, "sha", "", 123, 1, project.Name, "apply", &planStage.ID, &applyStage.ID)

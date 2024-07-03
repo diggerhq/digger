@@ -410,39 +410,48 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 	ref := *payload.Ref
 	defaultBranch := *payload.Repo.DefaultBranch
 
+	link, err := models.DB.GetGithubAppInstallationLink(installationId)
+	if err != nil {
+		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
+		return fmt.Errorf("error getting github app link")
+	}
+
+	orgId := link.OrganisationId
+	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
+	repo, err := models.DB.GetRepo(orgId, diggerRepoName)
+	if err != nil {
+		log.Printf("Error getting Repo: %v", err)
+		return fmt.Errorf("error getting github app link")
+	}
+	if repo == nil {
+		log.Printf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
+		return fmt.Errorf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
+	}
+
+	_, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+	if err != nil {
+		log.Printf("Error getting github service: %v", err)
+		return fmt.Errorf("error getting github service")
+	}
+
+	var isMainBranch bool
 	if strings.HasSuffix(ref, defaultBranch) {
-		link, err := models.DB.GetGithubAppInstallationLink(installationId)
-		if err != nil {
-			log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
-			return fmt.Errorf("error getting github app link")
-		}
+		isMainBranch = true
+	} else {
+		isMainBranch = false
+	}
 
-		orgId := link.OrganisationId
-		diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
-		repo, err := models.DB.GetRepo(orgId, diggerRepoName)
+	err = utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
+		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
-			log.Printf("Error getting Repo: %v", err)
-			return fmt.Errorf("error getting github app link")
+			log.Printf("ERROR load digger.yml: %v", err)
+			return fmt.Errorf("error loading digger.yml %v", err)
 		}
-		if repo == nil {
-			log.Printf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-			return fmt.Errorf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-		}
-
-		_, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
-		if err != nil {
-			log.Printf("Error getting github service: %v", err)
-			return fmt.Errorf("error getting github service")
-		}
-		utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
-			dat, err := os.ReadFile(path.Join(dir, "digger.yml"))
-			//TODO: fail here and return failure to main fn (need to refactor CloneGitRepoAndDoAction for that
-			if err != nil {
-				log.Printf("ERROR fetching digger.yml file: %v", err)
-			}
-			models.DB.UpdateRepoDiggerConfig(link.OrganisationId, string(dat), repo)
-			return nil
-		})
+		models.DB.UpdateRepoDiggerConfig(link.OrganisationId, *config, repo, isMainBranch)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error while cloning repo: %v", err)
 	}
 
 	return nil
