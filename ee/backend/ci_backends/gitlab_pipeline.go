@@ -2,6 +2,7 @@ package ci_backends
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/xanzy/go-gitlab"
 )
@@ -12,6 +13,9 @@ type GitlabPipelineCI struct {
 
 func (gl GitlabPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
 	specBytes, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("could not serialize spec: %v", err)
+	}
 	vars := map[string]string{
 		"DIGGER_SPEC":  string(specBytes),
 		"GITLAB_TOKEN": vcsToken,
@@ -24,11 +28,10 @@ func (gl GitlabPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, vcsTo
 		})
 	}
 	client := gl.Client
-	client.Pipelines.CreatePipeline(spec.VCS.RepoFullname, &gitlab.CreatePipelineOptions{
-		Ref:       &spec.Job.Commit,
+	_, _, err = client.Pipelines.CreatePipeline(spec.VCS.RepoFullname, &gitlab.CreatePipelineOptions{
+		Ref:       &spec.Job.Branch,
 		Variables: &variables,
 	}, nil)
 
 	return err
-
 }

@@ -64,7 +64,7 @@ func main() {
 			}
 
 			ciBackend := ci_backends.GithubActionCi{Client: service.Client}
-			services.ScheduleJob(ciBackend, repoOwner, repoName, &batch.ID, &job)
+			services.ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, &batch.ID, &job)
 		}
 	})
 

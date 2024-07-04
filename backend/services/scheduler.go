@@ -11,7 +11,7 @@ import (
 	"log"
 )
 
-func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoOwner string, repoName string, workflowFileName string) error {
+func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoFullName string, repoOwner string, repoName string, workflowFileName string) error {
 	log.Printf("DiggerJobCompleted parentJobId: %v", parentJob.DiggerJobID)
 
 	jobLinksForParent, err := models.DB.GetDiggerJobParentLinksByParentId(&parentJob.DiggerJobID)
@@ -45,18 +45,18 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 				return err
 			}
 			ciBackend := ci_backends.GithubActionCi{Client: client}
-			ScheduleJob(ciBackend, repoOwner, repoName, batchId, job)
+			ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, batchId, job)
 		}
 
 	}
 	return nil
 }
 
-func ScheduleJob(ciBackend ci_backends.CiBackend, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
+func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
 	maxConcurrencyForBatch := config.DiggerConfig.GetInt("max_concurrency_per_batch")
 	if maxConcurrencyForBatch == 0 {
 		// concurrency limits not set
-		err := TriggerJob(ciBackend, repoOwner, repoName, batchId, job)
+		err := TriggerJob(ciBackend, repoFullname, repoOwner, repoName, batchId, job)
 		if err != nil {
 			log.Printf("Could not trigger job: %v", err)
 			return err
@@ -79,7 +79,7 @@ func ScheduleJob(ciBackend ci_backends.CiBackend, repoOwner string, repoName str
 			models.DB.UpdateDiggerJob(job)
 			return nil
 		} else {
-			err := TriggerJob(ciBackend, repoOwner, repoName, batchId, job)
+			err := TriggerJob(ciBackend, repoFullname, repoOwner, repoName, batchId, job)
 			if err != nil {
 				log.Printf("Could not trigger job: %v", err)
 				return err
@@ -89,7 +89,7 @@ func ScheduleJob(ciBackend ci_backends.CiBackend, repoOwner string, repoName str
 	return nil
 }
 
-func TriggerJob(ciBackend ci_backends.CiBackend, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
+func TriggerJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
 	log.Printf("TriggerJob jobId: %v", job.DiggerJobID)
 
 	if job.SerializedJobSpec == nil {

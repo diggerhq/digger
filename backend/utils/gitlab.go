@@ -23,7 +23,7 @@ func (g GitlabClientProvider) NewClient(token string) (*gitlab.Client, error) {
 	return client, err
 }
 
-func GetGitlabService(gh GitlabProvider, projectId int, repoName string, repoFullName string, prNumber int) (*orchestrator_gitlab.GitLabService, error) {
+func GetGitlabService(gh GitlabProvider, projectId int, repoName string, repoFullName string, prNumber int, discussionId string) (*orchestrator_gitlab.GitLabService, error) {
 	token := os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
 	client, err := gh.NewClient(token)
 	if err != nil {
@@ -34,14 +34,15 @@ func GetGitlabService(gh GitlabProvider, projectId int, repoName string, repoFul
 		ProjectNamespace: repoFullName,
 		ProjectId:        &projectId,
 		MergeRequestIId:  &prNumber,
+		DiscussionID:     discussionId,
 	}
 	service := orchestrator_gitlab.GitLabService{Client: client, Context: &context}
 	return &service, nil
 }
-func GetDiggerConfigForBranch(gh GitlabProvider, projectId int, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func GetDiggerConfigForBranch(gh GitlabProvider, projectId int, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int, discussionId string) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	token := os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
 
-	service, err := GetGitlabService(gh, projectId, repoName, repoFullName, prNumber)
+	service, err := GetGitlabService(gh, projectId, repoName, repoFullName, prNumber, discussionId)
 	if err != nil {
 		return "", nil, nil, fmt.Errorf("could not get gitlab service: %v", err)
 	}

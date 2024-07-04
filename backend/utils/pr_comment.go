@@ -5,13 +5,12 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
-	"strconv"
 )
 
 type CommentReporter struct {
 	PrNumber  int
 	PrService ci.PullRequestService
-	CommentId int64
+	CommentId string
 }
 
 func InitCommentReporter(prService ci.PullRequestService, prNumber int, commentMessage string) (*CommentReporter, error) {
@@ -19,7 +18,7 @@ func InitCommentReporter(prService ci.PullRequestService, prNumber int, commentM
 	if err != nil {
 		return nil, fmt.Errorf("count not initialize comment reporter: %v", err)
 	}
-	commentId, err := strconv.ParseInt(fmt.Sprintf("%v", comment.Id), 10, 64)
+	//commentId, err := strconv.ParseInt(fmt.Sprintf("%v", comment.Id), 10, 64)
 	if err != nil {
 		log.Printf("could not convert to int64, %v", err)
 		return nil, fmt.Errorf("could not convert to int64, %v", err)
@@ -27,7 +26,7 @@ func InitCommentReporter(prService ci.PullRequestService, prNumber int, commentM
 	return &CommentReporter{
 		PrNumber:  prNumber,
 		PrService: prService,
-		CommentId: commentId,
+		CommentId: comment.Id.(string),
 	}, nil
 }
 

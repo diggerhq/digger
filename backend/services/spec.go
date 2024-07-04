@@ -13,17 +13,28 @@ import (
 
 func GetVCSTokenFromJob(job models.DiggerJob) (*string, error) {
 	// TODO: make it VCS generic
-	_, ghToken, err := utils.GetGithubService(
-		utils.DiggerGithubRealClientProvider{},
-		job.Batch.GithubInstallationId,
-		job.Batch.RepoFullName,
-		job.Batch.RepoOwner,
-		job.Batch.RepoName,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("TriggerWorkflow: could not retrieve token: %v", err)
+	batch := job.Batch
+	var token string
+	switch batch.VCS {
+	case models.DiggerVCSGithub:
+		_, ghToken, err := utils.GetGithubService(
+			utils.DiggerGithubRealClientProvider{},
+			job.Batch.GithubInstallationId,
+			job.Batch.RepoFullName,
+			job.Batch.RepoOwner,
+			job.Batch.RepoName,
+		)
+		token = *ghToken
+		if err != nil {
+			return nil, fmt.Errorf("TriggerWorkflow: could not retrieve token: %v", err)
+		}
+	case models.DiggerVCSGitlab:
+		token = ""
+	default:
+		return nil, fmt.Errorf("unknown batch VCS: %v", batch.VCS)
 	}
-	return ghToken, nil
+
+	return &token, nil
 }
 
 func GetRunNameFromJob(job models.DiggerJob) (*string, error) {
@@ -75,6 +86,7 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 		VCS: spec.VcsSpec{
 			VcsType:      "github",
 			Actor:        jobSpec.RequestedBy,
+			RepoFullname: batch.RepoFullName,
 			RepoOwner:    batch.RepoOwner,
 			RepoName:     batch.RepoName,
 			WorkflowFile: job.WorkflowFile,

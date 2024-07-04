@@ -5,6 +5,7 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
@@ -171,12 +172,12 @@ func (gitlabService GitLabService) PublishComment(prNumber int, comment string) 
 		discussionId = discussion.ID
 		return nil, err
 	} else {
-		_, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
+		note, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 		if err != nil {
 			log.Printf("Failed to publish a comment. %v\n", err)
 			print(err.Error())
 		}
-		return nil, err
+		return &ci.Comment{Id: strconv.Itoa(note.ID), Body: &note.Body}, err
 	}
 }
 
@@ -240,8 +241,26 @@ func (gitlabService GitLabService) IsMerged(mergeRequestID int) (bool, error) {
 }
 
 func (gitlabService GitLabService) EditComment(prNumber int, id interface{}, comment string) error {
-	//TODO implement me
-	return nil
+	discussionId := gitlabService.Context.DiscussionID
+	projectId := *gitlabService.Context.ProjectId
+	mergeRequestIID := *gitlabService.Context.MergeRequestIId
+	commentOpt := &go_gitlab.UpdateMergeRequestDiscussionNoteOptions{Body: &comment}
+
+	log.Printf("EditComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestIID, projectId, mergeRequestIID, discussionId)
+
+	idStr := id.(string)
+	id32, err := strconv.Atoi(idStr)
+	if err != nil {
+		return fmt.Errorf("could not convert to int: %v", err)
+	}
+	_, _, err = gitlabService.Client.Discussions.UpdateMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, id32, commentOpt)
+	if err != nil {
+		log.Printf("Failed to publish a comment. %v\n", err)
+		print(err.Error())
+	}
+
+	return err
+
 }
 
 func (gitlabService GitLabService) CreateCommentReaction(id interface{}, reaction string) error {
