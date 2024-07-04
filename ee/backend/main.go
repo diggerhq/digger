@@ -29,18 +29,24 @@ func main() {
 		log.Printf("error checking license %v", err)
 		os.Exit(1)
 	}
-	ghController := ce_controllers.DiggerController{
+	diggerController := ce_controllers.DiggerController{
 		CiBackendProvider:    ci_backends2.EEBackendProvider{},
 		GithubClientProvider: github.DiggerGithubEEClientProvider{},
 	}
 
-	r := bootstrap.Bootstrap(templates, ghController)
+	r := bootstrap.Bootstrap(templates, diggerController)
 	cfg := config.DiggerConfig
 
 	// redirect to projects by default
 	r.GET("/", func(context *gin.Context) {
 		context.Redirect(http.StatusFound, "/projects")
 	})
+
+	eeController := controllers.DiggerEEController{
+		CiBackendProvider: ci_backends2.EEBackendProvider{},
+	}
+
+	r.POST("/gitlab-webhook", eeController.GitlabWebHookHandler)
 
 	web := controllers.WebController{Config: cfg}
 	projectsGroup := r.Group("/projects")
