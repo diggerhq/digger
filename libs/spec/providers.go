@@ -13,14 +13,15 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	"github.com/diggerhq/digger/cli/pkg/core/policy"
 	policy2 "github.com/diggerhq/digger/cli/pkg/policy"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/locking/aws"
 	"github.com/diggerhq/digger/libs/locking/aws/envprovider"
 	"github.com/diggerhq/digger/libs/locking/azure"
 	"github.com/diggerhq/digger/libs/locking/gcp"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/libs/orchestrator/github"
+	"github.com/diggerhq/digger/libs/scheduler"
 	storage2 "github.com/diggerhq/digger/libs/storage"
 	"github.com/samber/lo"
 	"log"
@@ -32,8 +33,8 @@ import (
 
 type JobSpecProvider struct{}
 
-func (j JobSpecProvider) GetJob(jobSpec orchestrator.JobJson) (orchestrator.Job, error) {
-	return orchestrator.JsonToJob(jobSpec), nil
+func (j JobSpecProvider) GetJob(jobSpec scheduler.JobJson) (scheduler.Job, error) {
+	return scheduler.JsonToJob(jobSpec), nil
 }
 
 type LockProvider struct{}
@@ -113,7 +114,7 @@ func (l LockProvider) GetLock(lockSpec LockSpec) (locking.Lock, error) {
 
 type ReporterProvider struct{}
 
-func (r ReporterProvider) GetReporter(reporterSpec ReporterSpec, ciService orchestrator.PullRequestService, prNumber int) (reporting.Reporter, error) {
+func (r ReporterProvider) GetReporter(reporterSpec ReporterSpec, ciService ci.PullRequestService, prNumber int) (reporting.Reporter, error) {
 	getStrategy := func(strategy string) reporting.ReportStrategy {
 		switch reporterSpec.ReportingStrategy {
 		case "comments_per_run":
@@ -169,7 +170,7 @@ func (b BackendApiProvider) GetBackendApi(backendSpec BackendSpec) (backend.Api,
 
 type VCSProvider struct{}
 
-func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (orchestrator.PullRequestService, error) {
+func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error) {
 	switch vcsSpec.VcsType {
 	case "github":
 		token := os.Getenv("GITHUB_TOKEN")

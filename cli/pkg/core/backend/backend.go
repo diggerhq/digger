@@ -2,7 +2,7 @@ package backend
 
 import (
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"time"
 )
 

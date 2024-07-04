@@ -4,13 +4,13 @@ import (
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/libs/orchestrator/github"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/github"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"log"
 )
 
-func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service orchestrator.PullRequestService) {
+func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.PullRequestService) {
 	dr := queueItem.DiggerRun
 	switch queueItem.DiggerRun.Status {
 	case models.RunQueued:

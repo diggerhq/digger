@@ -3,9 +3,11 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/ci"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
 	locking2 "github.com/diggerhq/digger/libs/locking"
+	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"log"
 	"os"
@@ -23,7 +25,6 @@ import (
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	config "github.com/diggerhq/digger/libs/digger_config"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 
 	"github.com/dominikbraun/graph"
@@ -65,7 +66,7 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(jobs []orchestrator.Job, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId int64, workingDir string) (bool, bool, error) {
 
 	defer reporter.Flush()
 
@@ -184,7 +185,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService orchestrator.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService orchestrator.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService ci.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService ci.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
 	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, []string{})
@@ -531,7 +532,7 @@ func RunJob(
 	job orchestrator.Job,
 	repo string,
 	requestedBy string,
-	orgService orchestrator.OrgService,
+	orgService ci.OrgService,
 	policyChecker policy.Checker,
 	planStorage storage.PlanStorage,
 	backendApi backend.Api,
@@ -750,7 +751,7 @@ func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *gra
 	return sortedCommands
 }
 
-func MergePullRequest(ciService orchestrator.PullRequestService, prNumber int) {
+func MergePullRequest(ciService ci.PullRequestService, prNumber int) {
 	time.Sleep(5 * time.Second)
 
 	// CheckAccessPolicy if it was manually merged

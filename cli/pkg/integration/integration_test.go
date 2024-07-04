@@ -16,9 +16,9 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
+	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
-	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -453,7 +453,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 
 	cEvent := ghEvent.(github.IssueCommentEvent)
-	jobs, _, err = dg_github.ConvertGithubIssueCommentEventToJobs(&cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
+	jobs, _, err = dg_github.ConvertIssueCommentEventToJobs("", "", 0, "", &cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, 123, dir)
 	assert.NoError(t, err)
@@ -477,7 +477,7 @@ func TestHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	cEvent = ghEvent.(github.IssueCommentEvent)
-	jobs, _, err = dg_github.ConvertGithubIssueCommentEventToJobs(&cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
+	jobs, _, err = dg_github.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, 123, dir)
 	assert.NoError(t, err)
@@ -592,7 +592,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	cEvent := ghEvent.(github.IssueCommentEvent)
-	jobs, _, err = dg_github.ConvertGithubIssueCommentEventToJobs(&cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
+	jobs, _, err = dg_github.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, 123, dir)
 	assert.NoError(t, err)
@@ -606,7 +606,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	cEvent = ghEvent.(github.IssueCommentEvent)
-	jobs, _, err = dg_github.ConvertGithubIssueCommentEventToJobs(&cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
+	jobs, _, err = dg_github.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, 123, dir)
 	assert.NoError(t, err)
@@ -630,7 +630,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	cEvent = ghEvent.(github.IssueCommentEvent)
-	jobs, _, err = dg_github.ConvertGithubIssueCommentEventToJobs(&cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
+	jobs, _, err = dg_github.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, 123, dir)
 	assert.NoError(t, err)
@@ -814,7 +814,7 @@ workflows:
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	cEvent := ghEvent.(github.IssueCommentEvent)
-	jobs, _, err = dg_github.ConvertGithubIssueCommentEventToJobs(&cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
+	jobs, _, err = dg_github.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, 123, dir)
 	assert.NoError(t, err)
@@ -828,7 +828,7 @@ workflows:
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	cEvent = ghEvent.(github.IssueCommentEvent)
-	jobs, _, err = dg_github.ConvertGithubIssueCommentEventToJobs(&cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
+	jobs, _, err = dg_github.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, 123, dir)
 	assert.NoError(t, err)
@@ -851,7 +851,7 @@ workflows:
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	cEvent = ghEvent.(github.IssueCommentEvent)
-	jobs, _, err = dg_github.ConvertGithubIssueCommentEventToJobs(&cEvent, impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
+	jobs, _, err = dg_github.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, 123, dir)
 	assert.NoError(t, err)

@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	orchestrator_github "github.com/diggerhq/digger/libs/ci/github"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/diggerhq/digger/libs/spec"
 	"log"
 	"os"
@@ -78,7 +77,7 @@ func RunSpec(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
 	}
 
-	jobs := []orchestrator.Job{job}
+	jobs := []spec.Job{job}
 
 	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
 	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")

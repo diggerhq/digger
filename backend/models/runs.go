@@ -1,7 +1,7 @@
 package models
 
 import (
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"gorm.io/gorm"
 	"log"
 	"time"

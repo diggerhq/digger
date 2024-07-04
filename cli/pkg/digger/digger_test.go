@@ -1,6 +1,8 @@
 package digger
 
 import (
+	"github.com/diggerhq/digger/libs/ci"
+	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"os"
 	"sort"
 	"strconv"
@@ -12,8 +14,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
-
 	"github.com/dominikbraun/graph"
 	"github.com/stretchr/testify/assert"
 )
@@ -83,12 +83,12 @@ func (m *MockPRManager) GetApprovals(prNumber int) ([]string, error) {
 	return []string{}, nil
 }
 
-func (m *MockPRManager) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
+func (m *MockPRManager) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", strconv.Itoa(prNumber) + " " + comment, time.Now()})
 	return nil, nil
 }
 
-func (m *MockPRManager) ListIssues() ([]*orchestrator.Issue, error) {
+func (m *MockPRManager) ListIssues() ([]*ci.Issue, error) {
 	m.Commands = append(m.Commands, RunInfo{"ListIssues", "", time.Now()})
 	return nil, nil
 }
@@ -133,9 +133,9 @@ func (m *MockPRManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (m *MockPRManager) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+func (m *MockPRManager) GetComments(prNumber int) ([]ci.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetComments", strconv.Itoa(prNumber), time.Now()})
-	return []orchestrator.Comment{}, nil
+	return []ci.Comment{}, nil
 }
 
 func (m *MockPRManager) EditComment(prNumber int, id interface{}, comment string) error {

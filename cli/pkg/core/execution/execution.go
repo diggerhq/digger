@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/samber/lo"
@@ -18,7 +19,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/orchestrator"
 )
 
 type Executor interface {
@@ -100,8 +100,8 @@ type DiggerExecutor struct {
 	StateEnvVars      map[string]string
 	CommandEnvVars    map[string]string
 	RunEnvVars        map[string]string
-	ApplyStage        *orchestrator.Stage
-	PlanStage         *orchestrator.Stage
+	ApplyStage        *scheduler.Stage
+	PlanStage         *scheduler.Stage
 	CommandRunner     runners.CommandRun
 	TerraformExecutor terraform.TerraformExecutor
 	Reporter          reporting.Reporter
@@ -191,12 +191,12 @@ func (d DiggerExecutor) Plan() (*terraform_utils.PlanSummary, bool, bool, string
 	terraformPlanOutput := ""
 	planSummary := &terraform_utils.PlanSummary{}
 	isEmptyPlan := true
-	var planSteps []orchestrator.Step
+	var planSteps []scheduler.Step
 
 	if d.PlanStage != nil {
 		planSteps = d.PlanStage.Steps
 	} else {
-		planSteps = []orchestrator.Step{
+		planSteps = []scheduler.Step{
 			{
 				Action: "init",
 			},
@@ -301,12 +301,12 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 		}
 	}
 
-	var applySteps []orchestrator.Step
+	var applySteps []scheduler.Step
 
 	if d.ApplyStage != nil {
 		applySteps = d.ApplyStage.Steps
 	} else {
-		applySteps = []orchestrator.Step{
+		applySteps = []scheduler.Step{
 			{
 				Action: "init",
 			},

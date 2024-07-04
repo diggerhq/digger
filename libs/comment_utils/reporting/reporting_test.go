@@ -2,11 +2,11 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/ci"
 )
 
 type MockCiService struct {
-	CommentsPerPr map[int][]*orchestrator.Comment
+	CommentsPerPr map[int][]*ci.Comment
 }
 
 func (t MockCiService) GetUserTeams(organisation string, user string) ([]string, error) {
@@ -20,7 +20,7 @@ func (t MockCiService) GetApprovals(prNumber int) ([]string, error) {
 func (t MockCiService) GetChangedFiles(prNumber int) ([]string, error) {
 	return nil, nil
 }
-func (t MockCiService) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
+func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 
 	latestId := 0
 
@@ -32,12 +32,12 @@ func (t MockCiService) PublishComment(prNumber int, comment string) (*orchestrat
 		}
 	}
 
-	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &orchestrator.Comment{Id: latestId + 1, Body: &comment})
+	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &ci.Comment{Id: latestId + 1, Body: &comment})
 
 	return nil, nil
 }
 
-func (t MockCiService) ListIssues() ([]*orchestrator.Issue, error) {
+func (t MockCiService) ListIssues() ([]*ci.Issue, error) {
 	return nil, fmt.Errorf("implement me")
 }
 
@@ -73,8 +73,8 @@ func (t MockCiService) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (t MockCiService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
-	comments := []orchestrator.Comment{}
+func (t MockCiService) GetComments(prNumber int) ([]ci.Comment, error) {
+	comments := []ci.Comment{}
 	for _, c := range t.CommentsPerPr[prNumber] {
 		comments = append(comments, *c)
 	}

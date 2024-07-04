@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"log"
 	"strconv"
@@ -27,7 +27,7 @@ func GetVCSTokenFromJob(job models.DiggerJob) (*string, error) {
 }
 
 func GetRunNameFromJob(job models.DiggerJob) (*string, error) {
-	var jobSpec orchestrator.JobJson
+	var jobSpec scheduler.JobJson
 	err := json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
 	if err != nil {
 		log.Printf("could not unmarshal job string: %v", err)
@@ -46,7 +46,7 @@ func GetRunNameFromJob(job models.DiggerJob) (*string, error) {
 }
 
 func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
-	var jobSpec orchestrator.JobJson
+	var jobSpec scheduler.JobJson
 	err := json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
 	if err != nil {
 		log.Printf("could not unmarshal job string: %v", err)

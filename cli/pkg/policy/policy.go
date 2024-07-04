@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/ci"
 	"io"
 	"log"
 	"net/http"
@@ -12,8 +13,6 @@ import (
 	"os"
 
 	"github.com/diggerhq/digger/cli/pkg/core/policy"
-	"github.com/diggerhq/digger/libs/orchestrator"
-
 	// "github.com/diggerhq/digger/cli/pkg/core/policy/AccessPolicyContext"
 	// TODO fix imports - publish?
 	"github.com/open-policy-agent/opa/rego"
@@ -35,7 +34,7 @@ type DiggerHttpPolicyProvider struct {
 type NoOpPolicyChecker struct {
 }
 
-func (p NoOpPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
+func (p NoOpPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 	return true, nil
 }
 
@@ -264,7 +263,7 @@ type DiggerPolicyChecker struct {
 }
 
 // TODO refactor to use AccessPolicyContext - too many arguments
-func (p DiggerPolicyChecker) CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
+func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 
 	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName, projectDir)
 

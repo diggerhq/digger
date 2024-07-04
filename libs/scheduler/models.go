@@ -2,8 +2,6 @@ package scheduler
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/goccy/go-json"
 	"log"
 )
 
@@ -99,15 +97,15 @@ type SerializedJob struct {
 }
 
 type SerializedBatch struct {
-	ID           string                     `json:"id"`
-	PrNumber     int                        `json:"pr_number"`
-	Status       DiggerBatchStatus          `json:"status"`
-	BranchName   string                     `json:"branch_name"`
-	RepoFullName string                     `json:"repo_full_name"`
-	RepoOwner    string                     `json:"repo_owner"`
-	RepoName     string                     `json:"repo_name"`
-	BatchType    orchestrator.DiggerCommand `json:"batch_type"`
-	Jobs         []SerializedJob            `json:"jobs"`
+	ID           string            `json:"id"`
+	PrNumber     int               `json:"pr_number"`
+	Status       DiggerBatchStatus `json:"status"`
+	BranchName   string            `json:"branch_name"`
+	RepoFullName string            `json:"repo_full_name"`
+	RepoOwner    string            `json:"repo_owner"`
+	RepoName     string            `json:"repo_name"`
+	BatchType    DiggerCommand     `json:"batch_type"`
+	Jobs         []SerializedJob   `json:"jobs"`
 }
 
 func (b *SerializedBatch) IsPlan() (bool, error) {
@@ -117,7 +115,7 @@ func (b *SerializedBatch) IsPlan() (bool, error) {
 		log.Printf("error while fetching job specs: %v", err)
 		return false, fmt.Errorf("error while fetching job specs: %v", err)
 	}
-	return orchestrator.IsPlanJobSpecs(jobSpecs), nil
+	return IsPlanJobSpecs(jobSpecs), nil
 }
 
 func (b *SerializedBatch) IsApply() (bool, error) {
@@ -126,7 +124,7 @@ func (b *SerializedBatch) IsApply() (bool, error) {
 		log.Printf("error while fetching job specs: %v", err)
 		return false, fmt.Errorf("error while fetching job specs: %v", err)
 	}
-	return orchestrator.IsPlanJobSpecs(jobSpecs), nil
+	return IsPlanJobSpecs(jobSpecs), nil
 }
 
 func (b *SerializedBatch) ToStatusCheck() string {
@@ -154,26 +152,4 @@ func (s *SerializedJob) ResourcesSummaryString(isPlan bool) string {
 	} else {
 		return "..."
 	}
-}
-
-func GetJobSpecs(jobs []SerializedJob) ([]orchestrator.JobJson, error) {
-	jobSpecs := make([]orchestrator.JobJson, 0)
-	for _, job := range jobs {
-		var jobSpec orchestrator.JobJson
-		err := json.Unmarshal(job.JobString, &jobSpec)
-		if err != nil {
-			log.Printf("Failed to convert unmarshall Serialized job")
-			return nil, err
-		}
-		jobSpecs = append(jobSpecs, jobSpec)
-	}
-	return jobSpecs, nil
-}
-
-func JobsToProjectMap(jobs []SerializedJob) (map[string]SerializedJob, error) {
-	res := make(map[string]SerializedJob)
-	for _, job := range jobs {
-		res[job.ProjectName] = job
-	}
-	return res, nil
 }

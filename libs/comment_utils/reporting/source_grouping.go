@@ -3,10 +3,10 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/samber/lo"
 	"log"
@@ -17,14 +17,14 @@ type ProjectNameSourceDetail struct {
 	ProjectName   string
 	Source        string
 	Job           scheduler.SerializedJob
-	JobSpec       orchestrator.JobJson
+	JobSpec       scheduler.JobJson
 	PlanFootPrint terraform_utils.TerraformPlanFootprint
 }
 
 type SourceGroupingReporter struct {
 	Jobs      []scheduler.SerializedJob
 	PrNumber  int
-	PrService orchestrator.PullRequestService
+	PrService ci.PullRequestService
 }
 
 func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, location string, terraformOutputs map[string]string) error {
@@ -91,7 +91,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 }
 
 // returns a map inverting locations
-func ImpactedSourcesMapToGroupMapping(impactedSources map[string]digger_config.ProjectToSourceMapping, jobMapping map[string]scheduler.SerializedJob, jobSpecMapping map[string]orchestrator.JobJson, footprintsMap map[string]terraform_utils.TerraformPlanFootprint) map[string][]ProjectNameSourceDetail {
+func ImpactedSourcesMapToGroupMapping(impactedSources map[string]digger_config.ProjectToSourceMapping, jobMapping map[string]scheduler.SerializedJob, jobSpecMapping map[string]scheduler.JobJson, footprintsMap map[string]terraform_utils.TerraformPlanFootprint) map[string][]ProjectNameSourceDetail {
 
 	projectNameSourceList := make([]ProjectNameSourceDetail, 0)
 	for projectName, locations := range impactedSources {

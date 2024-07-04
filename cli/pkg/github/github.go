@@ -10,12 +10,12 @@ import (
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 	core_locking "github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"github.com/google/go-github/v61/github"
 	"gopkg.in/yaml.v3"
@@ -141,15 +141,15 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to get plan storage. %s", err), 4)
 		}
 
-		jobs := orchestrator.Job{
+		jobs := scheduler.Job{
 			ProjectName:       project,
 			ProjectDir:        projectConfig.Dir,
 			ProjectWorkspace:  projectConfig.Workspace,
 			Terragrunt:        projectConfig.Terragrunt,
 			OpenTofu:          projectConfig.OpenTofu,
 			Commands:          []string{command},
-			ApplyStage:        orchestrator.ToConfigStage(workflow.Apply),
-			PlanStage:         orchestrator.ToConfigStage(workflow.Plan),
+			ApplyStage:        scheduler.ToConfigStage(workflow.Apply),
+			PlanStage:         scheduler.ToConfigStage(workflow.Plan),
 			PullRequestNumber: nil,
 			EventName:         "manual_invocation",
 			RequestedBy:       githubActor,
@@ -171,17 +171,17 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 
-			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(projectConfig)
+			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(projectConfig)
 
-			job := orchestrator.Job{
+			job := scheduler.Job{
 				ProjectName:        projectConfig.Name,
 				ProjectDir:         projectConfig.Dir,
 				ProjectWorkspace:   projectConfig.Workspace,
 				Terragrunt:         projectConfig.Terragrunt,
 				OpenTofu:           projectConfig.OpenTofu,
 				Commands:           []string{"digger drift-detect"},
-				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
+				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
 				CommandEnvVars:     commandEnvVars,
 				StateEnvVars:       stateEnvVars,
 				RequestedBy:        githubActor,
@@ -229,7 +229,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, "No projects impacted", 0)
 		}
 
-		var jobs []orchestrator.Job
+		var jobs []scheduler.Job
 		coversAllImpactedProjects := false
 		err = nil
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
@@ -239,7 +239,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			if err != nil {
 				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while retriving default branch from Issue: %v", err), 6)
 			}
-			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubIssueCommentEventToJobs(&commentEvent, impactedProjects, requestedProject, diggerConfig.Workflows, prBranchName)
+			jobs, coversAllImpactedProjects, err = dg_github.ConvertIssueCommentEventToJobs(&commentEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
 		} else {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Unsupported GitHub event type. %s", err), 6)
 		}
@@ -302,7 +302,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
 }
 
-func logCommands(projectCommands []orchestrator.Job) {
+func logCommands(projectCommands []scheduler.Job) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)

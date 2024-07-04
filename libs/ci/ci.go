@@ -1,4 +1,4 @@
-package orchestrator
+package ci
 
 type PullRequestService interface {
 	GetChangedFiles(prNumber int) ([]string, error)

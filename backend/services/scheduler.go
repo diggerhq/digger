@@ -5,7 +5,7 @@ import (
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/models"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
 	"log"

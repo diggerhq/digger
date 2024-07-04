@@ -1,7 +1,7 @@
 package policy
 
 import (
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/ci"
 )
 
 type Provider interface {
@@ -13,7 +13,7 @@ type Provider interface {
 
 type Checker interface {
 	// TODO refactor arguments - use AccessPolicyContext
-	CheckAccessPolicy(ciService orchestrator.OrgService, prService *orchestrator.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error)
+	CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error)
 	CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectname string, projectDir string, planOutput string) (bool, []string, error)
 	CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectname string) (bool, error)
 }

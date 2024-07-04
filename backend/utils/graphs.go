@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
 	"github.com/google/uuid"
 	"log"
@@ -14,7 +14,7 @@ import (
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobType orchestrator.DiggerCommand, organisationId uint, jobsMap map[string]orchestrator.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId int64, diggerConfigStr string) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.DiggerVCSType, organisationId uint, jobsMap map[string]scheduler.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId int64, diggerConfigStr string) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	result := make(map[string]*models.DiggerJob)
 	organisation, err := models.DB.GetOrganisationById(organisationId)
 	if err != nil {
@@ -34,7 +34,7 @@ func ConvertJobsToDiggerJobs(jobType orchestrator.DiggerCommand, organisationId 
 			return nil, nil, fmt.Errorf("error creating job token")
 		}
 
-		marshalled, err := json.Marshal(orchestrator.JobToJson(job, jobType, organisationName, branch, commitSha, jobToken.Value, backendHostName, projectMap[projectName]))
+		marshalled, err := json.Marshal(scheduler.JobToJson(job, jobType, organisationName, branch, commitSha, jobToken.Value, backendHostName, projectMap[projectName]))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -43,7 +43,7 @@ func ConvertJobsToDiggerJobs(jobType orchestrator.DiggerCommand, organisationId 
 
 	log.Printf("marshalledJobsMap: %v\n", marshalledJobsMap)
 
-	batch, err := models.DB.CreateDiggerBatch(githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId)
+	batch, err := models.DB.CreateDiggerBatch(vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
 	}

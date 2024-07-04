@@ -8,10 +8,10 @@ import (
 	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/ci"
+	orchestrator_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	orchestrator_github "github.com/diggerhq/digger/libs/orchestrator/github"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"
@@ -29,9 +29,9 @@ type RunConfig struct {
 	BitbucketToken string `mapstructure:"bitbucket-token"`
 }
 
-func (r *RunConfig) GetServices() (*orchestrator.PullRequestService, *orchestrator.OrgService, *reporting.Reporter, error) {
-	var prService orchestrator.PullRequestService
-	var orgService orchestrator.OrgService
+func (r *RunConfig) GetServices() (*ci.PullRequestService, *ci.OrgService, *reporting.Reporter, error) {
+	var prService ci.PullRequestService
+	var orgService ci.OrgService
 	var reporter reporting.Reporter
 	switch r.Reporter {
 	case "github":

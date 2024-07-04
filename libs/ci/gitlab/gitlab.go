@@ -2,15 +2,15 @@ package gitlab
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/caarlos0/env/v11"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
-
-	"github.com/caarlos0/env/v11"
 	go_gitlab "github.com/xanzy/go-gitlab"
 )
 
@@ -130,18 +130,19 @@ type GitLabService struct {
 }
 
 func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string, error) {
-	opt := &go_gitlab.GetMergeRequestChangesOptions{}
+	opt := &go_gitlab.ListMergeRequestDiffsOptions{}
 
 	log.Printf("projectId: %d", *gitlabService.Context.ProjectId)
 	log.Printf("mergeRequestId: %d", mergeRequestId)
-	mergeRequestChanges, _, err := gitlabService.Client.MergeRequests.GetMergeRequestChanges(*gitlabService.Context.ProjectId, mergeRequestId, opt)
+	mergeRequestChanges, _, err := gitlabService.Client.MergeRequests.ListMergeRequestDiffs(*gitlabService.Context.ProjectId, mergeRequestId, opt)
+
 	if err != nil {
-		log.Fatalf("error getting gitlab's merge request: %v", err)
+		return nil, fmt.Errorf("error getting gitlab's merge request: %v", err)
 	}
 
-	fileNames := make([]string, len(mergeRequestChanges.Changes))
+	fileNames := make([]string, len(mergeRequestChanges))
 
-	for i, change := range mergeRequestChanges.Changes {
+	for i, change := range mergeRequestChanges {
 		fileNames[i] = change.NewPath
 		//log.Printf("changed file: %s \n", change.NewPath)
 	}
@@ -152,7 +153,7 @@ func (gitlabService GitLabService) GetUserTeams(organisation string, user string
 	return make([]string, 0), nil
 }
 
-func (gitlabService GitLabService) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
+func (gitlabService GitLabService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
@@ -179,7 +180,7 @@ func (gitlabService GitLabService) PublishComment(prNumber int, comment string) 
 	}
 }
 
-func (svc GitLabService) ListIssues() ([]*orchestrator.Issue, error) {
+func (svc GitLabService) ListIssues() ([]*ci.Issue, error) {
 	return nil, fmt.Errorf("implement me")
 }
 
@@ -248,12 +249,12 @@ func (gitlabService GitLabService) CreateCommentReaction(id interface{}, reactio
 	return nil
 }
 
-func (gitlabService GitLabService) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+func (gitlabService GitLabService) GetComments(prNumber int) ([]ci.Comment, error) {
 	//TODO implement me
 	return nil, nil
 }
 
-func (gitlabService *GitLabService) GetApprovals(prNumber int) ([]string, error) {
+func (gitlabService GitLabService) GetApprovals(prNumber int) ([]string, error) {
 	approvals := make([]string, 0)
 	// TODO: implement me
 	return approvals, nil
@@ -264,7 +265,7 @@ func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, 
 	return "", "", nil
 }
 
-func (svc *GitLabService) SetOutput(prNumber int, key string, value string) error {
+func (svc GitLabService) SetOutput(prNumber int, key string, value string) error {
 	//TODO implement me
 	return nil
 }
@@ -306,8 +307,8 @@ const (
 	MergeRequestComment = GitLabEventType("merge_request_commented")
 )
 
-func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]orchestrator.Job, bool, error) {
-	jobs := make([]orchestrator.Job, 0)
+func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContext, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]scheduler.Job, bool, error) {
+	jobs := make([]scheduler.Job, 0)
 
 	log.Printf("ConvertGitLabEventToCommands, event.EventType: %s\n", event.EventType)
 	switch event.EventType {
@@ -319,16 +320,16 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			}
 
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-			StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
-			jobs = append(jobs, orchestrator.Job{
+			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
+			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
 				ProjectWorkspace:   project.Workspace,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
 				Commands:           workflow.Configuration.OnPullRequestPushed,
-				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
+				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
 				PullRequestNumber:  gitLabContext.MergeRequestIId,
 				EventName:          gitLabContext.EventType.String(),
 				RequestedBy:        gitLabContext.GitlabUserName,
@@ -352,26 +353,26 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if project.AwsRoleToAssume != nil {
 
 				if project.AwsRoleToAssume.Command != "" {
-					StateEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.State, project.AwsRoleToAssume.AwsRoleRegion)
+					StateEnvProvider = scheduler.GetProviderFromRole(project.AwsRoleToAssume.State, project.AwsRoleToAssume.AwsRoleRegion)
 				} else {
 					StateEnvProvider = nil
 				}
 
 				if project.AwsRoleToAssume.Command != "" {
-					CommandEnvProvider = orchestrator.GetProviderFromRole(project.AwsRoleToAssume.Command, project.AwsRoleToAssume.AwsRoleRegion)
+					CommandEnvProvider = scheduler.GetProviderFromRole(project.AwsRoleToAssume.Command, project.AwsRoleToAssume.AwsRoleRegion)
 				} else {
 					CommandEnvProvider = nil
 				}
 			}
-			jobs = append(jobs, orchestrator.Job{
+			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
 				ProjectWorkspace:   project.Workspace,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
 				Commands:           workflow.Configuration.OnPullRequestClosed,
-				ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
-				PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
+				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
 				PullRequestNumber:  gitLabContext.MergeRequestIId,
 				EventName:          gitLabContext.EventType.String(),
 				RequestedBy:        gitLabContext.GitlabUserName,
@@ -411,22 +412,22 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 					workspace := project.Workspace
 					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
 					if err != nil {
-						return []orchestrator.Job{}, false, err
+						return []scheduler.Job{}, false, err
 					}
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
 					stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-					StateEnvProvider, CommandEnvProvider := orchestrator.GetStateAndCommandProviders(project)
-					jobs = append(jobs, orchestrator.Job{
+					StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
+					jobs = append(jobs, scheduler.Job{
 						ProjectName:        project.Name,
 						ProjectDir:         project.Dir,
 						ProjectWorkspace:   workspace,
 						Terragrunt:         project.Terragrunt,
 						OpenTofu:           project.OpenTofu,
 						Commands:           []string{command},
-						ApplyStage:         orchestrator.ToConfigStage(workflow.Apply),
-						PlanStage:          orchestrator.ToConfigStage(workflow.Plan),
+						ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
+						PlanStage:          scheduler.ToConfigStage(workflow.Plan),
 						PullRequestNumber:  gitLabContext.MergeRequestIId,
 						EventName:          gitLabContext.EventType.String(),
 						RequestedBy:        gitLabContext.GitlabUserName,
@@ -442,6 +443,6 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		return jobs, coversAllImpactedProjects, nil
 
 	default:
-		return []orchestrator.Job{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
+		return []scheduler.Job{}, false, fmt.Errorf("unsupported GitLab event type: %v", event)
 	}
 }

@@ -2,7 +2,7 @@ package drift
 
 import (
 	"fmt"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	orchestrator "github.com/diggerhq/digger/libs/ci"
 )
 
 type GithubIssueNotification struct {

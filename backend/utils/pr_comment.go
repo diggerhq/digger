@@ -2,19 +2,19 @@ package utils
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	github2 "github.com/diggerhq/digger/libs/orchestrator/github"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"strconv"
 )
 
 type CommentReporter struct {
 	PrNumber  int
-	PrService *github2.GithubService
+	PrService ci.PullRequestService
 	CommentId int64
 }
 
-func InitCommentReporter(prService *github2.GithubService, prNumber int, commentMessage string) (*CommentReporter, error) {
+func InitCommentReporter(prService ci.PullRequestService, prNumber int, commentMessage string) (*CommentReporter, error) {
 	comment, err := prService.PublishComment(prNumber, commentMessage)
 	if err != nil {
 		return nil, fmt.Errorf("count not initialize comment reporter: %v", err)
@@ -31,7 +31,7 @@ func InitCommentReporter(prService *github2.GithubService, prNumber int, comment
 	}, nil
 }
 
-func ReportInitialJobsStatus(cr *CommentReporter, jobs []orchestrator.Job) error {
+func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 	prNumber := cr.PrNumber
 	prService := cr.PrService
 	commentId := cr.CommentId
@@ -50,7 +50,7 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []orchestrator.Job) error
 	return err
 }
 
-func ReportNoProjectsImpacted(cr *CommentReporter, jobs []orchestrator.Job) error {
+func ReportNoProjectsImpacted(cr *CommentReporter, jobs []scheduler.Job) error {
 	prNumber := cr.PrNumber
 	prService := cr.PrService
 	commentId := cr.CommentId

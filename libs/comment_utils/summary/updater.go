@@ -2,21 +2,21 @@ package comment_updater
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"log"
 )
 
 type CommentUpdater interface {
-	UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService orchestrator.PullRequestService, prCommentId int64) error
+	UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId int64) error
 }
 
 type BasicCommentUpdater struct {
 }
 
-func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService orchestrator.PullRequestService, prCommentId int64) error {
+func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId int64) error {
 	jobSpecs, err := scheduler.GetJobSpecs(jobs)
 	if err != nil {
 		log.Printf("could not get jobspecs: %v", err)
@@ -24,7 +24,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	}
 	firstJobSpec := jobSpecs[0]
 	jobType := firstJobSpec.JobType
-	isPlan := jobType == string(orchestrator.DiggerCommandPlan)
+	isPlan := jobType == string(scheduler.DiggerCommandPlan)
 	jobTypeTitle := cases.Title(language.AmericanEnglish).String(string(jobType))
 	message := ""
 	if isPlan {
@@ -51,6 +51,6 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 type NoopCommentUpdater struct {
 }
 
-func (b NoopCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService orchestrator.PullRequestService, prCommentId int64) error {
+func (b NoopCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId int64) error {
 	return nil
 }

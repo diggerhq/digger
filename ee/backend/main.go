@@ -7,6 +7,7 @@ import (
 	"github.com/diggerhq/digger/backend/config"
 	ce_controllers "github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/utils"
 	ci_backends2 "github.com/diggerhq/digger/ee/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/backend/controllers"
 	"github.com/diggerhq/digger/ee/backend/providers/github"
@@ -43,6 +44,7 @@ func main() {
 	})
 
 	eeController := controllers.DiggerEEController{
+		GitlabProvider:    utils.GitlabClientProvider{},
 		CiBackendProvider: ci_backends2.EEBackendProvider{},
 	}
 
