@@ -26,34 +26,41 @@ type Repo struct {
 
 type ProjectRun struct {
 	gorm.Model
-	ProjectID uint
-	Project   *Project
-	StartedAt int64
-	EndedAt   int64
-	Status    string
-	Command   string
-	Output    string
+	ProjectID     uint
+	Project       *Project
+	StartedAt     int64
+	EndedAt       int64
+	Status        string
+	Command       string
+	Output        string
+	ActorUsername string
 }
 
 func (p *ProjectRun) MapToJsonStruct() interface{} {
 	return struct {
-		Id          uint
-		ProjectID   uint
-		ProjectName string
-		StartedAt   time.Time
-		EndedAt     time.Time
-		Status      string
-		Command     string
-		Output      string
+		Id            uint      `json:"id"`
+		ProjectID     uint      `json:"project_id"`
+		ProjectName   string    `json:"project_name"`
+		RepoFullName  string    `json:"repo_full_name"`
+		RepoUrl       string    `json:"repo_url"`
+		ActorUsername string    `json:"actor_username"`
+		StartedAt     time.Time `json:"started_at"`
+		EndedAt       time.Time `json:"ended_at"`
+		Status        string    `json:"status"`
+		Command       string    `json:"command"`
+		Output        string    `json:"output"`
 	}{
-		Id:          p.ID,
-		ProjectID:   p.ProjectID,
-		ProjectName: p.Project.Name,
-		StartedAt:   time.UnixMilli(p.StartedAt),
-		EndedAt:     time.UnixMilli(p.EndedAt),
-		Status:      p.Status,
-		Command:     p.Command,
-		Output:      p.Output,
+		Id:            p.ID,
+		ProjectID:     p.ProjectID,
+		ProjectName:   p.Project.Name,
+		RepoUrl:       p.Project.Repo.RepoUrl,
+		RepoFullName:  p.Project.Repo.RepoFullName,
+		StartedAt:     time.UnixMilli(p.StartedAt),
+		EndedAt:       time.UnixMilli(p.EndedAt),
+		Status:        p.Status,
+		Command:       p.Command,
+		Output:        p.Output,
+		ActorUsername: p.ActorUsername,
 	}
 }
 
