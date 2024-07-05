@@ -139,6 +139,10 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	projectsApiGroup.GET("/:project_id", controllers.ProjectDetails)
 	projectsApiGroup.GET("/:project_id/runs", controllers.RunsForProject)
 
+	activityApiGroup := r.Group("/api/activity")
+	activityApiGroup.Use(middleware.GetApiMiddleware())
+	activityApiGroup.GET("/", controllers.GetActivity)
+
 	runsApiGroup := r.Group("/api/runs")
 	runsApiGroup.Use(middleware.CORSMiddleware(), middleware.GetApiMiddleware())
 	runsApiGroup.GET("/:run_id", controllers.RunDetails)

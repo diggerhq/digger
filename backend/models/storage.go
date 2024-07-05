@@ -93,6 +93,24 @@ func (db *Database) GetPoliciesFromContext(c *gin.Context, orgIdKey string) ([]P
 	return policies, true
 }
 
+func (db *Database) GetProjectRunsForOrg(orgId int) ([]ProjectRun, error) {
+	var runs []ProjectRun
+
+	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
+		Joins("INNER JOIN projects ON projects.id = project_runs.project_id").
+		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
+		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
+		Where("projects.organisation_id = ?", orgId).Order("created_at desc").Limit(100).Find(&runs).Error
+
+	if err != nil {
+		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+		return nil, fmt.Errorf("unknown error occurred while fetching database, %v\n", err)
+	}
+
+	log.Printf("getProjectRunsFromContext, number of runs:%d\n", len(runs))
+	return runs, nil
+}
+
 func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) ([]ProjectRun, bool) {
 	loggedInOrganisationId, exists := c.Get(orgIdKey)
 
@@ -103,21 +121,12 @@ func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) (
 		return nil, false
 	}
 
-	var runs []ProjectRun
-
-	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
-		Joins("INNER JOIN projects ON projects.id = project_runs.project_id").
-		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
-		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", loggedInOrganisationId).Order("created_at desc").Find(&runs).Error
-
+	runs, err := db.GetProjectRunsForOrg(loggedInOrganisationId.(int))
 	if err != nil {
-		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, false
 	}
-
-	log.Printf("getProjectRunsFromContext, number of runs:%d\n", len(runs))
 	return runs, true
+
 }
 
 func (db *Database) GetProjectByRunId(c *gin.Context, runId uint, orgIdKey string) (*ProjectRun, bool) {
