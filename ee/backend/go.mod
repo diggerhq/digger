@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	ariga.io/atlas-provider-gorm v0.3.4 // indirect
 	cloud.google.com/go v0.112.2 // indirect
 	cloud.google.com/go/auth v0.3.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
