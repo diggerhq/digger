@@ -2,7 +2,7 @@ package github
 
 import (
 	"fmt"
-	dg_github "github.com/diggerhq/digger/libs/orchestrator/github"
+	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/google/go-github/v61/github"
 	"log"
 	"os"

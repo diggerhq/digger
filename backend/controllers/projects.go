@@ -10,8 +10,7 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -435,7 +434,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 			repoFullNameSplit := strings.Split(jobLink.RepoFullName, "/")
 			client, _, err := ghClientProvider.Get(installations[0].GithubAppId, installationLink.GithubInstallationId)
-			err = services.DiggerJobCompleted(client, &job.Batch.ID, job, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName)
+			err = services.DiggerJobCompleted(client, &job.Batch.ID, job, jobLink.RepoFullName, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName)
 			if err != nil {
 				log.Printf("Error triggering job: %v", err)
 				return
@@ -590,7 +589,7 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 		return nil
 	}
 
-	if batch.BatchType != orchestrator.DiggerCommandPlan && batch.BatchType != orchestrator.DiggerCommandApply {
+	if batch.BatchType != orchestrator_scheduler.DiggerCommandPlan && batch.BatchType != orchestrator_scheduler.DiggerCommandApply {
 		log.Printf("command is not plan or apply, skipping")
 		return nil
 	}
@@ -642,7 +641,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 	} else {
 		automerge = false
 	}
-	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator.DiggerCommandApply && automerge == true {
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.DiggerCommandApply && automerge == true {
 		ghService, _, err := utils.GetGithubService(
 			gh,
 			batch.GithubInstallationId,

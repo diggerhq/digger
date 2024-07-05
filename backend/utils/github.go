@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	github2 "github.com/diggerhq/digger/libs/orchestrator/github"
+	"github.com/diggerhq/digger/libs/ci"
+	github2 "github.com/diggerhq/digger/libs/ci/github"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -159,7 +160,7 @@ func GetGithubService(gh GithubClientProvider, installationId int64, repoFullNam
 	return &ghService, token, nil
 }
 
-func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []orchestrator.Job) error {
+func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []scheduler.Job) error {
 	for _, job := range jobs {
 		for _, command := range job.Commands {
 			var err error
@@ -178,7 +179,7 @@ func SetPRStatusForJobs(prService *github2.GithubService, prNumber int, jobs []o
 	// Report aggregate status for digger/plan or digger/apply
 	if len(jobs) > 0 {
 		var err error
-		if orchestrator.IsPlanJobs(jobs) {
+		if scheduler.IsPlanJobs(jobs) {
 			err = prService.SetStatus(prNumber, "pending", "digger/plan")
 		} else {
 			err = prService.SetStatus(prNumber, "pending", "digger/apply")
