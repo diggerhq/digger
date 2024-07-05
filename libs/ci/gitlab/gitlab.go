@@ -240,7 +240,7 @@ func (gitlabService GitLabService) IsMerged(mergeRequestID int) (bool, error) {
 	return false, nil
 }
 
-func (gitlabService GitLabService) EditComment(prNumber int, id interface{}, comment string) error {
+func (gitlabService GitLabService) EditComment(prNumber int, id string, comment string) error {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
@@ -248,8 +248,7 @@ func (gitlabService GitLabService) EditComment(prNumber int, id interface{}, com
 
 	log.Printf("EditComment mergeRequestID : %d, projectId: %d, mergeRequestIID: %d, discussionId: %s \n", mergeRequestIID, projectId, mergeRequestIID, discussionId)
 
-	idStr := id.(string)
-	id32, err := strconv.Atoi(idStr)
+	id32, err := strconv.Atoi(id)
 	if err != nil {
 		return fmt.Errorf("could not convert to int: %v", err)
 	}
@@ -263,7 +262,7 @@ func (gitlabService GitLabService) EditComment(prNumber int, id interface{}, com
 
 }
 
-func (gitlabService GitLabService) CreateCommentReaction(id interface{}, reaction string) error {
+func (gitlabService GitLabService) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil
 }

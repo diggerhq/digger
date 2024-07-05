@@ -81,7 +81,7 @@ func (t MockCiService) GetComments(prNumber int) ([]ci.Comment, error) {
 	return comments, nil
 }
 
-func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment string) error {
+func (t MockCiService) EditComment(prNumber int, id string, comment string) error {
 	for _, comments := range t.CommentsPerPr {
 		for _, c := range comments {
 			if c.Id == commentId {
@@ -93,7 +93,7 @@ func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment 
 	return nil
 }
 
-func (svc MockCiService) CreateCommentReaction(id interface{}, reaction string) error {
+func (svc MockCiService) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil
 }

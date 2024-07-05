@@ -26,7 +26,7 @@ func InitCommentReporter(prService ci.PullRequestService, prNumber int, commentM
 	return &CommentReporter{
 		PrNumber:  prNumber,
 		PrService: prService,
-		CommentId: comment.Id.(string),
+		CommentId: comment.Id,
 	}, nil
 }
 

@@ -130,7 +130,7 @@ func (strategy CommentPerRunStrategy) Report(ciService ci.PullRequestService, Pr
 
 func upsertComment(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, supportsCollapsible bool) (string, string, error) {
 	report = reportFormatter(report)
-	var commentIdForThisRun interface{}
+	commentIdForThisRun := ""
 	var commentBody string
 	var commentUrl string
 	for _, comment := range comments {
@@ -142,7 +142,7 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 		}
 	}
 
-	if commentIdForThisRun == nil {
+	if commentIdForThisRun == "" {
 		var commentMessage string
 		if !supportsCollapsible {
 			commentMessage = utils.AsComment(reportTitle)(report)

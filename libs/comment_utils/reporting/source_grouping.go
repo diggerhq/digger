@@ -10,7 +10,6 @@ import (
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/samber/lo"
 	"log"
-	"strconv"
 )
 
 type ProjectNameSourceDetail struct {
@@ -81,7 +80,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 		message = message + commenter(terraformOutputs[project]) + "\n"
 	}
 
-	CommentId, err := strconv.ParseInt(sourceDetaiItem.CommentId, 10, 64)
+	CommentId := sourceDetaiItem.CommentId
 	if err != nil {
 		log.Printf("Could not convert commentId to int64: %v", err)
 		return fmt.Errorf("could not convert commentId to int64: %v", err)

@@ -138,7 +138,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("error getting digger config")
 	}
 
-	err = glService.CreateCommentReaction(commentId, string(dg_github.GithubCommentEyesReaction))
+	err = glService.CreateCommentReaction(strconv.Itoa(commentId), string(dg_github.GithubCommentEyesReaction))
 	if err != nil {
 		log.Printf("CreateCommentReaction error: %v", err)
 	}

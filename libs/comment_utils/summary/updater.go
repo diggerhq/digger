@@ -10,13 +10,13 @@ import (
 )
 
 type CommentUpdater interface {
-	UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId int64) error
+	UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error
 }
 
 type BasicCommentUpdater struct {
 }
 
-func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId int64) error {
+func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
 	jobSpecs, err := scheduler.GetJobSpecs(jobs)
 	if err != nil {
 		log.Printf("could not get jobspecs: %v", err)
@@ -51,6 +51,6 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 type NoopCommentUpdater struct {
 }
 
-func (b NoopCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId int64) error {
+func (b NoopCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
 	return nil
 }

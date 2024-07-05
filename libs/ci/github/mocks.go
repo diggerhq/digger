@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
+	"strconv"
 )
 
 type MockCiService struct {
@@ -26,15 +27,16 @@ func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment
 
 	for _, comments := range t.CommentsPerPr {
 		for _, c := range comments {
-			if c.Id.(int) > latestId {
-				latestId = c.Id.(int)
+			id, _ := c.GetIdAsInt()
+			if id > latestId {
+				latestId = id
 			}
 		}
 	}
 
-	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &ci.Comment{Id: latestId + 1, Body: &comment})
+	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &ci.Comment{Id: strconv.Itoa(latestId + 1), Body: &comment})
 
-	return &ci.Comment{Id: int64(latestId)}, nil
+	return &ci.Comment{Id: strconv.Itoa(latestId)}, nil
 }
 
 func (t MockCiService) ListIssues() ([]*ci.Issue, error) {
@@ -81,10 +83,10 @@ func (t MockCiService) GetComments(prNumber int) ([]ci.Comment, error) {
 	return comments, nil
 }
 
-func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment string) error {
+func (t MockCiService) EditComment(prNumber int, id string, comment string) error {
 	for _, comments := range t.CommentsPerPr {
 		for _, c := range comments {
-			if c.Id == commentId {
+			if c.Id == id {
 				c.Body = &comment
 				return nil
 			}
@@ -93,7 +95,7 @@ func (t MockCiService) EditComment(prNumber int, commentId interface{}, comment 
 	return nil
 }
 
-func (t MockCiService) CreateCommentReaction(id interface{}, reaction string) error {
+func (t MockCiService) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil
 }

@@ -97,11 +97,11 @@ func (t MockPullRequestManager) GetComments(prNumber int) ([]ci.Comment, error) 
 	return []ci.Comment{}, nil
 }
 
-func (t MockPullRequestManager) EditComment(prNumber int, commentId interface{}, comment string) error {
+func (t MockPullRequestManager) EditComment(prNumber int, id string, comment string) error {
 	return nil
 }
 
-func (t *MockPullRequestManager) CreateCommentReaction(id interface{}, reaction string) error {
+func (t *MockPullRequestManager) CreateCommentReaction(id string, reaction string) error {
 	return nil
 }
 

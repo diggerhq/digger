@@ -75,12 +75,12 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetApprovals(p
 	return []string{}, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(prNumber int, commentId interface{}, comment string) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(prNumber int, id string, comment string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "EditComment")
 	return nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) CreateCommentReaction(id interface{}, reaction string) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) CreateCommentReaction(id string, reaction string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "CreateCommentReaction")
 	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/diggerhq/digger/libs/ci/generic"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/locking"
@@ -897,7 +898,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	event := context.Event.(github.PullRequestEvent)
 	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig)
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, 1, "dir")
+	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "dir")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -926,9 +927,8 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	policyChecker := &utils.MockPolicyChecker{}
 	backendApi := &utils.MockBackendApi{}
 
-	event := context.Event.(github.IssueCommentEvent)
-	jobs, _, err := dggithub.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch", "")
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, 1, "")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch", "")
+	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
 	assert.NoError(t, err)
 	if err != nil {
 		log.Println(err)
@@ -1020,7 +1020,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	var requestedProject = project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
-	jobs, _, err := dggithub.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, &requestedProject, workflows, "prbranch")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, &requestedProject, workflows, "prbranch", "main")
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])

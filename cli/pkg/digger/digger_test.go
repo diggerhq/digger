@@ -138,12 +138,12 @@ func (m *MockPRManager) GetComments(prNumber int) ([]ci.Comment, error) {
 	return []ci.Comment{}, nil
 }
 
-func (m *MockPRManager) EditComment(prNumber int, id interface{}, comment string) error {
+func (m *MockPRManager) EditComment(prNumber int, id string, comment string) error {
 	m.Commands = append(m.Commands, RunInfo{"EditComment", strconv.Itoa(id.(int)) + " " + comment, time.Now()})
 	return nil
 }
 
-func (m *MockPRManager) CreateCommentReaction(id interface{}, reaction string) error {
+func (m *MockPRManager) CreateCommentReaction(id string, reaction string) error {
 	m.Commands = append(m.Commands, RunInfo{"EditComment", strconv.Itoa(id.(int)) + " " + reaction, time.Now()})
 	return nil
 }

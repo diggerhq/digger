@@ -8,6 +8,7 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -148,7 +149,7 @@ func (svc GithubService) PublishComment(prNumber int, comment string) (*ci.Comme
 		return nil, fmt.Errorf("could not publish comment to PR %v, %v", prNumber, err)
 	}
 	return &ci.Comment{
-		Id:   *githubComment.ID,
+		Id:   strconv.FormatInt(*githubComment.ID, 10),
 		Body: githubComment.Body,
 		Url:  *githubComment.HTMLURL,
 	}, err
@@ -159,7 +160,7 @@ func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 	commentBodies := make([]ci.Comment, len(comments))
 	for i, comment := range comments {
 		commentBodies[i] = ci.Comment{
-			Id:   *comment.ID,
+			Id:   strconv.FormatInt(*comment.ID, 10),
 			Body: comment.Body,
 			Url:  *comment.HTMLURL,
 		}
@@ -178,9 +179,12 @@ func (svc GithubService) GetApprovals(prNumber int) ([]string, error) {
 	return approvals, err
 }
 
-func (svc GithubService) EditComment(prNumber int, id interface{}, comment string) error {
-	commentId := id.(int64)
-	_, _, err := svc.Client.Issues.EditComment(context.Background(), svc.Owner, svc.RepoName, commentId, &github.IssueComment{Body: &comment})
+func (svc GithubService) EditComment(prNumber int, id string, comment string) error {
+	commentId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return fmt.Errorf("could not convert id %v to i64: %v", id, err)
+	}
+	_, _, err = svc.Client.Issues.EditComment(context.Background(), svc.Owner, svc.RepoName, commentId, &github.IssueComment{Body: &comment})
 	return err
 }
 
@@ -195,8 +199,13 @@ const GithubCommentHoorayReaction GithubCommentReaction = "hooray"
 const GithubCommentRocketReaction GithubCommentReaction = "rocket"
 const GithubCommentEyesReaction GithubCommentReaction = "eyes"
 
-func (svc GithubService) CreateCommentReaction(id interface{}, reaction string) error {
-	_, _, err := svc.Client.Reactions.CreateIssueCommentReaction(context.Background(), svc.Owner, svc.RepoName, id.(int64), reaction)
+func (svc GithubService) CreateCommentReaction(id string, reaction string) error {
+	commentId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return fmt.Errorf("could not convert id %v to i64: %v", id, err)
+	}
+
+	_, _, err = svc.Client.Reactions.CreateIssueCommentReaction(context.Background(), svc.Owner, svc.RepoName, commentId, reaction)
 	if err != nil {
 		log.Printf("could not addd reaction to comment: %v", err)
 		return fmt.Errorf("could not addd reaction to comment: %v", err)

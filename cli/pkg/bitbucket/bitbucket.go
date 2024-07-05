@@ -7,6 +7,7 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -132,7 +133,7 @@ func (svc BitbucketAPI) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (b BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) error {
+func (b BitbucketAPI) EditComment(prNumber int, id string, comment string) error {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments/%s", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber, id)
 
 	commentBody := map[string]string{
@@ -157,7 +158,7 @@ func (b BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) 
 	return nil
 }
 
-func (a BitbucketAPI) CreateCommentReaction(id interface{}, reaction string) error {
+func (a BitbucketAPI) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil
 }
@@ -200,7 +201,7 @@ func (b BitbucketAPI) GetComments(prNumber int) ([]ci.Comment, error) {
 
 	for _, v := range commentResponse.Values {
 		comments = append(comments, ci.Comment{
-			Id:   v.Id,
+			Id:   strconv.Itoa(v.Id),
 			Body: &v.Content.Raw,
 		})
 	}

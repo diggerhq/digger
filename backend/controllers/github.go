@@ -783,7 +783,8 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting digger config")
 	}
 
-	err = ghService.CreateCommentReaction(commentId, string(dg_github.GithubCommentEyesReaction))
+	commentIdStr := strconv.FormatInt(commentId, 10)
+	err = ghService.CreateCommentReaction(commentIdStr, string(dg_github.GithubCommentEyesReaction))
 	if err != nil {
 		log.Printf("CreateCommentReaction error: %v", err)
 	}

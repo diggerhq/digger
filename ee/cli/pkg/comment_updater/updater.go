@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/jobs"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"strings"
@@ -22,7 +21,7 @@ func DriftSummaryString(projectName string, issuesMap *map[string]*ci.Issue) str
 	return fmt.Sprintf("[drift: #%v]", driftStatusForProject.ID)
 }
 
-func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId int64) error {
+func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
 
 	issuesMap, err := getDriftStatusesFromPRIssues(jobs, prService)
 	if err != nil {
@@ -31,7 +30,7 @@ func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, pr
 
 	message := ":construction_worker: Jobs status:\n\n"
 	for _, job := range jobs {
-		var jobSpec jobs.JobJson
+		var jobSpec scheduler.JobJson
 		err := json.Unmarshal(job.JobString, &jobSpec)
 		if err != nil {
 			log.Printf("Failed to convert unmarshall Serialized job, %v", err)

@@ -10,6 +10,7 @@ import (
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
@@ -236,10 +237,15 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
 			prBranchName, _, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
+
 			if err != nil {
 				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while retriving default branch from Issue: %v", err), 6)
 			}
-			jobs, coversAllImpactedProjects, err = dg_github.ConvertIssueCommentEventToJobs(&commentEvent, impactedProjects, requestedProject, diggerConfig.Workflows)
+			defaultBranch := *commentEvent.Repo.DefaultBranch
+			repoFullName := *commentEvent.Repo.FullName
+			requestedBy := *commentEvent.Sender.Login
+			commentBody := *commentEvent.Comment.Body
+			jobs, coversAllImpactedProjects, err = generic.ConvertIssueCommentEventToJobs(repoFullName, requestedBy, prNumber, commentBody, impactedProjects, requestedProject, diggerConfig.Workflows, prBranchName, defaultBranch)
 		} else {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Unsupported GitHub event type. %s", err), 6)
 		}
@@ -269,7 +275,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 0, currentDir)
+		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, "0", currentDir)
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			// aggregate status checks: failure

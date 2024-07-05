@@ -1,12 +1,14 @@
 package ci
 
+import "strconv"
+
 type PullRequestService interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string) (*Comment, error)
 	ListIssues() ([]*Issue, error)
 	PublishIssue(title string, body string) (int64, error)
-	EditComment(prNumber int, id interface{}, comment string) error
-	CreateCommentReaction(id interface{}, reaction string) error
+	EditComment(prNumber int, id string, comment string) error
+	CreateCommentReaction(id string, reaction string) error
 	GetComments(prNumber int) ([]Comment, error)
 	GetApprovals(prNumber int) ([]string, error)
 	// SetStatus set status of specified pull/merge request, status could be: "pending", "failure", "success"
@@ -34,9 +36,19 @@ type Issue struct {
 }
 
 type Comment struct {
-	Id   interface{}
+	Id   string
 	Body *string
 	Url  string
+}
+
+func (c Comment) GetIdAsInt() (int, error) {
+	id32, err := strconv.Atoi(c.Id)
+	return id32, err
+}
+
+func (c Comment) GetIdAsInt64() (int, error) {
+	id32, err := strconv.Atoi(c.Id)
+	return id32, err
 }
 
 type PullRequestComment interface {
