@@ -116,7 +116,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 func NewBackendApi(hostName string, authToken string) backendapi.Api {
 	var backendApi backendapi.Api
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backendapi will not be available.")
+		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
 		backendApi = backendapi.NoopApi{}
 	} else {
 		backendApi = backendapi.DiggerApi{
@@ -131,7 +131,7 @@ func NewBackendApi(hostName string, authToken string) backendapi.Api {
 func NewPolicyChecker(hostname string, organisationName string, authToken string) policy.Checker {
 	var policyChecker policy.Checker
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backendapi will not be available.")
+		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
 		policyChecker = policy.NoOpPolicyChecker{}
 	} else {
 		policyChecker = policy.DiggerPolicyChecker{

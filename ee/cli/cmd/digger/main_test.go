@@ -1,13 +1,17 @@
 package main
 
 import (
+	"github.com/diggerhq/digger/libs/backendapi"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/generic"
 	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/policy"
+	"github.com/diggerhq/digger/libs/storage"
 	"log"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
 	ghmodels "github.com/diggerhq/digger/cli/pkg/github/models"
-	"github.com/diggerhq/digger/cli/pkg/utils"
 	dggithub "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/comment_utils/summary"
@@ -882,16 +886,16 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	diggerConfig := configuration.DiggerConfig{}
 	lock := &locking.MockLock{}
-	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
-	planStorage := &utils.MockPlanStorage{}
-	policyChecker := &utils.MockPolicyChecker{}
-	backendApi := &utils.MockBackendApi{}
+	prManager := ci.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
+	planStorage := storage.MockPlanStorage{}
+	policyChecker := policy.MockPolicyChecker{}
+	backendApi := backendapi.MockBackendApi{}
 
-	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, &prManager)
 	assert.NoError(t, err)
 
 	reporter := &reporting.CiReporter{
-		CiService: prManager,
+		CiService: &prManager,
 		PrNumber:  prNumber,
 	}
 
@@ -901,7 +905,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		assert.NoError(t, err)
 		log.Println(err)
 	}
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, 1, "dir")
+	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "dir")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -919,22 +923,21 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	ghEvent := context.Event
 	diggerConfig := configuration.DiggerConfig{}
 	lock := &locking.MockLock{}
-	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
-	planStorage := &utils.MockPlanStorage{}
-	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	prManager := ci.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
+	planStorage := storage.MockPlanStorage{}
+	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, &prManager)
 	assert.NoError(t, err)
 	reporter := &reporting.CiReporter{
-		CiService: prManager,
+		CiService: &prManager,
 		PrNumber:  prNumber,
 	}
 
-	policyChecker := &utils.MockPolicyChecker{}
-	backendApi := &utils.MockBackendApi{}
+	policyChecker := policy.MockPolicyChecker{}
+	backendApi := backendapi.MockBackendApi{}
 
-	event := context.Event.(github.IssueCommentEvent)
-	jobs, _, err := dggithub.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch", "main")
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, prManager, prManager, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, 1, "")
+	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
 	assert.NoError(t, err)
 	if err != nil {
 		log.Println(err)
@@ -993,9 +996,9 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 	diggerConfig := configuration.DiggerConfig{Projects: projects, Workflows: workflows}
 
 	// PullRequestManager Mock
-	prManager := &utils.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
+	prManager := ci.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	//lock := locking.MockLock{}
-	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, prManager)
+	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, &prManager)
 	assert.NoError(t, err)
 	event := context.Event.(github.PullRequestEvent)
 	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig)
@@ -1026,7 +1029,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	var requestedProject = project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
-	jobs, _, err := dggithub.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, &requestedProject, workflows, "prbranch")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, &requestedProject, workflows, "prbranch", "main")
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])

@@ -159,7 +159,7 @@ func (b BackendApiProvider) GetBackendApi(backendSpec BackendSpec) (backend2.Api
 	switch backendSpec.BackendType {
 	case "noop":
 		return backend2.NoopApi{}, nil
-	case "backendapi":
+	case "backend":
 		return backend2.NewBackendApi(backendSpec.BackendHostname, backendSpec.BackendJobToken), nil
 	default:
 		return backend2.NoopApi{}, nil

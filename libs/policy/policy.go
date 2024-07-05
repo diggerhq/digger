@@ -444,7 +444,7 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 func NewPolicyChecker(hostname string, organisationName string, authToken string) Checker {
 	var policyChecker Checker
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backendapi will not be available.")
+		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
 		policyChecker = NoOpPolicyChecker{}
 	} else {
 		policyChecker = DiggerPolicyChecker{

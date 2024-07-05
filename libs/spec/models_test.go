@@ -56,7 +56,7 @@ const stubTest = `
 	},
 	"reporter": {},
 	"lock": {},
-	"backendapi": {},
+	"backend": {},
 	"vcs": {},
 	"policy_provider": {}
 }

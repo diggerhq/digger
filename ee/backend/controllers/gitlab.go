@@ -175,7 +175,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
-	// perform unlocking in backendapi
+	// perform unlocking in backend
 	if config.PrLocks {
 		for _, project := range impactedProjects {
 			prLock := dg_locking.PullRequestLock{

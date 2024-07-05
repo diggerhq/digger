@@ -155,9 +155,9 @@ func (tf Terraform) Show(params []string, envs map[string]string) (string, strin
 
 func RedactSecret(s string) string {
 	exps := []*regexp.Regexp{
-		regexp.MustCompile(`\-backendapi\-config\=access\_key\=(.*)`),
-		regexp.MustCompile(`\-backendapi\-config\=secret\_key\=(.*)`),
-		regexp.MustCompile(`\-backendapi\-config\=token\=(.*)`),
+		regexp.MustCompile(`\-backend\-config\=access\_key\=(.*)`),
+		regexp.MustCompile(`\-backend\-config\=secret\_key\=(.*)`),
+		regexp.MustCompile(`\-backend\-config\=token\=(.*)`),
 	}
 	for _, e := range exps {
 		x := e.FindStringSubmatch(s)

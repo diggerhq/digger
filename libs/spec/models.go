@@ -43,7 +43,7 @@ type Spec struct {
 	Job      scheduler.JobJson `json:"job"`
 	Reporter ReporterSpec      `json:"reporter"`
 	Lock     LockSpec          `json:"lock"`
-	Backend  BackendSpec       `json:"backendapi"`
+	Backend  BackendSpec       `json:"backend"`
 	VCS      VcsSpec           `json:"vcs"`
 	Policy   PolicySpec        `json:"policy_provider"`
 }

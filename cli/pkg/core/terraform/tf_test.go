@@ -64,12 +64,12 @@ func TestExecuteTerraformApplyDefaultWorkspace(t *testing.T) {
 
 func TestRedactSecrets(t *testing.T) {
 	secrets := []string{
-		"-backendapi-config=access_key=xxx",
-		"-backendapi-config=secret_key=yyy",
-		"-backendapi-config=token=zzz",
+		"-backend-config=access_key=xxx",
+		"-backend-config=secret_key=yyy",
+		"-backend-config=token=zzz",
 	}
 	redactedSecrets := RedactSecrets(secrets)
-	assert.Equal(t, redactedSecrets[0], "-backendapi-config=access_key=<REDACTED>")
-	assert.Equal(t, redactedSecrets[1], "-backendapi-config=secret_key=<REDACTED>")
-	assert.Equal(t, redactedSecrets[2], "-backendapi-config=token=<REDACTED>")
+	assert.Equal(t, redactedSecrets[0], "-backend-config=access_key=<REDACTED>")
+	assert.Equal(t, redactedSecrets[1], "-backend-config=secret_key=<REDACTED>")
+	assert.Equal(t, redactedSecrets[2], "-backend-config=token=<REDACTED>")
 }

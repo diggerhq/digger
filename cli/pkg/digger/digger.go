@@ -134,7 +134,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		currentJob := jobs[0]
 		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
 		projectNameForBackendReporting := currentJob.ProjectName
-		// TODO: handle the apply result summary as well to report it to backendapi. Possibly reporting changed resources as well
+		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
 		var planResult *execution.DiggerExecutorPlanResult = nil
 		if exectorResults[0].PlanResult != nil {

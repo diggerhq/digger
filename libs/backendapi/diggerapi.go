@@ -190,7 +190,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 func NewBackendApi(hostName string, authToken string) Api {
 	var backendApi Api
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backendapi will not be available.")
+		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
 		backendApi = NoopApi{}
 	} else {
 		backendApi = DiggerApi{
