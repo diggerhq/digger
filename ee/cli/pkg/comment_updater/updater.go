@@ -3,8 +3,8 @@ package comment_updater
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"strings"
 )
@@ -12,7 +12,7 @@ import (
 type AdvancedCommentUpdater struct {
 }
 
-func DriftSummaryString(projectName string, issuesMap *map[string]*orchestrator.Issue) string {
+func DriftSummaryString(projectName string, issuesMap *map[string]*ci.Issue) string {
 	driftStatusForProject := (*issuesMap)[projectName]
 	if driftStatusForProject == nil {
 		return ""
@@ -21,7 +21,7 @@ func DriftSummaryString(projectName string, issuesMap *map[string]*orchestrator.
 	return fmt.Sprintf("[drift: #%v]", driftStatusForProject.ID)
 }
 
-func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService orchestrator.PullRequestService, prCommentId int64) error {
+func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
 
 	issuesMap, err := getDriftStatusesFromPRIssues(jobs, prService)
 	if err != nil {
@@ -30,7 +30,7 @@ func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, pr
 
 	message := ":construction_worker: Jobs status:\n\n"
 	for _, job := range jobs {
-		var jobSpec orchestrator.JobJson
+		var jobSpec scheduler.JobJson
 		err := json.Unmarshal(job.JobString, &jobSpec)
 		if err != nil {
 			log.Printf("Failed to convert unmarshall Serialized job, %v", err)
@@ -47,13 +47,13 @@ func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, pr
 	return nil
 }
 
-func getDriftStatusesFromPRIssues(jobs []scheduler.SerializedJob, prService orchestrator.PullRequestService) (*map[string]*orchestrator.Issue, error) {
+func getDriftStatusesFromPRIssues(jobs []scheduler.SerializedJob, prService ci.PullRequestService) (*map[string]*ci.Issue, error) {
 	issues, err := prService.ListIssues()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list issues from SCM: %v", err)
 	}
-	issuesMap := make(map[string]*orchestrator.Issue)
-	var issueLinked *orchestrator.Issue
+	issuesMap := make(map[string]*ci.Issue)
+	var issueLinked *ci.Issue
 	for _, job := range jobs {
 		issueLinked = nil
 		for _, issue := range issues {

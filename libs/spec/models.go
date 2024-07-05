@@ -1,6 +1,8 @@
 package spec
 
-import "github.com/diggerhq/digger/libs/orchestrator"
+import (
+	"github.com/diggerhq/digger/libs/scheduler"
+)
 
 type ReporterSpec struct {
 	ReporterType      string `json:"reporter_type"`
@@ -21,6 +23,7 @@ type BackendSpec struct {
 
 type VcsSpec struct {
 	Actor        string `json:"actor"`
+	RepoFullname string `json:"repo_full_name"`
 	RepoName     string `json:"repo_name"`
 	RepoOwner    string `json:"repo_owner"`
 	VcsType      string `json:"vcs_type"`
@@ -37,10 +40,10 @@ type Spec struct {
 	CommentId string `json:"comment_id"`
 	RunName   string `json:"run_name"`
 
-	Job      orchestrator.JobJson `json:"job"`
-	Reporter ReporterSpec         `json:"reporter"`
-	Lock     LockSpec             `json:"lock"`
-	Backend  BackendSpec          `json:"backend"`
-	VCS      VcsSpec              `json:"vcs"`
-	Policy   PolicySpec           `json:"policy_provider"`
+	Job      scheduler.JobJson `json:"job"`
+	Reporter ReporterSpec      `json:"reporter"`
+	Lock     LockSpec          `json:"lock"`
+	Backend  BackendSpec       `json:"backend"`
+	VCS      VcsSpec           `json:"vcs"`
+	Policy   PolicySpec        `json:"policy_provider"`
 }

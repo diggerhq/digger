@@ -2,12 +2,12 @@ package digger
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 )
 
-func UpdateAggregateStatus(batch *scheduler.SerializedBatch, prService orchestrator.PullRequestService) error {
+func UpdateAggregateStatus(batch *scheduler.SerializedBatch, prService ci.PullRequestService) error {
 	// TODO: Introduce batch-level
 	isPlan, err := batch.IsPlan()
 	if err != nil {

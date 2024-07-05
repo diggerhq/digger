@@ -3,17 +3,17 @@ package drift
 import (
 	"fmt"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/diggerhq/digger/libs/ci"
 	"os"
 )
 
 type DriftNotificationProvider interface {
-	Get(prService orchestrator.PullRequestService) (core_drift.Notification, error)
+	Get(prService ci.PullRequestService) (core_drift.Notification, error)
 }
 
 type DriftNotificationProviderBasic struct{}
 
-func (d DriftNotificationProviderBasic) Get(prService orchestrator.PullRequestService) (core_drift.Notification, error) {
+func (d DriftNotificationProviderBasic) Get(prService ci.PullRequestService) (core_drift.Notification, error) {
 	slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
 	var notification core_drift.Notification
 	if slackNotificationUrl != "" {
