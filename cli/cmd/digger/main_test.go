@@ -1023,7 +1023,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	var requestedProject = project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, &requestedProject, workflows, "prbranch", "main")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "digger plan", impactedProjects, &requestedProject, workflows, "prbranch", "main")
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])
