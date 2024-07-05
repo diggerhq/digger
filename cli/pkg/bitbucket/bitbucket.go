@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/ci"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/orchestrator"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -97,7 +98,7 @@ func (b BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
 	return files, nil
 }
 
-func (b BitbucketAPI) PublishComment(prNumber int, comment string) (*orchestrator.Comment, error) {
+func (b BitbucketAPI) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	commentBody := map[string]interface{}{
@@ -124,7 +125,7 @@ func (b BitbucketAPI) PublishComment(prNumber int, comment string) (*orchestrato
 	return nil, nil
 }
 
-func (svc BitbucketAPI) ListIssues() ([]*orchestrator.Issue, error) {
+func (svc BitbucketAPI) ListIssues() ([]*ci.Issue, error) {
 	return nil, fmt.Errorf("implement me")
 }
 
@@ -132,7 +133,7 @@ func (svc BitbucketAPI) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (b BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) error {
+func (b BitbucketAPI) EditComment(prNumber int, id string, comment string) error {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments/%s", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber, id)
 
 	commentBody := map[string]string{
@@ -157,7 +158,7 @@ func (b BitbucketAPI) EditComment(prNumber int, id interface{}, comment string) 
 	return nil
 }
 
-func (a BitbucketAPI) CreateCommentReaction(id interface{}, reaction string) error {
+func (a BitbucketAPI) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil
 }
@@ -176,7 +177,7 @@ type Comment struct {
 	} `json:"values"`
 }
 
-func (b BitbucketAPI) GetComments(prNumber int) ([]orchestrator.Comment, error) {
+func (b BitbucketAPI) GetComments(prNumber int) ([]ci.Comment, error) {
 
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
@@ -196,11 +197,11 @@ func (b BitbucketAPI) GetComments(prNumber int) ([]orchestrator.Comment, error) 
 		return nil, err
 	}
 
-	var comments []orchestrator.Comment
+	var comments []ci.Comment
 
 	for _, v := range commentResponse.Values {
-		comments = append(comments, orchestrator.Comment{
-			Id:   v.Id,
+		comments = append(comments, ci.Comment{
+			Id:   strconv.Itoa(v.Id),
 			Body: &v.Content.Raw,
 		})
 	}
@@ -487,7 +488,7 @@ func (b BitbucketAPI) GetUserTeams(organisation string, user string) ([]string, 
 	return nil, fmt.Errorf("not implemented")
 }
 
-func FindImpactedProjectsInBitbucket(diggerConfig *configuration.DiggerConfig, prNumber int, prService orchestrator.PullRequestService) ([]configuration.Project, error) {
+func FindImpactedProjectsInBitbucket(diggerConfig *configuration.DiggerConfig, prNumber int, prService ci.PullRequestService) ([]configuration.Project, error) {
 	changedFiles, err := prService.GetChangedFiles(prNumber)
 
 	if err != nil {

@@ -2,21 +2,22 @@ package main
 
 import (
 	"fmt"
-	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
-	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	core_backend "github.com/diggerhq/digger/libs/backendapi"
+	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 	core_locking "github.com/diggerhq/digger/libs/locking"
-	orchestrator "github.com/diggerhq/digger/libs/orchestrator"
+	core_policy "github.com/diggerhq/digger/libs/policy"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"log"
 	"os"
 )
 
-func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService orchestrator.PullRequestService, orgService orchestrator.OrgService, reporter reporting.Reporter, backendApi core_backend.Api) {
+func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService ci.PullRequestService, orgService ci.OrgService, reporter reporting.Reporter, backendApi core_backend.Api) {
 
 	//SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(runConfig.RepoNamespace)
 	currentDir, err := os.Getwd()
@@ -43,13 +44,13 @@ func exec(actor string, projectName string, repoNamespace string, command string
 	}
 	//impactedProjects := diggerConfig.GetModifiedProjects(strings.Split(runConfig.FilesChanged, ","))
 	impactedProjects := diggerConfig.GetProjects(projectName)
-	jobs, _, err := orchestrator.ConvertProjectsToJobs(actor, repoNamespace, command, prNumber, impactedProjects, nil, diggerConfig.Workflows)
+	jobs, _, err := scheduler.ConvertProjectsToJobs(actor, repoNamespace, command, prNumber, impactedProjects, nil, diggerConfig.Workflows)
 	if err != nil {
 		usage.ReportErrorAndExit(actor, fmt.Sprintf("Failed to convert impacted projects to commands. %s", err), 4)
 	}
 
 	jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
-	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, 123, currentDir)
+	_, _, err = digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, "123", currentDir)
 }
 
 /*
@@ -84,7 +85,7 @@ func getImpactedProjectsAsString(projects []digger_config.Project, prNumber int)
 	return msg
 }
 
-func logCommands(projectCommands []orchestrator.Job) {
+func logCommands(projectCommands []scheduler.Job) {
 	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)

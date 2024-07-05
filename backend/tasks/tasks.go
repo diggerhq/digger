@@ -5,7 +5,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/robfig/cron"
 	"log"
 	"os"
@@ -64,7 +64,7 @@ func main() {
 			}
 
 			ciBackend := ci_backends.GithubActionCi{Client: service.Client}
-			services.ScheduleJob(ciBackend, repoOwner, repoName, &batch.ID, &job)
+			services.ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, &batch.ID, &job)
 		}
 	})
 

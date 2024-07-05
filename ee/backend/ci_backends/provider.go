@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/buildkite/go-buildkite/v3/buildkite"
 	"github.com/diggerhq/digger/backend/ci_backends"
-	"github.com/diggerhq/digger/backend/utils"
+	"github.com/xanzy/go-gitlab"
 	"log"
 	"os"
 )
@@ -12,18 +12,20 @@ import (
 type EEBackendProvider struct{}
 
 func (b EEBackendProvider) GetCiBackend(options ci_backends.CiBackendOptions) (ci_backends.CiBackend, error) {
-	ciBackendType := os.Getenv("CI_BACKEND")
+	ciBackendType := os.Getenv("DIGGER_CI_BACKEND")
 	switch ciBackendType {
 	case "github_actions", "":
-		client, _, err := utils.GetGithubClient(options.GithubClientProvider, options.GithubInstallationId, options.RepoFullName)
+		return ci_backends.DefaultBackendProvider{}.GetCiBackend(options)
+	case "gitlab_pipelines":
+		token := os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("missing environment variable: DIGGER_GITLAB_ACCESS_TOKEN")
+		}
+		client, err := gitlab.NewClient(token)
 		if err != nil {
-			log.Printf("GetCiBackend: could not get github client: %v", err)
-			return nil, fmt.Errorf("could not get github client: %v", err)
+			return nil, fmt.Errorf("could not create gitlab client: %v", err)
 		}
-		backend := &ci_backends.GithubActionCi{
-			Client: client,
-		}
-		return backend, nil
+		return GitlabPipelineCI{Client: client}, nil
 	case "buildkite":
 		token := os.Getenv("BUILDKITE_TOKEN")
 		org := os.Getenv("BUILDKITE_ORG")

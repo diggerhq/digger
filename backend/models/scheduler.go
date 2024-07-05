@@ -3,8 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/orchestrator"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/orchestrator/scheduler"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"log"
@@ -17,8 +16,14 @@ type DiggerJobParentLink struct {
 	ParentDiggerJobId string `gorm:"size:50,index:idx_parent_digger_job_id"`
 }
 
+type DiggerVCSType string
+
+const DiggerVCSGithub DiggerVCSType = "github"
+const DiggerVCSGitlab DiggerVCSType = "gitlab"
+
 type DiggerBatch struct {
 	ID                   uuid.UUID `gorm:"primary_key"`
+	VCS                  DiggerVCSType
 	PrNumber             int
 	CommentId            *int64
 	Status               orchestrator_scheduler.DiggerBatchStatus
@@ -28,7 +33,7 @@ type DiggerBatch struct {
 	RepoFullName         string
 	RepoOwner            string
 	RepoName             string
-	BatchType            orchestrator.DiggerCommand
+	BatchType            orchestrator_scheduler.DiggerCommand
 	// used for module source grouping comments
 	SourceDetails []byte
 }
@@ -86,7 +91,7 @@ type GithubDiggerJobLink struct {
 }
 
 func (j *DiggerJob) MapToJsonStruct() (orchestrator_scheduler.SerializedJob, error) {
-	var job orchestrator.JobJson
+	var job orchestrator_scheduler.JobJson
 	err := json.Unmarshal(j.SerializedJobSpec, &job)
 	if err != nil {
 		log.Printf("Failed to convert unmarshall Serialized job, %v", err)

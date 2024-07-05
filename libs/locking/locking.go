@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/locking/aws"
 	"github.com/diggerhq/digger/libs/locking/azure"
@@ -13,20 +14,18 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	"github.com/diggerhq/digger/libs/locking/aws/envprovider"
-	"github.com/diggerhq/digger/libs/orchestrator"
-
 	"cloud.google.com/go/storage"
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
+	"github.com/diggerhq/digger/libs/locking/aws/envprovider"
 )
 
 type PullRequestLock struct {
 	InternalLock     Lock
-	CIService        orchestrator.PullRequestService
+	CIService        ci.PullRequestService
 	Reporter         reporting.Reporter
 	ProjectName      string
 	ProjectNamespace string
