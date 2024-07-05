@@ -523,7 +523,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return nil
 	}
 
-	// perform locking/unlocking in backend
+	// perform locking/unlocking in backendapi
 	if config.PrLocks {
 		for _, project := range impactedProjects {
 			prLock := dg_locking.PullRequestLock{
@@ -821,7 +821,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
-	// perform unlocking in backend
+	// perform unlocking in backendapi
 	if config.PrLocks {
 		for _, project := range impactedProjects {
 			prLock := dg_locking.PullRequestLock{

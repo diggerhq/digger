@@ -1,10 +1,8 @@
 package policy
 
 import (
+	"github.com/diggerhq/digger/libs/ci"
 	"testing"
-
-	"github.com/diggerhq/digger/cli/pkg/core/policy"
-	"github.com/diggerhq/digger/cli/pkg/utils"
 )
 
 type OpaExamplePolicyProvider struct {
@@ -133,7 +131,7 @@ func (s *DiggerExamplePolicyProvider2) GetOrganisation() string {
 
 func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 	type fields struct {
-		PolicyProvider policy.Provider
+		PolicyProvider Provider
 	}
 	type args struct {
 		input interface{}
@@ -222,7 +220,7 @@ func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 			var p = &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
-			ciService := utils.MockPullRequestManager{Teams: []string{"engineering"}}
+			ciService := ci.MockPullRequestManager{Teams: []string{"engineering"}}
 			got, err := p.CheckAccessPolicy(ciService, nil, tt.organisation, tt.name, tt.name, "", tt.command, nil, tt.requestedBy, tt.planPolicyViolations)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiggerPolicyChecker.CheckAccessPolicy() error = %v, wantErr %v", err, tt.wantErr)
@@ -237,7 +235,7 @@ func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 
 func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 	type fields struct {
-		PolicyProvider policy.Provider
+		PolicyProvider Provider
 	}
 	type args struct {
 		input interface{}

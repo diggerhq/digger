@@ -49,7 +49,7 @@ func RunSpec(
 
 	backendApi, err := backedProvider.GetBackendApi(spec.Backend)
 	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backendapi api: %v", err), 1)
 	}
 
 	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
@@ -82,7 +82,7 @@ func RunSpec(
 	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
 	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
 	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err), 4)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to report jobSpec status to backendapi. Exiting. %v", err), 4)
 	}
 
 	commentId := spec.CommentId

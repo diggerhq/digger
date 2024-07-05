@@ -1,40 +1,10 @@
-package utils
+package ci
 
 import (
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
-	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"time"
 )
-
-type MockTerraform struct {
-	commands []string
-}
-
-func (tf *MockTerraform) Apply() (string, string, error) {
-	tf.commands = append(tf.commands, "apply")
-	return "", "", nil
-}
-
-func (tf *MockTerraform) Plan() (bool, string, string, error) {
-	tf.commands = append(tf.commands, "plan")
-	return true, "", "", nil
-}
-
-type MockPolicyChecker struct {
-}
-
-func (t MockPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
-	return false, nil
-}
-
-func (t MockPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectname string, projectDir string, planOutput string) (bool, []string, error) {
-	return false, nil, nil
-}
-
-func (t MockPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectname string) (bool, error) {
-	return true, nil
-}
 
 type MockPullRequestManager struct {
 	ChangedFiles []string
@@ -49,11 +19,11 @@ func (t MockPullRequestManager) GetUserTeams(organisation string, user string) (
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
 	return t.ChangedFiles, nil
 }
-func (t MockPullRequestManager) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
+func (t MockPullRequestManager) PublishComment(prNumber int, comment string) (*Comment, error) {
 	return nil, nil
 }
 
-func (t MockPullRequestManager) ListIssues() ([]*ci.Issue, error) {
+func (t MockPullRequestManager) ListIssues() ([]*Issue, error) {
 	return nil, nil
 }
 
@@ -93,8 +63,8 @@ func (t MockPullRequestManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
-func (t MockPullRequestManager) GetComments(prNumber int) ([]ci.Comment, error) {
-	return []ci.Comment{}, nil
+func (t MockPullRequestManager) GetComments(prNumber int) ([]Comment, error) {
+	return []Comment{}, nil
 }
 
 func (t MockPullRequestManager) EditComment(prNumber int, id string, comment string) error {

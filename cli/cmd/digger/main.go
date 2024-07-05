@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
-	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	core_backend "github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 	core_locking "github.com/diggerhq/digger/libs/locking"
+	core_policy "github.com/diggerhq/digger/libs/policy"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"log"

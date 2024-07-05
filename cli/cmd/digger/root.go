@@ -2,15 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/backend"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
-	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
-	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	orchestrator_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	locking2 "github.com/diggerhq/digger/libs/locking"
+	core_policy "github.com/diggerhq/digger/libs/policy"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"
@@ -78,7 +77,7 @@ func (r *RunConfig) GetServices() (*ci.PullRequestService, *ci.OrgService, *repo
 }
 
 var PolicyChecker core_policy.Checker
-var BackendApi core_backend.Api
+var BackendApi backendapi.Api
 var ReportStrategy reporting.ReportStrategy
 var lock locking2.Lock
 
@@ -90,7 +89,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
 	//orgName := os.Getenv("DIGGER_ORGANISATION")
-	BackendApi = backend.NewBackendApi(hostName, token)
+	BackendApi = backendapi.NewBackendApi(hostName, token)
 	//PolicyChecker = policy.NewPolicyChecker(hostName, orgName, token)
 
 	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {

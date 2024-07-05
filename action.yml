@@ -136,7 +136,7 @@ inputs:
     required: false
     default: ''
   no-backend:
-    description: 'run cli-only, without an orchestrator backend'
+    description: 'run cli-only, without an orchestrator backendapi'
     required: false
     default: 'false'
   command:
@@ -348,7 +348,7 @@ runs:
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
-        NO_BACKEND: ${{ inputs.no-backend }}
+        NO_BACKEND: ${{ inputs.no-backendapi }}
         DEBUG: 'true'
         TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
@@ -386,7 +386,7 @@ runs:
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
-        NO_BACKEND: ${{ inputs.no-backend }}
+        NO_BACKEND: ${{ inputs.no-backendapi }}
         TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache

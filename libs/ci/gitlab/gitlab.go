@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/gruntwork-io/go-commons/env"
 	"log"
 	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/caarlos0/env/v11"
-	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	go_gitlab "github.com/xanzy/go-gitlab"
 )
@@ -107,7 +107,7 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *digger_confi
 	case MergeRequestComment:
 		diggerCommand := strings.ToLower(gitlabContext.DiggerCommand)
 		diggerCommand = strings.TrimSpace(diggerCommand)
-		requestedProject := utils.ParseProjectName(diggerCommand)
+		requestedProject := ci.ParseProjectName(diggerCommand)
 
 		if requestedProject == "" {
 			return impactedProjects, nil, nil
@@ -428,7 +428,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 						workflow = workflows["default"]
 					}
 					workspace := project.Workspace
-					workspaceOverride, err := utils.ParseWorkspace(diggerCommand)
+					workspaceOverride, err := ci.ParseWorkspace(diggerCommand)
 					if err != nil {
 						return []scheduler.Job{}, false, err
 					}

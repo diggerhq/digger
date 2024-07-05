@@ -1,10 +1,9 @@
-package backend
+package backendapi
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
@@ -188,10 +187,10 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 	return &response, nil
 }
 
-func NewBackendApi(hostName string, authToken string) backend.Api {
-	var backendApi backend.Api
+func NewBackendApi(hostName string, authToken string) Api {
+	var backendApi Api
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
+		log.Println("WARNING: running in 'backendless' mode. Features that require backendapi will not be available.")
 		backendApi = NoopApi{}
 	} else {
 		backendApi = DiggerApi{

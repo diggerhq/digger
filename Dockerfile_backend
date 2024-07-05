@@ -16,7 +16,7 @@ RUN go version
 # https://github.com/ethereum/go-ethereum/issues/2738
 # Build static binary "-getmode=vendor" does not work with go-ethereum
 
-RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o backend_exe ./backend/
+RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o backend_exe ./backendapi/
 
 # Multi-stage build will just copy the binary to an alpine image.
 FROM ubuntu:24.04 as runner

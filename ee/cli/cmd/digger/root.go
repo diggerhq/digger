@@ -2,16 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/backend"
 	"github.com/diggerhq/digger/cli/pkg/bitbucket"
-	core_backend "github.com/diggerhq/digger/cli/pkg/core/backend"
-	core_policy "github.com/diggerhq/digger/cli/pkg/core/policy"
-	"github.com/diggerhq/digger/cli/pkg/policy"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	orchestrator_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/policy"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"
@@ -78,7 +76,7 @@ func (r *RunConfig) GetServices() (*ci.PullRequestService, *ci.OrgService, *repo
 	return &prService, &orgService, &reporter, nil
 }
 
-var BackendApi core_backend.Api
+var BackendApi backendapi.Api
 var ReportStrategy reporting.ReportStrategy
 var lock locking.Lock
 
@@ -115,13 +113,13 @@ func PreRun(cmd *cobra.Command, args []string) {
 	log.Println("Lock provider has been created successfully")
 }
 
-func NewBackendApi(hostName string, authToken string) core_backend.Api {
-	var backendApi core_backend.Api
+func NewBackendApi(hostName string, authToken string) backendapi.Api {
+	var backendApi backendapi.Api
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
-		backendApi = backend.NoopApi{}
+		log.Println("WARNING: running in 'backendless' mode. Features that require backendapi will not be available.")
+		backendApi = backendapi.NoopApi{}
 	} else {
-		backendApi = backend.DiggerApi{
+		backendApi = backendapi.DiggerApi{
 			DiggerHost: hostName,
 			AuthToken:  authToken,
 			HttpClient: http.DefaultClient,
@@ -130,10 +128,10 @@ func NewBackendApi(hostName string, authToken string) core_backend.Api {
 	return backendApi
 }
 
-func NewPolicyChecker(hostname string, organisationName string, authToken string) core_policy.Checker {
-	var policyChecker core_policy.Checker
+func NewPolicyChecker(hostname string, organisationName string, authToken string) policy.Checker {
+	var policyChecker policy.Checker
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
+		log.Println("WARNING: running in 'backendless' mode. Features that require backendapi will not be available.")
 		policyChecker = policy.NoOpPolicyChecker{}
 	} else {
 		policyChecker = policy.DiggerPolicyChecker{

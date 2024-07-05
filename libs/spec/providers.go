@@ -9,10 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	backend2 "github.com/diggerhq/digger/cli/pkg/backend"
-	"github.com/diggerhq/digger/cli/pkg/core/backend"
-	"github.com/diggerhq/digger/cli/pkg/core/policy"
-	policy2 "github.com/diggerhq/digger/cli/pkg/policy"
+	backend2 "github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -21,6 +18,7 @@ import (
 	"github.com/diggerhq/digger/libs/locking/aws/envprovider"
 	"github.com/diggerhq/digger/libs/locking/azure"
 	"github.com/diggerhq/digger/libs/locking/gcp"
+	policy2 "github.com/diggerhq/digger/libs/policy"
 	"github.com/diggerhq/digger/libs/scheduler"
 	storage2 "github.com/diggerhq/digger/libs/storage"
 	"github.com/samber/lo"
@@ -157,11 +155,11 @@ func (r ReporterProvider) GetReporter(reporterSpec ReporterSpec, ciService ci.Pu
 
 type BackendApiProvider struct{}
 
-func (b BackendApiProvider) GetBackendApi(backendSpec BackendSpec) (backend.Api, error) {
+func (b BackendApiProvider) GetBackendApi(backendSpec BackendSpec) (backend2.Api, error) {
 	switch backendSpec.BackendType {
 	case "noop":
 		return backend2.NoopApi{}, nil
-	case "backend":
+	case "backendapi":
 		return backend2.NewBackendApi(backendSpec.BackendHostname, backendSpec.BackendJobToken), nil
 	default:
 		return backend2.NoopApi{}, nil
@@ -184,12 +182,12 @@ func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error
 }
 
 type SpecPolicyProvider interface {
-	GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error)
+	GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy2.Checker, error)
 }
 
 type BasicPolicyProvider struct{}
 
-func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error) {
+func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy2.Checker, error) {
 	switch policySpec.PolicyType {
 	case "http":
 		return policy2.DiggerPolicyChecker{

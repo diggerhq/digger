@@ -1,4 +1,4 @@
-package backend
+package backendapi
 
 import (
 	"github.com/diggerhq/digger/cli/pkg/core/execution"

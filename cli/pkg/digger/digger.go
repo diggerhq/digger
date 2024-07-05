@@ -3,10 +3,12 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
 	locking2 "github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/policy"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"log"
@@ -15,10 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/core/backend"
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/core/execution"
-	"github.com/diggerhq/digger/cli/pkg/core/policy"
 	"github.com/diggerhq/digger/cli/pkg/core/runners"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/cli/pkg/usage"
@@ -66,7 +66,7 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backend.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
 
 	defer reporter.Flush()
 
@@ -134,7 +134,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		currentJob := jobs[0]
 		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
 		projectNameForBackendReporting := currentJob.ProjectName
-		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
+		// TODO: handle the apply result summary as well to report it to backendapi. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
 		var planResult *execution.DiggerExecutorPlanResult = nil
 		if exectorResults[0].PlanResult != nil {
@@ -535,7 +535,7 @@ func RunJob(
 	orgService ci.OrgService,
 	policyChecker policy.Checker,
 	planStorage storage.PlanStorage,
-	backendApi backend.Api,
+	backendApi backendapi.Api,
 	driftNotification *core_drift.Notification,
 	workingDir string,
 ) error {

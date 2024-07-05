@@ -81,7 +81,7 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 			BackendHostname:         jobSpec.BackendHostname,
 			BackendOrganisationName: jobSpec.BackendOrganisationName,
 			BackendJobToken:         jobSpec.BackendJobToken,
-			BackendType:             "backend",
+			BackendType:             "backendapi",
 		},
 		VCS: spec.VcsSpec{
 			VcsType:      "github",

@@ -28,14 +28,14 @@ jobs:
 
       - name: Deps
         run: go get -v ./...
-        working-directory: backend
+        working-directory: backendapi
 
       - name: Build
         run: go build
-        working-directory: backend
+        working-directory: backendapi
 
       - name: Test
         run: go test -v ./...
         env:
           GITHUB_PAT_TOKEN: ${{ secrets.TOKEN_GITHUB }}
-        working-directory: backend
+        working-directory: backendapi

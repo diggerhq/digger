@@ -24,8 +24,8 @@ jobs:
         run: |
           pwd
           go get -v ./...
-        working-directory: backend/tasks
+        working-directory: backendapi/tasks
 
       - name: Test
         run: go test -v ./...
-        working-directory: backend/tasks
+        working-directory: backendapi/tasks

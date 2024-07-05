@@ -454,7 +454,7 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 	var errorStr string
 
 	// removes output of terraform -version command that terraform-exec executes on every run
-	i := strings.Index(stdout, "Initializing the backend...")
+	i := strings.Index(stdout, "Initializing the backendapi...")
 	if i != -1 {
 		stdout = stdout[i:]
 	}

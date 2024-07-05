@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/diggerhq/digger/cli/pkg/core/policy"
 	// "github.com/diggerhq/digger/cli/pkg/core/policy/AccessPolicyContext"
 	// TODO fix imports - publish?
 	"github.com/open-policy-agent/opa/rego"
@@ -259,7 +258,7 @@ func (p DiggerHttpPolicyProvider) GetOrganisation() string {
 }
 
 type DiggerPolicyChecker struct {
-	PolicyProvider policy.Provider
+	PolicyProvider Provider
 }
 
 // TODO refactor to use AccessPolicyContext - too many arguments
@@ -442,10 +441,10 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	return true, nil
 }
 
-func NewPolicyChecker(hostname string, organisationName string, authToken string) policy.Checker {
-	var policyChecker policy.Checker
+func NewPolicyChecker(hostname string, organisationName string, authToken string) Checker {
+	var policyChecker Checker
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
+		log.Println("WARNING: running in 'backendless' mode. Features that require backendapi will not be available.")
 		policyChecker = NoOpPolicyChecker{}
 	} else {
 		policyChecker = DiggerPolicyChecker{

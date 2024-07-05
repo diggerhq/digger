@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/ee/cli/pkg/utils"
 	orchestrator_gitlab "github.com/diggerhq/digger/libs/ci/gitlab"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
@@ -55,7 +54,7 @@ func GetDiggerConfigForBranch(gh GitlabProvider, projectId int, repoFullName str
 		log.Printf("Error getting changed files: %v", err)
 		return "", nil, nil, fmt.Errorf("error getting changed files")
 	}
-	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, token, func(dir string) error {
+	err = CloneGitRepoAndDoAction(cloneUrl, branch, token, func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
