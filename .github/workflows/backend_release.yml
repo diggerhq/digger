@@ -32,7 +32,7 @@ jobs:
           goos: ${{ matrix.os }}
           goarch: ${{ matrix.arch }}
           goversion: 1.21.1
-          project_path: ./backendapi
+          project_path: ./backend
           binary_name: digger-api
           pre_command: export CGO_ENABLED=0
           ldflags: ${{ matrix.ldflags }}
