@@ -1,11 +1,5 @@
 package ci
 
-import (
-	"github.com/diggerhq/digger/cli/pkg/core/execution"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"time"
-)
-
 type MockPullRequestManager struct {
 	ChangedFiles []string
 	Teams        []string
@@ -81,38 +75,4 @@ func (t MockPullRequestManager) GetBranchName(prNumber int) (string, string, err
 
 func (t MockPullRequestManager) SetOutput(prNumber int, key string, value string) error {
 	return nil
-}
-
-type MockPlanStorage struct {
-}
-
-func (t *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
-	return nil
-}
-
-func (t MockPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
-	return nil, nil
-}
-
-func (t MockPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
-	return nil
-}
-
-func (t MockPlanStorage) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
-	return false, nil
-}
-
-type MockBackendApi struct {
-}
-
-func (t MockBackendApi) ReportProject(namespace string, projectName string, configuration string) error {
-	return nil
-}
-
-func (t MockBackendApi) ReportProjectRun(repo string, projectName string, startedAt time.Time, endedAt time.Time, status string, command string, output string) error {
-	return nil
-}
-
-func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *execution.DiggerExecutorPlanResult, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
-	return nil, nil
 }

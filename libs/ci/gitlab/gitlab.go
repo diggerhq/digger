@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/gruntwork-io/go-commons/env"
 	"log"
 	"strconv"
 	"strings"

@@ -2,6 +2,7 @@ package digger
 
 import (
 	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/execution"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"os"
 	"sort"
@@ -10,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"

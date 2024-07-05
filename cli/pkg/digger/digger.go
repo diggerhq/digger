@@ -7,6 +7,7 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
+	"github.com/diggerhq/digger/libs/execution"
 	locking2 "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/policy"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
@@ -18,7 +19,6 @@ import (
 	"time"
 
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	"github.com/diggerhq/digger/cli/pkg/core/execution"
 	"github.com/diggerhq/digger/cli/pkg/core/runners"
 	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/cli/pkg/usage"

@@ -14,7 +14,6 @@ import (
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	dg_locking "github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
 	"github.com/xanzy/go-gitlab"
@@ -189,7 +188,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 				ProjectNamespace: repoFullName,
 				PrNumber:         issueNumber,
 			}
-			err = orchestrator.PerformLockingActionFromCommand(prLock, *diggerCommand)
+			err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
 			if err != nil {
 				utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
 				return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)

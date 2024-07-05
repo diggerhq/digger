@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/core/execution"
+	"github.com/diggerhq/digger/libs/execution"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"io"
