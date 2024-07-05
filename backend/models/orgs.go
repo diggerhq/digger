@@ -45,7 +45,7 @@ func (p *ProjectRun) MapToJsonStruct() interface{} {
 		RepoUrl       string    `json:"repo_url"`
 		ActorUsername string    `json:"actor_username"`
 		StartedAt     time.Time `json:"started_at"`
-		EndedAt       time.Time `json:"ended_at""`
+		EndedAt       time.Time `json:"ended_at"`
 		Status        string    `json:"status"`
 		Command       string    `json:"command"`
 		Output        string    `json:"output"`
