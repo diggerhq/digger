@@ -935,7 +935,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	policyChecker := policy.MockPolicyChecker{}
 	backendApi := backendapi.MockBackendApi{}
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch", "main")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "digger plan", impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
 	assert.NoError(t, err)
@@ -1011,13 +1011,16 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	defaultBranch := "defaultBranch"
 	issuenumber := 1
+	repo := &github.Repository{FullName: github.String("asdd"), DefaultBranch: &defaultBranch}
+	user := &github.User{Login: github.String("login")}
+	issue := &github.Issue{
+		Number: &issuenumber,
+	}
 	ghEvent := github.IssueCommentEvent{
 		Comment: &github.IssueComment{},
-		Issue: &github.Issue{
-			Number: &issuenumber,
-		},
-		Repo:   &github.Repository{FullName: github.String("asdd"), DefaultBranch: &defaultBranch},
-		Sender: &github.User{Login: github.String("login")},
+		Issue:   issue,
+		Repo:    repo,
+		Sender:  user,
 	}
 	comment := "DiGGeR PlAn"
 	ghEvent.Comment.Body = &comment
@@ -1029,7 +1032,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	var requestedProject = project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, &requestedProject, workflows, "prbranch", "main")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs(*repo.FullName, *user.Login, *issue.Number, "digger plan", impactedProjects, &requestedProject, workflows, "prbranch", "main")
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])
