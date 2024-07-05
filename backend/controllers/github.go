@@ -30,7 +30,6 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/orchestrator"
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v61/github"
@@ -537,7 +536,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 				ProjectNamespace: repoFullName,
 				PrNumber:         prNumber,
 			}
-			err = orchestrator.PerformLockingActionFromCommand(prLock, *diggerCommand)
+			err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
 			if err != nil {
 				utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
 				return fmt.Errorf("failed to perform lock action on project: %v, %v", project.Name, err)
@@ -835,7 +834,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 				ProjectNamespace: repoFullName,
 				PrNumber:         issueNumber,
 			}
-			err = orchestrator.PerformLockingActionFromCommand(prLock, *diggerCommand)
+			err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
 			if err != nil {
 				utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
 				return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
