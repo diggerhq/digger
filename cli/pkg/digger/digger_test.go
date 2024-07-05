@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
@@ -139,12 +138,12 @@ func (m *MockPRManager) GetComments(prNumber int) ([]ci.Comment, error) {
 }
 
 func (m *MockPRManager) EditComment(prNumber int, id string, comment string) error {
-	m.Commands = append(m.Commands, RunInfo{"EditComment", strconv.Itoa(id.(int)) + " " + comment, time.Now()})
+	m.Commands = append(m.Commands, RunInfo{"EditComment", id + " " + comment, time.Now()})
 	return nil
 }
 
 func (m *MockPRManager) CreateCommentReaction(id string, reaction string) error {
-	m.Commands = append(m.Commands, RunInfo{"EditComment", strconv.Itoa(id.(int)) + " " + reaction, time.Now()})
+	m.Commands = append(m.Commands, RunInfo{"EditComment", id + " " + reaction, time.Now()})
 	return nil
 }
 
@@ -476,7 +475,7 @@ func TestParseWorkspace(t *testing.T) {
 	}
 
 	for _, tt := range commentTests {
-		out, err := utils.ParseWorkspace(tt.in)
+		out, err := ci.ParseWorkspace(tt.in)
 		if tt.err {
 			if err == nil {
 				t.Errorf("ParseWorkspace(%q) = %q, want error", tt.in, out)
