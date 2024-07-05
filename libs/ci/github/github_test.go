@@ -1,6 +1,7 @@
 package github
 
 import (
+	"github.com/diggerhq/digger/libs/ci/generic"
 	"testing"
 
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -88,7 +89,7 @@ func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
 		},
 	}
 
-	impactedProjectsWithDependants, err := FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+	impactedProjectsWithDependants, err := generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
 	if err != nil {
 		return
 	}

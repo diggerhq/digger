@@ -3,6 +3,7 @@ package reporting
 import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
+	"strconv"
 )
 
 type MockCiService struct {
@@ -26,13 +27,14 @@ func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment
 
 	for _, comments := range t.CommentsPerPr {
 		for _, c := range comments {
-			if c.Id.(int) > latestId {
-				latestId = c.Id.(int)
+			cId, _ := strconv.Atoi(c.Id)
+			if cId > latestId {
+				latestId = cId
 			}
 		}
 	}
 
-	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &ci.Comment{Id: latestId + 1, Body: &comment})
+	t.CommentsPerPr[prNumber] = append(t.CommentsPerPr[prNumber], &ci.Comment{Id: strconv.Itoa(latestId + 1), Body: &comment})
 
 	return nil, nil
 }
@@ -84,7 +86,7 @@ func (t MockCiService) GetComments(prNumber int) ([]ci.Comment, error) {
 func (t MockCiService) EditComment(prNumber int, id string, comment string) error {
 	for _, comments := range t.CommentsPerPr {
 		for _, c := range comments {
-			if c.Id == commentId {
+			if c.Id == id {
 				c.Body = &comment
 				return nil
 			}
