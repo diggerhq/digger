@@ -84,7 +84,7 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 			BackendType:             "backend",
 		},
 		VCS: spec.VcsSpec{
-			VcsType:      "github",
+			VcsType:      string(batch.VCS),
 			Actor:        jobSpec.RequestedBy,
 			RepoFullname: batch.RepoFullName,
 			RepoOwner:    batch.RepoOwner,
