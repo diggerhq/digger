@@ -220,7 +220,16 @@ func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 }
 
 func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error) {
-	return gitlabService.Context.IsMeargeable, nil
+	opt := &go_gitlab.GetMergeRequestsOptions{}
+	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(*gitlabService.Context.ProjectId, *gitlabService.Context.MergeRequestIId, opt)
+	if err != nil {
+		log.Printf("could not get gitlab mergability status %v", err)
+		return false, fmt.Errorf("could not get gitlab mergability status: %v", err)
+	}
+	if mergeRequest.DetailedMergeStatus == "mergeable" {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (gitlabService GitLabService) IsClosed(mergeRequestID int) (bool, error) {
