@@ -8,6 +8,7 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"log"
+	"os"
 	"strconv"
 )
 
@@ -29,7 +30,7 @@ func GetVCSTokenFromJob(job models.DiggerJob) (*string, error) {
 			return nil, fmt.Errorf("TriggerWorkflow: could not retrieve token: %v", err)
 		}
 	case models.DiggerVCSGitlab:
-		token = ""
+		token = os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
 	default:
 		return nil, fmt.Errorf("unknown batch VCS: %v", batch.VCS)
 	}
