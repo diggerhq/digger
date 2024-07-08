@@ -25,7 +25,20 @@ func (b EEBackendProvider) GetCiBackend(options ci_backends.CiBackendOptions) (c
 		if err != nil {
 			return nil, fmt.Errorf("could not create gitlab client: %v", err)
 		}
-		return GitlabPipelineCI{Client: client}, nil
+		return GitlabPipelineCI{
+			Client:                      client,
+			GitlabProjectId:             options.GitlabProjectId,
+			GitlabmergeRequestEventName: options.GitlabmergeRequestEventName,
+			GitlabCIPipelineID:          options.GitlabCIPipelineID,
+			GitlabCIPipelineIID:         options.GitlabCIPipelineIID,
+			GitlabCIMergeRequestID:      options.GitlabCIMergeRequestID,
+			GitlabCIMergeRequestIID:     options.GitlabCIMergeRequestIID,
+			GitlabCIProjectName:         options.GitlabCIProjectName,
+			GitlabciprojectNamespace:    options.GitlabciprojectNamespace,
+			GitlabciprojectId:           options.GitlabciprojectId,
+			GitlabciprojectNamespaceId:  options.GitlabciprojectNamespaceId,
+			GitlabDiscussionId:          options.GitlabDiscussionId,
+		}, nil
 	case "buildkite":
 		token := os.Getenv("BUILDKITE_TOKEN")
 		org := os.Getenv("BUILDKITE_ORG")

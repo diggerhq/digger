@@ -12,9 +12,20 @@ type CiBackend interface {
 type JenkinsCi struct{}
 
 type CiBackendOptions struct {
-	GithubClientProvider utils.GithubClientProvider
-	GithubInstallationId int64
-	RepoFullName         string
-	RepoOwner            string
-	RepoName             string
+	GithubClientProvider        utils.GithubClientProvider
+	GithubInstallationId        int64
+	GitlabProjectId             int
+	GitlabmergeRequestEventName string
+	GitlabCIPipelineID          string
+	GitlabCIPipelineIID         int
+	GitlabCIMergeRequestID      int
+	GitlabCIMergeRequestIID     int
+	GitlabCIProjectName         string
+	GitlabciprojectNamespace    string
+	GitlabciprojectId           int
+	GitlabciprojectNamespaceId  int
+	GitlabDiscussionId          string
+	RepoFullName                string
+	RepoOwner                   string
+	RepoName                    string
 }

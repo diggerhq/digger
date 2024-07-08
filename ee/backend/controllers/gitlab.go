@@ -288,9 +288,20 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 
 	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
-			RepoName:     repoName,
-			RepoOwner:    repoOwner,
-			RepoFullName: repoFullName,
+			RepoName:                 repoName,
+			RepoOwner:                repoOwner,
+			RepoFullName:             repoFullName,
+			GitlabProjectId:          projectId,
+			GitlabCIMergeRequestID:   payload.MergeRequest.ID,
+			GitlabCIMergeRequestIID:  payload.MergeRequest.IID,
+			GitlabciprojectId:        payload.ProjectID,
+			GitlabciprojectNamespace: payload.Project.Namespace,
+			//GitlabciprojectNamespaceId: 0,
+			GitlabmergeRequestEventName: payload.EventType,
+			//GitlabCIPipelineID: ,
+			//GitlabCIPipelineIID: "",
+			GitlabCIProjectName: payload.Project.Name,
+			GitlabDiscussionId:  discussionId,
 		},
 	)
 	if err != nil {

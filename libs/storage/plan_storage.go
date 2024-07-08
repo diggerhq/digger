@@ -211,6 +211,9 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
 	switch {
 	case uploadDestination == "github":
+		if ghToken == "" {
+			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
+		}
 		zipManager := Zipper{}
 		planStorage = &GithubPlanStorage{
 			Client:            github.NewTokenClient(context.Background(), ghToken),
@@ -246,7 +249,10 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			Bucket:  bucketName,
 		}
 	case uploadDestination == "gitlab":
-		//TODO implement me
+	//TODO implement me
+	default:
+		log.Printf("unknown plan destination type %v, using noop", uploadDestination)
+		planStorage = &MockPlanStorage{}
 	}
 
 	return planStorage, nil
