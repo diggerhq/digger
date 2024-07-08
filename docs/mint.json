@@ -56,7 +56,8 @@
         "ee/drift-detection",
         "ee/rbac",
         "ee/opa",
-        "ee/buildkite"
+        "ee/buildkite",
+        "ee/gitlab-support"
       ]
     },
     {
