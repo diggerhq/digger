@@ -178,9 +178,9 @@ func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error
 		}
 		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
 	case "gitlab":
-		token := os.Getenv("CI_JOB_TOKEN")
+		token := os.Getenv("GITLAB_TOKEN")
 		if token == "" {
-			return nil, fmt.Errorf("failed to get gitlab service: CI_JOB_TOKEN not specified")
+			return nil, fmt.Errorf("failed to get gitlab service: GITLAB_TOKEN not specified")
 		}
 		context, err := gitlab.ParseGitLabContext()
 		if err != nil {
@@ -201,9 +201,9 @@ func (v VCSProvider) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) {
 		}
 		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
 	case "gitlab":
-		token := os.Getenv("CI_JOB_TOKEN")
+		token := os.Getenv("GITLAB_TOKEN")
 		if token == "" {
-			return nil, fmt.Errorf("failed to get gitlab service: CI_JOB_TOKEN not specified")
+			return nil, fmt.Errorf("failed to get gitlab service: GITLAB_TOKEN not specified")
 		}
 		context, err := gitlab.ParseGitLabContext()
 		if err != nil {
