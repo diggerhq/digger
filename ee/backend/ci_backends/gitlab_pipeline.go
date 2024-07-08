@@ -45,8 +45,9 @@ func (gl GitlabPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, vcsTo
 	variables := []*gitlab.PipelineVariableOptions{}
 	for k, v := range vars {
 		variables = append(variables, &gitlab.PipelineVariableOptions{
-			Key:   &k,
-			Value: &v,
+			Key:          &k,
+			Value:        gitlab.String(v),
+			VariableType: gitlab.String("env_var"),
 		})
 	}
 	client := gl.Client
