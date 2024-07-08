@@ -242,9 +242,6 @@ type PlanStorageProvider struct{}
 
 func (p PlanStorageProvider) GetPlanStorage(repoOwner string, repositoryName string, prNumber int) (storage2.PlanStorage, error) {
 	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
-	}
 	storage, err := storage2.NewPlanStorage(token, repoOwner, repositoryName, &prNumber)
 	return storage, err
 }
