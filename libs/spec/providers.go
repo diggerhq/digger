@@ -12,6 +12,7 @@ import (
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/github"
+	"github.com/diggerhq/digger/libs/ci/gitlab"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/locking/aws"
@@ -176,9 +177,43 @@ func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error
 			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
 		}
 		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
+	case "gitlab":
+		token := os.Getenv("GITLAB_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get gitlab service: GITLAB_TOKEN not specified")
+		}
+		context, err := gitlab.ParseGitLabContext()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get gitlab service, could not parse context: %v", err)
+		}
+		return gitlab.NewGitLabService(token, context)
 	default:
 		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
 	}
+}
+
+func (v VCSProvider) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) {
+	switch vcsSpec.VcsType {
+	case "github":
+		token := os.Getenv("GITHUB_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
+		}
+		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
+	case "gitlab":
+		token := os.Getenv("GITLAB_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get gitlab service: GITLAB_TOKEN not specified")
+		}
+		context, err := gitlab.ParseGitLabContext()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get gitlab service, could not parse context: %v", err)
+		}
+		return gitlab.NewGitLabService(token, context)
+	default:
+		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
+	}
+
 }
 
 type SpecPolicyProvider interface {
@@ -207,9 +242,6 @@ type PlanStorageProvider struct{}
 
 func (p PlanStorageProvider) GetPlanStorage(repoOwner string, repositoryName string, prNumber int) (storage2.PlanStorage, error) {
 	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
-	}
 	storage, err := storage2.NewPlanStorage(token, repoOwner, repositoryName, &prNumber)
 	return storage, err
 }

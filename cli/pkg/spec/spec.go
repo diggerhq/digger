@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
-	orchestrator_github "github.com/diggerhq/digger/libs/ci/github"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
@@ -42,6 +41,10 @@ func RunSpec(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
 	}
 
+	orgService, err := vcsProvider.GetOrgService(spec.VCS)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
+	}
 	reporter, err := reporterProvider.GetReporter(spec.Reporter, prService, *spec.Job.PullRequestNumber)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
@@ -96,8 +99,7 @@ func RunSpec(
 	}
 
 	// TODO: do not require conversion to gh service
-	ghService := prService.(orchestrator_github.GithubService)
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, ghService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId, currentDir)
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId, currentDir)
 	if !allAppliesSuccess || err != nil {
 		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {
