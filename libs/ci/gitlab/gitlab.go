@@ -221,7 +221,7 @@ func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
 
 func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error) {
 	opt := &go_gitlab.GetMergeRequestsOptions{}
-	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(gitlabService.Context.ProjectId, gitlabService.Context.MergeRequestIId, opt)
+	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(gitlabService.Context.ProjectId, *gitlabService.Context.MergeRequestIId, opt)
 	if err != nil {
 		log.Printf("could not get gitlab mergability status %v", err)
 		return false, fmt.Errorf("could not get gitlab mergability status: %v", err)
