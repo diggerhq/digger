@@ -318,7 +318,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					if err != nil {
 						log.Printf("Failed to report plan. %v", err)
 					}
-					_, _, err = reporter.Report(planSummary, coreutils.AsComment("Terraform plan summary"))
+					_, _, err = reporter.Report("\n"+planSummary, coreutils.AsComment("Terraform plan summary"))
 					if err != nil {
 						log.Printf("Failed to report summary of plan. %v", err)
 					}

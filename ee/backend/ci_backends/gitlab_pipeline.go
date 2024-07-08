@@ -29,6 +29,7 @@ func (gl GitlabPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, vcsTo
 		return fmt.Errorf("could not serialize spec: %v", err)
 	}
 	vars := map[string]string{
+		"DIGGER_RUN_NAME":          runName,
 		"DIGGER_RUN_SPEC":          string(specBytes),
 		"GITLAB_TOKEN":             vcsToken,
 		"MERGE_REQUEST_EVENT_NAME": gl.GitlabmergeRequestEventName,
