@@ -237,13 +237,13 @@ func handlePushEventApplyAfterMerge(gh utils.GithubClientProvider, payload *gith
 			}
 
 			// create batches
-			planBatch, err := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.DiggerCommandPlan, nil)
+			planBatch, err := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.DiggerCommandPlan, nil, 0)
 			if err != nil {
 				log.Printf("Error creating batch: %v", err)
 				return fmt.Errorf("error creating batch")
 			}
 
-			applyBatch, err := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.DiggerCommandApply, nil)
+			applyBatch, err := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, diggerYmlStr, defaultBranch, scheduler.DiggerCommandApply, nil, 0)
 			if err != nil {
 				log.Printf("Error creating batch: %v", err)
 				return fmt.Errorf("error creating batch")

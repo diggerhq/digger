@@ -8,6 +8,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
@@ -583,7 +584,7 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
-	if diggerConfigYml.CommentRenderMode != nil &&
+	if diggerConfigYml.CommentRenderMode == nil ||
 		*diggerConfigYml.CommentRenderMode != digger_config.CommentRenderModeGroupByModule {
 		log.Printf("render mode is not group_by_module, skipping")
 		return nil
@@ -627,6 +628,25 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 	return nil
 }
 
+func GetPrServiceFromBatch(batch *models.DiggerBatch, gh utils.GithubClientProvider) (ci.PullRequestService, error) {
+	switch batch.VCS {
+	case "github":
+		service, _, err := utils.GetGithubService(
+			gh,
+			batch.GithubInstallationId,
+			batch.RepoFullName,
+			batch.RepoOwner,
+			batch.RepoName,
+		)
+		return service, err
+	case "gitlab":
+		service, err := utils.GetGitlabService(utils.GitlabClientProvider{}, batch.GitlabProjectId, batch.RepoName, batch.RepoFullName, batch.PrNumber, "")
+		return service, err
+	}
+
+	return nil, fmt.Errorf("could not retrieive a service for %v", batch.VCS)
+}
+
 func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
 	diggerYmlString := batch.DiggerConfig
 	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
@@ -642,18 +662,19 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		automerge = false
 	}
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.DiggerCommandApply && automerge == true {
-		ghService, _, err := utils.GetGithubService(
-			gh,
-			batch.GithubInstallationId,
-			batch.RepoFullName,
-			batch.RepoOwner,
-			batch.RepoName,
-		)
+		//ghService, _, err := utils.GetGithubService(
+		//	gh,
+		//	batch.GithubInstallationId,
+		//	batch.RepoFullName,
+		//	batch.RepoOwner,
+		//	batch.RepoName,
+		//)
+		prService, err := GetPrServiceFromBatch(batch, gh)
 		if err != nil {
 			log.Printf("Error getting github service: %v", err)
 			return fmt.Errorf("error getting github service: %v", err)
 		}
-		err = ghService.MergePullRequest(batch.PrNumber)
+		err = prService.MergePullRequest(batch.PrNumber)
 		if err != nil {
 			log.Printf("Error merging pull request: %v", err)
 			return fmt.Errorf("error merging pull request: %v", err)
