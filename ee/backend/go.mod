@@ -12,7 +12,7 @@ require (
 	github.com/diggerhq/digger/backend v0.0.0-20240604134226-50bc84a6807e
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/gin-gonic/gin v1.10.0
-	github.com/google/go-github/v61 v61.0.0
+	github.com/google/go-github/v62 v62.0.0
 	github.com/robert-nix/ansihtml v1.0.1
 	github.com/xanzy/go-gitlab v0.106.0
 	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc

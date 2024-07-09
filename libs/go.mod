@@ -22,6 +22,7 @@ require (
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/go-github/v61 v61.0.0
+	github.com/google/go-github/v62 v62.0.0
 	github.com/google/uuid v1.6.0
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/terragrunt v0.54.11

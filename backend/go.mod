@@ -19,6 +19,7 @@ require (
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v61 v61.0.0
+	github.com/google/go-github/v62 v62.0.0
 	github.com/google/uuid v1.6.0
 	github.com/migueleliasweb/go-github-mock v0.0.23
 	github.com/robfig/cron v1.2.0
@@ -144,7 +145,6 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-github/v35 v35.3.0 // indirect
 	github.com/google/go-github/v59 v59.0.0 // indirect
-	github.com/google/go-github/v62 v62.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
