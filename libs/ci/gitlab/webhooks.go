@@ -48,7 +48,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 		pullRequestNumber := payload.ObjectAttributes.IID
-		namespace := payload.Repository.PathWithNamespace
+		namespace := payload.Project.PathWithNamespace
 		sender := payload.User.Username
 
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
