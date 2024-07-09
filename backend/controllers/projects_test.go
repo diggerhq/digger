@@ -52,6 +52,7 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 	gh.MockedHTTPClient = mockedHTTPClient
 
 	batch := models.DiggerBatch{
+		VCS:        "github",
 		ID:         uuid.UUID{},
 		PrNumber:   2,
 		Status:     orchestrator_scheduler.BatchJobSucceeded,

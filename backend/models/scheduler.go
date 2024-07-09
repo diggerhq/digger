@@ -30,6 +30,7 @@ type DiggerBatch struct {
 	BranchName           string
 	DiggerConfig         string
 	GithubInstallationId int64
+	GitlabProjectId      int
 	RepoFullName         string
 	RepoOwner            string
 	RepoName             string
