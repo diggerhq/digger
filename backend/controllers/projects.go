@@ -628,11 +628,11 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 	return nil
 }
 
-func GetPrServiceFromBatch(batch *models.DiggerBatch) (ci.PullRequestService, error) {
+func GetPrServiceFromBatch(batch *models.DiggerBatch, gh utils.GithubClientProvider) (ci.PullRequestService, error) {
 	switch batch.VCS {
 	case "github":
 		service, _, err := utils.GetGithubService(
-			utils.DiggerGithubRealClientProvider{},
+			gh,
 			batch.GithubInstallationId,
 			batch.RepoFullName,
 			batch.RepoOwner,
@@ -669,7 +669,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		//	batch.RepoOwner,
 		//	batch.RepoName,
 		//)
-		prService, err := GetPrServiceFromBatch(batch)
+		prService, err := GetPrServiceFromBatch(batch, gh)
 		if err != nil {
 			log.Printf("Error getting github service: %v", err)
 			return fmt.Errorf("error getting github service: %v", err)
