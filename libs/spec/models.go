@@ -34,8 +34,15 @@ type PolicySpec struct {
 	PolicyType string `json:"policy_type"`
 }
 
+type SpecType string
+
+const SpecTypePullRequestJob SpecType = "pull_request_job"
+const SpecTypeManualJob SpecType = "manual_job"
+const SpecTypeDriftJob SpecType = "drift_job"
+
 type Spec struct {
 	// TODO: replace these three to be nested into one of the other specs
+	SpecType  string `json:"spec_type"`
 	JobId     string `json:"job_id"`
 	CommentId string `json:"comment_id"`
 	RunName   string `json:"run_name"`
