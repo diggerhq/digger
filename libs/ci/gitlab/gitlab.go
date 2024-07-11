@@ -68,8 +68,15 @@ func ParseGitLabContext() (*GitLabContext, error) {
 	return &parsedGitLabContext, nil
 }
 
-func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabService, error) {
-	client, err := go_gitlab.NewClient(token)
+func NewGitLabService(token string, gitLabContext *GitLabContext, gitlabBaseUrl string) (*GitLabService, error) {
+	var client *go_gitlab.Client
+	var err error
+	if gitlabBaseUrl == "" {
+		client, err = go_gitlab.NewClient(token, go_gitlab.WithBaseURL(gitlabBaseUrl))
+	} else {
+		client, err = go_gitlab.NewClient(token)
+	}
+
 	if err != nil {
 		log.Fatalf("failed to create gitlab client: %v", err)
 	}
@@ -169,7 +176,8 @@ func (gitlabService GitLabService) PublishComment(prNumber int, comment string) 
 			print(err.Error())
 		}
 		discussionId = discussion.ID
-		return nil, err
+		note := discussion.Notes[0]
+		return &ci.Comment{Id: strconv.Itoa(note.ID), Body: &note.Body}, err
 	} else {
 		note, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 		if err != nil {
@@ -232,16 +240,17 @@ func (gitlabService GitLabService) IsMergeable(mergeRequestID int) (bool, error)
 	return false, nil
 }
 
-func (gitlabService GitLabService) IsClosed(mergeRequestID int) (bool, error) {
-	mergeRequest := getMergeRequest(gitlabService)
-	if mergeRequest.State == "closed" {
+func (gitlabService GitLabService) IsClosed(mergeRequestIID int) (bool, error) {
+	mergeRequest := getMergeRequest(gitlabService, mergeRequestIID)
+	log.Printf("**** mergerequest.State %v", mergeRequest.State)
+	if mergeRequest.State == "closed" || mergeRequest.State == "merged" {
 		return true, nil
 	}
 	return false, nil
 }
 
-func (gitlabService GitLabService) IsMerged(mergeRequestID int) (bool, error) {
-	mergeRequest := getMergeRequest(gitlabService)
+func (gitlabService GitLabService) IsMerged(mergeRequestIID int) (bool, error) {
+	mergeRequest := getMergeRequest(gitlabService, mergeRequestIID)
 	if mergeRequest.State == "merged" {
 		return true, nil
 	}
@@ -296,9 +305,8 @@ func (svc GitLabService) SetOutput(prNumber int, key string, value string) error
 	return nil
 }
 
-func getMergeRequest(gitlabService GitLabService) *go_gitlab.MergeRequest {
+func getMergeRequest(gitlabService GitLabService, mergeRequestIID int) *go_gitlab.MergeRequest {
 	projectId := *gitlabService.Context.ProjectId
-	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	log.Printf("getMergeRequest mergeRequestIID : %d, projectId: %d \n", mergeRequestIID, projectId)
 	opt := &go_gitlab.GetMergeRequestsOptions{}
 	mergeRequest, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, mergeRequestIID, opt)

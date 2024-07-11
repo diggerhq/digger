@@ -33,7 +33,7 @@ var runSpecCmd = &cobra.Command{
 		}
 		err = spec2.RunSpec(
 			spec,
-			lib_spec.VCSProvider{},
+			lib_spec.VCSProviderBasic{},
 			lib_spec.JobSpecProvider{},
 			lib_spec.LockProvider{},
 			lib_spec.ReporterProvider{},

@@ -40,7 +40,7 @@ func (gl GitlabPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, vcsTo
 		"CI_PROJECT_NAME":          spec.VCS.RepoName,
 		"CI_PROJECT_NAMESPACE":     spec.VCS.RepoFullname,
 		"CI_PROJECT_ID":            strconv.Itoa(gl.GitlabProjectId),
-		"CI_PROJECT_NAMESPACE_ID":  gl.GitlabciprojectNamespace,
+		"CI_PROJECT_NAMESPACE_ID":  strconv.Itoa(gl.GitlabciprojectNamespaceId),
 		"DISCUSSION_ID":            gl.GitlabDiscussionId,
 	}
 	variables := []*gitlab.PipelineVariableOptions{}
