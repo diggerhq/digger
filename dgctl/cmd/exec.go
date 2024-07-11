@@ -255,9 +255,12 @@ var execCmd = &cobra.Command{
 		var runId *int64
 		for {
 			runId, logsUrl, err = GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, spec.JobId)
+			log.Printf("in progress runId: %v logsUrl: %v, err: %v", runId, logsUrl, err)
 			if err == nil {
 				break
 			}
+			time.Sleep(time.Second * 1)
+
 		}
 
 		log.Printf("logs url: %v runId %v", logsUrl, runId)

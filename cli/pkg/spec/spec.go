@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
+	"github.com/diggerhq/digger/libs/storage"
 	"log"
 	"os"
 	"time"
@@ -146,10 +148,11 @@ func RunSpecManualCommand(
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
 	}
-	reporter, err := reporterProvider.GetReporter(spec.Reporter, prService, *spec.Job.PullRequestNumber)
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
-	}
+	//reporter, err := reporterProvider.GetReporter(spec.Reporter, prService, *spec.Job.PullRequestNumber)
+	//if err != nil {
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
+	//}
+	reporter := reporting.StdOutReporter{}
 
 	backendApi, err := backedProvider.GetBackendApi(spec.Backend)
 	if err != nil {
@@ -161,10 +164,11 @@ func RunSpecManualCommand(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
 	}
 
-	planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
-	}
+	//planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
+	//if err != nil {
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
+	//}
+	planStorage := storage.MockPlanStorage{}
 
 	jobs := []scheduler.Job{job}
 
