@@ -9,6 +9,6 @@ Sometimes the link to job status leads to the PR instead of the Action job. E.g.
 The likely reason is that the step that exposes the job id is missing from the workflow file. Add it right after checkout (most importantly, before Digger):
 
 ```
-- name: ${{github.event.inputs.id}}
-        run: echo job id ${{ inputs.id }}
+- name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+  run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
 ```
