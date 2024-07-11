@@ -141,7 +141,6 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 	}
 
 	for _, workflowRun := range runs.WorkflowRuns {
-		println(*workflowRun.ID)
 		workflowjobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
@@ -150,7 +149,8 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
 				if strings.Contains(*step.Name, diggerJobID) {
-					return workflowRun.ID, workflowRun.LogsURL, nil
+					url := fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID)
+					return workflowRun.ID, &url, nil
 				}
 			}
 		}
@@ -255,24 +255,13 @@ var execCmd = &cobra.Command{
 		var runId *int64
 		for {
 			runId, logsUrl, err = GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, spec.JobId)
-			log.Printf("in progress runId: %v logsUrl: %v, err: %v", runId, logsUrl, err)
 			if err == nil {
 				break
 			}
 			time.Sleep(time.Second * 1)
-
 		}
 
-		log.Printf("logs url: %v runId %v", logsUrl, runId)
-		//logs, _, err := client.Actions.GetWorkflowJobLogs(context.Background(), repoOwner, repoName, *runId, 3)
-		//if err != nil {
-		//	fmt.Printf("Error getting job logs: %v\n", err)
-		//	return
-		//}
-		//
-		//// Stream the logs
-		//io.Copy(os.Stdout, logs)
-		//logs.Close()
+		log.Printf("logs url: %v runId %v", *logsUrl, *runId)
 
 	},
 }

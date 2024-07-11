@@ -29,11 +29,12 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 	repoFullName := payload.RepoFullName
 	repoOwner, repoName, _ := strings.Cut(repoFullName, "/")
 	command := payload.Command
-	workflowFile := "digger_workflow.yml"
+
 	actor := payload.Actor
 	commitSha := ""
 	defaultBranch := payload.DefaultBranch
 	prBranch := payload.PrBranch
+	issueNumber := 000
 
 	config := digger_config.DiggerConfig{}
 	err := json.Unmarshal([]byte(payload.DiggerConfig), &config)
@@ -51,7 +52,9 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 		return
 	}
 
-	jobs, err := generic.CreateJobsForProjects([]digger_config.Project{project}, command, "manual", repoFullName, actor, config.Workflows, nil, &commitSha, defaultBranch, prBranch)
+	workflowFile := project.WorkflowFile
+
+	jobs, err := generic.CreateJobsForProjects([]digger_config.Project{project}, command, "manual", repoFullName, actor, config.Workflows, &issueNumber, &commitSha, defaultBranch, prBranch)
 	if err != nil {
 		log.Printf("could not create jobs based on project: %v", err)
 		c.String(500, fmt.Sprintf("could not create jobs based on project: %v", err))

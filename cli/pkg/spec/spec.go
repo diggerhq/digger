@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -139,15 +140,18 @@ func RunSpecManualCommand(
 
 	}
 
-	prService, err := vcsProvider.GetPrService(spec.VCS)
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
-	}
+	//prService, err := vcsProvider.GetPrService(spec.VCS)
+	//if err != nil {
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
+	//}
 
-	orgService, err := vcsProvider.GetOrgService(spec.VCS)
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
-	}
+	var prService ci.PullRequestService = ci.MockPullRequestManager{}
+	//orgService, err := vcsProvider.GetOrgService(spec.VCS)
+	//if err != nil {
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
+	//}
+	var orgService ci.OrgService = ci.MockPullRequestManager{}
+
 	//reporter, err := reporterProvider.GetReporter(spec.Reporter, prService, *spec.Job.PullRequestNumber)
 	//if err != nil {
 	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
