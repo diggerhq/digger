@@ -22,12 +22,13 @@ type BackendSpec struct {
 }
 
 type VcsSpec struct {
-	Actor        string `json:"actor"`
-	RepoFullname string `json:"repo_full_name"`
-	RepoName     string `json:"repo_name"`
-	RepoOwner    string `json:"repo_owner"`
-	VcsType      string `json:"vcs_type"`
-	WorkflowFile string `json:"workflow_file"`
+	Actor                    string `json:"actor"`
+	RepoFullname             string `json:"repo_full_name"`
+	RepoName                 string `json:"repo_name"`
+	RepoOwner                string `json:"repo_owner"`
+	VcsType                  string `json:"vcs_type"`
+	WorkflowFile             string `json:"workflow_file"`
+	GithubEnterpriseHostname string `json:"github_enterprise_hostname"`
 }
 
 type PolicySpec struct {

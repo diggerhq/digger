@@ -228,7 +228,7 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		client := github.NewClient(nil).WithAuthToken(token)
-		githubUrl := os.Getenv("DIGGER_GITHUB_ENTERPRISE_HOSTNAME")
+		githubUrl := spec.VCS.GithubEnterpriseHostname
 		if githubUrl != "" {
 			githubEnterpriseBaseUrl := fmt.Sprintf("https://%v/api/v3/", githubUrl)
 			githubEnterpriseUploadUrl := fmt.Sprintf("https://%v/api/uploads/", githubUrl)
