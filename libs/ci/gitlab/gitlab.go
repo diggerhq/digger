@@ -68,8 +68,15 @@ func ParseGitLabContext() (*GitLabContext, error) {
 	return &parsedGitLabContext, nil
 }
 
-func NewGitLabService(token string, gitLabContext *GitLabContext) (*GitLabService, error) {
-	client, err := go_gitlab.NewClient(token)
+func NewGitLabService(token string, gitLabContext *GitLabContext, gitlabBaseUrl string) (*GitLabService, error) {
+	var client *go_gitlab.Client
+	var err error
+	if gitlabBaseUrl == "" {
+		client, err = go_gitlab.NewClient(token, go_gitlab.WithBaseURL(gitlabBaseUrl))
+	} else {
+		client, err = go_gitlab.NewClient(token)
+	}
+
 	if err != nil {
 		log.Fatalf("failed to create gitlab client: %v", err)
 	}
