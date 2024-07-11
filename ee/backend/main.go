@@ -48,6 +48,7 @@ func main() {
 		CiBackendProvider: ci_backends2.EEBackendProvider{},
 	}
 
+	r.POST("/get-spec", eeController.GetSpec)
 	r.POST("/gitlab-webhook", eeController.GitlabWebHookHandler)
 
 	web := controllers.WebController{Config: cfg}

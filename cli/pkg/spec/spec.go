@@ -113,3 +113,85 @@ func RunSpec(
 
 	return nil
 }
+
+func RunSpecManualCommand(
+	spec spec.Spec,
+	vcsProvider spec.VCSProvider,
+	jobProvider spec.JobSpecProvider,
+	lockProvider spec.LockProvider,
+	reporterProvider spec.ReporterProvider,
+	backedProvider spec.BackendApiProvider,
+	policyProvider spec.SpecPolicyProvider,
+	PlanStorageProvider spec.PlanStorageProvider,
+	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
+) error {
+
+	job, err := jobProvider.GetJob(spec.Job)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
+	}
+
+	lock, err := lockProvider.GetLock(spec.Lock)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
+
+	}
+
+	prService, err := vcsProvider.GetPrService(spec.VCS)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
+	}
+
+	orgService, err := vcsProvider.GetOrgService(spec.VCS)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
+	}
+	reporter, err := reporterProvider.GetReporter(spec.Reporter, prService, *spec.Job.PullRequestNumber)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
+	}
+
+	backendApi, err := backedProvider.GetBackendApi(spec.Backend)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
+	}
+
+	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
+	}
+
+	planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
+	}
+
+	jobs := []scheduler.Job{job}
+
+	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
+	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err), 4)
+	}
+
+	commentId := spec.CommentId
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("failed to get comment ID: %v", err), 4)
+	}
+
+	currentDir, err := os.Getwd()
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
+	}
+
+	commentUpdater := comment_summary.NoopCommentUpdater{}
+	// TODO: do not require conversion to gh service
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, false, false, commentId, currentDir)
+	if err != nil || allAppliesSuccess == false {
+		usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Terraform execution failed", 1)
+	}
+
+	usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Digger finished successfully", 0)
+
+	return nil
+}
