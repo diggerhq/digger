@@ -131,32 +131,32 @@ func pushToBranch(prBranch string) error {
 	return err
 }
 
-func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
+func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (*int64, *string, error) {
 	timeFilter := time.Now().Add(-5 * time.Minute)
 	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
 		Created: ">=" + timeFilter.Format(time.RFC3339),
 	})
 	if err != nil {
-		return 0, "#", fmt.Errorf("error listing workflow runs %v", err)
+		return nil, nil, fmt.Errorf("error listing workflow runs %v", err)
 	}
 
 	for _, workflowRun := range runs.WorkflowRuns {
 		println(*workflowRun.ID)
 		workflowjobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
 		if err != nil {
-			return 0, "#", fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
+			return nil, nil, fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
 		}
 
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
 				if strings.Contains(*step.Name, diggerJobID) {
-					return *workflowRun.ID, fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID), nil
+					return workflowRun.ID, workflowRun.LogsURL, nil
 				}
 			}
-
 		}
+
 	}
-	return 0, "#", fmt.Errorf("workflow not found")
+	return nil, nil, fmt.Errorf("workflow not found")
 }
 
 // validateCmd represents the validate command
@@ -250,9 +250,26 @@ var execCmd = &cobra.Command{
 			log.Printf("workflow has triggered successfully! waiting for results ...")
 		}
 
+		repoOwner, repoName, _ := strings.Cut(repoFullname, "/")
+		var logsUrl *string
+		var runId *int64
 		for {
-
+			runId, logsUrl, err = GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, spec.JobId)
+			if err == nil {
+				break
+			}
 		}
+
+		log.Printf("logs url: %v runId %v", logsUrl, runId)
+		//logs, _, err := client.Actions.GetWorkflowJobLogs(context.Background(), repoOwner, repoName, *runId, 3)
+		//if err != nil {
+		//	fmt.Printf("Error getting job logs: %v\n", err)
+		//	return
+		//}
+		//
+		//// Stream the logs
+		//io.Copy(os.Stdout, logs)
+		//logs.Close()
 
 	},
 }
