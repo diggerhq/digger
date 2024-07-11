@@ -22,23 +22,31 @@ type BackendSpec struct {
 }
 
 type VcsSpec struct {
-	Actor        string `json:"actor"`
-	RepoFullname string `json:"repo_full_name"`
-	RepoName     string `json:"repo_name"`
-	RepoOwner    string `json:"repo_owner"`
-	VcsType      string `json:"vcs_type"`
-	WorkflowFile string `json:"workflow_file"`
+	Actor                    string `json:"actor"`
+	RepoFullname             string `json:"repo_full_name"`
+	RepoName                 string `json:"repo_name"`
+	RepoOwner                string `json:"repo_owner"`
+	VcsType                  string `json:"vcs_type"`
+	WorkflowFile             string `json:"workflow_file"`
+	GithubEnterpriseHostname string `json:"github_enterprise_hostname"`
 }
 
 type PolicySpec struct {
 	PolicyType string `json:"policy_type"`
 }
 
+type SpecType string
+
+const SpecTypePullRequestJob SpecType = "pull_request_job"
+const SpecTypeManualJob SpecType = "manual_job"
+const SpecTypeDriftJob SpecType = "drift_job"
+
 type Spec struct {
 	// TODO: replace these three to be nested into one of the other specs
-	JobId     string `json:"job_id"`
-	CommentId string `json:"comment_id"`
-	RunName   string `json:"run_name"`
+	SpecType  SpecType `json:"spec_type"`
+	JobId     string   `json:"job_id"`
+	CommentId string   `json:"comment_id"`
+	RunName   string   `json:"run_name"`
 
 	Job      scheduler.JobJson `json:"job"`
 	Reporter ReporterSpec      `json:"reporter"`

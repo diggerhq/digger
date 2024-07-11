@@ -97,7 +97,14 @@ func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
 func (p DiggerRepoPolicyProvider) GetAccessPolicy(organisation string, repo string, projectName string, projectDir string) (string, error) {
-	return p.getPolicyFileContents(repo, projectName, projectDir, "access.rego")
+	policy, err := p.getPolicyFileContents(repo, projectName, projectDir, "access.rego")
+	if err != nil {
+		return policy, err
+	}
+	if policy == "" {
+		return DefaultAccessPolicy, nil
+	}
+	return policy, err
 }
 
 func (p DiggerRepoPolicyProvider) GetPlanPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
