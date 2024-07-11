@@ -31,7 +31,7 @@ func (v VCSProviderAdvanced) GetPrService(vcsSpec spec.VcsSpec) (ci.PullRequestS
 		baseUrl := os.Getenv("DIGGER_GITLAB_BASE_URL")
 		return gitlab.NewGitLabService(token, context, baseUrl)
 	default:
-		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
+		return spec.VCSProviderBasic{}.GetPrService(vcsSpec)
 	}
 }
 
@@ -49,6 +49,6 @@ func (v VCSProviderAdvanced) GetOrgService(vcsSpec spec.VcsSpec) (ci.OrgService,
 		baseUrl := os.Getenv("DIGGER_GITLAB_BASE_URL")
 		return gitlab.NewGitLabService(token, context, baseUrl)
 	default:
-		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
+		return spec.VCSProviderBasic{}.GetOrgService(vcsSpec)
 	}
 }

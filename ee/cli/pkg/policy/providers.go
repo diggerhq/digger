@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/policy"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
+	"log"
 	"os"
 )
 
@@ -12,6 +13,7 @@ type AdvancedPolicyProvider struct{}
 func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec, diggerHost string, diggerOrg string, token string) (policy.Checker, error) {
 	managementRepo := os.Getenv("DIGGER_MANAGEMENT_REPO")
 	if managementRepo != "" {
+		log.Printf("info: using management repo policy provider")
 		token := os.Getenv("GITHUB_TOKEN")
 		if token == "" {
 			return nil, fmt.Errorf("failed to get managent repo policy provider: GITHUB_TOKEN not specified")

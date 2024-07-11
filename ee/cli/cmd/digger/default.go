@@ -31,17 +31,31 @@ var defaultCmd = &cobra.Command{
 			if err != nil {
 				usage.ReportErrorAndExit("", fmt.Sprintf("could not load spec json: %v", err), 1)
 			}
-			err = spec2.RunSpec(
-				spec,
-				vcs.VCSProviderAdvanced{},
-				lib_spec.JobSpecProvider{},
-				lib_spec.LockProvider{},
-				lib_spec.ReporterProvider{},
-				lib_spec.BackendApiProvider{},
-				policy.AdvancedPolicyProvider{},
-				lib_spec.PlanStorageProvider{},
-				comment_summary.CommentUpdaterProviderBasic{},
-			)
+			if spec.SpecType == lib_spec.SpecTypeManualJob {
+				err = spec2.RunSpecManualCommand(
+					spec,
+					vcs.VCSProviderAdvanced{},
+					lib_spec.JobSpecProvider{},
+					lib_spec.LockProvider{},
+					lib_spec.ReporterProvider{},
+					lib_spec.BackendApiProvider{},
+					policy.AdvancedPolicyProvider{},
+					lib_spec.PlanStorageProvider{},
+					comment_summary.CommentUpdaterProviderBasic{},
+				)
+			} else {
+				err = spec2.RunSpec(
+					spec,
+					vcs.VCSProviderAdvanced{},
+					lib_spec.JobSpecProvider{},
+					lib_spec.LockProvider{},
+					lib_spec.ReporterProvider{},
+					lib_spec.BackendApiProvider{},
+					policy.AdvancedPolicyProvider{},
+					lib_spec.PlanStorageProvider{},
+					comment_summary.CommentUpdaterProviderBasic{},
+				)
+			}
 			usage.ReportErrorAndExit(spec.VCS.Actor, "Successfully ran spec", 0)
 		}
 

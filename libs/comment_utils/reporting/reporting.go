@@ -86,20 +86,20 @@ func (lazyReporter *CiReporterLazy) SupportsMarkdown() bool {
 
 type StdOutReporter struct{}
 
-func (reporter *StdOutReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
+func (reporter StdOutReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
 	log.Printf("Info: %v", report)
 	return "", "", nil
 }
 
-func (reporter *StdOutReporter) Flush() (string, string, error) {
+func (reporter StdOutReporter) Flush() (string, string, error) {
 	return "", "", nil
 }
 
-func (reporter *StdOutReporter) SupportsMarkdown() bool {
+func (reporter StdOutReporter) SupportsMarkdown() bool {
 	return false
 }
 
-func (reporter *StdOutReporter) Suppress() error {
+func (reporter StdOutReporter) Suppress() error {
 	return nil
 }
 
