@@ -228,7 +228,16 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		client := github.NewClient(nil).WithAuthToken(token)
-
+		githubUrl := os.Getenv("DIGGER_GITHUB_ENTERPRISE_HOSTNAME")
+		if githubUrl != "" {
+			githubEnterpriseBaseUrl := fmt.Sprintf("https://%v/api/v3/", githubUrl)
+			githubEnterpriseUploadUrl := fmt.Sprintf("https://%v/api/uploads/", githubUrl)
+			client, err = client.WithEnterpriseURLs(githubEnterpriseBaseUrl, githubEnterpriseUploadUrl)
+			if err != nil {
+				log.Printf("coulg not instantiate github enterprise url: %v", err)
+				os.Exit(1)
+			}
+		}
 		err = pushToBranch(prBranch)
 		if err != nil {
 			log.Printf("could not push to branchL %v", err)
