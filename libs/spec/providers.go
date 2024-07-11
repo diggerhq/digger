@@ -167,9 +167,14 @@ func (b BackendApiProvider) GetBackendApi(backendSpec BackendSpec) (backend2.Api
 	}
 }
 
-type VCSProvider struct{}
+type VCSProvider interface {
+	GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error)
+	GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error)
+}
 
-func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error) {
+type VCSProviderBasic struct{}
+
+func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error) {
 	switch vcsSpec.VcsType {
 	case "github":
 		token := os.Getenv("GITHUB_TOKEN")
@@ -186,13 +191,13 @@ func (v VCSProvider) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error
 		if err != nil {
 			return nil, fmt.Errorf("failed to get gitlab service, could not parse context: %v", err)
 		}
-		return gitlab.NewGitLabService(token, context)
+		return gitlab.NewGitLabService(token, context, "")
 	default:
 		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
 	}
 }
 
-func (v VCSProvider) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) {
+func (v VCSProviderBasic) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) {
 	switch vcsSpec.VcsType {
 	case "github":
 		token := os.Getenv("GITHUB_TOKEN")
@@ -209,11 +214,10 @@ func (v VCSProvider) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to get gitlab service, could not parse context: %v", err)
 		}
-		return gitlab.NewGitLabService(token, context)
+		return gitlab.NewGitLabService(token, context, "")
 	default:
 		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
 	}
-
 }
 
 type SpecPolicyProvider interface {

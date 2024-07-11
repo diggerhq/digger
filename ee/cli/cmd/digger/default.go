@@ -11,6 +11,7 @@ import (
 	"github.com/diggerhq/digger/ee/cli/pkg/drift"
 	github2 "github.com/diggerhq/digger/ee/cli/pkg/github"
 	"github.com/diggerhq/digger/ee/cli/pkg/policy"
+	"github.com/diggerhq/digger/ee/cli/pkg/vcs"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
@@ -32,7 +33,7 @@ var defaultCmd = &cobra.Command{
 			}
 			err = spec2.RunSpec(
 				spec,
-				lib_spec.VCSProvider{},
+				vcs.VCSProviderAdvanced{},
 				lib_spec.JobSpecProvider{},
 				lib_spec.LockProvider{},
 				lib_spec.ReporterProvider{},
