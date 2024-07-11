@@ -208,12 +208,16 @@ var execCmd = &cobra.Command{
 
 		inputs := orchestrator_scheduler.WorkflowInput{
 			Spec:    string(specBytes),
-			RunName: fmt.Sprintf("digger manual run by %v", spec.VCS.Actor),
+			RunName: fmt.Sprintf("digger %v manual run by %v", command, spec.VCS.Actor),
 		}
 		_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), spec.VCS.RepoOwner, spec.VCS.RepoName, spec.VCS.WorkflowFile, github.CreateWorkflowDispatchEventRequest{
 			Ref:    spec.Job.Branch,
 			Inputs: inputs.ToMap(),
 		})
+
+		for ; ; {
+
+		}
 
 		log.Printf("error while triggering workflow: %v", err)
 
