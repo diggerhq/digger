@@ -234,7 +234,7 @@ var execCmd = &cobra.Command{
 			githubEnterpriseUploadUrl := fmt.Sprintf("https://%v/api/uploads/", githubUrl)
 			client, err = client.WithEnterpriseURLs(githubEnterpriseBaseUrl, githubEnterpriseUploadUrl)
 			if err != nil {
-				log.Printf("coulg not instantiate github enterprise url: %v", err)
+				log.Printf("could not instantiate github enterprise url: %v", err)
 				os.Exit(1)
 			}
 		}
