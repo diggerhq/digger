@@ -19,18 +19,6 @@ type PlanSummary struct {
 	ResourcesDeleted uint `json:"resources_deleted"`
 }
 
-type TerraformPlan struct {
-	ResourceChanges []ResourceChange `json:"resource_changes"`
-}
-
-type ResourceChange struct {
-	Name       string `json:"name"`
-	Address    string `json:"address"`
-	Type       string `json:"type"`
-	Change     Change `json:"change"`
-	ChangeType string `json:"change_type"`
-}
-
 type Change struct {
 	Actions []string `json:"actions"`
 }
@@ -71,8 +59,8 @@ func (p *PlanSummary) ToJson() map[string]interface{} {
 		"resources_deleted": p.ResourcesDeleted,
 	}
 }
-func parseTerraformPlanOutput(terraformJson string) (*TerraformPlan, error) {
-	var plan TerraformPlan
+func parseTerraformPlanOutput(terraformJson string) (*tfjson.Plan, error) {
+	var plan tfjson.Plan
 	if err := json.Unmarshal([]byte(terraformJson), &plan); err != nil {
 		return nil, fmt.Errorf("Unable to parse the plan file: %v", err)
 	}
@@ -86,11 +74,16 @@ func GetPlanSummary(planJson string) (bool, *PlanSummary, error) {
 		return false, nil, fmt.Errorf("Error while parsing json file: %v", err)
 	}
 	isPlanEmpty := true
+
 	for _, change := range tfplan.ResourceChanges {
 		if len(change.Change.Actions) != 1 || change.Change.Actions[0] != "no-op" {
 			isPlanEmpty = false
 			break
 		}
+	}
+
+	if tfplan.OutputChanges != nil {
+		isPlanEmpty = false
 	}
 
 	planSummary := PlanSummary{}
@@ -112,7 +105,7 @@ func GetPlanFootprint(planJson string) (*TerraformPlanFootprint, error) {
 	if err != nil {
 		return nil, err
 	}
-	planAddresses := lo.Map[ResourceChange, string](tfplan.ResourceChanges, func(change ResourceChange, idx int) string {
+	planAddresses := lo.Map[*tfjson.ResourceChange, string](tfplan.ResourceChanges, func(change *tfjson.ResourceChange, idx int) string {
 		return change.Address
 	})
 	footprint := TerraformPlanFootprint{
