@@ -748,7 +748,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	cloneURL := *payload.Repo.CloneURL
 	issueNumber := *payload.Issue.Number
 	isDraft := payload.Issue.GetDraft()
-	commentId := *payload.GetComment().ID
+	userCommentId := *payload.GetComment().ID
 	actor := *payload.Sender.Login
 	commentBody := *payload.Comment.Body
 	defaultBranch := *payload.Repo.DefaultBranch
@@ -782,7 +782,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting digger config")
 	}
 
-	commentIdStr := strconv.FormatInt(commentId, 10)
+	commentIdStr := strconv.FormatInt(userCommentId, 10)
 	err = ghService.CreateCommentReaction(commentIdStr, string(dg_github.GithubCommentEyesReaction))
 	if err != nil {
 		log.Printf("CreateCommentReaction error: %v", err)
@@ -888,7 +888,13 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		impactedProjectsJobMap[j.ProjectName] = j
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, commentId, diggerYmlStr, 0)
+	reporterCommentId, err := strconv.ParseInt(commentReporter.CommentId, 10, 64)
+	if err != nil {
+		log.Printf("strconv.ParseInt error: %v", err)
+		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
+	}
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
