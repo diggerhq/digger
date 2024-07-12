@@ -11,6 +11,7 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/libs/storage"
+	"github.com/samber/lo"
 	"log"
 	"os"
 	"time"
@@ -82,6 +83,11 @@ func RunSpec(
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
 	}
+
+	workflow := diggerConfig.Workflows[job.ProjectName]
+	stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+	job.StateEnvVars = lo.Assign(job.StateEnvVars, stateEnvVars)
+	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandEnvVars)
 
 	jobs := []scheduler.Job{job}
 
