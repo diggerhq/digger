@@ -171,6 +171,7 @@ func (dynamoDbLock *DynamoDbLock) Lock(transactionId int, resource string) (bool
 	_, err = dynamoDbLock.DynamoDb.UpdateItem(ctx, input)
 	if err != nil {
 		var apiError smithy.APIError
+		log.Printf("error in dynamo table: %v", err)
 		if errors.As(err, &apiError) {
 			switch apiError.(type) {
 			case *types.ConditionalCheckFailedException:
