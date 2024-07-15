@@ -61,7 +61,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 		return false, nil
 	}
 
-	var existingLockTransactionId *int
+	existingLockTransactionId, err := projectLock.InternalLock.GetLock(lockId)
 
 	if err != nil {
 		log.Printf("failed to get lock: %v\n", err)
