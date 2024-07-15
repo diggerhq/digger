@@ -91,6 +91,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 		log.Println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(projectLock.PrNumber))
 
 	}
+	log.Printf("lockacquiredstatus: %v", lockAcquired)
 	return lockAcquired, nil
 }
 
