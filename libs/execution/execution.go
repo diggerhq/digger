@@ -28,7 +28,6 @@ type Executor interface {
 }
 
 type LockingExecutorWrapper struct {
-	Enable      bool
 	ProjectLock locking.ProjectLock
 	Executor    Executor
 }
@@ -83,9 +82,6 @@ func (l LockingExecutorWrapper) Unlock() error {
 }
 
 func (l LockingExecutorWrapper) Lock() error {
-	if !l.Enable {
-		return nil
-	}
 	_, err := l.ProjectLock.Lock()
 	if err != nil {
 		return fmt.Errorf("failed to acquire lock: %s, %v", l.ProjectLock.LockId(), err)
