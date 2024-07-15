@@ -113,11 +113,12 @@ func (l LockProvider) GetLock(lockSpec LockSpec) (locking.Lock, error) {
 
 type ReporterProvider struct{}
 
-func (r ReporterProvider) GetReporter(reporterSpec ReporterSpec, ciService ci.PullRequestService, prNumber int) (reporting.Reporter, error) {
+func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, ciService ci.PullRequestService, prNumber int) (reporting.Reporter, error) {
 	getStrategy := func(strategy string) reporting.ReportStrategy {
 		switch reporterSpec.ReportingStrategy {
 		case "comments_per_run":
 			return reporting.CommentPerRunStrategy{
+				Title:     title,
 				TimeOfRun: time.Now(),
 			}
 		case "latest_run_comment":
