@@ -12,14 +12,14 @@ import (
 	"strconv"
 )
 
-func GetVCSTokenFromJob(job models.DiggerJob) (*string, error) {
+func GetVCSTokenFromJob(job models.DiggerJob, gh utils.GithubClientProvider) (*string, error) {
 	// TODO: make it VCS generic
 	batch := job.Batch
 	var token string
 	switch batch.VCS {
 	case models.DiggerVCSGithub:
 		_, ghToken, err := utils.GetGithubService(
-			utils.DiggerGithubRealClientProvider{},
+			gh,
 			job.Batch.GithubInstallationId,
 			job.Batch.RepoFullName,
 			job.Batch.RepoOwner,

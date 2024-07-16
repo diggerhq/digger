@@ -42,7 +42,7 @@ func main() {
 				log.Printf("failed to get github service for DiggerRun ID: %v: %v", dr.ID, err)
 				continue
 			}
-			RunQueuesStateMachine(&queueItem, service)
+			RunQueuesStateMachine(&queueItem, service, &utils.DiggerGithubRealClientProvider{})
 		}
 	})
 
@@ -64,7 +64,7 @@ func main() {
 			}
 
 			ciBackend := ci_backends.GithubActionCi{Client: service.Client}
-			services.ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, &batch.ID, &job)
+			services.ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, &batch.ID, &job, &utils.DiggerGithubRealClientProvider{})
 		}
 	})
 

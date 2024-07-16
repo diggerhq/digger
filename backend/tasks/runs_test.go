@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
@@ -152,7 +153,7 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 		models.DB.UpdateDiggerBatch(batch)
 		queueItem, _ = models.DB.GetDiggerRunQueueItem(queueItem.ID)
 
-		RunQueuesStateMachine(queueItem, ciService)
+		RunQueuesStateMachine(queueItem, ciService, utils.DiggerGithubClientMockProvider{})
 		diggerRunRefreshed, _ := models.DB.GetDiggerRun(diggerRun.ID)
 		assert.Equal(t, testParam.NextExpectedStatus, diggerRunRefreshed.Status)
 	}

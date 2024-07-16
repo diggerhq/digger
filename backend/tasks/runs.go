@@ -4,13 +4,14 @@ import (
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
+	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"log"
 )
 
-func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.PullRequestService) {
+func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.PullRequestService, gh utils.GithubClientProvider) {
 	dr := queueItem.DiggerRun
 	switch queueItem.DiggerRun.Status {
 	case models.RunQueued:
@@ -30,7 +31,7 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.Pull
 			return
 		}
 
-		vcsToken, err := services.GetVCSTokenFromJob(*job)
+		vcsToken, err := services.GetVCSTokenFromJob(*job, gh)
 		if err != nil {
 			log.Printf("could not get vcs token: %v", err)
 			return
@@ -103,7 +104,7 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.Pull
 			return
 		}
 
-		vcsToken, err := services.GetVCSTokenFromJob(*job)
+		vcsToken, err := services.GetVCSTokenFromJob(*job, gh)
 		if err != nil {
 			log.Printf("could not get vcs token: %v", err)
 			return
