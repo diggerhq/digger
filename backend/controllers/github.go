@@ -642,7 +642,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error fetching ci backed %v", err)
 	}
 
-	err = TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, prNumber, ghService)
+	err = TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, prNumber, ghService, gh)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
@@ -947,7 +947,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: GetCiBackend error: %v", err))
 		return fmt.Errorf("error fetching ci backed %v", err)
 	}
-	err = TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, issueNumber, ghService)
+	err = TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, issueNumber, ghService, gh)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
@@ -956,7 +956,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	return nil
 }
 
-func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService ci.PullRequestService) error {
+func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService ci.PullRequestService, gh utils.GithubClientProvider) error {
 	_, err := models.DB.GetDiggerBatch(batchId)
 	if err != nil {
 		log.Printf("failed to get digger batch, %v\n", err)
@@ -979,7 +979,7 @@ func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, rep
 		log.Printf("jobString: %v \n", jobString)
 
 		// TODO: make workflow file name configurable
-		err = services.ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, batchId, &job)
+		err = services.ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, batchId, &job, gh)
 		if err != nil {
 			log.Printf("failed to trigger CI workflow, %v\n", err)
 			return fmt.Errorf("failed to trigger CI workflow, %v\n", err)
