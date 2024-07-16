@@ -70,6 +70,7 @@ func getRepoFullname() (string, error) {
 		// Format: git@github.com:orgName/repoName.git
 		parts := strings.Split(originURL, ":")
 		repoFullname = parts[1]
+		repoFullname = strings.ReplaceAll(repoFullname, ".git", "")
 	}
 
 	return repoFullname, nil
