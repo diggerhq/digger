@@ -25,7 +25,7 @@ jobs:
         run: echo digger run ${{ inputs.id }}
         shell: bash      
       - uses: actions/checkout@v4
-      - uses: diggerhq/digger@fix/reporter-strategy
+      - uses: diggerhq/digger@v0.6.7
         with:
           digger-spec: ${{ inputs.spec }}
           setup-aws: true
