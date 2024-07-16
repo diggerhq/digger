@@ -435,7 +435,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 			repoFullNameSplit := strings.Split(jobLink.RepoFullName, "/")
 			client, _, err := ghClientProvider.Get(installations[0].GithubAppId, installationLink.GithubInstallationId)
-			err = services.DiggerJobCompleted(client, &job.Batch.ID, job, jobLink.RepoFullName, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName)
+			err = services.DiggerJobCompleted(client, &job.Batch.ID, job, jobLink.RepoFullName, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName, d.GithubClientProvider)
 			if err != nil {
 				log.Printf("Error triggering job: %v", err)
 				return

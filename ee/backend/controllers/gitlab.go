@@ -515,7 +515,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: GetCiBackend error: %v", err))
 		return fmt.Errorf("error fetching ci backed %v", err)
 	}
-	err = controllers.TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, issueNumber, glService)
+	err = controllers.TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, issueNumber, glService, nil)
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
