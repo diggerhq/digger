@@ -115,7 +115,7 @@ func GetSpec(diggerUrl string, authToken string, command string, actor string, p
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status when reporting a project: %v", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status when getting spec: %v", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -188,14 +188,14 @@ var execCmd = &cobra.Command{
 
 		defaultBanch, err := getDefaultBranch()
 		if err != nil {
-			log.Printf("could not get default branch: %v", err)
-			os.Exit(1)
+			log.Printf("could not get default branch, please enter manually:")
+			fmt.Scanln(&defaultBanch)
 		}
 
 		prBranch, err := getPrBranch()
 		if err != nil {
-			log.Printf("could not get pr branch: %v", err)
-			os.Exit(1)
+			log.Printf("could not get current branch, please enter manually:")
+			fmt.Scanln(&prBranch)
 		}
 
 		projectName := execConfig.Project
@@ -219,6 +219,9 @@ var execCmd = &cobra.Command{
 		}
 
 		specBytes, err := GetSpec(diggerHostname, "abc123", command, actor, string(projectMarshalled), string(configMarshalled), repoFullname, defaultBanch, prBranch)
+		if err != nil {
+			log.Printf("failed to get spec from backend: %v", err)
+		}
 		var spec spec.Spec
 		err = json.Unmarshal(specBytes, &spec)
 
