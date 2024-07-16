@@ -8,4 +8,3 @@ projects:
   - name: prod
     dir: .
     opentofu: true
-
