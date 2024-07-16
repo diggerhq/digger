@@ -122,7 +122,7 @@ func (gh DiggerGithubClientMockProvider) NewClient(netClient *net.Client) (*gith
 	return ghClient, nil
 }
 
-func (gh *DiggerGithubClientMockProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
+func (gh DiggerGithubClientMockProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
 	ghClient, _ := gh.NewClient(gh.MockedHTTPClient)
 	token := "token"
 	return ghClient, &token, nil

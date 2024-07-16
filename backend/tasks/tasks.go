@@ -42,7 +42,7 @@ func main() {
 				log.Printf("failed to get github service for DiggerRun ID: %v: %v", dr.ID, err)
 				continue
 			}
-			RunQueuesStateMachine(&queueItem, service)
+			RunQueuesStateMachine(&queueItem, service, &utils.DiggerGithubRealClientProvider{})
 		}
 	})
 
