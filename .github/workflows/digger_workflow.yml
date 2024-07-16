@@ -25,8 +25,9 @@ jobs:
         run: echo digger run ${{ inputs.id }}
         shell: bash      
       - uses: actions/checkout@v4
-      - uses: diggerhq/digger@v0.6.0
+      - uses: diggerhq/digger@fix/reporter-strategy
         with:
+          digger-spec: ${{ inputs.spec }}
           setup-aws: true
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
