@@ -5,4 +5,7 @@ projects:
   - name: staging
     dir: .
     opentofu: true
+  - name: prod
+    dir: .
+    opentofu: true
 
