@@ -67,7 +67,9 @@ func (svc GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	for {
 		files, resp, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, &opts)
 		if err != nil {
-			log.Fatalf("error getting pull request files: %v", err)
+			log.Printf("error getting pull request: %v", err)
+			return nil, fmt.Errorf("error getting pull request: %v", err)
+
 		}
 
 		for _, file := range files {
@@ -91,7 +93,8 @@ func (svc GithubService) GetChangedFilesForCommit(owner string, repo string, com
 	for {
 		commit, resp, err := svc.Client.Repositories.GetCommit(context.Background(), owner, repo, commitID, &opts)
 		if err != nil {
-			log.Fatalf("error getting commitfiles: %v", err)
+			log.Printf("error getting commitfiles: %v", err)
+			return nil, fmt.Errorf("error getting commitfiles: %v", err)
 		}
 		for _, file := range commit.Files {
 			fileNames = append(fileNames, *file.Filename)
@@ -117,7 +120,8 @@ func (svc GithubService) ListIssues() ([]*ci.Issue, error) {
 	for {
 		issues, resp, err := svc.Client.Issues.ListByRepo(context.Background(), svc.Owner, svc.RepoName, opts)
 		if err != nil {
-			log.Fatalf("error getting pull request files: %v", err)
+			log.Printf("error getting pull request files: %v", err)
+			return nil, fmt.Errorf("error getting pull request files: %v", err)
 		}
 		for _, issue := range issues {
 			if issue.PullRequestLinks != nil {
@@ -216,7 +220,9 @@ func (svc GithubService) CreateCommentReaction(id string, reaction string) error
 func (svc GithubService) SetStatus(prNumber int, status string, statusContext string) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Printf("error getting pull request : %v", err)
+		return fmt.Errorf("error getting pull request : %v", err)
+
 	}
 
 	_, _, err = svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
@@ -230,12 +236,15 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Printf("error getting pull request: %v", err)
+		return "", fmt.Errorf("error getting pull request: %v", err)
 	}
 
 	statuses, _, err := svc.Client.Repositories.GetCombinedStatus(context.Background(), svc.Owner, svc.RepoName, pr.Head.GetSHA(), nil)
 	if err != nil {
-		log.Fatalf("error getting combined status: %v", err)
+		log.Printf("error getting combined status: %v", err)
+		return "", fmt.Errorf("error getting combined status: %v", err)
+
 	}
 
 	return *statuses.State, nil
@@ -244,7 +253,8 @@ func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, err
 func (svc GithubService) MergePullRequest(prNumber int) error {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
+		log.Printf("error getting pull request: %v", err)
+		return fmt.Errorf("error getting pull request: %v", err)
 	}
 
 	_, _, err = svc.Client.PullRequests.Merge(context.Background(), svc.Owner, svc.RepoName, prNumber, "auto-merge", &github.PullRequestOptions{
@@ -272,8 +282,8 @@ func isMergeableState(mergeableState string) bool {
 func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
-		return false, err
+		log.Printf("error getting pull request: %v", err)
+		return false, fmt.Errorf("error getting pull request: %v", err)
 	}
 	return pr.GetMergeable() && isMergeableState(pr.GetMergeableState()), nil
 }
@@ -281,8 +291,8 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 func (svc GithubService) IsMerged(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
-		return false, err
+		log.Printf("error getting pull request: %v", err)
+		return false, fmt.Errorf("error getting pull request: %v", err)
 	}
 	return *pr.Merged, nil
 }
@@ -290,8 +300,8 @@ func (svc GithubService) IsMerged(prNumber int) (bool, error) {
 func (svc GithubService) IsClosed(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
-		return false, err
+		log.Printf("error getting pull request: %v", err)
+		return false, fmt.Errorf("error getting pull request: %v", err)
 	}
 
 	return pr.GetState() == "closed", nil
@@ -317,8 +327,8 @@ func (svc GithubService) SetOutput(prNumber int, key string, value string) error
 func (svc GithubService) GetBranchName(prNumber int) (string, string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Fatalf("error getting pull request: %v", err)
-		return "", "", err
+		log.Printf("error getting pull request: %v", err)
+		return "", "", fmt.Errorf("error getting pull request: %v", err)
 	}
 
 	return pr.Head.GetRef(), pr.Head.GetSHA(), nil
