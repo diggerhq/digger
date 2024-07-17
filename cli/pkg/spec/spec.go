@@ -68,7 +68,7 @@ func RunSpec(
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get changed files: %v", err), 1)
 	}
-	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", true, changedFiles)
+	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, changedFiles)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
