@@ -38,7 +38,7 @@ func getRepoUsername() (string, error) {
 	// Execute 'git config --get remote.origin.url' to get the URL of the origin remote
 	cmd := exec.Command("git", "config", "--get", "user.name")
 	out, err := cmd.Output()
-	return string(out), err
+	return strings.TrimSpace(string(out)), err
 }
 
 func getDefaultBranch() (string, error) {
