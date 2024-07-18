@@ -84,7 +84,7 @@ func RunSpec(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
 	}
 
-	workflow := diggerConfig.Workflows[job.ProjectName]
+	workflow := diggerConfig.Workflows[job.ProjectWorkflow]
 	stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
 	job.StateEnvVars = lo.Assign(job.StateEnvVars, stateEnvVars)
 	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandEnvVars)
