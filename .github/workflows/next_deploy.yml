@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/next
+      - feat/nxt
   pull_request:
     branches:
       - feat/next
