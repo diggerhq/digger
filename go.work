@@ -5,6 +5,7 @@ use (
 	./cli
 	./cli_e2e
 	./dgctl
+	./next
 
 	./ee/backend
 	./ee/cli
