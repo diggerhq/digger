@@ -64,4 +64,5 @@ func main() {
 	r.GET("/github/callback", diggerController.GithubAppCallbackPage)
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
+
 }
