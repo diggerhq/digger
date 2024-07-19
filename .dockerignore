@@ -1,0 +1,63 @@
+# flyctl launch added from .gitignore
+**/.idea
+**/.DS_Store
+**/venv
+**/**/__pycache__
+**/__azurite*
+
+# flyctl launch added from backend/.gitignore
+backend/**/backend
+backend/**/main
+backend/**/.idea
+backend/**/.DS_Store
+backend/**/venv
+backend/**/**/__pycache__
+backend/**/__azurite*
+backend/**/digger
+backend/**/cloud
+backend/**/*.env
+backend/**/*.env.*
+backend/**/.docker-compose-env
+backend/**/controllers/database_test.db
+
+# flyctl launch added from backend/tasks/.gitignore
+backend/tasks/**/.env
+backend/tasks/**/tasks
+
+# flyctl launch added from cli/.gitignore
+cli/**/**/digger
+!cli/pkg/digger
+!cli/cmd/digger
+
+# flyctl launch added from dgctl/.gitignore
+dgctl/**/.archive
+dgctl/**/generated
+dgctl/**/dgctl.generated.json
+dgctl/**/.dgctl
+dgctl/**/dgctl
+
+# flyctl launch added from ee/backend/.gitignore
+ee/backend/**/main
+ee/backend/**/backend
+ee/backend/**/.idea
+ee/backend/**/.DS_Store
+ee/backend/**/venv
+ee/backend/**/**/__pycache__
+ee/backend/**/__azurite*
+ee/backend/**/digger
+ee/backend/**/cloud
+ee/backend/**/*.env
+ee/backend/**/*.env.*
+ee/backend/**/.docker-compose-env
+ee/backend/**/controllers/database_test.db
+
+# flyctl launch added from ee/cli/.gitignore
+ee/cli/**/**/digger
+!ee/cli/pkg/digger
+!ee/cli/cmd/digger
+
+# flyctl launch added from libs/digger_config/.gitignore
+libs/digger_config/**/.idea
+
+# flyctl launch added from libs/orchestrator/.gitignore
+libs/orchestrator/**/.idea
