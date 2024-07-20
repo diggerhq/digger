@@ -7,6 +7,7 @@ import (
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/utils"
 	controllers "github.com/diggerhq/digger/next/controllers"
+	"github.com/diggerhq/digger/next/middleware"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"io/fs"
@@ -61,7 +62,7 @@ func main() {
 
 	r.GET("/", controllers.Home)
 
-	r.GET("/github/callback", diggerController.GithubAppCallbackPage)
+	r.GET("/github/callback", middleware.SupabaseCookieAuth(), diggerController.GithubAppCallbackPage)
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
 

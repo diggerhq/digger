@@ -6,9 +6,11 @@ import (
 	"github.com/dchest/uniuri"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/next/models_generated"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -323,6 +325,14 @@ func (db *Database) GetRepoById(orgIdKey any, repoId any) (*Repo, error) {
 
 // GithubRepoAdded handles github drift that github repo has been added to the app installation
 func (db *Database) GithubRepoAdded(installationId int64, appId int64, login string, accountId int64, repoFullName string) (*GithubAppInstallation, error) {
+
+	dburl := "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+	gormdb, _ := gorm.Open(postgres.Open(dburl))
+
+	query := models_generated.Use(gormdb)
+	g := query.GithubAppInstallation
+
+	first, err := query.Repo.Where(g.GithubInstallationID.Eq(installationId), g.Repo.Eq(repoFullName), g.GithubAppID.Eq(appId)).First()
 
 	// check if item exist already
 	item := &GithubAppInstallation{}

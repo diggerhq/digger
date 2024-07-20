@@ -12,7 +12,6 @@ import (
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
 	dg_locking "github.com/diggerhq/digger/libs/locking"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/next/supa"
 	"log"
 	"math/rand"
 	"net/http"
@@ -1079,22 +1078,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	clientId := os.Getenv("GITHUB_APP_CLIENT_ID")
 	clientSecret := os.Getenv("GITHUB_APP_CLIENT_SECRET")
 
-	client, err := supa.GetClient()
-	if err != nil {
-		log.Printf("could not create client")
-		return
-	}
-	supbaseProjectId := os.Getenv("DIGGER_SUPABASE_PROJECT_REF")
-	authToken, err := c.Cookie(fmt.Sprintf("sb-%v-auth-token", supbaseProjectId))
-	authenticatedClient := client.Auth.WithToken(authToken)
-	user, err := authenticatedClient.GetUser()
-	email := user.Email
-	log.Printf("the email is: %v", email)
-
-	var org []models.PublicOrganizationsSelect
-	_, err = client.From("organizations").Select("*", "1", false).ExecuteTo(&org)
-	log.Printf("%v, err: %v", org, err)
-
 	installationId64, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {
 		log.Printf("err: %v", err)
@@ -1109,19 +1092,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	//org, err := models.DB.GetOrganisationById(orgId)
-	//if err != nil {
-	//	log.Printf("Error fetching organisation: %v", err)
-	//	c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
-	//	return
-	//}
-
-	//_, err = models.DB.CreateGithubInstallationLink(org, installationId64)
-	//if err != nil {
-	//	log.Printf("Error saving CreateGithubInstallationLink to database: %v", err)
-	//	c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
-	//	return
-	//}
 	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
 }
 
