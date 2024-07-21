@@ -87,12 +87,12 @@ func (d DiggerController) GithubAppWebHookAfterMerge(c *gin.Context) {
 	//	}
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d  IN APPLY AFTER MERGE", *event.PullRequest.ID)
-		err := handlePullRequestEvent(gh, event, nil)
-		if err != nil {
-			log.Printf("handlePullRequestEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
+		//err := handlePullRequestEvent(gh, event, nil)
+		//if err != nil {
+		//	log.Printf("handlePullRequestEvent error: %v", err)
+		//	c.String(http.StatusInternalServerError, err.Error())
+		//	return
+		//}
 	case *github.PushEvent:
 		log.Printf("Got push event for %d", event.Repo.URL)
 		err := handlePushEventApplyAfterMerge(gh, event)
