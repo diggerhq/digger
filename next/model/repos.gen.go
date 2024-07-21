@@ -14,13 +14,17 @@ const TableNameRepo = "repos"
 
 // Repo mapped from table <repos>
 type Repo struct {
-	ID             int64          `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	CreatedAt      time.Time      `gorm:"column:created_at;default:now()" json:"created_at"`
-	UpdatedAt      time.Time      `gorm:"column:updated_at" json:"updated_at"`
-	DeletedAt      gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
-	Name           string         `gorm:"column:name;not null" json:"name"`
-	OrganizationID string         `gorm:"column:organization_id" json:"organization_id"`
-	DiggerConfig   string         `gorm:"column:digger_config" json:"digger_config"`
+	ID               int64          `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	CreatedAt        time.Time      `gorm:"column:created_at;default:now()" json:"created_at"`
+	UpdatedAt        time.Time      `gorm:"column:updated_at" json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
+	Name             string         `gorm:"column:name;not null" json:"name"`
+	OrganizationID   string         `gorm:"column:organization_id" json:"organization_id"`
+	DiggerConfig     string         `gorm:"column:digger_config" json:"digger_config"`
+	RepoName         string         `gorm:"column:repo_name" json:"repo_name"`
+	RepoFullName     string         `gorm:"column:repo_full_name" json:"repo_full_name"`
+	RepoOrganisation string         `gorm:"column:repo_organisation" json:"repo_organisation"`
+	RepoURL          string         `gorm:"column:repo_url" json:"repo_url"`
 }
 
 // TableName Repo's table name

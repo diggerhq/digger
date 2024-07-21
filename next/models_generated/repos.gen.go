@@ -34,6 +34,10 @@ func newRepo(db *gorm.DB, opts ...gen.DOOption) repo {
 	_repo.Name = field.NewString(tableName, "name")
 	_repo.OrganizationID = field.NewString(tableName, "organization_id")
 	_repo.DiggerConfig = field.NewString(tableName, "digger_config")
+	_repo.RepoName = field.NewString(tableName, "repo_name")
+	_repo.RepoFullName = field.NewString(tableName, "repo_full_name")
+	_repo.RepoOrganisation = field.NewString(tableName, "repo_organisation")
+	_repo.RepoURL = field.NewString(tableName, "repo_url")
 
 	_repo.fillFieldMap()
 
@@ -43,14 +47,18 @@ func newRepo(db *gorm.DB, opts ...gen.DOOption) repo {
 type repo struct {
 	repoDo
 
-	ALL            field.Asterisk
-	ID             field.Int64
-	CreatedAt      field.Time
-	UpdatedAt      field.Time
-	DeletedAt      field.Field
-	Name           field.String
-	OrganizationID field.String
-	DiggerConfig   field.String
+	ALL              field.Asterisk
+	ID               field.Int64
+	CreatedAt        field.Time
+	UpdatedAt        field.Time
+	DeletedAt        field.Field
+	Name             field.String
+	OrganizationID   field.String
+	DiggerConfig     field.String
+	RepoName         field.String
+	RepoFullName     field.String
+	RepoOrganisation field.String
+	RepoURL          field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -74,6 +82,10 @@ func (r *repo) updateTableName(table string) *repo {
 	r.Name = field.NewString(table, "name")
 	r.OrganizationID = field.NewString(table, "organization_id")
 	r.DiggerConfig = field.NewString(table, "digger_config")
+	r.RepoName = field.NewString(table, "repo_name")
+	r.RepoFullName = field.NewString(table, "repo_full_name")
+	r.RepoOrganisation = field.NewString(table, "repo_organisation")
+	r.RepoURL = field.NewString(table, "repo_url")
 
 	r.fillFieldMap()
 
@@ -90,7 +102,7 @@ func (r *repo) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (r *repo) fillFieldMap() {
-	r.fieldMap = make(map[string]field.Expr, 7)
+	r.fieldMap = make(map[string]field.Expr, 11)
 	r.fieldMap["id"] = r.ID
 	r.fieldMap["created_at"] = r.CreatedAt
 	r.fieldMap["updated_at"] = r.UpdatedAt
@@ -98,6 +110,10 @@ func (r *repo) fillFieldMap() {
 	r.fieldMap["name"] = r.Name
 	r.fieldMap["organization_id"] = r.OrganizationID
 	r.fieldMap["digger_config"] = r.DiggerConfig
+	r.fieldMap["repo_name"] = r.RepoName
+	r.fieldMap["repo_full_name"] = r.RepoFullName
+	r.fieldMap["repo_organisation"] = r.RepoOrganisation
+	r.fieldMap["repo_url"] = r.RepoURL
 }
 
 func (r repo) clone(db *gorm.DB) repo {

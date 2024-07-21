@@ -6,12 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/backend/ci_backends"
-	"github.com/diggerhq/digger/backend/locking"
-	models2 "github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/segment"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
-	dg_locking "github.com/diggerhq/digger/libs/locking"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/next/model"
 	"log"
 	"math/rand"
 	"net/http"
@@ -248,13 +244,13 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 
 }
 
-func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64) (*models.Repo, *models.Organisation, error) {
+func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64) (*model.Repo, *model.Organization, error) {
 	link, err := models.DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		log.Printf("Error fetching installation link: %v", err)
 		return nil, nil, err
 	}
-	orgId := link.OrganisationId
+	orgId := link.OrganizationID
 	org, err := models.DB.GetOrganisationById(orgId)
 	if err != nil {
 		log.Printf("Error fetching organisation by id: %v, error: %v\n", orgId, err)
@@ -392,7 +388,7 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 		return fmt.Errorf("error getting github app link")
 	}
 
-	orgId := link.OrganisationId
+	orgId := link.OrganizationID
 	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
 	repo, err := models.DB.GetRepo(orgId, diggerRepoName)
 	if err != nil {
@@ -423,7 +419,7 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 			log.Printf("ERROR load digger.yml: %v", err)
 			return fmt.Errorf("error loading digger.yml %v", err)
 		}
-		models.DB.UpdateRepoDiggerConfig(link.OrganisationId, *config, repo, isMainBranch)
+		models.DB.UpdateRepoDiggerConfig(link.OrganizationID, *config, repo, isMainBranch)
 		return nil
 	})
 	if err != nil {
@@ -433,199 +429,199 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 	return nil
 }
 
-func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
-	installationId := *payload.Installation.ID
-	repoName := *payload.Repo.Name
-	repoOwner := *payload.Repo.Owner.Login
-	repoFullName := *payload.Repo.FullName
-	cloneURL := *payload.Repo.CloneURL
-	prNumber := *payload.PullRequest.Number
-	isDraft := payload.PullRequest.GetDraft()
-	commitSha := payload.PullRequest.Head.GetSHA()
-	branch := payload.PullRequest.Head.GetRef()
-
-	link, err := models.DB.GetGithubAppInstallationLink(installationId)
-	if err != nil {
-		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
-		return fmt.Errorf("error getting github app link")
-	}
-	organisationId := link.OrganisationId
-
-	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
-	if err != nil {
-		ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
-		if err != nil {
-			log.Printf("GetGithubService error: %v", err)
-			return fmt.Errorf("error getting ghService to post error comment")
-		}
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
-		log.Printf("getDiggerConfigForPR error: %v", err)
-		return fmt.Errorf("error getting digger config")
-	}
-
-	impactedProjects, impactedProjectsSourceMapping, _, err := dg_github.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
-	if err != nil {
-		log.Printf("Error processing event: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error processing event: %v", err))
-		return fmt.Errorf("error processing event")
-	}
-
-	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config)
-	if err != nil {
-		log.Printf("Error converting event to jobsForImpactedProjects: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error converting event to jobsForImpactedProjects: %v", err))
-		return fmt.Errorf("error converting event to jobsForImpactedProjects")
-	}
-
-	if len(jobsForImpactedProjects) == 0 {
-		// do not report if no projects are impacted to minimise noise in the PR thread
-		// TODO use status checks instead: https://github.com/diggerhq/digger/issues/1135
-		log.Printf("No projects impacted; not starting any jobs")
-		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
-		return nil
-	}
-
-	diggerCommand, err := orchestrator_scheduler.GetCommandFromJob(jobsForImpactedProjects[0])
-	if err != nil {
-		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not determine digger command from job: %v", err))
-		return fmt.Errorf("unkown digger command in comment %v", err)
-	}
-
-	if *diggerCommand == orchestrator_scheduler.DiggerCommandNoop {
-		log.Printf("job is of type noop, no actions top perform")
-		return nil
-	}
-
-	// perform locking/unlocking in backend
-	if config.PrLocks {
-		for _, project := range impactedProjects {
-			prLock := dg_locking.PullRequestLock{
-				InternalLock: locking.BackendDBLock{
-					OrgId: organisationId,
-				},
-				CIService:        ghService,
-				Reporter:         comment_updater.NoopReporter{},
-				ProjectName:      project.Name,
-				ProjectNamespace: repoFullName,
-				PrNumber:         prNumber,
-			}
-			err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
-			if err != nil {
-				utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
-				return fmt.Errorf("failed to perform lock action on project: %v, %v", project.Name, err)
-			}
-		}
-	}
-
-	// if commands are locking or unlocking we don't need to trigger any jobs
-	if *diggerCommand == orchestrator_scheduler.DiggerCommandUnlock ||
-		*diggerCommand == orchestrator_scheduler.DiggerCommandLock {
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
-		return nil
-	}
-
-	if !config.AllowDraftPRs && isDraft {
-		log.Printf("Draft PRs are disabled, skipping PR: %v", prNumber)
-		return nil
-	}
-
-	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
-	if err != nil {
-		log.Printf("Error initializing comment reporter: %v", err)
-		return fmt.Errorf("error initializing comment reporter")
-	}
-
-	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
-	if err != nil {
-		log.Printf("Failed to comment initial status for jobs: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
-		return fmt.Errorf("failed to comment initial status for jobs")
-	}
-
-	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
-	if err != nil {
-		log.Printf("error setting status for PR: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
-		fmt.Errorf("error setting status for PR: %v", err)
-	}
-
-	impactedProjectsMap := make(map[string]dg_configuration.Project)
-	for _, p := range impactedProjects {
-		impactedProjectsMap[p.Name] = p
-	}
-
-	impactedJobsMap := make(map[string]orchestrator_scheduler.Job)
-	for _, j := range jobsForImpactedProjects {
-		impactedJobsMap[j.ProjectName] = j
-	}
-
-	commentId, err := strconv.ParseInt(commentReporter.CommentId, 10, 64)
-	if err != nil {
-		log.Printf("strconv.ParseInt error: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
-	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models2.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0)
-	if err != nil {
-		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
-		return fmt.Errorf("error converting jobs")
-	}
-
-	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule {
-		sourceDetails, err := comment_updater.PostInitialSourceComments(ghService, prNumber, impactedProjectsSourceMapping)
-		if err != nil {
-			log.Printf("PostInitialSourceComments error: %v", err)
-			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
-			return fmt.Errorf("error posting initial comments")
-		}
-		batch, err := models.DB.GetDiggerBatch(batchId)
-		if err != nil {
-			log.Printf("GetDiggerBatch error: %v", err)
-			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
-			return fmt.Errorf("error getting digger batch")
-		}
-		batch.SourceDetails, err = json.Marshal(sourceDetails)
-		if err != nil {
-			log.Printf("sourceDetails, json Marshal error: %v", err)
-			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: json Marshal error: %v", err))
-			return fmt.Errorf("error marshalling sourceDetails")
-		}
-		err = models.DB.UpdateDiggerBatch(batch)
-		if err != nil {
-			log.Printf("UpdateDiggerBatch error: %v", err)
-			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: UpdateDiggerBatch error: %v", err))
-			return fmt.Errorf("error updating digger batch")
-		}
-	}
-
-	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
-
-	//ciBackend, err := ciBackendProvider.GetCiBackend(
-	//	ci_backends.CiBackendOptions{
-	//		GithubClientProvider: gh,
-	//		GithubInstallationId: installationId,
-	//		RepoName:             repoName,
-	//		RepoOwner:            repoOwner,
-	//		RepoFullName:         repoFullName,
-	//	},
-	//)
-	//if err != nil {
-	//	log.Printf("GetCiBackend error: %v", err)
-	//	utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: GetCiBackend error: %v", err))
-	//	return fmt.Errorf("error fetching ci backed %v", err)
-	//}
-	//
-	//err = TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, prNumber, ghService, gh)
-	//if err != nil {
-	//	log.Printf("TriggerDiggerJobs error: %v", err)
-	//	utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
-	//	return fmt.Errorf("error triggerring Digger Jobs")
-	//}
-
-	return nil
-}
+//func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
+//	installationId := *payload.Installation.ID
+//	repoName := *payload.Repo.Name
+//	repoOwner := *payload.Repo.Owner.Login
+//	repoFullName := *payload.Repo.FullName
+//	cloneURL := *payload.Repo.CloneURL
+//	prNumber := *payload.PullRequest.Number
+//	isDraft := payload.PullRequest.GetDraft()
+//	commitSha := payload.PullRequest.Head.GetSHA()
+//	branch := payload.PullRequest.Head.GetRef()
+//
+//	link, err := models.DB.GetGithubAppInstallationLink(installationId)
+//	if err != nil {
+//		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
+//		return fmt.Errorf("error getting github app link")
+//	}
+//	organisationId := link.OrganizationID
+//
+//	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
+//	if err != nil {
+//		ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+//		if err != nil {
+//			log.Printf("GetGithubService error: %v", err)
+//			return fmt.Errorf("error getting ghService to post error comment")
+//		}
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
+//		log.Printf("getDiggerConfigForPR error: %v", err)
+//		return fmt.Errorf("error getting digger config")
+//	}
+//
+//	impactedProjects, impactedProjectsSourceMapping, _, err := dg_github.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
+//	if err != nil {
+//		log.Printf("Error processing event: %v", err)
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error processing event: %v", err))
+//		return fmt.Errorf("error processing event")
+//	}
+//
+//	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config)
+//	if err != nil {
+//		log.Printf("Error converting event to jobsForImpactedProjects: %v", err)
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error converting event to jobsForImpactedProjects: %v", err))
+//		return fmt.Errorf("error converting event to jobsForImpactedProjects")
+//	}
+//
+//	if len(jobsForImpactedProjects) == 0 {
+//		// do not report if no projects are impacted to minimise noise in the PR thread
+//		// TODO use status checks instead: https://github.com/diggerhq/digger/issues/1135
+//		log.Printf("No projects impacted; not starting any jobs")
+//		// This one is for aggregate reporting
+//		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+//		return nil
+//	}
+//
+//	diggerCommand, err := orchestrator_scheduler.GetCommandFromJob(jobsForImpactedProjects[0])
+//	if err != nil {
+//		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not determine digger command from job: %v", err))
+//		return fmt.Errorf("unkown digger command in comment %v", err)
+//	}
+//
+//	if *diggerCommand == orchestrator_scheduler.DiggerCommandNoop {
+//		log.Printf("job is of type noop, no actions top perform")
+//		return nil
+//	}
+//
+//	// perform locking/unlocking in backend
+//	//if config.PrLocks {
+//	//	for _, project := range impactedProjects {
+//	//		prLock := dg_locking.PullRequestLock{
+//	//			InternalLock: locking.BackendDBLock{
+//	//				OrgId: organisationId,
+//	//			},
+//	//			CIService:        ghService,
+//	//			Reporter:         comment_updater.NoopReporter{},
+//	//			ProjectName:      project.Name,
+//	//			ProjectNamespace: repoFullName,
+//	//			PrNumber:         prNumber,
+//	//		}
+//	//		err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
+//	//		if err != nil {
+//	//			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
+//	//			return fmt.Errorf("failed to perform lock action on project: %v, %v", project.Name, err)
+//	//		}
+//	//	}
+//	//}
+//
+//	// if commands are locking or unlocking we don't need to trigger any jobs
+//	if *diggerCommand == orchestrator_scheduler.DiggerCommandUnlock ||
+//		*diggerCommand == orchestrator_scheduler.DiggerCommandLock {
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
+//		return nil
+//	}
+//
+//	if !config.AllowDraftPRs && isDraft {
+//		log.Printf("Draft PRs are disabled, skipping PR: %v", prNumber)
+//		return nil
+//	}
+//
+//	commentReporter, err := utils.InitCommentReporter(ghService, prNumber, ":construction_worker: Digger starting...")
+//	if err != nil {
+//		log.Printf("Error initializing comment reporter: %v", err)
+//		return fmt.Errorf("error initializing comment reporter")
+//	}
+//
+//	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
+//	if err != nil {
+//		log.Printf("Failed to comment initial status for jobs: %v", err)
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
+//		return fmt.Errorf("failed to comment initial status for jobs")
+//	}
+//
+//	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+//	if err != nil {
+//		log.Printf("error setting status for PR: %v", err)
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
+//		fmt.Errorf("error setting status for PR: %v", err)
+//	}
+//
+//	impactedProjectsMap := make(map[string]dg_configuration.Project)
+//	for _, p := range impactedProjects {
+//		impactedProjectsMap[p.Name] = p
+//	}
+//
+//	impactedJobsMap := make(map[string]orchestrator_scheduler.Job)
+//	for _, j := range jobsForImpactedProjects {
+//		impactedJobsMap[j.ProjectName] = j
+//	}
+//
+//	commentId, err := strconv.ParseInt(commentReporter.CommentId, 10, 64)
+//	if err != nil {
+//		log.Printf("strconv.ParseInt error: %v", err)
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
+//	}
+//	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models2.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0)
+//	if err != nil {
+//		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
+//		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
+//		return fmt.Errorf("error converting jobs")
+//	}
+//
+//	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule {
+//		sourceDetails, err := comment_updater.PostInitialSourceComments(ghService, prNumber, impactedProjectsSourceMapping)
+//		if err != nil {
+//			log.Printf("PostInitialSourceComments error: %v", err)
+//			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
+//			return fmt.Errorf("error posting initial comments")
+//		}
+//		batch, err := models.DB.GetDiggerBatch(batchId)
+//		if err != nil {
+//			log.Printf("GetDiggerBatch error: %v", err)
+//			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
+//			return fmt.Errorf("error getting digger batch")
+//		}
+//		batch.SourceDetails, err = json.Marshal(sourceDetails)
+//		if err != nil {
+//			log.Printf("sourceDetails, json Marshal error: %v", err)
+//			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: json Marshal error: %v", err))
+//			return fmt.Errorf("error marshalling sourceDetails")
+//		}
+//		err = models.DB.UpdateDiggerBatch(batch)
+//		if err != nil {
+//			log.Printf("UpdateDiggerBatch error: %v", err)
+//			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: UpdateDiggerBatch error: %v", err))
+//			return fmt.Errorf("error updating digger batch")
+//		}
+//	}
+//
+//	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
+//
+//	//ciBackend, err := ciBackendProvider.GetCiBackend(
+//	//	ci_backends.CiBackendOptions{
+//	//		GithubClientProvider: gh,
+//	//		GithubInstallationId: installationId,
+//	//		RepoName:             repoName,
+//	//		RepoOwner:            repoOwner,
+//	//		RepoFullName:         repoFullName,
+//	//	},
+//	//)
+//	//if err != nil {
+//	//	log.Printf("GetCiBackend error: %v", err)
+//	//	utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: GetCiBackend error: %v", err))
+//	//	return fmt.Errorf("error fetching ci backed %v", err)
+//	//}
+//	//
+//	//err = TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, prNumber, ghService, gh)
+//	//if err != nil {
+//	//	log.Printf("TriggerDiggerJobs error: %v", err)
+//	//	utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
+//	//	return fmt.Errorf("error triggerring Digger Jobs")
+//	//}
+//
+//	return nil
+//}
 
 func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	ghService, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
@@ -687,7 +683,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, r
 	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, nil
 }
 
-func GetRepoByInstllationId(installationId int64, repoOwner string, repoName string) (*models.Repo, error) {
+func GetRepoByInstllationId(installationId int64, repoOwner string, repoName string) (*model.Repo, error) {
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
 		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
@@ -700,7 +696,7 @@ func GetRepoByInstllationId(installationId int64, repoOwner string, repoName str
 	}
 
 	diggerRepoName := repoOwner + "-" + repoName
-	repo, err := models.DB.GetRepo(link.Organisation.ID, diggerRepoName)
+	repo, err := models.DB.GetRepo(link.OrganizationID, diggerRepoName)
 	return repo, nil
 }
 
@@ -713,362 +709,6 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 	} else {
 		return orchestrator_scheduler.BatchTypePlan
 	}
-}
-
-//func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
-//	installationId := *payload.Installation.ID
-//	repoName := *payload.Repo.Name
-//	repoOwner := *payload.Repo.Owner.Login
-//	repoFullName := *payload.Repo.FullName
-//	cloneURL := *payload.Repo.CloneURL
-//	issueNumber := *payload.Issue.Number
-//	isDraft := payload.Issue.GetDraft()
-//	userCommentId := *payload.GetComment().ID
-//	actor := *payload.Sender.Login
-//	commentBody := *payload.Comment.Body
-//	defaultBranch := *payload.Repo.DefaultBranch
-//
-//	link, err := models.DB.GetGithubAppInstallationLink(installationId)
-//	if err != nil {
-//		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
-//		return fmt.Errorf("error getting github app link")
-//	}
-//	orgId := link.OrganisationId
-//
-//	if *payload.Action != "created" {
-//		log.Printf("comment is not of type 'created', ignoring")
-//		return nil
-//	}
-//
-//	if !strings.HasPrefix(*payload.Comment.Body, "digger") {
-//		log.Printf("comment is not a Digger command, ignoring")
-//		return nil
-//	}
-//
-//	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
-//	if err != nil {
-//		ghService, _, gherr := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
-//		if gherr != nil {
-//			log.Printf("GetGithubService error: %v", gherr)
-//			return fmt.Errorf("error getting ghService to post error comment")
-//		}
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
-//		log.Printf("getDiggerConfigForPR error: %v", err)
-//		return fmt.Errorf("error getting digger config")
-//	}
-//
-//	commentIdStr := strconv.FormatInt(userCommentId, 10)
-//	err = ghService.CreateCommentReaction(commentIdStr, string(dg_github.GithubCommentEyesReaction))
-//	if err != nil {
-//		log.Printf("CreateCommentReaction error: %v", err)
-//	}
-//
-//	if !config.AllowDraftPRs && isDraft {
-//		log.Printf("AllowDraftPRs is disabled, skipping PR: %v", issueNumber)
-//		return nil
-//	}
-//
-//	commentReporter, err := utils.InitCommentReporter(ghService, issueNumber, ":construction_worker: Digger starting....")
-//	if err != nil {
-//		log.Printf("Error initializing comment reporter: %v", err)
-//		return fmt.Errorf("error initializing comment reporter")
-//	}
-//
-//	diggerCommand, err := orchestrator_scheduler.GetCommandFromComment(*payload.Comment.Body)
-//	if err != nil {
-//		log.Printf("unkown digger command in comment: %v", *payload.Comment.Body)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Could not recognise comment, error: %v", err))
-//		return fmt.Errorf("unkown digger command in comment %v", err)
-//	}
-//
-//	prBranchName, _, err := ghService.GetBranchName(issueNumber)
-//	if err != nil {
-//		log.Printf("GetBranchName error: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: GetBranchName error: %v", err))
-//		return fmt.Errorf("error while fetching branch name")
-//	}
-//
-//	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, err := generic.ProcessIssueCommentEvent(issueNumber, *payload.Comment.Body, config, projectsGraph, ghService)
-//	if err != nil {
-//		log.Printf("Error processing event: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
-//		return fmt.Errorf("error processing event")
-//	}
-//	log.Printf("GitHub IssueComment event processed successfully\n")
-//
-//	// perform unlocking in backend
-//	if config.PrLocks {
-//		for _, project := range impactedProjects {
-//			prLock := dg_locking.PullRequestLock{
-//				InternalLock: locking.BackendDBLock{
-//					OrgId: orgId,
-//				},
-//				CIService:        ghService,
-//				Reporter:         comment_updater.NoopReporter{},
-//				ProjectName:      project.Name,
-//				ProjectNamespace: repoFullName,
-//				PrNumber:         issueNumber,
-//			}
-//			err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
-//			if err != nil {
-//				utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
-//				return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
-//			}
-//		}
-//	}
-//
-//	// if commands are locking or unlocking we don't need to trigger any jobs
-//	if *diggerCommand == orchestrator_scheduler.DiggerCommandUnlock ||
-//		*diggerCommand == orchestrator_scheduler.DiggerCommandLock {
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
-//		return nil
-//	}
-//
-//	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
-//	if err != nil {
-//		log.Printf("Error converting event to jobs: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))
-//		return fmt.Errorf("error converting event to jobs")
-//	}
-//	log.Printf("GitHub IssueComment event converted to Jobs successfully\n")
-//
-//	err = utils.ReportInitialJobsStatus(commentReporter, jobs)
-//	if err != nil {
-//		log.Printf("Failed to comment initial status for jobs: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
-//		return fmt.Errorf("failed to comment initial status for jobs")
-//	}
-//
-//	if len(jobs) == 0 {
-//		log.Printf("no projects impacated, succeeding")
-//		// This one is for aggregate reporting
-//		err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
-//		return nil
-//	}
-//
-//	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
-//	if err != nil {
-//		log.Printf("error setting status for PR: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
-//		fmt.Errorf("error setting status for PR: %v", err)
-//	}
-//
-//	impactedProjectsMap := make(map[string]dg_configuration.Project)
-//	for _, p := range impactedProjects {
-//		impactedProjectsMap[p.Name] = p
-//	}
-//
-//	impactedProjectsJobMap := make(map[string]orchestrator_scheduler.Job)
-//	for _, j := range jobs {
-//		impactedProjectsJobMap[j.ProjectName] = j
-//	}
-//
-//	reporterCommentId, err := strconv.ParseInt(commentReporter.CommentId, 10, 64)
-//	if err != nil {
-//		log.Printf("strconv.ParseInt error: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
-//	}
-//
-//	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0)
-//	if err != nil {
-//		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
-//		return fmt.Errorf("error convertingjobs")
-//	}
-//
-//	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule &&
-//		(*diggerCommand == orchestrator_scheduler.DiggerCommandPlan || *diggerCommand == orchestrator_scheduler.DiggerCommandApply) {
-//
-//		sourceDetails, err := comment_updater.PostInitialSourceComments(ghService, issueNumber, impactedProjectsSourceMapping)
-//		if err != nil {
-//			log.Printf("PostInitialSourceComments error: %v", err)
-//			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
-//			return fmt.Errorf("error posting initial comments")
-//		}
-//		batch, err := models.DB.GetDiggerBatch(batchId)
-//		if err != nil {
-//			log.Printf("GetDiggerBatch error: %v", err)
-//			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
-//			return fmt.Errorf("error getting digger batch")
-//		}
-//
-//		batch.SourceDetails, err = json.Marshal(sourceDetails)
-//		if err != nil {
-//			log.Printf("sourceDetails, json Marshal error: %v", err)
-//			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: json Marshal error: %v", err))
-//			return fmt.Errorf("error marshalling sourceDetails")
-//		}
-//		err = models.DB.UpdateDiggerBatch(batch)
-//		if err != nil {
-//			log.Printf("UpdateDiggerBatch error: %v", err)
-//			utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: UpdateDiggerBatch error: %v", err))
-//			return fmt.Errorf("error updating digger batch")
-//		}
-//	}
-//
-//	segment.Track(strconv.Itoa(int(orgId)), "backend_trigger_job")
-//
-//	ciBackend, err := ciBackendProvider.GetCiBackend(
-//		ci_backends.CiBackendOptions{
-//			GithubClientProvider: gh,
-//			GithubInstallationId: installationId,
-//			RepoName:             repoName,
-//			RepoOwner:            repoOwner,
-//			RepoFullName:         repoFullName,
-//		},
-//	)
-//	if err != nil {
-//		log.Printf("GetCiBackend error: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: GetCiBackend error: %v", err))
-//		return fmt.Errorf("error fetching ci backed %v", err)
-//	}
-//	err = TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, issueNumber, ghService, gh)
-//	if err != nil {
-//		log.Printf("TriggerDiggerJobs error: %v", err)
-//		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
-//		return fmt.Errorf("error triggerring Digger Jobs")
-//	}
-//	return nil
-//}
-//
-//func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService ci.PullRequestService, gh utils.GithubClientProvider) error {
-//	_, err := models.DB.GetDiggerBatch(batchId)
-//	if err != nil {
-//		log.Printf("failed to get digger batch, %v\n", err)
-//		return fmt.Errorf("failed to get digger batch, %v\n", err)
-//	}
-//	diggerJobs, err := models.DB.GetPendingParentDiggerJobs(batchId)
-//
-//	if err != nil {
-//		log.Printf("failed to get pending digger jobs, %v\n", err)
-//		return fmt.Errorf("failed to get pending digger jobs, %v\n", err)
-//	}
-//
-//	log.Printf("number of diggerJobs:%v\n", len(diggerJobs))
-//
-//	for _, job := range diggerJobs {
-//		if job.SerializedJobSpec == nil {
-//			return fmt.Errorf("GitHub job can't be nil")
-//		}
-//		jobString := string(job.SerializedJobSpec)
-//		log.Printf("jobString: %v \n", jobString)
-//
-//		// TODO: make workflow file name configurable
-//		err = services.ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, batchId, &job, gh)
-//		if err != nil {
-//			log.Printf("failed to trigger CI workflow, %v\n", err)
-//			return fmt.Errorf("failed to trigger CI workflow, %v\n", err)
-//		}
-//	}
-//	return nil
-//}
-
-// CreateDiggerWorkflowWithPullRequest for specified repo it will create a new branch 'digger/configure' and a pull request to default branch
-// in the pull request it will try to add .github/workflows/digger_workflow.yml file with workflow for digger
-func CreateDiggerWorkflowWithPullRequest(org *models.Organisation, client *github.Client, githubRepo string) error {
-	ctx := context.Background()
-	if strings.Index(githubRepo, "/") == -1 {
-		return fmt.Errorf("githubRepo is in a wrong format: %v", githubRepo)
-	}
-	githubRepoSplit := strings.Split(githubRepo, "/")
-	if len(githubRepoSplit) != 2 {
-		return fmt.Errorf("githubRepo is in a wrong format: %v", githubRepo)
-	}
-	repoOwner := githubRepoSplit[0]
-	repoName := githubRepoSplit[1]
-
-	// check if workflow file exist already in default branch, if it does, do nothing
-	// else try to create a branch and PR
-
-	workflowFilePath := ".github/workflows/digger_workflow.yml"
-	repo, _, _ := client.Repositories.Get(ctx, repoOwner, repoName)
-	defaultBranch := *repo.DefaultBranch
-
-	defaultBranchRef, _, _ := client.Git.GetRef(ctx, repoOwner, repoName, "refs/heads/"+defaultBranch) // or "refs/heads/main"
-	branch := "digger/configure"
-	refName := fmt.Sprintf("refs/heads/%s", branch)
-	branchRef := &github.Reference{
-		Ref: &refName,
-		Object: &github.GitObject{
-			SHA: defaultBranchRef.Object.SHA,
-		},
-	}
-
-	opts := &github.RepositoryContentGetOptions{Ref: *defaultBranchRef.Ref}
-	contents, _, _, err := client.Repositories.GetContents(ctx, repoOwner, repoName, workflowFilePath, opts)
-	if err != nil {
-		if !strings.Contains(err.Error(), "Not Found") {
-			log.Printf("failed to get contents of the file %v", err)
-			return fmt.Errorf("failed to get contents of the file %v", workflowFilePath)
-		}
-	}
-
-	// workflow file doesn't already exist, we can create it
-	if contents == nil {
-		// trying to create a new branch
-		_, _, err := client.Git.CreateRef(ctx, repoOwner, repoName, branchRef)
-		if err != nil {
-			// if branch already exist, do nothing
-			if strings.Contains(err.Error(), "Reference already exists") {
-				log.Printf("Branch %v already exist, do nothing\n", branchRef)
-				return nil
-			}
-			return fmt.Errorf("failed to create a branch, %w", err)
-		}
-
-		// TODO: move to a separate config
-		jobName := "Digger Workflow"
-		setupAws := false
-		disableLocking := false
-		diggerHostname := os.Getenv("DIGGER_CLOUD_HOSTNAME")
-		diggerOrg := org.Name
-
-		workflowFileContents := fmt.Sprintf(`on:
-  workflow_dispatch:
-    inputs:
-      job:
-        required: true
-      id:
-        description: 'run identifier'
-        required: false
-jobs:
-  build:
-    name: %v
-    runs-on: ubuntu-latest
-    steps:
-      - name: digger run
-        uses: diggerhq/digger@develop
-        with:
-          setup-aws: %v
-          disable-locking: %v
-          digger-token: ${{ secrets.DIGGER_TOKEN }}
-          digger-hostname: '%v'
-          digger-organisation: '%v'
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-`, jobName, setupAws, disableLocking, diggerHostname, diggerOrg)
-
-		commitMessage := "Configure Digger workflow"
-		var req github.RepositoryContentFileOptions
-		req.Content = []byte(workflowFileContents)
-		req.Message = &commitMessage
-		req.Branch = &branch
-
-		_, _, err = client.Repositories.CreateFile(ctx, repoOwner, repoName, workflowFilePath, &req)
-		if err != nil {
-			return fmt.Errorf("failed to create digger workflow file, %w", err)
-		}
-
-		prTitle := "Configure Digger"
-		pullRequest := &github.NewPullRequest{Title: &prTitle,
-			Head: &branch, Base: &defaultBranch}
-		_, _, err = client.PullRequests.Create(ctx, repoOwner, repoName, pullRequest)
-		if err != nil {
-			return fmt.Errorf("failed to create a pull request for digger/configure, %w", err)
-		}
-	}
-	return nil
 }
 
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
@@ -1092,6 +732,21 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
+	orgId := c.GetString(middleware.ORGANISATION_ID_KEY)
+	org, err := models.DB.GetOrganisationById(orgId)
+	if err != nil {
+		log.Printf("Error fetching organisation: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
+		return
+	}
+
+	_, err = models.DB.CreateGithubInstallationLink(org, installationId64)
+	if err != nil {
+		log.Printf("Error saving CreateGithubInstallationLink to database: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
+		return
+	}
+
 	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
 }
 
@@ -1110,7 +765,7 @@ func (d DiggerController) GithubReposPage(c *gin.Context) {
 		return
 	}
 
-	installations, err := models.DB.GetGithubAppInstallations(link.GithubInstallationId)
+	installations, err := models.DB.GetGithubAppInstallations(link.GithubInstallationID)
 	if err != nil {
 		log.Printf("GetGithubAppInstallations error: %v\n", err)
 		c.String(http.StatusForbidden, "Failed to find any GitHub installations for this org")
@@ -1123,7 +778,7 @@ func (d DiggerController) GithubReposPage(c *gin.Context) {
 	}
 
 	gh := d.GithubClientProvider
-	client, _, err := gh.Get(installations[0].GithubAppId, installations[0].GithubInstallationId)
+	client, _, err := gh.Get(installations[0].GithubAppID, installations[0].GithubInstallationID)
 	if err != nil {
 		log.Printf("failed to create github client, %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating GitHub client"})

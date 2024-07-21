@@ -28,6 +28,7 @@ type DiggerJob struct {
 	PlanFootprint      []uint8        `gorm:"column:plan_footprint" json:"plan_footprint"`
 	PrCommentURL       string         `gorm:"column:pr_comment_url" json:"pr_comment_url"`
 	TerraformOutput    string         `gorm:"column:terraform_output" json:"terraform_output"`
+	JobSpec            []uint8        `gorm:"column:job_spec" json:"job_spec"`
 }
 
 // TableName DiggerJob's table name

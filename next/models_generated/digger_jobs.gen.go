@@ -41,6 +41,7 @@ func newDiggerJob(db *gorm.DB, opts ...gen.DOOption) diggerJob {
 	_diggerJob.PlanFootprint = field.NewField(tableName, "plan_footprint")
 	_diggerJob.PrCommentURL = field.NewString(tableName, "pr_comment_url")
 	_diggerJob.TerraformOutput = field.NewString(tableName, "terraform_output")
+	_diggerJob.JobSpec = field.NewField(tableName, "job_spec")
 
 	_diggerJob.fillFieldMap()
 
@@ -65,6 +66,7 @@ type diggerJob struct {
 	PlanFootprint      field.Field
 	PrCommentURL       field.String
 	TerraformOutput    field.String
+	JobSpec            field.Field
 
 	fieldMap map[string]field.Expr
 }
@@ -95,6 +97,7 @@ func (d *diggerJob) updateTableName(table string) *diggerJob {
 	d.PlanFootprint = field.NewField(table, "plan_footprint")
 	d.PrCommentURL = field.NewString(table, "pr_comment_url")
 	d.TerraformOutput = field.NewString(table, "terraform_output")
+	d.JobSpec = field.NewField(table, "job_spec")
 
 	d.fillFieldMap()
 
@@ -111,7 +114,7 @@ func (d *diggerJob) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (d *diggerJob) fillFieldMap() {
-	d.fieldMap = make(map[string]field.Expr, 14)
+	d.fieldMap = make(map[string]field.Expr, 15)
 	d.fieldMap["id"] = d.ID
 	d.fieldMap["created_at"] = d.CreatedAt
 	d.fieldMap["updated_at"] = d.UpdatedAt
@@ -126,6 +129,7 @@ func (d *diggerJob) fillFieldMap() {
 	d.fieldMap["plan_footprint"] = d.PlanFootprint
 	d.fieldMap["pr_comment_url"] = d.PrCommentURL
 	d.fieldMap["terraform_output"] = d.TerraformOutput
+	d.fieldMap["job_spec"] = d.JobSpec
 }
 
 func (d diggerJob) clone(db *gorm.DB) diggerJob {

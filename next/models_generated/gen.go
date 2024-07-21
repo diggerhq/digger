@@ -22,9 +22,12 @@ var (
 	Customer                         *customer
 	DiggerBatch                      *diggerBatch
 	DiggerJob                        *diggerJob
+	DiggerJobParentLink              *diggerJobParentLink
 	DiggerJobSummary                 *diggerJobSummary
+	DiggerJobToken                   *diggerJobToken
 	DiggerLock                       *diggerLock
 	DiggerRun                        *diggerRun
+	DiggerRunQueueItem               *diggerRunQueueItem
 	DiggerRunStage                   *diggerRunStage
 	GithubApp                        *githubApp
 	GithubAppInstallation            *githubAppInstallation
@@ -63,9 +66,12 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Customer = &Q.Customer
 	DiggerBatch = &Q.DiggerBatch
 	DiggerJob = &Q.DiggerJob
+	DiggerJobParentLink = &Q.DiggerJobParentLink
 	DiggerJobSummary = &Q.DiggerJobSummary
+	DiggerJobToken = &Q.DiggerJobToken
 	DiggerLock = &Q.DiggerLock
 	DiggerRun = &Q.DiggerRun
+	DiggerRunQueueItem = &Q.DiggerRunQueueItem
 	DiggerRunStage = &Q.DiggerRunStage
 	GithubApp = &Q.GithubApp
 	GithubAppInstallation = &Q.GithubAppInstallation
@@ -105,9 +111,12 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Customer:                         newCustomer(db, opts...),
 		DiggerBatch:                      newDiggerBatch(db, opts...),
 		DiggerJob:                        newDiggerJob(db, opts...),
+		DiggerJobParentLink:              newDiggerJobParentLink(db, opts...),
 		DiggerJobSummary:                 newDiggerJobSummary(db, opts...),
+		DiggerJobToken:                   newDiggerJobToken(db, opts...),
 		DiggerLock:                       newDiggerLock(db, opts...),
 		DiggerRun:                        newDiggerRun(db, opts...),
+		DiggerRunQueueItem:               newDiggerRunQueueItem(db, opts...),
 		DiggerRunStage:                   newDiggerRunStage(db, opts...),
 		GithubApp:                        newGithubApp(db, opts...),
 		GithubAppInstallation:            newGithubAppInstallation(db, opts...),
@@ -148,9 +157,12 @@ type Query struct {
 	Customer                         customer
 	DiggerBatch                      diggerBatch
 	DiggerJob                        diggerJob
+	DiggerJobParentLink              diggerJobParentLink
 	DiggerJobSummary                 diggerJobSummary
+	DiggerJobToken                   diggerJobToken
 	DiggerLock                       diggerLock
 	DiggerRun                        diggerRun
+	DiggerRunQueueItem               diggerRunQueueItem
 	DiggerRunStage                   diggerRunStage
 	GithubApp                        githubApp
 	GithubAppInstallation            githubAppInstallation
@@ -192,9 +204,12 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Customer:                         q.Customer.clone(db),
 		DiggerBatch:                      q.DiggerBatch.clone(db),
 		DiggerJob:                        q.DiggerJob.clone(db),
+		DiggerJobParentLink:              q.DiggerJobParentLink.clone(db),
 		DiggerJobSummary:                 q.DiggerJobSummary.clone(db),
+		DiggerJobToken:                   q.DiggerJobToken.clone(db),
 		DiggerLock:                       q.DiggerLock.clone(db),
 		DiggerRun:                        q.DiggerRun.clone(db),
+		DiggerRunQueueItem:               q.DiggerRunQueueItem.clone(db),
 		DiggerRunStage:                   q.DiggerRunStage.clone(db),
 		GithubApp:                        q.GithubApp.clone(db),
 		GithubAppInstallation:            q.GithubAppInstallation.clone(db),
@@ -243,9 +258,12 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Customer:                         q.Customer.replaceDB(db),
 		DiggerBatch:                      q.DiggerBatch.replaceDB(db),
 		DiggerJob:                        q.DiggerJob.replaceDB(db),
+		DiggerJobParentLink:              q.DiggerJobParentLink.replaceDB(db),
 		DiggerJobSummary:                 q.DiggerJobSummary.replaceDB(db),
+		DiggerJobToken:                   q.DiggerJobToken.replaceDB(db),
 		DiggerLock:                       q.DiggerLock.replaceDB(db),
 		DiggerRun:                        q.DiggerRun.replaceDB(db),
+		DiggerRunQueueItem:               q.DiggerRunQueueItem.replaceDB(db),
 		DiggerRunStage:                   q.DiggerRunStage.replaceDB(db),
 		GithubApp:                        q.GithubApp.replaceDB(db),
 		GithubAppInstallation:            q.GithubAppInstallation.replaceDB(db),
@@ -284,9 +302,12 @@ type queryCtx struct {
 	Customer                         ICustomerDo
 	DiggerBatch                      IDiggerBatchDo
 	DiggerJob                        IDiggerJobDo
+	DiggerJobParentLink              IDiggerJobParentLinkDo
 	DiggerJobSummary                 IDiggerJobSummaryDo
+	DiggerJobToken                   IDiggerJobTokenDo
 	DiggerLock                       IDiggerLockDo
 	DiggerRun                        IDiggerRunDo
+	DiggerRunQueueItem               IDiggerRunQueueItemDo
 	DiggerRunStage                   IDiggerRunStageDo
 	GithubApp                        IGithubAppDo
 	GithubAppInstallation            IGithubAppInstallationDo
@@ -325,9 +346,12 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Customer:                         q.Customer.WithContext(ctx),
 		DiggerBatch:                      q.DiggerBatch.WithContext(ctx),
 		DiggerJob:                        q.DiggerJob.WithContext(ctx),
+		DiggerJobParentLink:              q.DiggerJobParentLink.WithContext(ctx),
 		DiggerJobSummary:                 q.DiggerJobSummary.WithContext(ctx),
+		DiggerJobToken:                   q.DiggerJobToken.WithContext(ctx),
 		DiggerLock:                       q.DiggerLock.WithContext(ctx),
 		DiggerRun:                        q.DiggerRun.WithContext(ctx),
+		DiggerRunQueueItem:               q.DiggerRunQueueItem.WithContext(ctx),
 		DiggerRunStage:                   q.DiggerRunStage.WithContext(ctx),
 		GithubApp:                        q.GithubApp.WithContext(ctx),
 		GithubAppInstallation:            q.GithubAppInstallation.WithContext(ctx),
