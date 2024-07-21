@@ -7,6 +7,8 @@ import (
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/utils"
 	controllers "github.com/diggerhq/digger/next/controllers"
+	"github.com/diggerhq/digger/next/middleware"
+	"github.com/diggerhq/digger/next/models"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"io/fs"
@@ -41,6 +43,9 @@ func main() {
 		log.Printf("Sentry initialization failed: %v\n", err)
 	}
 
+	// initialize the database
+	models.ConnectDatabase()
+
 	r := gin.Default()
 
 	if _, err := os.Stat("templates"); err != nil {
@@ -61,7 +66,9 @@ func main() {
 
 	r.GET("/", controllers.Home)
 
-	r.GET("/github/callback", diggerController.GithubAppCallbackPage)
+	r.GET("/github/callback", middleware.SupabaseCookieAuth(), diggerController.GithubAppCallbackPage)
+	r.POST("/github-app-webhook", diggerController.GithubAppWebHook)
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
+
 }

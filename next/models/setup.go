@@ -1,26 +1,25 @@
 package models
 
 import (
+	"github.com/diggerhq/digger/next/models_generated"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
 	"os"
 )
 
 type Database struct {
 	GormDB *gorm.DB
+	Query  *models_generated.Query
 }
-
-var DEFAULT_ORG_NAME = "digger"
 
 // var DB *gorm.DB
 var DB *Database
 
 func ConnectDatabase() {
 
-	database, err := gorm.Open(postgres.Open(os.Getenv("DATABASE_URL")), &gorm.Config{
+	database, err := gorm.Open(postgres.Open(os.Getenv("DIGGER_DATABASE_URL")), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 
@@ -28,13 +27,10 @@ func ConnectDatabase() {
 		panic("Failed to connect to database!")
 	}
 
-	DB = &Database{GormDB: database}
-
-	// data and fixtures added
-	orgNumberOne, err := DB.GetOrganisation(DEFAULT_ORG_NAME)
-	if orgNumberOne == nil {
-		log.Print("No default found, creating default organisation")
-		DB.CreateOrganisation("digger", "", DEFAULT_ORG_NAME)
+	query := models_generated.Use(database)
+	DB = &Database{
+		Query:  query,
+		GormDB: database,
 	}
 
 }

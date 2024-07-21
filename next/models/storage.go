@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"github.com/dchest/uniuri"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
-	scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/next/model"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/samber/lo"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"time"
 )
 
-func (db *Database) GetProjectsFromContext(c *gin.Context, orgIdKey string) ([]Project, bool) {
+func (db *Database) GetProjectsFromContext(c *gin.Context, orgIdKey string) ([]model.Project, bool) {
 	loggedInOrganisationId, exists := c.Get(orgIdKey)
 
 	log.Printf("getProjectsFromContext, org id: %v\n", loggedInOrganisationId)
@@ -25,12 +25,12 @@ func (db *Database) GetProjectsFromContext(c *gin.Context, orgIdKey string) ([]P
 		return nil, false
 	}
 
-	var projects []Project
+	var projects []model.Project
 
 	err := db.GormDB.Preload("Organisation").Preload("Repo").
 		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
-		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", loggedInOrganisationId).Find(&projects).Error
+		Joins("INNER JOIN organizations ON projects.organization_id = organizations.id").
+		Where("projects.organization_id = ?", loggedInOrganisationId).Find(&projects).Error
 
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
@@ -41,7 +41,7 @@ func (db *Database) GetProjectsFromContext(c *gin.Context, orgIdKey string) ([]P
 	return projects, true
 }
 
-func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]Repo, bool) {
+func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]model.Repo, bool) {
 	loggedInOrganisationId, exists := c.Get(orgIdKey)
 
 	log.Printf("GetReposFromContext, org id: %v\n", loggedInOrganisationId)
@@ -51,11 +51,11 @@ func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]Repo
 		return nil, false
 	}
 
-	var repos []Repo
+	var repos []model.Repo
 
 	err := db.GormDB.Preload("Organisation").
-		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
-		Where("repos.organisation_id = ?", loggedInOrganisationId).Find(&repos).Error
+		Joins("INNER JOIN organizations ON repos.organization_id = organizations.id").
+		Where("repos.organization_id = ?", loggedInOrganisationId).Find(&repos).Error
 
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
@@ -66,95 +66,95 @@ func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]Repo
 	return repos, true
 }
 
-func (db *Database) GetPoliciesFromContext(c *gin.Context, orgIdKey string) ([]Policy, bool) {
-	loggedInOrganisationId, exists := c.Get(orgIdKey)
+//func (db *Database) GetPoliciesFromContext(c *gin.Context, orgIdKey string) ([]Policy, bool) {
+//	loggedInOrganisationId, exists := c.Get(orgIdKey)
+//
+//	log.Printf("getPoliciesFromContext, org id: %v\n", loggedInOrganisationId)
+//
+//	if !exists {
+//		c.String(http.StatusForbidden, "Not allowed to access this resource")
+//		return nil, false
+//	}
+//
+//	var policies []Policy
+//
+//	err := db.GormDB.Preload("Organisation").Preload("Repo").Preload("Project").
+//		Joins("LEFT JOIN projects ON projects.id = policies.project_id").
+//		Joins("LEFT JOIN repos ON projects.repo_id = repos.id").
+//		Joins("LEFT JOIN organisations ON projects.organisation_id = organisations.id").
+//		Where("projects.organisation_id = ?", loggedInOrganisationId).Find(&policies).Error
+//
+//	if err != nil {
+//		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+//		return nil, false
+//	}
+//
+//	log.Printf("getPoliciesFromContext, number of policies:%d\n", len(policies))
+//	return policies, true
+//}
 
-	log.Printf("getPoliciesFromContext, org id: %v\n", loggedInOrganisationId)
+//func (db *Database) GetProjectRunsForOrg(orgId int) ([]ProjectRun, error) {
+//	var runs []ProjectRun
+//
+//	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
+//		Joins("INNER JOIN projects ON projects.id = project_runs.project_id").
+//		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
+//		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
+//		Where("projects.organisation_id = ?", orgId).Order("created_at desc").Limit(100).Find(&runs).Error
+//
+//	if err != nil {
+//		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+//		return nil, fmt.Errorf("unknown error occurred while fetching database, %v\n", err)
+//	}
+//
+//	log.Printf("getProjectRunsFromContext, number of runs:%d\n", len(runs))
+//	return runs, nil
+//}
 
-	if !exists {
-		c.String(http.StatusForbidden, "Not allowed to access this resource")
-		return nil, false
-	}
+//func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) ([]ProjectRun, bool) {
+//	loggedInOrganisationId, exists := c.Get(orgIdKey)
+//
+//	log.Printf("getProjectRunsFromContext, org id: %v\n", loggedInOrganisationId)
+//
+//	if !exists {
+//		c.String(http.StatusForbidden, "Not allowed to access this resource")
+//		return nil, false
+//	}
+//
+//	runs, err := db.GetProjectRunsForOrg(loggedInOrganisationId.(int))
+//	if err != nil {
+//		return nil, false
+//	}
+//	return runs, true
+//
+//}
 
-	var policies []Policy
+//func (db *Database) GetProjectByRunId(c *gin.Context, runId uint, orgIdKey string) (*ProjectRun, bool) {
+//	loggedInOrganisationId, exists := c.Get(orgIdKey)
+//	if !exists {
+//		c.String(http.StatusForbidden, "Not allowed to access this resource")
+//		return nil, false
+//	}
+//
+//	log.Printf("GetProjectByRunId, org id: %v\n", loggedInOrganisationId)
+//	var projectRun ProjectRun
+//
+//	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
+//		Joins("INNER JOIN projects ON projects.id = project_runs.project_id").
+//		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
+//		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
+//		Where("projects.organisation_id = ?", loggedInOrganisationId).
+//		Where("project_runs.id = ?", runId).First(&projectRun).Error
+//
+//	if err != nil {
+//		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+//		return nil, false
+//	}
+//
+//	return &projectRun, true
+//}
 
-	err := db.GormDB.Preload("Organisation").Preload("Repo").Preload("Project").
-		Joins("LEFT JOIN projects ON projects.id = policies.project_id").
-		Joins("LEFT JOIN repos ON projects.repo_id = repos.id").
-		Joins("LEFT JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", loggedInOrganisationId).Find(&policies).Error
-
-	if err != nil {
-		log.Printf("Unknown error occurred while fetching database, %v\n", err)
-		return nil, false
-	}
-
-	log.Printf("getPoliciesFromContext, number of policies:%d\n", len(policies))
-	return policies, true
-}
-
-func (db *Database) GetProjectRunsForOrg(orgId int) ([]ProjectRun, error) {
-	var runs []ProjectRun
-
-	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
-		Joins("INNER JOIN projects ON projects.id = project_runs.project_id").
-		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
-		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", orgId).Order("created_at desc").Limit(100).Find(&runs).Error
-
-	if err != nil {
-		log.Printf("Unknown error occurred while fetching database, %v\n", err)
-		return nil, fmt.Errorf("unknown error occurred while fetching database, %v\n", err)
-	}
-
-	log.Printf("getProjectRunsFromContext, number of runs:%d\n", len(runs))
-	return runs, nil
-}
-
-func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) ([]ProjectRun, bool) {
-	loggedInOrganisationId, exists := c.Get(orgIdKey)
-
-	log.Printf("getProjectRunsFromContext, org id: %v\n", loggedInOrganisationId)
-
-	if !exists {
-		c.String(http.StatusForbidden, "Not allowed to access this resource")
-		return nil, false
-	}
-
-	runs, err := db.GetProjectRunsForOrg(loggedInOrganisationId.(int))
-	if err != nil {
-		return nil, false
-	}
-	return runs, true
-
-}
-
-func (db *Database) GetProjectByRunId(c *gin.Context, runId uint, orgIdKey string) (*ProjectRun, bool) {
-	loggedInOrganisationId, exists := c.Get(orgIdKey)
-	if !exists {
-		c.String(http.StatusForbidden, "Not allowed to access this resource")
-		return nil, false
-	}
-
-	log.Printf("GetProjectByRunId, org id: %v\n", loggedInOrganisationId)
-	var projectRun ProjectRun
-
-	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
-		Joins("INNER JOIN projects ON projects.id = project_runs.project_id").
-		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
-		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", loggedInOrganisationId).
-		Where("project_runs.id = ?", runId).First(&projectRun).Error
-
-	if err != nil {
-		log.Printf("Unknown error occurred while fetching database, %v\n", err)
-		return nil, false
-	}
-
-	return &projectRun, true
-}
-
-func (db *Database) GetProjectByProjectId(c *gin.Context, projectId uint, orgIdKey string) (*Project, bool) {
+func (db *Database) GetProjectByProjectId(c *gin.Context, projectId uint, orgIdKey string) (*model.Project, bool) {
 	loggedInOrganisationId, exists := c.Get(orgIdKey)
 	if !exists {
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
@@ -162,12 +162,12 @@ func (db *Database) GetProjectByProjectId(c *gin.Context, projectId uint, orgIdK
 	}
 
 	log.Printf("GetProjectByProjectId, org id: %v\n", loggedInOrganisationId)
-	var project Project
+	var project model.Project
 
 	err := db.GormDB.Preload("Organisation").Preload("Repo").
 		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
-		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", loggedInOrganisationId).
+		Joins("INNER JOIN organizations ON projects.organization_id = organizations.id").
+		Where("projects.organization_id = ?", loggedInOrganisationId).
 		Where("projects.id = ?", projectId).First(&project).Error
 
 	if err != nil {
@@ -178,9 +178,9 @@ func (db *Database) GetProjectByProjectId(c *gin.Context, projectId uint, orgIdK
 	return &project, true
 }
 
-func (db *Database) GetProject(projectId uint) (*Project, error) {
+func (db *Database) GetProject(projectId uint) (*model.Project, error) {
 	log.Printf("GetProject, project id: %v\n", projectId)
-	var project Project
+	var project model.Project
 
 	err := db.GormDB.Preload("Organisation").Preload("Repo").
 		Where("id = ?", projectId).
@@ -196,14 +196,14 @@ func (db *Database) GetProject(projectId uint) (*Project, error) {
 
 // GetProjectByName return project for specified org and repo
 // if record doesn't exist return nil
-func (db *Database) GetProjectByName(orgId any, repo *Repo, name string) (*Project, error) {
+func (db *Database) GetProjectByName(orgId any, repo *model.Repo, name string) (*model.Project, error) {
 	log.Printf("GetProjectByName, org id: %v, project name: %v\n", orgId, name)
-	var project Project
+	var project model.Project
 
 	err := db.GormDB.Preload("Organisation").Preload("Repo").
 		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
-		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", orgId).
+		Joins("INNER JOIN organizations ON projects.organization_id = organizations.id").
+		Where("projects.organization_id = ?", orgId).
 		Where("repos.id = ?", repo.ID).
 		Where("projects.name = ?", name).First(&project).Error
 
@@ -219,14 +219,14 @@ func (db *Database) GetProjectByName(orgId any, repo *Repo, name string) (*Proje
 }
 
 // GetProjectByRepo return projects for specified org and repo
-func (db *Database) GetProjectByRepo(orgId any, repo *Repo) ([]Project, error) {
+func (db *Database) GetProjectByRepo(orgId any, repo *model.Repo) ([]model.Project, error) {
 	log.Printf("GetProjectByRepo, org id: %v, repo name: %v\n", orgId, repo.Name)
-	projects := make([]Project, 0)
+	projects := make([]model.Project, 0)
 
 	err := db.GormDB.Preload("Organisation").Preload("Repo").
 		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
-		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", orgId).
+		Joins("INNER JOIN organizations ON projects.organization_id = organizations.id").
+		Where("projects.organization_id = ?", orgId).
 		Where("repos.id = ?", repo.ID).Find(&projects).Error
 
 	if err != nil {
@@ -240,32 +240,32 @@ func (db *Database) GetProjectByRepo(orgId any, repo *Repo) ([]Project, error) {
 	return projects, nil
 }
 
-func (db *Database) GetPolicyByPolicyId(c *gin.Context, policyId uint, orgIdKey string) (*Policy, bool) {
-	loggedInOrganisationId, exists := c.Get(orgIdKey)
-	if !exists {
-		c.String(http.StatusForbidden, "Not allowed to access this resource")
-		return nil, false
-	}
+//func (db *Database) GetPolicyByPolicyId(c *gin.Context, policyId uint, orgIdKey string) (*Policy, bool) {
+//	loggedInOrganisationId, exists := c.Get(orgIdKey)
+//	if !exists {
+//		c.String(http.StatusForbidden, "Not allowed to access this resource")
+//		return nil, false
+//	}
+//
+//	log.Printf("getPolicyByPolicyId, org id: %v\n", loggedInOrganisationId)
+//	var policy Policy
+//
+//	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
+//		Joins("INNER JOIN projects ON projects.id = policies.project_id").
+//		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
+//		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
+//		Where("projects.organisation_id = ?", loggedInOrganisationId).
+//		Where("policies.id = ?", policyId).First(&policy).Error
+//
+//	if err != nil {
+//		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+//		return nil, false
+//	}
+//
+//	return &policy, true
+//}
 
-	log.Printf("getPolicyByPolicyId, org id: %v\n", loggedInOrganisationId)
-	var policy Policy
-
-	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
-		Joins("INNER JOIN projects ON projects.id = policies.project_id").
-		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
-		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
-		Where("projects.organisation_id = ?", loggedInOrganisationId).
-		Where("policies.id = ?", policyId).First(&policy).Error
-
-	if err != nil {
-		log.Printf("Unknown error occurred while fetching database, %v\n", err)
-		return nil, false
-	}
-
-	return &policy, true
-}
-
-func (db *Database) GetDefaultRepo(c *gin.Context, orgIdKey string) (*Repo, bool) {
+func (db *Database) GetDefaultRepo(c *gin.Context, orgIdKey string) (*model.Repo, bool) {
 	loggedInOrganisationId, exists := c.Get(orgIdKey)
 	if !exists {
 		log.Print("Not allowed to access this resource")
@@ -273,11 +273,11 @@ func (db *Database) GetDefaultRepo(c *gin.Context, orgIdKey string) (*Repo, bool
 	}
 
 	log.Printf("getDefaultRepo, org id: %v\n", loggedInOrganisationId)
-	var repo Repo
+	var repo model.Repo
 
-	err := db.GormDB.Preload("Organisation").
-		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
-		Where("organisations.id = ?", loggedInOrganisationId).First(&repo).Error
+	err := db.GormDB.Preload("organizations").
+		Joins("INNER JOIN organizations ON repos.organization_id = organizations.id").
+		Where("organizations.id = ?", loggedInOrganisationId).First(&repo).Error
 
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
@@ -289,12 +289,12 @@ func (db *Database) GetDefaultRepo(c *gin.Context, orgIdKey string) (*Repo, bool
 
 // GetRepo returns digger repo by organisationId and repo name (diggerhq-digger)
 // it will return an empty object if record doesn't exist in database
-func (db *Database) GetRepo(orgIdKey any, repoName string) (*Repo, error) {
-	var repo Repo
+func (db *Database) GetRepo(orgIdKey any, repoName string) (*model.Repo, error) {
+	var repo model.Repo
 
 	err := db.GormDB.Preload("Organisation").
-		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
-		Where("organisations.id = ? AND repos.name=?", orgIdKey, repoName).First(&repo).Error
+		Joins("INNER JOIN organizations ON repos.organization_id = organizations.id").
+		Where("organizations.id = ? AND repos.name=?", orgIdKey, repoName).First(&repo).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -307,12 +307,12 @@ func (db *Database) GetRepo(orgIdKey any, repoName string) (*Repo, error) {
 }
 
 // GetRepoById returns digger repo by organisationId and repo name (diggerhq-digger)
-func (db *Database) GetRepoById(orgIdKey any, repoId any) (*Repo, error) {
-	var repo Repo
+func (db *Database) GetRepoById(orgIdKey any, repoId any) (*model.Repo, error) {
+	var repo model.Repo
 
-	err := db.GormDB.Preload("Organisation").
-		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
-		Where("organisations.id = ? AND repos.ID=?", orgIdKey, repoId).First(&repo).Error
+	err := db.GormDB.Preload("organizations").
+		Joins("INNER JOIN organizations ON repos.organization_id = organizations.id").
+		Where("organizations.id = ? AND repos.ID=?", orgIdKey, repoId).First(&repo).Error
 
 	if err != nil {
 		log.Printf("Failed to find digger repo for orgId: %v, and repoId: %v, error: %v\n", orgIdKey, repoId, err)
@@ -322,10 +322,10 @@ func (db *Database) GetRepoById(orgIdKey any, repoId any) (*Repo, error) {
 }
 
 // GithubRepoAdded handles github drift that github repo has been added to the app installation
-func (db *Database) GithubRepoAdded(installationId int64, appId int64, login string, accountId int64, repoFullName string) (*GithubAppInstallation, error) {
+func (db *Database) GithubRepoAdded(installationId int64, appId int64, login string, accountId int64, repoFullName string) (*model.GithubAppInstallation, error) {
 
 	// check if item exist already
-	item := &GithubAppInstallation{}
+	item := &model.GithubAppInstallation{}
 	result := db.GormDB.Where("github_installation_id = ? AND repo=? AND github_app_id=?", installationId, repoFullName, appId).First(item)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -341,7 +341,7 @@ func (db *Database) GithubRepoAdded(installationId int64, appId int64, login str
 		}
 	} else {
 		log.Printf("Record for installation_id: %d, repo: %s, with status=active exist already.", installationId, repoFullName)
-		item.Status = GithubAppInstallActive
+		item.Status = int64(GithubAppInstallActive)
 		item.UpdatedAt = time.Now()
 		err := db.GormDB.Save(item).Error
 		if err != nil {
@@ -351,8 +351,8 @@ func (db *Database) GithubRepoAdded(installationId int64, appId int64, login str
 	return item, nil
 }
 
-func (db *Database) GithubRepoRemoved(installationId int64, appId int64, repoFullName string) (*GithubAppInstallation, error) {
-	item := &GithubAppInstallation{}
+func (db *Database) GithubRepoRemoved(installationId int64, appId int64, repoFullName string) (*model.GithubAppInstallation, error) {
+	item := &model.GithubAppInstallation{}
 	err := db.GormDB.Where("github_installation_id = ? AND status=? AND github_app_id=? AND repo=?", installationId, GithubAppInstallActive, appId, repoFullName).First(item).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -361,7 +361,7 @@ func (db *Database) GithubRepoRemoved(installationId int64, appId int64, repoFul
 		}
 		return nil, fmt.Errorf("failed to find github installation in database. %v", err)
 	}
-	item.Status = GithubAppInstallDeleted
+	item.Status = int64(GithubAppInstallDeleted)
 	item.UpdatedAt = time.Now()
 	err = db.GormDB.Save(item).Error
 	if err != nil {
@@ -370,30 +370,29 @@ func (db *Database) GithubRepoRemoved(installationId int64, appId int64, repoFul
 	return item, nil
 }
 
-func (db *Database) GetGithubAppInstallationByOrgAndRepo(orgId any, repo string, status GithubAppInstallStatus) (*GithubAppInstallation, error) {
+func (db *Database) GetGithubAppInstallationByOrgAndRepo(orgId any, repo string, status GithubAppInstallStatus) (*model.GithubAppInstallation, error) {
 	link, err := db.GetGithubInstallationLinkForOrg(orgId)
 	if err != nil {
 		return nil, err
 	}
 
-	installation := GithubAppInstallation{}
-	result := db.GormDB.Where("github_installation_id = ? AND status=? AND repo=?", link.GithubInstallationId, status, repo).Find(&installation)
+	installation := model.GithubAppInstallation{}
+	result := db.GormDB.Where("github_installation_id = ? AND status=? AND repo=?", link.GithubInstallationID, status, repo).Find(&installation)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
 		}
 	}
 
-	// If not found, the values will be default values, which means ID will be 0
-	if installation.ID == 0 {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	return &installation, nil
 }
 
 // GetGithubAppInstallationByIdAndRepo repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
-func (db *Database) GetGithubAppInstallationByIdAndRepo(installationId int64, repoFullName string) (*GithubAppInstallation, error) {
-	installation := GithubAppInstallation{}
+func (db *Database) GetGithubAppInstallationByIdAndRepo(installationId int64, repoFullName string) (*model.GithubAppInstallation, error) {
+	installation := model.GithubAppInstallation{}
 	result := db.GormDB.Where("github_installation_id = ? AND status=? AND repo=?", installationId, GithubAppInstallActive, repoFullName).Find(&installation)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -402,14 +401,14 @@ func (db *Database) GetGithubAppInstallationByIdAndRepo(installationId int64, re
 	}
 
 	// If not found, the values will be default values, which means ID will be 0
-	if installation.Model.ID == 0 {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("GithubAppInstallation with id=%v doesn't exist", installationId)
 	}
 	return &installation, nil
 }
 
-func (db *Database) GetGithubAppInstallations(installationId int64) ([]GithubAppInstallation, error) {
-	var installations []GithubAppInstallation
+func (db *Database) GetGithubAppInstallations(installationId int64) ([]model.GithubAppInstallation, error) {
+	var installations []model.GithubAppInstallation
 	result := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallActive).Find(&installations)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -420,8 +419,8 @@ func (db *Database) GetGithubAppInstallations(installationId int64) ([]GithubApp
 }
 
 // GetGithubAppInstallationLink repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
-func (db *Database) GetGithubAppInstallationLink(installationId int64) (*GithubAppInstallationLink, error) {
-	var link GithubAppInstallationLink
+func (db *Database) GetGithubAppInstallationLink(installationId int64) (*model.GithubAppInstallationLink, error) {
+	var link model.GithubAppInstallationLink
 	result := db.GormDB.Preload("Organisation").Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&link)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -430,25 +429,25 @@ func (db *Database) GetGithubAppInstallationLink(installationId int64) (*GithubA
 	}
 
 	// If not found, the values will be default values, which means ID will be 0
-	if link.Model.ID == 0 {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	return &link, nil
 }
 
-func (db *Database) CreateGithubApp(name string, githubId int64, url string) (*GithubApp, error) {
-	app := GithubApp{Name: name, GithubId: githubId, GithubAppUrl: url}
+func (db *Database) CreateGithubApp(name string, githubId int64, url string) (*model.GithubApp, error) {
+	app := model.GithubApp{Name: name, GithubID: githubId, GithubAppURL: url}
 	result := db.GormDB.Save(&app)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	log.Printf("CreateGithubApp (name: %v, url: %v) has been created successfully\n", app.Name, app.GithubAppUrl)
+	log.Printf("CreateGithubApp (name: %v, url: %v) has been created successfully\n", app.Name, app.GithubAppURL)
 	return &app, nil
 }
 
 // GetGithubApp return GithubApp by Id
-func (db *Database) GetGithubApp(gitHubAppId any) (*GithubApp, error) {
-	app := GithubApp{}
+func (db *Database) GetGithubApp(gitHubAppId any) (*model.GithubApp, error) {
+	app := model.GithubApp{}
 	result := db.GormDB.Where("github_id = ?", gitHubAppId).Find(&app)
 	if result.Error != nil {
 		log.Printf("Failed to find GitHub App for id: %v, error: %v\n", gitHubAppId, result.Error)
@@ -457,8 +456,8 @@ func (db *Database) GetGithubApp(gitHubAppId any) (*GithubApp, error) {
 	return &app, nil
 }
 
-func (db *Database) CreateGithubInstallationLink(org *Organisation, installationId int64) (*GithubAppInstallationLink, error) {
-	l := GithubAppInstallationLink{}
+func (db *Database) CreateGithubInstallationLink(org *model.Organization, installationId int64) (*model.GithubAppInstallationLink, error) {
+	l := model.GithubAppInstallationLink{}
 	// check if there is already a link to another org, and throw an error in this case
 	result := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l)
 	if result.Error != nil {
@@ -467,59 +466,63 @@ func (db *Database) CreateGithubInstallationLink(org *Organisation, installation
 		}
 	}
 	if result.RowsAffected > 0 {
-		if l.OrganisationId != org.ID {
+		if l.OrganizationID != org.ID {
 			return nil, fmt.Errorf("GitHub app installation %v already linked to another org ", installationId)
 		}
-		log.Printf("installation %v has been linked to the org %v already.", installationId, org.Name)
+		log.Printf("installation %v has been linked to the org %v already.", installationId, org.Slug)
 		// record already exist, do nothing
 		return &l, nil
 	}
 
-	var list []GithubAppInstallationLink
+	var list []model.GithubAppInstallationLink
 	// if there are other installation for this org, we need to make them inactive
-	result = db.GormDB.Preload("Organisation").Where("github_installation_id <> ? AND organisation_id = ? AND status=?", installationId, org.ID, GithubAppInstallationLinkActive).Find(&list)
+	//orgstbname := db.Query.Organization.TableName()
+	result = db.GormDB.Where("github_installation_id <> ? AND organization_id = ? AND status=?", installationId, org.ID, GithubAppInstallationLinkActive).Find(&list)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
 		}
 	}
 	for _, item := range list {
-		item.Status = GithubAppInstallationLinkInactive
+		item.Status = int16(GithubAppInstallationLinkInactive)
 		db.GormDB.Save(&item)
 	}
 
-	link := GithubAppInstallationLink{Organisation: org, GithubInstallationId: installationId, Status: GithubAppInstallationLinkActive}
+	link := model.GithubAppInstallationLink{OrganizationID: org.ID, GithubInstallationID: installationId, Status: int16(GithubAppInstallationLinkActive)}
 	result = db.GormDB.Save(&link)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	log.Printf("GithubAppInstallationLink (org: %v, installationId: %v) has been created successfully\n", org.Name, installationId)
+	log.Printf("GithubAppInstallationLink (org: %v, installationId: %v) has been created successfully\n", org.Slug, installationId)
 	return &link, nil
 }
 
-func (db *Database) GetGithubInstallationLinkForOrg(orgId any) (*GithubAppInstallationLink, error) {
-	l := GithubAppInstallationLink{}
-	result := db.GormDB.Where("organisation_id = ? AND status=?", orgId, GithubAppInstallationLinkActive).Find(&l)
+func (db *Database) GetGithubInstallationLinkForOrg(orgId any) (*model.GithubAppInstallationLink, error) {
+	l := model.GithubAppInstallationLink{}
+	result := db.GormDB.Where("organization_id = ? AND status=?", orgId, GithubAppInstallationLinkActive).Find(&l)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	if l.ID == 0 {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("GithubAppInstallationLink not found for orgId: %v\n", orgId)
 	}
 	return &l, nil
 }
 
-func (db *Database) GetGithubInstallationLinkForInstallationId(installationId any) (*GithubAppInstallationLink, error) {
-	l := GithubAppInstallationLink{}
-	result := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l)
-	if result.Error != nil {
-		return nil, result.Error
+func (db *Database) GetGithubInstallationLinkForInstallationId(installationId int64) (*model.GithubAppInstallationLink, error) {
+	l := model.GithubAppInstallationLink{}
+	err := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l).Error
+	if err != nil {
+		return nil, err
+	}
+	if l.ID == "" {
+		return nil, fmt.Errorf("github installation link not found")
 	}
 	return &l, nil
 }
 
-func (db *Database) MakeGithubAppInstallationLinkInactive(link *GithubAppInstallationLink) (*GithubAppInstallationLink, error) {
-	link.Status = GithubAppInstallationLinkInactive
+func (db *Database) MakeGithubAppInstallationLinkInactive(link *model.GithubAppInstallationLink) (*model.GithubAppInstallationLink, error) {
+	link.Status = int16(GithubAppInstallationLinkInactive)
 	result := db.GormDB.Save(link)
 	if result.Error != nil {
 		log.Printf("Failed to update GithubAppInstallationLink, id: %v, error: %v", link.ID, result.Error)
@@ -528,55 +531,65 @@ func (db *Database) MakeGithubAppInstallationLinkInactive(link *GithubAppInstall
 	return link, nil
 }
 
-func (db *Database) CreateDiggerJobLink(diggerJobId string, repoFullName string) (*GithubDiggerJobLink, error) {
-	link := GithubDiggerJobLink{Status: DiggerJobLinkCreated, DiggerJobId: diggerJobId, RepoFullName: repoFullName}
-	result := db.GormDB.Save(&link)
-	if result.Error != nil {
-		log.Printf("Failed to create GithubDiggerJobLink, %v, repo: %v \n", diggerJobId, repoFullName)
-		return nil, result.Error
+//func (db *Database) CreateDiggerJobLink(diggerJobId string, repoFullName string) (*GithubDiggerJobLink, error) {
+//	link := GithubDiggerJobLink{Status: DiggerJobLinkCreated, DiggerJobId: diggerJobId, RepoFullName: repoFullName}
+//	result := db.GormDB.Save(&link)
+//	if result.Error != nil {
+//		log.Printf("Failed to create GithubDiggerJobLink, %v, repo: %v \n", diggerJobId, repoFullName)
+//		return nil, result.Error
+//	}
+//	log.Printf("GithubDiggerJobLink %v, (repo: %v) has been created successfully\n", diggerJobId, repoFullName)
+//	return &link, nil
+//}
+
+//func (db *Database) GetDiggerJobLink(diggerJobId string) (*GithubDiggerJobLink, error) {
+//	link := GithubDiggerJobLink{}
+//	result := db.GormDB.Where("digger_job_id = ?", diggerJobId).Find(&link)
+//	if result.Error != nil {
+//		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+//			return nil, nil
+//		}
+//		log.Printf("Failed to get DiggerJobLink, %v", diggerJobId)
+//		return nil, result.Error
+//	}
+//	return &link, nil
+//}
+
+//func (db *Database) UpdateDiggerJobLink(diggerJobId string, repoFullName string, githubJobId int64) (*GithubDiggerJobLink, error) {
+//	jobLink := GithubDiggerJobLink{}
+//	// check if there is already a link to another org, and throw an error in this case
+//	result := db.GormDB.Where("digger_job_id = ? AND repo_full_name=? ", diggerJobId, repoFullName).Find(&jobLink)
+//	if result.Error != nil {
+//		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+//			log.Printf("Failed to update GithubDiggerJobLink, %v, repo: %v \n", diggerJobId, repoFullName)
+//			return nil, result.Error
+//		}
+//	}
+//	if result.RowsAffected == 1 {
+//		jobLink.GithubJobId = githubJobId
+//		result = db.GormDB.Save(&jobLink)
+//		if result.Error != nil {
+//			return nil, result.Error
+//		}
+//		log.Printf("GithubDiggerJobLink %v, (repo: %v) has been updated successfully\n", diggerJobId, repoFullName)
+//		return &jobLink, nil
+//	}
+//	return &jobLink, nil
+//}
+
+func (db *Database) GetUserOrganizationsFirstMatch(userId string) (*model.Organization, error) {
+	log.Printf("GetOrganisationById, userId: %v\n", userId)
+	org := model.Organization{}
+	err := db.GormDB.Joins("JOIN organization_members AS om ON om.organization_id=organizations.id").Where("om.member_id = ?", userId).First(&org).Error
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching organisation: %v\n", err)
 	}
-	log.Printf("GithubDiggerJobLink %v, (repo: %v) has been created successfully\n", diggerJobId, repoFullName)
-	return &link, nil
+	return &org, nil
 }
 
-func (db *Database) GetDiggerJobLink(diggerJobId string) (*GithubDiggerJobLink, error) {
-	link := GithubDiggerJobLink{}
-	result := db.GormDB.Where("digger_job_id = ?", diggerJobId).Find(&link)
-	if result.Error != nil {
-		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		log.Printf("Failed to get DiggerJobLink, %v", diggerJobId)
-		return nil, result.Error
-	}
-	return &link, nil
-}
-
-func (db *Database) UpdateDiggerJobLink(diggerJobId string, repoFullName string, githubJobId int64) (*GithubDiggerJobLink, error) {
-	jobLink := GithubDiggerJobLink{}
-	// check if there is already a link to another org, and throw an error in this case
-	result := db.GormDB.Where("digger_job_id = ? AND repo_full_name=? ", diggerJobId, repoFullName).Find(&jobLink)
-	if result.Error != nil {
-		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			log.Printf("Failed to update GithubDiggerJobLink, %v, repo: %v \n", diggerJobId, repoFullName)
-			return nil, result.Error
-		}
-	}
-	if result.RowsAffected == 1 {
-		jobLink.GithubJobId = githubJobId
-		result = db.GormDB.Save(&jobLink)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-		log.Printf("GithubDiggerJobLink %v, (repo: %v) has been updated successfully\n", diggerJobId, repoFullName)
-		return &jobLink, nil
-	}
-	return &jobLink, nil
-}
-
-func (db *Database) GetOrganisationById(orgId any) (*Organisation, error) {
+func (db *Database) GetOrganisationById(orgId string) (*model.Organization, error) {
 	log.Printf("GetOrganisationById, orgId: %v, type: %T \n", orgId, orgId)
-	org := Organisation{}
+	org := model.Organization{}
 	err := db.GormDB.Where("id = ?", orgId).First(&org).Error
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching organisation: %v\n", err)
@@ -584,8 +597,8 @@ func (db *Database) GetOrganisationById(orgId any) (*Organisation, error) {
 	return &org, nil
 }
 
-func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
-	batch := &DiggerBatch{}
+func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*model.DiggerBatch, error) {
+	batch := &model.DiggerBatch{}
 	result := db.GormDB.Where("id=? ", batchId).Find(batch)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -595,22 +608,22 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int) (*DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int) (*model.DiggerBatch, error) {
 	uid := uuid.New()
-	batch := &DiggerBatch{
-		ID:                   uid,
-		VCS:                  vcsType,
-		GithubInstallationId: githubInstallationId,
+	batch := &model.DiggerBatch{
+		ID:                   uid.String(),
+		Vcs:                  string(vcsType),
+		GithubInstallationID: githubInstallationId,
 		RepoOwner:            repoOwner,
 		RepoName:             repoName,
 		RepoFullName:         repoFullname,
-		PrNumber:             PRNumber,
-		CommentId:            commentId,
-		Status:               scheduler.BatchJobCreated,
+		PrNumber:             int64(PRNumber),
+		CommentID:            *commentId,
+		Status:               int16(scheduler.BatchJobCreated),
 		BranchName:           branchName,
 		DiggerConfig:         diggerConfig,
-		BatchType:            batchType,
-		GitlabProjectId:      gitlabProjectId,
+		BatchType:            string(batchType),
+		GitlabProjectID:      int64(gitlabProjectId),
 	}
 	result := db.GormDB.Save(batch)
 	if result.Error != nil {
@@ -621,7 +634,7 @@ func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationI
 	return batch, nil
 }
 
-func (db *Database) UpdateDiggerBatch(batch *DiggerBatch) error {
+func (db *Database) UpdateDiggerBatch(batch *model.DiggerBatch) error {
 	result := db.GormDB.Save(batch)
 	if result.Error != nil {
 		return result.Error
@@ -630,12 +643,12 @@ func (db *Database) UpdateDiggerBatch(batch *DiggerBatch) error {
 	return nil
 }
 
-func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
-	if batch.Status == scheduler.BatchJobInvalidated || batch.Status == scheduler.BatchJobFailed || batch.Status == scheduler.BatchJobSucceeded {
+func (db *Database) UpdateBatchStatus(batch *model.DiggerBatch) error {
+	if batch.Status == int16(scheduler.BatchJobInvalidated) || batch.Status == int16(scheduler.BatchJobFailed) || batch.Status == int16(scheduler.BatchJobSucceeded) {
 		return nil
 	}
 	batchId := batch.ID
-	var diggerJobs []DiggerJob
+	var diggerJobs []model.DiggerJob
 	result := db.GormDB.Where("batch_id=?", batchId).Find(&diggerJobs)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -646,33 +659,33 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 
 	allJobsSucceeded := true
 	for _, job := range diggerJobs {
-		if job.Status != scheduler.DiggerJobSucceeded {
+		if job.Status != int16(scheduler.DiggerJobSucceeded) {
 			allJobsSucceeded = false
 		}
 	}
 	if allJobsSucceeded == true {
-		batch.Status = scheduler.BatchJobSucceeded
+		batch.Status = int16(scheduler.BatchJobSucceeded)
 	}
 	return nil
 
 }
 
-func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string) (*DiggerJob, error) {
+func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string) (*model.DiggerJob, error) {
 	if serializedJob == nil || len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
 	jobId := uniuri.New()
 	batchIdStr := batchId.String()
 
-	summary := &DiggerJobSummary{}
+	summary := &model.DiggerJobSummary{}
 	result := db.GormDB.Save(summary)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	workflowUrl := "#"
-	job := &DiggerJob{DiggerJobID: jobId, Status: scheduler.DiggerJobCreated,
-		BatchID: &batchIdStr, SerializedJobSpec: serializedJob, DiggerJobSummary: *summary, WorkflowRunUrl: &workflowUrl, WorkflowFile: workflowFile}
+	job := &model.DiggerJob{DiggerJobID: jobId, Status: int16(scheduler.DiggerJobCreated),
+		BatchID: batchIdStr, JobSpec: serializedJob, DiggerJobSummaryID: summary.ID, WorkflowRunURL: workflowUrl, WorkflowFile: workflowFile}
 	result = db.GormDB.Save(job)
 	if result.Error != nil {
 		return nil, result.Error
@@ -682,8 +695,8 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	return job, nil
 }
 
-func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([]DiggerRun, error) {
-	var runs []DiggerRun
+func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([]model.DiggerRun, error) {
+	var runs []model.DiggerRun
 
 	err := db.GormDB.Preload("PlanStage").Preload("ApplyStage").
 		Where("project_name = ? AND repo_id=  ?", projectName, repoId).Order("created_at desc").Find(&runs).Error
@@ -697,19 +710,19 @@ func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([
 	return runs, nil
 }
 
-func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectName string, RunType RunType, planStageId *uint, applyStageId *uint) (*DiggerRun, error) {
-	dr := &DiggerRun{
+func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectName string, RunType RunType, planStageId string, applyStageId string) (*model.DiggerRun, error) {
+	dr := &model.DiggerRun{
 		Triggertype:          Triggertype,
-		PrNumber:             &PrNumber,
-		Status:               Status,
-		CommitId:             CommitId,
+		PrNumber:             int64(PrNumber),
+		Status:               string(Status),
+		CommitID:             CommitId,
 		DiggerConfig:         DiggerConfig,
-		GithubInstallationId: GithubInstallationId,
-		RepoId:               RepoId,
+		GithubInstallationID: GithubInstallationId,
+		RepoID:               int64(RepoId),
 		ProjectName:          ProjectName,
-		RunType:              RunType,
-		PlanStageId:          planStageId,
-		ApplyStageId:         applyStageId,
+		RunType:              string(RunType),
+		PlanStageID:          planStageId,
+		ApplyStageID:         applyStageId,
 		IsApproved:           false,
 	}
 	result := db.GormDB.Save(dr)
@@ -721,9 +734,9 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 	return dr, nil
 }
 
-func (db *Database) CreateDiggerRunStage(batchId string) (*DiggerRunStage, error) {
-	drs := &DiggerRunStage{
-		BatchID: &batchId,
+func (db *Database) CreateDiggerRunStage(batchId string) (*model.DiggerRunStage, error) {
+	drs := &model.DiggerRunStage{
+		BatchID: batchId,
 	}
 	result := db.GormDB.Save(drs)
 	if result.Error != nil {
@@ -734,8 +747,8 @@ func (db *Database) CreateDiggerRunStage(batchId string) (*DiggerRunStage, error
 	return drs, nil
 }
 
-func (db *Database) GetLastDiggerRunForProject(projectName string) (*DiggerRun, error) {
-	diggerRun := &DiggerRun{}
+func (db *Database) GetLastDiggerRunForProject(projectName string) (*model.DiggerRun, error) {
+	diggerRun := &model.DiggerRun{}
 	result := db.GormDB.Where("project_name = ? AND status <> ?", projectName, RunQueued).Order("created_at Desc").First(diggerRun)
 	if result.Error != nil {
 		log.Printf("error while fetching last digger run: %v", result.Error)
@@ -744,8 +757,8 @@ func (db *Database) GetLastDiggerRunForProject(projectName string) (*DiggerRun, 
 	return diggerRun, nil
 }
 
-func (db *Database) GetDiggerRun(id uint) (*DiggerRun, error) {
-	dr := &DiggerRun{}
+func (db *Database) GetDiggerRun(id uint) (*model.DiggerRun, error) {
+	dr := &model.DiggerRun{}
 	result := db.GormDB.Preload("Repo").
 		Preload("ApplyStage").
 		Preload("PlanStage").
@@ -756,10 +769,10 @@ func (db *Database) GetDiggerRun(id uint) (*DiggerRun, error) {
 	return dr, nil
 }
 
-func (db *Database) CreateDiggerRunQueueItem(diggeRrunId uint, projectId uint) (*DiggerRunQueueItem, error) {
-	drq := &DiggerRunQueueItem{
-		DiggerRunId: diggeRrunId,
-		ProjectId:   projectId,
+func (db *Database) CreateDiggerRunQueueItem(diggeRrunId int64, projectId int64) (*model.DiggerRunQueueItem, error) {
+	drq := &model.DiggerRunQueueItem{
+		DiggerRunID: diggeRrunId,
+		ProjectID:   projectId,
 	}
 	result := db.GormDB.Save(drq)
 	if result.Error != nil {
@@ -770,8 +783,8 @@ func (db *Database) CreateDiggerRunQueueItem(diggeRrunId uint, projectId uint) (
 	return drq, nil
 }
 
-func (db *Database) GetDiggerRunQueueItem(id uint) (*DiggerRunQueueItem, error) {
-	dr := &DiggerRunQueueItem{}
+func (db *Database) GetDiggerRunQueueItem(id uint) (*model.DiggerRunQueueItem, error) {
+	dr := &model.DiggerRunQueueItem{}
 	result := db.GormDB.Preload("DiggerRun").Where("id=? ", id).Find(dr)
 	if result.Error != nil {
 		return nil, result.Error
@@ -779,8 +792,8 @@ func (db *Database) GetDiggerRunQueueItem(id uint) (*DiggerRunQueueItem, error) 
 	return dr, nil
 }
 
-func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, error) {
-	job := &DiggerJob{}
+func (db *Database) GetDiggerJobFromRunStage(stage model.DiggerRunStage) (*model.DiggerJob, error) {
+	job := &model.DiggerJob{}
 	result := db.GormDB.Preload("Batch").Take(job, "batch_id = ?", stage.BatchID)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -792,7 +805,7 @@ func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, 
 	return job, nil
 }
 
-func (db *Database) UpdateDiggerRun(diggerRun *DiggerRun) error {
+func (db *Database) UpdateDiggerRun(diggerRun *model.DiggerRun) error {
 	result := db.GormDB.Save(diggerRun)
 	if result.Error != nil {
 		return result.Error
@@ -801,7 +814,7 @@ func (db *Database) UpdateDiggerRun(diggerRun *DiggerRun) error {
 	return nil
 }
 
-func (db *Database) DequeueRunItem(queueItem *DiggerRunQueueItem) error {
+func (db *Database) DequeueRunItem(queueItem *model.DiggerRunQueueItem) error {
 	log.Printf("DiggerRunQueueItem Deleting: %v", queueItem.ID)
 	result := db.GormDB.Delete(queueItem)
 	if result.Error != nil {
@@ -811,65 +824,69 @@ func (db *Database) DequeueRunItem(queueItem *DiggerRunQueueItem) error {
 	return nil
 }
 
-func (db *Database) GetFirstRunQueueForEveryProject() ([]DiggerRunQueueItem, error) {
-	var runqueues []DiggerRunQueueItem
-	query := `WITH RankedRuns AS (
-  SELECT
-    digger_run_queue_items.digger_run_id,
-    digger_run_queue_items.project_id,
-    digger_run_queue_items.created_at,
-    ROW_NUMBER() OVER (PARTITION BY digger_run_queue_items.project_id ORDER BY digger_run_queue_items.created_at  ASC) AS QueuePosition
-  FROM
-    digger_run_queue_items
-)
-SELECT
-  RankedRuns.digger_run_id ,
-  RankedRuns.project_id ,
-  RankedRuns.created_at
-FROM
-  RankedRuns
-WHERE
-  QueuePosition = 1`
+//func (db *Database) GetFirstRunQueueForEveryProject() ([]DiggerRunQueueItem, error) {
+//	var runqueues []DiggerRunQueueItem
+//	query := `WITH RankedRuns AS (
+//  SELECT
+//    digger_run_queue_items.digger_run_id,
+//    digger_run_queue_items.project_id,
+//    digger_run_queue_items.created_at,
+//    ROW_NUMBER() OVER (PARTITION BY digger_run_queue_items.project_id ORDER BY digger_run_queue_items.created_at  ASC) AS QueuePosition
+//  FROM
+//    digger_run_queue_items
+//)
+//SELECT
+//  RankedRuns.digger_run_id ,
+//  RankedRuns.project_id ,
+//  RankedRuns.created_at
+//FROM
+//  RankedRuns
+//WHERE
+//  QueuePosition = 1`
+//
+//	// 1. Fetch the front of the queue for every projectID
+//	tx := db.GormDB.
+//		Raw(query).
+//		Find(&runqueues)
+//
+//	if tx.Error != nil {
+//		fmt.Printf("%v", tx.Error)
+//		return nil, tx.Error
+//	}
+//
+//	// 2. Preload Project and DiggerRun for every DiggerrunQueue item (front of queue)
+//	var runqueuesWithData []DiggerRunQueueItem
+//	diggerRunIds := lo.Map(runqueues, func(run DiggerRunQueueItem, index int) uint {
+//		return run.DiggerRunId
+//	})
+//
+//	tx = db.GormDB.Preload("DiggerRun").Preload("DiggerRun.Repo").
+//		Preload("DiggerRun.PlanStage").Preload("DiggerRun.ApplyStage").
+//		Preload("DiggerRun.PlanStage.Batch").Preload("DiggerRun.ApplyStage.Batch").
+//		Where("digger_run_queue_items.digger_run_id in ?", diggerRunIds).Find(&runqueuesWithData)
+//
+//	if tx.Error != nil {
+//		fmt.Printf("%v", tx.Error)
+//		return nil, tx.Error
+//	}
+//
+//	return runqueuesWithData, nil
+//}
 
-	// 1. Fetch the front of the queue for every projectID
-	tx := db.GormDB.
-		Raw(query).
-		Find(&runqueues)
-
-	if tx.Error != nil {
-		fmt.Printf("%v", tx.Error)
-		return nil, tx.Error
-	}
-
-	// 2. Preload Project and DiggerRun for every DiggerrunQueue item (front of queue)
-	var runqueuesWithData []DiggerRunQueueItem
-	diggerRunIds := lo.Map(runqueues, func(run DiggerRunQueueItem, index int) uint {
-		return run.DiggerRunId
-	})
-
-	tx = db.GormDB.Preload("DiggerRun").Preload("DiggerRun.Repo").
-		Preload("DiggerRun.PlanStage").Preload("DiggerRun.ApplyStage").
-		Preload("DiggerRun.PlanStage.Batch").Preload("DiggerRun.ApplyStage.Batch").
-		Where("digger_run_queue_items.digger_run_id in ?", diggerRunIds).Find(&runqueuesWithData)
-
-	if tx.Error != nil {
-		fmt.Printf("%v", tx.Error)
-		return nil, tx.Error
-	}
-
-	return runqueuesWithData, nil
-}
-
-func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*DiggerJob, error) {
+func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*model.DiggerJob, error) {
 	diggerJob, err := db.GetDiggerJob(diggerJobId)
 	if err != nil {
 		return nil, fmt.Errorf("Could not get digger job")
 	}
-	var jobSummary *DiggerJobSummary
-	jobSummary = &diggerJob.DiggerJobSummary
-	jobSummary.ResourcesCreated = resourcesCreated
-	jobSummary.ResourcesUpdated = resourcesUpdated
-	jobSummary.ResourcesDeleted = resourcesDeleted
+	var jobSummary *model.DiggerJobSummary
+
+	jobSummary, err = db.Query.DiggerJobSummary.Select(db.Query.DiggerJobSummary.ID.Eq(diggerJobId)).First()
+	if err != nil {
+		return nil, fmt.Errorf("could not get digger job summary: %v", err)
+	}
+	jobSummary.ResourcesCreated = int64(resourcesCreated)
+	jobSummary.ResourcesUpdated = int64(resourcesUpdated)
+	jobSummary.ResourcesDeleted = int64(resourcesDeleted)
 
 	result := db.GormDB.Save(&jobSummary)
 	if result.Error != nil {
@@ -880,7 +897,7 @@ func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated 
 	return diggerJob, nil
 }
 
-func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
+func (db *Database) UpdateDiggerJob(job *model.DiggerJob) error {
 	result := db.GormDB.Save(job)
 	if result.Error != nil {
 		return result.Error
@@ -889,8 +906,8 @@ func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
 	return nil
 }
 
-func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error) {
-	jobs := make([]DiggerJob, 0)
+func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]model.DiggerJob, error) {
+	jobs := make([]model.DiggerJob, 0)
 
 	var where *gorm.DB
 	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
@@ -904,8 +921,8 @@ func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error
 	return jobs, nil
 }
 
-func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []scheduler.DiggerJobStatus) ([]DiggerJob, error) {
-	jobs := make([]DiggerJob, 0)
+func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []scheduler.DiggerJobStatus) ([]model.DiggerJob, error) {
+	jobs := make([]model.DiggerJob, 0)
 
 	var where *gorm.DB
 	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status IN ?", status)
@@ -919,8 +936,8 @@ func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []
 	return jobs, nil
 }
 
-func (db *Database) GetDiggerJobsWithStatus(status scheduler.DiggerJobStatus) ([]DiggerJob, error) {
-	jobs := make([]DiggerJob, 0)
+func (db *Database) GetDiggerJobsWithStatus(status scheduler.DiggerJobStatus) ([]model.DiggerJob, error) {
+	jobs := make([]model.DiggerJob, 0)
 
 	var where *gorm.DB
 	where = db.GormDB.Where("status = ?", status)
@@ -934,8 +951,8 @@ func (db *Database) GetDiggerJobsWithStatus(status scheduler.DiggerJobStatus) ([
 	return jobs, nil
 }
 
-func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob, error) {
-	jobs := make([]DiggerJob, 0)
+func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]model.DiggerJob, error) {
+	jobs := make([]model.DiggerJob, 0)
 
 	joins := db.GormDB.Joins("LEFT JOIN digger_job_parent_links ON digger_jobs.digger_job_id = digger_job_parent_links.digger_job_id").Preload("Batch")
 
@@ -955,8 +972,8 @@ func (db *Database) GetPendingParentDiggerJobs(batchId *uuid.UUID) ([]DiggerJob,
 	return jobs, nil
 }
 
-func (db *Database) GetDiggerJob(jobId string) (*DiggerJob, error) {
-	job := &DiggerJob{}
+func (db *Database) GetDiggerJob(jobId string) (*model.DiggerJob, error) {
+	job := &model.DiggerJob{}
 	result := db.GormDB.Preload("Batch").Preload("DiggerJobSummary").Where("digger_job_id=? ", jobId).Find(job)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -966,8 +983,8 @@ func (db *Database) GetDiggerJob(jobId string) (*DiggerJob, error) {
 	return job, nil
 }
 
-func (db *Database) GetDiggerJobParentLinksByParentId(parentId *string) ([]DiggerJobParentLink, error) {
-	var jobParentLinks []DiggerJobParentLink
+func (db *Database) GetDiggerJobParentLinksByParentId(parentId *string) ([]model.DiggerJobParentLink, error) {
+	var jobParentLinks []model.DiggerJobParentLink
 	result := db.GormDB.Where("parent_digger_job_id=?", parentId).Find(&jobParentLinks)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -979,7 +996,7 @@ func (db *Database) GetDiggerJobParentLinksByParentId(parentId *string) ([]Digge
 }
 
 func (db *Database) CreateDiggerJobParentLink(parentJobId string, jobId string) error {
-	jobParentLink := DiggerJobParentLink{ParentDiggerJobId: parentJobId, DiggerJobId: jobId}
+	jobParentLink := model.DiggerJobParentLink{ParentDiggerJobID: parentJobId, DiggerJobID: jobId}
 	result := db.GormDB.Create(&jobParentLink)
 	if result.Error != nil {
 		return result.Error
@@ -987,8 +1004,8 @@ func (db *Database) CreateDiggerJobParentLink(parentJobId string, jobId string) 
 	return nil
 }
 
-func (db *Database) GetDiggerJobParentLinksChildId(childId *string) ([]DiggerJobParentLink, error) {
-	var jobParentLinks []DiggerJobParentLink
+func (db *Database) GetDiggerJobParentLinksChildId(childId *string) ([]model.DiggerJobParentLink, error) {
+	var jobParentLinks []model.DiggerJobParentLink
 	result := db.GormDB.Where("digger_job_id=?", childId).Find(&jobParentLinks)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -999,8 +1016,8 @@ func (db *Database) GetDiggerJobParentLinksChildId(childId *string) ([]DiggerJob
 	return jobParentLinks, nil
 }
 
-func (db *Database) GetOrganisation(tenantId any) (*Organisation, error) {
-	org := &Organisation{}
+func (db *Database) GetOrganisation(tenantId any) (*model.Organization, error) {
+	org := &model.Organization{}
 	result := db.GormDB.Take(org, "external_id = ?", tenantId)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -1012,23 +1029,23 @@ func (db *Database) GetOrganisation(tenantId any) (*Organisation, error) {
 	return org, nil
 }
 
-func (db *Database) CreateOrganisation(name string, externalSource string, tenantId string) (*Organisation, error) {
-	org := &Organisation{Name: name, ExternalSource: externalSource, ExternalId: tenantId}
-	result := db.GormDB.Save(org)
-	if result.Error != nil {
-		log.Printf("Failed to create organisation: %v, error: %v\n", name, result.Error)
-		return nil, result.Error
-	}
-	log.Printf("Organisation %s, (id: %v) has been created successfully\n", name, org.ID)
-	return org, nil
-}
+//func (db *Database) CreateOrganisation(name string, externalSource string, tenantId string) (*model.Organization, error) {
+//	org := &model.Organization{Name: name, ExternalSource: externalSource, ExternalId: tenantId}
+//	result := db.GormDB.Save(org)
+//	if result.Error != nil {
+//		log.Printf("Failed to create organisation: %v, error: %v\n", name, result.Error)
+//		return nil, result.Error
+//	}
+//	log.Printf("Organisation %s, (id: %v) has been created successfully\n", name, org.ID)
+//	return org, nil
+//}
 
-func (db *Database) CreateProject(name string, org *Organisation, repo *Repo, isGenerated bool, isInMainBranch bool) (*Project, error) {
-	project := &Project{
+func (db *Database) CreateProject(name string, org *model.Organization, repo *model.Repo, isGenerated bool, isInMainBranch bool) (*model.Project, error) {
+	project := &model.Project{
 		Name:           name,
-		Organisation:   org,
-		Repo:           repo,
-		Status:         ProjectActive,
+		OrganizationID: org.ID,
+		RepoID:         repo.ID,
+		Status:         string(ProjectActive),
 		IsGenerated:    isGenerated,
 		IsInMainBranch: isInMainBranch,
 	}
@@ -1041,7 +1058,7 @@ func (db *Database) CreateProject(name string, org *Organisation, repo *Repo, is
 	return project, nil
 }
 
-func (db *Database) UpdateProject(project *Project) error {
+func (db *Database) UpdateProject(project *model.Project) error {
 	result := db.GormDB.Save(project)
 	if result.Error != nil {
 		return result.Error
@@ -1050,10 +1067,10 @@ func (db *Database) UpdateProject(project *Project) error {
 	return nil
 }
 
-func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *Organisation, diggerConfig string) (*Repo, error) {
-	var repo Repo
+func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *model.Organization, diggerConfig string) (*model.Repo, error) {
+	var repo model.Repo
 	// check if repo exist already, do nothing in this case
-	result := db.GormDB.Where("name = ? AND organisation_id=?", name, org.ID).Find(&repo)
+	result := db.GormDB.Where("name = ? AND organization_id=?", name, org.ID).Find(&repo)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
@@ -1063,14 +1080,14 @@ func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisatio
 		// record already exist, do nothing
 		return &repo, nil
 	}
-	repo = Repo{
+	repo = model.Repo{
 		Name:             name,
-		Organisation:     org,
+		OrganizationID:   org.ID,
 		DiggerConfig:     diggerConfig,
 		RepoFullName:     repoFullName,
 		RepoOrganisation: repoOrganisation,
 		RepoName:         repoName,
-		RepoUrl:          repoUrl,
+		RepoURL:          repoUrl,
 	}
 	result = db.GormDB.Save(&repo)
 	if result.Error != nil {
@@ -1081,27 +1098,27 @@ func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisatio
 	return &repo, nil
 }
 
-func (db *Database) GetToken(tenantId any) (*Token, error) {
-	token := &Token{}
-	result := db.GormDB.Take(token, "value = ?", tenantId)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
-		} else {
-			return nil, result.Error
-		}
-	}
-	return token, nil
-}
+//func (db *Database) GetToken(tenantId any) (*Token, error) {
+//	token := &Token{}
+//	result := db.GormDB.Take(token, "value = ?", tenantId)
+//	if result.Error != nil {
+//		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+//			return nil, nil
+//		} else {
+//			return nil, result.Error
+//		}
+//	}
+//	return token, nil
+//}
 
-func (db *Database) CreateDiggerJobToken(organisationId uint) (*JobToken, error) {
+func (db *Database) CreateDiggerJobToken(organisationId uint) (*model.DiggerJobToken, error) {
 
 	// create a digger job token
 	// prefixing token to make easier to retire this type of tokens later
 	token := "cli:" + uuid.New().String()
-	jobToken := &JobToken{
+	jobToken := &model.DiggerJobToken{
 		Value:          token,
-		OrganisationID: organisationId,
+		OrganisationID: int64(organisationId),
 		Type:           CliJobAccessType,
 		Expiry:         time.Now().Add(time.Hour * 2), // some jobs can take >30 mins (k8s cluster)
 	}
@@ -1113,8 +1130,8 @@ func (db *Database) CreateDiggerJobToken(organisationId uint) (*JobToken, error)
 	return jobToken, nil
 }
 
-func (db *Database) GetJobToken(tenantId any) (*JobToken, error) {
-	token := &JobToken{}
+func (db *Database) GetJobToken(tenantId any) (*model.DiggerJobToken, error) {
+	token := &model.DiggerJobToken{}
 	result := db.GormDB.Take(token, "value = ?", tenantId)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -1126,14 +1143,14 @@ func (db *Database) GetJobToken(tenantId any) (*JobToken, error) {
 	return token, nil
 }
 
-func (db *Database) CreateGithubAppInstallation(installationId int64, githubAppId int64, login string, accountId int, repoFullName string) (*GithubAppInstallation, error) {
-	installation := &GithubAppInstallation{
-		GithubInstallationId: installationId,
-		GithubAppId:          githubAppId,
+func (db *Database) CreateGithubAppInstallation(installationId int64, githubAppId int64, login string, accountId int, repoFullName string) (*model.GithubAppInstallation, error) {
+	installation := &model.GithubAppInstallation{
+		GithubInstallationID: installationId,
+		GithubAppID:          githubAppId,
 		Login:                login,
-		AccountId:            accountId,
+		AccountID:            int64(accountId),
 		Repo:                 repoFullName,
-		Status:               GithubAppInstallActive,
+		Status:               int64(GithubAppInstallActive),
 	}
 	result := db.GormDB.Save(installation)
 	if result.Error != nil {
@@ -1152,7 +1169,7 @@ func validateDiggerConfigYaml(configYaml string) (*configuration.DiggerConfig, e
 	return diggerConfig, nil
 }
 
-func (db *Database) UpdateRepoDiggerConfig(orgId any, config configuration.DiggerConfigYaml, repo *Repo, isMainBranch bool) error {
+func (db *Database) UpdateRepoDiggerConfig(orgId string, config configuration.DiggerConfigYaml, repo *model.Repo, isMainBranch bool) error {
 	log.Printf("UpdateRepoDiggerConfig, repo: %v\n", repo)
 
 	org, err := db.GetOrganisationById(orgId)
@@ -1203,23 +1220,23 @@ func (db *Database) UpdateRepoDiggerConfig(orgId any, config configuration.Digge
 	return nil
 }
 
-func (db *Database) CreateDiggerLock(resource string, lockId int, orgId uint) (*DiggerLock, error) {
-	lock := &DiggerLock{
+func (db *Database) CreateDiggerLock(resource string, lockId int, orgId string) (*model.DiggerLock, error) {
+	lock := &model.DiggerLock{
 		Resource:       resource,
-		LockId:         lockId,
-		OrganisationID: orgId,
+		LockID:         int64(lockId),
+		OrganizationID: orgId,
 	}
 	result := db.GormDB.Save(lock)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	log.Printf("CreateDiggerLock (id: %v %v) has been created successfully\n", lock.LockId, lock.Resource)
+	log.Printf("CreateDiggerLock (id: %v %v) has been created successfully\n", lock.LockID, lock.Resource)
 	return lock, nil
 }
 
-func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
-	lock := &DiggerLock{}
+func (db *Database) GetDiggerLock(resource string) (*model.DiggerLock, error) {
+	lock := &model.DiggerLock{}
 	result := db.GormDB.Where("resource=? ", resource).First(lock)
 	if result.Error != nil {
 		return nil, result.Error
@@ -1227,12 +1244,12 @@ func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
 	return lock, nil
 }
 
-func (db *Database) DeleteDiggerLock(lock *DiggerLock) error {
-	log.Printf("DeleteDiggerLock Deleting: %v, %v", lock.LockId, lock.Resource)
+func (db *Database) DeleteDiggerLock(lock *model.DiggerLock) error {
+	log.Printf("DeleteDiggerLock Deleting: %v, %v", lock.LockID, lock.Resource)
 	result := db.GormDB.Delete(lock)
 	if result.Error != nil {
 		return result.Error
 	}
-	log.Printf("DeleteDiggerLock %v %v has been deleted successfully\n", lock.LockId, lock.Resource)
+	log.Printf("DeleteDiggerLock %v %v has been deleted successfully\n", lock.LockID, lock.Resource)
 	return nil
 }

@@ -6,10 +6,12 @@ use (
 	./cli_e2e
 	./dgctl
 	./next
-
+	./next/dbgen
+	
 	./ee/backend
 	./ee/cli
 
 	./libs
+
 
 )
