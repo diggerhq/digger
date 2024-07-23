@@ -122,8 +122,8 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 
 	_, config, projectsGraph, err := utils.GetDiggerConfigForBranch(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, prNumber, discussionId)
 	if err != nil {
-		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
+		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		return fmt.Errorf("error getting digger config")
 	}
 
@@ -338,8 +338,8 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 
 	diggerYmlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranch(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, issueNumber, discussionId)
 	if err != nil {
-		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
+		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		return fmt.Errorf("error getting digger config")
 	}
 
