@@ -49,6 +49,7 @@ var (
 	Product                          *product
 	Project                          *project
 	ProjectComment                   *projectComment
+	ProjectTfvar                     *projectTfvar
 	Repo                             *repo
 	Subscription                     *subscription
 	UserAPIKey                       *userAPIKey
@@ -93,6 +94,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Product = &Q.Product
 	Project = &Q.Project
 	ProjectComment = &Q.ProjectComment
+	ProjectTfvar = &Q.ProjectTfvar
 	Repo = &Q.Repo
 	Subscription = &Q.Subscription
 	UserAPIKey = &Q.UserAPIKey
@@ -138,6 +140,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Product:                          newProduct(db, opts...),
 		Project:                          newProject(db, opts...),
 		ProjectComment:                   newProjectComment(db, opts...),
+		ProjectTfvar:                     newProjectTfvar(db, opts...),
 		Repo:                             newRepo(db, opts...),
 		Subscription:                     newSubscription(db, opts...),
 		UserAPIKey:                       newUserAPIKey(db, opts...),
@@ -184,6 +187,7 @@ type Query struct {
 	Product                          product
 	Project                          project
 	ProjectComment                   projectComment
+	ProjectTfvar                     projectTfvar
 	Repo                             repo
 	Subscription                     subscription
 	UserAPIKey                       userAPIKey
@@ -231,6 +235,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Product:                          q.Product.clone(db),
 		Project:                          q.Project.clone(db),
 		ProjectComment:                   q.ProjectComment.clone(db),
+		ProjectTfvar:                     q.ProjectTfvar.clone(db),
 		Repo:                             q.Repo.clone(db),
 		Subscription:                     q.Subscription.clone(db),
 		UserAPIKey:                       q.UserAPIKey.clone(db),
@@ -285,6 +290,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Product:                          q.Product.replaceDB(db),
 		Project:                          q.Project.replaceDB(db),
 		ProjectComment:                   q.ProjectComment.replaceDB(db),
+		ProjectTfvar:                     q.ProjectTfvar.replaceDB(db),
 		Repo:                             q.Repo.replaceDB(db),
 		Subscription:                     q.Subscription.replaceDB(db),
 		UserAPIKey:                       q.UserAPIKey.replaceDB(db),
@@ -329,6 +335,7 @@ type queryCtx struct {
 	Product                          IProductDo
 	Project                          IProjectDo
 	ProjectComment                   IProjectCommentDo
+	ProjectTfvar                     IProjectTfvarDo
 	Repo                             IRepoDo
 	Subscription                     ISubscriptionDo
 	UserAPIKey                       IUserAPIKeyDo
@@ -373,6 +380,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Product:                          q.Product.WithContext(ctx),
 		Project:                          q.Project.WithContext(ctx),
 		ProjectComment:                   q.ProjectComment.WithContext(ctx),
+		ProjectTfvar:                     q.ProjectTfvar.WithContext(ctx),
 		Repo:                             q.Repo.WithContext(ctx),
 		Subscription:                     q.Subscription.WithContext(ctx),
 		UserAPIKey:                       q.UserAPIKey.WithContext(ctx),
