@@ -71,7 +71,7 @@ func ParseGitLabContext() (*GitLabContext, error) {
 func NewGitLabService(token string, gitLabContext *GitLabContext, gitlabBaseUrl string) (*GitLabService, error) {
 	var client *go_gitlab.Client
 	var err error
-	if gitlabBaseUrl == "" {
+	if gitlabBaseUrl != "" {
 		client, err = go_gitlab.NewClient(token, go_gitlab.WithBaseURL(gitlabBaseUrl))
 	} else {
 		client, err = go_gitlab.NewClient(token)
