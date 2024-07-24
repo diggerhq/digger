@@ -33,8 +33,8 @@ func newDiggerJobToken(db *gorm.DB, opts ...gen.DOOption) diggerJobToken {
 	_diggerJobToken.DeletedAt = field.NewField(tableName, "deleted_at")
 	_diggerJobToken.Value = field.NewString(tableName, "value")
 	_diggerJobToken.Expiry = field.NewTime(tableName, "expiry")
-	_diggerJobToken.OrganisationID = field.NewInt64(tableName, "organisation_id")
 	_diggerJobToken.Type = field.NewString(tableName, "type")
+	_diggerJobToken.OrganisationID = field.NewString(tableName, "organisation_id")
 
 	_diggerJobToken.fillFieldMap()
 
@@ -51,8 +51,8 @@ type diggerJobToken struct {
 	DeletedAt      field.Field
 	Value          field.String
 	Expiry         field.Time
-	OrganisationID field.Int64
 	Type           field.String
+	OrganisationID field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -75,8 +75,8 @@ func (d *diggerJobToken) updateTableName(table string) *diggerJobToken {
 	d.DeletedAt = field.NewField(table, "deleted_at")
 	d.Value = field.NewString(table, "value")
 	d.Expiry = field.NewTime(table, "expiry")
-	d.OrganisationID = field.NewInt64(table, "organisation_id")
 	d.Type = field.NewString(table, "type")
+	d.OrganisationID = field.NewString(table, "organisation_id")
 
 	d.fillFieldMap()
 
@@ -100,8 +100,8 @@ func (d *diggerJobToken) fillFieldMap() {
 	d.fieldMap["deleted_at"] = d.DeletedAt
 	d.fieldMap["value"] = d.Value
 	d.fieldMap["expiry"] = d.Expiry
-	d.fieldMap["organisation_id"] = d.OrganisationID
 	d.fieldMap["type"] = d.Type
+	d.fieldMap["organisation_id"] = d.OrganisationID
 }
 
 func (d diggerJobToken) clone(db *gorm.DB) diggerJobToken {

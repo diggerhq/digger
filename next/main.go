@@ -3,12 +3,12 @@ package main
 import (
 	"embed"
 	"fmt"
-	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/next/ci_backends"
 	controllers "github.com/diggerhq/digger/next/controllers"
+	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/middleware"
-	"github.com/diggerhq/digger/next/models"
+	"github.com/diggerhq/digger/next/utils"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"io/fs"
@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// initialize the database
-	models.ConnectDatabase()
+	dbmodels.ConnectDatabase()
 
 	r := gin.Default()
 
