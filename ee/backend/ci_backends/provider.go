@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/buildkite/go-buildkite/v3/buildkite"
 	"github.com/diggerhq/digger/backend/ci_backends"
-	"github.com/xanzy/go-gitlab"
+	"github.com/diggerhq/digger/backend/utils"
 	"log"
 	"os"
 )
@@ -21,7 +21,7 @@ func (b EEBackendProvider) GetCiBackend(options ci_backends.CiBackendOptions) (c
 		if token == "" {
 			return nil, fmt.Errorf("missing environment variable: DIGGER_GITLAB_ACCESS_TOKEN")
 		}
-		client, err := gitlab.NewClient(token)
+		client, err := utils.GitlabClientProvider{}.NewClient(token)
 		if err != nil {
 			return nil, fmt.Errorf("could not create gitlab client: %v", err)
 		}
