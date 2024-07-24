@@ -12,12 +12,13 @@ import (
 )
 
 type GitlabProvider interface {
-	NewClient(token string, baseUrl string) (*gitlab.Client, error)
+	NewClient(token string) (*gitlab.Client, error)
 }
 
 type GitlabClientProvider struct{}
 
-func (g GitlabClientProvider) NewClient(token string, baseUrl string) (*gitlab.Client, error) {
+func (g GitlabClientProvider) NewClient(token string) (*gitlab.Client, error) {
+	baseUrl := os.Getenv("DIGGER_GITLAB_BASE_URL")
 	if baseUrl == "" {
 		client, err := gitlab.NewClient(token)
 		return client, err
@@ -29,9 +30,8 @@ func (g GitlabClientProvider) NewClient(token string, baseUrl string) (*gitlab.C
 
 func GetGitlabService(gh GitlabProvider, projectId int, repoName string, repoFullName string, prNumber int, discussionId string) (*orchestrator_gitlab.GitLabService, error) {
 	token := os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
-	baseUrl := os.Getenv("DIGGER_GITLAB_BASE_URL")
 
-	client, err := gh.NewClient(token, baseUrl)
+	client, err := gh.NewClient(token)
 	if err != nil {
 		return nil, fmt.Errorf("could not get gitlab client: %v", err)
 	}
