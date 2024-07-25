@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"github.com/diggerhq/digger/backend/config"
+	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/next/ci_backends"
 	controllers "github.com/diggerhq/digger/next/controllers"
 	"github.com/diggerhq/digger/next/dbmodels"
@@ -68,6 +69,11 @@ func main() {
 
 	r.GET("/github/callback", middleware.SupabaseCookieAuth(), diggerController.GithubAppCallbackPage)
 	r.POST("/github-app-webhook", diggerController.GithubAppWebHook)
+
+	//authorized := r.Group("/")
+	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
+
+	r.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", middleware.JobTokenAuth(), diggerController.SetJobStatusForProject)
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
 
