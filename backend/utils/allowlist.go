@@ -17,7 +17,7 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func ExtractRepoName(gitlabURL string) (string, error) {
+func ExtractCleanRepoName(gitlabURL string) (string, error) {
 	// Parse the URL
 	parsedURL, err := url.Parse(gitlabURL)
 	if err != nil {
@@ -26,10 +26,9 @@ func ExtractRepoName(gitlabURL string) (string, error) {
 
 	// The repository name is typically the last part of the path
 	// We use path.Base to handle cases where there might be a trailing slash
-	repoName := parsedURL.Path
+	repoName := parsedURL.Hostname() + parsedURL.Path
 
 	// If the URL ends with .git, remove it
-	repoName = strings.TrimPrefix(repoName, "/")
 	repoName = strings.TrimSuffix(repoName, ".git")
 
 	return repoName, nil
@@ -40,19 +39,13 @@ func IsInRepoAllowList(repoUrl string) bool {
 	allowedReposUrls := strings.Split(allowList, ",")
 	// gitlab.com/diggerhq/test
 	// https://gitlab.com/diggerhq/test
-	allowedRepoNames := lo.Map(allowedReposUrls, func(repoUrl string, i int) string {
-		repoName, err := ExtractRepoName(repoUrl)
-		if err != nil {
-			log.Printf("could not parse repo url %v: %v", repoUrl, err)
-		}
-		return repoName
-	})
-	repoName, err := ExtractRepoName(repoUrl)
+
+	repoName, err := ExtractCleanRepoName(repoUrl)
 	if err != nil {
 		log.Printf("warning could not parse url: %v", repoUrl)
 	}
 
-	exists := lo.Contains(allowedRepoNames, repoName)
+	exists := lo.Contains(allowedReposUrls, repoName)
 
 	return exists
 
