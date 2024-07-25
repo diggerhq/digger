@@ -906,7 +906,7 @@ func (db *Database) UpdateDiggerJob(job *model.DiggerJob) error {
 	return nil
 }
 
-func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]model.DiggerJob, error) {
+func (db *Database) GetDiggerJobsForBatch(batchId string) ([]model.DiggerJob, error) {
 	jobs := make([]model.DiggerJob, 0)
 
 	var where *gorm.DB

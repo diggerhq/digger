@@ -9,14 +9,12 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/diggerhq/digger/next/dbmodels"
-	"github.com/diggerhq/digger/next/middleware"
+	//"github.com/diggerhq/digger/next/middleware"
 	"github.com/diggerhq/digger/next/model"
-	"github.com/diggerhq/digger/next/services"
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -32,12 +30,12 @@ type SetJobStatusRequest struct {
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 
-	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+	//orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
-	if !exists {
-		c.String(http.StatusForbidden, "Not allowed to access this resource")
-		return
-	}
+	//if !exists {
+	//	c.String(http.StatusForbidden, "Not allowed to access this resource")
+	//	return
+	//}
 
 	var request SetJobStatusRequest
 
@@ -159,9 +157,9 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 
 	case "failed":
-		job.Status = orchestrator_scheduler.DiggerJobFailed
+		job.Status = int16(orchestrator_scheduler.DiggerJobFailed)
 		job.TerraformOutput = request.TerraformOutput
-		err := models.DB.UpdateDiggerJob(job)
+		err := dbmodels.DB.UpdateDiggerJob(job)
 		if err != nil {
 			log.Printf("Error updating job status: %v", request.Status)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
@@ -174,7 +172,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 	job.StatusUpdatedAt = request.Timestamp
-	err = models.DB.GormDB.Save(&job).Error
+	err = dbmodels.DB.GormDB.Save(&job).Error
 	if err != nil {
 		log.Printf("Error saving update job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
@@ -184,7 +182,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	// get batch ID
 	// check if all jobs have succeeded at this point
 	// if so, perform merge of PR (if configured to do so)
-	batch := job.Batch
+	//batch := job.Batch
 	err = dbmodels.DB.UpdateBatchStatus(batch)
 	if err != nil {
 		log.Printf("Error updating batch status: %v", err)
@@ -199,7 +197,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	//}
 
 	// return batch summary to client
-	res, err := batch.MapToJsonStruct()
+	res, err := dbmodels.BatchToJsonStruct(*batch)
 	if err != nil {
 		log.Printf("Error getting batch details: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
@@ -225,14 +223,14 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *model.Dig
 		return nil
 	}
 
-	if batch.BatchType != orchestrator_scheduler.DiggerCommandPlan && batch.BatchType != orchestrator_scheduler.DiggerCommandApply {
+	if batch.BatchType != string(orchestrator_scheduler.DiggerCommandPlan) && batch.BatchType != string(orchestrator_scheduler.DiggerCommandApply) {
 		log.Printf("command is not plan or apply, skipping")
 		return nil
 	}
 
 	ghService, _, err := utils.GetGithubService(
 		gh,
-		batch.GithubInstallationId,
+		batch.GithubInstallationID,
 		batch.RepoFullName,
 		batch.RepoOwner,
 		batch.RepoName,
@@ -257,7 +255,7 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *model.Dig
 	}
 
 	for _, detail := range sourceDetails {
-		reporter := reporting.SourceGroupingReporter{serializedJobs, batch.PrNumber, ghService}
+		reporter := reporting.SourceGroupingReporter{serializedJobs, int(batch.PrNumber), ghService}
 		reporter.UpdateComment(sourceDetails, detail.SourceLocation, projectToTerraformOutput)
 	}
 	return nil
