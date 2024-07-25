@@ -20,8 +20,8 @@ type DiggerJobToken struct {
 	DeletedAt      gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
 	Value          string         `gorm:"column:value" json:"value"`
 	Expiry         time.Time      `gorm:"column:expiry" json:"expiry"`
-	OrganisationID int64          `gorm:"column:organisation_id" json:"organisation_id"`
 	Type           string         `gorm:"column:type" json:"type"`
+	OrganisationID string         `gorm:"column:organisation_id" json:"organisation_id"`
 }
 
 // TableName DiggerJobToken's table name

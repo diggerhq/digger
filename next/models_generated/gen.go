@@ -29,6 +29,7 @@ var (
 	DiggerRun                        *diggerRun
 	DiggerRunQueueItem               *diggerRunQueueItem
 	DiggerRunStage                   *diggerRunStage
+	EncryptedEnvVar                  *encryptedEnvVar
 	GithubApp                        *githubApp
 	GithubAppInstallation            *githubAppInstallation
 	GithubAppInstallationLink        *githubAppInstallationLink
@@ -49,6 +50,7 @@ var (
 	Product                          *product
 	Project                          *project
 	ProjectComment                   *projectComment
+	ProjectTfvar                     *projectTfvar
 	Repo                             *repo
 	Subscription                     *subscription
 	UserAPIKey                       *userAPIKey
@@ -73,6 +75,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	DiggerRun = &Q.DiggerRun
 	DiggerRunQueueItem = &Q.DiggerRunQueueItem
 	DiggerRunStage = &Q.DiggerRunStage
+	EncryptedEnvVar = &Q.EncryptedEnvVar
 	GithubApp = &Q.GithubApp
 	GithubAppInstallation = &Q.GithubAppInstallation
 	GithubAppInstallationLink = &Q.GithubAppInstallationLink
@@ -93,6 +96,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Product = &Q.Product
 	Project = &Q.Project
 	ProjectComment = &Q.ProjectComment
+	ProjectTfvar = &Q.ProjectTfvar
 	Repo = &Q.Repo
 	Subscription = &Q.Subscription
 	UserAPIKey = &Q.UserAPIKey
@@ -118,6 +122,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		DiggerRun:                        newDiggerRun(db, opts...),
 		DiggerRunQueueItem:               newDiggerRunQueueItem(db, opts...),
 		DiggerRunStage:                   newDiggerRunStage(db, opts...),
+		EncryptedEnvVar:                  newEncryptedEnvVar(db, opts...),
 		GithubApp:                        newGithubApp(db, opts...),
 		GithubAppInstallation:            newGithubAppInstallation(db, opts...),
 		GithubAppInstallationLink:        newGithubAppInstallationLink(db, opts...),
@@ -138,6 +143,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Product:                          newProduct(db, opts...),
 		Project:                          newProject(db, opts...),
 		ProjectComment:                   newProjectComment(db, opts...),
+		ProjectTfvar:                     newProjectTfvar(db, opts...),
 		Repo:                             newRepo(db, opts...),
 		Subscription:                     newSubscription(db, opts...),
 		UserAPIKey:                       newUserAPIKey(db, opts...),
@@ -164,6 +170,7 @@ type Query struct {
 	DiggerRun                        diggerRun
 	DiggerRunQueueItem               diggerRunQueueItem
 	DiggerRunStage                   diggerRunStage
+	EncryptedEnvVar                  encryptedEnvVar
 	GithubApp                        githubApp
 	GithubAppInstallation            githubAppInstallation
 	GithubAppInstallationLink        githubAppInstallationLink
@@ -184,6 +191,7 @@ type Query struct {
 	Product                          product
 	Project                          project
 	ProjectComment                   projectComment
+	ProjectTfvar                     projectTfvar
 	Repo                             repo
 	Subscription                     subscription
 	UserAPIKey                       userAPIKey
@@ -211,6 +219,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		DiggerRun:                        q.DiggerRun.clone(db),
 		DiggerRunQueueItem:               q.DiggerRunQueueItem.clone(db),
 		DiggerRunStage:                   q.DiggerRunStage.clone(db),
+		EncryptedEnvVar:                  q.EncryptedEnvVar.clone(db),
 		GithubApp:                        q.GithubApp.clone(db),
 		GithubAppInstallation:            q.GithubAppInstallation.clone(db),
 		GithubAppInstallationLink:        q.GithubAppInstallationLink.clone(db),
@@ -231,6 +240,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Product:                          q.Product.clone(db),
 		Project:                          q.Project.clone(db),
 		ProjectComment:                   q.ProjectComment.clone(db),
+		ProjectTfvar:                     q.ProjectTfvar.clone(db),
 		Repo:                             q.Repo.clone(db),
 		Subscription:                     q.Subscription.clone(db),
 		UserAPIKey:                       q.UserAPIKey.clone(db),
@@ -265,6 +275,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		DiggerRun:                        q.DiggerRun.replaceDB(db),
 		DiggerRunQueueItem:               q.DiggerRunQueueItem.replaceDB(db),
 		DiggerRunStage:                   q.DiggerRunStage.replaceDB(db),
+		EncryptedEnvVar:                  q.EncryptedEnvVar.replaceDB(db),
 		GithubApp:                        q.GithubApp.replaceDB(db),
 		GithubAppInstallation:            q.GithubAppInstallation.replaceDB(db),
 		GithubAppInstallationLink:        q.GithubAppInstallationLink.replaceDB(db),
@@ -285,6 +296,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Product:                          q.Product.replaceDB(db),
 		Project:                          q.Project.replaceDB(db),
 		ProjectComment:                   q.ProjectComment.replaceDB(db),
+		ProjectTfvar:                     q.ProjectTfvar.replaceDB(db),
 		Repo:                             q.Repo.replaceDB(db),
 		Subscription:                     q.Subscription.replaceDB(db),
 		UserAPIKey:                       q.UserAPIKey.replaceDB(db),
@@ -309,6 +321,7 @@ type queryCtx struct {
 	DiggerRun                        IDiggerRunDo
 	DiggerRunQueueItem               IDiggerRunQueueItemDo
 	DiggerRunStage                   IDiggerRunStageDo
+	EncryptedEnvVar                  IEncryptedEnvVarDo
 	GithubApp                        IGithubAppDo
 	GithubAppInstallation            IGithubAppInstallationDo
 	GithubAppInstallationLink        IGithubAppInstallationLinkDo
@@ -329,6 +342,7 @@ type queryCtx struct {
 	Product                          IProductDo
 	Project                          IProjectDo
 	ProjectComment                   IProjectCommentDo
+	ProjectTfvar                     IProjectTfvarDo
 	Repo                             IRepoDo
 	Subscription                     ISubscriptionDo
 	UserAPIKey                       IUserAPIKeyDo
@@ -353,6 +367,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		DiggerRun:                        q.DiggerRun.WithContext(ctx),
 		DiggerRunQueueItem:               q.DiggerRunQueueItem.WithContext(ctx),
 		DiggerRunStage:                   q.DiggerRunStage.WithContext(ctx),
+		EncryptedEnvVar:                  q.EncryptedEnvVar.WithContext(ctx),
 		GithubApp:                        q.GithubApp.WithContext(ctx),
 		GithubAppInstallation:            q.GithubAppInstallation.WithContext(ctx),
 		GithubAppInstallationLink:        q.GithubAppInstallationLink.WithContext(ctx),
@@ -373,6 +388,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Product:                          q.Product.WithContext(ctx),
 		Project:                          q.Project.WithContext(ctx),
 		ProjectComment:                   q.ProjectComment.WithContext(ctx),
+		ProjectTfvar:                     q.ProjectTfvar.WithContext(ctx),
 		Repo:                             q.Repo.WithContext(ctx),
 		Subscription:                     q.Subscription.WithContext(ctx),
 		UserAPIKey:                       q.UserAPIKey.WithContext(ctx),

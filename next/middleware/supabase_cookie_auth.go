@@ -3,8 +3,8 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
-	"github.com/diggerhq/digger/next/models"
 	"github.com/diggerhq/digger/next/supa"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -61,7 +61,7 @@ func SupabaseCookieAuth() gin.HandlerFunc {
 			return
 		}
 
-		selectedOrg, err := models.DB.GetUserOrganizationsFirstMatch(userId)
+		selectedOrg, err := dbmodels.DB.GetUserOrganizationsFirstMatch(userId)
 		if err != nil {
 			log.Printf("error while finding organisation: %v", err)
 			c.String(http.StatusBadRequest, "User does not belong to any orgs")

@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/next2
+      - feat/next3
 
 jobs:
   deploy:

@@ -3,12 +3,12 @@ package main
 import (
 	"embed"
 	"fmt"
-	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/next/ci_backends"
 	controllers "github.com/diggerhq/digger/next/controllers"
+	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/middleware"
-	"github.com/diggerhq/digger/next/models"
+	"github.com/diggerhq/digger/next/utils"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"io/fs"
@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// initialize the database
-	models.ConnectDatabase()
+	dbmodels.ConnectDatabase()
 
 	r := gin.Default()
 
@@ -68,6 +68,11 @@ func main() {
 
 	r.GET("/github/callback", middleware.SupabaseCookieAuth(), diggerController.GithubAppCallbackPage)
 	r.POST("/github-app-webhook", diggerController.GithubAppWebHook)
+
+	//authorized := r.Group("/")
+	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
+
+	r.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", middleware.JobTokenAuth(), diggerController.SetJobStatusForProject)
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
 
