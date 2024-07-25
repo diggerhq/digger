@@ -1,5 +1,5 @@
 ---
-title: "Using digger with gitlab CI and Pipelines"
+title: "Gitlab CI and Pipelines"
 ---
 
 You can use digger with gitlab as your VCS and gitlab pipelines as a CI backend. Currently this is an EE feature only.
@@ -107,4 +107,8 @@ gitlab should also trigger and also perform a plan. If successful the job will c
 ![](/images/gitlab/gitlab-plan.png)
 
 ![](/images/gitlab/gitlab-apply.png)
+
+## Repo allowlist
+
+You can set `DIGGER_REPO_ALLOW_LIST` env variable on the server to define a whitelist of repositories allowed to trigger Digger workflows in Gitlab. This is needed because unlike GitHub, there's no concept of "apps" in Gitlab to allow granular control of per-repo access.
 
