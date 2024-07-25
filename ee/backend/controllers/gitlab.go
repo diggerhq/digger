@@ -67,6 +67,12 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 
 	log.Printf("gitlab event type: %v\n", reflect.TypeOf(event))
 
+	repoUrl := GetGitlabRepoUrl(event)
+	if !utils.IsInRepoAllowList(repoUrl) {
+		log.Printf("repo: %v, is not in allow list, ignoring ...", repoUrl)
+		return
+	}
+
 	switch event := event.(type) {
 	case *gitlab.MergeCommentEvent:
 		log.Printf("IssueCommentEvent, action: %v \n", event.ObjectAttributes.Description)
@@ -98,6 +104,21 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 	}
 
 	c.JSON(200, "ok")
+}
+
+func GetGitlabRepoUrl(event interface{}) string {
+	var repoUrl string = ""
+	switch event := event.(type) {
+	case *gitlab.MergeCommentEvent:
+		repoUrl = event.Repository.GitHTTPURL
+	case *gitlab.MergeEvent:
+		repoUrl = event.Repository.GitHTTPURL
+	case *gitlab.PushEvent:
+		repoUrl = event.Repository.GitHTTPURL
+	default:
+		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
+	}
+	return repoUrl
 }
 
 func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab.MergeEvent, ciBackendProvider ci_backends.CiBackendProvider, organisationId uint) error {
