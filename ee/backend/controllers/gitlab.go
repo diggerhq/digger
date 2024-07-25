@@ -69,7 +69,7 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 
 	repoUrl := GetGitlabRepoUrl(event)
 	if !utils.IsInRepoAllowList(repoUrl) {
-		log.Printf("repo: %v, is not in allow list, ignoring ...", repoUrl)
+		log.Printf("repo: '%v' is not in allow list, ignoring ...", repoUrl)
 		return
 	}
 
@@ -107,14 +107,14 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 }
 
 func GetGitlabRepoUrl(event interface{}) string {
-	var repoUrl string = ""
+	var repoUrl = ""
 	switch event := event.(type) {
 	case *gitlab.MergeCommentEvent:
-		repoUrl = event.Repository.GitHTTPURL
+		repoUrl = event.Project.GitHTTPURL
 	case *gitlab.MergeEvent:
-		repoUrl = event.Repository.GitHTTPURL
+		repoUrl = event.Project.GitHTTPURL
 	case *gitlab.PushEvent:
-		repoUrl = event.Repository.GitHTTPURL
+		repoUrl = event.Project.GitHTTPURL
 	default:
 		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
 	}
