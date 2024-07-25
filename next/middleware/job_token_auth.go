@@ -2,7 +2,8 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/next/dbmodels"
+	"github.com/diggerhq/digger/next/model"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -10,8 +11,8 @@ import (
 	"time"
 )
 
-func CheckJobToken(c *gin.Context, token string) (*models.JobToken, error) {
-	jobToken, err := models.DB.GetJobToken(token)
+func CheckJobToken(c *gin.Context, token string) (*model.DiggerJobToken, error) {
+	jobToken, err := dbmodels.DB.GetJobToken(token)
 	if jobToken == nil {
 		c.String(http.StatusForbidden, "Invalid bearer token")
 		c.Abort()
@@ -32,7 +33,6 @@ func CheckJobToken(c *gin.Context, token string) (*models.JobToken, error) {
 		return nil, fmt.Errorf("could not fetch cli token")
 	}
 
-	log.Printf("Token: %v access level: %v", jobToken.Value, jobToken.Type)
 	return jobToken, nil
 }
 
@@ -57,7 +57,7 @@ func JobTokenAuth() gin.HandlerFunc {
 				c.Abort()
 				return
 			} else {
-				setDefaultOrganisationId(c)
+				c.Set(jobToken.OrganisationID, jobToken.OrganisationID)
 				c.Set(ACCESS_LEVEL_KEY, jobToken.Type)
 			}
 		} else {

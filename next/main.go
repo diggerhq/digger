@@ -4,7 +4,6 @@ import (
 	"embed"
 	"fmt"
 	"github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/next/ci_backends"
 	controllers "github.com/diggerhq/digger/next/controllers"
 	"github.com/diggerhq/digger/next/dbmodels"
