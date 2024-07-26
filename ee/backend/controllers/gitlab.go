@@ -115,6 +115,14 @@ func handlePushEvent(gh utils.GitlabProvider, payload *gitlab.PushEvent, organis
 	ref := payload.Ref
 	defaultBranch := payload.Project.DefaultBranch
 
+	pushBranch := ""
+	if strings.HasPrefix(ref, "refs/heads/") {
+		pushBranch = strings.TrimPrefix(ref, "refs/heads/")
+	} else {
+		log.Printf("push was not to a branch, ignoring %v", ref)
+		return nil
+	}
+
 	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
 	//repo, err := models.DB.GetRepo(organisationId, diggerRepoName)
 	//if err != nil {
@@ -147,7 +155,7 @@ func handlePushEvent(gh utils.GitlabProvider, payload *gitlab.PushEvent, organis
 		isMainBranch = false
 	}
 
-	err = utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, token, func(dir string) error {
+	err = utils.CloneGitRepoAndDoAction(cloneURL, pushBranch, token, func(dir string) error {
 		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
 			log.Printf("ERROR load digger.yml: %v", err)
