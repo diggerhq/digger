@@ -93,17 +93,74 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 		}
 	case *gitlab.PushEvent:
 		log.Printf("Got push event for %v %v", event.Project.URL, event.Ref)
-		//err := handlePushEvent(gh, event)
-		//if err != nil {
-		//	log.Printf("handlePushEvent error: %v", err)
-		//	c.String(http.StatusInternalServerError, err.Error())
-		//	return
-		//}
+		err := handlePushEvent(d.GitlabProvider, event, organisationId)
+		if err != nil {
+			log.Printf("handlePushEvent error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 	default:
 		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
 	}
 
 	c.JSON(200, "ok")
+}
+
+func handlePushEvent(gh utils.GitlabProvider, payload *gitlab.PushEvent, organisationId uint) error {
+	//projectId := payload.Project.ID
+	repoFullName := payload.Project.PathWithNamespace
+	repoOwner, repoName, _ := strings.Cut(repoFullName, "/")
+	cloneURL := payload.Project.GitHTTPURL
+	webURL := payload.Project.WebURL
+	ref := payload.Ref
+	defaultBranch := payload.Project.DefaultBranch
+
+	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
+	//repo, err := models.DB.GetRepo(organisationId, diggerRepoName)
+	//if err != nil {
+	//	log.Printf("Error getting Repo: %v", err)
+	//	return fmt.Errorf("error getting github app link")
+	//}
+	// create repo if not exists
+	org, err := models.DB.GetOrganisationById(organisationId)
+	if err != nil {
+		log.Printf("Error: could not get organisation: %v", err)
+		return nil
+	}
+
+	repo, err := models.DB.CreateRepo(diggerRepoName, repoFullName, repoOwner, repoName, webURL, org, "")
+	if err != nil {
+		log.Printf("Error: could not create repo: %v", err)
+		return nil
+	}
+
+	token := os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
+	if token == "" {
+		log.Printf("could not find gitlab token: %v", err)
+		return fmt.Errorf("could not find gitlab token")
+	}
+
+	var isMainBranch bool
+	if strings.HasSuffix(ref, defaultBranch) {
+		isMainBranch = true
+	} else {
+		isMainBranch = false
+	}
+
+	err = utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, token, func(dir string) error {
+		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
+		if err != nil {
+			log.Printf("ERROR load digger.yml: %v", err)
+			return fmt.Errorf("error loading digger.yml %v", err)
+		}
+		models.DB.UpdateRepoDiggerConfig(organisationId, *config, repo, isMainBranch)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error while cloning repo: %v", err)
+	}
+
+	return nil
 }
 
 func GetGitlabRepoUrl(event interface{}) string {

@@ -16,18 +16,16 @@
                                 <th>Name</th>
                                 <th>Repo</th>
                                 <th>Organisation</th>
-                                <th>Status</th>
-                                <th>Details</th>
+                                <th>Commited To Main?</th>
                             </tr>
                         </thead>
                         <tbody>
                         {{ range .Projects }}
                             <tr>
                                 <td>{{ .Name }}</td>
-                                <td><a href="/repo/{{.Repo.ID}}/">{{ .Repo.Name }}<a></td>
+                                <td><a href="{{.Repo.RepoUrl}}/">{{ .Repo.RepoFullName }}<a></td>
                                 <td>{{ .Organisation.Name }}</td>
-                                <td>{{ .Status }}</td>
-                                <td><a href="/projects/{{.ID}}/details">Details<a></td>
+                                <td>{{ .IsInMainBranch }}</td>
                             </tr>
                         {{ end }}
                         </tbody>
