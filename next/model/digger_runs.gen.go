@@ -32,6 +32,10 @@ type DiggerRun struct {
 	IsApproved           bool           `gorm:"column:is_approved" json:"is_approved"`
 	ApprovalAuthor       string         `gorm:"column:approval_author" json:"approval_author"`
 	ApprovalDate         time.Time      `gorm:"column:approval_date" json:"approval_date"`
+	ProjectID            string         `gorm:"column:project_id;not null" json:"project_id"`
+	TerraformOutput      string         `gorm:"column:terraform_output" json:"terraform_output"`
+	ApplyLogs            string         `gorm:"column:apply_logs" json:"apply_logs"`
+	ApproverUserID       *string        `gorm:"column:approver_user_id" json:"approver_user_id"`
 }
 
 // TableName DiggerRun's table name

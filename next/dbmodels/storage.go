@@ -208,9 +208,6 @@ func (db *Database) GetProjectByName(orgId any, repo *model.Repo, name string) (
 		Where("projects.name = ?", name).First(&project).Error
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, err
 	}
@@ -710,22 +707,26 @@ func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([
 	return runs, nil
 }
 
-func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectName string, RunType RunType, planStageId string, applyStageId string) (*model.DiggerRun, error) {
+func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId int64, projectId string, ProjectName string, RunType RunType, planStageId string, applyStageId string) (*model.DiggerRun, error) {
 	dr := &model.DiggerRun{
+		ID:                   uuid.NewString(),
 		Triggertype:          Triggertype,
 		PrNumber:             int64(PrNumber),
 		Status:               string(Status),
 		CommitID:             CommitId,
 		DiggerConfig:         DiggerConfig,
 		GithubInstallationID: GithubInstallationId,
-		RepoID:               int64(RepoId),
+		RepoID:               RepoId,
 		ProjectName:          ProjectName,
+		ProjectID:            projectId,
 		RunType:              string(RunType),
 		PlanStageID:          planStageId,
 		ApplyStageID:         applyStageId,
 		IsApproved:           false,
+		ApprovalAuthor:       "",
+		ApplyLogs:            "",
 	}
-	result := db.GormDB.Save(dr)
+	result := db.GormDB.Create(dr)
 	if result.Error != nil {
 		log.Printf("Failed to create DiggerRun: %v, error: %v\n", dr.ID, result.Error)
 		return nil, result.Error
@@ -769,7 +770,7 @@ func (db *Database) GetDiggerRun(id uint) (*model.DiggerRun, error) {
 	return dr, nil
 }
 
-func (db *Database) CreateDiggerRunQueueItem(diggeRrunId int64, projectId int64) (*model.DiggerRunQueueItem, error) {
+func (db *Database) CreateDiggerRunQueueItem(diggeRrunId string, projectId string) (*model.DiggerRunQueueItem, error) {
 	drq := &model.DiggerRunQueueItem{
 		DiggerRunID: diggeRrunId,
 		ProjectID:   projectId,

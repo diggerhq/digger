@@ -18,8 +18,8 @@ type DiggerRunQueueItem struct {
 	CreatedAt   time.Time      `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
-	DiggerRunID int64          `gorm:"column:digger_run_id" json:"digger_run_id"`
-	ProjectID   int64          `gorm:"column:project_id" json:"project_id"`
+	DiggerRunID string         `gorm:"column:digger_run_id" json:"digger_run_id"`
+	ProjectID   string         `gorm:"column:project_id" json:"project_id"`
 }
 
 // TableName DiggerRunQueueItem's table name

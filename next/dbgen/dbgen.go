@@ -40,8 +40,15 @@ func main() {
 	//)
 	g.ApplyBasic(
 		// Generate structs from all tables of current database
+
 		g.GenerateAllTable()...,
 	)
+
+	// need to make approver_user_id nullable and gorm gen does not generate it as a string pointer, for some reason
+	g.ApplyBasic(
+		g.GenerateModel("digger_runs", gen.FieldType("approver_user_id", "*string")),
+	)
+
 	// Generate the code
 	g.Execute()
 }

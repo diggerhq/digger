@@ -30,8 +30,7 @@ func newEncryptedEnvVar(db *gorm.DB, opts ...gen.DOOption) encryptedEnvVar {
 	_encryptedEnvVar.ID = field.NewString(tableName, "id")
 	_encryptedEnvVar.ProjectID = field.NewString(tableName, "project_id")
 	_encryptedEnvVar.Name = field.NewString(tableName, "name")
-	_encryptedEnvVar.EncryptedValue = field.NewField(tableName, "encrypted_value")
-	_encryptedEnvVar.Iv = field.NewField(tableName, "iv")
+	_encryptedEnvVar.EncryptedValue = field.NewString(tableName, "encrypted_value")
 	_encryptedEnvVar.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_encryptedEnvVar.IsSecret = field.NewBool(tableName, "is_secret")
 
@@ -47,8 +46,7 @@ type encryptedEnvVar struct {
 	ID             field.String
 	ProjectID      field.String
 	Name           field.String
-	EncryptedValue field.Field
-	Iv             field.Field
+	EncryptedValue field.String
 	UpdatedAt      field.Time
 	IsSecret       field.Bool
 
@@ -70,8 +68,7 @@ func (e *encryptedEnvVar) updateTableName(table string) *encryptedEnvVar {
 	e.ID = field.NewString(table, "id")
 	e.ProjectID = field.NewString(table, "project_id")
 	e.Name = field.NewString(table, "name")
-	e.EncryptedValue = field.NewField(table, "encrypted_value")
-	e.Iv = field.NewField(table, "iv")
+	e.EncryptedValue = field.NewString(table, "encrypted_value")
 	e.UpdatedAt = field.NewTime(table, "updated_at")
 	e.IsSecret = field.NewBool(table, "is_secret")
 
@@ -90,12 +87,11 @@ func (e *encryptedEnvVar) GetFieldByName(fieldName string) (field.OrderExpr, boo
 }
 
 func (e *encryptedEnvVar) fillFieldMap() {
-	e.fieldMap = make(map[string]field.Expr, 7)
+	e.fieldMap = make(map[string]field.Expr, 6)
 	e.fieldMap["id"] = e.ID
 	e.fieldMap["project_id"] = e.ProjectID
 	e.fieldMap["name"] = e.Name
 	e.fieldMap["encrypted_value"] = e.EncryptedValue
-	e.fieldMap["iv"] = e.Iv
 	e.fieldMap["updated_at"] = e.UpdatedAt
 	e.fieldMap["is_secret"] = e.IsSecret
 }
