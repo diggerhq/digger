@@ -36,6 +36,9 @@ func ExtractCleanRepoName(gitlabURL string) (string, error) {
 
 func IsInRepoAllowList(repoUrl string) bool {
 	allowList := os.Getenv("DIGGER_REPO_ALLOW_LIST")
+	if allowList == "" {
+		return true
+	}
 	allowedReposUrls := strings.Split(allowList, ",")
 	// gitlab.com/diggerhq/test
 	// https://gitlab.com/diggerhq/test
