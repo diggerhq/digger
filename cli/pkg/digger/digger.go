@@ -144,7 +144,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		if reportTerraformOutput {
 			terraformOutput = exectorResults[0].TerraformOutput
 		}
-		log.Printf("reporterTerraformOutput %v, terraformOtutput %v", reportTerraformOutput, terraformOutput)
 		prNumber := *currentJob.PullRequestNumber
 		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, jobId, "succeeded", time.Now(), planResult, jobPrCommentUrl, terraformOutput)
 		if err != nil {
