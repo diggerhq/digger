@@ -142,6 +142,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 		}
 	}
 
+	log.Printf("the terraform output: %v", terraformOutput)
 	u.Path = filepath.Join(u.Path, "repos", repo, "projects", projectName, "jobs", jobId, "set-status")
 	request := map[string]interface{}{
 		"status":             status,
