@@ -36,6 +36,10 @@ func RunSpec(
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
+	if err != nil {
+		log.Printf("error while checking out to commit SHA: %v", err)
+		return fmt.Errorf("error while checking out to commit sha: %v", err)
+	}
 
 	job, err := jobProvider.GetJob(spec.Job)
 	if err != nil {
