@@ -120,8 +120,7 @@ func RunSpec(
 	}
 
 	reportTerraformOutput := spec.Reporter.ReportTerraformOutput
-	// TODO: do not require conversion to gh service
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, false, reportTerraformOutput, commentId, currentDir)
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, reportTerraformOutput, commentId, currentDir)
 	if !allAppliesSuccess || err != nil {
 		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {
