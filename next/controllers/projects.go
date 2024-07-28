@@ -124,7 +124,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 		return
 	}
-	
+
 	job.StatusUpdatedAt = request.Timestamp
 	err = dbmodels.DB.GormDB.Save(&job).Error
 	if err != nil {
@@ -157,8 +157,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
 
 	}
-
-	UpdateCommentsForBatchGroup(d.GithubClientProvider, batch, res.Jobs)
 
 	c.JSON(http.StatusOK, res)
 }

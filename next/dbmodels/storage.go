@@ -674,7 +674,11 @@ func (db *Database) UpdateBatchStatus(batch *model.DiggerBatch) error {
 	}
 	if allJobsSucceeded == true {
 		batch.Status = int16(scheduler.BatchJobSucceeded)
+		db.GormDB.Save(batch)
 	}
+
+	log.Printf("batchID: %v allJobsSucceeded: %v jobs: %v", batch.ID, allJobsSucceeded, diggerJobs)
+
 	return nil
 
 }
