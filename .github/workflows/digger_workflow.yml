@@ -21,7 +21,6 @@ jobs:
       statuses: write      # required to validate combined PR status
 
     steps:
-      - name: digger run ${{github.event.inputs.id}}
       - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
         run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
       - uses: actions/checkout@v4
