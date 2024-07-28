@@ -24,7 +24,7 @@ type SetJobStatusRequest struct {
 	JobSummary      *terraform_utils.PlanSummary            `json:"job_summary"`
 	Footprint       *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
 	PrCommentUrl    string                                  `json:"pr_comment_url"`
-	TerraformOutput string                                  `json:"terraform_output""`
+	TerraformOutput string                                  `json:"terraform_output"`
 }
 
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
@@ -88,6 +88,9 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 	case "succeeded":
 		job.Status = int16(orchestrator_scheduler.DiggerJobSucceeded)
+
+		log.Printf("terraform output: %v", job.TerraformOutput)
+
 		job.TerraformOutput = request.TerraformOutput
 		if request.Footprint != nil {
 			job.PlanFootprint, err = json.Marshal(request.Footprint)
