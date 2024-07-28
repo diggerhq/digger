@@ -90,8 +90,9 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 		CommentId: strconv.FormatInt(batch.CommentID, 10),
 		Job:       jobSpec,
 		Reporter: spec.ReporterSpec{
-			ReportingStrategy: "comments_per_run",
-			ReporterType:      "lazy",
+			ReportingStrategy:     "comments_per_run",
+			ReporterType:          "lazy",
+			ReportTerraformOutput: true,
 		},
 		Lock: spec.LockSpec{
 			LockType: "noop",

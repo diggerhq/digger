@@ -119,8 +119,9 @@ func RunSpec(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
+	reportTerraformOutput := spec.Reporter.ReportTerraformOutput
 	// TODO: do not require conversion to gh service
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId, currentDir)
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, reportTerraformOutput, false, commentId, currentDir)
 	if !allAppliesSuccess || err != nil {
 		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {
