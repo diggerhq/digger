@@ -855,6 +855,8 @@ func (db *Database) GetFirstRunQueueForEveryProject() ([]model.DiggerRunQueueIte
    ROW_NUMBER() OVER (PARTITION BY digger_run_queue_items.project_id ORDER BY digger_run_queue_items.created_at  ASC) AS QueuePosition
  FROM
    digger_run_queue_items
+ WHERE
+   deleted_at IS NULL
 )
 SELECT
  RankedRuns.digger_run_id ,

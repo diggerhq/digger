@@ -14,6 +14,7 @@ import (
 	"github.com/samber/lo"
 	"log"
 	"os"
+	"os/exec"
 	"time"
 )
 
@@ -28,6 +29,11 @@ func RunSpec(
 	PlanStorageProvider spec.PlanStorageProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
+
+	// checking out to the commit ID
+	log.Printf("checking out to commit ID %v", spec.Job)
+	cmd := exec.Command("git checkout ", spec.Job.Commit)
+	cmd.Run()
 
 	job, err := jobProvider.GetJob(spec.Job)
 	if err != nil {
