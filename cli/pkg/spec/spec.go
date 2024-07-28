@@ -31,9 +31,11 @@ func RunSpec(
 ) error {
 
 	// checking out to the commit ID
-	log.Printf("checking out to commit ID %v", spec.Job)
+	log.Printf("checking out to commit ID %v", spec.Job.Commit)
 	cmd := exec.Command("git checkout ", spec.Job.Commit)
-	cmd.Run()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
 
 	job, err := jobProvider.GetJob(spec.Job)
 	if err != nil {
