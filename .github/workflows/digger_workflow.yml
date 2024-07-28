@@ -22,8 +22,8 @@ jobs:
 
     steps:
       - name: digger run ${{github.event.inputs.id}}
-        run: echo digger run ${{ inputs.id }}
-        shell: bash      
+      - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+        run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
       - uses: actions/checkout@v4
       - uses: diggerhq/digger@feat/next4
         with:
