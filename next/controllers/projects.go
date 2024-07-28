@@ -104,53 +104,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			return
 		}
 
-		//go func() {
-		//	defer func() {
-		//		if r := recover(); r != nil {
-		//			log.Printf("Recovered from panic while executing goroutine dispatching digger jobs: %v ", r)
-		//		}
-		//	}()
-		//	ghClientProvider := d.GithubClientProvider
-		//	installationLink, err := models.DB.GetGithubInstallationLinkForOrg(orgId)
-		//	if err != nil {
-		//		log.Printf("Error fetching installation link: %v", err)
-		//		return
-		//	}
-		//
-		//	installations, err := models.DB.GetGithubAppInstallations(installationLink.GithubInstallationId)
-		//	if err != nil {
-		//		log.Printf("Error fetching installation: %v", err)
-		//		return
-		//	}
-		//
-		//	if len(installations) == 0 {
-		//		log.Printf("No installations found for installation id %v", installationLink.GithubInstallationId)
-		//		return
-		//	}
-		//
-		//	jobLink, err := models.DB.GetDiggerJobLink(jobId)
-		//
-		//	if err != nil {
-		//		log.Printf("Error fetching job link: %v", err)
-		//		return
-		//	}
-		//
-		//	workflowFileName := "digger_workflow.yml"
-		//
-		//	if !strings.Contains(jobLink.RepoFullName, "/") {
-		//		log.Printf("Repo full name %v does not contain a slash", jobLink.RepoFullName)
-		//		return
-		//	}
-		//
-		//	repoFullNameSplit := strings.Split(jobLink.RepoFullName, "/")
-		//	client, _, err := ghClientProvider.Get(installations[0].GithubAppId, installationLink.GithubInstallationId)
-		//	err = services.DiggerJobCompleted(client, batch.ID, job, jobLink.RepoFullName, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName, d.GithubClientProvider)
-		//	if err != nil {
-		//		log.Printf("Error triggering job: %v", err)
-		//		return
-		//	}
-		//}()
-
 		// store digger job summary
 		if request.JobSummary != nil {
 			dbmodels.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
@@ -171,6 +124,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 		return
 	}
+	
 	job.StatusUpdatedAt = request.Timestamp
 	err = dbmodels.DB.GormDB.Save(&job).Error
 	if err != nil {
