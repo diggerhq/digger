@@ -188,7 +188,7 @@ func cleanupDiggerOutput(output string) string {
 	// removes output of terraform -version command that terraform-exec executes on every run
 	i := strings.Index(output, startingDelimeter)
 	if i != -1 {
-		startPos = i
+		startPos = i + len(startingDelimeter)
 	}
 
 	e := strings.Index(output, endingDelimiter)
@@ -318,7 +318,6 @@ var execCmd = &cobra.Command{
 		var jobId *int64
 		for {
 			runId, jobId, logsUrl, err = GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, spec.JobId)
-			log.Printf("=============")
 			if err == nil {
 				break
 			}
@@ -331,9 +330,9 @@ var execCmd = &cobra.Command{
 		for {
 			j, _, err := client.Actions.GetWorkflowJobByID(context.Background(), repoOwner, repoName, *jobId)
 			if err != nil {
-				log.Printf("GetWorkflowJobByID error: %v", err)
+				log.Printf("GetWorkflowJobByID error: %v please view the logs in the job directly", err)
+				os.Exit(1)
 			}
-			log.Printf("job status: %v", *j.Status)
 			if *j.Status == "completed" {
 				break
 			}
@@ -342,15 +341,15 @@ var execCmd = &cobra.Command{
 
 		logs, _, err := client.Actions.GetWorkflowJobLogs(context.Background(), repoOwner, repoName, *jobId, 1)
 
-		log.Printf("stereaming logs from: %v || %v", logs, err)
+		log.Printf("streaming logs from remote job:")
 		logsContent, err := GetUrlContents(logs.String())
 
 		if err != nil {
 			log.Printf("error while fetching logs: %v", err)
 			os.Exit(1)
 		}
-
-		log.Printf("logsContent is: %v", logsContent)
+		cleanedLogs := cleanupDiggerOutput(logsContent)
+		log.Printf("logsContent is: %v", cleanedLogs)
 	},
 }
 
