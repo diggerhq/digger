@@ -1137,6 +1137,14 @@ func (db *Database) DeleteJobTokenArtefacts(jobTokenId uint) error {
 
 }
 
+func (db *Database) GetJobArtefact(jobTokenId uint) (*JobArtefact, error) {
+	var artefact JobArtefact
+	if err := DB.GormDB.Where("job_token_id = ?", jobTokenId).First(&artefact).Error; err != nil {
+		return nil, err
+	}
+	return &artefact, nil
+}
+
 func (db *Database) CreateGithubAppInstallation(installationId int64, githubAppId int64, login string, accountId int, repoFullName string) (*GithubAppInstallation, error) {
 	installation := &GithubAppInstallation{
 		GithubInstallationId: installationId,
