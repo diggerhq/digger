@@ -121,7 +121,8 @@ func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) (
 		return nil, false
 	}
 
-	runs, err := db.GetProjectRunsForOrg(loggedInOrganisationId.(int))
+	loggedInOrganisationIdInt := c.GetInt(orgIdKey)
+	runs, err := db.GetProjectRunsForOrg(loggedInOrganisationIdInt)
 	if err != nil {
 		return nil, false
 	}
