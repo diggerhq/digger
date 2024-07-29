@@ -76,6 +76,22 @@ func getRepoFullname() (string, error) {
 	return repoFullname, nil
 }
 
+func GetUrlContents(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("%v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("%v", err)
+	}
+
+	content := string(body)
+	return content, nil
+}
+
 func GetSpec(diggerUrl string, authToken string, command string, actor string, projectMarshalled string, diggerConfigMarshalled string, repoFullName string, defaultBanch string, prBranch string) ([]byte, error) {
 	payload := spec.GetSpecPayload{
 		Command:       command,
@@ -132,32 +148,57 @@ func pushToBranch(prBranch string) error {
 	return err
 }
 
-func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (*int64, *string, error) {
+func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (*int64, *int64, *string, error) {
 	timeFilter := time.Now().Add(-5 * time.Minute)
 	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
 		Created: ">=" + timeFilter.Format(time.RFC3339),
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("error listing workflow runs %v", err)
+		return nil, nil, nil, fmt.Errorf("error listing workflow runs %v", err)
 	}
 
 	for _, workflowRun := range runs.WorkflowRuns {
 		workflowjobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
+			return nil, nil, nil, fmt.Errorf("error listing workflow jobs for run %v %v", workflowRun.ID, err)
 		}
 
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
 				if strings.Contains(*step.Name, diggerJobID) {
 					url := fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID)
-					return workflowRun.ID, &url, nil
+					return workflowRun.ID, workflowjob.ID, &url, nil
 				}
 			}
 		}
 
 	}
-	return nil, nil, fmt.Errorf("workflow not found")
+	return nil, nil, nil, fmt.Errorf("workflow not found")
+}
+
+func cleanupDiggerOutput(output string) string {
+
+	startingDelimeter := "<========= DIGGER RUNNING IN MANUAL MODE =========>"
+	endingDelimiter := "<========= DIGGER COMPLETED =========>"
+
+	startPos := 0
+	endPos := len(output)
+	// removes output of terraform -version command that terraform-exec executes on every run
+	i := strings.Index(output, startingDelimeter)
+	if i != -1 {
+		startPos = i + len(startingDelimeter)
+	}
+
+	e := strings.Index(output, endingDelimiter)
+	if e != -1 {
+		endPos = e
+	}
+
+	// This should not happen but in case we get here we avoid slice bounds out of range exception by resetting endPos
+	if endPos <= startPos {
+		endPos = len(output)
+	}
+	return output[startPos:endPos]
 }
 
 // validateCmd represents the validate command
@@ -169,6 +210,12 @@ var execCmd = &cobra.Command{
 		var execConfig execConfig
 		viperExec.Unmarshal(&execConfig)
 		log.Printf("%v - %v ", execConfig.Project, execConfig.Command)
+
+		if execConfig.Command != "digger plan" {
+			log.Printf("ERROR: currently only 'digger plan' supported with exec command")
+			os.Exit(1)
+		}
+
 		config, _, _, err := digger_config.LoadDiggerConfig("./", true, nil)
 		if err != nil {
 			log.Printf("Invalid digger config file: %v. Exiting.", err)
@@ -266,16 +313,41 @@ var execCmd = &cobra.Command{
 		repoOwner, repoName, _ := strings.Cut(repoFullname, "/")
 		var logsUrl *string
 		var runId *int64
+		var jobId *int64
 		for {
-			runId, logsUrl, err = GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, spec.JobId)
+			runId, jobId, logsUrl, err = GetWorkflowIdAndUrlFromDiggerJobId(client, repoOwner, repoName, spec.JobId)
 			if err == nil {
 				break
 			}
 			time.Sleep(time.Second * 1)
 		}
 
-		log.Printf("logs url: %v runId %v", *logsUrl, *runId)
+		log.Printf("waiting for logs to be available, you can view job in this url: %v runId %v", *logsUrl, *runId)
+		log.Printf("......")
 
+		for {
+			j, _, err := client.Actions.GetWorkflowJobByID(context.Background(), repoOwner, repoName, *jobId)
+			if err != nil {
+				log.Printf("GetWorkflowJobByID error: %v please view the logs in the job directly", err)
+				os.Exit(1)
+			}
+			if *j.Status == "completed" {
+				break
+			}
+			time.Sleep(time.Second * 1)
+		}
+
+		logs, _, err := client.Actions.GetWorkflowJobLogs(context.Background(), repoOwner, repoName, *jobId, 1)
+
+		log.Printf("streaming logs from remote job:")
+		logsContent, err := GetUrlContents(logs.String())
+
+		if err != nil {
+			log.Printf("error while fetching logs: %v", err)
+			os.Exit(1)
+		}
+		cleanedLogs := cleanupDiggerOutput(logsContent)
+		log.Printf("logsContent is: %v", cleanedLogs)
 	},
 }
 
