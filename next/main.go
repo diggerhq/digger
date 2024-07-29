@@ -69,6 +69,7 @@ func main() {
 	r.GET("/github/callback", middleware.SupabaseCookieAuth(), diggerController.GithubAppCallbackPage)
 	r.POST("/github-app-webhook", diggerController.GithubAppWebHook)
 
+	r.POST("/_internal/process_runs_queue", middleware.WebhookAuth(), diggerController.ProcessRunQueueItems)
 	//authorized := r.Group("/")
 	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 

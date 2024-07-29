@@ -24,7 +24,7 @@ type SetJobStatusRequest struct {
 	JobSummary      *terraform_utils.PlanSummary            `json:"job_summary"`
 	Footprint       *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
 	PrCommentUrl    string                                  `json:"pr_comment_url"`
-	TerraformOutput string                                  `json:"terraform_output""`
+	TerraformOutput string                                  `json:"terraform_output"`
 }
 
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
@@ -88,6 +88,9 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 	case "succeeded":
 		job.Status = int16(orchestrator_scheduler.DiggerJobSucceeded)
+
+		log.Printf("terraform output: %v", job.TerraformOutput)
+
 		job.TerraformOutput = request.TerraformOutput
 		if request.Footprint != nil {
 			job.PlanFootprint, err = json.Marshal(request.Footprint)
@@ -103,53 +106,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 			return
 		}
-
-		//go func() {
-		//	defer func() {
-		//		if r := recover(); r != nil {
-		//			log.Printf("Recovered from panic while executing goroutine dispatching digger jobs: %v ", r)
-		//		}
-		//	}()
-		//	ghClientProvider := d.GithubClientProvider
-		//	installationLink, err := models.DB.GetGithubInstallationLinkForOrg(orgId)
-		//	if err != nil {
-		//		log.Printf("Error fetching installation link: %v", err)
-		//		return
-		//	}
-		//
-		//	installations, err := models.DB.GetGithubAppInstallations(installationLink.GithubInstallationId)
-		//	if err != nil {
-		//		log.Printf("Error fetching installation: %v", err)
-		//		return
-		//	}
-		//
-		//	if len(installations) == 0 {
-		//		log.Printf("No installations found for installation id %v", installationLink.GithubInstallationId)
-		//		return
-		//	}
-		//
-		//	jobLink, err := models.DB.GetDiggerJobLink(jobId)
-		//
-		//	if err != nil {
-		//		log.Printf("Error fetching job link: %v", err)
-		//		return
-		//	}
-		//
-		//	workflowFileName := "digger_workflow.yml"
-		//
-		//	if !strings.Contains(jobLink.RepoFullName, "/") {
-		//		log.Printf("Repo full name %v does not contain a slash", jobLink.RepoFullName)
-		//		return
-		//	}
-		//
-		//	repoFullNameSplit := strings.Split(jobLink.RepoFullName, "/")
-		//	client, _, err := ghClientProvider.Get(installations[0].GithubAppId, installationLink.GithubInstallationId)
-		//	err = services.DiggerJobCompleted(client, batch.ID, job, jobLink.RepoFullName, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName, d.GithubClientProvider)
-		//	if err != nil {
-		//		log.Printf("Error triggering job: %v", err)
-		//		return
-		//	}
-		//}()
 
 		// store digger job summary
 		if request.JobSummary != nil {
@@ -171,6 +127,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 		return
 	}
+
 	job.StatusUpdatedAt = request.Timestamp
 	err = dbmodels.DB.GormDB.Save(&job).Error
 	if err != nil {
@@ -203,8 +160,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
 
 	}
-
-	UpdateCommentsForBatchGroup(d.GithubClientProvider, batch, res.Jobs)
 
 	c.JSON(http.StatusOK, res)
 }

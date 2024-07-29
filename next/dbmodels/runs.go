@@ -12,6 +12,7 @@ const (
 	RunApplying        DiggerRunStatus = "Running Apply"
 	RunSucceeded       DiggerRunStatus = "Succeeded"
 	RunFailed          DiggerRunStatus = "Failed"
+	RunDiscarded       DiggerRunStatus = "Discarded"
 )
 
 type RunType string

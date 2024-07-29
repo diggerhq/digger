@@ -15,8 +15,7 @@ type EncryptedEnvVar struct {
 	ID             string    `gorm:"column:id;primaryKey;default:gen_random_uuid()" json:"id"`
 	ProjectID      string    `gorm:"column:project_id;not null" json:"project_id"`
 	Name           string    `gorm:"column:name;not null" json:"name"`
-	EncryptedValue []uint8   `gorm:"column:encrypted_value;not null" json:"encrypted_value"`
-	Iv             []uint8   `gorm:"column:iv;not null" json:"iv"`
+	EncryptedValue string    `gorm:"column:encrypted_value;not null" json:"encrypted_value"`
 	UpdatedAt      time.Time `gorm:"column:updated_at;not null;default:now()" json:"updated_at"`
 	IsSecret       bool      `gorm:"column:is_secret;not null" json:"is_secret"`
 }

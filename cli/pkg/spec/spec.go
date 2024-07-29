@@ -14,6 +14,7 @@ import (
 	"github.com/samber/lo"
 	"log"
 	"os"
+	"os/exec"
 	"time"
 )
 
@@ -28,6 +29,17 @@ func RunSpec(
 	PlanStorageProvider spec.PlanStorageProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
+
+	// checking out to the commit ID
+	log.Printf("checking out to commit ID %v", spec.Job.Commit)
+	cmd := exec.Command("git", "checkout", spec.Job.Commit)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		log.Printf("error while checking out to commit SHA: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
+	}
 
 	job, err := jobProvider.GetJob(spec.Job)
 	if err != nil {
@@ -107,8 +119,8 @@ func RunSpec(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
-	// TODO: do not require conversion to gh service
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, false, commentId, currentDir)
+	reportTerraformOutput := spec.Reporter.ReportTerraformOutput
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, reportTerraformOutput, commentId, currentDir)
 	if !allAppliesSuccess || err != nil {
 		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {

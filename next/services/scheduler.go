@@ -2,9 +2,9 @@ package services
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
 	"log"
