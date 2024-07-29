@@ -59,6 +59,7 @@ func HttpBasicApiAuth() gin.HandlerFunc {
 			} else {
 				setDefaultOrganisationId(c)
 				c.Set(ACCESS_LEVEL_KEY, jobToken.Type)
+				c.Set(JOB_TOKEN_KEY, jobToken.Value)
 			}
 		} else if token == os.Getenv("BEARER_AUTH_TOKEN") {
 			setDefaultOrganisationId(c)
