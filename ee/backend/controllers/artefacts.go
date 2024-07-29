@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"io"
 	"log"
 	"net/http"
@@ -55,7 +57,7 @@ func SetJobArtefact(c *gin.Context) {
 	// Create a new File record
 	artefactRecord := models.JobArtefact{
 		JobTokenID:  jobToken.ID,
-		Filename:    file.Filename,
+		Filename:    uuid.NewString(),
 		Contents:    content,
 		Size:        file.Size,
 		ContentType: file.Header.Get("Content-Type"),
@@ -72,5 +74,29 @@ func SetJobArtefact(c *gin.Context) {
 }
 
 func DownloadJobArtefact(c *gin.Context) {
+	jobTokenValue, exists := c.Get(middleware.JOB_TOKEN_KEY)
+	if !exists {
+		c.String(http.StatusBadRequest, "missing value: bearer job token")
+		return
+	}
 
+	jobToken, err := models.DB.GetJobToken(jobTokenValue)
+	if err != nil {
+		c.String(http.StatusBadRequest, "could not find job token")
+		return
+	}
+
+	artefact, err := models.DB.GetJobArtefact(jobToken.ID)
+	if err != nil {
+		c.String(http.StatusBadRequest, "could not find any artefacts for job token")
+		return
+	}
+
+	// Set the appropriate headers
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", artefact.Filename))
+	c.Header("Content-Type", artefact.ContentType)
+	c.Header("Content-Length", fmt.Sprintf("%d", artefact.Size))
+
+	// Write the file contents to the response
+	c.Data(http.StatusOK, artefact.ContentType, artefact.Contents)
 }
