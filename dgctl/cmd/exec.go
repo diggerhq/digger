@@ -165,8 +165,6 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
-				//log.Printf("workflowRun: %v workflowJob %v workflowjobName: %v workflowStep %v", *workflowRun.ID, *workflowjob.ID, *workflowjob.Name, *step.Name)
-
 				if strings.Contains(*step.Name, diggerJobID) {
 					url := fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID)
 					return workflowRun.ID, workflowjob.ID, &url, nil
