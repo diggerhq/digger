@@ -200,7 +200,9 @@ func RunSpecManualCommand(
 
 	commentUpdater := comment_summary.NoopCommentUpdater{}
 	// TODO: do not require conversion to gh service
+	log.Printf("<========= DIGGER RUNNING IN MANUAL MODE =========>")
 	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, false, false, commentId, currentDir)
+	log.Printf("<========= DIGGER COMPLETED =========>")
 	if err != nil || allAppliesSuccess == false {
 		usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Terraform execution failed", 1)
 	}
