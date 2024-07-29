@@ -8,6 +8,16 @@ on:
       run_name:
         required: false
 
+  workflow_call:
+    inputs:
+      spec:
+        type: string
+        required: true
+    secrets:
+      TFVARS:
+        required: false
+
+
 run-name: ${{inputs.run_name}}
 
 jobs:
