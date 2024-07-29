@@ -309,3 +309,4 @@ func CORSMiddleware() gin.HandlerFunc {
 
 const ORGANISATION_ID_KEY = "organisation_ID"
 const ACCESS_LEVEL_KEY = "access_level"
+const JOB_TOKEN_KEY = "job_token"

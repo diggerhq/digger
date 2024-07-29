@@ -79,6 +79,9 @@ func main() {
 	policiesGroup.GET("/:policyid/details", web.PolicyDetailsPage)
 	policiesGroup.POST("/:policyid/details", web.PolicyDetailsUpdatePage)
 
+	jobArtefactsGroup := r.Group("/job_artefacts")
+	jobArtefactsGroup.Use(middleware.GetApiMiddleware())
+	jobArtefactsGroup.PUT("/", controllers.SetJobArtefact)
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
 }
