@@ -31,8 +31,8 @@ func newDiggerRunQueueItem(db *gorm.DB, opts ...gen.DOOption) diggerRunQueueItem
 	_diggerRunQueueItem.CreatedAt = field.NewTime(tableName, "created_at")
 	_diggerRunQueueItem.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_diggerRunQueueItem.DeletedAt = field.NewField(tableName, "deleted_at")
-	_diggerRunQueueItem.DiggerRunID = field.NewInt64(tableName, "digger_run_id")
-	_diggerRunQueueItem.ProjectID = field.NewInt64(tableName, "project_id")
+	_diggerRunQueueItem.DiggerRunID = field.NewString(tableName, "digger_run_id")
+	_diggerRunQueueItem.ProjectID = field.NewString(tableName, "project_id")
 
 	_diggerRunQueueItem.fillFieldMap()
 
@@ -47,8 +47,8 @@ type diggerRunQueueItem struct {
 	CreatedAt   field.Time
 	UpdatedAt   field.Time
 	DeletedAt   field.Field
-	DiggerRunID field.Int64
-	ProjectID   field.Int64
+	DiggerRunID field.String
+	ProjectID   field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -69,8 +69,8 @@ func (d *diggerRunQueueItem) updateTableName(table string) *diggerRunQueueItem {
 	d.CreatedAt = field.NewTime(table, "created_at")
 	d.UpdatedAt = field.NewTime(table, "updated_at")
 	d.DeletedAt = field.NewField(table, "deleted_at")
-	d.DiggerRunID = field.NewInt64(table, "digger_run_id")
-	d.ProjectID = field.NewInt64(table, "project_id")
+	d.DiggerRunID = field.NewString(table, "digger_run_id")
+	d.ProjectID = field.NewString(table, "project_id")
 
 	d.fillFieldMap()
 

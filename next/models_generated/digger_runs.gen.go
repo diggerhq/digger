@@ -45,6 +45,10 @@ func newDiggerRun(db *gorm.DB, opts ...gen.DOOption) diggerRun {
 	_diggerRun.IsApproved = field.NewBool(tableName, "is_approved")
 	_diggerRun.ApprovalAuthor = field.NewString(tableName, "approval_author")
 	_diggerRun.ApprovalDate = field.NewTime(tableName, "approval_date")
+	_diggerRun.ProjectID = field.NewString(tableName, "project_id")
+	_diggerRun.TerraformOutput = field.NewString(tableName, "terraform_output")
+	_diggerRun.ApplyLogs = field.NewString(tableName, "apply_logs")
+	_diggerRun.ApproverUserID = field.NewString(tableName, "approver_user_id")
 
 	_diggerRun.fillFieldMap()
 
@@ -73,6 +77,10 @@ type diggerRun struct {
 	IsApproved           field.Bool
 	ApprovalAuthor       field.String
 	ApprovalDate         field.Time
+	ProjectID            field.String
+	TerraformOutput      field.String
+	ApplyLogs            field.String
+	ApproverUserID       field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -107,6 +115,10 @@ func (d *diggerRun) updateTableName(table string) *diggerRun {
 	d.IsApproved = field.NewBool(table, "is_approved")
 	d.ApprovalAuthor = field.NewString(table, "approval_author")
 	d.ApprovalDate = field.NewTime(table, "approval_date")
+	d.ProjectID = field.NewString(table, "project_id")
+	d.TerraformOutput = field.NewString(table, "terraform_output")
+	d.ApplyLogs = field.NewString(table, "apply_logs")
+	d.ApproverUserID = field.NewString(table, "approver_user_id")
 
 	d.fillFieldMap()
 
@@ -123,7 +135,7 @@ func (d *diggerRun) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (d *diggerRun) fillFieldMap() {
-	d.fieldMap = make(map[string]field.Expr, 18)
+	d.fieldMap = make(map[string]field.Expr, 22)
 	d.fieldMap["id"] = d.ID
 	d.fieldMap["created_at"] = d.CreatedAt
 	d.fieldMap["updated_at"] = d.UpdatedAt
@@ -142,6 +154,10 @@ func (d *diggerRun) fillFieldMap() {
 	d.fieldMap["is_approved"] = d.IsApproved
 	d.fieldMap["approval_author"] = d.ApprovalAuthor
 	d.fieldMap["approval_date"] = d.ApprovalDate
+	d.fieldMap["project_id"] = d.ProjectID
+	d.fieldMap["terraform_output"] = d.TerraformOutput
+	d.fieldMap["apply_logs"] = d.ApplyLogs
+	d.fieldMap["approver_user_id"] = d.ApproverUserID
 }
 
 func (d diggerRun) clone(db *gorm.DB) diggerRun {

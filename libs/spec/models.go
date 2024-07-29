@@ -5,8 +5,9 @@ import (
 )
 
 type ReporterSpec struct {
-	ReporterType      string `json:"reporter_type"`
-	ReportingStrategy string `json:"reporting_strategy"`
+	ReporterType          string `json:"reporter_type"`
+	ReportingStrategy     string `json:"reporting_strategy"`
+	ReportTerraformOutput bool   `json:"report_terraform_output"`
 }
 
 type LockSpec struct {

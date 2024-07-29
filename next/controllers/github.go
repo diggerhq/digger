@@ -106,6 +106,12 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		}
 	case *github.PushEvent:
 		log.Printf("Got push event for %d", event.Repo.URL)
+		handlePushEventApplyAfterMerge(gh, event)
+		if err != nil {
+			log.Printf("handlePushEvent error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 	default:
 		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
 	}
@@ -381,62 +387,6 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 			return err
 		}
 	}
-	return nil
-}
-
-func handlePushEvent(gh next_utils.GithubClientProvider, payload *github.PushEvent) error {
-	installationId := *payload.Installation.ID
-	repoName := *payload.Repo.Name
-	repoFullName := *payload.Repo.FullName
-	repoOwner := *payload.Repo.Owner.Login
-	cloneURL := *payload.Repo.CloneURL
-	ref := *payload.Ref
-	defaultBranch := *payload.Repo.DefaultBranch
-
-	link, err := dbmodels.DB.GetGithubAppInstallationLink(installationId)
-	if err != nil {
-		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
-		return fmt.Errorf("error getting github app link")
-	}
-
-	orgId := link.OrganizationID
-	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
-	repo, err := dbmodels.DB.GetRepo(orgId, diggerRepoName)
-	if err != nil {
-		log.Printf("Error getting Repo: %v", err)
-		return fmt.Errorf("error getting github app link")
-	}
-	if repo == nil {
-		log.Printf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-		return fmt.Errorf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-	}
-
-	_, token, err := next_utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
-	if err != nil {
-		log.Printf("Error getting github service: %v", err)
-		return fmt.Errorf("error getting github service")
-	}
-
-	var isMainBranch bool
-	if strings.HasSuffix(ref, defaultBranch) {
-		isMainBranch = true
-	} else {
-		isMainBranch = false
-	}
-
-	err = utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
-		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
-		if err != nil {
-			log.Printf("ERROR load digger.yml: %v", err)
-			return fmt.Errorf("error loading digger.yml %v", err)
-		}
-		dbmodels.DB.UpdateRepoDiggerConfig(link.OrganizationID, *config, repo, isMainBranch)
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error while cloning repo: %v", err)
-	}
-
 	return nil
 }
 
