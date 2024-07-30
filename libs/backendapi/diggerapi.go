@@ -189,7 +189,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Could not read response body: %v", err)
+		return nil, fmt.Errorf("could not read response body: %v", err)
 	}
 
 	var response scheduler.SerializedBatch
@@ -204,14 +204,14 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 		return nil, nil, err
 	}
 	u.Path = path.Join(u.Path, "job_artefacts")
-	url := u.String()
+	uploadUrl := u.String()
 	filePath := zipLocation
 
 	// Open the file
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return nil, nil, fmt.Errorf("Error opening file:", err)
+		fmt.Println("error opening file:", err)
+		return nil, nil, fmt.Errorf("error opening file: %v", err)
 	}
 	defer file.Close()
 
@@ -225,24 +225,24 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	fileWriter, err := multipartWriter.CreateFormFile("file", filepath.Base(filePath))
 	if err != nil {
 		fmt.Println("Error creating form file:", err)
-		return nil, nil, fmt.Errorf("Error creating form file:", err)
+		return nil, nil, fmt.Errorf("error creating form file: %v", err)
 	}
 
 	// Copy the file content to the form file writer
 	_, err = io.Copy(fileWriter, file)
 	if err != nil {
 		fmt.Println("Error copying file content:", err)
-		return nil, nil, fmt.Errorf("Error copying file content:", err)
+		return nil, nil, fmt.Errorf("error copying file content: %v", err)
 	}
 
 	// Close the multipart writer to finalize the request body
 	multipartWriter.Close()
 
 	// Create a new HTTP request
-	req, err := http.NewRequest("PUT", url, &requestBody)
+	req, err := http.NewRequest("PUT", uploadUrl, &requestBody)
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return nil, nil, fmt.Errorf("Error creating request:", err)
+		return nil, nil, fmt.Errorf("error creating request: %v", err)
 	}
 
 	// Set the content type header
@@ -254,7 +254,7 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
-		return nil, nil, fmt.Errorf("Error sending request:", err)
+		return nil, nil, fmt.Errorf("error sending request: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -262,7 +262,7 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response:", err)
-		return nil, nil, fmt.Errorf("Error reading response: %v", err)
+		return nil, nil, fmt.Errorf("error reading response: %v", err)
 	}
 
 	b := string(body)
@@ -284,17 +284,17 @@ func getFilename(resp *http.Response) string {
 
 func (d DiggerApi) DownloadJobArtefact(downloadTo string) (*string, error) {
 	// Download the zip file
-	url, err := url.JoinPath(d.DiggerHost, "job_artefacts")
+	downloadUrl, err := url.JoinPath(d.DiggerHost, "job_artefacts")
 	if err != nil {
 		log.Printf("failed to create url: %v", err)
 		return nil, err
 	}
 
 	// Create a new HTTP request
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", downloadUrl, nil)
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return nil, fmt.Errorf("Error creating request:", err)
+		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 
 	// Set the content type header
