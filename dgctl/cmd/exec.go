@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/dgctl/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
@@ -272,6 +273,23 @@ var execCmd = &cobra.Command{
 		}
 		var spec spec.Spec
 		err = json.Unmarshal(specBytes, &spec)
+
+		// attatch zip archive to backend
+		backendToken := spec.Job.BackendJobToken
+		zipLocation, err := utils.ArchiveGitRepo("./")
+		statusCode, respBody, err := utils.SendZipAsJobArtefact(diggerHostname, zipLocation, backendToken)
+		if err != nil {
+			log.Printf("could not attach zip artefact: %v", err)
+			os.Exit(1)
+		}
+		if *statusCode != 200 {
+			log.Printf("unexpected status code from backend: %v", *statusCode)
+			log.Printf("server response: %v", *respBody)
+			os.Exit(1)
+		}
+
+		log.Printf("exiting early ...")
+		os.Exit(0)
 
 		token := os.Getenv("GITHUB_PAT_TOKEN")
 		if token == "" {
