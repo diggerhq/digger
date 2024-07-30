@@ -17,7 +17,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -186,18 +185,25 @@ func RunSpecManualCommand(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not download job artefact: %v", err), 1)
 	}
 	zipPath := *absoluteFileName
-	utils.ExtractZip(zipPath, tempDir)
-	// Transforming: /var/temp/xxx/yyy/blabla.zip -> /var/temp/xxx/yyy/blabla
-	gitLocation := strings.TrimSuffix(zipPath, ".zip")
-	log.Printf("git location is: %v", gitLocation)
-	log.Printf("zipPath: %v", zipPath)
-	f, err := os.Stat(tempDir)
-	log.Printf("files in %v : %v ", tempDir, f)
-
-	err = os.Chdir(gitLocation)
+	err = utils.ExtractZip(zipPath, tempDir)
 	if err != nil {
-		log.Printf("Could not chdir: %v", err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not change directory: %v", err), 1)
+		log.Printf("ExtractZip err: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("artefact zip extraction err: %v", err), 1)
+
+	}
+
+	// remove the zipPath
+	err = os.Remove(zipPath)
+	if err != nil {
+		log.Printf("os.Remove err: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("zip path removal err: %v", err), 1)
+	}
+
+	// Navigating to our diractory
+	err = os.Chdir(tempDir)
+	if err != nil {
+		log.Printf("Chdir err: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Chdir err: %v", err), 1)
 	}
 
 	cmd := exec.Command("git", "init")
