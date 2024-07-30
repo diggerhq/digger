@@ -32,8 +32,8 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 
 	actor := payload.Actor
 	commitSha := ""
-	defaultBranch := payload.DefaultBranch
-	prBranch := payload.PrBranch
+	//defaultBranch := payload.DefaultBranch
+	//prBranch := payload.PrBranch
 	issueNumber := 000
 
 	config := digger_config.DiggerConfig{}
@@ -54,7 +54,7 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 
 	workflowFile := project.WorkflowFile
 
-	jobs, err := generic.CreateJobsForProjects([]digger_config.Project{project}, command, "manual", repoFullName, actor, config.Workflows, &issueNumber, &commitSha, defaultBranch, prBranch)
+	jobs, err := generic.CreateJobsForProjects([]digger_config.Project{project}, command, "manual", repoFullName, actor, config.Workflows, &issueNumber, &commitSha, "", "")
 	if err != nil {
 		log.Printf("could not create jobs based on project: %v", err)
 		c.String(500, fmt.Sprintf("could not create jobs based on project: %v", err))
@@ -77,7 +77,7 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 	}
 	backendHostName := os.Getenv("HOSTNAME")
 
-	jobSpec := scheduler.JobToJson(job, scheduler.DiggerCommandPlan, org.Name, prBranch, commitSha, jobToken.Value, backendHostName, project)
+	jobSpec := scheduler.JobToJson(job, scheduler.DiggerCommandPlan, org.Name, "", commitSha, jobToken.Value, backendHostName, project)
 
 	spec := spec.Spec{
 		SpecType: spec.SpecTypeManualJob,
@@ -92,7 +92,10 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 			LockType: "noop",
 		},
 		Backend: spec.BackendSpec{
-			BackendType: "noop",
+			BackendType:             "backend",
+			BackendHostname:         jobSpec.BackendHostname,
+			BackendJobToken:         jobSpec.BackendJobToken,
+			BackendOrganisationName: jobSpec.BackendOrganisationName,
 		},
 		VCS: spec.VcsSpec{
 			VcsType:                  "github",

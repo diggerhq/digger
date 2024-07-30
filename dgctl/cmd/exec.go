@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/dgctl/utils"
+	"github.com/diggerhq/digger/libs/backendapi"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
@@ -37,18 +39,6 @@ type execConfig struct {
 func getRepoUsername() (string, error) {
 	// Execute 'git config --get remote.origin.url' to get the URL of the origin remote
 	cmd := exec.Command("git", "config", "--get", "user.name")
-	out, err := cmd.Output()
-	return strings.TrimSpace(string(out)), err
-}
-
-func getDefaultBranch() (string, error) {
-	cmd := exec.Command("git", "symbolic-ref", "refs/remotes/origin/HEAD")
-	out, err := cmd.Output()
-	return strings.ReplaceAll(strings.TrimSpace(string(out)), "refs/remotes/origin/", ""), err
-}
-
-func getPrBranch() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	out, err := cmd.Output()
 	return strings.TrimSpace(string(out)), err
 }
@@ -92,15 +82,13 @@ func GetUrlContents(url string) (string, error) {
 	return content, nil
 }
 
-func GetSpec(diggerUrl string, authToken string, command string, actor string, projectMarshalled string, diggerConfigMarshalled string, repoFullName string, defaultBanch string, prBranch string) ([]byte, error) {
+func GetSpec(diggerUrl string, authToken string, command string, actor string, projectMarshalled string, diggerConfigMarshalled string, repoFullName string) ([]byte, error) {
 	payload := spec.GetSpecPayload{
-		Command:       command,
-		RepoFullName:  repoFullName,
-		Actor:         actor,
-		DefaultBranch: defaultBanch,
-		PrBranch:      prBranch,
-		DiggerConfig:  diggerConfigMarshalled,
-		Project:       projectMarshalled,
+		Command:      command,
+		RepoFullName: repoFullName,
+		Actor:        actor,
+		DiggerConfig: diggerConfigMarshalled,
+		Project:      projectMarshalled,
 	}
 	u, err := url.Parse(diggerUrl)
 	if err != nil {
@@ -141,11 +129,6 @@ func GetSpec(diggerUrl string, authToken string, command string, actor string, p
 	}
 
 	return body, nil
-}
-func pushToBranch(prBranch string) error {
-	cmd := exec.Command("git", "push", "origin", prBranch)
-	_, err := cmd.Output()
-	return err
 }
 
 func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (*int64, *int64, *string, error) {
@@ -234,18 +217,6 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		defaultBanch, err := getDefaultBranch()
-		if err != nil {
-			log.Printf("could not get default branch, please enter manually:")
-			fmt.Scanln(&defaultBanch)
-		}
-
-		prBranch, err := getPrBranch()
-		if err != nil {
-			log.Printf("could not get current branch, please enter manually:")
-			fmt.Scanln(&prBranch)
-		}
-
 		projectName := execConfig.Project
 		command := execConfig.Command
 		projectConfig := config.GetProject(projectName)
@@ -266,12 +237,32 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		specBytes, err := GetSpec(diggerHostname, "abc123", command, actor, string(projectMarshalled), string(configMarshalled), repoFullname, defaultBanch, prBranch)
+		specBytes, err := GetSpec(diggerHostname, "abc123", command, actor, string(projectMarshalled), string(configMarshalled), repoFullname)
 		if err != nil {
 			log.Printf("failed to get spec from backend: %v", err)
+			os.Exit(1)
 		}
 		var spec spec.Spec
 		err = json.Unmarshal(specBytes, &spec)
+
+		// attach zip archive to backend
+		backendToken := spec.Job.BackendJobToken
+		zipLocation, err := utils.ArchiveGitRepo("./")
+		if err != nil {
+			log.Printf("error archiving zip repo: %v", err)
+			os.Exit(1)
+		}
+		backendApi := backendapi.DiggerApi{DiggerHost: diggerHostname, AuthToken: backendToken}
+		statusCode, respBody, err := backendApi.UploadJobArtefact(zipLocation)
+		if err != nil {
+			log.Printf("could not attach zip artefact: %v", err)
+			os.Exit(1)
+		}
+		if *statusCode != 200 {
+			log.Printf("unexpected status code from backend: %v", *statusCode)
+			log.Printf("server response: %v", *respBody)
+			os.Exit(1)
+		}
 
 		token := os.Getenv("GITHUB_PAT_TOKEN")
 		if token == "" {
@@ -289,10 +280,11 @@ var execCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
-		err = pushToBranch(prBranch)
+
+		repoOwner, repoName, _ := strings.Cut(repoFullname, "/")
+		repository, _, err := client.Repositories.Get(context.Background(), repoOwner, repoName)
 		if err != nil {
-			log.Printf("could not push to branchL %v", err)
-			os.Exit(1)
+			log.Fatalf("Failed to get repository: %v", err)
 		}
 
 		inputs := orchestrator_scheduler.WorkflowInput{
@@ -300,7 +292,7 @@ var execCmd = &cobra.Command{
 			RunName: fmt.Sprintf("digger %v manual run by %v", command, spec.VCS.Actor),
 		}
 		_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), spec.VCS.RepoOwner, spec.VCS.RepoName, spec.VCS.WorkflowFile, github.CreateWorkflowDispatchEventRequest{
-			Ref:    spec.Job.Branch,
+			Ref:    *repository.DefaultBranch,
 			Inputs: inputs.ToMap(),
 		})
 
@@ -310,7 +302,6 @@ var execCmd = &cobra.Command{
 			log.Printf("workflow has triggered successfully! waiting for results ...")
 		}
 
-		repoOwner, repoName, _ := strings.Cut(repoFullname, "/")
 		var logsUrl *string
 		var runId *int64
 		var jobId *int64
