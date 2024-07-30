@@ -1126,6 +1126,25 @@ func (db *Database) GetJobToken(tenantId any) (*JobToken, error) {
 	return token, nil
 }
 
+func (db *Database) DeleteJobTokenArtefacts(jobTokenId uint) error {
+	artefact := JobArtefact{}
+	result := db.GormDB.Where("job_token_id = ?", jobTokenId).Delete(&artefact)
+	if result.Error != nil {
+		return result.Error
+	}
+	log.Printf("DeleteJobTokenArtefacts %v has been deleted successfully\n", jobTokenId)
+	return nil
+
+}
+
+func (db *Database) GetJobArtefact(jobTokenId uint) (*JobArtefact, error) {
+	var artefact JobArtefact
+	if err := DB.GormDB.Where("job_token_id = ?", jobTokenId).First(&artefact).Error; err != nil {
+		return nil, err
+	}
+	return &artefact, nil
+}
+
 func (db *Database) CreateGithubAppInstallation(installationId int64, githubAppId int64, login string, accountId int, repoFullName string) (*GithubAppInstallation, error) {
 	installation := &GithubAppInstallation{
 		GithubInstallationId: installationId,
