@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/dgctl/utils"
+	"github.com/diggerhq/digger/libs/backendapi"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
@@ -274,10 +275,11 @@ var execCmd = &cobra.Command{
 		var spec spec.Spec
 		err = json.Unmarshal(specBytes, &spec)
 
-		// attatch zip archive to backend
+		// attach zip archive to backend
 		backendToken := spec.Job.BackendJobToken
 		zipLocation, err := utils.ArchiveGitRepo("./")
-		statusCode, respBody, err := utils.SendZipAsJobArtefact(diggerHostname, zipLocation, backendToken)
+		statusCode, respBody, err := backendapi.DiggerApi{DiggerHost: diggerHostname, AuthToken: backendToken}.UploadJobArtefact(zipLocation)
+
 		if err != nil {
 			log.Printf("could not attach zip artefact: %v", err)
 			os.Exit(1)
@@ -287,9 +289,6 @@ var execCmd = &cobra.Command{
 			log.Printf("server response: %v", *respBody)
 			os.Exit(1)
 		}
-
-		log.Printf("exiting early ...")
-		os.Exit(0)
 
 		token := os.Getenv("GITHUB_PAT_TOKEN")
 		if token == "" {
@@ -306,11 +305,6 @@ var execCmd = &cobra.Command{
 				log.Printf("could not instantiate github enterprise url: %v", err)
 				os.Exit(1)
 			}
-		}
-		err = pushToBranch(prBranch)
-		if err != nil {
-			log.Printf("could not push to branchL %v", err)
-			os.Exit(1)
 		}
 
 		inputs := orchestrator_scheduler.WorkflowInput{
