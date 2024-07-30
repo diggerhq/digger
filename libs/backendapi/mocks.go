@@ -20,3 +20,11 @@ func (t MockBackendApi) ReportProjectRun(repo string, projectName string, starte
 func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *execution.DiggerExecutorPlanResult, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
+
+func (t MockBackendApi) UploadJobArtefact(zipLocation string) (*int, *string, error) {
+	return nil, nil, nil
+}
+
+func (t MockBackendApi) DownloadJobArtefact(downloadTo string) (*string, error) {
+	return nil, nil
+}

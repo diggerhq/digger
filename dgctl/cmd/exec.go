@@ -278,8 +278,8 @@ var execCmd = &cobra.Command{
 		// attach zip archive to backend
 		backendToken := spec.Job.BackendJobToken
 		zipLocation, err := utils.ArchiveGitRepo("./")
-		statusCode, respBody, err := backendapi.DiggerApi{DiggerHost: diggerHostname, AuthToken: backendToken}.UploadJobArtefact(zipLocation)
-
+		backendApi := backendapi.DiggerApi{DiggerHost: diggerHostname, AuthToken: backendToken}
+		statusCode, respBody, err := backendApi.UploadJobArtefact(zipLocation)
 		if err != nil {
 			log.Printf("could not attach zip artefact: %v", err)
 			os.Exit(1)
@@ -289,7 +289,7 @@ var execCmd = &cobra.Command{
 			log.Printf("server response: %v", *respBody)
 			os.Exit(1)
 		}
-
+		
 		token := os.Getenv("GITHUB_PAT_TOKEN")
 		if token == "" {
 			log.Printf("missing variable: GITHUB_PAT_TOKEN")
