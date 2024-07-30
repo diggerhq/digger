@@ -92,7 +92,10 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 			LockType: "noop",
 		},
 		Backend: spec.BackendSpec{
-			BackendType: "noop",
+			BackendType:             "backend",
+			BackendHostname:         jobSpec.BackendHostname,
+			BackendJobToken:         jobSpec.BackendJobToken,
+			BackendOrganisationName: jobSpec.BackendOrganisationName,
 		},
 		VCS: spec.VcsSpec{
 			VcsType:                  "github",

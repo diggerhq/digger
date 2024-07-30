@@ -5,6 +5,7 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
@@ -191,8 +192,9 @@ func RunSpecManualCommand(
 	os.Chdir(gitLocation)
 	cmd := exec.Command("git", "init")
 	cmd.Stdout = os.Stdout
-	cmd.Stdout = os.Stderr
-	
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+
 	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
@@ -206,11 +208,13 @@ func RunSpecManualCommand(
 
 	jobs := []scheduler.Job{job}
 
-	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
-	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err), 4)
-	}
+	//fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
+	//_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
+	//if err != nil {
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err), 4)
+	//}
+
+	noopBackendApi := backendapi.NoopApi{}
 
 	commentId := spec.CommentId
 	if err != nil {
@@ -225,7 +229,7 @@ func RunSpecManualCommand(
 	commentUpdater := comment_summary.NoopCommentUpdater{}
 	// do not change these placeholders as they are parsed by dgctl to stream logs
 	log.Printf("<========= DIGGER RUNNING IN MANUAL MODE =========>")
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, false, false, commentId, currentDir)
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, noopBackendApi, spec.JobId, false, false, commentId, currentDir)
 	log.Printf("<========= DIGGER COMPLETED =========>")
 	if err != nil || allAppliesSuccess == false {
 		usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Terraform execution failed", 1)
