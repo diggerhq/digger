@@ -289,7 +289,7 @@ var execCmd = &cobra.Command{
 			log.Printf("server response: %v", *respBody)
 			os.Exit(1)
 		}
-		
+
 		token := os.Getenv("GITHUB_PAT_TOKEN")
 		if token == "" {
 			log.Printf("missing variable: GITHUB_PAT_TOKEN")
@@ -312,7 +312,6 @@ var execCmd = &cobra.Command{
 			RunName: fmt.Sprintf("digger %v manual run by %v", command, spec.VCS.Actor),
 		}
 		_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), spec.VCS.RepoOwner, spec.VCS.RepoName, spec.VCS.WorkflowFile, github.CreateWorkflowDispatchEventRequest{
-			Ref:    spec.Job.Branch,
 			Inputs: inputs.ToMap(),
 		})
 
