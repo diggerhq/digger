@@ -57,7 +57,7 @@ func SetJobArtefact(c *gin.Context) {
 	// Create a new File record
 	artefactRecord := models.JobArtefact{
 		JobTokenID:  jobToken.ID,
-		Filename:    uuid.NewString(),
+		Filename:    uuid.NewString() + ".zip",
 		Contents:    content,
 		Size:        file.Size,
 		ContentType: file.Header.Get("Content-Type"),

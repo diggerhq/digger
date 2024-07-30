@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
@@ -14,6 +15,8 @@ import (
 	"github.com/samber/lo"
 	"log"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -169,6 +172,27 @@ func RunSpecManualCommand(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
 	}
 
+	// download zip artefact, git init and prepare for job execution
+	tempDir, err := os.MkdirTemp("", "downloaded-zip-")
+	if err != nil {
+		log.Printf("failed to create temp dir: %w", err)
+		os.Exit(1)
+	}
+
+	// downloading artefact zip , extracting, git init and then chdir to that directory for job execution
+	absoluteFileName, err := backendApi.DownloadJobArtefact(tempDir)
+	if err != nil {
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not download job artefact: %v", err), 1)
+	}
+	zipPath := *absoluteFileName
+	utils.ExtractZip(zipPath, tempDir)
+	// Transforming: /var/temp/xxx/yyy/blabla.zip -> /var/temp/xxx/yyy/blabla
+	gitLocation := strings.TrimSuffix(zipPath, ".zip")
+	os.Chdir(gitLocation)
+	cmd := exec.Command("git", "init")
+	cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stderr
+	
 	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
@@ -199,7 +223,7 @@ func RunSpecManualCommand(
 	}
 
 	commentUpdater := comment_summary.NoopCommentUpdater{}
-	// TODO: do not require conversion to gh service
+	// do not change these placeholders as they are parsed by dgctl to stream logs
 	log.Printf("<========= DIGGER RUNNING IN MANUAL MODE =========>")
 	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, false, false, commentId, currentDir)
 	log.Printf("<========= DIGGER COMPLETED =========>")
