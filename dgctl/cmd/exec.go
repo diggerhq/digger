@@ -43,18 +43,6 @@ func getRepoUsername() (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
-func getDefaultBranch() (string, error) {
-	cmd := exec.Command("git", "symbolic-ref", "refs/remotes/origin/HEAD")
-	out, err := cmd.Output()
-	return strings.ReplaceAll(strings.TrimSpace(string(out)), "refs/remotes/origin/", ""), err
-}
-
-func getPrBranch() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	out, err := cmd.Output()
-	return strings.TrimSpace(string(out)), err
-}
-
 func getRepoFullname() (string, error) {
 	// Execute 'git config --get remote.origin.url' to get the URL of the origin remote
 	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
@@ -141,11 +129,6 @@ func GetSpec(diggerUrl string, authToken string, command string, actor string, p
 	}
 
 	return body, nil
-}
-func pushToBranch(prBranch string) error {
-	cmd := exec.Command("git", "push", "origin", prBranch)
-	_, err := cmd.Output()
-	return err
 }
 
 func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (*int64, *int64, *string, error) {
@@ -234,18 +217,6 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		//defaultBanch, err := getDefaultBranch()
-		//if err != nil {
-		//	log.Printf("could not get default branch, please enter manually:")
-		//	fmt.Scanln(&defaultBanch)
-		//}
-
-		//prBranch, err := getPrBranch()
-		//if err != nil {
-		//	log.Printf("could not get current branch, please enter manually:")
-		//	fmt.Scanln(&prBranch)
-		//}
-
 		projectName := execConfig.Project
 		command := execConfig.Command
 		projectConfig := config.GetProject(projectName)
@@ -269,6 +240,7 @@ var execCmd = &cobra.Command{
 		specBytes, err := GetSpec(diggerHostname, "abc123", command, actor, string(projectMarshalled), string(configMarshalled), repoFullname)
 		if err != nil {
 			log.Printf("failed to get spec from backend: %v", err)
+			os.Exit(1)
 		}
 		var spec spec.Spec
 		err = json.Unmarshal(specBytes, &spec)
@@ -276,6 +248,10 @@ var execCmd = &cobra.Command{
 		// attach zip archive to backend
 		backendToken := spec.Job.BackendJobToken
 		zipLocation, err := utils.ArchiveGitRepo("./")
+		if err != nil {
+			log.Printf("error archiving zip repo: %v", err)
+			os.Exit(1)
+		}
 		backendApi := backendapi.DiggerApi{DiggerHost: diggerHostname, AuthToken: backendToken}
 		statusCode, respBody, err := backendApi.UploadJobArtefact(zipLocation)
 		if err != nil {

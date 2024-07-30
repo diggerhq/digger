@@ -12,8 +12,10 @@ import (
 func ArchiveGitRepo(sourcePath string) (string, error) {
 	// Generate a unique ID for the temp directory
 	tempID := fmt.Sprintf("%d", time.Now().UnixNano())
-	tempDir := filepath.Join(os.TempDir(), fmt.Sprintf("temp_%s", tempID))
-
+	tempDir, err := os.MkdirTemp("", "archive-zip-")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp dir: %v", err)
+	}
 	// Create the temp directory
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create temp directory: %w", err)
