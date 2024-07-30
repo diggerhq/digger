@@ -189,7 +189,17 @@ func RunSpecManualCommand(
 	utils.ExtractZip(zipPath, tempDir)
 	// Transforming: /var/temp/xxx/yyy/blabla.zip -> /var/temp/xxx/yyy/blabla
 	gitLocation := strings.TrimSuffix(zipPath, ".zip")
-	os.Chdir(gitLocation)
+	log.Printf("git location is: %v", gitLocation)
+	log.Printf("zipPath: %v", zipPath)
+	f, err := os.Stat(tempDir)
+	log.Printf("files in %v : %v ", tempDir, f)
+
+	err = os.Chdir(gitLocation)
+	if err != nil {
+		log.Printf("Could not chdir: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not change directory: %v", err), 1)
+	}
+
 	cmd := exec.Command("git", "init")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
