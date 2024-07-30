@@ -175,7 +175,7 @@ func RunSpecManualCommand(
 	// download zip artefact, git init and prepare for job execution
 	tempDir, err := os.MkdirTemp("", "downloaded-zip-")
 	if err != nil {
-		log.Printf("failed to create temp dir: %w", err)
+		log.Printf("failed to create temp dir: %v", err)
 		os.Exit(1)
 	}
 
