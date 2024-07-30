@@ -94,15 +94,13 @@ func GetUrlContents(url string) (string, error) {
 	return content, nil
 }
 
-func GetSpec(diggerUrl string, authToken string, command string, actor string, projectMarshalled string, diggerConfigMarshalled string, repoFullName string, defaultBanch string, prBranch string) ([]byte, error) {
+func GetSpec(diggerUrl string, authToken string, command string, actor string, projectMarshalled string, diggerConfigMarshalled string, repoFullName string) ([]byte, error) {
 	payload := spec.GetSpecPayload{
-		Command:       command,
-		RepoFullName:  repoFullName,
-		Actor:         actor,
-		DefaultBranch: defaultBanch,
-		PrBranch:      prBranch,
-		DiggerConfig:  diggerConfigMarshalled,
-		Project:       projectMarshalled,
+		Command:      command,
+		RepoFullName: repoFullName,
+		Actor:        actor,
+		DiggerConfig: diggerConfigMarshalled,
+		Project:      projectMarshalled,
 	}
 	u, err := url.Parse(diggerUrl)
 	if err != nil {
@@ -236,17 +234,17 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		defaultBanch, err := getDefaultBranch()
-		if err != nil {
-			log.Printf("could not get default branch, please enter manually:")
-			fmt.Scanln(&defaultBanch)
-		}
+		//defaultBanch, err := getDefaultBranch()
+		//if err != nil {
+		//	log.Printf("could not get default branch, please enter manually:")
+		//	fmt.Scanln(&defaultBanch)
+		//}
 
-		prBranch, err := getPrBranch()
-		if err != nil {
-			log.Printf("could not get current branch, please enter manually:")
-			fmt.Scanln(&prBranch)
-		}
+		//prBranch, err := getPrBranch()
+		//if err != nil {
+		//	log.Printf("could not get current branch, please enter manually:")
+		//	fmt.Scanln(&prBranch)
+		//}
 
 		projectName := execConfig.Project
 		command := execConfig.Command
@@ -268,7 +266,7 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		specBytes, err := GetSpec(diggerHostname, "abc123", command, actor, string(projectMarshalled), string(configMarshalled), repoFullname, defaultBanch, prBranch)
+		specBytes, err := GetSpec(diggerHostname, "abc123", command, actor, string(projectMarshalled), string(configMarshalled), repoFullname)
 		if err != nil {
 			log.Printf("failed to get spec from backend: %v", err)
 		}
@@ -307,11 +305,18 @@ var execCmd = &cobra.Command{
 			}
 		}
 
+		repoOwner, repoName, _ := strings.Cut(repoFullname, "/")
+		repository, _, err := client.Repositories.Get(context.Background(), repoOwner, repoName)
+		if err != nil {
+			log.Fatalf("Failed to get repository: %v", err)
+		}
+
 		inputs := orchestrator_scheduler.WorkflowInput{
 			Spec:    string(specBytes),
 			RunName: fmt.Sprintf("digger %v manual run by %v", command, spec.VCS.Actor),
 		}
 		_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), spec.VCS.RepoOwner, spec.VCS.RepoName, spec.VCS.WorkflowFile, github.CreateWorkflowDispatchEventRequest{
+			Ref:    *repository.DefaultBranch,
 			Inputs: inputs.ToMap(),
 		})
 
@@ -321,7 +326,6 @@ var execCmd = &cobra.Command{
 			log.Printf("workflow has triggered successfully! waiting for results ...")
 		}
 
-		repoOwner, repoName, _ := strings.Cut(repoFullname, "/")
 		var logsUrl *string
 		var runId *int64
 		var jobId *int64
