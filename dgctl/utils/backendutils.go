@@ -6,12 +6,19 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 )
 
 func SendZipAsJobArtefact(backendUrl string, zipLocation string, jobToken string) (*int, *string, error) {
-	url := fmt.Sprintf("%v/job_artefacts/", backendUrl)
+	u, err := url.Parse(backendUrl)
+	if err != nil {
+		return nil, nil, err
+	}
+	u.Path = path.Join(u.Path, "job_artefacts")
+	url := u.String()
 	filePath := zipLocation
 
 	// Open the file
