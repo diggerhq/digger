@@ -823,7 +823,6 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 		for i := 0; hasChanges && i <= len(atlantisConfig.Projects); i++ {
 			hasChanges = false
 			for _, project := range atlantisConfig.Projects {
-				log.Printf("%v ---- %v", project.Name, project.Dir)
 				executionOrderGroup := 0
 				// choose order group based on dependencies
 				for _, dep := range project.Autoplan.WhenModified {
