@@ -483,6 +483,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 	}
 
 	for _, atlantisProject := range atlantisConfig.Projects {
+
 		// normalize paths
 		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
 		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
