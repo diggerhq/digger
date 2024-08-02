@@ -31,7 +31,7 @@ var defaultCmd = &cobra.Command{
 			}
 
 			var spec_err error
-			if spec.SpecType == lib_spec.SpecTypeMergeJob {
+			if spec.SpecType == lib_spec.SpecTypeNextJob {
 				spec_err = spec2.RunSpecNext(
 					spec,
 					lib_spec.VCSProviderBasic{},
