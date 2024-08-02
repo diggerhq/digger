@@ -31,6 +31,7 @@ func newOrganization(db *gorm.DB, opts ...gen.DOOption) organization {
 	_organization.ID = field.NewString(tableName, "id")
 	_organization.Title = field.NewString(tableName, "title")
 	_organization.Slug = field.NewString(tableName, "slug")
+	_organization.PublicKey = field.NewString(tableName, "public_key")
 
 	_organization.fillFieldMap()
 
@@ -45,6 +46,7 @@ type organization struct {
 	ID        field.String
 	Title     field.String
 	Slug      field.String
+	PublicKey field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -65,6 +67,7 @@ func (o *organization) updateTableName(table string) *organization {
 	o.ID = field.NewString(table, "id")
 	o.Title = field.NewString(table, "title")
 	o.Slug = field.NewString(table, "slug")
+	o.PublicKey = field.NewString(table, "public_key")
 
 	o.fillFieldMap()
 
@@ -81,11 +84,12 @@ func (o *organization) GetFieldByName(fieldName string) (field.OrderExpr, bool) 
 }
 
 func (o *organization) fillFieldMap() {
-	o.fieldMap = make(map[string]field.Expr, 4)
+	o.fieldMap = make(map[string]field.Expr, 5)
 	o.fieldMap["created_at"] = o.CreatedAt
 	o.fieldMap["id"] = o.ID
 	o.fieldMap["title"] = o.Title
 	o.fieldMap["slug"] = o.Slug
+	o.fieldMap["public_key"] = o.PublicKey
 }
 
 func (o organization) clone(db *gorm.DB) organization {

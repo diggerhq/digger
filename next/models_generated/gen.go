@@ -53,6 +53,8 @@ var (
 	ProjectTfvar                     *projectTfvar
 	Repo                             *repo
 	Subscription                     *subscription
+	Team                             *team
+	TeamMember                       *teamMember
 	UserAPIKey                       *userAPIKey
 	UserNotification                 *userNotification
 	UserOnboarding                   *userOnboarding
@@ -99,6 +101,8 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	ProjectTfvar = &Q.ProjectTfvar
 	Repo = &Q.Repo
 	Subscription = &Q.Subscription
+	Team = &Q.Team
+	TeamMember = &Q.TeamMember
 	UserAPIKey = &Q.UserAPIKey
 	UserNotification = &Q.UserNotification
 	UserOnboarding = &Q.UserOnboarding
@@ -146,6 +150,8 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		ProjectTfvar:                     newProjectTfvar(db, opts...),
 		Repo:                             newRepo(db, opts...),
 		Subscription:                     newSubscription(db, opts...),
+		Team:                             newTeam(db, opts...),
+		TeamMember:                       newTeamMember(db, opts...),
 		UserAPIKey:                       newUserAPIKey(db, opts...),
 		UserNotification:                 newUserNotification(db, opts...),
 		UserOnboarding:                   newUserOnboarding(db, opts...),
@@ -194,6 +200,8 @@ type Query struct {
 	ProjectTfvar                     projectTfvar
 	Repo                             repo
 	Subscription                     subscription
+	Team                             team
+	TeamMember                       teamMember
 	UserAPIKey                       userAPIKey
 	UserNotification                 userNotification
 	UserOnboarding                   userOnboarding
@@ -243,6 +251,8 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		ProjectTfvar:                     q.ProjectTfvar.clone(db),
 		Repo:                             q.Repo.clone(db),
 		Subscription:                     q.Subscription.clone(db),
+		Team:                             q.Team.clone(db),
+		TeamMember:                       q.TeamMember.clone(db),
 		UserAPIKey:                       q.UserAPIKey.clone(db),
 		UserNotification:                 q.UserNotification.clone(db),
 		UserOnboarding:                   q.UserOnboarding.clone(db),
@@ -299,6 +309,8 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		ProjectTfvar:                     q.ProjectTfvar.replaceDB(db),
 		Repo:                             q.Repo.replaceDB(db),
 		Subscription:                     q.Subscription.replaceDB(db),
+		Team:                             q.Team.replaceDB(db),
+		TeamMember:                       q.TeamMember.replaceDB(db),
 		UserAPIKey:                       q.UserAPIKey.replaceDB(db),
 		UserNotification:                 q.UserNotification.replaceDB(db),
 		UserOnboarding:                   q.UserOnboarding.replaceDB(db),
@@ -345,6 +357,8 @@ type queryCtx struct {
 	ProjectTfvar                     IProjectTfvarDo
 	Repo                             IRepoDo
 	Subscription                     ISubscriptionDo
+	Team                             ITeamDo
+	TeamMember                       ITeamMemberDo
 	UserAPIKey                       IUserAPIKeyDo
 	UserNotification                 IUserNotificationDo
 	UserOnboarding                   IUserOnboardingDo
@@ -391,6 +405,8 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		ProjectTfvar:                     q.ProjectTfvar.WithContext(ctx),
 		Repo:                             q.Repo.WithContext(ctx),
 		Subscription:                     q.Subscription.WithContext(ctx),
+		Team:                             q.Team.WithContext(ctx),
+		TeamMember:                       q.TeamMember.WithContext(ctx),
 		UserAPIKey:                       q.UserAPIKey.WithContext(ctx),
 		UserNotification:                 q.UserNotification.WithContext(ctx),
 		UserOnboarding:                   q.UserOnboarding.WithContext(ctx),

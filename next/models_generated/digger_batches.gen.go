@@ -41,6 +41,7 @@ func newDiggerBatch(db *gorm.DB, opts ...gen.DOOption) diggerBatch {
 	_diggerBatch.SourceDetails = field.NewField(tableName, "source_details")
 	_diggerBatch.Vcs = field.NewString(tableName, "vcs")
 	_diggerBatch.GitlabProjectID = field.NewInt64(tableName, "gitlab_project_id")
+	_diggerBatch.OrganizationID = field.NewString(tableName, "organization_id")
 
 	_diggerBatch.fillFieldMap()
 
@@ -65,6 +66,7 @@ type diggerBatch struct {
 	SourceDetails        field.Field
 	Vcs                  field.String
 	GitlabProjectID      field.Int64
+	OrganizationID       field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -95,6 +97,7 @@ func (d *diggerBatch) updateTableName(table string) *diggerBatch {
 	d.SourceDetails = field.NewField(table, "source_details")
 	d.Vcs = field.NewString(table, "vcs")
 	d.GitlabProjectID = field.NewInt64(table, "gitlab_project_id")
+	d.OrganizationID = field.NewString(table, "organization_id")
 
 	d.fillFieldMap()
 
@@ -111,7 +114,7 @@ func (d *diggerBatch) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (d *diggerBatch) fillFieldMap() {
-	d.fieldMap = make(map[string]field.Expr, 14)
+	d.fieldMap = make(map[string]field.Expr, 15)
 	d.fieldMap["id"] = d.ID
 	d.fieldMap["pr_number"] = d.PrNumber
 	d.fieldMap["status"] = d.Status
@@ -126,6 +129,7 @@ func (d *diggerBatch) fillFieldMap() {
 	d.fieldMap["source_details"] = d.SourceDetails
 	d.fieldMap["vcs"] = d.Vcs
 	d.fieldMap["gitlab_project_id"] = d.GitlabProjectID
+	d.fieldMap["organization_id"] = d.OrganizationID
 }
 
 func (d diggerBatch) clone(db *gorm.DB) diggerBatch {

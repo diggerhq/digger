@@ -617,10 +617,11 @@ func (db *Database) GetDiggerBatch(batchId string) (*model.DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int) (*model.DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(orgid string, vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int) (*model.DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &model.DiggerBatch{
 		ID:                   uid.String(),
+		OrganizationID:       orgid,
 		Vcs:                  string(vcsType),
 		GithubInstallationID: githubInstallationId,
 		RepoOwner:            repoOwner,

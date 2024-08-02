@@ -44,6 +44,45 @@ func GetVCSTokenFromJob(job model.DiggerJob, gh utils.GithubClientProvider) (*st
 	return &token, nil
 }
 
+func RefreshVariableSpecForJob(job model.DiggerJob) error {
+	var jobSpec scheduler.JobJson
+	err := json.Unmarshal([]byte(job.JobSpec), &jobSpec)
+	if err != nil {
+		log.Printf("could not unmarshal job string: %v", err)
+		return fmt.Errorf("could not marshal json string: %v", err)
+	}
+
+	batchId := job.BatchID
+	batch, err := dbmodels.DB.GetDiggerBatch(batchId)
+	if err != nil {
+		log.Printf("could not get digger batch: %v", err)
+		return fmt.Errorf("could not get digger batch: %v", err)
+	}
+
+	org, err := dbmodels.DB.GetOrganisationById(batch.OrganizationID)
+	if err != nil {
+		log.Printf("could not get org: %v", err)
+		return fmt.Errorf("could not get orb: %v", err)
+	}
+
+	repo, err := dbmodels.DB.GetRepo(batch.OrganizationID, batch.RepoName)
+	if err != nil {
+		log.Printf("could not get repo: %v", err)
+		return fmt.Errorf("could not get repo: %v", err)
+	}
+
+	project, err := dbmodels.DB.GetProjectByName(org.ID, repo, jobSpec.ProjectName)
+	if err != nil {
+		log.Printf("could not get repo: %v", err)
+		return fmt.Errorf("could not get repo: %v", err)
+	}
+
+	// here we get vars using project.ID for this project and load them into a specVariables, marshall
+	// them and then store them in job.VarsSpec
+
+	return nil
+}
+
 func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 	var jobSpec scheduler.JobJson
 	err := json.Unmarshal([]byte(job.JobSpec), &jobSpec)
