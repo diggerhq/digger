@@ -69,7 +69,7 @@ func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 	return &runName, nil
 }
 
-func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
+func GetSpecFromJob(job model.DiggerJob, specType spec.SpecType) (*spec.Spec, error) {
 	var jobSpec scheduler.JobJson
 	err := json.Unmarshal([]byte(job.JobSpec), &jobSpec)
 	if err != nil {
@@ -85,7 +85,7 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 	}
 
 	spec := spec.Spec{
-		SpecType:  spec.SpecTypePullRequestJob,
+		SpecType:  specType,
 		JobId:     job.DiggerJobID,
 		CommentId: strconv.FormatInt(batch.CommentID, 10),
 		Job:       jobSpec,

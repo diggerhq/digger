@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
@@ -69,7 +70,7 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 		return fmt.Errorf("coult not get run name %v", err)
 	}
 
-	spec, err := GetSpecFromJob(*job)
+	spec, err := GetSpecFromJob(*job, lib_spec.SpecTypePullRequestJob)
 	if err != nil {
 		log.Printf("could not get spec: %v", err)
 		return fmt.Errorf("coult not get spec %v", err)

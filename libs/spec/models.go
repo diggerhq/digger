@@ -38,6 +38,7 @@ type PolicySpec struct {
 
 type SpecType string
 
+const SpecTypeMergeJob SpecType = "merge_run_job"
 const SpecTypePullRequestJob SpecType = "pull_request_job"
 const SpecTypeManualJob SpecType = "manual_job"
 const SpecTypeDriftJob SpecType = "drift_job"

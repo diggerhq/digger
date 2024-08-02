@@ -3,6 +3,7 @@ package digger_config
 import (
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/samber/lo"
 	"log"
 	"os"
@@ -432,7 +433,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		cascadeDependencies = *parsingConfig.CascadeDependencies
 	}
 
-	executionOrderGroups := false
+	executionOrderGroups := true
 	if parsingConfig.ExecutionOrderGroups != nil {
 		executionOrderGroups = *parsingConfig.ExecutionOrderGroups
 	}
@@ -442,7 +443,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		workflowFile = parsingConfig.WorkflowFile
 	}
 
-	atlantisConfig, _, err := atlantis.Parse(
+	atlantisConfig, dependsOnMap, err := atlantis.Parse(
 		root,
 		parsingConfig.ProjectHclFiles,
 		projectExternalChilds,
@@ -482,9 +483,11 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		pathPrefix = *parsingConfig.GitRoot
 	}
 
+	spew.Dump(atlantisConfig.Projects)
+	spew.Dump(dependsOnMap)
 	for _, atlantisProject := range atlantisConfig.Projects {
-
 		// normalize paths
+		//dependsOnMap[atlantisProject.Name] // [projectB]
 		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
 		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
 		if err != nil {
@@ -492,14 +495,15 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		}
 
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
-			Name:            atlantisProject.Name,
-			Dir:             projectDir,
-			Workspace:       atlantisProject.Workspace,
-			Terragrunt:      true,
-			Workflow:        atlantisProject.Workflow,
-			WorkflowFile:    &workflowFile,
-			IncludePatterns: atlantisProject.Autoplan.WhenModified,
-			Generated:       true,
+			Name:               atlantisProject.Name,
+			Dir:                projectDir,
+			Workspace:          atlantisProject.Workspace,
+			Terragrunt:         true,
+			Workflow:           atlantisProject.Workflow,
+			WorkflowFile:       &workflowFile,
+			IncludePatterns:    atlantisProject.Autoplan.WhenModified,
+			Generated:          true,
+			DependencyProjects: dependsOnMap[atlantisProject.Name],
 		})
 	}
 	return nil
