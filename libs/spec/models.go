@@ -36,10 +36,10 @@ type PolicySpec struct {
 	PolicyType string `json:"policy_type"`
 }
 
-type VariablesSpec struct {
+type VariableSpec struct {
 	Name     string `json:"name"`
 	Value    string `json:"value"`
-	IsSecret string `json:"is_secret"`
+	IsSecret bool   `json:"is_secret"`
 }
 
 type SpecType string
@@ -62,5 +62,5 @@ type Spec struct {
 	Backend   BackendSpec       `json:"backend"`
 	VCS       VcsSpec           `json:"vcs"`
 	Policy    PolicySpec        `json:"policy_provider"`
-	Variables []VariablesSpec   `json:"variables"`
+	Variables []VariableSpec    `json:"variables"`
 }

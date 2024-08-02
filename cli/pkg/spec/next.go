@@ -24,6 +24,7 @@ func RunSpecNext(
 	backedProvider spec.BackendApiProvider,
 	policyProvider spec.SpecPolicyProvider,
 	PlanStorageProvider spec.PlanStorageProvider,
+	VariablesProvider spec.VariablesProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
 
@@ -42,6 +43,15 @@ func RunSpecNext(
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
 	}
+
+	// get variables from the variables spec
+	variablesMap, err := VariablesProvider.GetVariables(spec.Variables)
+	if err != nil {
+		log.Printf("could not get variables from provider: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get variables from provider: %v", err), 1)
+	}
+	job.StateEnvVars = lo.Assign(job.StateEnvVars, variablesMap)
+	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, variablesMap)
 
 	lock, err := lockProvider.GetLock(spec.Lock)
 	if err != nil {
@@ -92,11 +102,6 @@ func RunSpecNext(
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
 	}
-
-	workflow := diggerConfig.Workflows[job.ProjectWorkflow]
-	stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-	job.StateEnvVars = lo.Assign(job.StateEnvVars, stateEnvVars)
-	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandEnvVars)
 
 	jobs := []scheduler.Job{job}
 
