@@ -36,6 +36,12 @@ type PolicySpec struct {
 	PolicyType string `json:"policy_type"`
 }
 
+type VariablesSpec struct {
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	IsSecret string `json:"is_secret"`
+}
+
 type SpecType string
 
 const SpecTypeNextJob SpecType = "next_run_spec"
@@ -50,10 +56,11 @@ type Spec struct {
 	CommentId string   `json:"comment_id"`
 	RunName   string   `json:"run_name"`
 
-	Job      scheduler.JobJson `json:"job"`
-	Reporter ReporterSpec      `json:"reporter"`
-	Lock     LockSpec          `json:"lock"`
-	Backend  BackendSpec       `json:"backend"`
-	VCS      VcsSpec           `json:"vcs"`
-	Policy   PolicySpec        `json:"policy_provider"`
+	Job       scheduler.JobJson `json:"job"`
+	Reporter  ReporterSpec      `json:"reporter"`
+	Lock      LockSpec          `json:"lock"`
+	Backend   BackendSpec       `json:"backend"`
+	VCS       VcsSpec           `json:"vcs"`
+	Policy    PolicySpec        `json:"policy_provider"`
+	Variables []VariablesSpec   `json:"variables"`
 }
