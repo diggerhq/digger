@@ -3,7 +3,6 @@ package digger_config
 import (
 	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/samber/lo"
 	"log"
 	"os"
@@ -433,7 +432,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		cascadeDependencies = *parsingConfig.CascadeDependencies
 	}
 
-	executionOrderGroups := true
+	executionOrderGroups := false
 	if parsingConfig.ExecutionOrderGroups != nil {
 		executionOrderGroups = *parsingConfig.ExecutionOrderGroups
 	}
