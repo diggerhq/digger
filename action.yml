@@ -109,6 +109,9 @@ inputs:
   digger-filename:
     description: Alternative Digger configuration file name
     required: false
+  digger-private-key:
+    description: Digger private key (for digger team and next only)
+    required: false
   digger-token:
     description: Digger token
     required: false
@@ -338,6 +341,7 @@ runs:
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        DIGGER_PRIVATE_KEY: ${{ inputs.digger-private-key }}
         DIGGER_TOKEN: ${{ inputs.digger-token }}
         DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
@@ -376,6 +380,7 @@ runs:
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
         ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
         DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        DIGGER_PRIVATE_KEY: ${{ inputs.digger-private-key }}
         DIGGER_TOKEN: ${{ inputs.digger-token }}
         DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
         DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}

@@ -626,8 +626,8 @@ func ConvertJobsToDiggerJobs(jobType orchestrator_scheduler.DiggerCommand, vcsTy
 	}
 
 	log.Printf("marshalledJobsMap: %v\n", marshalledJobsMap)
-
-	batch, err := dbmodels.DB.CreateDiggerBatch(vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId)
+	
+	batch, err := dbmodels.DB.CreateDiggerBatch(organisationId, vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
 	}

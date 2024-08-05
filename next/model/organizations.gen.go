@@ -16,6 +16,7 @@ type Organization struct {
 	ID        string    `gorm:"column:id;primaryKey;default:uuid_generate_v4()" json:"id"`
 	Title     string    `gorm:"column:title;not null;default:Test Organization" json:"title"`
 	Slug      string    `gorm:"column:slug;not null;default:(gen_random_uuid())" json:"slug"`
+	PublicKey string    `gorm:"column:public_key" json:"public_key"`
 }
 
 // TableName Organization's table name

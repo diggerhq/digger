@@ -29,7 +29,7 @@ var (
 	DiggerRun                        *diggerRun
 	DiggerRunQueueItem               *diggerRunQueueItem
 	DiggerRunStage                   *diggerRunStage
-	EncryptedEnvVar                  *encryptedEnvVar
+	EnvVar                           *envVar
 	GithubApp                        *githubApp
 	GithubAppInstallation            *githubAppInstallation
 	GithubAppInstallationLink        *githubAppInstallationLink
@@ -53,6 +53,8 @@ var (
 	ProjectTfvar                     *projectTfvar
 	Repo                             *repo
 	Subscription                     *subscription
+	Team                             *team
+	TeamMember                       *teamMember
 	UserAPIKey                       *userAPIKey
 	UserNotification                 *userNotification
 	UserOnboarding                   *userOnboarding
@@ -75,7 +77,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	DiggerRun = &Q.DiggerRun
 	DiggerRunQueueItem = &Q.DiggerRunQueueItem
 	DiggerRunStage = &Q.DiggerRunStage
-	EncryptedEnvVar = &Q.EncryptedEnvVar
+	EnvVar = &Q.EnvVar
 	GithubApp = &Q.GithubApp
 	GithubAppInstallation = &Q.GithubAppInstallation
 	GithubAppInstallationLink = &Q.GithubAppInstallationLink
@@ -99,6 +101,8 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	ProjectTfvar = &Q.ProjectTfvar
 	Repo = &Q.Repo
 	Subscription = &Q.Subscription
+	Team = &Q.Team
+	TeamMember = &Q.TeamMember
 	UserAPIKey = &Q.UserAPIKey
 	UserNotification = &Q.UserNotification
 	UserOnboarding = &Q.UserOnboarding
@@ -122,7 +126,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		DiggerRun:                        newDiggerRun(db, opts...),
 		DiggerRunQueueItem:               newDiggerRunQueueItem(db, opts...),
 		DiggerRunStage:                   newDiggerRunStage(db, opts...),
-		EncryptedEnvVar:                  newEncryptedEnvVar(db, opts...),
+		EnvVar:                           newEnvVar(db, opts...),
 		GithubApp:                        newGithubApp(db, opts...),
 		GithubAppInstallation:            newGithubAppInstallation(db, opts...),
 		GithubAppInstallationLink:        newGithubAppInstallationLink(db, opts...),
@@ -146,6 +150,8 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		ProjectTfvar:                     newProjectTfvar(db, opts...),
 		Repo:                             newRepo(db, opts...),
 		Subscription:                     newSubscription(db, opts...),
+		Team:                             newTeam(db, opts...),
+		TeamMember:                       newTeamMember(db, opts...),
 		UserAPIKey:                       newUserAPIKey(db, opts...),
 		UserNotification:                 newUserNotification(db, opts...),
 		UserOnboarding:                   newUserOnboarding(db, opts...),
@@ -170,7 +176,7 @@ type Query struct {
 	DiggerRun                        diggerRun
 	DiggerRunQueueItem               diggerRunQueueItem
 	DiggerRunStage                   diggerRunStage
-	EncryptedEnvVar                  encryptedEnvVar
+	EnvVar                           envVar
 	GithubApp                        githubApp
 	GithubAppInstallation            githubAppInstallation
 	GithubAppInstallationLink        githubAppInstallationLink
@@ -194,6 +200,8 @@ type Query struct {
 	ProjectTfvar                     projectTfvar
 	Repo                             repo
 	Subscription                     subscription
+	Team                             team
+	TeamMember                       teamMember
 	UserAPIKey                       userAPIKey
 	UserNotification                 userNotification
 	UserOnboarding                   userOnboarding
@@ -219,7 +227,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		DiggerRun:                        q.DiggerRun.clone(db),
 		DiggerRunQueueItem:               q.DiggerRunQueueItem.clone(db),
 		DiggerRunStage:                   q.DiggerRunStage.clone(db),
-		EncryptedEnvVar:                  q.EncryptedEnvVar.clone(db),
+		EnvVar:                           q.EnvVar.clone(db),
 		GithubApp:                        q.GithubApp.clone(db),
 		GithubAppInstallation:            q.GithubAppInstallation.clone(db),
 		GithubAppInstallationLink:        q.GithubAppInstallationLink.clone(db),
@@ -243,6 +251,8 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		ProjectTfvar:                     q.ProjectTfvar.clone(db),
 		Repo:                             q.Repo.clone(db),
 		Subscription:                     q.Subscription.clone(db),
+		Team:                             q.Team.clone(db),
+		TeamMember:                       q.TeamMember.clone(db),
 		UserAPIKey:                       q.UserAPIKey.clone(db),
 		UserNotification:                 q.UserNotification.clone(db),
 		UserOnboarding:                   q.UserOnboarding.clone(db),
@@ -275,7 +285,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		DiggerRun:                        q.DiggerRun.replaceDB(db),
 		DiggerRunQueueItem:               q.DiggerRunQueueItem.replaceDB(db),
 		DiggerRunStage:                   q.DiggerRunStage.replaceDB(db),
-		EncryptedEnvVar:                  q.EncryptedEnvVar.replaceDB(db),
+		EnvVar:                           q.EnvVar.replaceDB(db),
 		GithubApp:                        q.GithubApp.replaceDB(db),
 		GithubAppInstallation:            q.GithubAppInstallation.replaceDB(db),
 		GithubAppInstallationLink:        q.GithubAppInstallationLink.replaceDB(db),
@@ -299,6 +309,8 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		ProjectTfvar:                     q.ProjectTfvar.replaceDB(db),
 		Repo:                             q.Repo.replaceDB(db),
 		Subscription:                     q.Subscription.replaceDB(db),
+		Team:                             q.Team.replaceDB(db),
+		TeamMember:                       q.TeamMember.replaceDB(db),
 		UserAPIKey:                       q.UserAPIKey.replaceDB(db),
 		UserNotification:                 q.UserNotification.replaceDB(db),
 		UserOnboarding:                   q.UserOnboarding.replaceDB(db),
@@ -321,7 +333,7 @@ type queryCtx struct {
 	DiggerRun                        IDiggerRunDo
 	DiggerRunQueueItem               IDiggerRunQueueItemDo
 	DiggerRunStage                   IDiggerRunStageDo
-	EncryptedEnvVar                  IEncryptedEnvVarDo
+	EnvVar                           IEnvVarDo
 	GithubApp                        IGithubAppDo
 	GithubAppInstallation            IGithubAppInstallationDo
 	GithubAppInstallationLink        IGithubAppInstallationLinkDo
@@ -345,6 +357,8 @@ type queryCtx struct {
 	ProjectTfvar                     IProjectTfvarDo
 	Repo                             IRepoDo
 	Subscription                     ISubscriptionDo
+	Team                             ITeamDo
+	TeamMember                       ITeamMemberDo
 	UserAPIKey                       IUserAPIKeyDo
 	UserNotification                 IUserNotificationDo
 	UserOnboarding                   IUserOnboardingDo
@@ -367,7 +381,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		DiggerRun:                        q.DiggerRun.WithContext(ctx),
 		DiggerRunQueueItem:               q.DiggerRunQueueItem.WithContext(ctx),
 		DiggerRunStage:                   q.DiggerRunStage.WithContext(ctx),
-		EncryptedEnvVar:                  q.EncryptedEnvVar.WithContext(ctx),
+		EnvVar:                           q.EnvVar.WithContext(ctx),
 		GithubApp:                        q.GithubApp.WithContext(ctx),
 		GithubAppInstallation:            q.GithubAppInstallation.WithContext(ctx),
 		GithubAppInstallationLink:        q.GithubAppInstallationLink.WithContext(ctx),
@@ -391,6 +405,8 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		ProjectTfvar:                     q.ProjectTfvar.WithContext(ctx),
 		Repo:                             q.Repo.WithContext(ctx),
 		Subscription:                     q.Subscription.WithContext(ctx),
+		Team:                             q.Team.WithContext(ctx),
+		TeamMember:                       q.TeamMember.WithContext(ctx),
 		UserAPIKey:                       q.UserAPIKey.WithContext(ctx),
 		UserNotification:                 q.UserNotification.WithContext(ctx),
 		UserOnboarding:                   q.UserOnboarding.WithContext(ctx),
