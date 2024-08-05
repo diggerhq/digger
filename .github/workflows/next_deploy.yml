@@ -1,9 +1,9 @@
-name: Fly Deploy
+name: Next Deploy
 on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/next4
+      - next-tfvars
 
 jobs:
   deploy:
