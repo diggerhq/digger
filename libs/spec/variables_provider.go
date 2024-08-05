@@ -22,7 +22,7 @@ func (p VariablesProvider) GetVariables(variables []VariableSpec) (map[string]st
 
 	for _, v := range variables {
 		if v.IsSecret {
-			value, err := digger_crypto.DecryptValueUsingPrivateKey([]byte(v.Value), private_key)
+			value, err := digger_crypto.DecryptValueUsingPrivateKey(v.Value, private_key)
 			if err != nil {
 				return nil, fmt.Errorf("could not decrypt value using private key: %v", err)
 			}

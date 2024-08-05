@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"testing"
 )
@@ -29,6 +30,10 @@ func generateTestKeyPair() (*rsa.PrivateKey, []byte, error) {
 	return privateKey, privateKeyPEM, nil
 }
 
+func encryptedBytesToBase64(encryptedBytes []byte) string {
+	return base64.StdEncoding.EncodeToString(encryptedBytes)
+}
+
 func TestDecryptWithPrivateKey(t *testing.T) {
 	// Generate a test key pair
 	privateKey, privateKeyPEM, err := generateTestKeyPair()
@@ -38,27 +43,27 @@ func TestDecryptWithPrivateKey(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		plaintext   []byte
+		plaintext   string
 		expectError bool
 	}{
 		{
 			name:        "Simple text",
-			plaintext:   []byte("Hello, World!"),
+			plaintext:   "Hello, World!",
 			expectError: false,
 		},
 		{
 			name:        "Empty message",
-			plaintext:   []byte(""),
+			plaintext:   "",
 			expectError: false,
 		},
 		{
 			name:        "Long message",
-			plaintext:   bytes.Repeat([]byte("A"), 100),
+			plaintext:   string(bytes.Repeat([]byte("A"), 100)),
 			expectError: false,
 		},
 		{
 			name:        "Message with special characters",
-			plaintext:   []byte("!@#$%^&*()_+{}:|<>?"),
+			plaintext:   "!@#$%^&*()_+{}:|<>?",
 			expectError: false,
 		},
 	}
@@ -66,13 +71,15 @@ func TestDecryptWithPrivateKey(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Encrypt the plaintext
-			ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, &privateKey.PublicKey, tc.plaintext)
+			ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, &privateKey.PublicKey, []byte(tc.plaintext))
 			if err != nil {
 				t.Fatalf("Failed to encrypt test data: %v", err)
 			}
 
+			ciphertextb64 := encryptedBytesToBase64(ciphertext)
+
 			// Decrypt using our function
-			decrypted, err := DecryptValueUsingPrivateKey(ciphertext, string(privateKeyPEM))
+			decrypted, err := DecryptValueUsingPrivateKey(ciphertextb64, string(privateKeyPEM))
 
 			if tc.expectError {
 				if err == nil {
@@ -82,7 +89,7 @@ func TestDecryptWithPrivateKey(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
 				}
-				if !bytes.Equal(decrypted, tc.plaintext) {
+				if decrypted != tc.plaintext {
 					t.Errorf("Decrypted text doesn't match original. Got %s, want %s", decrypted, tc.plaintext)
 				}
 			}
@@ -96,19 +103,19 @@ func TestDecryptWithPrivateKeyInvalidInput(t *testing.T) {
 	testCases := []struct {
 		name           string
 		privateKeyPEM  string
-		encryptedData  []byte
+		encryptedData  string
 		expectedErrMsg string
 	}{
 		{
 			name:           "Invalid private key",
 			privateKeyPEM:  "invalid key",
-			encryptedData:  []byte("some data"),
+			encryptedData:  base64.StdEncoding.EncodeToString([]byte("some data")),
 			expectedErrMsg: "failed to parse PEM block containing the private key",
 		},
 		{
 			name:           "Invalid encrypted data",
 			privateKeyPEM:  string(privateKeyPEM),
-			encryptedData:  []byte("too short"),
+			encryptedData:  base64.StdEncoding.EncodeToString([]byte("too short")),
 			expectedErrMsg: "decryption error",
 		},
 	}
