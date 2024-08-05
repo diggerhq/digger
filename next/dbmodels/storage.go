@@ -238,6 +238,15 @@ func (db *Database) GetProjectByRepo(orgId any, repo *model.Repo) ([]model.Proje
 	return projects, nil
 }
 
+func (db *Database) GetProjectVariables(projectId string) ([]model.EnvVar, error) {
+	var variables []model.EnvVar
+	result := db.GormDB.Where("project_id = ?", projectId).Find(&variables)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return variables, nil
+}
+
 //func (db *Database) GetPolicyByPolicyId(c *gin.Context, policyId uint, orgIdKey string) (*Policy, bool) {
 //	loggedInOrganisationId, exists := c.Get(orgIdKey)
 //	if !exists {
@@ -295,9 +304,6 @@ func (db *Database) GetRepo(orgIdKey any, repoName string) (*model.Repo, error) 
 		Where("organizations.id = ? AND repos.name=?", orgIdKey, repoName).First(&repo).Error
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
 		log.Printf("Failed to find digger repo for orgId: %v, and repoName: %v, error: %v\n", orgIdKey, repoName, err)
 		return nil, err
 	}
@@ -617,10 +623,11 @@ func (db *Database) GetDiggerBatch(batchId string) (*model.DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int) (*model.DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(orgid string, vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int) (*model.DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &model.DiggerBatch{
 		ID:                   uid.String(),
+		OrganizationID:       orgid,
 		Vcs:                  string(vcsType),
 		GithubInstallationID: githubInstallationId,
 		RepoOwner:            repoOwner,

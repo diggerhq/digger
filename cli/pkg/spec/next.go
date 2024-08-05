@@ -11,10 +11,11 @@ import (
 	"github.com/samber/lo"
 	"log"
 	"os"
+	"os/exec"
 	"time"
 )
 
-func RunSpec(
+func RunSpecNext(
 	spec spec.Spec,
 	vcsProvider spec.VCSProvider,
 	jobProvider spec.JobSpecProvider,
@@ -23,13 +24,34 @@ func RunSpec(
 	backedProvider spec.BackendApiProvider,
 	policyProvider spec.SpecPolicyProvider,
 	PlanStorageProvider spec.PlanStorageProvider,
+	VariablesProvider spec.VariablesProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
+
+	// checking out to the commit ID
+	log.Printf("checking out to commit ID %v", spec.Job.Commit)
+	cmd := exec.Command("git", "checkout", spec.Job.Commit)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		log.Printf("error while checking out to commit SHA: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
+	}
 
 	job, err := jobProvider.GetJob(spec.Job)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
 	}
+
+	// get variables from the variables spec
+	variablesMap, err := VariablesProvider.GetVariables(spec.Variables)
+	if err != nil {
+		log.Printf("could not get variables from provider: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get variables from provider: %v", err), 1)
+	}
+	job.StateEnvVars = lo.Assign(job.StateEnvVars, variablesMap)
+	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, variablesMap)
 
 	lock, err := lockProvider.GetLock(spec.Lock)
 	if err != nil {
@@ -80,11 +102,6 @@ func RunSpec(
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
 	}
-
-	workflow := diggerConfig.Workflows[job.ProjectWorkflow]
-	stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-	job.StateEnvVars = lo.Assign(job.StateEnvVars, stateEnvVars)
-	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandEnvVars)
 
 	jobs := []scheduler.Job{job}
 

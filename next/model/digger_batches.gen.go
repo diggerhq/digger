@@ -22,6 +22,7 @@ type DiggerBatch struct {
 	SourceDetails        []uint8 `gorm:"column:source_details" json:"source_details"`
 	Vcs                  string  `gorm:"column:vcs" json:"vcs"`
 	GitlabProjectID      int64   `gorm:"column:gitlab_project_id" json:"gitlab_project_id"`
+	OrganizationID       string  `gorm:"column:organization_id" json:"organization_id"`
 }
 
 // TableName DiggerBatch's table name

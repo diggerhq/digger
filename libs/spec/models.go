@@ -36,9 +36,16 @@ type PolicySpec struct {
 	PolicyType string `json:"policy_type"`
 }
 
+type VariableSpec struct {
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	IsSecret bool   `json:"is_secret"`
+}
+
 type SpecType string
 
-const SpecTypePullRequestJob SpecType = "pull_request_job"
+const SpecTypeNextJob SpecType = "next_run_spec"
+const SpecTypeApplyBeforeMergeJob SpecType = "before_merge_spec"
 const SpecTypeManualJob SpecType = "manual_job"
 const SpecTypeDriftJob SpecType = "drift_job"
 
@@ -49,10 +56,11 @@ type Spec struct {
 	CommentId string   `json:"comment_id"`
 	RunName   string   `json:"run_name"`
 
-	Job      scheduler.JobJson `json:"job"`
-	Reporter ReporterSpec      `json:"reporter"`
-	Lock     LockSpec          `json:"lock"`
-	Backend  BackendSpec       `json:"backend"`
-	VCS      VcsSpec           `json:"vcs"`
-	Policy   PolicySpec        `json:"policy_provider"`
+	Job       scheduler.JobJson `json:"job"`
+	Reporter  ReporterSpec      `json:"reporter"`
+	Lock      LockSpec          `json:"lock"`
+	Backend   BackendSpec       `json:"backend"`
+	VCS       VcsSpec           `json:"vcs"`
+	Policy    PolicySpec        `json:"policy_provider"`
+	Variables []VariableSpec    `json:"variables"`
 }
