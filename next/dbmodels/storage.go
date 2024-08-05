@@ -238,6 +238,15 @@ func (db *Database) GetProjectByRepo(orgId any, repo *model.Repo) ([]model.Proje
 	return projects, nil
 }
 
+func (db *Database) GetProjectVariables(projectId string) ([]model.EncryptedEnvVar, error) {
+	var variables []model.EncryptedEnvVar
+	result := db.GormDB.Where("project_id = ?", projectId).Find(&variables)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return variables, nil
+}
+
 //func (db *Database) GetPolicyByPolicyId(c *gin.Context, policyId uint, orgIdKey string) (*Policy, bool) {
 //	loggedInOrganisationId, exists := c.Get(orgIdKey)
 //	if !exists {

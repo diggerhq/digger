@@ -70,6 +70,12 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 		return fmt.Errorf("coult not get run name %v", err)
 	}
 
+	err = RefreshVariableSpecForJob(*job)
+	if err != nil {
+		log.Printf("could not get variable spec from job: %v", err)
+		return fmt.Errorf("could not get variable spec from job: %v", err)
+	}
+
 	spec, err := GetSpecFromJob(*job, lib_spec.SpecTypeNextJob)
 	if err != nil {
 		log.Printf("could not get spec: %v", err)

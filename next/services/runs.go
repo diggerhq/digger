@@ -34,22 +34,37 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 	switch dr.Status {
 	case string(dbmodels.RunQueued):
 		// trigger plan workflow (trigger the batch)
-		job, err := dbmodels.DB.GetDiggerJobFromRunStage(*planStage)
+		applyJob, err := dbmodels.DB.GetDiggerJobFromRunStage(*applyStage)
+		planJob, err := dbmodels.DB.GetDiggerJobFromRunStage(*planStage)
 		client := service.(*github.GithubService).Client
 		ciBackend := ci_backends.GithubActionCi{Client: client}
-		runName, err := GetRunNameFromJob(*job)
+		runName, err := GetRunNameFromJob(*planJob)
 		if err != nil {
 			log.Printf("could not get run name: %v", err)
 			return fmt.Errorf("could not get run name: %v", err)
 		}
 
-		spec, err := GetSpecFromJob(*job, lib_spec.SpecTypeNextJob)
+		err = RefreshVariableSpecForJob(*planJob)
+		if err != nil {
+			log.Printf("could not get variable spec from job: %v", err)
+			return fmt.Errorf("could not get variable spec from job: %v", err)
+		}
+
+		// NOTE: We have to refresh both plan and apply jobs since we want to use exact same variables
+		// in both of these jobs
+		err = RefreshVariableSpecForJob(*applyJob)
+		if err != nil {
+			log.Printf("could not get variable spec from job: %v", err)
+			return fmt.Errorf("could not get variable spec from job: %v", err)
+		}
+
+		spec, err := GetSpecFromJob(*planJob, lib_spec.SpecTypeNextJob)
 		if err != nil {
 			log.Printf("could not get spec: %v", err)
 			return fmt.Errorf("could not get spec: %v", err)
 		}
 
-		vcsToken, err := GetVCSTokenFromJob(*job, gh)
+		vcsToken, err := GetVCSTokenFromJob(*planJob, gh)
 		if err != nil {
 			log.Printf("could not get vcs token: %v", err)
 			return fmt.Errorf("could not get vcs token: %v", err)
