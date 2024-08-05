@@ -5,10 +5,10 @@ import (
 	"github.com/diggerhq/digger/next/model"
 )
 
-func ToVariableSpec(v model.EncryptedEnvVar) spec.VariableSpec {
+func ToVariableSpec(v model.EnvVar) spec.VariableSpec {
 	return spec.VariableSpec{
 		Name:     v.Name,
-		Value:    v.EncryptedValue,
+		Value:    v.Value,
 		IsSecret: v.IsSecret,
 	}
 }

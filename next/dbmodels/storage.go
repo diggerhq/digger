@@ -238,8 +238,8 @@ func (db *Database) GetProjectByRepo(orgId any, repo *model.Repo) ([]model.Proje
 	return projects, nil
 }
 
-func (db *Database) GetProjectVariables(projectId string) ([]model.EncryptedEnvVar, error) {
-	var variables []model.EncryptedEnvVar
+func (db *Database) GetProjectVariables(projectId string) ([]model.EnvVar, error) {
+	var variables []model.EnvVar
 	result := db.GormDB.Where("project_id = ?", projectId).Find(&variables)
 	if result.Error != nil {
 		return nil, result.Error
