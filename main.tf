@@ -1,9 +1,17 @@
 resource "null_resource" "test44" {}
 
-variable "test" {
+variable "TEST" {
   default = "hello"
 }
 
+variable "SECRET" {
+  default = "shhh"
+}
+
 output "test" {
-  value = var.test
+  value = var.TEST
+}
+
+output "secret" {
+  value = var.SECRET
 }
