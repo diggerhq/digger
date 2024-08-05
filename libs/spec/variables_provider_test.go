@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -73,7 +74,7 @@ func TestDecryptProvider(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to encrypt test data: %v", err)
 				}
-				tc.variables[0].Value = string(v)
+				tc.variables[0].Value = base64.StdEncoding.EncodeToString(v)
 			}
 			variables, err := VariablesProvider{}.GetVariables(tc.variables)
 			if tc.expectError {
