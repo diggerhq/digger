@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func GetVCSTokenFromJob(job model.DiggerJob, gh utils.GithubClientProvider) (*string, error) {
@@ -65,7 +66,8 @@ func RefreshVariableSpecForJob(job model.DiggerJob) error {
 		return fmt.Errorf("could not get orb: %v", err)
 	}
 
-	repo, err := dbmodels.DB.GetRepo(batch.OrganizationID, batch.RepoName)
+	repoName := strings.Replace(batch.RepoFullName, "/", "-", -1)
+	repo, err := dbmodels.DB.GetRepo(batch.OrganizationID, repoName)
 	if err != nil {
 		log.Printf("could not get repo: %v", err)
 		return fmt.Errorf("could not get repo: %v", err)
