@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - next-tfvars
+      - fix/cli-error-reporting
 
 jobs:
   deploy:

@@ -122,6 +122,12 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			return
 		}
 
+		batch.Status = int16(orchestrator_scheduler.BatchJobFailed)
+		batchErr := dbmodels.DB.GormDB.Save(batch).Error
+		if batchErr != nil {
+			log.Printf("error while updating batch status: %v", err)
+		}
+
 	default:
 		log.Printf("Unexpected status %v", request.Status)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
