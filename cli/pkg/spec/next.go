@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	backend2 "github.com/diggerhq/digger/libs/backendapi"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
@@ -14,6 +15,13 @@ import (
 	"os/exec"
 	"time"
 )
+
+func reporterError(spec spec.Spec, backendApi backend2.Api, err error) {
+	_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
+	if reportingError != nil {
+		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed run commands. %s", err), 5)
+	}
+}
 
 func RunSpecNext(
 	spec spec.Spec,
@@ -28,19 +36,39 @@ func RunSpecNext(
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
 
+	backendApi, err := backedProvider.GetBackendApi(spec.Backend)
+	if err != nil {
+		log.Printf("error getting backend api: %v", err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
+	}
+
 	// checking out to the commit ID
+	log.Printf("fetching commit ID %v", spec.Job.Commit)
+	fetchCmd := exec.Command("git", "fetch", "origin", spec.Job.Commit)
+	fetchCmd.Stdout = os.Stdout
+	fetchCmd.Stderr = os.Stderr
+	err = fetchCmd.Run()
+	if err != nil {
+		log.Printf("error while fetching commit SHA: %v", err)
+		reporterError(spec, backendApi, err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
+	}
+
 	log.Printf("checking out to commit ID %v", spec.Job.Commit)
 	cmd := exec.Command("git", "checkout", spec.Job.Commit)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		log.Printf("error while checking out to commit SHA: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
 	}
 
 	job, err := jobProvider.GetJob(spec.Job)
 	if err != nil {
+		log.Printf("error getting job: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
 	}
 
@@ -48,6 +76,7 @@ func RunSpecNext(
 	variablesMap, err := VariablesProvider.GetVariables(spec.Variables)
 	if err != nil {
 		log.Printf("could not get variables from provider: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get variables from provider: %v", err), 1)
 	}
 	job.StateEnvVars = lo.Assign(job.StateEnvVars, variablesMap)
@@ -55,51 +84,64 @@ func RunSpecNext(
 
 	lock, err := lockProvider.GetLock(spec.Lock)
 	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
-
+		log.Printf("error getting lock: %v", err)
+		reporterError(spec, backendApi, err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get lock: %v", err), 1)
 	}
 
 	prService, err := vcsProvider.GetPrService(spec.VCS)
 	if err != nil {
+		log.Printf("error getting prservice: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
 	}
 
 	orgService, err := vcsProvider.GetOrgService(spec.VCS)
 	if err != nil {
+		log.Printf("error getting orgservice: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
 	}
 	reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber)
 	if err != nil {
+		log.Printf("error getting reporter: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
-	}
-
-	backendApi, err := backedProvider.GetBackendApi(spec.Backend)
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
 	}
 
 	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
 	if err != nil {
+		log.Printf("error getting policy provider: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
 	}
 
 	changedFiles, err := prService.GetChangedFiles(*spec.Job.PullRequestNumber)
 	if err != nil {
+		log.Printf("error getting changed files: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get changed files: %v", err), 1)
 	}
+
 	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, changedFiles)
 	if err != nil {
+		log.Printf("error getting digger config: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
 	log.Printf("Digger digger_config read successfully\n")
 
 	commentUpdater, err := commentUpdaterProvider.Get(*diggerConfig)
 	if err != nil {
+		log.Printf("error getting comment updater: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get comment updater: %v", err), 8)
 	}
 
 	planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
 	if err != nil {
+		log.Printf("error getting plan storage: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
 	}
 
@@ -108,16 +150,17 @@ func RunSpecNext(
 	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
 	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
 	if err != nil {
+		log.Printf("error getting project status: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err), 4)
 	}
 
 	commentId := spec.CommentId
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("failed to get comment ID: %v", err), 4)
-	}
 
 	currentDir, err := os.Getwd()
 	if err != nil {
+		log.Printf("error getting current directory: %v", err)
+		reporterError(spec, backendApi, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
