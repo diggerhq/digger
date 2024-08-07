@@ -15,3 +15,7 @@ output "test" {
 output "secret" {
   value = var.SECRET
 }
+
+output "secret2" {
+  value = var.SECRET
+}
