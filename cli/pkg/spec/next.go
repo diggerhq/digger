@@ -18,7 +18,7 @@ import (
 func reporterError(spec spec.Spec, backendApi backend2.Api, err error) {
 	_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 	if reportingError != nil {
-		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed run commands. %s", err), 5)
+		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %v", err), 5)
 	}
 }
 
@@ -162,11 +162,11 @@ func RunSpecNext(
 	if !allAppliesSuccess || err != nil {
 		_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {
-			usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed run commands. %s", err), 5)
+			usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed run commands. %v", err), 5)
 		}
 		//commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, prService, commentId)
 		//digger.UpdateAggregateStatus(serializedBatch, prService)
-		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %s", err), 5)
+		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %v", err), 5)
 	}
 	usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Digger finished successfully", 0)
 
