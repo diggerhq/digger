@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - next-tfvars
+      - feat/repo-not-found-correct-handling
 
 jobs:
   deploy:
