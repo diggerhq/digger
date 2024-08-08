@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/ee/cli/pkg/utils"
@@ -12,6 +13,7 @@ import (
 	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/services"
+	"gorm.io/gorm"
 	"log"
 	"math/rand"
 	"net/http"
@@ -279,8 +281,12 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 	repo, err := dbmodels.DB.GetRepo(orgId, diggerRepoName)
 
 	if err != nil {
-		log.Printf("Error fetching repo: %v", err)
-		return nil, nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("repo not found, will proceed with repo creation")
+		} else {
+			log.Printf("Error fetching repo: %v", err)
+			return nil, nil, err
+		}
 	}
 
 	if repo != nil {
@@ -626,7 +632,7 @@ func ConvertJobsToDiggerJobs(jobType orchestrator_scheduler.DiggerCommand, vcsTy
 	}
 
 	log.Printf("marshalledJobsMap: %v\n", marshalledJobsMap)
-	
+
 	batch, err := dbmodels.DB.CreateDiggerBatch(organisationId, vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)

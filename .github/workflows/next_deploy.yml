@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - fix/cli-error-reporting
-
 jobs:
   deploy:
     name: Deploy app
