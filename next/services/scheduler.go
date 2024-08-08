@@ -76,7 +76,7 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 		return fmt.Errorf("could not get variable spec from job: %v", err)
 	}
 
-	spec, err := GetSpecFromJob(*job, lib_spec.SpecTypeNextJob)
+	spec, err := GetSpecFromJob(*job, lib_spec.SpecTypeApplyBeforeMergeJob)
 	if err != nil {
 		log.Printf("could not get spec: %v", err)
 		return fmt.Errorf("coult not get spec %v", err)
