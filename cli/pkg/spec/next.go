@@ -5,6 +5,7 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
+	"github.com/diggerhq/digger/libs/ci"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
@@ -88,19 +89,22 @@ func RunSpecNext(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get lock: %v", err), 1)
 	}
 
-	prService, err := vcsProvider.GetPrService(spec.VCS)
-	if err != nil {
-		log.Printf("error getting prservice: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
-	}
+	prService := ci.MockPullRequestManager{}
+	//prService, err := vcsProvider.GetPrService(spec.VCS)
+	//if err != nil {
+	//	log.Printf("error getting prservice: %v", err)
+	//	reporterError(spec, backendApi, err)
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
+	//}
 
-	orgService, err := vcsProvider.GetOrgService(spec.VCS)
-	if err != nil {
-		log.Printf("error getting orgservice: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
-	}
+	orgService := ci.MockPullRequestManager{}
+	//orgService, err := vcsProvider.GetOrgService(spec.VCS)
+	//if err != nil {
+	//	log.Printf("error getting orgservice: %v", err)
+	//	reporterError(spec, backendApi, err)
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
+	//}
+
 	reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber)
 	if err != nil {
 		log.Printf("error getting reporter: %v", err)
