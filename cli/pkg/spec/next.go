@@ -5,8 +5,9 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
-	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/samber/lo"
@@ -19,7 +20,7 @@ import (
 func reporterError(spec spec.Spec, backendApi backend2.Api, err error) {
 	_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 	if reportingError != nil {
-		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed run commands. %s", err), 5)
+		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %v", err), 5)
 	}
 }
 
@@ -89,25 +90,29 @@ func RunSpecNext(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get lock: %v", err), 1)
 	}
 
-	prService, err := vcsProvider.GetPrService(spec.VCS)
-	if err != nil {
-		log.Printf("error getting prservice: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
-	}
+	prService := ci.MockPullRequestManager{}
+	//prService, err := vcsProvider.GetPrService(spec.VCS)
+	//if err != nil {
+	//	log.Printf("error getting prservice: %v", err)
+	//	reporterError(spec, backendApi, err)
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
+	//}
 
-	orgService, err := vcsProvider.GetOrgService(spec.VCS)
-	if err != nil {
-		log.Printf("error getting orgservice: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
-	}
-	reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber)
-	if err != nil {
-		log.Printf("error getting reporter: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
-	}
+	orgService := ci.MockPullRequestManager{}
+	//orgService, err := vcsProvider.GetOrgService(spec.VCS)
+	//if err != nil {
+	//	log.Printf("error getting orgservice: %v", err)
+	//	reporterError(spec, backendApi, err)
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
+	//}
+
+	//reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber)
+	//if err != nil {
+	//	log.Printf("error getting reporter: %v", err)
+	//	reporterError(spec, backendApi, err)
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
+	//}
+	reporter := reporting.NoopReporter{}
 
 	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
 	if err != nil {
@@ -116,27 +121,21 @@ func RunSpecNext(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
 	}
 
-	changedFiles, err := prService.GetChangedFiles(*spec.Job.PullRequestNumber)
-	if err != nil {
-		log.Printf("error getting changed files: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get changed files: %v", err), 1)
-	}
+	//changedFiles, err := prService.GetChangedFiles(*spec.Job.PullRequestNumber)
+	//if err != nil {
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get changed files: %v", err), 1)
+	//}
+	//diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, changedFiles)
+	//if err != nil {
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
+	//}
+	//log.Printf("Digger digger_config read successfully\n")
 
-	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, changedFiles)
-	if err != nil {
-		log.Printf("error getting digger config: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
-	}
-	log.Printf("Digger digger_config read successfully\n")
-
-	commentUpdater, err := commentUpdaterProvider.Get(*diggerConfig)
-	if err != nil {
-		log.Printf("error getting comment updater: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get comment updater: %v", err), 8)
-	}
+	commentUpdater := comment_summary.NoopCommentUpdater{}
+	//commentUpdater, err := commentUpdaterProvider.Get(*diggerConfig)
+	//if err != nil {
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get comment updater: %v", err), 8)
+	//}
 
 	planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
 	if err != nil {
@@ -167,13 +166,13 @@ func RunSpecNext(
 	reportTerraformOutput := spec.Reporter.ReportTerraformOutput
 	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, reportTerraformOutput, commentId, currentDir)
 	if !allAppliesSuccess || err != nil {
-		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
+		_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
 		if reportingError != nil {
-			usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed run commands. %s", err), 5)
+			usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed run commands. %v", err), 5)
 		}
-		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, prService, commentId)
-		digger.UpdateAggregateStatus(serializedBatch, prService)
-		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %s", err), 5)
+		//commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, prService, commentId)
+		//digger.UpdateAggregateStatus(serializedBatch, prService)
+		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %v", err), 5)
 	}
 	usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Digger finished successfully", 0)
 
