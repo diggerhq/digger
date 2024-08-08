@@ -6,6 +6,7 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
@@ -105,12 +106,13 @@ func RunSpecNext(
 	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
 	//}
 
-	reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber)
-	if err != nil {
-		log.Printf("error getting reporter: %v", err)
-		reporterError(spec, backendApi, err)
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
-	}
+	//reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber)
+	//if err != nil {
+	//	log.Printf("error getting reporter: %v", err)
+	//	reporterError(spec, backendApi, err)
+	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
+	//}
+	reporter := reporting.NoopReporter{}
 
 	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
 	if err != nil {
