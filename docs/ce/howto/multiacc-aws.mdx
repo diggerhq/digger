@@ -49,7 +49,12 @@ name: Digger Workflow
 on:
   workflow_dispatch:
   inputs:
-    spec:
+    id:
+      description: 'run identifier'
+      required: false
+    job:
+      required: true
+    comment_id:
       required: true
     run_name:
       required: false
@@ -69,14 +74,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
-        run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+      - name: ${{github.event.inputs.id}}
+        run: echo job id ${{ inputs.id }}
       - uses: diggerhq/digger@vLatest
         with:
-          digger-spec: ${{ inputs.spec }}
           setup-aws: true
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          disable-locking: true
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
