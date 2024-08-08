@@ -1,0 +1,80 @@
+---
+title: "GitHub Actions + AWS"
+---
+
+# Prerequisites
+
+- Repo with Terraform (example repo TODO link)
+
+# Step 1: create your Digger account
+
+Head to [next.digger.dev](https://next.digger.dev) and sign up using your preferred method.
+
+You should see an empty dashboard after you sign up.
+
+# Step 2: create a project
+
+- In the dashboard, click "Create Project".
+- Pick a name
+- Install GitHub app into your repository with Terraform by clicking on "Configure GitHub"
+
+# Step 3: create secrets for AWS keys
+
+In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
+
+- `DIGGER_AWS_ACCESS_KEY_ID`
+- `DIGGER_AWS_SECRET_ACCESS_KEY`
+
+In production, it is best to [use OIDC](/ce/cloud-providers/authenticating-with-oidc-on-aws)
+
+# Step 4: create a workflow in GitHub
+
+Create a `digger_workflow.yml` file under `.github/workflows` in your repo with the following contents:
+
+```
+name: Digger Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        required: true
+      run_name:
+        required: false
+
+run-name: '${{inputs.run_name}}'
+
+jobs:
+  digger-job:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # required to merge PRs
+      actions: write # required for plan persistence
+      id-token: write # required for workload-identity-federation
+      pull-requests: write # required to post PR comments
+      statuses: write # required to validate combined PR status
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+        run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+      - uses: diggerhq/digger@vLatest
+        with:
+          digger-spec: ${{ inputs.spec }}
+          setup-aws: true
+          aws-access-key-id: ${{ secrets.DIGGER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DIGGER_AWS_SECRET_ACCESS_KEY }}
+          setup-terraform: true
+          terraform-version: 'v1.5.5'
+          disable-locking: true
+          #digger-private-key: '${{ secrests.DIGGER_PRIVATE_KEY}}'
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+# Step 5: make a change to your Terraform
+
+Merge a PR or push a change straight into your main branch.
+
+You should see a new Run in your project in your Digger dashboard. After a few seconds, its status will change to "Running Plan". You should then see a new job appear in your GitHub Actions. When it finishes, you can see plan in Digger Dashboard, and approve it - which will start an Apply job.

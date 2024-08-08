@@ -1,0 +1,25 @@
+---
+title: "Authenticating with OIDC on AWS"
+---
+
+In order to set up OIDC simply swap the AWS Keys with assume role ARN and you are good to go. Here is an example, don't forget to replace the line starting in \*\* with your own ARN for the account.
+
+```
+...
+
+jobs:
+  digger-job:
+
+    ...
+
+    steps:
+      - name: digger run
+        uses: diggerhq/digger@vLatest
+        with:
+          setup-aws: true
+          aws-role-to-assume: arn:aws:iam::{AccountID}:role/{RoleName}
+          aws-region: us-east-1
+
+    ...
+
+```
