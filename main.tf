@@ -19,3 +19,5 @@ output "secret" {
 output "secret2" {
   value = var.SECRET
 }
+
+
