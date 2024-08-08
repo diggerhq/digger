@@ -97,6 +97,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 
 			executorResult, output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.PullRequestNumber, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
 			if err != nil {
+				log.Printf("error while running command %v for project %v: %v", command, job.ProjectName, err)
 				reportErr := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
 				if reportErr != nil {
 					log.Printf("error reporting project Run err: %v.\n", reportErr)
