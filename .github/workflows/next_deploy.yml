@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/repo-not-found-correct-handling
-
 jobs:
   deploy:
     name: Deploy app
