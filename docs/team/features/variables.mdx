@@ -1,0 +1,32 @@
+---
+title: "Variables & Secrets"
+---
+
+Digger supports per-project Variables that are made available as environment variables to terraform / opentofu at runtime.
+Variables are stored on the backend and passed to the job via the Job Spec.
+
+You can manage variables in the TFVars tab of every project.
+
+There are 2 types of variables: Plain Text and Secret.
+
+# Plain Text variables
+
+They are stored on the backend as-is and are not secured in any special way beyond standard transport and at-rest encryption in the infrastructure. Plain Text variable should only be used for non-sensitive data, like configuration parameters that differ across environments.
+
+# Secret variables
+
+These variables are stored in the database encrypted with your organisation's Secret Key. It's an RSA public key that you can create in Organisation Settings. You will not be able to create Secret Variables until you have created your Secret Key as follows:
+
+1. Go to your Organisation Settings and click Create Secrets Key
+2. Copy the private key and save it in your GitHub Actions as an org-level secret named `DIGGER_PRIVATE_KEY`
+
+<Note>
+  The key pair is generated in the front-end, and only shown once. At no point
+  the private key is saved or accessed by Digger services. If you lose your
+  private key, you will also lose ability to decrypt your secrets created using
+  that key - so you will need to re-create all your secrets in all projects.
+</Note>
+
+# `TF_VAR_` prefix
+
+By default all variables are exposed as environment variables. You can make them available to Terraform as [Input Variables](https://developer.hashicorp.com/terraform/language/values/variables) by prefixing their name with `TF_VAR_`.
