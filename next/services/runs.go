@@ -10,7 +10,6 @@ import (
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
 	nextutils "github.com/diggerhq/digger/next/utils"
-
 	"log"
 )
 
