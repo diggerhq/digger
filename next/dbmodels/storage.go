@@ -179,7 +179,7 @@ func (db *Database) GetProjectByProjectId(c *gin.Context, projectId uint, orgIdK
 	return &project, true
 }
 
-func (db *Database) GetProject(projectId uint) (*model.Project, error) {
+func (db *Database) GetProject(projectId string) (*model.Project, error) {
 	log.Printf("GetProject, project id: %v\n", projectId)
 	var project model.Project
 

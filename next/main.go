@@ -73,7 +73,11 @@ func main() {
 	//authorized := r.Group("/")
 	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 
-	r.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", middleware.JobTokenAuth(), diggerController.SetJobStatusForProject)
+	cliTokenGroup := r.Group("")
+	cliTokenGroup.Use(middleware.JobTokenAuth())
+	cliTokenGroup.POST("/repos/:repo/projects/:projectName/runs", controllers.CreateRunForProject)
+	cliTokenGroup.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", diggerController.SetJobStatusForProject)
+
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
 
