@@ -112,17 +112,16 @@ func (db *Database) GetProjectRunsForOrg(orgId int) ([]ProjectRun, error) {
 }
 
 func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) ([]ProjectRun, bool) {
-	loggedInOrganisationId, exists := c.Get(orgIdKey)
+	loggedInOrganisationId := c.GetUint(orgIdKey)
 
 	log.Printf("getProjectRunsFromContext, org id: %v\n", loggedInOrganisationId)
 
-	if !exists {
+	if loggedInOrganisationId == 0 {
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return nil, false
 	}
 
-	loggedInOrganisationIdInt := c.GetInt(orgIdKey)
-	runs, err := db.GetProjectRunsForOrg(loggedInOrganisationIdInt)
+	runs, err := db.GetProjectRunsForOrg(int(loggedInOrganisationId))
 	if err != nil {
 		return nil, false
 	}
