@@ -177,14 +177,14 @@ func (gitlabService GitLabService) PublishComment(prNumber int, comment string) 
 		}
 		discussionId = discussion.ID
 		note := discussion.Notes[0]
-		return &ci.Comment{Id: strconv.Itoa(note.ID), Body: &note.Body}, err
+		return &ci.Comment{Id: strconv.Itoa(note.ID), DiscussionId: discussionId, Body: &note.Body}, err
 	} else {
 		note, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 		if err != nil {
 			log.Printf("Failed to publish a comment. %v\n", err)
 			print(err.Error())
 		}
-		return &ci.Comment{Id: strconv.Itoa(note.ID), Body: &note.Body}, err
+		return &ci.Comment{Id: strconv.Itoa(note.ID), DiscussionId: discussionId, Body: &note.Body}, err
 	}
 }
 
