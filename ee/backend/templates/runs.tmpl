@@ -13,6 +13,7 @@
                         <thead>
                             <tr>
                                 <th>Project Name</th>
+                                <th>Repo </th>
                                 <th>Status</th>
                                 <th>Command</th>
                                 <th>Started at</th>
@@ -23,6 +24,7 @@
                         {{ range .Runs }}
                             <tr>
                                 <td>{{ .Project.Name }}</td>
+                                <td>{{ .Project.Repo.RepoFullName }}</td>
                                 <td>{{ .Status }}</td>
                                 <td>{{ .Command }}</td>
                                 <td>{{ .StartedAt | formatAsDate }}</td>

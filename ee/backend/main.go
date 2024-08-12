@@ -38,11 +38,6 @@ func main() {
 	r := bootstrap.Bootstrap(templates, diggerController)
 	cfg := config.DiggerConfig
 
-	// redirect to projects by default
-	r.GET("/", func(context *gin.Context) {
-		context.Redirect(http.StatusFound, "/projects")
-	})
-
 	eeController := controllers.DiggerEEController{
 		GitlabProvider:    utils.GitlabClientProvider{},
 		CiBackendProvider: ci_backends2.EEBackendProvider{},
@@ -51,33 +46,47 @@ func main() {
 	r.POST("/get-spec", eeController.GetSpec)
 	r.POST("/gitlab-webhook", eeController.GitlabWebHookHandler)
 
-	web := controllers.WebController{Config: cfg}
-	projectsGroup := r.Group("/projects")
-	projectsGroup.Use(middleware.GetWebMiddleware())
-	projectsGroup.GET("/", web.ProjectsPage)
-	projectsGroup.GET("/:projectid/details", web.ProjectDetailsPage)
-	projectsGroup.POST("/:projectid/details", web.ProjectDetailsUpdatePage)
+	legacyUiShown := os.Getenv("DIGGER_LEGACY_UI")
+	if legacyUiShown != "" {
+		// redirect to projects by default
+		r.GET("/", func(context *gin.Context) {
+			context.Redirect(http.StatusFound, "/projects")
+		})
 
-	runsGroup := r.Group("/runs")
-	runsGroup.Use(middleware.GetWebMiddleware())
-	runsGroup.GET("/", web.RunsPage)
-	runsGroup.GET("/:runid/details", web.RunDetailsPage)
+		web := controllers.WebController{Config: cfg}
+		projectsGroup := r.Group("/projects")
+		projectsGroup.Use(middleware.GetWebMiddleware())
+		projectsGroup.GET("/", web.ProjectsPage)
+		projectsGroup.GET("/:projectid/details", web.ProjectDetailsPage)
+		projectsGroup.POST("/:projectid/details", web.ProjectDetailsUpdatePage)
 
-	reposGroup := r.Group("/repos")
-	reposGroup.Use(middleware.GetWebMiddleware())
-	reposGroup.GET("/", web.ReposPage)
+		runsGroup := r.Group("/runs")
+		runsGroup.Use(middleware.GetWebMiddleware())
+		runsGroup.GET("/", web.RunsPage)
+		runsGroup.GET("/:runid/details", web.RunDetailsPage)
 
-	repoGroup := r.Group("/repo")
-	repoGroup.Use(middleware.GetWebMiddleware())
-	repoGroup.GET("/", web.ReposPage)
+		reposGroup := r.Group("/repos")
+		reposGroup.Use(middleware.GetWebMiddleware())
+		reposGroup.GET("/", web.ReposPage)
 
-	policiesGroup := r.Group("/policies")
-	policiesGroup.Use(middleware.GetWebMiddleware())
-	policiesGroup.GET("/", web.PoliciesPage)
-	policiesGroup.GET("/add", web.AddPolicyPage)
-	policiesGroup.POST("/add", web.AddPolicyPage)
-	policiesGroup.GET("/:policyid/details", web.PolicyDetailsPage)
-	policiesGroup.POST("/:policyid/details", web.PolicyDetailsUpdatePage)
+		repoGroup := r.Group("/repo")
+		repoGroup.Use(middleware.GetWebMiddleware())
+		repoGroup.GET("/", web.ReposPage)
+
+		policiesGroup := r.Group("/policies")
+		policiesGroup.Use(middleware.GetWebMiddleware())
+		policiesGroup.GET("/", web.PoliciesPage)
+		policiesGroup.GET("/add", web.AddPolicyPage)
+		policiesGroup.POST("/add", web.AddPolicyPage)
+		policiesGroup.GET("/:policyid/details", web.PolicyDetailsPage)
+		policiesGroup.POST("/:policyid/details", web.PolicyDetailsUpdatePage)
+	} else {
+		r.GET("/", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "healthy.tmpl", gin.H{})
+			return
+		})
+
+	}
 
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
