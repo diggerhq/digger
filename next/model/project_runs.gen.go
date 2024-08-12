@@ -25,6 +25,7 @@ type ProjectRun struct {
 	Command       string         `gorm:"column:command" json:"command"`
 	Output        string         `gorm:"column:output" json:"output"`
 	ActorUsername string         `gorm:"column:actor_username" json:"actor_username"`
+	OrgID         string         `gorm:"column:org_id" json:"org_id"`
 }
 
 // TableName ProjectRun's table name

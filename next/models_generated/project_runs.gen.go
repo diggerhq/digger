@@ -38,6 +38,7 @@ func newProjectRun(db *gorm.DB, opts ...gen.DOOption) projectRun {
 	_projectRun.Command = field.NewString(tableName, "command")
 	_projectRun.Output = field.NewString(tableName, "output")
 	_projectRun.ActorUsername = field.NewString(tableName, "actor_username")
+	_projectRun.OrgID = field.NewString(tableName, "org_id")
 
 	_projectRun.fillFieldMap()
 
@@ -59,6 +60,7 @@ type projectRun struct {
 	Command       field.String
 	Output        field.String
 	ActorUsername field.String
+	OrgID         field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -86,6 +88,7 @@ func (p *projectRun) updateTableName(table string) *projectRun {
 	p.Command = field.NewString(table, "command")
 	p.Output = field.NewString(table, "output")
 	p.ActorUsername = field.NewString(table, "actor_username")
+	p.OrgID = field.NewString(table, "org_id")
 
 	p.fillFieldMap()
 
@@ -102,7 +105,7 @@ func (p *projectRun) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *projectRun) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 11)
+	p.fieldMap = make(map[string]field.Expr, 12)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
@@ -114,6 +117,7 @@ func (p *projectRun) fillFieldMap() {
 	p.fieldMap["command"] = p.Command
 	p.fieldMap["output"] = p.Output
 	p.fieldMap["actor_username"] = p.ActorUsername
+	p.fieldMap["org_id"] = p.OrgID
 }
 
 func (p projectRun) clone(db *gorm.DB) projectRun {

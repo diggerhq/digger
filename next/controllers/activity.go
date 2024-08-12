@@ -73,6 +73,7 @@ func CreateRunForProject(c *gin.Context) {
 		Command:   request.Command,
 		Output:    request.Output,
 		ProjectID: project.ID,
+		OrgID:     orgId,
 	}
 
 	err = models.DB.GormDB.Create(&run).Error
