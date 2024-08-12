@@ -61,13 +61,6 @@ func (web *WebController) ReposPage(c *gin.Context) {
 		return
 	}
 
-	//githubAppId := os.Getenv("GITHUB_APP_ID")
-	//githubApp, err := models.DB.GetGithubApp(githubAppId)
-	//if err != nil {
-	//	c.String(http.StatusInternalServerError, "Failed to find GitHub app")
-	//	return
-	//}
-
 	pageContext := services.GetMessages(c)
 
 	maps.Copy(pageContext, gin.H{
