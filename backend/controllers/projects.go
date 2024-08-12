@@ -573,7 +573,7 @@ func CreateRunForProject(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, run.MapToJsonStruct())
+	c.JSON(http.StatusOK, "")
 }
 
 func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.DiggerBatch, serializedJobs []orchestrator_scheduler.SerializedJob) error {

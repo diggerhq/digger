@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -62,18 +61,11 @@ func (web *WebController) ReposPage(c *gin.Context) {
 		return
 	}
 
-	githubAppId := os.Getenv("GITHUB_APP_ID")
-	githubApp, err := models.DB.GetGithubApp(githubAppId)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Failed to find GitHub app")
-		return
-	}
-
 	pageContext := services.GetMessages(c)
 
 	maps.Copy(pageContext, gin.H{
-		"Repos":     repos,
-		"GithubApp": githubApp,
+		"Repos": repos,
+		//"GithubApp": githubApp,
 	})
 	c.HTML(http.StatusOK, "repos.tmpl", pageContext)
 }
@@ -83,12 +75,10 @@ func (web *WebController) RunsPage(c *gin.Context) {
 	if !done {
 		return
 	}
-
-	pageContext := services.GetMessages(c)
-	maps.Copy(pageContext, gin.H{
+	context := gin.H{
 		"Runs": runs,
-	})
-	c.HTML(http.StatusOK, "runs.tmpl", pageContext)
+	}
+	c.HTML(http.StatusOK, "runs.tmpl", context)
 }
 
 func (web *WebController) PoliciesPage(c *gin.Context) {
