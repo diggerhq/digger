@@ -36,9 +36,10 @@ type Issue struct {
 }
 
 type Comment struct {
-	Id   string
-	Body *string
-	Url  string
+	Id           string
+	DiscussionId string // gitlab only
+	Body         *string
+	Url          string
 }
 
 func (c Comment) GetIdAsInt() (int, error) {
