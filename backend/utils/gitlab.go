@@ -45,6 +45,7 @@ func GetGitlabService(gh GitlabProvider, projectId int, repoName string, repoFul
 	service := orchestrator_gitlab.GitLabService{Client: client, Context: &context}
 	return &service, nil
 }
+
 func GetDiggerConfigForBranch(gh GitlabProvider, projectId int, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int, discussionId string) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	token := os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
 
