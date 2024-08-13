@@ -43,12 +43,7 @@ name: Digger
 on:
   workflow_dispatch:
     inputs:
-      id:
-        description: 'run identifier'
-        required: false
-      job:
-        required: true
-      comment_id:
+      spec:
         required: true
       run_name:
         required: false
@@ -67,8 +62,8 @@ jobs:
       statuses: write      # required to validate combined PR status
     steps:
     - uses: actions/checkout@v4
-    - name: ${{github.event.inputs.id}}
-      run: echo job id ${{ inputs.id }}
+    - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+      run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
@@ -81,8 +76,8 @@ jobs:
     - name: digger run
         uses: diggerhq/digger@vLatest
         with:
+          digger-spec: ${{ inputs.spec }}
           setup-aws: false
-          disable-locking: true
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
