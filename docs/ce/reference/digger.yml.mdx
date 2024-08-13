@@ -22,6 +22,7 @@ auto_merge: true
 ```yml
 traverse_to_nested_projects: true
 auto_merge: false
+pr_locks: true
 projects:
   - name: prod
     dir: prod
@@ -101,9 +102,10 @@ workflows:
 | --------------------------- | ---------------------------------------------------------- | ------- | -------- | ------------------------------------------------------ | ----- |
 | telemetry                   | boolean                                                    | true    | no       | allows collecting anonymised usage and debugging data  |       |
 | auto_merge                  | boolean                                                    | false   | no       | automatically merge pull requests when all checks pass |       |
-| projects                    | array of [Projects](/reference/digger.yml#project)         | \[\]    | no       | list of projects to manage                             |       |
-| generate_projects           | [GenerateProjects](/reference/digger.yml#generateprojects) | {}      | no       | generate projects from a directory structure           |       |
-| workflows                   | map of [Workflows](/reference/digger.yml#workflows)        | {}      | no       | workflows and configurations to run on events          |       |
+| pr_locks                    | boolean                                                    | true    | no       | Enable PR-level locking                                |       |
+| projects                    | array of [Projects](/ce/reference/digger.yml#project)         | \[\]    | no       | list of projects to manage                             |       |
+| generate_projects           | [GenerateProjects](/ce/reference/digger.yml#generateprojects) | {}      | no       | generate projects from a directory structure           |       |
+| workflows                   | map of [Workflows](/ce/reference/digger.yml#workflows)        | {}      | no       | workflows and configurations to run on events          |       |
 | traverse_to_nested_projects | boolean                                                    | false   | no       | enabled traversal of nested directories                |       |
 
 ### Project
@@ -115,10 +117,10 @@ workflows:
 | workspace                | string                                               | default | no       | terraform workspace to use                                         |                                                                                                           |
 | terragrunt               | boolean                                              | false   | no       | whether to use terragrunt                                          |                                                                                                           |
 | workflow                 | string                                               | default | no       | workflow to use                                                    | default workflow will be created for you described in workflow section                                    |
-| include\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to include, e.g. `./modules`       | see [Include / Exclude Patterns](/howto/include-exclude-patterns)                                         |
-| exclude\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to exclude, e.g. `.terraform`      | see [Include / Exclude Patterns](/howto/include-exclude-patterns)                                         |
+| include\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to include, e.g. `./modules`       | see [Include / Exclude Patterns](/ce/howto/include-exclude-patterns)                                         |
+| exclude\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to exclude, e.g. `.terraform`      | see [Include / Exclude Patterns](/ce/howto/include-exclude-patterns)                                         |
 | depends\_on              | array of strings                                     | \[\]    | no       | list of project names that need to be completed before the project | it doesn't force terraform run, but affects the order of commands for projects modified in the current PR |
-| aws_role_to_assume       | [RoleToAssume](/reference/digger.yml#roletoassume)   |         | no       | A string representing the AWS role to assume for this project      |                                                                                                           |
+| aws_role_to_assume       | [RoleToAssume](/ce/reference/digger.yml#roletoassume)   |         | no       | A string representing the AWS role to assume for this project      |                                                                                                           |
 
 ### GenerateProjects
 
@@ -131,17 +133,17 @@ workflows:
 
 | Key                    | Type                                                                 | Default | Required | Description                                | Notes |
 | ---------------------- | -------------------------------------------------------------------- | ------- | -------- | ------------------------------------------ | ----- |
-| env_vars               | [EnvVars](/reference/digger.yml#envvars)                             | {}      | no       | environment variables to set for per stage |       |
-| plan                   | [Plan](/reference/digger.yml#plan)                                   | {}      | no       | plan stage configuration                   |       |
-| apply                  | [Apply](/reference/digger.yml#apply)                                 | {}      | no       | apply stage configuration                  |       |
-| workflow_configuration | [WorkflowConfiguration](/reference/digger.yml#workflowconfiguration) | {}      | no       | describes how to react to CI events        |       |
+| env_vars               | [EnvVars](/ce/reference/digger.yml#envvars)                             | {}      | no       | environment variables to set for per stage |       |
+| plan                   | [Plan](/ce/reference/digger.yml#plan)                                   | {}      | no       | plan stage configuration                   |       |
+| apply                  | [Apply](/ce/reference/digger.yml#apply)                                 | {}      | no       | apply stage configuration                  |       |
+| workflow_configuration | [WorkflowConfiguration](/ce/reference/digger.yml#workflowconfiguration) | {}      | no       | describes how to react to CI events        |       |
 
 ### EnvVars
 
 | Key      | Type                                            | Default | Required | Description                                               | Notes                                                                     |
 | -------- | ----------------------------------------------- | ------- | -------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
-| state    | array of [EnvVar](/reference/digger.yml#envvar) | \[\]    | no       | environment variables to set for terraform init stage     | can be use to set different credentials for remote backend for example    |
-| commands | array of [EnvVar](/reference/digger.yml#envvar) | \[\]    | no       | environment variables to set for other terraform commands | can be use to set different credentials for actual managed infrastructure |
+| state    | array of [EnvVar](/ce/reference/digger.yml#envvar) | \[\]    | no       | environment variables to set for terraform init stage     | can be use to set different credentials for remote backend for example    |
+| commands | array of [EnvVar](/ce/reference/digger.yml#envvar) | \[\]    | no       | environment variables to set for other terraform commands | can be use to set different credentials for actual managed infrastructure |
 
 ### EnvVar
 
@@ -163,13 +165,13 @@ workflows:
 
 | Key   | Type                                        | Default | Required | Description                            | Notes |
 | ----- | ------------------------------------------- | ------- | -------- | -------------------------------------- | ----- |
-| steps | array of [Step](/reference/digger.yml#step) | \[\]    | no       | list of steps to run during plan stage |       |
+| steps | array of [Step](/ce/reference/digger.yml#step) | \[\]    | no       | list of steps to run during plan stage |       |
 
 ### Apply
 
 | Key   | Type                                        | Default | Required | Description                             | Notes |
 | ----- | ------------------------------------------- | ------- | -------- | --------------------------------------- | ----- |
-| steps | array of [Step](/reference/digger.yml#step) | \[\]    | no       | list of steps to run during apply stage |       |
+| steps | array of [Step](/ce/reference/digger.yml#step) | \[\]    | no       | list of steps to run during apply stage |       |
 
 ### WorkflowConfiguration
 
@@ -181,12 +183,12 @@ workflows:
 
 ### Step
 
-| Key   | Type                                                            | Default | Required | Description          | Notes                                              |
-| ----- | --------------------------------------------------------------- | ------- | -------- | -------------------- | -------------------------------------------------- |
-| init  | [Init](/reference/digger.yml#init-apply-plan-as-object)/string  | {}/""   | no       | terraform init step  | if missing from array of steps, it will be skipped |
-| plan  | [Plan](/reference/digger.yml#init-apply-plan-as-object)/string  | {}/""   | no       | terraform plan step  | if missing from array of steps, it will be skipped |
-| apply | [Apply](/reference/digger.yml#init-apply-plan-as-object)/string | {}/""   | no       | terraform apply step | if missing from array of steps, it will be skipped |
-| run   | [Run](/reference/digger.yml#run-as-object)/string               | {}/""   | no       | shell command to run | if missing from array of steps, it will be skipped |
+| Key   | Type                                                               | Default         | Required | Description          | Notes                                              |
+| ----- | ------------------------------------------------------------------ | --------------- | -------- | -------------------- | -------------------------------------------------- |
+| init  | [Init](/ce/reference/digger.yml#init-apply-plan-as-object)/string  | \{\} OR ""      | no       | terraform init step  | if missing from array of steps, it will be skipped |
+| plan  | [Plan](/ce/reference/digger.yml#init-apply-plan-as-object)/string  | \{\} OR ""      | no       | terraform plan step  | if missing from array of steps, it will be skipped |
+| apply | [Apply](/ce/reference/digger.yml#init-apply-plan-as-object)/string | \{\} OR ""      | no       | terraform apply step | if missing from array of steps, it will be skipped |
+| run   | [Run](/ce/reference/digger.yml#run-as-object)/string               | \{\} OR ""      | no       | shell command to run | if missing from array of steps, it will be skipped |
 
 ### Init/Apply/Plan as object
 
