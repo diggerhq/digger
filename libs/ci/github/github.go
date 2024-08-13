@@ -334,6 +334,17 @@ func (svc GithubService) GetBranchName(prNumber int) (string, string, error) {
 	return pr.Head.GetRef(), pr.Head.GetSHA(), nil
 }
 
+func (svc GithubService) CheckBranchExists(branchName string) (bool, error) {
+	_, resp, err := svc.Client.Repositories.GetBranch(context.Background(), svc.Owner, svc.RepoName, branchName, 3)
+	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, config digger_config.DiggerConfig) ([]scheduler.Job, bool, error) {
 	workflows := config.Workflows
 	jobs := make([]scheduler.Job, 0)
