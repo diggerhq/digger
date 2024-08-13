@@ -468,6 +468,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	isDraft := payload.PullRequest.GetDraft()
 	commitSha := payload.PullRequest.Head.GetSHA()
 	branch := payload.PullRequest.Head.GetRef()
+	action := *payload.Action
 
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
@@ -476,13 +477,36 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 	organisationId := link.OrganisationId
 
+	ghService, _, ghServiceErr := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+	if ghServiceErr != nil {
+		log.Printf("GetGithubService error: %v", err)
+		return fmt.Errorf("error getting ghService to post error comment")
+	}
+
+	// here we check if pr was closed and automatic deletion is enabled, to avoid errors when
+	// pr is merged and the branch does not exist we handle that gracefully
+	if action == "closed" {
+		branchName, _, err := ghService.GetBranchName(prNumber)
+		if err != nil {
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not retrive PR details, error: %v", err))
+			log.Printf("Could not retrive PR details error: %v", err)
+			return fmt.Errorf("Could not retrive PR details: %v", err)
+		}
+		branchExists, err := ghService.CheckBranchExists(branchName)
+		if err != nil {
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not check if branch exists, error: %v", err))
+			log.Printf("Could not check if branch exists, error: %v", err)
+			return fmt.Errorf("Could not check if branch exists: %v", err)
+
+		}
+		if !branchExists {
+			log.Printf("automating branch deletion is configured, ignoring pr closed event")
+			return nil
+		}
+	}
+
 	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
-		ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
-		if err != nil {
-			log.Printf("GetGithubService error: %v", err)
-			return fmt.Errorf("error getting ghService to post error comment")
-		}
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
