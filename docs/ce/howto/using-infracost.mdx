@@ -45,7 +45,7 @@ After the pipeline run finishes, you should see Infracost breakdown output appen
 
 ## Diff
 
-For `infracost diff` we'd need to run Infracost twice: first to generate the breakdown on the main branch, then to generate diff on the PR branch. To help with that, Digger provides additional environment varialbes like `$PROJECT_NAME` and `$PR_BRANCH` (see [custom commands](/howto/custom-commands)). You can then configure your workflow in digger.yml to switch branch to main, generate base breakdown, switch back to PR branch, generate diff and finally show it via `$DIGGER_OUT`, like below:
+For `infracost diff` we'd need to run Infracost twice: first to generate the breakdown on the main branch, then to generate diff on the PR branch. To help with that, Digger provides additional environment varialbes like `$PROJECT_NAME` and `$PR_BRANCH` (see [custom commands](/ce/howto/custom-commands)). You can then configure your workflow in digger.yml to switch branch to main, generate base breakdown, switch back to PR branch, generate diff and finally show it via `$DIGGER_OUT`, like below:
 
 ```
 steps:

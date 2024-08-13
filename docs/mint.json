@@ -70,8 +70,7 @@
         "ee/drift-detection",
         "ee/rbac",
         "ee/opa",
-        "ee/buildkite",
-        "ee/gitlab-support"
+        "ee/buildkite"
       ]
     },
     {
@@ -165,19 +164,8 @@
       ]
     },
     {
-      "group": "Securing Digger",
-      "pages": [
-        "ce/securing-digger/external-provider",
-        "ce/securing-digger/spec-signing"
-      ]
-    },
-    {
       "group": "Getting Started",
       "pages": ["team/getting-started/gha-aws"]
-    },
-    {
-      "group": "Features",
-      "pages": ["team/features/variables"]
     }
   ],
   "footerSocials": {
