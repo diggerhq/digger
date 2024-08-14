@@ -27,7 +27,7 @@ func (ghi GithubIssueNotification) Send(projectName string, plan string) error {
 	})
 	if exists {
 		log.Printf("Issue found: %v", theIssue)
-		_, err := (*ghi.GithubService).UpdateIssue(theIssue.ID, theIssue.Title, theIssue.Body)
+		_, err := (*ghi.GithubService).UpdateIssue(theIssue.ID, theIssue.Title, message)
 		if err != nil {
 			log.Printf("error while updating issue: %v", err)
 		}
