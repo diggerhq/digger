@@ -1,6 +1,9 @@
 package orchestrator
 
-import "github.com/diggerhq/digger/libs/ci"
+import (
+	"fmt"
+	"github.com/diggerhq/digger/libs/ci"
+)
 
 type MockGithubPullrequestManager struct {
 	commands []string
@@ -28,6 +31,10 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) ListIssues() (
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishIssue(title string, body string) (int64, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "PublishIssue")
 	return 0, nil
+}
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) UpdateIssue(ID int64, title string, body string) (int64, error) {
+	return 0, fmt.Errorf("implement me")
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) SetStatus(prNumber int, status string, statusContext string) error {

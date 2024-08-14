@@ -47,6 +47,10 @@ func (t MockCiService) PublishIssue(title string, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
+func (svc MockCiService) UpdateIssue(ID int64, title string, body string) (int64, error) {
+	return 0, fmt.Errorf("implement me")
+}
+
 func (t MockCiService) SetStatus(prNumber int, status string, statusContext string) error {
 	return nil
 }
