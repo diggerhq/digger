@@ -2,10 +2,11 @@ package dbmodels
 
 import (
 	"github.com/diggerhq/digger/next/models_generated"
+	slogGorm "github.com/orandin/slog-gorm"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"log/slog"
 	"os"
 )
 
@@ -18,9 +19,16 @@ type Database struct {
 var DB *Database
 
 func ConnectDatabase() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("gorm", true)
+	gormLogger := slogGorm.New(
+		slogGorm.WithHandler(logger.Handler()),
+		slogGorm.WithTraceAll(),
+		slogGorm.SetLogLevel(slogGorm.DefaultLogType, slog.LevelInfo),
+		slogGorm.WithContextValue("gorm", "true"),
+	)
 
 	database, err := gorm.Open(postgres.Open(os.Getenv("DIGGER_DATABASE_URL")), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: gormLogger,
 	})
 
 	if err != nil {
