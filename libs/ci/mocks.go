@@ -1,5 +1,7 @@
 package ci
 
+import "fmt"
+
 type MockPullRequestManager struct {
 	ChangedFiles []string
 	Teams        []string
@@ -23,6 +25,10 @@ func (t MockPullRequestManager) ListIssues() ([]*Issue, error) {
 
 func (t MockPullRequestManager) PublishIssue(title string, body string) (int64, error) {
 	return 0, nil
+}
+
+func (t MockPullRequestManager) UpdateIssue(ID int64, title string, body string) (int64, error) {
+	return 0, fmt.Errorf("implement me")
 }
 
 func (t MockPullRequestManager) SetStatus(prNumber int, status string, statusContext string) error {

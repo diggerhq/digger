@@ -147,6 +147,14 @@ func (svc GithubService) PublishIssue(title string, body string) (int64, error) 
 	return *githubissue.ID, err
 }
 
+func (svc GithubService) UpdateIssue(ID int64, title string, body string) (int64, error) {
+	githubissue, _, err := svc.Client.Issues.Edit(context.Background(), svc.Owner, svc.RepoName, int(ID), &github.IssueRequest{Title: &title, Body: &body})
+	if err != nil {
+		return 0, fmt.Errorf("could not edit issue: %v", err)
+	}
+	return *githubissue.ID, err
+}
+
 func (svc GithubService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	githubComment, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
 	if err != nil {

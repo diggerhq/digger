@@ -196,6 +196,10 @@ func (svc *AzureReposService) PublishIssue(title string, body string) (int64, er
 	return 0, fmt.Errorf("implement me")
 }
 
+func (svc *AzureReposService) UpdateIssue(ID int64, title string, body string) (int64, error) {
+	return 0, fmt.Errorf("implement me")
+}
+
 func (a *AzureReposService) SetStatus(prNumber int, status string, statusContext string) error {
 	var gitStatusState git.GitStatusState
 	if status == "success" {
