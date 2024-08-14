@@ -26,14 +26,12 @@ func (ghi GithubIssueNotification) Send(projectName string, plan string) error {
 		return item.Title == title
 	})
 	if exists {
-		log.Printf("Issue found: %v", theIssue)
 		_, err := (*ghi.GithubService).UpdateIssue(theIssue.ID, theIssue.Title, message)
 		if err != nil {
 			log.Printf("error while updating issue: %v", err)
 		}
 		return err
 	} else {
-		log.Printf("Issue NOT found: %v", theIssue)
 		_, err := (*ghi.GithubService).PublishIssue(title, message)
 		if err != nil {
 			log.Printf("error while publishing issue: %v", err)
