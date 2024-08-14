@@ -13,6 +13,7 @@ type GithubIssueNotification struct {
 }
 
 func (ghi GithubIssueNotification) Send(projectName string, plan string) error {
+	log.Printf("Info: Sending drift notification regarding project: %v", projectName)
 	title := fmt.Sprintf("Drift detected in project: %v", projectName)
 	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
 	existingIssues, err := (*ghi.GithubService).ListIssues()
