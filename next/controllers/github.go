@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/backend/segment"
-	"github.com/diggerhq/digger/ee/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/ci"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/ci_backends"
@@ -667,7 +666,7 @@ func getDiggerConfigForBranch(gh next_utils.GithubClientProvider, installationId
 		log.Printf("Error getting changed files: %v", err)
 		return "", nil, nil, nil, fmt.Errorf("error getting changed files")
 	}
-	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, *token, func(dir string) error {
+	err = backend_utils.CloneGitRepoAndDoAction(cloneUrl, branch, *token, func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)

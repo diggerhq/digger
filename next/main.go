@@ -11,8 +11,10 @@ import (
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
+	sloggin "github.com/samber/slog-gin"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 )
@@ -46,7 +48,11 @@ func main() {
 	// initialize the database
 	dbmodels.ConnectDatabase()
 
-	r := gin.Default()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(sloggin.New(logger))
 
 	if _, err := os.Stat("templates"); err != nil {
 		matches, _ := fs.Glob(templates, "templates/*.tmpl")
