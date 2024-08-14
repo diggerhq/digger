@@ -1,6 +1,7 @@
 package digger
 
 import (
+	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/execution"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
@@ -95,6 +96,10 @@ func (m *MockPRManager) ListIssues() ([]*ci.Issue, error) {
 func (m *MockPRManager) PublishIssue(title string, body string) (int64, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", body, time.Now()})
 	return 0, nil
+}
+
+func (m *MockPRManager) UpdateIssue(ID int64, title string, body string) (int64, error) {
+	return 0, fmt.Errorf("implement me")
 }
 
 func (m *MockPRManager) SetStatus(prNumber int, status string, statusContext string) error {
