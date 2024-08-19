@@ -22,6 +22,12 @@ func WebhookAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		// webhook auth optionally accepts organisation ID as a value
+		orgIdHeader := c.GetHeader("X-Digger-Org-ID")
+		if orgIdHeader != "" {
+			c.Set(ORGANISATION_ID_KEY, orgIdHeader)
+		}
+
 		c.Next()
 		return
 	}
