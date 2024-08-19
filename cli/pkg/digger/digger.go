@@ -523,7 +523,7 @@ func reportPlanSummary(reporter reporting.Reporter, summary string) {
 		formatter = coreutils.AsComment("Plan summary")
 	}
 
-	_, _, err := reporter.Report(summary, formatter)
+	_, _, err := reporter.Report("\n"+summary, formatter)
 	if err != nil {
 		log.Printf("Failed to report plan summary. %v", err)
 	}
