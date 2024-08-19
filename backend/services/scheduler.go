@@ -103,19 +103,19 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 	runName, err := GetRunNameFromJob(*job)
 	if err != nil {
 		log.Printf("could not get run name: %v", err)
-		return fmt.Errorf("coult not get run name %v", err)
+		return fmt.Errorf("could not get run name %v", err)
 	}
 
 	spec, err := GetSpecFromJob(*job)
 	if err != nil {
 		log.Printf("could not get spec: %v", err)
-		return fmt.Errorf("coult not get spec %v", err)
+		return fmt.Errorf("could not get spec %v", err)
 	}
 
 	vcsToken, err := GetVCSTokenFromJob(*job, gh)
 	if err != nil {
 		log.Printf("could not get vcs token: %v", err)
-		return fmt.Errorf("coult not get vcs token: %v", err)
+		return fmt.Errorf("could not get vcs token: %v", err)
 	}
 
 	err = ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)

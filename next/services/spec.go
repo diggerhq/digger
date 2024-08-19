@@ -45,7 +45,7 @@ func GetVCSTokenFromJob(job model.DiggerJob, gh utils.GithubClientProvider) (*st
 	return &token, nil
 }
 
-func RefreshVariableSpecForJob(job model.DiggerJob) error {
+func RefreshVariableSpecForJob(job *model.DiggerJob) error {
 	var jobSpec scheduler.JobJson
 	err := json.Unmarshal([]byte(job.JobSpec), &jobSpec)
 	if err != nil {
@@ -111,7 +111,10 @@ func RefreshVariableSpecForJob(job model.DiggerJob) error {
 	}
 
 	job.VariablesSpec = marshalledSpecVariables
-	dbmodels.DB.GormDB.Save(job)
+	err = dbmodels.DB.GormDB.Save(job).Error
+	if err != nil {
+		return fmt.Errorf("failed to save spec variables: %v", err)
+	}
 
 	// here we get vars using project.ID for this project and load them into a specVariables, marshall
 	// them and then store them in job.VarsSpec
@@ -153,6 +156,7 @@ func GetSpecFromJob(job model.DiggerJob, specType spec.SpecType) (*spec.Spec, er
 	}
 
 	var variablesSpec []spec.VariableSpec
+	log.Printf("variablespec: %v", job.VariablesSpec)
 	err = json.Unmarshal(job.VariablesSpec, &variablesSpec)
 	if err != nil {
 		log.Printf("could not unmarshal variables spec: %v", err)

@@ -43,7 +43,7 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			return fmt.Errorf("could not get run name: %v", err)
 		}
 
-		err = RefreshVariableSpecForJob(*planJob)
+		err = RefreshVariableSpecForJob(planJob)
 		if err != nil {
 			log.Printf("could not get variable spec from job: %v", err)
 			return fmt.Errorf("could not get variable spec from job: %v", err)
@@ -51,7 +51,7 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 
 		// NOTE: We have to refresh both plan and apply jobs since we want to use exact same variables
 		// in both of these jobs
-		err = RefreshVariableSpecForJob(*applyJob)
+		err = RefreshVariableSpecForJob(applyJob)
 		if err != nil {
 			log.Printf("could not get variable spec from job: %v", err)
 			return fmt.Errorf("could not get variable spec from job: %v", err)
