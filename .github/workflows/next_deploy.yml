@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/fix-of-next-path
+      - feat/github-orgid-endpoint
 jobs:
   deploy:
     name: Deploy app
