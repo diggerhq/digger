@@ -518,7 +518,7 @@ func reportPlanSummary(reporter reporting.Reporter, summary string) {
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
-		formatter = coreutils.AsCollapsibleComment("Plan summary", true)
+		formatter = coreutils.AsCollapsibleComment("Plan summary", false)
 	} else {
 		formatter = coreutils.AsComment("Plan summary")
 	}
