@@ -319,10 +319,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					if err != nil {
 						log.Printf("Failed to report plan. %v", err)
 					}
-					_, _, err = reporter.Report("\n"+planSummary, coreutils.AsComment("Terraform plan summary"))
-					if err != nil {
-						log.Printf("Failed to report summary of plan. %v", err)
-					}
+					reportPlanSummary(reporter, planSummary)
 				}
 			} else {
 				reportEmptyPlanOutput(reporter, projectLock.LockId())
@@ -514,6 +511,21 @@ func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, pl
 	_, _, err := reporter.Report(plan, formatter)
 	if err != nil {
 		log.Printf("Failed to report plan. %v", err)
+	}
+}
+
+func reportPlanSummary(reporter reporting.Reporter, summary string) {
+	var formatter func(string) string
+
+	if reporter.SupportsMarkdown() {
+		formatter = coreutils.AsCollapsibleComment("Plan summary", false)
+	} else {
+		formatter = coreutils.AsComment("Plan summary")
+	}
+
+	_, _, err := reporter.Report("\n"+summary, formatter)
+	if err != nil {
+		log.Printf("Failed to report plan summary. %v", err)
 	}
 }
 

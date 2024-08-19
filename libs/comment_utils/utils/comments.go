@@ -27,10 +27,16 @@ func GetTerraformOutputAsComment(summary string) func(string) string {
 }
 
 func AsCollapsibleComment(summary string, open bool) func(string) string {
+	var openTag string
+	if open {
+		openTag = "open=\"true\""
+	} else {
+		openTag = ""
+	}
 	return func(comment string) string {
-		return fmt.Sprintf(`<details><summary>` + summary + `</summary>
-  ` + comment + `
-</details>`)
+		return fmt.Sprintf(`<details %v><summary>`+summary+`</summary>
+  `+comment+`
+</details>`, openTag)
 	}
 }
 
