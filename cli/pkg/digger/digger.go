@@ -518,9 +518,9 @@ func reportPlanSummary(reporter reporting.Reporter, summary string) {
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
-		formatter = coreutils.GetTerraformOutputAsCollapsibleComment("Plan summary", true)
+		formatter = coreutils.AsCollapsibleComment("Plan summary", true)
 	} else {
-		formatter = coreutils.GetTerraformOutputAsComment("Plan summary")
+		formatter = coreutils.AsComment("Plan summary")
 	}
 
 	_, _, err := reporter.Report(summary, formatter)
