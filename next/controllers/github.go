@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/segment"
 	backend_utils "github.com/diggerhq/digger/backend/utils"
@@ -256,9 +255,11 @@ func createOrGetDiggerRepoForGithubRepo(tx *gorm.DB, ghRepoFullName string, ghRe
 
 	diggerRepoName := strings.ReplaceAll(ghRepoFullName, "/", "-")
 
-	repo, err := dbmodels.DB.GetRepo(orgId, diggerRepoName)
+	// using Unscoped because we also need to include deleted repos (and undelete them if they exist)
+	var existingRepo model.Repo
+	r := dbmodels.DB.GormDB.Unscoped().Where("organization_id=? AND repos.name=?", orgId, diggerRepoName).Find(&existingRepo)
 
-	if err != nil {
+	if r.Error != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Printf("repo not found, will proceed with repo creation")
 		} else {
@@ -267,12 +268,14 @@ func createOrGetDiggerRepoForGithubRepo(tx *gorm.DB, ghRepoFullName string, ghRe
 		}
 	}
 
-	if repo != nil {
-		log.Printf("Digger repo already exists: %v", repo)
-		return repo, org, nil
+	if r.RowsAffected > 0 {
+		existingRepo.DeletedAt = gorm.DeletedAt{}
+		dbmodels.DB.GormDB.Save(&existingRepo)
+		log.Printf("Digger repo already exists: %v", existingRepo)
+		return &existingRepo, org, nil
 	}
 
-	repo, err = dbmodels.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
+	repo, err := dbmodels.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
 generate_projects:
  include: "."
 `)
@@ -752,12 +755,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	privateKey := os.Getenv("GITHUB_APP_PRIVATE_KEY")
-	itr, err := ghinstallation.NewAppsTransport(http.DefaultTransport, *installation.AppID, []byte(privateKey))
-	if err != nil {
-		log.Fatalf("Error creating JWT token: %v", err)
-	}
-	client, err := d.GithubClientProvider.NewClient(&http.Client{Transport: itr})
+	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
 	if err != nil {
 		log.Printf("Error retriving github client: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
@@ -774,49 +772,41 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	log.Printf("the accessible repos: %v", listRepos.Repositories)
 	repos := listRepos.Repositories
 
-	err = dbmodels.DB.GormDB.Transaction(func(tx *gorm.DB) error {
-		var AppInstallations []model.GithubAppInstallation
-		err = tx.Delete(AppInstallations, "github_installation_id=?", installationId).Error
-		if err != nil {
-			log.Printf("could not delete app installations, err: %v", err)
-			return err
-		}
-
-		var ExistingRepos []model.Repo
-		err = tx.Delete(ExistingRepos, "organization_id=?", orgId).Error
-		if err != nil {
-			log.Printf("could not delete repos, err: %v", err)
-			return err
-		}
-
-		for _, repo := range repos {
-			repoFullName := *repo.FullName
-			repoOwner := strings.Split(*repo.FullName, "/")[0]
-			repoName := *repo.Name
-			repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
-			_, err := dbmodels.DB.GithubRepoAdded(tx, installationId64, *installation.AppID, *installation.Account.Login, *installation.Account.ID, repoFullName)
-			if err != nil {
-				log.Printf("GithubRepoAdded failed, error: %v\n", err)
-				return err
-			}
-
-			_, _, err = createOrGetDiggerRepoForGithubRepo(tx, repoFullName, repoOwner, repoName, repoUrl, installationId64)
-			if err != nil {
-				log.Printf("createOrGetDiggerRepoForGithubRepo failed, error: %v\n", err)
-				return err
-			}
-		}
-		return nil
-	})
+	var AppInstallations []model.GithubAppInstallation
+	err = dbmodels.DB.GormDB.Select(&AppInstallations).Where("github_installation_id=?", installationId).Update("status = ", dbmodels.GithubAppInstallationLinkInactive).Error
 	if err != nil {
-		log.Printf("could not create installation links or repos in transaction: %v", err)
-		c.String(500, "could not create installation links or repos, try again later: %v", err)
-		return
+		log.Printf("Failed to update github installations: %v", err)
+		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
 	}
 
-	_, installationLinkErr := dbmodels.DB.CreateGithubInstallationLink(org, installationId64)
-	if installationLinkErr != nil {
-		log.Printf("Error saving CreateGithubInstallationLink to database: %v", err)
+	var ExistingRepos []model.Repo
+	err = dbmodels.DB.GormDB.Delete(ExistingRepos, "organization_id=?", orgId).Error
+	if err != nil {
+		log.Printf("could not delete repos: %v", err)
+		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
+	}
+
+	for _, repo := range repos {
+		repoFullName := *repo.FullName
+		repoOwner := strings.Split(*repo.FullName, "/")[0]
+		repoName := *repo.Name
+		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
+		_, err := dbmodels.DB.GithubRepoAdded(tx, installationId64, *installation.AppID, *installation.Account.Login, *installation.Account.ID, repoFullName)
+		if err != nil {
+			log.Printf("github repos added error: %v", err)
+			c.String(http.StatusInternalServerError, "github repos added error: %v", err)
+		}
+
+		_, _, err = createOrGetDiggerRepoForGithubRepo(tx, repoFullName, repoOwner, repoName, repoUrl, installationId64)
+		if err != nil {
+			log.Printf("createOrGetDiggerRepoForGithubRepo error: %v", err)
+			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
+		}
+	}
+
+	_, err = dbmodels.DB.CreateGithubInstallationLink(org, installationId64)
+	if err != nil {
+		log.Printf("Error saving GithubInstallationLink to database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
 		return
 	}
