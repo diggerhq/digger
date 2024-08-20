@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/diggerhq/digger/backend/middleware"
 	backend_utils "github.com/diggerhq/digger/backend/utils"
@@ -773,8 +774,19 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	_, err = dbmodels.DB.CreateGithubInstallationLink(org, installationId64)
-	if err != nil {
+	// TODO: abstract retries logic into function
+	retries := 3
+	var installationLinkErr error
+	for n := 0; n < retries; n++ {
+		_, installationLinkErr = dbmodels.DB.CreateGithubInstallationLink(org, installationId64)
+		if installationLinkErr == nil {
+			break
+		} else {
+			time.Sleep(time.Second)
+		}
+	}
+
+	if installationLinkErr != nil {
 		log.Printf("Error saving CreateGithubInstallationLink to database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
 		return
