@@ -736,7 +736,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	result, client, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
+	result, installation, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
 	if !result {
 		log.Printf("Failed to validated installation id, %v\n", err)
 		c.String(http.StatusInternalServerError, "Failed to validate installation_id.")
@@ -751,10 +751,10 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	installation, _, err := client.Apps.GetInstallation(context.Background(), installationId64)
+	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
 	if err != nil {
-		log.Printf("Failed to get installation from github: %v\n", err)
-		c.String(http.StatusInternalServerError, "Failed to get installation from github")
+		log.Printf("Error retriving github client: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		return
 
 	}
@@ -865,7 +865,7 @@ func (d DiggerController) GithubReposPage(c *gin.Context) {
 
 // why this validation is needed: https://roadie.io/blog/avoid-leaking-github-org-data/
 // validation based on https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app , step 3
-func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, *github.Client, error) {
+func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, *github.Installation, error) {
 	ctx := context.Background()
 	type OAuthAccessResponse struct {
 		AccessToken string `json:"access_token"`
@@ -913,6 +913,7 @@ func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider
 
 	installationIdMatch := false
 	// list all installations for the user
+	var matchedInstallation *github.Installation
 	installations, _, err := client.Apps.ListUserInstallations(ctx, nil)
 	if err != nil {
 		log.Printf("could not retrieve installations: %v", err)
@@ -922,6 +923,7 @@ func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider
 	for _, v := range installations {
 		log.Printf("installation id: %v\n", *v.ID)
 		if *v.ID == installationId {
+			matchedInstallation = v
 			installationIdMatch = true
 		}
 	}
@@ -929,5 +931,5 @@ func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider
 		return false, nil, fmt.Errorf("InstallationId %v doesn't match any id for specified user\n", installationId)
 	}
 
-	return true, client, nil
+	return true, matchedInstallation, nil
 }
