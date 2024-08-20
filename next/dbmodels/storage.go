@@ -310,6 +310,20 @@ func (db *Database) GetRepo(orgIdKey any, repoName string) (*model.Repo, error) 
 	return &repo, nil
 }
 
+func (db *Database) GetRepoByFullName(orgIdKey any, repofullName string) (*model.Repo, error) {
+	var repo model.Repo
+
+	err := db.GormDB.
+		Joins("INNER JOIN organizations ON repos.organization_id = organizations.id").
+		Where("organizations.id = ? AND repos.repo_full_name=?", orgIdKey, repofullName).First(&repo).Error
+
+	if err != nil {
+		log.Printf("Failed to find digger repo for orgId: %v, and repoName: %v, error: %v\n", orgIdKey, repofullName, err)
+		return nil, err
+	}
+	return &repo, nil
+}
+
 func (db *Database) GetRepoById(repoId int64) (*model.Repo, error) {
 	repo := &model.Repo{}
 	result := db.GormDB.Where("id=? ", repoId).Find(repo)
@@ -366,7 +380,7 @@ func (db *Database) GithubRepoAdded(installationId int64, appId int64, login str
 	return item, nil
 }
 
-func (db *Database) GithubRepoRemoved(installationId int64, appId int64, repoFullName string) (*model.GithubAppInstallation, error) {
+func (db *Database) GithubRepoRemoved(installationId int64, appId int64, repoFullName string, orgId string) (*model.GithubAppInstallation, error) {
 	item := &model.GithubAppInstallation{}
 	err := db.GormDB.Where("github_installation_id = ? AND status=? AND github_app_id=? AND repo=?", installationId, GithubAppInstallActive, appId, repoFullName).First(item).Error
 	if err != nil {
@@ -382,6 +396,18 @@ func (db *Database) GithubRepoRemoved(installationId int64, appId int64, repoFul
 	if err != nil {
 		return nil, fmt.Errorf("failed to update github installation in the database. %v", err)
 	}
+
+	repo, err := db.GetRepoByFullName(orgId, repoFullName)
+	if err != nil {
+		log.Printf("failed to find repo by full name. %v", err)
+		return nil, fmt.Errorf("failed to find repo by full name. %v", err)
+	}
+	err = db.GormDB.Delete(&repo).Error
+	if err != nil {
+		log.Printf("failed to delete repo %v", err)
+		return nil, fmt.Errorf("failed to delete repo %v", err)
+	}
+
 	return item, nil
 }
 

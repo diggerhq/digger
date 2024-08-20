@@ -334,9 +334,15 @@ func handleInstallationRepositoriesAddedEvent(ghClientProvider next_utils.Github
 func handleInstallationRepositoriesDeletedEvent(payload *github.InstallationRepositoriesEvent) error {
 	installationId := *payload.Installation.ID
 	appId := *payload.Installation.AppID
+	installationLink, err := dbmodels.DB.GetGithubInstallationLinkForInstallationId(installationId)
+	if err != nil {
+		log.Printf("failed to get installation link: %v", err)
+		return fmt.Errorf("failed to get installation link: %v", err)
+	}
+
 	for _, repo := range payload.RepositoriesRemoved {
 		repoFullName := *repo.FullName
-		_, err := dbmodels.DB.GithubRepoRemoved(installationId, appId, repoFullName)
+		_, err := dbmodels.DB.GithubRepoRemoved(installationId, appId, repoFullName, installationLink.OrganizationID)
 		if err != nil {
 			return err
 		}
@@ -387,7 +393,7 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 	for _, repo := range installation.Repositories {
 		repoFullName := *repo.FullName
 		log.Printf("Removing an installation %d for repo: %s", installationId, repoFullName)
-		_, err := dbmodels.DB.GithubRepoRemoved(installationId, appId, repoFullName)
+		_, err := dbmodels.DB.GithubRepoRemoved(installationId, appId, repoFullName, link.OrganizationID)
 		if err != nil {
 			return err
 		}
