@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/segment"
 	backend_utils "github.com/diggerhq/digger/backend/utils"
@@ -751,7 +752,12 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
+	privateKey := os.Getenv("GITHUB_APP_PRIVATE_KEY")
+	itr, err := ghinstallation.NewAppsTransport(http.DefaultTransport, *installation.AppID, []byte(privateKey))
+	if err != nil {
+		log.Fatalf("Error creating JWT token: %v", err)
+	}
+	client, err := d.GithubClientProvider.NewClient(&http.Client{Transport: itr})
 	if err != nil {
 		log.Printf("Error retriving github client: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
