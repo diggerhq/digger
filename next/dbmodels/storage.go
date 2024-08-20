@@ -351,7 +351,7 @@ func (db *Database) GetRepoByOrgAndId(orgIdKey any, repoId any) (*model.Repo, er
 }
 
 // GithubRepoAdded handles github drift that github repo has been added to the app installation
-func (db *Database) GithubRepoAdded(tx *gorm.DB, installationId int64, appId int64, login string, accountId int64, repoFullName string) (*model.GithubAppInstallation, error) {
+func (db *Database) GithubRepoAdded(installationId int64, appId int64, login string, accountId int64, repoFullName string) (*model.GithubAppInstallation, error) {
 
 	// check if item exist already
 	item := &model.GithubAppInstallation{}

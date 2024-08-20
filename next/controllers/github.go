@@ -240,7 +240,7 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 
 }
 
-func createOrGetDiggerRepoForGithubRepo(tx *gorm.DB, ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64) (*model.Repo, *model.Organization, error) {
+func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64) (*model.Repo, *model.Organization, error) {
 	link, err := dbmodels.DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		log.Printf("Error fetching installation link: %v", err)
@@ -298,13 +298,13 @@ func handleInstallationRepositoriesAddedEvent(ghClientProvider next_utils.Github
 		repoOwner := strings.Split(*repo.FullName, "/")[0]
 		repoName := *repo.Name
 		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
-		_, err := dbmodels.DB.GithubRepoAdded(nil, installationId, appId, login, accountId, repoFullName)
+		_, err := dbmodels.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
 		if err != nil {
 			log.Printf("GithubRepoAdded failed, error: %v\n", err)
 			return err
 		}
 
-		_, _, err = createOrGetDiggerRepoForGithubRepo(nil, repoFullName, repoOwner, repoName, repoUrl, installationId)
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId)
 		if err != nil {
 			log.Printf("createOrGetDiggerRepoForGithubRepo failed, error: %v\n", err)
 			return err
@@ -347,11 +347,11 @@ func handleInstallationCreatedEvent(installation *github.InstallationEvent) erro
 		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
 
 		log.Printf("Adding a new installation %d for repo: %s", installationId, repoFullName)
-		_, err := dbmodels.DB.GithubRepoAdded(nil, installationId, appId, login, accountId, repoFullName)
+		_, err := dbmodels.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
 		if err != nil {
 			return err
 		}
-		_, _, err = createOrGetDiggerRepoForGithubRepo(nil, repoFullName, repoOwner, repoName, repoUrl, installationId)
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId)
 		if err != nil {
 			return err
 		}
@@ -791,13 +791,13 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		repoOwner := strings.Split(*repo.FullName, "/")[0]
 		repoName := *repo.Name
 		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
-		_, err := dbmodels.DB.GithubRepoAdded(tx, installationId64, *installation.AppID, *installation.Account.Login, *installation.Account.ID, repoFullName)
+		_, err := dbmodels.DB.GithubRepoAdded(installationId64, *installation.AppID, *installation.Account.Login, *installation.Account.ID, repoFullName)
 		if err != nil {
 			log.Printf("github repos added error: %v", err)
 			c.String(http.StatusInternalServerError, "github repos added error: %v", err)
 		}
 
-		_, _, err = createOrGetDiggerRepoForGithubRepo(tx, repoFullName, repoOwner, repoName, repoUrl, installationId64)
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64)
 		if err != nil {
 			log.Printf("createOrGetDiggerRepoForGithubRepo error: %v", err)
 			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
