@@ -6,12 +6,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/segment"
+	backend_utils "github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/ci"
+	dg_github "github.com/diggerhq/digger/libs/ci/github"
+	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/ci_backends"
+	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/services"
+	next_utils "github.com/diggerhq/digger/next/utils"
+	"github.com/dominikbraun/graph"
+	"github.com/gin-gonic/gin"
+	"github.com/google/go-github/v61/github"
+	"github.com/samber/lo"
+	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 	"log"
 	"math/rand"
@@ -22,18 +33,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-
-	"github.com/diggerhq/digger/backend/middleware"
-	backend_utils "github.com/diggerhq/digger/backend/utils"
-	dg_github "github.com/diggerhq/digger/libs/ci/github"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/next/dbmodels"
-	next_utils "github.com/diggerhq/digger/next/utils"
-	"github.com/dominikbraun/graph"
-	"github.com/gin-gonic/gin"
-	"github.com/google/go-github/v61/github"
-	"github.com/samber/lo"
-	"golang.org/x/oauth2"
 )
 
 type DiggerController struct {
@@ -65,14 +64,6 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 
 	switch event := event.(type) {
 	case *github.InstallationEvent:
-		log.Printf("InstallationEvent, action: %v\n", *event.Action)
-		if *event.Action == "created" {
-			err := handleInstallationCreatedEvent(event)
-			if err != nil {
-				c.String(http.StatusInternalServerError, "Failed to handle webhook event.")
-				return
-			}
-		}
 
 		if *event.Action == "deleted" {
 			err := handleInstallationDeletedEvent(event)
@@ -81,20 +72,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 				return
 			}
 		}
-	case *github.InstallationRepositoriesEvent:
-		log.Printf("InstallationRepositoriesEvent, action: %v\n", *event.Action)
-		if *event.Action == "added" {
-			err := handleInstallationRepositoriesAddedEvent(gh, event)
-			if err != nil {
-				c.String(http.StatusInternalServerError, "Failed to handle installation repo added event.")
-			}
-		}
-		if *event.Action == "removed" {
-			err := handleInstallationRepositoriesDeletedEvent(event)
-			if err != nil {
-				c.String(http.StatusInternalServerError, "Failed to handle installation repo deleted event.")
-			}
-		}
+
 	case *github.IssueCommentEvent:
 		log.Printf("IssueCommentEvent, action: %v\n", *event.Action)
 	case *github.PullRequestEvent:
@@ -277,9 +255,11 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 
 	diggerRepoName := strings.ReplaceAll(ghRepoFullName, "/", "-")
 
-	repo, err := dbmodels.DB.GetRepo(orgId, diggerRepoName)
+	// using Unscoped because we also need to include deleted repos (and undelete them if they exist)
+	var existingRepo model.Repo
+	r := dbmodels.DB.GormDB.Unscoped().Where("organization_id=? AND repos.name=?", orgId, diggerRepoName).Find(&existingRepo)
 
-	if err != nil {
+	if r.Error != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Printf("repo not found, will proceed with repo creation")
 		} else {
@@ -288,12 +268,14 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 		}
 	}
 
-	if repo != nil {
-		log.Printf("Digger repo already exists: %v", repo)
-		return repo, org, nil
+	if r.RowsAffected > 0 {
+		existingRepo.DeletedAt = gorm.DeletedAt{}
+		dbmodels.DB.GormDB.Save(&existingRepo)
+		log.Printf("Digger repo already exists: %v", existingRepo)
+		return &existingRepo, org, nil
 	}
 
-	repo, err = dbmodels.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
+	repo, err := dbmodels.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
 generate_projects:
  include: "."
 `)
@@ -303,72 +285,6 @@ generate_projects:
 	}
 	log.Printf("Created digger repo: %v", repo)
 	return repo, org, nil
-}
-
-func handleInstallationRepositoriesAddedEvent(ghClientProvider next_utils.GithubClientProvider, payload *github.InstallationRepositoriesEvent) error {
-	installationId := *payload.Installation.ID
-	login := *payload.Installation.Account.Login
-	accountId := *payload.Installation.Account.ID
-	appId := *payload.Installation.AppID
-
-	for _, repo := range payload.RepositoriesAdded {
-		repoFullName := *repo.FullName
-		repoOwner := strings.Split(*repo.FullName, "/")[0]
-		repoName := *repo.Name
-		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
-		_, err := dbmodels.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
-		if err != nil {
-			log.Printf("GithubRepoAdded failed, error: %v\n", err)
-			return err
-		}
-
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId)
-		if err != nil {
-			log.Printf("createOrGetDiggerRepoForGithubRepo failed, error: %v\n", err)
-			return err
-		}
-	}
-	return nil
-}
-
-func handleInstallationRepositoriesDeletedEvent(payload *github.InstallationRepositoriesEvent) error {
-	installationId := *payload.Installation.ID
-	appId := *payload.Installation.AppID
-	for _, repo := range payload.RepositoriesRemoved {
-		repoFullName := *repo.FullName
-		_, err := dbmodels.DB.GithubRepoRemoved(installationId, appId, repoFullName)
-		if err != nil {
-			return err
-		}
-
-		// todo: change the status of DiggerRepo to InActive
-	}
-	return nil
-}
-
-func handleInstallationCreatedEvent(installation *github.InstallationEvent) error {
-	installationId := *installation.Installation.ID
-	login := *installation.Installation.Account.Login
-	accountId := *installation.Installation.Account.ID
-	appId := *installation.Installation.AppID
-
-	for _, repo := range installation.Repositories {
-		repoFullName := *repo.FullName
-		repoOwner := strings.Split(*repo.FullName, "/")[0]
-		repoName := *repo.Name
-		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
-
-		log.Printf("Adding a new installation %d for repo: %s", installationId, repoFullName)
-		_, err := dbmodels.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
-		if err != nil {
-			return err
-		}
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func handleInstallationDeletedEvent(installation *github.InstallationEvent) error {
@@ -387,7 +303,7 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 	for _, repo := range installation.Repositories {
 		repoFullName := *repo.FullName
 		log.Printf("Removing an installation %d for repo: %s", installationId, repoFullName)
-		_, err := dbmodels.DB.GithubRepoRemoved(installationId, appId, repoFullName)
+		_, err := dbmodels.DB.GithubRepoRemoved(installationId, appId, repoFullName, link.OrganizationID)
 		if err != nil {
 			return err
 		}
@@ -752,13 +668,14 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	result, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
+	result, installation, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
 	if !result {
 		log.Printf("Failed to validated installation id, %v\n", err)
 		c.String(http.StatusInternalServerError, "Failed to validate installation_id.")
 		return
 	}
 
+	// retrive org for current orgID
 	orgId := c.GetString(middleware.ORGANISATION_ID_KEY)
 	org, err := dbmodels.DB.GetOrganisationById(orgId)
 	if err != nil {
@@ -767,11 +684,68 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
+	// create a github installation link (org ID matched to installation ID)
 	_, err = dbmodels.DB.CreateGithubInstallationLink(org, installationId64)
 	if err != nil {
-		log.Printf("Error saving CreateGithubInstallationLink to database: %v", err)
+		log.Printf("Error saving GithubInstallationLink to database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
 		return
+	}
+
+	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
+	if err != nil {
+		log.Printf("Error retriving github client: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
+		return
+
+	}
+
+	// we get repos accessible to this installation
+	listRepos, _, err := client.Apps.ListRepos(context.Background(), nil)
+	if err != nil {
+		log.Printf("Failed to validated list existing repos, %v\n", err)
+		c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
+		return
+	}
+	repos := listRepos.Repositories
+
+	// resets all existing installations (soft delete)
+	var AppInstallation model.GithubAppInstallation
+	err = dbmodels.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", dbmodels.GithubAppInstallDeleted).Error
+	if err != nil {
+		log.Printf("Failed to update github installations: %v", err)
+		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
+		return
+	}
+
+	// reset all existing repos (soft delete)
+	var ExistingRepos []model.Repo
+	err = dbmodels.DB.GormDB.Delete(ExistingRepos, "organization_id=?", orgId).Error
+	if err != nil {
+		log.Printf("could not delete repos: %v", err)
+		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
+		return
+	}
+
+	// here we mark repos that are available one by one
+	for _, repo := range repos {
+		repoFullName := *repo.FullName
+		repoOwner := strings.Split(*repo.FullName, "/")[0]
+		repoName := *repo.Name
+		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
+		_, err := dbmodels.DB.GithubRepoAdded(installationId64, *installation.AppID, *installation.Account.Login, *installation.Account.ID, repoFullName)
+		if err != nil {
+			log.Printf("github repos added error: %v", err)
+			c.String(http.StatusInternalServerError, "github repos added error: %v", err)
+			return
+		}
+
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64)
+		if err != nil {
+			log.Printf("createOrGetDiggerRepoForGithubRepo error: %v", err)
+			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
+			return
+		}
 	}
 
 	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
@@ -824,7 +798,7 @@ func (d DiggerController) GithubReposPage(c *gin.Context) {
 
 // why this validation is needed: https://roadie.io/blog/avoid-leaking-github-org-data/
 // validation based on https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app , step 3
-func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, error) {
+func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, *github.Installation, error) {
 	ctx := context.Background()
 	type OAuthAccessResponse struct {
 		AccessToken string `json:"access_token"`
@@ -835,22 +809,22 @@ func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider
 	reqURL := fmt.Sprintf("https://%v/login/oauth/access_token?client_id=%s&client_secret=%s&code=%s", githubHostname, clientId, clientSecret, code)
 	req, err := http.NewRequest(http.MethodPost, reqURL, nil)
 	if err != nil {
-		return false, fmt.Errorf("could not create HTTP request: %v\n", err)
+		return false, nil, fmt.Errorf("could not create HTTP request: %v\n", err)
 	}
 	req.Header.Set("accept", "application/json")
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("request to login/oauth/access_token failed: %v\n", err)
+		return false, nil, fmt.Errorf("request to login/oauth/access_token failed: %v\n", err)
 	}
 
 	if err != nil {
-		return false, fmt.Errorf("Failed to read response's body: %v\n", err)
+		return false, nil, fmt.Errorf("Failed to read response's body: %v\n", err)
 	}
 
 	var t OAuthAccessResponse
 	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return false, fmt.Errorf("could not parse JSON response: %v\n", err)
+		return false, nil, fmt.Errorf("could not parse JSON response: %v\n", err)
 	}
 
 	ts := oauth2.StaticTokenSource(
@@ -867,25 +841,28 @@ func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider
 	client, err := githubClientProvider.NewClient(tc)
 	if err != nil {
 		log.Printf("could create github client: %v", err)
-		return false, fmt.Errorf("could not create github client: %v", err)
+		return false, nil, fmt.Errorf("could not create github client: %v", err)
 	}
 
 	installationIdMatch := false
 	// list all installations for the user
+	var matchedInstallation *github.Installation
 	installations, _, err := client.Apps.ListUserInstallations(ctx, nil)
 	if err != nil {
 		log.Printf("could not retrieve installations: %v", err)
-		return false, fmt.Errorf("could not retrieve installations: %v", installationId)
+		return false, nil, fmt.Errorf("could not retrieve installations: %v", installationId)
 	}
 	log.Printf("installations %v", installations)
 	for _, v := range installations {
 		log.Printf("installation id: %v\n", *v.ID)
 		if *v.ID == installationId {
+			matchedInstallation = v
 			installationIdMatch = true
 		}
 	}
 	if !installationIdMatch {
-		return false, fmt.Errorf("InstallationId %v doesn't match any id for specified user\n", installationId)
+		return false, nil, fmt.Errorf("InstallationId %v doesn't match any id for specified user\n", installationId)
 	}
-	return true, nil
+
+	return true, matchedInstallation, nil
 }
