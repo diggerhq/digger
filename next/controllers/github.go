@@ -777,6 +777,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	if err != nil {
 		log.Printf("Failed to update github installations: %v", err)
 		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
+		return
 	}
 
 	var ExistingRepos []model.Repo
@@ -784,6 +785,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	if err != nil {
 		log.Printf("could not delete repos: %v", err)
 		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
+		return
 	}
 
 	for _, repo := range repos {
@@ -795,12 +797,14 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		if err != nil {
 			log.Printf("github repos added error: %v", err)
 			c.String(http.StatusInternalServerError, "github repos added error: %v", err)
+			return
 		}
 
 		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64)
 		if err != nil {
 			log.Printf("createOrGetDiggerRepoForGithubRepo error: %v", err)
 			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
+			return
 		}
 	}
 
