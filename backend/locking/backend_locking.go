@@ -20,18 +20,12 @@ func (lock BackendDBLock) Lock(lockId int, resource string) (bool, error) {
 }
 
 func (lock BackendDBLock) Unlock(resource string) (bool, error) {
-	theLock, err := models.DB.GetDiggerLock(resource)
+	// delete all locks that match this resource
+	l := models.DiggerLock{}
+	err := models.DB.GormDB.Where("resource=?", resource).Delete(&l).Error
 	if err != nil {
-		if err != nil {
-			return false, fmt.Errorf("could not get lock record: %v", err)
-		}
+		return false, fmt.Errorf("could not delete all locks: %v", err)
 	}
-
-	err = models.DB.DeleteDiggerLock(theLock)
-	if err != nil {
-		return false, fmt.Errorf("could not delete lock record: %v", err)
-	}
-
 	return true, nil
 }
 

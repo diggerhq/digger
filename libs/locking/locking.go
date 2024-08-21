@@ -123,6 +123,7 @@ func reportLockingFailed(r reporting.Reporter, comment string) {
 }
 
 func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
+	// TODO: Also include CI type (github, gitlab etc. into this lockID in order to avoid collision across VCS)
 	lockId := projectLock.LockId()
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
 
