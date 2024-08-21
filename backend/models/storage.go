@@ -1245,13 +1245,3 @@ func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
 	}
 	return lock, nil
 }
-
-func (db *Database) DeleteDiggerLock(lock *DiggerLock) error {
-	log.Printf("DeleteDiggerLock Deleting: %v, %v", lock.LockId, lock.Resource)
-	result := db.GormDB.Delete(lock)
-	if result.Error != nil {
-		return result.Error
-	}
-	log.Printf("DeleteDiggerLock %v %v has been deleted successfully\n", lock.LockId, lock.Resource)
-	return nil
-}
