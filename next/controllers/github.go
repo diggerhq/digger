@@ -772,8 +772,8 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	log.Printf("the accessible repos: %v", listRepos.Repositories)
 	repos := listRepos.Repositories
 
-	var AppInstallations []model.GithubAppInstallation
-	err = dbmodels.DB.GormDB.Select(&AppInstallations).Where("github_installation_id=?", installationId).Update("status = ", dbmodels.GithubAppInstallationLinkInactive).Error
+	var AppInstallation model.GithubAppInstallation
+	err = dbmodels.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", dbmodels.GithubAppInstallationLinkInactive).Error
 	if err != nil {
 		log.Printf("Failed to update github installations: %v", err)
 		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
