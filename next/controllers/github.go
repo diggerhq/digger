@@ -747,11 +747,20 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
+	// retrive org for current orgID
 	orgId := c.GetString(middleware.ORGANISATION_ID_KEY)
 	org, err := dbmodels.DB.GetOrganisationById(orgId)
 	if err != nil {
 		log.Printf("Error fetching organisation: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
+		return
+	}
+
+	// create a github installation link (org ID matched to installation ID)
+	_, err = dbmodels.DB.CreateGithubInstallationLink(org, installationId64)
+	if err != nil {
+		log.Printf("Error saving GithubInstallationLink to database: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
 		return
 	}
 
@@ -763,23 +772,25 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 
 	}
 
+	// we get repos accessible to this installation
 	listRepos, _, err := client.Apps.ListRepos(context.Background(), nil)
 	if err != nil {
 		log.Printf("Failed to validated list existing repos, %v\n", err)
 		c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
 		return
 	}
-	log.Printf("the accessible repos: %v", listRepos.Repositories)
 	repos := listRepos.Repositories
 
+	// resets all existing installations (soft delete)
 	var AppInstallation model.GithubAppInstallation
-	err = dbmodels.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", dbmodels.GithubAppInstallationLinkInactive).Error
+	err = dbmodels.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", dbmodels.GithubAppInstallDeleted).Error
 	if err != nil {
 		log.Printf("Failed to update github installations: %v", err)
 		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
 		return
 	}
 
+	// reset all existing repos (soft delete)
 	var ExistingRepos []model.Repo
 	err = dbmodels.DB.GormDB.Delete(ExistingRepos, "organization_id=?", orgId).Error
 	if err != nil {
@@ -788,6 +799,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
+	// here we mark repos that are available one by one
 	for _, repo := range repos {
 		repoFullName := *repo.FullName
 		repoOwner := strings.Split(*repo.FullName, "/")[0]
@@ -806,13 +818,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
 			return
 		}
-	}
-
-	_, err = dbmodels.DB.CreateGithubInstallationLink(org, installationId64)
-	if err != nil {
-		log.Printf("Error saving GithubInstallationLink to database: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
-		return
 	}
 
 	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
