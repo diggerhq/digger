@@ -19,8 +19,6 @@ import (
 	"time"
 
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	"github.com/diggerhq/digger/cli/pkg/core/runners"
-	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -215,17 +213,17 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		PrNumber:         *job.PullRequestNumber,
 	}
 
-	var terraformExecutor terraform.TerraformExecutor
+	var terraformExecutor execution.TerraformExecutor
 	projectPath := path.Join(workingDir, job.ProjectDir)
 	if job.Terragrunt {
-		terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
+		terraformExecutor = execution.Terragrunt{WorkingDir: projectPath}
 	} else if job.OpenTofu {
-		terraformExecutor = terraform.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+		terraformExecutor = execution.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 	} else {
-		terraformExecutor = terraform.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+		terraformExecutor = execution.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 	}
 
-	commandRunner := runners.CommandRunner{}
+	commandRunner := execution.CommandRunner{}
 	planPathProvider := execution.ProjectPathProvider{
 		ProjectPath:      projectPath,
 		ProjectNamespace: projectNamespace,
@@ -582,17 +580,17 @@ func RunJob(
 			log.Fatalf("failed to fetch AWS keys, %v", err)
 		}
 
-		var terraformExecutor terraform.TerraformExecutor
+		var terraformExecutor execution.TerraformExecutor
 		projectPath := path.Join(workingDir, job.ProjectDir)
 		if job.Terragrunt {
-			terraformExecutor = terraform.Terragrunt{WorkingDir: projectPath}
+			terraformExecutor = execution.Terragrunt{WorkingDir: projectPath}
 		} else if job.OpenTofu {
-			terraformExecutor = terraform.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+			terraformExecutor = execution.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 		} else {
-			terraformExecutor = terraform.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+			terraformExecutor = execution.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 		}
 
-		commandRunner := runners.CommandRunner{}
+		commandRunner := execution.CommandRunner{}
 
 		planPathProvider := execution.ProjectPathProvider{
 			ProjectPath:      projectPath,

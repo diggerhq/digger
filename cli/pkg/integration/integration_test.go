@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"github.com/diggerhq/digger/libs/ci/generic"
+	"github.com/diggerhq/digger/libs/execution"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/locking/aws"
 	"github.com/diggerhq/digger/libs/storage"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/diggerhq/digger/libs/comment_utils/summary"
 
-	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
@@ -346,7 +346,7 @@ func TestHappyPath(t *testing.T) {
 
 	SkipCI(t)
 
-	dir := terraform.CreateTestTerraformProject()
+	dir := execution.CreateTestTerraformProject()
 
 	defer func(name string) {
 		err := os.RemoveAll(name)
@@ -355,8 +355,8 @@ func TestHappyPath(t *testing.T) {
 		}
 	}(dir)
 
-	terraform.CreateValidTerraformTestFile(dir)
-	terraform.CreateSingleEnvDiggerYmlFile(dir)
+	execution.CreateValidTerraformTestFile(dir)
+	execution.CreateSingleEnvDiggerYmlFile(dir)
 
 	diggerConfig, _, _, err := configuration.LoadDiggerConfig(dir, true, nil)
 	assert.NoError(t, err)
@@ -497,7 +497,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	SkipCI(t)
 	t.Skip()
 
-	dir := terraform.CreateTestTerraformProject()
+	dir := execution.CreateTestTerraformProject()
 
 	defer func(name string) {
 		err := os.RemoveAll(name)
@@ -506,8 +506,8 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		}
 	}(dir)
 
-	terraform.CreateValidTerraformTestFile(dir)
-	terraform.CreateMultiEnvDiggerYmlFile(dir)
+	execution.CreateValidTerraformTestFile(dir)
+	execution.CreateMultiEnvDiggerYmlFile(dir)
 
 	diggerConfig, _, _, err := configuration.LoadDiggerConfig(dir, true, nil)
 	assert.NoError(t, err)
@@ -713,7 +713,7 @@ workflows:
       - run: echo "hello"
 `
 
-	dir := terraform.CreateTestTerraformProject()
+	dir := execution.CreateTestTerraformProject()
 
 	defer func(name string) {
 		err := os.RemoveAll(name)
@@ -722,8 +722,8 @@ workflows:
 		}
 	}(dir)
 
-	terraform.CreateValidTerraformTestFile(dir)
-	terraform.CreateCustomDiggerYmlFile(dir, diggerCfg)
+	execution.CreateValidTerraformTestFile(dir)
+	execution.CreateCustomDiggerYmlFile(dir, diggerCfg)
 
 	diggerConfig, _, _, err := configuration.LoadDiggerConfig(dir, true, nil)
 	assert.NoError(t, err)
