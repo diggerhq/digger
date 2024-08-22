@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Setup Opentofu
+        uses: opentofu/setup-opentofu@v1.0.3
+        with:
+          tofu_version: 1.6.0-alpha3
+
       - name: Download Go
         uses: actions/setup-go@v5
         with:
