@@ -1,4 +1,4 @@
-package terraform
+package execution
 
 import (
 	"github.com/stretchr/testify/assert"
