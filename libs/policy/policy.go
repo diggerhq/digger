@@ -6,15 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
+	"github.com/open-policy-agent/opa/rego"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-
-	// "github.com/diggerhq/digger/cli/pkg/core/policy/AccessPolicyContext"
-	// TODO fix imports - publish?
-	"github.com/open-policy-agent/opa/rego"
 )
 
 const DefaultAccessPolicy = `

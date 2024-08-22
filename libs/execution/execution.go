@@ -15,8 +15,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diggerhq/digger/cli/pkg/core/runners"
-	"github.com/diggerhq/digger/cli/pkg/core/terraform"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
@@ -98,8 +96,8 @@ type DiggerExecutor struct {
 	RunEnvVars        map[string]string
 	ApplyStage        *scheduler.Stage
 	PlanStage         *scheduler.Stage
-	CommandRunner     runners.CommandRun
-	TerraformExecutor terraform.TerraformExecutor
+	CommandRunner     CommandRun
+	TerraformExecutor TerraformExecutor
 	Reporter          reporting.Reporter
 	PlanStorage       storage.PlanStorage
 	PlanPathProvider  PlanPathProvider
