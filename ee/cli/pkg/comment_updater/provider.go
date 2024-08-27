@@ -9,13 +9,13 @@ import (
 type CommentUpdaterProviderAdvanced struct {
 }
 
-func (c CommentUpdaterProviderAdvanced) Get(config digger_config.DiggerConfig) (comment_updater.CommentUpdater, error) {
-	if config.CommentRenderMode == digger_config.CommentRenderModeBasic {
+func (c CommentUpdaterProviderAdvanced) Get(renderMode string) (comment_updater.CommentUpdater, error) {
+	if renderMode == digger_config.CommentRenderModeBasic {
 		return comment_updater.BasicCommentUpdater{}, nil
-	} else if config.CommentRenderMode == digger_config.CommentRenderModeGroupByModule {
+	} else if renderMode == digger_config.CommentRenderModeGroupByModule {
 		commentUpdater := comment_updater.BasicCommentUpdater{}
 		return commentUpdater, nil
 	} else {
-		return nil, fmt.Errorf("Unknown comment render mode found: %v", config.CommentRenderMode)
+		return nil, fmt.Errorf("Unknown comment render mode found: %v", renderMode)
 	}
 }
