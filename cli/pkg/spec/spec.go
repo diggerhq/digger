@@ -80,18 +80,14 @@ func RunSpec(
 
 	// TODO: avoid calling GetChangedFilesHere, avoid loading digger config entirely
 	// also see below TODO to leverage variables provider and avoid passing it to commentUpdaterProvider
-	changedFiles, err := prService.GetChangedFiles(*spec.Job.PullRequestNumber)
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get changed files: %v", err), 1)
-	}
-	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, changedFiles)
+	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, []string{})
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
 	log.Printf("Digger digger_config read successfully\n")
 
-	// TODO: instead of passing diggerConfig we simply pass the renderMode needed by comment updater provider
-	commentUpdater, err := commentUpdaterProvider.Get(*diggerConfig)
+	// TODO: render mode being passable from the string
+	commentUpdater, err := commentUpdaterProvider.Get(digger_config.CommentRenderModeBasic)
 	if err != nil {
 		message := fmt.Sprintf("could not get comment updater: %v", err)
 		reportError(spec, backendApi, message, err)
