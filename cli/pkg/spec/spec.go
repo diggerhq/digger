@@ -33,6 +33,7 @@ func RunSpec(
 	backedProvider spec.BackendApiProvider,
 	policyProvider spec.SpecPolicyProvider,
 	PlanStorageProvider spec.PlanStorageProvider,
+	variablesProvider spec.VariablesProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
 
@@ -78,14 +79,6 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	// TODO: avoid calling GetChangedFilesHere, avoid loading digger config entirely
-	// also see below TODO to leverage variables provider and avoid passing it to commentUpdaterProvider
-	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", false, []string{})
-	if err != nil {
-		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
-	}
-	log.Printf("Digger digger_config read successfully\n")
-
 	// TODO: render mode being passable from the string
 	commentUpdater, err := commentUpdaterProvider.Get(digger_config.CommentRenderModeBasic)
 	if err != nil {
@@ -100,10 +93,17 @@ func RunSpec(
 	}
 
 	// TODO: make this part purely based on variables providers
-	workflow := diggerConfig.Workflows[job.ProjectWorkflow]
-	stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
-	job.StateEnvVars = lo.Assign(job.StateEnvVars, stateEnvVars)
-	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandEnvVars)
+
+	// get variables from the variables spec
+	variablesMap, err := variablesProvider.GetVariables(spec.Variables)
+	if err != nil {
+		log.Printf("could not get variables from provider: %v", err)
+		reporterError(spec, backendApi, err)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get variables from provider: %v", err), 1)
+	}
+	job.StateEnvVars = lo.Assign(job.StateEnvVars, variablesMap)
+	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, variablesMap)
+	job.RunEnvVars = lo.Assign(job.RunEnvVars, variablesMap)
 
 	jobs := []scheduler.Job{job}
 

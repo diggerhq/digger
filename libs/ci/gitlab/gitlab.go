@@ -357,7 +357,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, true, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
-			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
@@ -385,7 +385,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			if !ok {
 				return nil, true, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 			}
-			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 			var StateEnvProvider *stscreds.WebIdentityRoleProvider
 			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
 			if project.AwsRoleToAssume != nil {
@@ -455,7 +455,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 					if workspaceOverride != "" {
 						workspace = workspaceOverride
 					}
-					stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 					StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 					jobs = append(jobs, scheduler.Job{
 						ProjectName:        project.Name,

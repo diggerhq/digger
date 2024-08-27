@@ -148,7 +148,7 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 		}
 
 		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
-		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 		workspace := project.Workspace
 		jobs = append(jobs, scheduler.Job{
