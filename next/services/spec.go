@@ -175,9 +175,7 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 		CommentId: strconv.FormatInt(batch.CommentID, 10),
 		Job:       jobSpec,
 		Reporter: spec.ReporterSpec{
-			ReportingStrategy:     "comments_per_run",
-			ReporterType:          "lazy",
-			ReportTerraformOutput: true,
+			ReporterType: "noop",
 		},
 		Lock: spec.LockSpec{
 			LockType: "noop",
@@ -190,7 +188,7 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 		},
 		Variables: variablesSpec,
 		VCS: spec.VcsSpec{
-			VcsType:      string(batch.Vcs),
+			VcsType:      batch.Vcs,
 			Actor:        jobSpec.RequestedBy,
 			RepoFullname: batch.RepoFullName,
 			RepoOwner:    batch.RepoOwner,
