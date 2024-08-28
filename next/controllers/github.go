@@ -387,7 +387,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 		return fmt.Errorf("error processing event")
 	}
 
-	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config)
+	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config, false)
 	if err != nil {
 		log.Printf("Error converting event to jobsForImpactedProjects: %v", err)
 		backend_utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Error converting event to jobsForImpactedProjects: %v", err))

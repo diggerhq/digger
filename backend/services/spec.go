@@ -7,9 +7,11 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
+	"github.com/samber/lo"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func GetVCSTokenFromJob(job models.DiggerJob, gh utils.GithubClientProvider) (*string, error) {
@@ -57,12 +59,53 @@ func GetRunNameFromJob(job models.DiggerJob) (*string, error) {
 	return &runName, nil
 }
 
+func getVariablesSpecFromEnvMap(envVars map[string]string) []spec.VariableSpec {
+	variablesSpec := make([]spec.VariableSpec, 0)
+	for k, v := range envVars {
+		if strings.HasPrefix(v, "$DIGGER_") {
+			val := strings.ReplaceAll(v, "$DIGGER_", "")
+			variablesSpec = append(variablesSpec, spec.VariableSpec{
+				Name:           k,
+				Value:          val,
+				IsSecret:       false,
+				IsInterpolated: true,
+			})
+		} else {
+			variablesSpec = append(variablesSpec, spec.VariableSpec{
+				Name:           k,
+				Value:          v,
+				IsSecret:       false,
+				IsInterpolated: false,
+			})
+
+		}
+	}
+	return variablesSpec
+}
+
 func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 	var jobSpec scheduler.JobJson
 	err := json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
 	if err != nil {
 		log.Printf("could not unmarshal job string: %v", err)
 		return nil, fmt.Errorf("could not marshal json string: %v", err)
+	}
+
+	variablesSpec := make([]spec.VariableSpec, 0)
+	stateVariables := getVariablesSpecFromEnvMap(jobSpec.StateEnvVars)
+	commandVariables := getVariablesSpecFromEnvMap(jobSpec.CommandEnvVars)
+	runVariables := getVariablesSpecFromEnvMap(jobSpec.RunEnvVars)
+	variablesSpec = append(variablesSpec, stateVariables...)
+	variablesSpec = append(variablesSpec, commandVariables...)
+	variablesSpec = append(variablesSpec, runVariables...)
+
+	// check for duplicates in list of variablesSpec
+	justNames := lo.Map(variablesSpec, func(item spec.VariableSpec, i int) string {
+		return item.Name
+	})
+	hasDuplicates := len(justNames) != len(lo.Uniq(justNames))
+	if hasDuplicates {
+		return nil, fmt.Errorf("could not load variables due to duplicates: %v", err)
 	}
 
 	batch := job.Batch
@@ -93,6 +136,7 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 			RepoName:     batch.RepoName,
 			WorkflowFile: job.WorkflowFile,
 		},
+		Variables: variablesSpec,
 		Policy: spec.PolicySpec{
 			PolicyType: "http",
 		},

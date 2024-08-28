@@ -353,7 +353,7 @@ func (svc GithubService) CheckBranchExists(branchName string) (bool, error) {
 	return true, nil
 }
 
-func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, config digger_config.DiggerConfig) ([]scheduler.Job, bool, error) {
+func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, config digger_config.DiggerConfig, performEnvVarInterpolation bool) ([]scheduler.Job, bool, error) {
 	workflows := config.Workflows
 	jobs := make([]scheduler.Job, 0)
 
@@ -368,7 +368,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 
 		runEnvVars := generic.GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
 
-		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, performEnvVarInterpolation)
 		pullRequestNumber := payload.PullRequest.Number
 
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)

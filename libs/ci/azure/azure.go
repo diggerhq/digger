@@ -442,7 +442,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 			}
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
-			stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars, true)
 			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
@@ -472,7 +472,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 			}
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
-			stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars, true)
 			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
@@ -502,7 +502,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				if !ok {
 					return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 				}
-				stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
+				stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars, true)
 				StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 				jobs = append(jobs, scheduler.Job{
 					ProjectName:        project.Name,
@@ -557,7 +557,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 					if !ok {
 						return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 					}
-					stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars)
+					stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars, true)
 					StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 					jobs = append(jobs, scheduler.Job{
 						ProjectName:        project.Name,

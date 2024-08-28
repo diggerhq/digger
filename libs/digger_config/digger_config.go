@@ -688,7 +688,7 @@ func retrieveConfigFile(workingDir string) (string, error) {
 	return "", nil
 }
 
-func CollectTerraformEnvConfig(envs *TerraformEnvConfig) (map[string]string, map[string]string) {
+func CollectTerraformEnvConfig(envs *TerraformEnvConfig, performInterpolation bool) (map[string]string, map[string]string) {
 	stateEnvVars := map[string]string{}
 	commandEnvVars := map[string]string{}
 
@@ -697,7 +697,11 @@ func CollectTerraformEnvConfig(envs *TerraformEnvConfig) (map[string]string, map
 			if envvar.Value != "" {
 				stateEnvVars[envvar.Name] = envvar.Value
 			} else if envvar.ValueFrom != "" {
-				stateEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+				if performInterpolation {
+					stateEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+				} else {
+					stateEnvVars[envvar.Name] = fmt.Sprintf("$DIGGER_%v", envvar.ValueFrom)
+				}
 			}
 		}
 
@@ -705,7 +709,11 @@ func CollectTerraformEnvConfig(envs *TerraformEnvConfig) (map[string]string, map
 			if envvar.Value != "" {
 				commandEnvVars[envvar.Name] = envvar.Value
 			} else if envvar.ValueFrom != "" {
-				commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+				if performInterpolation {
+					commandEnvVars[envvar.Name] = os.Getenv(envvar.ValueFrom)
+				} else {
+					commandEnvVars[envvar.Name] = fmt.Sprintf("$DIGGER_%v", envvar.ValueFrom)
+				}
 			}
 		}
 	}
