@@ -40,7 +40,7 @@ type VariableSpec struct {
 	Name           string `json:"name"`
 	Value          string `json:"value"`
 	IsSecret       bool   `json:"is_secret"`
-	IsInterpolated bool   `json:"is_secret"`
+	IsInterpolated bool   `json:"is_interpolated"`
 }
 
 type SpecType string
