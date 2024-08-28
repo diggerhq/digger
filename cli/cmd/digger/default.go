@@ -31,33 +31,20 @@ var defaultCmd = &cobra.Command{
 			}
 
 			var spec_err error
-			if spec.SpecType == lib_spec.SpecTypeNextJob {
-				spec_err = spec2.RunSpecNext(
-					spec,
-					lib_spec.VCSProviderBasic{},
-					lib_spec.JobSpecProvider{},
-					lib_spec.LockProvider{},
-					lib_spec.ReporterProvider{},
-					lib_spec.BackendApiProvider{},
-					lib_spec.BasicPolicyProvider{},
-					lib_spec.PlanStorageProvider{},
-					lib_spec.VariablesProvider{},
-					comment_updater.CommentUpdaterProviderBasic{},
-				)
-			} else {
-				spec_err = spec2.RunSpec(
-					spec,
-					lib_spec.VCSProviderBasic{},
-					lib_spec.JobSpecProvider{},
-					lib_spec.LockProvider{},
-					lib_spec.ReporterProvider{},
-					lib_spec.BackendApiProvider{},
-					lib_spec.BasicPolicyProvider{},
-					lib_spec.PlanStorageProvider{},
-					lib_spec.VariablesProvider{},
-					comment_updater.CommentUpdaterProviderBasic{},
-				)
-			}
+			
+			spec_err = spec2.RunSpec(
+				spec,
+				lib_spec.VCSProviderBasic{},
+				lib_spec.JobSpecProvider{},
+				lib_spec.LockProvider{},
+				lib_spec.ReporterProvider{},
+				lib_spec.BackendApiProvider{},
+				lib_spec.BasicPolicyProvider{},
+				lib_spec.PlanStorageProvider{},
+				lib_spec.VariablesProvider{},
+				comment_updater.CommentUpdaterProviderBasic{},
+			)
+
 			if spec_err != nil {
 				usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while running spec: %v", err), 1)
 			}

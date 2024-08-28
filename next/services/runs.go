@@ -57,7 +57,7 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			return fmt.Errorf("could not get variable spec from job: %v", err)
 		}
 
-		spec, err := GetSpecFromJob(*planJob, lib_spec.SpecTypeNextJob)
+		spec, err := GetSpecFromJob(*planJob)
 		if err != nil {
 			log.Printf("could not get spec: %v", err)
 			return fmt.Errorf("could not get spec: %v", err)
@@ -140,7 +140,7 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			return fmt.Errorf("could not get run name: %v", err)
 		}
 
-		spec, err := GetSpecFromJob(*job, lib_spec.SpecTypeNextJob)
+		spec, err := GetSpecFromJob(*job)
 		if err != nil {
 			log.Printf("could not get spec: %v", err)
 			return fmt.Errorf("could not get spec: %v", err)

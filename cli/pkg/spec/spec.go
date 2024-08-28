@@ -12,6 +12,7 @@ import (
 	"github.com/samber/lo"
 	"log"
 	"os"
+	"os/exec"
 	"time"
 )
 
@@ -41,6 +42,31 @@ func RunSpec(
 	if err != nil {
 		log.Printf("could not get backend api: %v", err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
+	}
+
+	if spec.Job.Commit != "" {
+		// checking out to the commit ID
+		log.Printf("fetching commit ID %v", spec.Job.Commit)
+		fetchCmd := exec.Command("git", "fetch", "origin", spec.Job.Commit)
+		fetchCmd.Stdout = os.Stdout
+		fetchCmd.Stderr = os.Stderr
+		err = fetchCmd.Run()
+		if err != nil {
+			log.Printf("error while fetching commit SHA: %v", err)
+			reporterError(spec, backendApi, err)
+			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
+		}
+
+		log.Printf("checking out to commit ID %v", spec.Job.Commit)
+		cmd := exec.Command("git", "checkout", spec.Job.Commit)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
+		if err != nil {
+			log.Printf("error while checking out to commit SHA: %v", err)
+			reporterError(spec, backendApi, err)
+			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
+		}
 	}
 
 	job, err := jobProvider.GetJob(spec.Job)

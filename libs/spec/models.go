@@ -45,10 +45,7 @@ type VariableSpec struct {
 
 type SpecType string
 
-const SpecTypeNextJob SpecType = "next_run_spec"
-const SpecTypeApplyBeforeMergeJob SpecType = "before_merge_spec"
 const SpecTypeManualJob SpecType = "manual_job"
-const SpecTypeDriftJob SpecType = "drift_job"
 
 type Spec struct {
 	// TODO: replace these three to be nested into one of the other specs

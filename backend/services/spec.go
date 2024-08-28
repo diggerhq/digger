@@ -111,7 +111,6 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 	batch := job.Batch
 
 	spec := spec.Spec{
-		SpecType:  spec.SpecTypeApplyBeforeMergeJob,
 		JobId:     job.DiggerJobID,
 		CommentId: strconv.FormatInt(*batch.CommentId, 10),
 		Job:       jobSpec,

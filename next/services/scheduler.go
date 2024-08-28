@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
@@ -76,7 +75,7 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 		return fmt.Errorf("could not get variable spec from job: %v", err)
 	}
 
-	spec, err := GetSpecFromJob(*job, lib_spec.SpecTypeApplyBeforeMergeJob)
+	spec, err := GetSpecFromJob(*job)
 	if err != nil {
 		log.Printf("could not get spec: %v", err)
 		return fmt.Errorf("could not get spec %v", err)
