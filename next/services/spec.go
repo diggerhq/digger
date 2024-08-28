@@ -171,7 +171,6 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 	}
 
 	spec := spec.Spec{
-		SpecType:  specType,
 		JobId:     job.DiggerJobID,
 		CommentId: strconv.FormatInt(batch.CommentID, 10),
 		Job:       jobSpec,
