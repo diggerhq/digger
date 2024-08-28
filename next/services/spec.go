@@ -175,7 +175,8 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 		CommentId: strconv.FormatInt(batch.CommentID, 10),
 		Job:       jobSpec,
 		Reporter: spec.ReporterSpec{
-			ReporterType: "noop",
+			ReporterType:          "noop",
+			ReportTerraformOutput: true,
 		},
 		Lock: spec.LockSpec{
 			LockType: "noop",
@@ -197,6 +198,9 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 		},
 		Policy: spec.PolicySpec{
 			PolicyType: "http",
+		},
+		CommentUpdater: spec.CommentUpdaterSpec{
+			CommentUpdaterType: "noop",
 		},
 	}
 	return &spec, nil

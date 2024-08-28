@@ -6,7 +6,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
-	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/samber/lo"
@@ -106,7 +105,7 @@ func RunSpec(
 	}
 
 	// TODO: render mode being passable from the spec as a string
-	commentUpdater, err := commentUpdaterProvider.Get(digger_config.CommentRenderModeBasic)
+	commentUpdater, err := commentUpdaterProvider.Get(spec.CommentUpdater.CommentUpdaterType)
 	if err != nil {
 		message := fmt.Sprintf("could not get comment updater: %v", err)
 		reportError(spec, backendApi, message, err)

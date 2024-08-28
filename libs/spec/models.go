@@ -10,6 +10,10 @@ type ReporterSpec struct {
 	ReportTerraformOutput bool   `json:"report_terraform_output"`
 }
 
+type CommentUpdaterSpec struct {
+	CommentUpdaterType string `json:"comment_updater_type"`
+}
+
 type LockSpec struct {
 	LockType     string `json:"lock_type"`
 	LockProvider string `json:"lock_provider"`
@@ -54,11 +58,12 @@ type Spec struct {
 	CommentId string   `json:"comment_id"`
 	RunName   string   `json:"run_name"`
 
-	Job       scheduler.JobJson `json:"job"`
-	Reporter  ReporterSpec      `json:"reporter"`
-	Lock      LockSpec          `json:"lock"`
-	Backend   BackendSpec       `json:"backend"`
-	VCS       VcsSpec           `json:"vcs"`
-	Policy    PolicySpec        `json:"policy_provider"`
-	Variables []VariableSpec    `json:"variables"`
+	Job            scheduler.JobJson  `json:"job"`
+	Reporter       ReporterSpec       `json:"reporter"`
+	CommentUpdater CommentUpdaterSpec `json:"comment_updater"`
+	Lock           LockSpec           `json:"lock"`
+	Backend        BackendSpec        `json:"backend"`
+	VCS            VcsSpec            `json:"vcs"`
+	Policy         PolicySpec         `json:"policy_provider"`
+	Variables      []VariableSpec     `json:"variables"`
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/samber/lo"
@@ -138,6 +139,9 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 		Variables: variablesSpec,
 		Policy: spec.PolicySpec{
 			PolicyType: "http",
+		},
+		CommentUpdater: spec.CommentUpdaterSpec{
+			CommentUpdaterType: digger_config.CommentRenderModeBasic,
 		},
 	}
 	return &spec, nil

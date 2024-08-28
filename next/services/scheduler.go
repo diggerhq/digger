@@ -3,7 +3,9 @@ package services
 import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
@@ -80,6 +82,14 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 		log.Printf("could not get spec: %v", err)
 		return fmt.Errorf("could not get spec %v", err)
 	}
+	// temp: overriding the reporter spec
+	spec.Reporter = lib_spec.ReporterSpec{
+		ReportingStrategy:     "comments_per_run",
+		ReporterType:          "lazy",
+		ReportTerraformOutput: true,
+	}
+	// temp: overriding the comment updater type for PR
+	spec.CommentUpdater = lib_spec.CommentUpdaterSpec{CommentUpdaterType: digger_config.CommentRenderModeBasic}
 
 	vcsToken, err := GetVCSTokenFromJob(*job, gh)
 	if err != nil {
