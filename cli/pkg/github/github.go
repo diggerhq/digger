@@ -135,7 +135,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		}
 		workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
-		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 
 		planStorage, err := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, nil)
 		if err != nil {
@@ -170,7 +170,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			}
 			workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
-			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars)
+			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 
 			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(projectConfig)
 
@@ -234,7 +234,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		coversAllImpactedProjects := false
 		err = nil
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
-			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig)
+			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig, true)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
 			prBranchName, _, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
 

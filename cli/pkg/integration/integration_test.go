@@ -396,7 +396,7 @@ func TestHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	event := ghEvent.(github.PullRequestEvent)
-	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, *diggerConfig)
+	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, *diggerConfig, false)
 	assert.NoError(t, err)
 	zipManager := storage.Zipper{}
 	planStorage := &storage.GithubPlanStorage{
@@ -439,7 +439,7 @@ func TestHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	prEvent := ghEvent.(github.PullRequestEvent)
-	jobs, _, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig)
+	jobs, _, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig, false)
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
@@ -551,7 +551,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	pEvent := ghEvent.(github.PullRequestEvent)
-	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&pEvent, impactedProjects, requestedProject, *diggerConfig)
+	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&pEvent, impactedProjects, requestedProject, *diggerConfig, false)
 	assert.NoError(t, err)
 
 	zipManager := storage.Zipper{}
@@ -769,7 +769,7 @@ workflows:
 	impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 	pEvent := ghEvent.(github.PullRequestEvent)
-	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&pEvent, impactedProjects, requestedProject, *diggerConfig)
+	jobs, _, err := dg_github.ConvertGithubPullRequestEventToJobs(&pEvent, impactedProjects, requestedProject, *diggerConfig, false)
 	assert.NoError(t, err)
 
 	zipManager := storage.Zipper{}

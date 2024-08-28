@@ -40,6 +40,7 @@ var runSpecCmd = &cobra.Command{
 			lib_spec.BackendApiProvider{},
 			lib_spec.BasicPolicyProvider{},
 			lib_spec.PlanStorageProvider{},
+			lib_spec.VariablesProvider{},
 			comment_summary.CommentUpdaterProviderBasic{},
 		)
 		if err != nil {
