@@ -52,8 +52,8 @@ func RunSpec(
 		fetchCmd.Stderr = os.Stderr
 		err = fetchCmd.Run()
 		if err != nil {
-			log.Printf("error while fetching commit SHA: %v", err)
-			reporterError(spec, backendApi, err)
+			msg := fmt.Sprintf("error while fetching commit SHA: %v", err)
+			reportError(spec, backendApi, msg, err)
 			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
 		}
 
@@ -63,8 +63,8 @@ func RunSpec(
 		cmd.Stderr = os.Stderr
 		err = cmd.Run()
 		if err != nil {
-			log.Printf("error while checking out to commit SHA: %v", err)
-			reporterError(spec, backendApi, err)
+			msg := fmt.Sprintf("error while checking out to commit SHA: %v", err)
+			reportError(spec, backendApi, msg, err)
 			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
 		}
 	}
