@@ -105,7 +105,7 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	// TODO: render mode being passable from the string
+	// TODO: render mode being passable from the spec as a string
 	commentUpdater, err := commentUpdaterProvider.Get(digger_config.CommentRenderModeBasic)
 	if err != nil {
 		message := fmt.Sprintf("could not get comment updater: %v", err)
@@ -118,13 +118,11 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	// TODO: make this part purely based on variables providers
-
 	// get variables from the variables spec
 	variablesMap, err := variablesProvider.GetVariables(spec.Variables)
 	if err != nil {
-		log.Printf("could not get variables from provider: %v", err)
-		reporterError(spec, backendApi, err)
+		msg := fmt.Sprintf("could not get variables from provider: %v", err)
+		reportError(spec, backendApi, msg, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get variables from provider: %v", err), 1)
 	}
 	job.StateEnvVars = lo.Assign(job.StateEnvVars, variablesMap)
