@@ -147,7 +147,7 @@ func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 	return &runName, nil
 }
 
-func GetSpecFromJob(job model.DiggerJob, specType spec.SpecType) (*spec.Spec, error) {
+func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 	var jobSpec scheduler.JobJson
 	err := json.Unmarshal(job.JobSpec, &jobSpec)
 	if err != nil {
@@ -171,13 +171,11 @@ func GetSpecFromJob(job model.DiggerJob, specType spec.SpecType) (*spec.Spec, er
 	}
 
 	spec := spec.Spec{
-		SpecType:  specType,
 		JobId:     job.DiggerJobID,
 		CommentId: strconv.FormatInt(batch.CommentID, 10),
 		Job:       jobSpec,
 		Reporter: spec.ReporterSpec{
-			ReportingStrategy:     "comments_per_run",
-			ReporterType:          "lazy",
+			ReporterType:          "noop",
 			ReportTerraformOutput: true,
 		},
 		Lock: spec.LockSpec{
@@ -191,7 +189,7 @@ func GetSpecFromJob(job model.DiggerJob, specType spec.SpecType) (*spec.Spec, er
 		},
 		Variables: variablesSpec,
 		VCS: spec.VcsSpec{
-			VcsType:      string(batch.Vcs),
+			VcsType:      batch.Vcs,
 			Actor:        jobSpec.RequestedBy,
 			RepoFullname: batch.RepoFullName,
 			RepoOwner:    batch.RepoOwner,
@@ -200,6 +198,9 @@ func GetSpecFromJob(job model.DiggerJob, specType spec.SpecType) (*spec.Spec, er
 		},
 		Policy: spec.PolicySpec{
 			PolicyType: "http",
+		},
+		CommentUpdater: spec.CommentUpdaterSpec{
+			CommentUpdaterType: "noop",
 		},
 	}
 	return &spec, nil

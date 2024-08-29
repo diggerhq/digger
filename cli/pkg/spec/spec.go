@@ -6,12 +6,12 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
-	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/samber/lo"
 	"log"
 	"os"
+	"os/exec"
 	"time"
 )
 
@@ -41,6 +41,31 @@ func RunSpec(
 	if err != nil {
 		log.Printf("could not get backend api: %v", err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
+	}
+
+	if spec.Job.Commit != "" {
+		// checking out to the commit ID
+		log.Printf("fetching commit ID %v", spec.Job.Commit)
+		fetchCmd := exec.Command("git", "fetch", "origin", spec.Job.Commit)
+		fetchCmd.Stdout = os.Stdout
+		fetchCmd.Stderr = os.Stderr
+		err = fetchCmd.Run()
+		if err != nil {
+			msg := fmt.Sprintf("error while fetching commit SHA: %v", err)
+			reportError(spec, backendApi, msg, err)
+			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
+		}
+
+		log.Printf("checking out to commit ID %v", spec.Job.Commit)
+		cmd := exec.Command("git", "checkout", spec.Job.Commit)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
+		if err != nil {
+			msg := fmt.Sprintf("error while checking out to commit SHA: %v", err)
+			reportError(spec, backendApi, msg, err)
+			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
+		}
 	}
 
 	job, err := jobProvider.GetJob(spec.Job)
@@ -79,8 +104,8 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	// TODO: render mode being passable from the string
-	commentUpdater, err := commentUpdaterProvider.Get(digger_config.CommentRenderModeBasic)
+	// TODO: render mode being passable from the spec as a string
+	commentUpdater, err := commentUpdaterProvider.Get(spec.CommentUpdater.CommentUpdaterType)
 	if err != nil {
 		message := fmt.Sprintf("could not get comment updater: %v", err)
 		reportError(spec, backendApi, message, err)
@@ -92,13 +117,11 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	// TODO: make this part purely based on variables providers
-
 	// get variables from the variables spec
 	variablesMap, err := variablesProvider.GetVariables(spec.Variables)
 	if err != nil {
-		log.Printf("could not get variables from provider: %v", err)
-		reporterError(spec, backendApi, err)
+		msg := fmt.Sprintf("could not get variables from provider: %v", err)
+		reportError(spec, backendApi, msg, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get variables from provider: %v", err), 1)
 	}
 	job.StateEnvVars = lo.Assign(job.StateEnvVars, variablesMap)

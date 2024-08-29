@@ -15,9 +15,10 @@ func (c CommentUpdaterProviderBasic) Get(renderMode string) (CommentUpdater, err
 	if renderMode == digger_config.CommentRenderModeBasic {
 		return BasicCommentUpdater{}, nil
 	} else if renderMode == digger_config.CommentRenderModeGroupByModule {
-
 		commentUpdater := BasicCommentUpdater{}
 		return commentUpdater, nil
+	} else if renderMode == "noop" {
+		return NoopCommentUpdater{}, nil
 	} else {
 		return nil, fmt.Errorf("Unknown comment render mode found: %v", renderMode)
 	}
