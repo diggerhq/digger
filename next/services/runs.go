@@ -68,6 +68,12 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			return fmt.Errorf("could not get vcs token: %v", err)
 		}
 
+		err = dbmodels.DB.RefreshDiggerJobTokenExpiry(planJob)
+		if err != nil {
+			log.Printf("could not refresh job token expiry: %v", err)
+			return fmt.Errorf("could not refresh job token from expiry: %v", err)
+		}
+
 		ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
 
 		// change status to RunPendingPlan
@@ -149,6 +155,12 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 		if err != nil {
 			log.Printf("could not get vcs token: %v", err)
 			return fmt.Errorf("could not get spec: %v", err)
+		}
+
+		err = dbmodels.DB.RefreshDiggerJobTokenExpiry(job)
+		if err != nil {
+			log.Printf("could not refresh job token expiry: %v", err)
+			return fmt.Errorf("could not refresh job token from expiry: %v", err)
 		}
 
 		ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
