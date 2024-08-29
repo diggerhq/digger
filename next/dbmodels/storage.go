@@ -1,6 +1,7 @@
 package dbmodels
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dchest/uniuri"
@@ -1182,6 +1183,31 @@ func (db *Database) CreateDiggerJobToken(organisationId string) (*model.DiggerJo
 		return nil, err
 	}
 	return jobToken, nil
+}
+
+func (db *Database) RefreshDiggerJobTokenExpiry(job *model.DiggerJob) error {
+	// refresh the job token
+	var jobSpec scheduler.JobJson
+	err := json.Unmarshal(job.JobSpec, &jobSpec)
+	if err != nil {
+		log.Printf("could not unmarshal job string: %v", err)
+		return fmt.Errorf("could not marshal json string: %v", err)
+	}
+
+	jobToken := &model.DiggerJobToken{}
+	err = db.GormDB.First(jobToken, "value = ?", jobSpec.BackendJobToken).Error
+	if err != nil {
+		log.Printf("could not find job token: %v", err)
+		return fmt.Errorf("could not find job token: %v", err)
+	}
+
+	jobToken.Expiry = time.Now().Add(time.Hour * 2)
+	err = db.GormDB.Save(jobToken).Error
+	if err != nil {
+		log.Printf("could not update job token: %v", err)
+		return fmt.Errorf("could not update job token: %v", err)
+	}
+	return nil
 }
 
 func (db *Database) GetJobToken(tenantId any) (*model.DiggerJobToken, error) {

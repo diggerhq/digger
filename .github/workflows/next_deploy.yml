@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - fix/use-correct-installation-id-for-queue-item
+      - fix/refresh-jobtoken-before-run
 jobs:
   deploy:
     name: Deploy app
