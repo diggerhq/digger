@@ -22,10 +22,17 @@ func processSingleQueueItem(gh next_utils.GithubClientProvider, queueItem model.
 		log.Printf("could not get repo: %v", err)
 		return fmt.Errorf("could not get repo: %v", err)
 	}
+
+	installation, err := dbmodels.DB.GetGithubAppInstallationByOrgAndRepo(repo.OrganizationID, repo.RepoFullName, dbmodels.GithubAppInstallActive)
+	if err != nil {
+		log.Printf("could not get github installation: %v", err)
+		return fmt.Errorf("could not get github installation: %v", err)
+	}
+
 	repoFullName := repo.RepoFullName
 	repoOwner := repo.RepoOrganisation
 	repoName := repo.RepoName
-	service, _, err := next_utils.GetGithubService(gh, dr.GithubInstallationID, repoFullName, repoOwner, repoName)
+	service, _, err := next_utils.GetGithubService(gh, installation.GithubInstallationID, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("failed to get github service for DiggerRun ID: %v: %v", dr.ID, err)
 		return fmt.Errorf("failed to get github service for DiggerRun ID: %v: %v", dr.ID, err)
