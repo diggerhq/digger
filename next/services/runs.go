@@ -5,7 +5,6 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
@@ -57,7 +56,7 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			return fmt.Errorf("could not get variable spec from job: %v", err)
 		}
 
-		spec, err := GetSpecFromJob(*planJob, lib_spec.SpecTypeNextJob)
+		spec, err := GetSpecFromJob(*planJob)
 		if err != nil {
 			log.Printf("could not get spec: %v", err)
 			return fmt.Errorf("could not get spec: %v", err)
@@ -140,7 +139,7 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			return fmt.Errorf("could not get run name: %v", err)
 		}
 
-		spec, err := GetSpecFromJob(*job, lib_spec.SpecTypeNextJob)
+		spec, err := GetSpecFromJob(*job)
 		if err != nil {
 			log.Printf("could not get spec: %v", err)
 			return fmt.Errorf("could not get spec: %v", err)
