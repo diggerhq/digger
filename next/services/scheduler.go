@@ -77,6 +77,12 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 		return fmt.Errorf("could not get variable spec from job: %v", err)
 	}
 
+	err = dbmodels.DB.RefreshDiggerJobTokenExpiry(job)
+	if err != nil {
+		log.Printf("could not refresh job token expiry: %v", err)
+		return fmt.Errorf("could not refresh job token from expiry: %v", err)
+	}
+
 	spec, err := GetSpecFromJob(*job)
 	if err != nil {
 		log.Printf("could not get spec: %v", err)
