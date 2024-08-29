@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/github-orgid-endpoint
+      - fix/use-correct-installation-id-for-queue-item
 jobs:
   deploy:
     name: Deploy app
