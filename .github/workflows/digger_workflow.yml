@@ -24,7 +24,7 @@ jobs:
       - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
         run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
       - uses: actions/checkout@v4
-      - uses: diggerhq/digger@feat/unify/runspec
+      - uses: diggerhq/digger@vLatest
         with:
           digger-spec: ${{ inputs.spec }}
           digger-private-key: ${{ secrets.DIGGER_PRIVATE_KEY }}
