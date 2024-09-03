@@ -102,7 +102,7 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 		// create 2 jobspecs (digger plan, digger apply) using commitID
 		// TODO: find a way to get issue number from github api PushEvent
 		// TODO: find a way to set the right PR branch
-		issueNumber := 14
+		issueNumber := 0
 
 		planJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger plan", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, defaultBranch, defaultBranch)
 		if err != nil {
