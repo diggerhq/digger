@@ -80,7 +80,6 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	}
 
 	r.POST("/github-app-webhook", diggerController.GithubAppWebHook)
-	r.POST("/github-app-webhook/aam", diggerController.GithubAppWebHookAfterMerge)
 
 	tenantActionsGroup := r.Group("/api/tenants")
 	tenantActionsGroup.Use(middleware.CORSMiddleware())
