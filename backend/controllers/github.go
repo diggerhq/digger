@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/locking"
@@ -15,6 +16,7 @@ import (
 	dg_locking "github.com/diggerhq/digger/libs/locking"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"log"
 	"math/rand"
 	"net/http"
@@ -267,19 +269,27 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 
 	diggerRepoName := strings.ReplaceAll(ghRepoFullName, "/", "-")
 
-	repo, err := models.DB.GetRepo(orgId, diggerRepoName)
+	// using Unscoped because we also need to include deleted repos (and undelete them if they exist)
+	var existingRepo models.Repo
+	r := models.DB.GormDB.Unscoped().Where("organisation_id=? AND repos.name=?", orgId, diggerRepoName).Find(&existingRepo)
 
-	if err != nil {
-		log.Printf("Error fetching repo: %v", err)
-		return nil, nil, err
+	if r.Error != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("repo not found, will proceed with repo creation")
+		} else {
+			log.Printf("Error fetching repo: %v", err)
+			return nil, nil, err
+		}
 	}
 
-	if repo != nil {
-		log.Printf("Digger repo already exists: %v", repo)
-		return repo, org, nil
+	if r.RowsAffected > 0 {
+		existingRepo.DeletedAt = gorm.DeletedAt{}
+		models.DB.GormDB.Save(&existingRepo)
+		log.Printf("Digger repo already exists: %v", existingRepo)
+		return &existingRepo, org, nil
 	}
 
-	repo, err = models.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
+	repo, err := models.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
 generate_projects:
  include: "."
 `)
@@ -1057,7 +1067,12 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// TODO: Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
 	// create a new org for this installationID
 	// retrive org for current orgID
-	orgId := c.GetString(middleware.ORGANISATION_ID_KEY)
+	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+	if !exists {
+		log.Printf("Unable to retrive orgId: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrive orgId"})
+		return
+	}
 	org, err := models.DB.GetOrganisationById(orgId)
 	if err != nil {
 		log.Printf("Error fetching organisation: %v", err)
@@ -1101,7 +1116,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 
 	// reset all existing repos (soft delete)
 	var ExistingRepos []models.Repo
-	err = models.DB.GormDB.Delete(ExistingRepos, "organization_id=?", orgId).Error
+	err = models.DB.GormDB.Delete(ExistingRepos, "organisation_id=?", orgId).Error
 	if err != nil {
 		log.Printf("could not delete repos: %v", err)
 		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
