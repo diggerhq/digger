@@ -87,7 +87,8 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 	githubGroup := r.Group("/github")
 	githubGroup.Use(middleware.GetWebMiddleware())
-	githubGroup.GET("/callback", diggerController.GithubAppCallbackPage)
+	// authless endpoint because we no longer rely on orgId
+	r.GET("/github/callback", diggerController.GithubAppCallbackPage)
 	githubGroup.GET("/repos", diggerController.GithubReposPage)
 	githubGroup.GET("/setup", controllers.GithubAppSetup)
 	githubGroup.GET("/exchange-code", diggerController.GithubSetupExchangeCode)
