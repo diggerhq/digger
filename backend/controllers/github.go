@@ -1067,18 +1067,40 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// TODO: Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
 	// create a new org for this installationID
 	// retrive org for current orgID
-	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
-	if !exists {
-		log.Printf("Unable to retrive orgId: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrive orgId"})
-		return
-	}
-	org, err := models.DB.GetOrganisationById(orgId)
+	installationIdInt64, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {
-		log.Printf("Error fetching organisation: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
+		log.Printf("strconv.ParseInt error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "installationId could not be parsed"})
 		return
 	}
+
+	var link *models.GithubAppInstallationLink
+	link, err = models.DB.GetGithubAppInstallationLink(installationIdInt64)
+	if err != nil {
+		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error getting github app link"})
+		return
+	}
+
+	if link == nil {
+		log.Printf("Failed to find GithubAppInstallationLink create a link and an org %v", installationId)
+		name := fmt.Sprintf("dggr-def-", uuid.NewString()[:8])
+		org, err := models.DB.CreateOrganisation(name, "digger", "digger")
+		if err != nil {
+			log.Printf("Error with CreateOrganisation: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateOrganisation"})
+			return
+		}
+		link, err = models.DB.CreateGithubInstallationLink(org, installationId64)
+		if err != nil {
+			log.Printf("Error with CreateGithubInstallationLink: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateGithubInstallationLink"})
+			return
+		}
+	}
+
+	org := link.Organisation
+	orgId := link.OrganisationId
 
 	// create a github installation link (org ID matched to installation ID)
 	_, err = models.DB.CreateGithubInstallationLink(org, installationId64)

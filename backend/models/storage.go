@@ -460,7 +460,7 @@ func (db *Database) GetGithubApp(gitHubAppId any) (*GithubApp, error) {
 func (db *Database) CreateGithubInstallationLink(org *Organisation, installationId int64) (*GithubAppInstallationLink, error) {
 	l := GithubAppInstallationLink{}
 	// check if there is already a link to another org, and throw an error in this case
-	result := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l)
+	result := db.GormDB.Preload("Organisation").Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
