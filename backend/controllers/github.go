@@ -291,72 +291,6 @@ generate_projects:
 	return repo, org, nil
 }
 
-func handleInstallationRepositoriesAddedEvent(ghClientProvider utils.GithubClientProvider, payload *github.InstallationRepositoriesEvent) error {
-	installationId := *payload.Installation.ID
-	login := *payload.Installation.Account.Login
-	accountId := *payload.Installation.Account.ID
-	appId := *payload.Installation.AppID
-
-	for _, repo := range payload.RepositoriesAdded {
-		repoFullName := *repo.FullName
-		repoOwner := strings.Split(*repo.FullName, "/")[0]
-		repoName := *repo.Name
-		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
-		_, err := models.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
-		if err != nil {
-			log.Printf("GithubRepoAdded failed, error: %v\n", err)
-			return err
-		}
-
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId)
-		if err != nil {
-			log.Printf("createOrGetDiggerRepoForGithubRepo failed, error: %v\n", err)
-			return err
-		}
-	}
-	return nil
-}
-
-func handleInstallationRepositoriesDeletedEvent(payload *github.InstallationRepositoriesEvent) error {
-	installationId := *payload.Installation.ID
-	appId := *payload.Installation.AppID
-	for _, repo := range payload.RepositoriesRemoved {
-		repoFullName := *repo.FullName
-		_, err := models.DB.GithubRepoRemoved(installationId, appId, repoFullName)
-		if err != nil {
-			return err
-		}
-
-		// todo: change the status of DiggerRepo to InActive
-	}
-	return nil
-}
-
-func handleInstallationCreatedEvent(installation *github.InstallationEvent) error {
-	installationId := *installation.Installation.ID
-	login := *installation.Installation.Account.Login
-	accountId := *installation.Installation.Account.ID
-	appId := *installation.Installation.AppID
-
-	for _, repo := range installation.Repositories {
-		repoFullName := *repo.FullName
-		repoOwner := strings.Split(*repo.FullName, "/")[0]
-		repoName := *repo.Name
-		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
-
-		log.Printf("Adding a new installation %d for repo: %s", installationId, repoFullName)
-		_, err := models.DB.GithubRepoAdded(installationId, appId, login, accountId, repoFullName)
-		if err != nil {
-			return err
-		}
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func handleInstallationDeletedEvent(installation *github.InstallationEvent) error {
 	installationId := *installation.Installation.ID
 	appId := *installation.Installation.AppID
@@ -1120,10 +1054,9 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	// Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
+	// TODO: Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
 	// create a new org for this installationID
 	// retrive org for current orgID
-
 	orgId := c.GetString(middleware.ORGANISATION_ID_KEY)
 	org, err := models.DB.GetOrganisationById(orgId)
 	if err != nil {
@@ -1135,7 +1068,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// create a github installation link (org ID matched to installation ID)
 	_, err = models.DB.CreateGithubInstallationLink(org, installationId64)
 	if err != nil {
-		log.Printf("Error saving GithubInstallationLink to database: %v", err)
+		log.Printf("Error saving CreateGithubInstallationLink to database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
 		return
 	}
