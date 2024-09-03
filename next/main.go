@@ -77,6 +77,7 @@ func main() {
 	r.POST("/github-app-webhook", diggerController.GithubAppWebHook)
 
 	r.POST("/_internal/process_runs_queue", middleware.WebhookAuth(), diggerController.ProcessRunQueueItems)
+	r.POST("/_internal/trigger_drift", middleware.WebhookAuth(), diggerController.TriggerDriftDetectionForProject)
 	//authorized := r.Group("/")
 	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 
