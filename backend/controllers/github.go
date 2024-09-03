@@ -67,33 +67,12 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 	switch event := event.(type) {
 	case *github.InstallationEvent:
 		log.Printf("InstallationEvent, action: %v\n", *event.Action)
-		if *event.Action == "created" {
-			err := handleInstallationCreatedEvent(event)
-			if err != nil {
-				c.String(http.StatusInternalServerError, "Failed to handle webhook event.")
-				return
-			}
-		}
 
 		if *event.Action == "deleted" {
 			err := handleInstallationDeletedEvent(event)
 			if err != nil {
 				c.String(http.StatusInternalServerError, "Failed to handle webhook event.")
 				return
-			}
-		}
-	case *github.InstallationRepositoriesEvent:
-		log.Printf("InstallationRepositoriesEvent, action: %v\n", *event.Action)
-		if *event.Action == "added" {
-			err := handleInstallationRepositoriesAddedEvent(gh, event)
-			if err != nil {
-				c.String(http.StatusInternalServerError, "Failed to handle installation repo added event.")
-			}
-		}
-		if *event.Action == "removed" {
-			err := handleInstallationRepositoriesDeletedEvent(event)
-			if err != nil {
-				c.String(http.StatusInternalServerError, "Failed to handle installation repo deleted event.")
 			}
 		}
 	case *github.IssueCommentEvent:
@@ -1127,12 +1106,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	clientId := os.Getenv("GITHUB_APP_CLIENT_ID")
 	clientSecret := os.Getenv("GITHUB_APP_CLIENT_SECRET")
 
-	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
-	if !exists {
-		c.String(http.StatusForbidden, "Not allowed to access this resource")
-		return
-	}
-
 	installationId64, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {
 		log.Printf("err: %v", err)
@@ -1140,13 +1113,18 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	result, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
+	result, installation, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
 	if !result {
 		log.Printf("Failed to validated installation id, %v\n", err)
 		c.String(http.StatusInternalServerError, "Failed to validate installation_id.")
 		return
 	}
 
+	// Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
+	// create a new org for this installationID
+	// retrive org for current orgID
+
+	orgId := c.GetString(middleware.ORGANISATION_ID_KEY)
 	org, err := models.DB.GetOrganisationById(orgId)
 	if err != nil {
 		log.Printf("Error fetching organisation: %v", err)
@@ -1154,12 +1132,70 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
+	// create a github installation link (org ID matched to installation ID)
 	_, err = models.DB.CreateGithubInstallationLink(org, installationId64)
 	if err != nil {
-		log.Printf("Error saving CreateGithubInstallationLink to database: %v", err)
+		log.Printf("Error saving GithubInstallationLink to database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
 		return
 	}
+
+	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
+	if err != nil {
+		log.Printf("Error retriving github client: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
+		return
+
+	}
+
+	// we get repos accessible to this installation
+	listRepos, _, err := client.Apps.ListRepos(context.Background(), nil)
+	if err != nil {
+		log.Printf("Failed to validated list existing repos, %v\n", err)
+		c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
+		return
+	}
+	repos := listRepos.Repositories
+
+	// resets all existing installations (soft delete)
+	var AppInstallation models.GithubAppInstallation
+	err = models.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", models.GithubAppInstallDeleted).Error
+	if err != nil {
+		log.Printf("Failed to update github installations: %v", err)
+		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
+		return
+	}
+
+	// reset all existing repos (soft delete)
+	var ExistingRepos []models.Repo
+	err = models.DB.GormDB.Delete(ExistingRepos, "organization_id=?", orgId).Error
+	if err != nil {
+		log.Printf("could not delete repos: %v", err)
+		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
+		return
+	}
+
+	// here we mark repos that are available one by one
+	for _, repo := range repos {
+		repoFullName := *repo.FullName
+		repoOwner := strings.Split(*repo.FullName, "/")[0]
+		repoName := *repo.Name
+		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
+		_, err := models.DB.GithubRepoAdded(installationId64, *installation.AppID, *installation.Account.Login, *installation.Account.ID, repoFullName)
+		if err != nil {
+			log.Printf("github repos added error: %v", err)
+			c.String(http.StatusInternalServerError, "github repos added error: %v", err)
+			return
+		}
+
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64)
+		if err != nil {
+			log.Printf("createOrGetDiggerRepoForGithubRepo error: %v", err)
+			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
+			return
+		}
+	}
+
 	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
 }
 
@@ -1210,7 +1246,7 @@ func (d DiggerController) GithubReposPage(c *gin.Context) {
 
 // why this validation is needed: https://roadie.io/blog/avoid-leaking-github-org-data/
 // validation based on https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app , step 3
-func validateGithubCallback(githubClientProvider utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, error) {
+func validateGithubCallback(githubClientProvider utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, *github.Installation, error) {
 	ctx := context.Background()
 	type OAuthAccessResponse struct {
 		AccessToken string `json:"access_token"`
@@ -1221,22 +1257,22 @@ func validateGithubCallback(githubClientProvider utils.GithubClientProvider, cli
 	reqURL := fmt.Sprintf("https://%v/login/oauth/access_token?client_id=%s&client_secret=%s&code=%s", githubHostname, clientId, clientSecret, code)
 	req, err := http.NewRequest(http.MethodPost, reqURL, nil)
 	if err != nil {
-		return false, fmt.Errorf("could not create HTTP request: %v\n", err)
+		return false, nil, fmt.Errorf("could not create HTTP request: %v\n", err)
 	}
 	req.Header.Set("accept", "application/json")
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("request to login/oauth/access_token failed: %v\n", err)
+		return false, nil, fmt.Errorf("request to login/oauth/access_token failed: %v\n", err)
 	}
 
 	if err != nil {
-		return false, fmt.Errorf("Failed to read response's body: %v\n", err)
+		return false, nil, fmt.Errorf("Failed to read response's body: %v\n", err)
 	}
 
 	var t OAuthAccessResponse
 	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return false, fmt.Errorf("could not parse JSON response: %v\n", err)
+		return false, nil, fmt.Errorf("could not parse JSON response: %v\n", err)
 	}
 
 	ts := oauth2.StaticTokenSource(
@@ -1253,25 +1289,28 @@ func validateGithubCallback(githubClientProvider utils.GithubClientProvider, cli
 	client, err := githubClientProvider.NewClient(tc)
 	if err != nil {
 		log.Printf("could create github client: %v", err)
-		return false, fmt.Errorf("could not create github client: %v", err)
+		return false, nil, fmt.Errorf("could not create github client: %v", err)
 	}
 
 	installationIdMatch := false
 	// list all installations for the user
+	var matchedInstallation *github.Installation
 	installations, _, err := client.Apps.ListUserInstallations(ctx, nil)
 	if err != nil {
 		log.Printf("could not retrieve installations: %v", err)
-		return false, fmt.Errorf("could not retrieve installations: %v", installationId)
+		return false, nil, fmt.Errorf("could not retrieve installations: %v", installationId)
 	}
 	log.Printf("installations %v", installations)
 	for _, v := range installations {
 		log.Printf("installation id: %v\n", *v.ID)
 		if *v.ID == installationId {
+			matchedInstallation = v
 			installationIdMatch = true
 		}
 	}
 	if !installationIdMatch {
-		return false, fmt.Errorf("InstallationId %v doesn't match any id for specified user\n", installationId)
+		return false, nil, fmt.Errorf("InstallationId %v doesn't match any id for specified user\n", installationId)
 	}
-	return true, nil
+
+	return true, matchedInstallation, nil
 }
