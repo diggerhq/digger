@@ -45,6 +45,9 @@ func newProject(db *gorm.DB, opts ...gen.DOOption) project {
 	_project.TerraformWorkingDir = field.NewString(tableName, "terraform_working_dir")
 	_project.IsManagingState = field.NewBool(tableName, "is_managing_state")
 	_project.Labels = field.NewString(tableName, "labels")
+	_project.IsDriftDetectionEnabled = field.NewBool(tableName, "is_drift_detection_enabled")
+	_project.DriftCrontab = field.NewString(tableName, "drift_crontab")
+	_project.Branch = field.NewString(tableName, "branch")
 
 	_project.fillFieldMap()
 
@@ -54,25 +57,28 @@ func newProject(db *gorm.DB, opts ...gen.DOOption) project {
 type project struct {
 	projectDo
 
-	ALL                 field.Asterisk
-	ID                  field.String
-	Name                field.String
-	CreatedAt           field.Time
-	UpdatedAt           field.Time
-	OrganizationID      field.String
-	TeamID              field.Int64
-	ProjectStatus       field.String
-	Slug                field.String
-	LatestActionOn      field.String
-	RepoID              field.Int64
-	ConfigurationYaml   field.String
-	Status              field.String
-	IsGenerated         field.Bool
-	IsInMainBranch      field.Bool
-	DeletedAt           field.Field
-	TerraformWorkingDir field.String
-	IsManagingState     field.Bool
-	Labels              field.String
+	ALL                     field.Asterisk
+	ID                      field.String
+	Name                    field.String
+	CreatedAt               field.Time
+	UpdatedAt               field.Time
+	OrganizationID          field.String
+	TeamID                  field.Int64
+	ProjectStatus           field.String
+	Slug                    field.String
+	LatestActionOn          field.String
+	RepoID                  field.Int64
+	ConfigurationYaml       field.String
+	Status                  field.String
+	IsGenerated             field.Bool
+	IsInMainBranch          field.Bool
+	DeletedAt               field.Field
+	TerraformWorkingDir     field.String
+	IsManagingState         field.Bool
+	Labels                  field.String
+	IsDriftDetectionEnabled field.Bool
+	DriftCrontab            field.String
+	Branch                  field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -107,6 +113,9 @@ func (p *project) updateTableName(table string) *project {
 	p.TerraformWorkingDir = field.NewString(table, "terraform_working_dir")
 	p.IsManagingState = field.NewBool(table, "is_managing_state")
 	p.Labels = field.NewString(table, "labels")
+	p.IsDriftDetectionEnabled = field.NewBool(table, "is_drift_detection_enabled")
+	p.DriftCrontab = field.NewString(table, "drift_crontab")
+	p.Branch = field.NewString(table, "branch")
 
 	p.fillFieldMap()
 
@@ -123,7 +132,7 @@ func (p *project) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *project) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 18)
+	p.fieldMap = make(map[string]field.Expr, 21)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["created_at"] = p.CreatedAt
@@ -142,6 +151,9 @@ func (p *project) fillFieldMap() {
 	p.fieldMap["terraform_working_dir"] = p.TerraformWorkingDir
 	p.fieldMap["is_managing_state"] = p.IsManagingState
 	p.fieldMap["labels"] = p.Labels
+	p.fieldMap["is_drift_detection_enabled"] = p.IsDriftDetectionEnabled
+	p.fieldMap["drift_crontab"] = p.DriftCrontab
+	p.fieldMap["branch"] = p.Branch
 }
 
 func (p project) clone(db *gorm.DB) project {

@@ -23,198 +23,198 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 	commitId := *payload.After
 	requestedBy := *payload.Sender.Login
 	ref := *payload.Ref
-	defaultBranch := *payload.Repo.DefaultBranch
+	targetBranch := strings.ReplaceAll(ref, "refs/heads/", "")
 	backendHostName := os.Getenv("HOSTNAME")
 
-	if strings.HasSuffix(ref, defaultBranch) {
-		link, err := dbmodels.DB.GetGithubAppInstallationLink(installationId)
-		if err != nil {
-			log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
-			return fmt.Errorf("error getting github app link")
-		}
+	link, err := dbmodels.DB.GetGithubAppInstallationLink(installationId)
+	if err != nil {
+		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
+		return fmt.Errorf("error getting github app link")
+	}
 
-		orgId := link.OrganizationID
-		organization, err := dbmodels.DB.GetOrganisationById(orgId)
+	orgId := link.OrganizationID
+	organization, err := dbmodels.DB.GetOrganisationById(orgId)
 
-		orgName := organization.Title
-		diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
-		repo, err := dbmodels.DB.GetRepo(orgId, diggerRepoName)
-		if err != nil {
-			log.Printf("Error getting Repo: %v", err)
-			return fmt.Errorf("error getting github app link")
-		}
-		if repo == nil {
-			log.Printf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-			return fmt.Errorf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-		}
+	orgName := organization.Title
+	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
+	repo, err := dbmodels.DB.GetRepo(orgId, diggerRepoName)
+	if err != nil {
+		log.Printf("Error getting Repo: %v", err)
+		return fmt.Errorf("error getting github app link")
+	}
+	if repo == nil {
+		log.Printf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
+		return fmt.Errorf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
+	}
 
-		ghService, _, err := nextutils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
-		if err != nil {
-			log.Printf("Error getting github service: %v", err)
-			return fmt.Errorf("error getting github service")
-		}
+	ghService, _, err := nextutils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+	if err != nil {
+		log.Printf("Error getting github service: %v", err)
+		return fmt.Errorf("error getting github service")
+	}
 
-		// ==== starting apply after merge part  =======
+	// ==== starting apply after merge part  =======
 
-		p := dbmodels.DB.Query.Project
-		projects, err := dbmodels.DB.Query.Project.Where(p.RepoID.Eq(repo.ID)).Find()
+	p := dbmodels.DB.Query.Project
+	projects, err := dbmodels.DB.Query.Project.Where(p.RepoID.Eq(repo.ID)).Find()
 
-		var dgprojects []dg_configuration.Project = []dg_configuration.Project{}
-		for _, proj := range projects {
+	var dgprojects = []dg_configuration.Project{}
+	for _, proj := range projects {
+		projectBranch := proj.Branch
+		if targetBranch == projectBranch {
 			dgprojects = append(dgprojects, dbmodels.ToDiggerProject(proj))
 		}
-		projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
-		var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
-			ApplyAfterMerge:   true,
-			AllowDraftPRs:     false,
-			CommentRenderMode: "",
-			DependencyConfiguration: dg_configuration.DependencyConfiguration{
-				Mode: dg_configuration.DependencyConfigurationHard,
-			},
-			PrLocks:   false,
-			Projects:  dgprojects,
-			AutoMerge: false,
-			Telemetry: false,
-			Workflows: map[string]dg_configuration.Workflow{
-				"default": dg_configuration.Workflow{
-					EnvVars: nil,
-					Plan:    nil,
-					Apply:   nil,
-					Configuration: &dg_configuration.WorkflowConfiguration{
-						OnPullRequestPushed:           []string{"digger plan"},
-						OnPullRequestClosed:           []string{},
-						OnPullRequestConvertedToDraft: []string{},
-						OnCommitToDefault:             []string{},
-					},
+	}
+	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
+	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
+		ApplyAfterMerge:   true,
+		AllowDraftPRs:     false,
+		CommentRenderMode: "",
+		DependencyConfiguration: dg_configuration.DependencyConfiguration{
+			Mode: dg_configuration.DependencyConfigurationHard,
+		},
+		PrLocks:   false,
+		Projects:  dgprojects,
+		AutoMerge: false,
+		Telemetry: false,
+		Workflows: map[string]dg_configuration.Workflow{
+			"default": dg_configuration.Workflow{
+				EnvVars: nil,
+				Plan:    nil,
+				Apply:   nil,
+				Configuration: &dg_configuration.WorkflowConfiguration{
+					OnPullRequestPushed:           []string{"digger plan"},
+					OnPullRequestClosed:           []string{},
+					OnPullRequestConvertedToDraft: []string{},
+					OnCommitToDefault:             []string{},
 				},
 			},
-			MentionDriftedProjectsInPR: false,
-			TraverseToNestedProjects:   false,
+		},
+		MentionDriftedProjectsInPR: false,
+		TraverseToNestedProjects:   false,
+	}
+
+	impactedProjects, _, _, _, err := dg_github.ProcessGitHubPushEvent(payload, config, projectsGraph, ghService)
+	if err != nil {
+		log.Printf("Error processing event: %v", err)
+		return fmt.Errorf("error processing event")
+	}
+	log.Printf("GitHub IssueComment event processed successfully\n")
+
+	// create 2 jobspecs (digger plan, digger apply) using commitID
+	// TODO: find a way to get issue number from github api PushEvent
+	// TODO: find a way to set the right PR branch
+	issueNumber := 0
+
+	planJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger plan", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, targetBranch, targetBranch)
+	if err != nil {
+		log.Printf("Error creating jobs: %v", err)
+		return fmt.Errorf("error creating jobs")
+	}
+
+	applyJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger apply", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, targetBranch, targetBranch)
+	if err != nil {
+		log.Printf("Error creating jobs: %v", err)
+		return fmt.Errorf("error creating jobs")
+	}
+
+	if len(planJobs) == 0 || len(applyJobs) == 0 {
+		log.Printf("no projects impacated, succeeding")
+		return nil
+	}
+
+	impactedProjectsMap := make(map[string]dg_configuration.Project)
+	for _, p := range impactedProjects {
+		impactedProjectsMap[p.Name] = p
+	}
+
+	impactedProjectsJobMap := make(map[string]scheduler.Job)
+	for _, j := range planJobs {
+		impactedProjectsJobMap[j.ProjectName] = j
+	}
+
+	for i, _ := range planJobs {
+		planJob := planJobs[i]
+		applyJob := applyJobs[i]
+		projectName := planJob.ProjectName
+		project, err := dbmodels.DB.GetProjectByName(orgId, repo, projectName)
+		if err != nil {
+			log.Printf("Error getting project: %v", err)
+			return fmt.Errorf("error getting project")
 		}
 
-		impactedProjects, _, _, _, err := dg_github.ProcessGitHubPushEvent(payload, config, projectsGraph, ghService)
+		planJobToken, err := dbmodels.DB.CreateDiggerJobToken(orgId)
 		if err != nil {
-			log.Printf("Error processing event: %v", err)
-			return fmt.Errorf("error processing event")
+			log.Printf("Error creating job token: %v %v", projectName, err)
+			return fmt.Errorf("error creating job token")
 		}
-		log.Printf("GitHub IssueComment event processed successfully\n")
 
-		// create 2 jobspecs (digger plan, digger apply) using commitID
-		// TODO: find a way to get issue number from github api PushEvent
-		// TODO: find a way to set the right PR branch
-		issueNumber := 0
-
-		planJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger plan", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, defaultBranch, defaultBranch)
+		planJobSpec, err := json.Marshal(scheduler.JobToJson(planJob, scheduler.DiggerCommandPlan, orgName, targetBranch, commitId, planJobToken.Value, backendHostName, impactedProjects[i]))
 		if err != nil {
-			log.Printf("Error creating jobs: %v", err)
+			log.Printf("Error creating jobspec: %v %v", projectName, err)
+			return fmt.Errorf("error creating jobspec")
+
+		}
+
+		applyJobToken, err := dbmodels.DB.CreateDiggerJobToken(orgId)
+		if err != nil {
+			log.Printf("Error creating job token: %v %v", projectName, err)
+			return fmt.Errorf("error creating job token")
+		}
+
+		applyJobSpec, err := json.Marshal(scheduler.JobToJson(applyJob, scheduler.DiggerCommandApply, orgName, targetBranch, commitId, applyJobToken.Value, backendHostName, impactedProjects[i]))
+		if err != nil {
+			log.Printf("Error creating jobs: %v %v", projectName, err)
 			return fmt.Errorf("error creating jobs")
 		}
 
-		applyJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger apply", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, defaultBranch, defaultBranch)
+		// create batches
+		var commentId int64 = 0
+		planBatch, err := dbmodels.DB.CreateDiggerBatch(orgId, dbmodels.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, "", targetBranch, scheduler.DiggerCommandPlan, &commentId, 0)
 		if err != nil {
-			log.Printf("Error creating jobs: %v", err)
-			return fmt.Errorf("error creating jobs")
+			log.Printf("Error creating batch: %v", err)
+			return fmt.Errorf("error creating batch")
 		}
 
-		if len(planJobs) == 0 || len(applyJobs) == 0 {
-			log.Printf("no projects impacated, succeeding")
-			return nil
+		applyBatch, err := dbmodels.DB.CreateDiggerBatch(orgId, dbmodels.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, "", targetBranch, scheduler.DiggerCommandApply, &commentId, 0)
+		if err != nil {
+			log.Printf("Error creating batch: %v", err)
+			return fmt.Errorf("error creating batch")
 		}
 
-		impactedProjectsMap := make(map[string]dg_configuration.Project)
-		for _, p := range impactedProjects {
-			impactedProjectsMap[p.Name] = p
+		// create jobs
+		_, err = dbmodels.DB.CreateDiggerJob(planBatch.ID, planJobSpec, impactedProjects[i].WorkflowFile)
+		if err != nil {
+			log.Printf("Error creating digger job: %v", err)
+			return fmt.Errorf("error creating digger job")
 		}
 
-		impactedProjectsJobMap := make(map[string]scheduler.Job)
-		for _, j := range planJobs {
-			impactedProjectsJobMap[j.ProjectName] = j
+		_, err = dbmodels.DB.CreateDiggerJob(applyBatch.ID, applyJobSpec, impactedProjects[i].WorkflowFile)
+		if err != nil {
+			log.Printf("Error creating digger job: %v", err)
+			return fmt.Errorf("error creating digger job")
 		}
 
-		for i, _ := range planJobs {
-			planJob := planJobs[i]
-			applyJob := applyJobs[i]
-			projectName := planJob.ProjectName
-			project, err := dbmodels.DB.GetProjectByName(orgId, repo, projectName)
-			if err != nil {
-				log.Printf("Error getting project: %v", err)
-				return fmt.Errorf("error getting project")
-			}
-
-			planJobToken, err := dbmodels.DB.CreateDiggerJobToken(orgId)
-			if err != nil {
-				log.Printf("Error creating job token: %v %v", projectName, err)
-				return fmt.Errorf("error creating job token")
-			}
-
-			planJobSpec, err := json.Marshal(scheduler.JobToJson(planJob, scheduler.DiggerCommandPlan, orgName, defaultBranch, commitId, planJobToken.Value, backendHostName, impactedProjects[i]))
-			if err != nil {
-				log.Printf("Error creating jobspec: %v %v", projectName, err)
-				return fmt.Errorf("error creating jobspec")
-
-			}
-
-			applyJobToken, err := dbmodels.DB.CreateDiggerJobToken(orgId)
-			if err != nil {
-				log.Printf("Error creating job token: %v %v", projectName, err)
-				return fmt.Errorf("error creating job token")
-			}
-
-			applyJobSpec, err := json.Marshal(scheduler.JobToJson(applyJob, scheduler.DiggerCommandApply, orgName, defaultBranch, commitId, applyJobToken.Value, backendHostName, impactedProjects[i]))
-			if err != nil {
-				log.Printf("Error creating jobs: %v %v", projectName, err)
-				return fmt.Errorf("error creating jobs")
-			}
-
-			// create batches
-			var commentId int64 = 0
-			planBatch, err := dbmodels.DB.CreateDiggerBatch(orgId, dbmodels.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, "", defaultBranch, scheduler.DiggerCommandPlan, &commentId, 0)
-			if err != nil {
-				log.Printf("Error creating batch: %v", err)
-				return fmt.Errorf("error creating batch")
-			}
-
-			applyBatch, err := dbmodels.DB.CreateDiggerBatch(orgId, dbmodels.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, "", defaultBranch, scheduler.DiggerCommandApply, &commentId, 0)
-			if err != nil {
-				log.Printf("Error creating batch: %v", err)
-				return fmt.Errorf("error creating batch")
-			}
-
-			// create jobs
-			_, err = dbmodels.DB.CreateDiggerJob(planBatch.ID, planJobSpec, impactedProjects[i].WorkflowFile)
-			if err != nil {
-				log.Printf("Error creating digger job: %v", err)
-				return fmt.Errorf("error creating digger job")
-			}
-
-			_, err = dbmodels.DB.CreateDiggerJob(applyBatch.ID, applyJobSpec, impactedProjects[i].WorkflowFile)
-			if err != nil {
-				log.Printf("Error creating digger job: %v", err)
-				return fmt.Errorf("error creating digger job")
-			}
-
-			// creating run stages
-			planStage, err := dbmodels.DB.CreateDiggerRunStage(planBatch.ID)
-			if err != nil {
-				log.Printf("Error creating digger run stage: %v", err)
-				return fmt.Errorf("error creating digger run stage")
-			}
-
-			applyStage, err := dbmodels.DB.CreateDiggerRunStage(applyBatch.ID)
-			if err != nil {
-				log.Printf("Error creating digger run stage: %v", err)
-				return fmt.Errorf("error creating digger run stage")
-			}
-
-			diggerRun, err := dbmodels.DB.CreateDiggerRun("push", 0, dbmodels.RunQueued, commitId, "", installationId, repo.ID, project.ID, projectName, dbmodels.PlanAndApply, planStage.ID, applyStage.ID)
-			if err != nil {
-				log.Printf("Error creating digger run: %v", err)
-				return fmt.Errorf("error creating digger run")
-			}
-
-			dbmodels.DB.CreateDiggerRunQueueItem(diggerRun.ID, project.ID)
-
+		// creating run stages
+		planStage, err := dbmodels.DB.CreateDiggerRunStage(planBatch.ID)
+		if err != nil {
+			log.Printf("Error creating digger run stage: %v", err)
+			return fmt.Errorf("error creating digger run stage")
 		}
+
+		applyStage, err := dbmodels.DB.CreateDiggerRunStage(applyBatch.ID)
+		if err != nil {
+			log.Printf("Error creating digger run stage: %v", err)
+			return fmt.Errorf("error creating digger run stage")
+		}
+
+		diggerRun, err := dbmodels.DB.CreateDiggerRun("push", 0, dbmodels.RunQueued, commitId, "", installationId, repo.ID, project.ID, projectName, dbmodels.PlanAndApply, planStage.ID, applyStage.ID)
+		if err != nil {
+			log.Printf("Error creating digger run: %v", err)
+			return fmt.Errorf("error creating digger run")
+		}
+
+		dbmodels.DB.CreateDiggerRunQueueItem(diggerRun.ID, project.ID)
 
 	}
 
