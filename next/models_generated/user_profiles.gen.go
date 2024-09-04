@@ -31,6 +31,7 @@ func newUserProfile(db *gorm.DB, opts ...gen.DOOption) userProfile {
 	_userProfile.FullName = field.NewString(tableName, "full_name")
 	_userProfile.AvatarURL = field.NewString(tableName, "avatar_url")
 	_userProfile.CreatedAt = field.NewTime(tableName, "created_at")
+	_userProfile.UserName = field.NewString(tableName, "user_name")
 
 	_userProfile.fillFieldMap()
 
@@ -45,6 +46,7 @@ type userProfile struct {
 	FullName  field.String
 	AvatarURL field.String
 	CreatedAt field.Time
+	UserName  field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -65,6 +67,7 @@ func (u *userProfile) updateTableName(table string) *userProfile {
 	u.FullName = field.NewString(table, "full_name")
 	u.AvatarURL = field.NewString(table, "avatar_url")
 	u.CreatedAt = field.NewTime(table, "created_at")
+	u.UserName = field.NewString(table, "user_name")
 
 	u.fillFieldMap()
 
@@ -81,11 +84,12 @@ func (u *userProfile) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *userProfile) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 4)
+	u.fieldMap = make(map[string]field.Expr, 5)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["full_name"] = u.FullName
 	u.fieldMap["avatar_url"] = u.AvatarURL
 	u.fieldMap["created_at"] = u.CreatedAt
+	u.fieldMap["user_name"] = u.UserName
 }
 
 func (u userProfile) clone(db *gorm.DB) userProfile {

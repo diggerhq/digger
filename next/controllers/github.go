@@ -320,7 +320,8 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	prNumber := *payload.PullRequest.Number
 	isDraft := payload.PullRequest.GetDraft()
 	commitSha := payload.PullRequest.Head.GetSHA()
-	branch := payload.PullRequest.Head.GetRef()
+	sourceBranch := payload.PullRequest.Head.GetRef()
+	targetBranch := payload.PullRequest.Base.GetRef()
 
 	link, err := dbmodels.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
@@ -349,8 +350,12 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 
 	var dgprojects []dg_configuration.Project = []dg_configuration.Project{}
 	for _, proj := range projects {
-		dgprojects = append(dgprojects, dbmodels.ToDiggerProject(proj))
+		projectBranch := proj.Branch
+		if targetBranch == projectBranch {
+			dgprojects = append(dgprojects, dbmodels.ToDiggerProject(proj))
+		}
 	}
+
 	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
 	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
 		ApplyAfterMerge:   true,
@@ -455,7 +460,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 		log.Printf("strconv.ParseInt error: %v", err)
 		backend_utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
-	batchId, _, err := ConvertJobsToDiggerJobs(*diggerCommand, dbmodels.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, "", 0)
+	batchId, _, err := ConvertJobsToDiggerJobs(*diggerCommand, dbmodels.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, sourceBranch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, "", 0)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		backend_utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
