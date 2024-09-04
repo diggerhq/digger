@@ -143,7 +143,10 @@ func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 	requestedBy := jobSpec.RequestedBy
 	prNumber := *jobSpec.PullRequestNumber
 
-	runName := fmt.Sprintf("[%v] %v %v By: %v PR: %v", batchIdShort, diggerCommand, projectName, requestedBy, prNumber)
+	runName := fmt.Sprintf("[%v] %v %v By: %v", batchIdShort, diggerCommand, projectName, requestedBy)
+	if prNumber != 0 {
+		runName += fmt.Sprintf(" PR: %v", prNumber)
+	}
 	return &runName, nil
 }
 
