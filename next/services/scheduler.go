@@ -96,8 +96,6 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 	}
 	// temp: overriding the comment updater type for PR
 	spec.CommentUpdater = lib_spec.CommentUpdaterSpec{CommentUpdaterType: digger_config.CommentRenderModeBasic}
-	// temp: override vcs type to use "noop"
-	spec.VCS.VcsType = "noop"
 
 	vcsToken, err := GetVCSTokenFromJob(*job, gh)
 	if err != nil {

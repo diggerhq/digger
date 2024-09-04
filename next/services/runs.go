@@ -61,6 +61,8 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			log.Printf("could not get spec: %v", err)
 			return fmt.Errorf("could not get spec: %v", err)
 		}
+		// temp: override vcs type to use "noop"
+		spec.VCS.VcsType = "noop"
 
 		vcsToken, err := GetVCSTokenFromJob(*planJob, gh)
 		if err != nil {
@@ -150,6 +152,8 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			log.Printf("could not get spec: %v", err)
 			return fmt.Errorf("could not get spec: %v", err)
 		}
+		// temp: override vcs type to use "noop"
+		spec.VCS.VcsType = "noop"
 
 		vcsToken, err := GetVCSTokenFromJob(*job, gh)
 		if err != nil {
