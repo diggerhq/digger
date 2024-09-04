@@ -177,6 +177,8 @@ type VCSProviderBasic struct{}
 
 func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, error) {
 	switch vcsSpec.VcsType {
+	case "noop":
+		return ci.MockPullRequestManager{}, nil
 	case "github":
 		token := os.Getenv("GITHUB_TOKEN")
 		if token == "" {
@@ -200,6 +202,8 @@ func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, 
 
 func (v VCSProviderBasic) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) {
 	switch vcsSpec.VcsType {
+	case "noop":
+		return ci.MockPullRequestManager{}, nil
 	case "github":
 		token := os.Getenv("GITHUB_TOKEN")
 		if token == "" {
