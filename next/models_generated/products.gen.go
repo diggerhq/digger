@@ -33,6 +33,7 @@ func newProduct(db *gorm.DB, opts ...gen.DOOption) product {
 	_product.Description = field.NewString(tableName, "description")
 	_product.Image = field.NewString(tableName, "image")
 	_product.Metadata = field.NewString(tableName, "metadata")
+	_product.IsVisibleInUI = field.NewBool(tableName, "is_visible_in_ui")
 
 	_product.fillFieldMap()
 
@@ -42,13 +43,14 @@ func newProduct(db *gorm.DB, opts ...gen.DOOption) product {
 type product struct {
 	productDo
 
-	ALL         field.Asterisk
-	ID          field.String
-	Active      field.Bool
-	Name        field.String
-	Description field.String
-	Image       field.String
-	Metadata    field.String
+	ALL           field.Asterisk
+	ID            field.String
+	Active        field.Bool
+	Name          field.String
+	Description   field.String
+	Image         field.String
+	Metadata      field.String
+	IsVisibleInUI field.Bool
 
 	fieldMap map[string]field.Expr
 }
@@ -71,6 +73,7 @@ func (p *product) updateTableName(table string) *product {
 	p.Description = field.NewString(table, "description")
 	p.Image = field.NewString(table, "image")
 	p.Metadata = field.NewString(table, "metadata")
+	p.IsVisibleInUI = field.NewBool(table, "is_visible_in_ui")
 
 	p.fillFieldMap()
 
@@ -87,13 +90,14 @@ func (p *product) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *product) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 6)
+	p.fieldMap = make(map[string]field.Expr, 7)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["active"] = p.Active
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["description"] = p.Description
 	p.fieldMap["image"] = p.Image
 	p.fieldMap["metadata"] = p.Metadata
+	p.fieldMap["is_visible_in_ui"] = p.IsVisibleInUI
 }
 
 func (p product) clone(db *gorm.DB) product {

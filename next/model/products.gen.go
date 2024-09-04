@@ -8,12 +8,13 @@ const TableNameProduct = "products"
 
 // Product mapped from table <products>
 type Product struct {
-	ID          string `gorm:"column:id;primaryKey" json:"id"`
-	Active      bool   `gorm:"column:active" json:"active"`
-	Name        string `gorm:"column:name" json:"name"`
-	Description string `gorm:"column:description" json:"description"`
-	Image       string `gorm:"column:image" json:"image"`
-	Metadata    string `gorm:"column:metadata" json:"metadata"`
+	ID            string `gorm:"column:id;primaryKey" json:"id"`
+	Active        bool   `gorm:"column:active" json:"active"`
+	Name          string `gorm:"column:name" json:"name"`
+	Description   string `gorm:"column:description" json:"description"`
+	Image         string `gorm:"column:image" json:"image"`
+	Metadata      string `gorm:"column:metadata" json:"metadata"`
+	IsVisibleInUI bool   `gorm:"column:is_visible_in_ui;not null" json:"is_visible_in_ui"`
 }
 
 // TableName Product's table name

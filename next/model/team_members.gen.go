@@ -12,7 +12,7 @@ const TableNameTeamMember = "team_members"
 
 // TeamMember mapped from table <team_members>
 type TeamMember struct {
-	ID        int64     `gorm:"column:id;not null" json:"id"`
+	ID        int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
 	CreatedAt time.Time `gorm:"column:created_at;default:now()" json:"created_at"`
 	UserID    string    `gorm:"column:user_id;not null" json:"user_id"`
 	Role      string    `gorm:"column:role;not null;default:member" json:"role"`

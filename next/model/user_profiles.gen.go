@@ -16,6 +16,7 @@ type UserProfile struct {
 	FullName  string    `gorm:"column:full_name" json:"full_name"`
 	AvatarURL string    `gorm:"column:avatar_url" json:"avatar_url"`
 	CreatedAt time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
+	UserName  string    `gorm:"column:user_name" json:"user_name"`
 }
 
 // TableName UserProfile's table name

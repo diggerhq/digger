@@ -18,6 +18,7 @@ import (
 var (
 	Q                                = new(Query)
 	AccountDeleteToken               *accountDeleteToken
+	BillingBypassOrganization        *billingBypassOrganization
 	Chat                             *chat
 	Customer                         *customer
 	DiggerBatch                      *diggerBatch
@@ -66,6 +67,7 @@ var (
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
 	AccountDeleteToken = &Q.AccountDeleteToken
+	BillingBypassOrganization = &Q.BillingBypassOrganization
 	Chat = &Q.Chat
 	Customer = &Q.Customer
 	DiggerBatch = &Q.DiggerBatch
@@ -115,6 +117,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                               db,
 		AccountDeleteToken:               newAccountDeleteToken(db, opts...),
+		BillingBypassOrganization:        newBillingBypassOrganization(db, opts...),
 		Chat:                             newChat(db, opts...),
 		Customer:                         newCustomer(db, opts...),
 		DiggerBatch:                      newDiggerBatch(db, opts...),
@@ -165,6 +168,7 @@ type Query struct {
 	db *gorm.DB
 
 	AccountDeleteToken               accountDeleteToken
+	BillingBypassOrganization        billingBypassOrganization
 	Chat                             chat
 	Customer                         customer
 	DiggerBatch                      diggerBatch
@@ -216,6 +220,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                               db,
 		AccountDeleteToken:               q.AccountDeleteToken.clone(db),
+		BillingBypassOrganization:        q.BillingBypassOrganization.clone(db),
 		Chat:                             q.Chat.clone(db),
 		Customer:                         q.Customer.clone(db),
 		DiggerBatch:                      q.DiggerBatch.clone(db),
@@ -274,6 +279,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                               db,
 		AccountDeleteToken:               q.AccountDeleteToken.replaceDB(db),
+		BillingBypassOrganization:        q.BillingBypassOrganization.replaceDB(db),
 		Chat:                             q.Chat.replaceDB(db),
 		Customer:                         q.Customer.replaceDB(db),
 		DiggerBatch:                      q.DiggerBatch.replaceDB(db),
@@ -322,6 +328,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 
 type queryCtx struct {
 	AccountDeleteToken               IAccountDeleteTokenDo
+	BillingBypassOrganization        IBillingBypassOrganizationDo
 	Chat                             IChatDo
 	Customer                         ICustomerDo
 	DiggerBatch                      IDiggerBatchDo
@@ -370,6 +377,7 @@ type queryCtx struct {
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
 		AccountDeleteToken:               q.AccountDeleteToken.WithContext(ctx),
+		BillingBypassOrganization:        q.BillingBypassOrganization.WithContext(ctx),
 		Chat:                             q.Chat.WithContext(ctx),
 		Customer:                         q.Customer.WithContext(ctx),
 		DiggerBatch:                      q.DiggerBatch.WithContext(ctx),
