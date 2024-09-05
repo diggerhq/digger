@@ -17,9 +17,9 @@ require (
 	github.com/google/go-github/v61 v61.0.0
 	github.com/google/uuid v1.6.0
 	github.com/orandin/slog-gorm v1.3.2
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.46.0
 	github.com/samber/slog-gin v1.13.3
-	github.com/stretchr/testify v1.9.0
 	github.com/supabase-community/supabase-go v0.0.4
 	golang.org/x/oauth2 v0.22.0
 	gorm.io/driver/postgres v1.5.9
@@ -105,7 +105,6 @@ require (
 	github.com/creack/pty v1.1.17 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/diggerhq/digger/cli v0.0.0-20240705091808-75187a7aae8e // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dineshba/tf-summarize v0.3.10 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
@@ -246,6 +245,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/supabase-community/functions-go v0.0.0-20220927045802-22373e6cb51d // indirect
 	github.com/supabase-community/gotrue-go v1.2.0 // indirect

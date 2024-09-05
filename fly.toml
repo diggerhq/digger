@@ -9,7 +9,7 @@ kill_signal = 'SIGINT'
 kill_timeout = '5s'
 
 [env]
-  HOSTNAME = 'https://next-backend.digger.dev'
+  DIGGER_HOSTNAME = 'https://next-backend.digger.dev'
   
 [build]
   dockerfile = 'Dockerfile_next'
