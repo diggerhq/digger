@@ -1,0 +1,98 @@
+---
+title: "Using digger with gitlab Pipelines"
+---
+
+
+You can use Digger with Gitlab as your VCS and Gitlab pipelines as a CI backend. Currently this is an EE feature only.
+
+### Prerequisites:
+
+- Having a valid Digger EE license key. This needs to be provided by us, please [contact us](https://digger.dev/pricing) to request it
+- A Gitlab account.
+- A personal Gitlab access token. This can be created from user preferences > access tokens
+
+### Install the digger EE orchestrator:
+
+You need to install the digger EE orchestrator. The installation steps are the same as the steps in [**self hosting docker**](https://docs.digger.dev/self-host/deploy-docker) with some differences:
+
+- For the docker image you will need to use the ee image: https://github.com/diggerhq/digger/pkgs/container/digger_backend_ee **(latest version, v0.6.5 as of this guide)**
+- You will need to include the license key environment variable to the backend and the cli: **`DIGGER_LICENSE_KEY=xxxyyy`**
+- You can ignore all the steps regarding setting up Github app and all GITHUB_** environment variables
+- For gitlab CI configuration you need to specify the following environment variables:
+
+```jsx
+DIGGER_CI_BACKEND=gitlab_pipelines
+DIGGER_GITLAB_WEBHOOK_SECRET=abc123
+DIGGER_GITLAB_ACCESS_TOKEN=glpat-xxxxyyyyyzzzzz # (this is your gitlab access token from prerequisite step)`
+DIGGER_GITLAB_BASE_URL=https://git.mydomain.com/api/v4
+```
+
+Other than that if you follow the steps in the self hosting guide you should end up with the orchestrator up and running along with a webhook set for your gitlab POC repo.
+
+### Prepare your repo with a digger.yml
+
+You need to prepare a digger.yml to configure your terraform projects. For that refer to our quickstart guides. For a quick one all you need would be a path to a directory and project name:
+
+```jsx
+projects:
+  - name: dev
+    dir: dev/
+```
+
+**Setting up Gitlab webhooks**
+
+In the repo where you are interested to integrate with digger you need to set up a webhook pointing to your digger hostname. Go to Settings > Webhooks and add digger host name. Set the secret token as “abc123” (same as **`DIGGER_GITLAB_WEBHOOK_SECRET`**) above. make sure that “Comments” and “Merge request events” are selected for Trigger events. Finally you can save.
+
+### Create digger pipeline in your gitlab repo
+
+To create a Gitlab pipeline you can use a .gitlab-ci.yml file in the root of your file. In this you need to create a script which downloads Digger binary and invokes it, the purpose here is to have this pipeline triggered by Digger externally. Here is an example of such file:
+
+```jsx
+
+variables:
+  DIGGER_LICENSE_KEY: "XXXXXXXXXXXXXXXXXXXXXX"
+  DIGGER_GITLAB_BASE_URL: "https://git.mydomain.com/api/v4" # optional
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "api"
+stages:
+- digger
+
+image: golang:1.22.4
+
+print_env:
+   stage: digger
+   script:
+     - env
+
+digger_action:
+  stage: digger
+  script:
+    - apt-get update && apt-get install -y gnupg software-properties-common
+    - wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+    - gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint
+    - echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+    - apt update
+    - apt-get install terraform
+    - mkdir -p digger && cd digger && curl -SSL -o digger https://github.com/diggerhq/digger/releases/download/v0.6.5/digger-ee-cli-Linux-X64
+    - chmod +x digger
+    - cd ../
+    - digger
+```
+
+This will instruct digger to run the “spec” which is composed and sent from the backend. That should be all you need to set up and try digger!
+
+## Test your setup
+
+In order to test your setup try to create a pull request in your repo. After you Comment “digger plan” You should see in the backend logs that a webhook event was received and an initial comment should be triggered in your pull request.
+
+Your Gitlab should also trigger and also perform a plan. If successful the job will comment back the plan as follows:
+
+![](/images/ee/gitlab-1.png)
+
+![](/images/ee/gitlab-2.png)
