@@ -70,6 +70,7 @@
         "ee/drift-detection",
         "ee/rbac",
         "ee/opa",
+        "ee/gitlab",
         "ee/buildkite"
       ]
     },
