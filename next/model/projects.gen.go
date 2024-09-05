@@ -19,7 +19,7 @@ type Project struct {
 	CreatedAt                  time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt                  time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
 	OrganizationID             string         `gorm:"column:organization_id;not null" json:"organization_id"`
-	TeamID                     int64          `gorm:"column:team_id" json:"team_id"`
+	TeamID                     *int64         `gorm:"column:team_id" json:"team_id"`
 	ProjectStatus              string         `gorm:"column:project_status;not null;default:draft" json:"project_status"`
 	Slug                       string         `gorm:"column:slug;not null;default:(gen_random_uuid())" json:"slug"`
 	LatestActionOn             string         `gorm:"column:latest_action_on" json:"latest_action_on"`
