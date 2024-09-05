@@ -170,13 +170,13 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 
 		// create batches
 		var commentId int64 = 0
-		planBatch, err := dbmodels.DB.CreateDiggerBatch(orgId, dbmodels.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, "", targetBranch, scheduler.DiggerCommandPlan, &commentId, 0)
+		planBatch, err := dbmodels.DB.CreateDiggerBatch(orgId, dbmodels.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, "", targetBranch, scheduler.DiggerCommandPlan, &commentId, 0, dbmodels.DiggerBatchMergeEvent)
 		if err != nil {
 			log.Printf("Error creating batch: %v", err)
 			return fmt.Errorf("error creating batch")
 		}
 
-		applyBatch, err := dbmodels.DB.CreateDiggerBatch(orgId, dbmodels.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, "", targetBranch, scheduler.DiggerCommandApply, &commentId, 0)
+		applyBatch, err := dbmodels.DB.CreateDiggerBatch(orgId, dbmodels.DiggerVCSGithub, installationId, repoOwner, repoName, repoFullName, issueNumber, "", targetBranch, scheduler.DiggerCommandApply, &commentId, 0, dbmodels.DiggerBatchMergeEvent)
 		if err != nil {
 			log.Printf("Error creating batch: %v", err)
 			return fmt.Errorf("error creating batch")

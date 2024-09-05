@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/next/dbmodels"
@@ -178,7 +179,8 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 		CommentId: strconv.FormatInt(batch.CommentID, 10),
 		Job:       jobSpec,
 		Reporter: spec.ReporterSpec{
-			ReporterType:          "noop",
+			ReportingStrategy:     "comments_per_run",
+			ReporterType:          "lazy",
 			ReportTerraformOutput: true,
 		},
 		Lock: spec.LockSpec{
@@ -203,8 +205,21 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 			PolicyType: "http",
 		},
 		CommentUpdater: spec.CommentUpdaterSpec{
-			CommentUpdaterType: "noop",
+			CommentUpdaterType: digger_config.CommentRenderModeBasic,
 		},
+	}
+
+	switch batch.EventType {
+	case dbmodels.DiggerBatchMergeEvent:
+		spec.Reporter.ReporterType = "noop"
+		spec.CommentUpdater.CommentUpdaterType = "noop"
+		spec.VCS.VcsType = "noop"
+	case dbmodels.DiggerBatchDriftEvent:
+		spec.Reporter.ReporterType = "noop"
+		spec.CommentUpdater.CommentUpdaterType = "noop"
+		spec.VCS.VcsType = "noop"
+	case dbmodels.DiggerBatchPullRequestEvent:
+
 	}
 	return &spec, nil
 }

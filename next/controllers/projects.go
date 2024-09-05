@@ -112,6 +112,11 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			dbmodels.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
 		}
 
+		// update the project drift status
+		if batch.EventType == dbmodels.DiggerBatchDriftEvent {
+			
+		}
+
 	case "failed":
 		job.Status = int16(orchestrator_scheduler.DiggerJobFailed)
 		job.TerraformOutput = request.TerraformOutput

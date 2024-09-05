@@ -650,7 +650,7 @@ func (db *Database) GetDiggerBatch(batchId string) (*model.DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(orgid string, vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int) (*model.DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(orgid string, vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, batchEventType BatchEventType) (*model.DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &model.DiggerBatch{
 		ID:                   uid.String(),
@@ -667,6 +667,7 @@ func (db *Database) CreateDiggerBatch(orgid string, vcsType DiggerVCSType, githu
 		DiggerConfig:         diggerConfig,
 		BatchType:            string(batchType),
 		GitlabProjectID:      int64(gitlabProjectId),
+		EventType:            string(batchEventType),
 	}
 	result := db.GormDB.Save(batch)
 	if result.Error != nil {
