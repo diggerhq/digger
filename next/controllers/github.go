@@ -119,7 +119,7 @@ func GithubAppSetup(c *gin.Context) {
 		Webhook               *githubWebhook    `json:"hook_attributes"`
 	}
 
-	host := os.Getenv("HOSTNAME")
+	host := os.Getenv("DIGGER_HOSTNAME")
 	manifest := &githubAppRequest{
 		Name:        fmt.Sprintf("Digger app %v", rand.Int31()),
 		Description: fmt.Sprintf("Digger hosted at %s", host),
@@ -533,7 +533,7 @@ func ConvertJobsToDiggerJobs(jobType orchestrator_scheduler.DiggerCommand, vcsTy
 	}
 	organisationName := organisation.Title
 
-	backendHostName := os.Getenv("HOSTNAME")
+	backendHostName := os.Getenv("DIGGER_HOSTNAME")
 
 	log.Printf("Number of Jobs: %v\n", len(jobsMap))
 	marshalledJobsMap := map[string][]byte{}
