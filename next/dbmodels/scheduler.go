@@ -15,6 +15,12 @@ const DiggerVCSGitlab DiggerVCSType = "gitlab"
 
 type DiggerJobLinkStatus int8
 
+type BatchEventType string
+
+const DiggerBatchMergeEvent = "merge_event"
+const DiggerBatchPullRequestEvent = "pull_request_event"
+const DiggerBatchDriftEvent = "drift_event"
+
 const (
 	DiggerJobLinkCreated   DiggerJobLinkStatus = 1
 	DiggerJobLinkSucceeded DiggerJobLinkStatus = 2
