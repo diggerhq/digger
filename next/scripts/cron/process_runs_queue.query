@@ -1,0 +1,15 @@
+select
+  cron.schedule(
+    'invoke-function-every-half-minute',
+    '30 seconds',
+    $$
+    select
+      net.http_post(
+          url:='https://{DIGGER_HOSTNAME}/_internal/process_runs_queue',
+          headers:='{"Content-Type": "application/json", "Authorization": "Bearer abc123"}'::jsonb,
+          body:='{}'::jsonb
+      ) as request_id;
+    $$
+  );
+
+

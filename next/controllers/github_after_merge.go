@@ -24,7 +24,7 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 	requestedBy := *payload.Sender.Login
 	ref := *payload.Ref
 	targetBranch := strings.ReplaceAll(ref, "refs/heads/", "")
-	backendHostName := os.Getenv("HOSTNAME")
+	backendHostName := os.Getenv("DIGGER_HOSTNAME")
 
 	link, err := dbmodels.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
