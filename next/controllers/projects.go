@@ -9,6 +9,7 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/diggerhq/digger/next/dbmodels"
+	"github.com/diggerhq/digger/next/services"
 	//"github.com/diggerhq/digger/next/middleware"
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/utils"
@@ -110,6 +111,16 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		// store digger job summary
 		if request.JobSummary != nil {
 			dbmodels.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
+		}
+
+		// update the project drift status
+		log.Printf("performing drift maybe for batch %v", batch.EventType)
+		if batch.EventType == dbmodels.DiggerBatchDriftEvent {
+			log.Printf("performing drift surely for batch %v", batch.EventType)
+			err := services.SaveUpdatedDriftStatus(*batch, *job, request.TerraformOutput)
+			if err != nil {
+				log.Printf("error while updating project drift: %v", err)
+			}
 		}
 
 	case "failed":

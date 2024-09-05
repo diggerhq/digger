@@ -23,6 +23,7 @@ type DiggerBatch struct {
 	Vcs                  string  `gorm:"column:vcs" json:"vcs"`
 	GitlabProjectID      int64   `gorm:"column:gitlab_project_id" json:"gitlab_project_id"`
 	OrganizationID       string  `gorm:"column:organization_id" json:"organization_id"`
+	EventType            string  `gorm:"column:event_type" json:"event_type"`
 }
 
 // TableName DiggerBatch's table name
