@@ -38,7 +38,7 @@ func SaveUpdatedDriftStatus(batch model.DiggerBatch, job model.DiggerJob, terraf
 		terraformOutput = ""
 	}
 
-	project.DriftLatestTerraformOutput = terraformOutput
+	project.LatestDriftOutput = terraformOutput
 	err = dbmodels.DB.GormDB.Save(project).Error
 	if err != nil {
 		log.Printf("failed to save project: error %v", err)
