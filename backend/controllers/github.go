@@ -1085,7 +1085,8 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	if link == nil {
 		log.Printf("Failed to find GithubAppInstallationLink create a link and an org %v", installationId)
 		name := fmt.Sprintf("dggr-def-%v", uuid.NewString()[:8])
-		org, err := models.DB.CreateOrganisation(name, "digger", "digger")
+		externalId := uuid.NewString()
+		org, err := models.DB.CreateOrganisation(name, "digger", externalId)
 		if err != nil {
 			log.Printf("Error with CreateOrganisation: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateOrganisation"})
