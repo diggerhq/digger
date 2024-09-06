@@ -756,7 +756,7 @@ func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([
 	return runs, nil
 }
 
-func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId int64, projectId string, ProjectName string, RunType RunType, planStageId string, applyStageId string) (*model.DiggerRun, error) {
+func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId string, DiggerConfig string, GithubInstallationId int64, RepoId int64, projectId string, ProjectName string, RunType RunType, planStageId string, applyStageId string, triggeredByUserId *string) (*model.DiggerRun, error) {
 	dr := &model.DiggerRun{
 		ID:                   uuid.NewString(),
 		Triggertype:          Triggertype,
@@ -774,6 +774,7 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 		IsApproved:           false,
 		ApprovalAuthor:       "",
 		ApplyLogs:            "",
+		TriggeredByUserID:    triggeredByUserId,
 	}
 	result := db.GormDB.Create(dr)
 	if result.Error != nil {
