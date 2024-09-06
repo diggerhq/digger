@@ -74,6 +74,7 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 		return
 	}
 	projectId := request.ProjectId
+	userId := request.UserId
 
 	p := dbmodels.DB.Query.Project
 	project, err := dbmodels.DB.Query.Project.Where(p.ID.Eq(projectId)).First()
@@ -136,7 +137,7 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 		return
 	}
 
-	diggerRun, err := dbmodels.DB.CreateDiggerRun("push", 0, dbmodels.RunQueued, *commitSha, "", installationId, repoId, projectId, projectName, dbmodels.PlanAndApply, planStage.ID, applyStage.ID)
+	diggerRun, err := dbmodels.DB.CreateDiggerRun("user", 0, dbmodels.RunQueued, *commitSha, "", installationId, repoId, projectId, projectName, dbmodels.PlanAndApply, planStage.ID, applyStage.ID, &userId)
 	if err != nil {
 		log.Printf("Error creating digger run: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error creating digger run"})

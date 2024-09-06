@@ -208,7 +208,7 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 			return fmt.Errorf("error creating digger run stage")
 		}
 
-		diggerRun, err := dbmodels.DB.CreateDiggerRun("push", 0, dbmodels.RunQueued, commitId, "", installationId, repo.ID, project.ID, projectName, dbmodels.PlanAndApply, planStage.ID, applyStage.ID)
+		diggerRun, err := dbmodels.DB.CreateDiggerRun("push", 0, dbmodels.RunQueued, commitId, "", installationId, repo.ID, project.ID, projectName, dbmodels.PlanAndApply, planStage.ID, applyStage.ID, nil)
 		if err != nil {
 			log.Printf("Error creating digger run: %v", err)
 			return fmt.Errorf("error creating digger run")
