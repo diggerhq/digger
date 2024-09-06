@@ -342,6 +342,20 @@ func (svc GithubService) GetBranchName(prNumber int) (string, string, error) {
 	return pr.Head.GetRef(), pr.Head.GetSHA(), nil
 }
 
+func (svc GithubService) GetHeadCommitFromBranch(branch string) (string, string, error) {
+	branchInfo, _, err := svc.Client.Repositories.GetBranch(context.Background(), svc.Owner, svc.RepoName, branch, 0)
+	if err != nil {
+		fmt.Printf("Error fetching branch: %v\n", err)
+		return "", "", fmt.Errorf("could not retrive branch details: %v", err)
+	}
+
+	headCommit := branchInfo.GetCommit()
+	sha := headCommit.GetSHA()
+	message := headCommit.Commit.GetMessage()
+
+	return sha, message, nil
+}
+
 func (svc GithubService) CheckBranchExists(branchName string) (bool, error) {
 	_, resp, err := svc.Client.Repositories.GetBranch(context.Background(), svc.Owner, svc.RepoName, branchName, 3)
 	if err != nil {

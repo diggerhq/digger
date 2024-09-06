@@ -14,29 +14,28 @@ const TableNameProject = "projects"
 
 // Project mapped from table <projects>
 type Project struct {
-	ID                         string         `gorm:"column:id;primaryKey;default:uuid_generate_v4()" json:"id"`
-	Name                       string         `gorm:"column:name;not null" json:"name"`
-	CreatedAt                  time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt                  time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
-	OrganizationID             string         `gorm:"column:organization_id;not null" json:"organization_id"`
-	TeamID                     *int64         `gorm:"column:team_id" json:"team_id"`
-	ProjectStatus              string         `gorm:"column:project_status;not null;default:draft" json:"project_status"`
-	Slug                       string         `gorm:"column:slug;not null;default:(gen_random_uuid())" json:"slug"`
-	LatestActionOn             string         `gorm:"column:latest_action_on" json:"latest_action_on"`
-	RepoID                     int64          `gorm:"column:repo_id;not null" json:"repo_id"`
-	ConfigurationYaml          string         `gorm:"column:configuration_yaml" json:"configuration_yaml"`
-	Status                     string         `gorm:"column:status" json:"status"`
-	IsGenerated                bool           `gorm:"column:is_generated" json:"is_generated"`
-	IsInMainBranch             bool           `gorm:"column:is_in_main_branch" json:"is_in_main_branch"`
-	DeletedAt                  gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
-	TerraformWorkingDir        string         `gorm:"column:terraform_working_dir" json:"terraform_working_dir"`
-	IsManagingState            bool           `gorm:"column:is_managing_state" json:"is_managing_state"`
-	Labels                     string         `gorm:"column:labels" json:"labels"`
-	IsDriftDetectionEnabled    bool           `gorm:"column:is_drift_detection_enabled" json:"is_drift_detection_enabled"`
-	DriftCrontab               string         `gorm:"column:drift_crontab" json:"drift_crontab"`
-	Branch                     string         `gorm:"column:branch" json:"branch"`
-	LatestDriftOutput          string         `gorm:"column:latest_drift_output" json:"latest_drift_output"`
-	DriftLatestTerraformOutput string         `gorm:"column:drift_latest_terraform_output" json:"drift_latest_terraform_output"`
+	ID                      string         `gorm:"column:id;primaryKey;default:uuid_generate_v4()" json:"id"`
+	Name                    string         `gorm:"column:name;not null" json:"name"`
+	CreatedAt               time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt               time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
+	OrganizationID          string         `gorm:"column:organization_id;not null" json:"organization_id"`
+	TeamID                  *int64         `gorm:"column:team_id" json:"team_id"`
+	ProjectStatus           string         `gorm:"column:project_status;not null;default:draft" json:"project_status"`
+	Slug                    string         `gorm:"column:slug;not null;default:(gen_random_uuid())" json:"slug"`
+	LatestActionOn          string         `gorm:"column:latest_action_on" json:"latest_action_on"`
+	RepoID                  int64          `gorm:"column:repo_id;not null" json:"repo_id"`
+	ConfigurationYaml       string         `gorm:"column:configuration_yaml" json:"configuration_yaml"`
+	Status                  string         `gorm:"column:status" json:"status"`
+	IsGenerated             bool           `gorm:"column:is_generated" json:"is_generated"`
+	IsInMainBranch          bool           `gorm:"column:is_in_main_branch" json:"is_in_main_branch"`
+	DeletedAt               gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
+	TerraformWorkingDir     string         `gorm:"column:terraform_working_dir" json:"terraform_working_dir"`
+	IsManagingState         bool           `gorm:"column:is_managing_state" json:"is_managing_state"`
+	Labels                  string         `gorm:"column:labels" json:"labels"`
+	IsDriftDetectionEnabled bool           `gorm:"column:is_drift_detection_enabled" json:"is_drift_detection_enabled"`
+	DriftCrontab            string         `gorm:"column:drift_crontab" json:"drift_crontab"`
+	Branch                  string         `gorm:"column:branch" json:"branch"`
+	LatestDriftOutput       string         `gorm:"column:latest_drift_output" json:"latest_drift_output"`
 }
 
 // TableName Project's table name
