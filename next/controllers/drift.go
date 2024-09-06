@@ -34,7 +34,6 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 	}
 	projectId := request.ProjectId
 	log.Printf("Drift requests for project: %v", projectId)
-	command := "digger plan"
 
 	p := dbmodels.DB.Query.Project
 	project, err := dbmodels.DB.Query.Project.Where(p.ID.Eq(projectId)).First()
