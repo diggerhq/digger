@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci/generic"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/dbmodels"
+	"github.com/diggerhq/digger/next/services"
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -39,7 +37,7 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 	project, err := dbmodels.DB.Query.Project.Where(p.ID.Eq(projectId)).First()
 	if err != nil {
 		log.Printf("could not find project %v: %v", projectId, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not find project"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "could not find project"})
 		return
 	}
 
@@ -47,7 +45,7 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 	repo, err := dbmodels.DB.Query.Repo.Where(r.ID.Eq(project.RepoID)).First()
 	if err != nil {
 		log.Printf("could not find repo: %v for project %v: %v", project.RepoID, project.ID, err)
-		c.JSON(500, gin.H{"error": fmt.Sprintf("could not find repo for project: %v: %v", project.ID, err)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "could not find repo"})
 		return
 	}
 
@@ -59,92 +57,30 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 	appInstallation, err := dbmodels.DB.GetGithubAppInstallationByOrgAndRepo(orgId, repo.RepoFullName, dbmodels.GithubAppInstallActive)
 	if err != nil {
 		log.Printf("error retriving app installation")
-		c.JSON(500, gin.H{"error": "app installation retrieval failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "error retriving app installation"})
 		return
 	}
 	installationId := appInstallation.GithubInstallationID
-	log.Printf("installation id is: %v", installationId)
 
-	var dgprojects = []dg_configuration.Project{dbmodels.ToDiggerProject(project)}
-
-	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
-	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
-		ApplyAfterMerge:   true,
-		AllowDraftPRs:     false,
-		CommentRenderMode: "",
-		DependencyConfiguration: dg_configuration.DependencyConfiguration{
-			Mode: dg_configuration.DependencyConfigurationHard,
-		},
-		PrLocks:   false,
-		Projects:  dgprojects,
-		AutoMerge: false,
-		Telemetry: false,
-		Workflows: map[string]dg_configuration.Workflow{
-			"default": dg_configuration.Workflow{
-				EnvVars: nil,
-				Plan:    nil,
-				Apply:   nil,
-				Configuration: &dg_configuration.WorkflowConfiguration{
-					OnPullRequestPushed:           []string{"digger plan"},
-					OnPullRequestClosed:           []string{},
-					OnPullRequestConvertedToDraft: []string{},
-					OnCommitToDefault:             []string{},
-				},
-			},
-		},
-		MentionDriftedProjectsInPR: false,
-		TraverseToNestedProjects:   false,
-	}
-
-	branch := project.Branch
-
-	issueNumber := 0
-
-	jobs, err := generic.CreateJobsForProjects(dgprojects, "digger plan", "drift-detection", repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch)
+	ghService, _, err := utils.GetGithubService(d.GithubClientProvider, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
-		log.Printf("Error creating jobs: %v", err)
-		c.JSON(500, gin.H{"error": "error creating jobs"})
+		log.Printf("Error creating github service: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "error creating github service"})
 		return
+
 	}
 
-	impactedProjectsMap := make(map[string]dg_configuration.Project)
-	for _, p := range dgprojects {
-		impactedProjectsMap[p.Name] = p
-	}
-
-	impactedJobsMap := make(map[string]orchestrator_scheduler.Job)
-	for _, j := range jobs {
-		impactedJobsMap[j.ProjectName] = j
-	}
-
-	batchId, _, err := ConvertJobsToDiggerJobs(orchestrator_scheduler.DiggerCommandPlan, dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, "", 0, "", 0, dbmodels.DiggerBatchDriftEvent)
-	if err != nil {
-		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
-		c.JSON(500, gin.H{"error": "could not convert digger jobs"})
-		return
-	}
+	batchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan")
 
 	ciBackend, err := d.CiBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
 			GithubClientProvider: d.GithubClientProvider,
 			GithubInstallationId: installationId,
-			RepoName:             repo.RepoName,
-			RepoOwner:            repo.RepoOrganisation,
-			RepoFullName:         repo.RepoFullName,
+			RepoName:             repoName,
+			RepoOwner:            repoOwner,
+			RepoFullName:         repoFullName,
 		},
 	)
-	if err != nil {
-		log.Printf("GetCiBackend error: %v", err)
-		c.JSON(500, gin.H{"error": "could not get CI backend"})
-		return
-	}
-
-	ghService, _, err := utils.GetGithubService(d.GithubClientProvider, installationId, repoFullName, repoOwner, repoName)
-	if err != nil {
-		log.Printf("GetGithubService error: %v", err)
-		c.JSON(500, gin.H{"error": "could not initialize github client"})
-		return
-	}
 
 	err = TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, *batchId, 0, ghService, d.GithubClientProvider)
 	if err != nil {
