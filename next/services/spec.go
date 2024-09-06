@@ -148,6 +148,15 @@ func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 	if prNumber != 0 {
 		runName += fmt.Sprintf(" PR: %v", prNumber)
 	}
+
+	switch batch.EventType {
+	case dbmodels.DiggerBatchMergeEvent:
+		runName += fmt.Sprintf(" (merge)")
+	case dbmodels.DiggerBatchDriftEvent:
+		runName += fmt.Sprintf(" (drift)")
+	case dbmodels.DiggerBatchPullRequestEvent:
+		runName += fmt.Sprintf(" PR: %v", prNumber)
+	}
 	return &runName, nil
 }
 
@@ -219,7 +228,7 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 		spec.CommentUpdater.CommentUpdaterType = "noop"
 		spec.VCS.VcsType = "noop"
 	case dbmodels.DiggerBatchPullRequestEvent:
-
 	}
+
 	return &spec, nil
 }
