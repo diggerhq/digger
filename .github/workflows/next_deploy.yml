@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - fix/refresh-jobtoken-before-run
+      - feat/drift-runs-improvement-name
 jobs:
   deploy:
     name: Deploy app
