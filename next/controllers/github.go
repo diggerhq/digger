@@ -460,7 +460,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 		log.Printf("strconv.ParseInt error: %v", err)
 		backend_utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
-	batchId, _, err := ConvertJobsToDiggerJobs(*diggerCommand, dbmodels.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, sourceBranch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, "", 0, dbmodels.DiggerBatchPullRequestEvent)
+	batchId, _, err := services.ConvertJobsToDiggerJobs(*diggerCommand, dbmodels.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, sourceBranch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, "", 0, dbmodels.DiggerBatchPullRequestEvent)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		backend_utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -522,53 +522,6 @@ func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, rep
 		}
 	}
 	return nil
-}
-
-func ConvertJobsToDiggerJobs(jobType orchestrator_scheduler.DiggerCommand, vcsType dbmodels.DiggerVCSType, organisationId string, jobsMap map[string]orchestrator_scheduler.Job, projectMap map[string]dg_configuration.Project, projectsGraph graph.Graph[string, dg_configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId int64, diggerConfigStr string, gitlabProjectId int, batchEventType dbmodels.BatchEventType) (*string, []*model.DiggerJob, error) {
-	result := make([]*model.DiggerJob, 0)
-	organisation, err := dbmodels.DB.GetOrganisationById(organisationId)
-	if err != nil {
-		log.Printf("Error getting organisation: %v %v", organisationId, err)
-		return nil, nil, fmt.Errorf("error retriving organisation")
-	}
-	organisationName := organisation.Title
-
-	backendHostName := os.Getenv("DIGGER_HOSTNAME")
-
-	log.Printf("Number of Jobs: %v\n", len(jobsMap))
-	marshalledJobsMap := map[string][]byte{}
-	for projectName, job := range jobsMap {
-		jobToken, err := dbmodels.DB.CreateDiggerJobToken(organisationId)
-		if err != nil {
-			log.Printf("Error creating job token: %v %v", projectName, err)
-			return nil, nil, fmt.Errorf("error creating job token")
-		}
-
-		marshalled, err := json.Marshal(orchestrator_scheduler.JobToJson(job, jobType, organisationName, branch, commitSha, jobToken.Value, backendHostName, projectMap[projectName]))
-		if err != nil {
-			return nil, nil, err
-		}
-		marshalledJobsMap[job.ProjectName] = marshalled
-	}
-
-	log.Printf("marshalledJobsMap: %v\n", marshalledJobsMap)
-
-	batch, err := dbmodels.DB.CreateDiggerBatch(organisationId, vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId, batchEventType)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
-	}
-	for pname, _ := range marshalledJobsMap {
-		_, err := dbmodels.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[pname], projectMap[pname].WorkflowFile)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to create job: %v %v", pname, err)
-		}
-	}
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &batch.ID, result, nil
 }
 
 func getDiggerConfigForBranch(gh next_utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {

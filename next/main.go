@@ -81,6 +81,8 @@ func main() {
 	r.POST("/_internal/process_drift", middleware.WebhookAuth(), diggerController.TriggerCronForMatchingProjects)
 	// trigger for specific project
 	r.POST("/_internal/trigger_drift", middleware.WebhookAuth(), diggerController.TriggerDriftDetectionForProject)
+	r.POST("/_internal/runs", middleware.WebhookAuth(), diggerController.TriggerRunForProjectAssumingUser)
+
 	//authorized := r.Group("/")
 	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 
