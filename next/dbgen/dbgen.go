@@ -45,7 +45,10 @@ func main() {
 
 	// need to make approver_user_id nullable and gorm gen does not generate it as a string pointer, for some reason
 	g.ApplyBasic(
-		g.GenerateModel("digger_runs", gen.FieldType("approver_user_id", "*string")),
+		g.GenerateModel("digger_runs",
+			gen.FieldType("approver_user_id", "*string"),
+			gen.FieldType("triggered_by_user_id", "*string"),
+		),
 	)
 
 	g.ApplyBasic(

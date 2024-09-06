@@ -49,6 +49,7 @@ func newDiggerRun(db *gorm.DB, opts ...gen.DOOption) diggerRun {
 	_diggerRun.TerraformOutput = field.NewString(tableName, "terraform_output")
 	_diggerRun.ApplyLogs = field.NewString(tableName, "apply_logs")
 	_diggerRun.ApproverUserID = field.NewString(tableName, "approver_user_id")
+	_diggerRun.TriggeredByUserID = field.NewString(tableName, "triggered_by_user_id")
 
 	_diggerRun.fillFieldMap()
 
@@ -81,6 +82,7 @@ type diggerRun struct {
 	TerraformOutput      field.String
 	ApplyLogs            field.String
 	ApproverUserID       field.String
+	TriggeredByUserID    field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -119,6 +121,7 @@ func (d *diggerRun) updateTableName(table string) *diggerRun {
 	d.TerraformOutput = field.NewString(table, "terraform_output")
 	d.ApplyLogs = field.NewString(table, "apply_logs")
 	d.ApproverUserID = field.NewString(table, "approver_user_id")
+	d.TriggeredByUserID = field.NewString(table, "triggered_by_user_id")
 
 	d.fillFieldMap()
 
@@ -135,7 +138,7 @@ func (d *diggerRun) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (d *diggerRun) fillFieldMap() {
-	d.fieldMap = make(map[string]field.Expr, 22)
+	d.fieldMap = make(map[string]field.Expr, 23)
 	d.fieldMap["id"] = d.ID
 	d.fieldMap["created_at"] = d.CreatedAt
 	d.fieldMap["updated_at"] = d.UpdatedAt
@@ -158,6 +161,7 @@ func (d *diggerRun) fillFieldMap() {
 	d.fieldMap["terraform_output"] = d.TerraformOutput
 	d.fieldMap["apply_logs"] = d.ApplyLogs
 	d.fieldMap["approver_user_id"] = d.ApproverUserID
+	d.fieldMap["triggered_by_user_id"] = d.TriggeredByUserID
 }
 
 func (d diggerRun) clone(db *gorm.DB) diggerRun {

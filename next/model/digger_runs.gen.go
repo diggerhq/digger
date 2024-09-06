@@ -36,6 +36,7 @@ type DiggerRun struct {
 	TerraformOutput      string         `gorm:"column:terraform_output" json:"terraform_output"`
 	ApplyLogs            string         `gorm:"column:apply_logs" json:"apply_logs"`
 	ApproverUserID       *string        `gorm:"column:approver_user_id" json:"approver_user_id"`
+	TriggeredByUserID    *string        `gorm:"column:triggered_by_user_id" json:"triggered_by_user_id"`
 }
 
 // TableName DiggerRun's table name
