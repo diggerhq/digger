@@ -100,7 +100,7 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 
 	issueNumber := 0
 
-	jobs, err := generic.CreateJobsForProjects(dgprojects, "digger apply", "drift-detection", repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch)
+	jobs, err := generic.CreateJobsForProjects(dgprojects, "digger plan", "drift-detection", repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch)
 	if err != nil {
 		log.Printf("Error creating jobs: %v", err)
 		c.JSON(500, gin.H{"error": "error creating jobs"})
@@ -117,7 +117,7 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 		impactedJobsMap[j.ProjectName] = j
 	}
 
-	batchId, _, err := ConvertJobsToDiggerJobs("digger plan", dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, "", 0, "", 0, dbmodels.DiggerBatchDriftEvent)
+	batchId, _, err := ConvertJobsToDiggerJobs(orchestrator_scheduler.DiggerCommandPlan, dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, "", 0, "", 0, dbmodels.DiggerBatchDriftEvent)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		c.JSON(500, gin.H{"error": "could not convert digger jobs"})
