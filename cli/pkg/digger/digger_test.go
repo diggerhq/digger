@@ -93,7 +93,7 @@ func (m *MockPRManager) ListIssues() ([]*ci.Issue, error) {
 	return nil, nil
 }
 
-func (m *MockPRManager) PublishIssue(title string, body string) (int64, error) {
+func (m *MockPRManager) PublishIssue(title string, body string, labels *[]string) (int64, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", body, time.Now()})
 	return 0, nil
 }

@@ -32,7 +32,8 @@ func (ghi GithubIssueNotification) Send(projectName string, plan string) error {
 		}
 		return err
 	} else {
-		_, err := (*ghi.GithubService).PublishIssue(title, message)
+		labels := []string{"digger"}
+		_, err := (*ghi.GithubService).PublishIssue(title, message, &labels)
 		if err != nil {
 			log.Printf("error while publishing issue: %v", err)
 		}

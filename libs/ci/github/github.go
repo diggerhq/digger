@@ -139,8 +139,8 @@ func (svc GithubService) ListIssues() ([]*ci.Issue, error) {
 	return allIssues, nil
 }
 
-func (svc GithubService) PublishIssue(title string, body string) (int64, error) {
-	githubissue, _, err := svc.Client.Issues.Create(context.Background(), svc.Owner, svc.RepoName, &github.IssueRequest{Title: &title, Body: &body})
+func (svc GithubService) PublishIssue(title string, body string, labels *[]string) (int64, error) {
+	githubissue, _, err := svc.Client.Issues.Create(context.Background(), svc.Owner, svc.RepoName, &github.IssueRequest{Title: &title, Body: &body, Labels: labels})
 	if err != nil {
 		return 0, fmt.Errorf("could not publish issue: %v", err)
 	}

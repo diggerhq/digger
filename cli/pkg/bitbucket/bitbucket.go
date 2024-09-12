@@ -129,7 +129,7 @@ func (svc BitbucketAPI) ListIssues() ([]*ci.Issue, error) {
 	return nil, fmt.Errorf("implement me")
 }
 
-func (svc BitbucketAPI) PublishIssue(title string, body string) (int64, error) {
+func (svc BitbucketAPI) PublishIssue(title string, body string, labels *[]string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
