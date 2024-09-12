@@ -699,6 +699,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	actor := *payload.Sender.Login
 	commentBody := *payload.Comment.Body
 	defaultBranch := *payload.Repo.DefaultBranch
+	isPullRequest := payload.Issue.IsPullRequest()
+
+	if !isPullRequest {
+		log.Printf("comment not on pullrequest, ignroning")
+		return nil
+	}
 
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
