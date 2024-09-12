@@ -329,7 +329,7 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 
 func (svc GithubService) IsMerged(prNumber int) (bool, error) {
 	// we have to check if prNumber is an issue or not
-	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, PrNumber)
+	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Printf("error getting pull request (as issue): %v", err)
 		return false, fmt.Errorf("error getting pull request (as issue): %v", err)
