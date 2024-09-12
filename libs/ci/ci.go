@@ -6,7 +6,7 @@ type PullRequestService interface {
 	GetChangedFiles(prNumber int) ([]string, error)
 	PublishComment(prNumber int, comment string) (*Comment, error)
 	ListIssues() ([]*Issue, error)
-	PublishIssue(title string, body string) (int64, error)
+	PublishIssue(title string, body string, labels *[]string) (int64, error)
 	UpdateIssue(ID int64, title string, body string) (int64, error)
 	EditComment(prNumber int, id string, comment string) error
 	CreateCommentReaction(id string, reaction string) error

@@ -23,7 +23,7 @@ func (t MockPullRequestManager) ListIssues() ([]*Issue, error) {
 	return nil, nil
 }
 
-func (t MockPullRequestManager) PublishIssue(title string, body string) (int64, error) {
+func (t MockPullRequestManager) PublishIssue(title string, body string, labels *[]string) (int64, error) {
 	return 0, nil
 }
 
