@@ -279,6 +279,28 @@ func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, err
 }
 
 func (svc GithubService) MergePullRequest(prNumber int) error {
+	isPullRequest, err := svc.IsPullRequest(prNumber)
+	if err != nil {
+		log.Printf("error checking if PR is issue: %v", err)
+		return fmt.Errorf("error checking if PR is issue: %v", err)
+	}
+
+	// if it is an issue, close it
+	if !isPullRequest {
+		closedState := "closed"
+		issueRequest := &github.IssueRequest{
+			State: &closedState,
+		}
+
+		_, _, err := svc.Client.Issues.Edit(context.Background(), svc.Owner, svc.RepoName, prNumber, issueRequest)
+		if err != nil {
+			log.Printf("error closing issue (merging): %v", err)
+			return fmt.Errorf("error closing issue (merging): %v", err)
+		}
+		return nil
+
+	}
+
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Printf("error getting pull request: %v", err)
