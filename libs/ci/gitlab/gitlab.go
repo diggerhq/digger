@@ -192,7 +192,7 @@ func (svc GitLabService) ListIssues() ([]*ci.Issue, error) {
 	return nil, fmt.Errorf("implement me")
 }
 
-func (svc GitLabService) PublishIssue(title string, body string) (int64, error) {
+func (svc GitLabService) PublishIssue(title string, body string, labels *[]string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
