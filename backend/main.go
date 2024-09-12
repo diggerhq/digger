@@ -15,8 +15,9 @@ var templates embed.FS
 
 func main() {
 	ghController := controllers.DiggerController{
-		CiBackendProvider:    ci_backends.DefaultBackendProvider{},
-		GithubClientProvider: utils.DiggerGithubRealClientProvider{},
+		CiBackendProvider:                  ci_backends.DefaultBackendProvider{},
+		GithubClientProvider:               utils.DiggerGithubRealClientProvider{},
+		GithubWebhookPostIssueCommentHooks: make([]controllers.IssueCommentHook, 0),
 	}
 	r := bootstrap.Bootstrap(templates, ghController)
 	r.GET("/", controllers.Home)
