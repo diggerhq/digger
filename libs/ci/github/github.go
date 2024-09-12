@@ -226,13 +226,24 @@ func (svc GithubService) CreateCommentReaction(id string, reaction string) error
 }
 
 func (svc GithubService) SetStatus(prNumber int, status string, statusContext string) error {
+	// we have to check if prNumber is an issue or not
+	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
+	if err != nil {
+		log.Printf("error getting pull request (as issue): %v", err)
+		return fmt.Errorf("error getting pull request (as issue): %v", err)
+	}
+
+	if !issue.IsPullRequest() {
+		log.Printf("issue is not of type pull request, ignoring")
+		return nil
+	}
+
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Printf("error getting pull request : %v", err)
 		return fmt.Errorf("error getting pull request : %v", err)
 
 	}
-
 	_, _, err = svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
 		State:       &status,
 		Context:     &statusContext,
