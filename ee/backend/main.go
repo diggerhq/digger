@@ -10,6 +10,7 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	ci_backends2 "github.com/diggerhq/digger/ee/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/backend/controllers"
+	"github.com/diggerhq/digger/ee/backend/hooks"
 	"github.com/diggerhq/digger/ee/backend/providers/github"
 	"github.com/diggerhq/digger/libs/license"
 	"github.com/gin-gonic/gin"
@@ -31,8 +32,9 @@ func main() {
 		os.Exit(1)
 	}
 	diggerController := ce_controllers.DiggerController{
-		CiBackendProvider:    ci_backends2.EEBackendProvider{},
-		GithubClientProvider: github.DiggerGithubEEClientProvider{},
+		CiBackendProvider:                  ci_backends2.EEBackendProvider{},
+		GithubClientProvider:               github.DiggerGithubEEClientProvider{},
+		GithubWebhookPostIssueCommentHooks: []ce_controllers.IssueCommentHook{hooks.DriftReconcilliationHook},
 	}
 
 	r := bootstrap.Bootstrap(templates, diggerController)
@@ -92,7 +94,7 @@ func main() {
 	jobArtefactsGroup.Use(middleware.GetApiMiddleware())
 	jobArtefactsGroup.PUT("/", controllers.SetJobArtefact)
 	jobArtefactsGroup.GET("/", controllers.DownloadJobArtefact)
-	
+
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
 }

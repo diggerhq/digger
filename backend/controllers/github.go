@@ -39,9 +39,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type IssueCommentHook func(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error
+
 type DiggerController struct {
-	CiBackendProvider    ci_backends.CiBackendProvider
-	GithubClientProvider utils.GithubClientProvider
+	CiBackendProvider                  ci_backends.CiBackendProvider
+	GithubClientProvider               utils.GithubClientProvider
+	GithubWebhookPostIssueCommentHooks []IssueCommentHook
 }
 
 func (d DiggerController) GithubAppWebHook(c *gin.Context) {
@@ -88,6 +91,16 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			log.Printf("handleIssueCommentEvent error: %v", err)
 			c.String(http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		log.Printf("executing issue comment event post hooks:")
+		for _, hook := range d.GithubWebhookPostIssueCommentHooks {
+			err := hook(gh, event, d.CiBackendProvider)
+			if err != nil {
+				log.Printf("handleIssueCommentEvent post hook error: %v", err)
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 		}
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
@@ -599,7 +612,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	return nil
 }
 
-func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, changedFiles []string) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	ghService, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
@@ -610,11 +623,6 @@ func getDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	var diggerYmlStr string
 	var dependencyGraph graph.Graph[string, dg_configuration.Project]
 
-	changedFiles, err := ghService.GetChangedFiles(prNumber)
-	if err != nil {
-		log.Printf("Error getting changed files: %v", err)
-		return "", nil, nil, nil, fmt.Errorf("error getting changed files")
-	}
 	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, *token, func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
@@ -649,7 +657,13 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, r
 		return "", nil, nil, nil, nil, nil, fmt.Errorf("error getting branch name")
 	}
 
-	diggerYmlStr, ghService, config, dependencyGraph, err := getDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch, prNumber)
+	changedFiles, err := ghService.GetChangedFiles(prNumber)
+	if err != nil {
+		log.Printf("Error getting changed files: %v", err)
+		return "", nil, nil, nil, nil, nil, fmt.Errorf("error getting changed files")
+	}
+
+	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch, changedFiles)
 	if err != nil {
 		log.Printf("Error loading digger.yml: %v", err)
 		return "", nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml")
