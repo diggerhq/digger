@@ -18,6 +18,12 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 	isMergeCalled := false
 	mockedHTTPClient := mock.NewMockedHTTPClient(
 		mock.WithRequestMatch(
+			mock.GetReposIssuesByOwnerByRepoByIssueNumber,
+			github.Issue{
+				Number:           github.Int(2),
+				PullRequestLinks: &github.PullRequestLinks{},
+			}),
+		mock.WithRequestMatch(
 			mock.GetReposPullsByOwnerByRepoByPullNumber,
 			github.PullRequest{
 				Number: github.Int(2),

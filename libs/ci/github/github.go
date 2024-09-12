@@ -225,14 +225,34 @@ func (svc GithubService) CreateCommentReaction(id string, reaction string) error
 	return nil
 }
 
+func (svc GithubService) IsPullRequest(PrNumber int) (bool, error) {
+	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, PrNumber)
+	if err != nil {
+		log.Printf("error getting pull request (as issue): %v", err)
+		return false, fmt.Errorf("error getting pull request (as issue): %v", err)
+	}
+	return issue.IsPullRequest(), nil
+}
+
 func (svc GithubService) SetStatus(prNumber int, status string, statusContext string) error {
+	// we have to check if prNumber is an issue or not
+	isPullRequest, err := svc.IsPullRequest(prNumber)
+	if err != nil {
+		log.Printf("error checking if pull request is issue: %v", err)
+		return fmt.Errorf("error checking if pull request is issue: %v", err)
+
+	}
+	if !isPullRequest {
+		log.Printf("issue is not of type pull request, ignoring")
+		return nil
+	}
+
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Printf("error getting pull request : %v", err)
 		return fmt.Errorf("error getting pull request : %v", err)
 
 	}
-
 	_, _, err = svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
 		State:       &status,
 		Context:     &statusContext,
@@ -259,6 +279,28 @@ func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, err
 }
 
 func (svc GithubService) MergePullRequest(prNumber int) error {
+	isPullRequest, err := svc.IsPullRequest(prNumber)
+	if err != nil {
+		log.Printf("error checking if PR is issue: %v", err)
+		return fmt.Errorf("error checking if PR is issue: %v", err)
+	}
+
+	// if it is an issue, close it
+	if !isPullRequest {
+		closedState := "closed"
+		issueRequest := &github.IssueRequest{
+			State: &closedState,
+		}
+
+		_, _, err := svc.Client.Issues.Edit(context.Background(), svc.Owner, svc.RepoName, prNumber, issueRequest)
+		if err != nil {
+			log.Printf("error closing issue (merging): %v", err)
+			return fmt.Errorf("error closing issue (merging): %v", err)
+		}
+		return nil
+
+	}
+
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Printf("error getting pull request: %v", err)
@@ -288,6 +330,17 @@ func isMergeableState(mergeableState string) bool {
 }
 
 func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
+	isPullRequest, err := svc.IsPullRequest(prNumber)
+	if err != nil {
+		log.Printf("could not get pull request type: %v", err)
+		return false, fmt.Errorf("could not get pull request type: %v", err)
+	}
+
+	// if this is an issue it will always be merable (closable
+	if !isPullRequest {
+		return true, nil
+	}
+
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Printf("error getting pull request: %v", err)
@@ -297,6 +350,18 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 }
 
 func (svc GithubService) IsMerged(prNumber int) (bool, error) {
+	// we have to check if prNumber is an issue or not
+	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
+	if err != nil {
+		log.Printf("error getting pull request (as issue): %v", err)
+		return false, fmt.Errorf("error getting pull request (as issue): %v", err)
+	}
+
+	// if it is an issue, we check if it is "closed" instead of "merged"
+	if !issue.IsPullRequest() {
+		return issue.GetState() == "closed", nil
+	}
+
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		log.Printf("error getting pull request: %v", err)
