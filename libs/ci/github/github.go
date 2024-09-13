@@ -458,6 +458,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				ProjectWorkspace:   project.Workspace,
 				ProjectWorkflow:    project.Workflow,
 				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
 				Commands:           workflow.Configuration.OnCommitToDefault,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
