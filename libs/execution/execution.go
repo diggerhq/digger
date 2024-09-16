@@ -341,14 +341,16 @@ func (d DiggerExecutor) Apply() (*terraform_utils.TerraformSummary, bool, string
 			applyArgs = append(applyArgs, step.ExtraArgs...)
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
-			summary, err = terraform_utils.GetSummaryFromTerraformApplyOutput(stdout)
-			if err != nil {
-				log.Printf("Warning: get summary from apply output failed: %v", err)
-			}
+
 			reportTerraformApplyOutput(d.Reporter, d.projectId(), applyOutput)
 			if err != nil {
 				reportApplyError(d.Reporter, err)
 				return nil, false, stdout, fmt.Errorf("error executing apply: %v", err)
+			}
+
+			summary, err = terraform_utils.GetSummaryFromTerraformApplyOutput(stdout)
+			if err != nil {
+				log.Printf("Warning: get summary from apply output failed: %v", err)
 			}
 		}
 		if step.Action == "run" {
