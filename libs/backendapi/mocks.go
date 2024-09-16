@@ -1,7 +1,6 @@
 package backendapi
 
 import (
-	"github.com/diggerhq/digger/libs/execution"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"time"
