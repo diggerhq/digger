@@ -49,6 +49,11 @@ func newProject(db *gorm.DB, opts ...gen.DOOption) project {
 	_project.DriftCrontab = field.NewString(tableName, "drift_crontab")
 	_project.Branch = field.NewString(tableName, "branch")
 	_project.LatestDriftOutput = field.NewString(tableName, "latest_drift_output")
+	_project.IacType = field.NewString(tableName, "iac_type")
+	_project.Workspace = field.NewString(tableName, "workspace")
+	_project.WorkflowFile = field.NewString(tableName, "workflow_file")
+	_project.IncludePatterns = field.NewString(tableName, "include_patterns")
+	_project.ExcludePatterns = field.NewString(tableName, "exclude_patterns")
 
 	_project.fillFieldMap()
 
@@ -81,6 +86,11 @@ type project struct {
 	DriftCrontab            field.String
 	Branch                  field.String
 	LatestDriftOutput       field.String
+	IacType                 field.String
+	Workspace               field.String
+	WorkflowFile            field.String
+	IncludePatterns         field.String
+	ExcludePatterns         field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -119,6 +129,11 @@ func (p *project) updateTableName(table string) *project {
 	p.DriftCrontab = field.NewString(table, "drift_crontab")
 	p.Branch = field.NewString(table, "branch")
 	p.LatestDriftOutput = field.NewString(table, "latest_drift_output")
+	p.IacType = field.NewString(table, "iac_type")
+	p.Workspace = field.NewString(table, "workspace")
+	p.WorkflowFile = field.NewString(table, "workflow_file")
+	p.IncludePatterns = field.NewString(table, "include_patterns")
+	p.ExcludePatterns = field.NewString(table, "exclude_patterns")
 
 	p.fillFieldMap()
 
@@ -135,7 +150,7 @@ func (p *project) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *project) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 22)
+	p.fieldMap = make(map[string]field.Expr, 27)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["created_at"] = p.CreatedAt
@@ -158,6 +173,11 @@ func (p *project) fillFieldMap() {
 	p.fieldMap["drift_crontab"] = p.DriftCrontab
 	p.fieldMap["branch"] = p.Branch
 	p.fieldMap["latest_drift_output"] = p.LatestDriftOutput
+	p.fieldMap["iac_type"] = p.IacType
+	p.fieldMap["workspace"] = p.Workspace
+	p.fieldMap["workflow_file"] = p.WorkflowFile
+	p.fieldMap["include_patterns"] = p.IncludePatterns
+	p.fieldMap["exclude_patterns"] = p.ExcludePatterns
 }
 
 func (p project) clone(db *gorm.DB) project {

@@ -1,6 +1,8 @@
 package dbmodels
 
 import (
+	"strings"
+
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/next/model"
 )
@@ -9,13 +11,23 @@ func ToDiggerProject(p *model.Project) digger_config.Project {
 	return digger_config.Project{
 		Name:               p.Name,
 		Dir:                p.TerraformWorkingDir,
-		Workspace:          "default",
-		Terragrunt:         false,
-		OpenTofu:           false,
+		Workspace:          func() string {
+			if p.Workspace == "" {
+				return "default"
+			}
+			return p.Workspace
+		}(),
+		Terragrunt:         (p.IacType == "terragrunt"),
+		OpenTofu:           (p.IacType == "opentofu"),
 		Workflow:           "default",
-		WorkflowFile:       "digger_workflow.yml",
-		IncludePatterns:    []string{},
-		ExcludePatterns:    []string{},
+		WorkflowFile:       func() string {
+			if p.WorkflowFile == "" {
+				return "digger_workflow.yml"
+			}
+			return p.WorkflowFile
+		}(),
+		IncludePatterns:    strings.Split(p.IncludePatterns, ","),
+		ExcludePatterns:    strings.Split(p.ExcludePatterns, ","),
 		DependencyProjects: []string{},
 		DriftDetection:     false,
 		AwsRoleToAssume:    nil,
