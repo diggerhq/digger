@@ -1,10 +1,13 @@
 package terraform_utils
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/dineshba/tf-summarize/terraformstate"
 	"github.com/dineshba/tf-summarize/writer"
@@ -13,7 +16,7 @@ import (
 	"github.com/samber/lo"
 )
 
-type PlanSummary struct {
+type TerraformSummary struct {
 	ResourcesCreated uint `json:"resources_created"`
 	ResourcesUpdated uint `json:"resources_updated"`
 	ResourcesDeleted uint `json:"resources_deleted"`
@@ -49,7 +52,7 @@ func (footprint TerraformPlanFootprint) hash() string {
 	}, "")
 }
 
-func (p *PlanSummary) ToJson() map[string]interface{} {
+func (p *TerraformSummary) ToJson() map[string]interface{} {
 	if p == nil {
 		return map[string]interface{}{}
 	}
@@ -68,7 +71,7 @@ func parseTerraformPlanOutput(terraformJson string) (*tfjson.Plan, error) {
 	return &plan, nil
 }
 
-func GetPlanSummary(planJson string) (bool, *PlanSummary, error) {
+func GetSummaryFromPlanJson(planJson string) (bool, *TerraformSummary, error) {
 	tfplan, err := parseTerraformPlanOutput(planJson)
 	if err != nil {
 		return false, nil, fmt.Errorf("Error while parsing json file: %v", err)
@@ -86,7 +89,7 @@ func GetPlanSummary(planJson string) (bool, *PlanSummary, error) {
 		isPlanEmpty = false
 	}
 
-	planSummary := PlanSummary{}
+	planSummary := TerraformSummary{}
 	for _, resourceChange := range tfplan.ResourceChanges {
 		switch resourceChange.Change.Actions[0] {
 		case "create":
@@ -98,6 +101,34 @@ func GetPlanSummary(planJson string) (bool, *PlanSummary, error) {
 		}
 	}
 	return isPlanEmpty, &planSummary, nil
+}
+
+func GetSummaryFromTerraformApplyOutput(applyOutput string) (TerraformSummary, error) {
+	scanner := bufio.NewScanner(strings.NewReader(applyOutput))
+	var added, changed, destroyed uint = 0, 0, 0
+
+	summaryRegex := regexp.MustCompile(`(\d+) added, (\d+) changed, (\d+) destroyed`)
+
+	foundResourcesLine := false
+	for scanner.Scan() {
+		line := scanner.Text()
+		if matches := summaryRegex.FindStringSubmatch(line); matches != nil {
+			foundResourcesLine = true
+			fmt.Sscanf(matches[1], "%d", &added)
+			fmt.Sscanf(matches[2], "%d", &changed)
+			fmt.Sscanf(matches[3], "%d", &destroyed)
+		}
+	}
+
+	if !foundResourcesLine {
+		return TerraformSummary{}, fmt.Errorf("could not find resources line in terraform appyl output")
+	}
+
+	return TerraformSummary{
+		ResourcesCreated: added,
+		ResourcesUpdated: changed,
+		ResourcesDeleted: destroyed,
+	}, nil
 }
 
 func GetPlanFootprint(planJson string) (*TerraformPlanFootprint, error) {

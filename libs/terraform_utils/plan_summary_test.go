@@ -8,21 +8,21 @@ import (
 
 func TestPlanOutputEmpty(t *testing.T) {
 	emptyTerraformPlanJson := "{\"format_version\":\"1.1\",\"terraform_version\":\"1.4.6\",\"planned_values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}}]}},\"resource_changes\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"no-op\"],\"before\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after_unknown\":{},\"before_sensitive\":{},\"after_sensitive\":{}}}],\"prior_state\":{\"format_version\":\"1.0\",\"terraform_version\":\"1.4.6\",\"values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}}]}}},\"configuration\":{\"provider_config\":{\"null\":{\"name\":\"null\",\"full_name\":\"registry.terraform.io/hashicorp/null\"}},\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_config_key\":\"null\",\"schema_version\":0}]}}}\n"
-	isEmpty, _, err := GetPlanSummary(emptyTerraformPlanJson)
+	isEmpty, _, err := GetSummaryFromPlanJson(emptyTerraformPlanJson)
 	assert.Nil(t, err)
 	assert.True(t, isEmpty)
 }
 
 func TestPlanOutputNonEmpty(t *testing.T) {
 	nonEmptyTerraformPlanJson := "{\"format_version\":\"1.1\",\"terraform_version\":\"1.4.6\",\"planned_values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"triggers\":null},\"sensitive_values\":{}}]}},\"resource_changes\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"no-op\"],\"before\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after_unknown\":{},\"before_sensitive\":{},\"after_sensitive\":{}}},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"create\"],\"before\":null,\"after\":{\"triggers\":null},\"after_unknown\":{\"id\":true},\"before_sensitive\":false,\"after_sensitive\":{}}}],\"prior_state\":{\"format_version\":\"1.0\",\"terraform_version\":\"1.4.6\",\"values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}}]}}},\"configuration\":{\"provider_config\":{\"null\":{\"name\":\"null\",\"full_name\":\"registry.terraform.io/hashicorp/null\"}},\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_config_key\":\"null\",\"schema_version\":0},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_config_key\":\"null\",\"schema_version\":0}]}}}\n"
-	isEmpty, _, err := GetPlanSummary(nonEmptyTerraformPlanJson)
+	isEmpty, _, err := GetSummaryFromPlanJson(nonEmptyTerraformPlanJson)
 	assert.Nil(t, err)
 	assert.False(t, isEmpty)
 }
 
 func TestGetPlanSummaryOnlyOutputsChanged(t *testing.T) {
 	onlyOutputsChangedJson := "{\"format_version\":\"1.2\",\"terraform_version\":\"1.7.3\",\"planned_values\":{\"outputs\":{\"tt\":{\"sensitive\":false,\"type\":\"string\",\"value\":\"yy\"}},\"root_module\":{}},\"output_changes\":{\"tt\":{\"actions\":[\"create\"],\"before\":null,\"after\":\"yy\",\"after_unknown\":false,\"before_sensitive\":false,\"after_sensitive\":false}},\"prior_state\":{\"format_version\":\"1.0\",\"terraform_version\":\"1.7.3\",\"values\":{\"outputs\":{\"tt\":{\"sensitive\":false,\"value\":\"yy\",\"type\":\"string\"}},\"root_module\":{}}},\"configuration\":{\"root_module\":{\"outputs\":{\"tt\":{\"expression\":{\"constant_value\":\"yy\"}}}}},\"timestamp\":\"2024-07-12T14:50:56Z\",\"errored\":false}\n"
-	isEmpty, _, err := GetPlanSummary(onlyOutputsChangedJson)
+	isEmpty, _, err := GetSummaryFromPlanJson(onlyOutputsChangedJson)
 	assert.Nil(t, err)
 	assert.False(t, isEmpty)
 
@@ -30,7 +30,7 @@ func TestGetPlanSummaryOnlyOutputsChanged(t *testing.T) {
 
 func TestPlanOutputInvalidJsonFailsGracefully(t *testing.T) {
 	InvalidJson := "{\"format_version\":\" notsovalid"
-	_, _, err := GetPlanSummary(InvalidJson)
+	_, _, err := GetSummaryFromPlanJson(InvalidJson)
 	assert.NotNil(t, err)
 }
 
