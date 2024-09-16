@@ -1,8 +1,8 @@
 package backendapi
 
 import (
-	"github.com/diggerhq/digger/libs/execution"
 	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/terraform_utils"
 	"time"
 )
 
@@ -17,7 +17,7 @@ func (t MockBackendApi) ReportProjectRun(repo string, projectName string, starte
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *execution.DiggerExecutorPlanResult, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
+func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform_utils.TerraformSummary, planJson string, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 

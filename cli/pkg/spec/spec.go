@@ -17,7 +17,7 @@ import (
 
 func reportError(spec spec.Spec, backendApi backend2.Api, message string, err error) {
 	log.Printf(message)
-	_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
+	_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "", "")
 	if reportingError != nil {
 		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %v", err), 5)
 	}
@@ -131,7 +131,7 @@ func RunSpec(
 	jobs := []scheduler.Job{job}
 
 	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
-	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
+	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "", "")
 	if err != nil {
 		message := fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err)
 		reportError(spec, backendApi, message, err)
@@ -152,7 +152,7 @@ func RunSpec(
 	reportTerraformOutput := spec.Reporter.ReportTerraformOutput
 	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, backendApi, spec.JobId, true, reportTerraformOutput, commentId, currentDir)
 	if !allAppliesSuccess || err != nil {
-		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "")
+		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "", "")
 		if reportingError != nil {
 			message := fmt.Sprintf("Failed run commands. %s", err)
 			reportError(spec, backendApi, message, err)
