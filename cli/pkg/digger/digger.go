@@ -422,7 +422,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				appliesPerProject[job.ProjectName] = true
 			}
 			result := execution.DiggerExecutorResult{
-				OperationType:   execution.DiggerOparationTypePlan,
+				OperationType:   execution.DiggerOparationTypeApply,
 				TerraformOutput: output,
 				ApplyResult: &execution.DiggerExecutorApplyResult{
 					ApplySummary: *applySummary,
