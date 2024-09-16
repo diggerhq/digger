@@ -135,16 +135,13 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
-		var planResult *execution.DiggerExecutorPlanResult = nil
-		if exectorResults[0].PlanResult != nil {
-			planResult = exectorResults[0].PlanResult
-		}
+		summary := exectorResults[0].GetTerraformSummary()
 		terraformOutput := ""
 		if reportTerraformOutput {
 			terraformOutput = exectorResults[0].TerraformOutput
 		}
 		prNumber := *currentJob.PullRequestNumber
-		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, jobId, "succeeded", time.Now(), planResult, jobPrCommentUrl, terraformOutput)
+		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, terraformOutput)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
@@ -328,6 +325,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				return nil, msg, fmt.Errorf(msg)
 			}
 			result := execution.DiggerExecutorResult{
+				OperationType:   execution.DiggerOparationTypePlan,
 				TerraformOutput: plan,
 				PlanResult: &execution.DiggerExecutorPlanResult{
 					PlanSummary:   *planSummary,
@@ -404,7 +402,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 			// Running apply
 
-			applyPerformed, output, err := diggerExecutor.Apply()
+			applySummary, applyPerformed, output, err := diggerExecutor.Apply()
 			if err != nil {
 				//TODO reuse executor error handling
 				log.Printf("Failed to Run digger apply command. %v", err)
@@ -424,8 +422,11 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				appliesPerProject[job.ProjectName] = true
 			}
 			result := execution.DiggerExecutorResult{
+				OperationType:   execution.DiggerOparationTypeApply,
 				TerraformOutput: output,
-				ApplyResult:     &execution.DiggerExecutorApplyResult{},
+				ApplyResult: &execution.DiggerExecutorApplyResult{
+					ApplySummary: *applySummary,
+				},
 			}
 			return &result, output, nil
 		}
@@ -662,7 +663,7 @@ func RunJob(
 			if err != nil {
 				log.Printf("Failed to send usage report. %v", err)
 			}
-			_, output, err := diggerExecutor.Apply()
+			_, _, output, err := diggerExecutor.Apply()
 			if err != nil {
 				msg := fmt.Sprintf("Failed to Run digger apply command. %v", err)
 				log.Printf(msg)

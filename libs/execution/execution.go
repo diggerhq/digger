@@ -20,8 +20,8 @@ import (
 )
 
 type Executor interface {
-	Plan() (*terraform_utils.PlanSummary, bool, bool, string, string, error)
-	Apply() (bool, string, error)
+	Plan() (*terraform_utils.TerraformSummary, bool, bool, string, string, error)
+	Apply() (*terraform_utils.TerraformSummary, bool, string, error)
 	Destroy() (bool, error)
 }
 
@@ -30,7 +30,7 @@ type LockingExecutorWrapper struct {
 	Executor    Executor
 }
 
-func (l LockingExecutorWrapper) Plan() (*terraform_utils.PlanSummary, bool, bool, string, string, error) {
+func (l LockingExecutorWrapper) Plan() (*terraform_utils.TerraformSummary, bool, bool, string, string, error) {
 	plan := ""
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
@@ -44,17 +44,17 @@ func (l LockingExecutorWrapper) Plan() (*terraform_utils.PlanSummary, bool, bool
 	}
 }
 
-func (l LockingExecutorWrapper) Apply() (bool, string, error) {
+func (l LockingExecutorWrapper) Apply() (*terraform_utils.TerraformSummary, bool, string, error) {
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
 		msg := fmt.Sprintf("digger apply, error locking project: %v", err)
-		return false, msg, fmt.Errorf(msg)
+		return nil, false, msg, fmt.Errorf(msg)
 	}
 	log.Printf("Lock result: %t\n", locked)
 	if locked {
 		return l.Executor.Apply()
 	} else {
-		return false, "couldn't lock ", nil
+		return nil, false, "couldn't lock ", nil
 	}
 }
 
@@ -103,18 +103,35 @@ type DiggerExecutor struct {
 	PlanPathProvider  PlanPathProvider
 }
 
+type DiggerOperationType string
+
+var DiggerOparationTypePlan DiggerOperationType = "plan"
+var DiggerOparationTypeApply DiggerOperationType = "apply"
+
 type DiggerExecutorResult struct {
+	OperationType   DiggerOperationType
 	TerraformOutput string
 	PlanResult      *DiggerExecutorPlanResult
 	ApplyResult     *DiggerExecutorApplyResult
 }
 
 type DiggerExecutorApplyResult struct {
+	ApplySummary terraform_utils.TerraformSummary
 }
 
 type DiggerExecutorPlanResult struct {
-	PlanSummary   terraform_utils.PlanSummary
+	PlanSummary   terraform_utils.TerraformSummary
 	TerraformJson string
+}
+
+func (d DiggerExecutorResult) GetTerraformSummary() terraform_utils.TerraformSummary {
+	var summary terraform_utils.TerraformSummary
+	if d.OperationType == DiggerOparationTypePlan && d.PlanResult != nil {
+		summary = d.PlanResult.PlanSummary
+	} else if d.OperationType == DiggerOparationTypeApply && d.ApplyResult != nil {
+		summary = d.ApplyResult.ApplySummary
+	}
+	return summary
 }
 
 type PlanPathProvider interface {
@@ -180,10 +197,10 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 	}
 }
 
-func (d DiggerExecutor) Plan() (*terraform_utils.PlanSummary, bool, bool, string, string, error) {
+func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, string, string, error) {
 	plan := ""
 	terraformPlanOutput := ""
-	planSummary := &terraform_utils.PlanSummary{}
+	planSummary := &terraform_utils.TerraformSummary{}
 	isEmptyPlan := true
 	var planSteps []scheduler.Step
 
@@ -217,7 +234,7 @@ func (d DiggerExecutor) Plan() (*terraform_utils.PlanSummary, bool, bool, string
 			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
 			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
 
-			isEmptyPlan, planSummary, err = terraform_utils.GetPlanSummary(terraformPlanOutput)
+			isEmptyPlan, planSummary, err = terraform_utils.GetSummaryFromPlanJson(terraformPlanOutput)
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
 			}
@@ -284,14 +301,15 @@ func reportError(r reporting.Reporter, stderr string) {
 	}
 }
 
-func (d DiggerExecutor) Apply() (bool, string, error) {
+func (d DiggerExecutor) Apply() (*terraform_utils.TerraformSummary, bool, string, error) {
 	var applyOutput string
 	var plansFilename *string
+	summary := terraform_utils.TerraformSummary{}
 	if d.PlanStorage != nil {
 		var err error
 		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
-			return false, "", fmt.Errorf("error retrieving plan: %v", err)
+			return nil, false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}
 	}
 
@@ -315,7 +333,7 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			stdout, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
 				reportTerraformError(d.Reporter, stderr)
-				return false, stdout, fmt.Errorf("error running init: %v", err)
+				return nil, false, stdout, fmt.Errorf("error running init: %v", err)
 			}
 		}
 		if step.Action == "apply" {
@@ -323,10 +341,16 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			applyArgs = append(applyArgs, step.ExtraArgs...)
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
+
 			reportTerraformApplyOutput(d.Reporter, d.projectId(), applyOutput)
 			if err != nil {
 				reportApplyError(d.Reporter, err)
-				return false, stdout, fmt.Errorf("error executing apply: %v", err)
+				return nil, false, stdout, fmt.Errorf("error executing apply: %v", err)
+			}
+
+			summary, err = terraform_utils.GetSummaryFromTerraformApplyOutput(stdout)
+			if err != nil {
+				log.Printf("Warning: get summary from apply output failed: %v", err)
 			}
 		}
 		if step.Action == "run" {
@@ -338,12 +362,12 @@ func (d DiggerExecutor) Apply() (bool, string, error) {
 			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
 			_, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
-				return false, stderr, fmt.Errorf("error running command: %v", err)
+				return nil, false, stderr, fmt.Errorf("error running command: %v", err)
 			}
 		}
 	}
 	reportAdditionalOutput(d.Reporter, d.projectId())
-	return true, applyOutput, nil
+	return &summary, true, applyOutput, nil
 }
 
 func reportApplyError(r reporting.Reporter, err error) {

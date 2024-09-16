@@ -319,7 +319,7 @@ func RunHistoryForProject(c *gin.Context) {
 type SetJobStatusRequest struct {
 	Status          string                                  `json:"status"`
 	Timestamp       time.Time                               `json:"timestamp"`
-	JobSummary      *terraform_utils.PlanSummary            `json:"job_summary"`
+	JobSummary      *terraform_utils.TerraformSummary       `json:"job_summary"`
 	Footprint       *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
 	PrCommentUrl    string                                  `json:"pr_comment_url"`
 	TerraformOutput string                                  `json:"terraform_output""`
