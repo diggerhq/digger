@@ -1,10 +1,11 @@
 package main
 
 import (
+	"os"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gen"
 	"gorm.io/gorm"
-	"os"
 )
 
 // Dynamic SQL
@@ -52,7 +53,9 @@ func main() {
 	)
 
 	g.ApplyBasic(
-		g.GenerateModel("projects", gen.FieldType("team_id", "*int64")),
+		g.GenerateModel("projects",
+			gen.FieldType("team_id", "*int64"),
+		),
 	)
 
 	// Generate the code

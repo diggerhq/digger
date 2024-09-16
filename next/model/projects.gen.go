@@ -36,6 +36,11 @@ type Project struct {
 	DriftCrontab            string         `gorm:"column:drift_crontab" json:"drift_crontab"`
 	Branch                  string         `gorm:"column:branch" json:"branch"`
 	LatestDriftOutput       string         `gorm:"column:latest_drift_output" json:"latest_drift_output"`
+	IacType                 string         `gorm:"column:iac_type;default:terraform" json:"iac_type"`
+	Workspace               string         `gorm:"column:workspace" json:"workspace"`
+	WorkflowFile            string         `gorm:"column:workflow_file" json:"workflow_file"`
+	IncludePatterns         string         `gorm:"column:include_patterns" json:"include_patterns"`
+	ExcludePatterns         string         `gorm:"column:exclude_patterns" json:"exclude_patterns"`
 }
 
 // TableName Project's table name
