@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -113,6 +114,7 @@ func GetSummaryFromTerraformApplyOutput(applyOutput string) (TerraformSummary, e
 	for scanner.Scan() {
 		line := scanner.Text()
 		if matches := summaryRegex.FindStringSubmatch(line); matches != nil {
+			log.Printf("matches found: %v", matches)
 			foundResourcesLine = true
 			fmt.Sscanf(matches[1], "%d", &added)
 			fmt.Sscanf(matches[2], "%d", &changed)
@@ -121,9 +123,11 @@ func GetSummaryFromTerraformApplyOutput(applyOutput string) (TerraformSummary, e
 	}
 
 	if !foundResourcesLine {
-		return TerraformSummary{}, fmt.Errorf("could not find resources line in terraform appyl output")
+		return TerraformSummary{}, fmt.Errorf("could not find resources line in terraform apply output")
 	}
 
+	log.Printf("finished scan of terraform output: %v", applyOutput)
+	log.Printf("values found: %v %v %v", added, changed, destroyed)
 	return TerraformSummary{
 		ResourcesCreated: added,
 		ResourcesUpdated: changed,
