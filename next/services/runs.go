@@ -39,12 +39,24 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 		runName, err := GetRunNameFromJob(*planJob)
 		if err != nil {
 			log.Printf("could not get run name: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "Could not load run name"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get run name: %v", err)
 		}
 
 		err = RefreshVariableSpecForJob(planJob)
 		if err != nil {
 			log.Printf("could not get variable spec from job: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "Could not load variables"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get variable spec from job: %v", err)
 		}
 
@@ -53,28 +65,64 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 		err = RefreshVariableSpecForJob(applyJob)
 		if err != nil {
 			log.Printf("could not get variable spec from job: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not load variables"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get variable spec from job: %v", err)
 		}
 
 		spec, err := GetSpecFromJob(*planJob)
 		if err != nil {
 			log.Printf("could not get spec: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not prepare job spec for triggering"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get spec: %v", err)
 		}
 
 		vcsToken, err := GetVCSTokenFromJob(*planJob, gh)
 		if err != nil {
 			log.Printf("could not get vcs token: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not fetch VCS token (hint: is your app installed for repo?)"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
+
 			return fmt.Errorf("could not get vcs token: %v", err)
 		}
 
 		err = dbmodels.DB.RefreshDiggerJobTokenExpiry(planJob)
 		if err != nil {
 			log.Printf("could not refresh job token expiry: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not refresh digger token (likely an internal error)"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not refresh job token from expiry: %v", err)
 		}
 
-		ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
+		err = ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
+		if err != nil {
+			log.Printf("ERROR: Failed to trigger for Digger Run queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunID, dr.ProjectName)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = fmt.Sprintf("could not trigger workflow, internal error: %v", err)
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
+
+			return fmt.Errorf("ERROR: Failed to trigger for Digger Run queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunID, dr.ProjectName)
+		}
 
 		// change status to RunPendingPlan
 		log.Printf("Updating run queueItem item to planning state")
@@ -89,6 +137,12 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 		batch, err := dbmodels.DB.GetDiggerBatch(planStage.BatchID)
 		if err != nil {
 			log.Printf("could not get plan batch: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not find digger batch"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get plan batch: %v", err)
 		}
 		batchStatus := batch.Status
@@ -97,6 +151,7 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 		// if failed then go straight to failed
 		if batchStatus == int16(orchestrator_scheduler.BatchJobFailed) {
 			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "The job failed to run, please check action logs for more details"
 			err := dbmodels.DB.UpdateDiggerRun(dr)
 			if err != nil {
 				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunID, dr.ProjectName)
@@ -136,34 +191,75 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 		client := service.(*github.GithubService).Client
 		ciBackend := ci_backends.GithubActionCi{Client: client}
 		if err != nil {
-			log.Printf("could not get run name: %v", err)
+			log.Printf("could not get job: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not get job from run stage"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get run name: %v", err)
 		}
 		runName, err := GetRunNameFromJob(*job)
 		if err != nil {
 			log.Printf("could not get run name: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not get run name"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get run name: %v", err)
 		}
 
 		spec, err := GetSpecFromJob(*job)
 		if err != nil {
 			log.Printf("could not get spec: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could get spec from job"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get spec: %v", err)
 		}
 
 		vcsToken, err := GetVCSTokenFromJob(*job, gh)
 		if err != nil {
 			log.Printf("could not get vcs token: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not fetch vcs token (hint: is the app still installed?)"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
+
 			return fmt.Errorf("could not get spec: %v", err)
 		}
 
 		err = dbmodels.DB.RefreshDiggerJobTokenExpiry(job)
 		if err != nil {
 			log.Printf("could not refresh job token expiry: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not refresh expiry token"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not refresh job token from expiry: %v", err)
 		}
 
-		ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
+		err = ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
+		if err != nil {
+			log.Printf("could not trigger workflow for apply queueItem: %v [%v %v]", queueItem.ID, queueItem.DiggerRunID, dr.ProjectName)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = fmt.Sprintf("could not trigger workflow: %v", err)
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
+			return fmt.Errorf("ERROR: failed to trigger workflow: %v", err)
+		}
 
 		dr.Status = string(dbmodels.RunApplying)
 		err = dbmodels.DB.UpdateDiggerRun(dr)
@@ -177,6 +273,12 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 		batch, err := dbmodels.DB.GetDiggerBatch(applyStage.BatchID)
 		if err != nil {
 			log.Printf("could not get apply batch: %v", err)
+			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "could not get apply batch"
+			err = dbmodels.DB.UpdateDiggerRun(dr)
+			if err != nil {
+				log.Printf("Error: could not update digger status to failed: %v", err)
+			}
 			return fmt.Errorf("could not get apply batch: %v", err)
 		}
 		batchStatus := batch.Status
@@ -184,6 +286,7 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 		// if failed then go straight to failed
 		if batchStatus == int16(orchestrator_scheduler.BatchJobFailed) {
 			dr.Status = string(dbmodels.RunFailed)
+			dr.FailureReason = "the job failed to run, please refer to action logs for details"
 			err := dbmodels.DB.UpdateDiggerRun(dr)
 			if err != nil {
 				log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunID, dr.ProjectName)

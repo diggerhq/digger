@@ -37,6 +37,7 @@ type DiggerRun struct {
 	ApplyLogs            string         `gorm:"column:apply_logs" json:"apply_logs"`
 	ApproverUserID       *string        `gorm:"column:approver_user_id" json:"approver_user_id"`
 	TriggeredByUserID    *string        `gorm:"column:triggered_by_user_id" json:"triggered_by_user_id"`
+	FailureReason        string         `gorm:"column:failure_reason" json:"failure_reason"`
 }
 
 // TableName DiggerRun's table name

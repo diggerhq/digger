@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/drift-runs-improvement-name
+      - feat/add-failure-reason-when-run-fails
 jobs:
   deploy:
     name: Deploy app
