@@ -19,12 +19,14 @@ jobs:
       id-token: write      # required for workload-identity-federation
       pull-requests: write # required to post PR comments
       statuses: write      # required to validate combined PR status
+      issues: write
 
     steps:
       - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
         run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
       - uses: actions/checkout@v4
-      - uses: diggerhq/digger@feat/append-resources-to-apply-summary
+      - uses: diggerhq/digger@vLatest
+      
         with:
           digger-spec: ${{ inputs.spec }}
           digger-private-key: ${{ secrets.DIGGER_PRIVATE_KEY }}
