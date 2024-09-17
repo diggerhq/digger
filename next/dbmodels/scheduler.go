@@ -20,6 +20,7 @@ type BatchEventType string
 const DiggerBatchMergeEvent = "merge_event"
 const DiggerBatchPullRequestEvent = "pull_request_event"
 const DiggerBatchDriftEvent = "drift_event"
+const DiggerBatchManualTriggerEvent = "manual_trigger"
 
 const (
 	DiggerJobLinkCreated   DiggerJobLinkStatus = 1

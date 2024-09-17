@@ -154,6 +154,8 @@ func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 		runName += fmt.Sprintf(" (merge)")
 	case dbmodels.DiggerBatchDriftEvent:
 		runName += fmt.Sprintf(" (drift)")
+	case dbmodels.DiggerBatchManualTriggerEvent:
+		runName += fmt.Sprintf(" (user)")
 	case dbmodels.DiggerBatchPullRequestEvent:
 		runName += fmt.Sprintf(" PR: %v", prNumber)
 	}
@@ -224,6 +226,10 @@ func GetSpecFromJob(job model.DiggerJob) (*spec.Spec, error) {
 		spec.CommentUpdater.CommentUpdaterType = "noop"
 		spec.VCS.VcsType = "noop"
 	case dbmodels.DiggerBatchDriftEvent:
+		spec.Reporter.ReporterType = "noop"
+		spec.CommentUpdater.CommentUpdaterType = "noop"
+		spec.VCS.VcsType = "noop"
+	case dbmodels.DiggerBatchManualTriggerEvent:
 		spec.Reporter.ReporterType = "noop"
 		spec.CommentUpdater.CommentUpdaterType = "noop"
 		spec.VCS.VcsType = "noop"

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/services"
@@ -70,7 +71,7 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 
 	}
 
-	batchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan")
+	batchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan", dbmodels.DiggerBatchDriftEvent, scheduler.DiggerCommandPlan)
 
 	ciBackend, err := d.CiBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
