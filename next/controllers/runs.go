@@ -109,14 +109,14 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 	}
 	installationId := appInstallation.GithubInstallationID
 
-	planBatchId, commitSha, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan")
+	planBatchId, commitSha, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan", dbmodels.DiggerBatchManualTriggerEvent)
 	if err != nil {
 		log.Printf("Error creating plan batch: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error creating plan batch jobs"})
 		return
 	}
 
-	applyBatchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger apply")
+	applyBatchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger apply", dbmodels.DiggerBatchManualTriggerEvent)
 	if err != nil {
 		log.Printf("Error creating apply batch: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error creating apply batch jobs"})

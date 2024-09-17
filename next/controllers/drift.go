@@ -70,7 +70,7 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 
 	}
 
-	batchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan")
+	batchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan", dbmodels.DiggerBatchDriftEvent)
 
 	ciBackend, err := d.CiBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
