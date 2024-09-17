@@ -113,7 +113,7 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 	return nil
 }
 
-func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projectId string, command string) (*string, *string, error) {
+func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projectId string, command string, event dbmodels.BatchEventType, batchType orchestrator_scheduler.DiggerCommand) (*string, *string, error) {
 	p := dbmodels.DB.Query.Project
 	project, err := dbmodels.DB.Query.Project.Where(p.ID.Eq(projectId)).First()
 	if err != nil {
@@ -163,7 +163,7 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 				Plan:    nil,
 				Apply:   nil,
 				Configuration: &dg_configuration.WorkflowConfiguration{
-					OnPullRequestPushed:           []string{"digger plan"},
+					OnPullRequestPushed:           []string{command},
 					OnPullRequestClosed:           []string{},
 					OnPullRequestConvertedToDraft: []string{},
 					OnCommitToDefault:             []string{},
@@ -176,7 +176,7 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 
 	issueNumber := 0
 
-	jobs, err := generic.CreateJobsForProjects(dgprojects, "digger plan", "drift-detection", repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch)
+	jobs, err := generic.CreateJobsForProjects(dgprojects, command, string(event), repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch)
 	if err != nil {
 		log.Printf("Error creating jobs: %v", err)
 		return nil, nil, fmt.Errorf("error creating jobs: %v", err)
@@ -200,7 +200,7 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 
 	commitSha, _, err := ghService.GetHeadCommitFromBranch(branch)
 
-	batchId, _, err := ConvertJobsToDiggerJobs(orchestrator_scheduler.DiggerCommandPlan, dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, commitSha, 0, "", 0, dbmodels.DiggerBatchDriftEvent)
+	batchId, _, err := ConvertJobsToDiggerJobs(batchType, dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, commitSha, 0, "", 0, event)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		return nil, nil, fmt.Errorf("ConvertJobsToDiggerJobs error: %v", err)
