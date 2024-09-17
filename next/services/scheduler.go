@@ -113,7 +113,7 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 	return nil
 }
 
-func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projectId string, command string, event dbmodels.BatchEventType) (*string, *string, error) {
+func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projectId string, command string, event dbmodels.BatchEventType, batchType orchestrator_scheduler.DiggerCommand) (*string, *string, error) {
 	p := dbmodels.DB.Query.Project
 	project, err := dbmodels.DB.Query.Project.Where(p.ID.Eq(projectId)).First()
 	if err != nil {
@@ -200,7 +200,7 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 
 	commitSha, _, err := ghService.GetHeadCommitFromBranch(branch)
 
-	batchId, _, err := ConvertJobsToDiggerJobs(orchestrator_scheduler.DiggerCommandPlan, dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, commitSha, 0, "", 0, event)
+	batchId, _, err := ConvertJobsToDiggerJobs(batchType, dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, commitSha, 0, "", 0, event)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		return nil, nil, fmt.Errorf("ConvertJobsToDiggerJobs error: %v", err)

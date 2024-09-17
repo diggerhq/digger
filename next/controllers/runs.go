@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/services"
@@ -109,14 +110,14 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 	}
 	installationId := appInstallation.GithubInstallationID
 
-	planBatchId, commitSha, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan", dbmodels.DiggerBatchManualTriggerEvent)
+	planBatchId, commitSha, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan", dbmodels.DiggerBatchManualTriggerEvent, scheduler.DiggerCommandPlan)
 	if err != nil {
 		log.Printf("Error creating plan batch: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error creating plan batch jobs"})
 		return
 	}
 
-	applyBatchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger apply", dbmodels.DiggerBatchManualTriggerEvent)
+	applyBatchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger apply", dbmodels.DiggerBatchManualTriggerEvent, scheduler.DiggerCommandApply)
 	if err != nil {
 		log.Printf("Error creating apply batch: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error creating apply batch jobs"})
