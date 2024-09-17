@@ -200,7 +200,7 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 
 	commitSha, _, err := ghService.GetHeadCommitFromBranch(branch)
 
-	batchId, _, err := ConvertJobsToDiggerJobs(orchestrator_scheduler.DiggerCommandPlan, dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, commitSha, 0, "", 0, dbmodels.DiggerBatchDriftEvent)
+	batchId, _, err := ConvertJobsToDiggerJobs(orchestrator_scheduler.DiggerCommandPlan, dbmodels.DiggerVCSGithub, orgId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, project.Branch, 0, repoOwner, repoName, repoFullName, commitSha, 0, "", 0, event)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		return nil, nil, fmt.Errorf("ConvertJobsToDiggerJobs error: %v", err)
