@@ -25,7 +25,6 @@ type Terraform struct {
 }
 
 func (tf Terraform) Init(params []string, envs map[string]string) (string, string, error) {
-	params = append(params, "-upgrade=true")
 	params = append(params, "-input=false")
 	params = append(params, "-no-color")
 	stdout, stderr, _, err := tf.runTerraformCommand("init", true, envs, params...)
