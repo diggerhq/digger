@@ -33,10 +33,10 @@ func GetVCSTokenFromJob(job model.DiggerJob, gh utils.GithubClientProvider) (*st
 			batch.RepoOwner,
 			batch.RepoName,
 		)
-		token = *ghToken
 		if err != nil {
 			return nil, fmt.Errorf("TriggerWorkflow: could not retrieve token: %v", err)
 		}
+		token = *ghToken
 	case string(dbmodels.DiggerVCSGitlab):
 		token = os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
 	default:
