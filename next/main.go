@@ -10,6 +10,7 @@ import (
 	"github.com/diggerhq/digger/next/middleware"
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	sloggin "github.com/samber/slog-gin"
 	"io/fs"
@@ -32,17 +33,20 @@ var Version = "dev"
 
 func main() {
 
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:           os.Getenv("SENTRY_DSN"),
-		EnableTracing: true,
-		// Set TracesSampleRate to 1.0 to capture 100%
-		// of transactions for performance monitoring.
-		// We recommend adjusting this value in production,
-		TracesSampleRate: 0.1,
-		Release:          "api@" + Version,
-		Debug:            true,
-	}); err != nil {
-		log.Printf("Sentry initialization failed: %v\n", err)
+	sentryDsn := os.Getenv("SENTRY_DSN")
+	if sentryDsn != "" {
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:           sentry_dsn,
+			EnableTracing: true,
+			// Set TracesSampleRate to 1.0 to capture 100%
+			// of transactions for performance monitoring.
+			// We recommend adjusting this value in production,
+			TracesSampleRate: 0.1,
+			Release:          "api@" + Version,
+			Debug:            true,
+		}); err != nil {
+			log.Printf("Sentry initialization failed: %v\n", err)
+		}
 	}
 
 	// initialize the database
@@ -53,6 +57,9 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(sloggin.New(logger))
+	if sentryDsn != "" {
+		r.Use(sentrygin.New(sentrygin.Options{}))
+	}
 
 	if _, err := os.Stat("templates"); err != nil {
 		matches, _ := fs.Glob(templates, "templates/*.tmpl")
