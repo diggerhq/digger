@@ -667,15 +667,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	}
 	repos := listRepos.Repositories
 
-	// resets all existing installations (soft delete)
-	var AppInstallation model.GithubAppInstallation
-	err = dbmodels.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", dbmodels.GithubAppInstallDeleted).Error
-	if err != nil {
-		log.Printf("Failed to update github installations: %v", err)
-		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
-		return
-	}
-
 	// reset all existing repos (soft delete)
 	var ExistingRepos []model.Repo
 	err = dbmodels.DB.GormDB.Delete(ExistingRepos, "organization_id=?", orgId).Error
@@ -691,6 +682,16 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		repoOwner := strings.Split(*repo.FullName, "/")[0]
 		repoName := *repo.Name
 		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
+
+		// reset the GithubAppInstallation for this repo before creating a new one
+		var AppInstallation model.GithubAppInstallation
+		err = dbmodels.DB.GormDB.Model(&AppInstallation).Where("repo=?", repoFullName).Update("status", dbmodels.GithubAppInstallDeleted).Error
+		if err != nil {
+			log.Printf("Failed to update github installations: %v", err)
+			c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
+			return
+		}
+
 		_, err := dbmodels.DB.GithubRepoAdded(installationId64, *installation.AppID, *installation.Account.Login, *installation.Account.ID, repoFullName)
 		if err != nil {
 			log.Printf("github repos added error: %v", err)
