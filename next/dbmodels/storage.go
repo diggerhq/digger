@@ -435,7 +435,7 @@ func (db *Database) GetGithubAppInstallationByOrgAndRepo(orgId any, repo string,
 // GetGithubAppInstallationByIdAndRepo repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
 func (db *Database) GetGithubAppInstallationByIdAndRepo(installationId int64, repoFullName string) (*model.GithubAppInstallation, error) {
 	installation := model.GithubAppInstallation{}
-	result := db.GormDB.Where("github_installation_id = ? AND status=? AND repo=?", installationId, GithubAppInstallActive, repoFullName).Find(&installation)
+	result := db.GormDB.Where("status=? AND repo=?", GithubAppInstallActive, repoFullName).First(&installation)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
@@ -444,7 +444,7 @@ func (db *Database) GetGithubAppInstallationByIdAndRepo(installationId int64, re
 
 	// If not found, the values will be default values, which means ID will be 0
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("GithubAppInstallation with id=%v doesn't exist", installationId)
+		return nil, fmt.Errorf("GithubAppInstallation for repo=%v doesn't exist", repoFullName)
 	}
 	return &installation, nil
 }

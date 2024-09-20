@@ -97,12 +97,6 @@ func GetGithubClient(gh GithubClientProvider, installationId int64, repoFullName
 		return nil, nil, fmt.Errorf("Error getting installation: %v", err)
 	}
 
-	_, err = dbmodels.DB.GetGithubApp(installation.GithubAppID)
-	if err != nil {
-		log.Printf("Error getting app: %v", err)
-		return nil, nil, fmt.Errorf("Error getting app: %v", err)
-	}
-
 	ghClient, token, err := gh.Get(installation.GithubAppID, installation.GithubInstallationID)
 	return ghClient, token, err
 }
