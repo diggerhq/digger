@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/fix-bug-for-trigger-applies
+      - feat/improve-error-reporting-fix-npe
 jobs:
   deploy:
     name: Deploy app
