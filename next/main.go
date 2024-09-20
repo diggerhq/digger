@@ -36,7 +36,7 @@ func main() {
 	sentryDsn := os.Getenv("SENTRY_DSN")
 	if sentryDsn != "" {
 		if err := sentry.Init(sentry.ClientOptions{
-			Dsn:           sentry_dsn,
+			Dsn:           sentryDsn,
 			EnableTracing: true,
 			// Set TracesSampleRate to 1.0 to capture 100%
 			// of transactions for performance monitoring.
