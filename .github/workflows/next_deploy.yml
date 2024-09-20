@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - feat/configure-sentry)
+      - feat/configure-sentry
 jobs:
   deploy:
     name: Deploy app
