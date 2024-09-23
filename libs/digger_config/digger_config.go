@@ -276,10 +276,9 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 							FilterPath:        path.Join(terraformDir, *b.RootDir),
 						};						
 
-						// allow blocks to pass in roles that can be assummed by aws 
-						if b.AwsRoleToAssume != nil {
-							tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
-						}
+						// allow blocks to pass in roles that can be assummed by aws 					
+						tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
+						
 
 						err := hydrateDiggerConfigYamlWithTerragrunt(config, tgParsingConfig, terraformDir)
 						if err != nil {

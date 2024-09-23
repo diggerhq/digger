@@ -49,23 +49,23 @@ func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
 		// Terragrunt will cause a backend configuration problem if backend-config options are passed and envs of the same key are passed. 
 		// which will trigger a request to init with --reconfigure, so do not use backend-config for terragrunt	
 		if job.Terragrunt != true {
-		if err != nil {
-			log.Printf("Failed to get keys from role: %v", err)
-			return fmt.Errorf("Failed to get (state) keys from role: %v", err)
-		}
+			if err != nil {
+				log.Printf("Failed to get keys from role: %v", err)
+				return fmt.Errorf("Failed to get (state) keys from role: %v", err)
+			}
 
-		if job.PlanStage != nil {
-			// TODO: check that the first step is infact the terraform "init" step
-			job.PlanStage.Steps[0].ExtraArgs = append(job.PlanStage.Steps[0].ExtraArgs, backendConfigArgs...)
-		}
-		if job.ApplyStage != nil {
-			// TODO: check that the first step is infact the terraform "init" step
-			job.ApplyStage.Steps[0].ExtraArgs = append(job.ApplyStage.Steps[0].ExtraArgs, backendConfigArgs...)
-		}
-		if err != nil {
-			log.Printf("Failed to get keys from role: %v", err)
-			return fmt.Errorf("Failed to get (state) keys from role: %v", err)
-		}
+			if job.PlanStage != nil {
+				// TODO: check that the first step is infact the terraform "init" step
+				job.PlanStage.Steps[0].ExtraArgs = append(job.PlanStage.Steps[0].ExtraArgs, backendConfigArgs...)
+			}
+			if job.ApplyStage != nil {
+				// TODO: check that the first step is infact the terraform "init" step
+				job.ApplyStage.Steps[0].ExtraArgs = append(job.ApplyStage.Steps[0].ExtraArgs, backendConfigArgs...)
+			}
+			if err != nil {
+				log.Printf("Failed to get keys from role: %v", err)
+				return fmt.Errorf("Failed to get (state) keys from role: %v", err)
+			}
 		} else {
 			job.StateEnvVars, err = populateKeys(job.StateEnvVars, *job.StateEnvProvider)
 			if err != nil {
