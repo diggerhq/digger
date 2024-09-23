@@ -269,15 +269,22 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 							workflow = b.Workflow
 						}
 
-						err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{
+						tgParsingConfig := TerragruntParsingConfig{
 							CreateProjectName: true,
 							DefaultWorkflow:   workflow,
 							WorkflowFile:      b.WorkflowFile,
 							FilterPath:        path.Join(terraformDir, *b.RootDir),
-						}, terraformDir)
+						};						
+
+						// allow blocks to pass in roles that can be assummed by aws 					
+						tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
+						
+
+						err := hydrateDiggerConfigYamlWithTerragrunt(config, tgParsingConfig, terraformDir)
 						if err != nil {
 							return err
 						}
+						
 					}
 				} else {
 					includePatterns = []string{b.Include}
@@ -500,6 +507,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			WorkflowFile:    &workflowFile,
 			IncludePatterns: atlantisProject.Autoplan.WhenModified,
 			Generated:       true,
+			AwsRoleToAssume: parsingConfig.AwsRoleToAssume,
 		})
 	}
 	return nil

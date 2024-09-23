@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -217,6 +218,7 @@ func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, s
 		}
 	}
 	for _, step := range planSteps {
+		log.Printf(" Running step: %v\n", step.Action)
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
@@ -530,4 +532,16 @@ func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, std
 
 func (d DiggerExecutor) projectId() string {
 	return d.ProjectNamespace + "#" + d.ProjectName
+}
+
+// this will log an exit code and error based on the executor of the executor drivers are by filename
+func logCommandFail(exitCode int, err error) {
+
+	_, filename, _, ok := runtime.Caller(1);
+	if ok {
+		executor := strings.TrimSuffix(path.Base(filename), path.Ext(filename))
+		log.Printf("Command failed in %v with exit code %v and error %v", executor, exitCode, err)
+	} else {
+		log.Printf("Command failed in unknown executor with exit code %v and error %v", exitCode, err)
+	}
 }

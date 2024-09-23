@@ -142,6 +142,7 @@ type TerragruntParsingConfig struct {
 	UseProjectMarkers              bool     `yaml:"useProjectMarkers"`
 	ExecutionOrderGroups           *bool    `yaml:"executionOrderGroups"`
 	WorkflowFile                   string   `yaml:"workflow_file"`
+	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
