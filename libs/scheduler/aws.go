@@ -45,24 +45,34 @@ func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
 		log.Printf("Project-level AWS role detected, Assuming role for project: %v", job.ProjectName)
 		var err error
 		backendConfigArgs, err := populateretrieveBackendConfigArgs(*job.StateEnvProvider)
-		if err != nil {
-			log.Printf("Failed to get keys from role: %v", err)
-			return fmt.Errorf("Failed to get (state) keys from role: %v", err)
-		}
 
-		if job.PlanStage != nil {
-			// TODO: check that the first step is infact the terraform "init" step
-			job.PlanStage.Steps[0].ExtraArgs = append(job.PlanStage.Steps[0].ExtraArgs, backendConfigArgs...)
-		}
-		if job.ApplyStage != nil {
-			// TODO: check that the first step is infact the terraform "init" step
-			job.ApplyStage.Steps[0].ExtraArgs = append(job.ApplyStage.Steps[0].ExtraArgs, backendConfigArgs...)
-		}
-		if err != nil {
-			log.Printf("Failed to get keys from role: %v", err)
-			return fmt.Errorf("Failed to get (state) keys from role: %v", err)
-		}
+		// Terragrunt will cause a backend configuration problem if backend-config options are passed and envs of the same key are passed. 
+		// which will trigger a request to init with --reconfigure, so do not use backend-config for terragrunt	
+		if job.Terragrunt != true {
+			if err != nil {
+				log.Printf("Failed to get keys from role: %v", err)
+				return fmt.Errorf("Failed to get (state) keys from role: %v", err)
+			}
 
+			if job.PlanStage != nil {
+				// TODO: check that the first step is infact the terraform "init" step
+				job.PlanStage.Steps[0].ExtraArgs = append(job.PlanStage.Steps[0].ExtraArgs, backendConfigArgs...)
+			}
+			if job.ApplyStage != nil {
+				// TODO: check that the first step is infact the terraform "init" step
+				job.ApplyStage.Steps[0].ExtraArgs = append(job.ApplyStage.Steps[0].ExtraArgs, backendConfigArgs...)
+			}
+			if err != nil {
+				log.Printf("Failed to get keys from role: %v", err)
+				return fmt.Errorf("Failed to get (state) keys from role: %v", err)
+			}
+		} else {
+			job.StateEnvVars, err = populateKeys(job.StateEnvVars, *job.StateEnvProvider)
+			if err != nil {
+				log.Printf("Failed to get keys from role (StateEnvProvider): %v", err)
+				return fmt.Errorf("Failed to get (state) keys from role: %v", err)
+			}
+		}
 	}
 
 	if job.CommandEnvProvider != nil {
@@ -73,6 +83,16 @@ func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
 			return fmt.Errorf("Failed to get (command) keys from role: %v", err)
 		}
 	}
+
+	// If state environment variables are not set them to match command env vars 
+	if len(job.StateEnvVars) == 0 && len(job.CommandEnvVars) != 0 {
+		job.StateEnvVars = job.CommandEnvVars
+	} 
+
+	if len(job.StateEnvVars) != 0 && len(job.CommandEnvVars) == 0 {
+		job.CommandEnvVars = job.StateEnvVars
+	}  
+
 	return nil
 }
 
