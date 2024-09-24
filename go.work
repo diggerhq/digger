@@ -10,6 +10,7 @@ use (
 	
 	./ee/backend
 	./ee/cli
+	./ee/drift
 
 	./libs
 

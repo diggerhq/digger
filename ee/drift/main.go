@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/diggerhq/drift/controllers"
-	"github.com/diggerhq/drift/dbmodels"
+	"github.com/diggerhq/digger/ee/drift/controllers"
+	"github.com/diggerhq/digger/ee/drift/dbmodels"
+	"github.com/diggerhq/digger/ee/drift/middleware"
+	next_utils "github.com/diggerhq/digger/next/utils"
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
@@ -53,7 +55,9 @@ func main() {
 		r.Use(sentrygin.New(sentrygin.Options{}))
 	}
 
-	controller := controllers.MainController{}
+	controller := controllers.MainController{
+		GithubClientProvider: next_utils.DiggerGithubRealClientProvider{},
+	}
 
 	r.GET("/ping", controller.Ping)
 	r.GET("/health", func(c *gin.Context) {
@@ -65,7 +69,8 @@ func main() {
 	//authorized := r.Group("/")
 	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 
-	//r.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", middleware.JobTokenAuth(), diggerController.SetJobStatusForProject)
+	r.GET("/github/callback_fe", middleware.WebhookAuth(), controller.GithubAppCallbackPage)
+
 	port := os.Getenv("DIGGER_PORT")
 	if port == "" {
 		port = "3000"

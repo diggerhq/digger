@@ -1,7 +1,7 @@
 package dbmodels
 
 import (
-	"github.com/diggerhq/drift/models_generated"
+	"github.com/diggerhq/digger/ee/drift/models_generated"
 	slogGorm "github.com/orandin/slog-gorm"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"

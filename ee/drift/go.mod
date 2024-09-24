@@ -1,4 +1,4 @@
-module github.com/diggerhq/drift
+module github.com/diggerhq/digger/ee/drift
 
 replace github.com/diggerhq/digger/next => ../../next
 
@@ -9,7 +9,6 @@ replace github.com/diggerhq/digger/libs => ../../libs
 go 1.22.4
 
 require (
-	github.com/diggerhq/digger/ee/drift v0.0.0-00010101000000-000000000000
 	github.com/diggerhq/digger/next v0.0.0-00010101000000-000000000000
 	github.com/getsentry/sentry-go v0.29.0
 	github.com/gin-gonic/gin v1.10.0
