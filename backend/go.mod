@@ -11,7 +11,7 @@ require (
 	ariga.io/atlas-provider-gorm v0.3.4
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
 	github.com/dchest/uniuri v1.2.0
-	github.com/diggerhq/digger/libs v0.4.15
+	github.com/diggerhq/digger/libs v0.0.0-20240604170430-9d61cdf01cc5
 	github.com/dominikbraun/graph v0.23.0
 	github.com/getsentry/sentry-go v0.28.0
 	github.com/gin-contrib/sessions v1.0.1
@@ -113,7 +113,6 @@ require (
 	github.com/creack/pty v1.1.17 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/diggerhq/digger/cli v0.0.0-20240705091808-75187a7aae8e // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dineshba/tf-summarize v0.3.10 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect

@@ -8,7 +8,7 @@ replace github.com/diggerhq/digger/cli => ../../cli
 
 require (
 	github.com/diggerhq/digger/cli v0.0.0-20240705091808-75187a7aae8e
-	github.com/diggerhq/digger/libs v0.4.15
+	github.com/diggerhq/digger/libs v0.0.0-20240604170430-9d61cdf01cc5
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/go-github/v61 v61.0.0
 	github.com/samber/lo v1.44.0

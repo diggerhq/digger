@@ -10,7 +10,7 @@ require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
 	github.com/buildkite/go-buildkite/v3 v3.11.0
 	github.com/diggerhq/digger/backend v0.0.0-20240604134226-50bc84a6807e
-	github.com/diggerhq/digger/libs v0.4.15
+	github.com/diggerhq/digger/libs v0.0.0-20240604170430-9d61cdf01cc5
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/go-github/v61 v61.0.0
 	github.com/robert-nix/ansihtml v1.0.1
@@ -97,7 +97,6 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dchest/uniuri v1.2.0 // indirect
-	github.com/diggerhq/digger/cli v0.0.0-20240705091808-75187a7aae8e // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dineshba/tf-summarize v0.3.10 // indirect
 	github.com/dominikbraun/graph v0.23.0 // indirect

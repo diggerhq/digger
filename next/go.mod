@@ -9,8 +9,7 @@ replace github.com/diggerhq/digger/libs => ../libs
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
 	github.com/dchest/uniuri v1.2.0
-	github.com/diggerhq/digger/backend v0.0.0-00010101000000-000000000000
-	github.com/diggerhq/digger/libs v0.4.15
+	github.com/diggerhq/digger/libs v0.0.0-20240604170430-9d61cdf01cc5
 	github.com/dominikbraun/graph v0.23.0
 	github.com/getsentry/sentry-go v0.28.1
 	github.com/gin-gonic/gin v1.10.0
