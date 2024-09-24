@@ -16,7 +16,7 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"github.com/diggerhq/drift/model"
+	"github.com/diggerhq/digger/ee/drift/model"
 )
 
 func newOrganisation(db *gorm.DB, opts ...gen.DOOption) organisation {
