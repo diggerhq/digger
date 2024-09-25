@@ -8,6 +8,10 @@ primary_region = 'lhr'
 kill_signal = 'SIGINT'
 kill_timeout = '5s'
 
+[env]
+  DIGGER_HOSTNAME = 'https://driftapp-backend.digger.dev'
+
+
 [build]
   dockerfile = 'Dockerfile_drift'
 
