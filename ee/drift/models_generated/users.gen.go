@@ -32,8 +32,10 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 	_user.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_user.DeletedAt = field.NewField(tableName, "deleted_at")
 	_user.Email = field.NewString(tableName, "email")
-	_user.Name = field.NewString(tableName, "name")
 	_user.OrganisationID = field.NewString(tableName, "organisation_id")
+	_user.ExternalID = field.NewString(tableName, "external_id")
+	_user.FirstName = field.NewString(tableName, "first_name")
+	_user.LastName = field.NewString(tableName, "last_name")
 
 	_user.fillFieldMap()
 
@@ -49,8 +51,10 @@ type user struct {
 	UpdatedAt      field.Time
 	DeletedAt      field.Field
 	Email          field.String
-	Name           field.String
 	OrganisationID field.String
+	ExternalID     field.String
+	FirstName      field.String
+	LastName       field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -72,8 +76,10 @@ func (u *user) updateTableName(table string) *user {
 	u.UpdatedAt = field.NewTime(table, "updated_at")
 	u.DeletedAt = field.NewField(table, "deleted_at")
 	u.Email = field.NewString(table, "email")
-	u.Name = field.NewString(table, "name")
 	u.OrganisationID = field.NewString(table, "organisation_id")
+	u.ExternalID = field.NewString(table, "external_id")
+	u.FirstName = field.NewString(table, "first_name")
+	u.LastName = field.NewString(table, "last_name")
 
 	u.fillFieldMap()
 
@@ -90,14 +96,16 @@ func (u *user) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *user) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 7)
+	u.fieldMap = make(map[string]field.Expr, 9)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
 	u.fieldMap["deleted_at"] = u.DeletedAt
 	u.fieldMap["email"] = u.Email
-	u.fieldMap["name"] = u.Name
 	u.fieldMap["organisation_id"] = u.OrganisationID
+	u.fieldMap["external_id"] = u.ExternalID
+	u.fieldMap["first_name"] = u.FirstName
+	u.fieldMap["last_name"] = u.LastName
 }
 
 func (u user) clone(db *gorm.DB) user {

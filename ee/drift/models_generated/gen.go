@@ -22,6 +22,7 @@ var (
 	Project                   *project
 	Repo                      *repo
 	User                      *user
+	UserSetting               *userSetting
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
@@ -31,6 +32,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Project = &Q.Project
 	Repo = &Q.Repo
 	User = &Q.User
+	UserSetting = &Q.UserSetting
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
@@ -41,6 +43,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Project:                   newProject(db, opts...),
 		Repo:                      newRepo(db, opts...),
 		User:                      newUser(db, opts...),
+		UserSetting:               newUserSetting(db, opts...),
 	}
 }
 
@@ -52,6 +55,7 @@ type Query struct {
 	Project                   project
 	Repo                      repo
 	User                      user
+	UserSetting               userSetting
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -64,6 +68,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Project:                   q.Project.clone(db),
 		Repo:                      q.Repo.clone(db),
 		User:                      q.User.clone(db),
+		UserSetting:               q.UserSetting.clone(db),
 	}
 }
 
@@ -83,6 +88,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Project:                   q.Project.replaceDB(db),
 		Repo:                      q.Repo.replaceDB(db),
 		User:                      q.User.replaceDB(db),
+		UserSetting:               q.UserSetting.replaceDB(db),
 	}
 }
 
@@ -92,6 +98,7 @@ type queryCtx struct {
 	Project                   IProjectDo
 	Repo                      IRepoDo
 	User                      IUserDo
+	UserSetting               IUserSettingDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
@@ -101,6 +108,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Project:                   q.Project.WithContext(ctx),
 		Repo:                      q.Repo.WithContext(ctx),
 		User:                      q.User.WithContext(ctx),
+		UserSetting:               q.UserSetting.WithContext(ctx),
 	}
 }
 

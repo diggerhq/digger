@@ -16,7 +16,7 @@ const (
 	GithubAppInstallationLinkInactive GithubAppInstallationLinkStatus = "inactive"
 )
 
-func (db *Database) GetGithubInstallationLinkForInstallationId(installationId int64) (*model.GithubAppInstallationLink, error) {
+func (db *Database) GetGithubInstallationLinkForInstallationId(installationId string) (*model.GithubAppInstallationLink, error) {
 	l := model.GithubAppInstallationLink{}
 	err := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l).Error
 	if err != nil {
@@ -28,7 +28,7 @@ func (db *Database) GetGithubInstallationLinkForInstallationId(installationId in
 	return &l, nil
 }
 
-func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64, githubAppId int64, accountId int64, login string) (*model.Repo, *model.Organisation, error) {
+func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId string, githubAppId int64, accountId int64, login string) (*model.Repo, *model.Organisation, error) {
 	link, err := DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		log.Printf("Error fetching installation link: %v", err)

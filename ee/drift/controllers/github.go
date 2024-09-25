@@ -94,7 +94,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 		repoName := *repo.Name
 		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
 
-		_, _, err = dbmodels.CreateOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64, *installation.AppID, *installation.Account.ID, *installation.Account.Login)
+		_, _, err = dbmodels.CreateOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId, *installation.AppID, *installation.Account.ID, *installation.Account.Login)
 		if err != nil {
 			log.Printf("createOrGetDiggerRepoForGithubRepo error: %v", err)
 			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
