@@ -1,9 +1,6 @@
 module github.com/diggerhq/digger/ee/drift
 
 replace github.com/diggerhq/digger/next => ../../next
-
-replace github.com/diggerhq/digger/ee/drift => ./
-
 replace github.com/diggerhq/digger/libs => ../../libs
 
 go 1.22.4
@@ -14,7 +11,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/go-github/v61 v61.0.0
 	github.com/orandin/slog-gorm v1.4.0
-	github.com/samber/slog-gin v1.13.5
+	github.com/samber/slog-gin v1.13.3
 	golang.org/x/oauth2 v0.22.0
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gen v0.3.26
@@ -241,11 +238,11 @@ require (
 	go.mozilla.org/sops/v3 v3.7.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
-	go.opentelemetry.io/otel v1.28.0 // indirect
-	go.opentelemetry.io/otel/metric v1.28.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.24.0 // indirect
-	go.opentelemetry.io/otel/trace v1.28.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.45.0 // indirect
+	go.opentelemetry.io/otel v1.19.0 // indirect
+	go.opentelemetry.io/otel/metric v1.19.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.19.0 // indirect
+	go.opentelemetry.io/otel/trace v1.19.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.24.0 // indirect
