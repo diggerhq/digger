@@ -16,7 +16,7 @@ const (
 	GithubAppInstallationLinkInactive GithubAppInstallationLinkStatus = "inactive"
 )
 
-func (db *Database) GetGithubInstallationLinkForInstallationId(installationId int64) (*model.GithubAppInstallationLink, error) {
+func (db *Database) GetGithubInstallationLinkForInstallationId(installationId string) (*model.GithubAppInstallationLink, error) {
 	l := model.GithubAppInstallationLink{}
 	err := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l).Error
 	if err != nil {
@@ -28,7 +28,7 @@ func (db *Database) GetGithubInstallationLinkForInstallationId(installationId in
 	return &l, nil
 }
 
-func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64, githubAppId int64, accountId int64, login string) (*model.Repo, *model.Organisation, error) {
+func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId string, githubAppId int64, accountId int64, login string) (*model.Repo, *model.Organisation, error) {
 	link, err := DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		log.Printf("Error fetching installation link: %v", err)
@@ -45,7 +45,7 @@ func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 
 	// using Unscoped because we also need to include deleted repos (and undelete them if they exist)
 	var existingRepo model.Repo
-	r := DB.GormDB.Unscoped().Where("organization_id=? AND repos.name=?", orgId, diggerRepoName).Find(&existingRepo)
+	r := DB.GormDB.Unscoped().Where("organisation_id=? AND repos.name=?", orgId, diggerRepoName).Find(&existingRepo)
 
 	if r.Error != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -70,4 +70,21 @@ func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 	}
 	log.Printf("Created digger repo: %v", repo)
 	return repo, org, nil
+}
+
+// GetGithubAppInstallationLink repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
+func (db *Database) GetGithubAppInstallationLink(installationId string) (*model.GithubAppInstallationLink, error) {
+	var link model.GithubAppInstallationLink
+	result := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&link)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+
+	// If not found, the values will be default values, which means ID will be 0
+	if link.ID == "" {
+		return nil, nil
+	}
+	return &link, nil
 }

@@ -38,7 +38,7 @@ func newRepo(db *gorm.DB, opts ...gen.DOOption) repo {
 	_repo.RepoOrganisation = field.NewString(tableName, "repo_organisation")
 	_repo.RepoName = field.NewString(tableName, "repo_name")
 	_repo.RepoURL = field.NewString(tableName, "repo_url")
-	_repo.GithubInstallationID = field.NewInt64(tableName, "github_installation_id")
+	_repo.GithubInstallationID = field.NewString(tableName, "github_installation_id")
 	_repo.GithubAppID = field.NewInt64(tableName, "github_app_id")
 	_repo.AccountID = field.NewInt64(tableName, "account_id")
 	_repo.Login = field.NewString(tableName, "login")
@@ -63,7 +63,7 @@ type repo struct {
 	RepoOrganisation     field.String
 	RepoName             field.String
 	RepoURL              field.String
-	GithubInstallationID field.Int64
+	GithubInstallationID field.String
 	GithubAppID          field.Int64
 	AccountID            field.Int64
 	Login                field.String
@@ -94,7 +94,7 @@ func (r *repo) updateTableName(table string) *repo {
 	r.RepoOrganisation = field.NewString(table, "repo_organisation")
 	r.RepoName = field.NewString(table, "repo_name")
 	r.RepoURL = field.NewString(table, "repo_url")
-	r.GithubInstallationID = field.NewInt64(table, "github_installation_id")
+	r.GithubInstallationID = field.NewString(table, "github_installation_id")
 	r.GithubAppID = field.NewInt64(table, "github_app_id")
 	r.AccountID = field.NewInt64(table, "account_id")
 	r.Login = field.NewString(table, "login")
