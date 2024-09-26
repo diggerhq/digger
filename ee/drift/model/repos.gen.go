@@ -25,7 +25,7 @@ type Repo struct {
 	RepoOrganisation     string         `gorm:"column:repo_organisation" json:"repo_organisation"`
 	RepoName             string         `gorm:"column:repo_name" json:"repo_name"`
 	RepoURL              string         `gorm:"column:repo_url" json:"repo_url"`
-	GithubInstallationID int64          `gorm:"column:github_installation_id" json:"github_installation_id"`
+	GithubInstallationID string         `gorm:"column:github_installation_id" json:"github_installation_id"`
 	GithubAppID          int64          `gorm:"column:github_app_id" json:"github_app_id"`
 	AccountID            int64          `gorm:"column:account_id" json:"account_id"`
 	Login                string         `gorm:"column:login" json:"login"`

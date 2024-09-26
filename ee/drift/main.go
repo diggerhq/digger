@@ -69,6 +69,7 @@ func main() {
 	//authorized := r.Group("/")
 	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 
+	r.POST("github-app-webhook", controller.GithubAppWebHook)
 	r.GET("/github/callback_fe", middleware.WebhookAuth(), controller.GithubAppCallbackPage)
 
 	port := os.Getenv("DIGGER_PORT")

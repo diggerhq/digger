@@ -27,6 +27,7 @@ type Project struct {
 	ToUpdate           int32          `gorm:"column:to_update" json:"to_update"`
 	ToChange           int32          `gorm:"column:to_change" json:"to_change"`
 	ToDelete           int32          `gorm:"column:to_delete" json:"to_delete"`
+	IsAcknowledged     bool           `gorm:"column:is_acknowledged;not null" json:"is_acknowledged"`
 }
 
 // TableName Project's table name

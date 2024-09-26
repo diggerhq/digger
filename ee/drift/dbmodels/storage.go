@@ -21,7 +21,7 @@ func (db *Database) GetOrganisationById(orgId any) (*model.Organisation, error) 
 func (db *Database) CreateGithubInstallationLink(orgId string, installationId string) (*model.GithubAppInstallationLink, error) {
 	l := model.GithubAppInstallationLink{}
 	// check if there is already a link to another org, and throw an error in this case
-	result := db.GormDB.Preload("Organisation").Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l)
+	result := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&l)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
@@ -38,7 +38,7 @@ func (db *Database) CreateGithubInstallationLink(orgId string, installationId st
 
 	var list []model.GithubAppInstallationLink
 	// if there are other installation for this org, we need to make them inactive
-	result = db.GormDB.Preload("Organisation").Where("github_installation_id <> ? AND organisation_id = ? AND status=?", installationId, orgId, GithubAppInstallationLinkActive).Find(&list)
+	result = db.GormDB.Where("github_installation_id <> ? AND organisation_id = ? AND status=?", installationId, orgId, GithubAppInstallationLinkActive).Find(&list)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
@@ -58,10 +58,10 @@ func (db *Database) CreateGithubInstallationLink(orgId string, installationId st
 	return &link, nil
 }
 
-func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *model.Organisation, diggerConfig string, githubInstallationId int64, githubAppId int64, accountId int64, login string) (*model.Repo, error) {
+func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *model.Organisation, diggerConfig string, githubInstallationId string, githubAppId int64, accountId int64, login string) (*model.Repo, error) {
 	var repo model.Repo
 	// check if repo exist already, do nothing in this case
-	result := db.GormDB.Where("name = ? AND organization_id=?", name, org.ID).Find(&repo)
+	result := db.GormDB.Where("name = ? AND organisation_id=?", name, org.ID).Find(&repo)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
@@ -90,5 +90,22 @@ func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisatio
 		return nil, result.Error
 	}
 	log.Printf("Repo %s, (id: %v) has been created successfully\n", name, repo.ID)
+	return &repo, nil
+}
+
+// GetGithubAppInstallationByIdAndRepo repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
+func (db *Database) GetRepoByInstllationIdAndRepoFullName(installationId string, repoFullName string) (*model.Repo, error) {
+	repo := model.Repo{}
+	result := db.GormDB.Where("github_installation_id = ?  AND repo_full_name=?", installationId, repoFullName).Find(&repo)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+
+	// If not found, the values will be default values, which means ID will be 0
+	if repo.ID == "" {
+		return nil, fmt.Errorf("GithubAppInstallation with id=%v doesn't exist", installationId)
+	}
 	return &repo, nil
 }
