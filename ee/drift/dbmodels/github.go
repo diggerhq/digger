@@ -71,3 +71,20 @@ func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 	log.Printf("Created digger repo: %v", repo)
 	return repo, org, nil
 }
+
+// GetGithubAppInstallationLink repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
+func (db *Database) GetGithubAppInstallationLink(installationId string) (*model.GithubAppInstallationLink, error) {
+	var link model.GithubAppInstallationLink
+	result := db.GormDB.Where("github_installation_id = ? AND status=?", installationId, GithubAppInstallationLinkActive).Find(&link)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+
+	// If not found, the values will be default values, which means ID will be 0
+	if link.ID == "" {
+		return nil, nil
+	}
+	return &link, nil
+}

@@ -92,3 +92,20 @@ func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisatio
 	log.Printf("Repo %s, (id: %v) has been created successfully\n", name, repo.ID)
 	return &repo, nil
 }
+
+// GetGithubAppInstallationByIdAndRepo repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
+func (db *Database) GetRepoByInstllationIdAndRepoFullName(installationId string, repoFullName string) (*model.Repo, error) {
+	repo := model.Repo{}
+	result := db.GormDB.Where("github_installation_id = ?  AND repo_full_name=?", installationId, repoFullName).Find(&repo)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+
+	// If not found, the values will be default values, which means ID will be 0
+	if repo.ID == "" {
+		return nil, fmt.Errorf("GithubAppInstallation with id=%v doesn't exist", installationId)
+	}
+	return &repo, nil
+}

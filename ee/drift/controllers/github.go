@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/middleware"
 	"github.com/diggerhq/digger/ee/drift/model"
+	"github.com/diggerhq/digger/ee/drift/tasks"
 	next_utils "github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v61/github"
@@ -14,9 +16,64 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 )
+
+func (mc MainController) GithubAppWebHook(c *gin.Context) {
+	c.Header("Content-Type", "application/json")
+	gh := mc.GithubClientProvider
+	log.Printf("GithubAppWebHook")
+
+	payload, err := github.ValidatePayload(c.Request, []byte(os.Getenv("GITHUB_WEBHOOK_SECRET")))
+	if err != nil {
+		log.Printf("Error validating github app webhook's payload: %v", err)
+		c.String(http.StatusBadRequest, "Error validating github app webhook's payload")
+		return
+	}
+
+	webhookType := github.WebHookType(c.Request)
+	event, err := github.ParseWebHook(webhookType, payload)
+	if err != nil {
+		log.Printf("Failed to parse Github Event. :%v\n", err)
+		c.String(http.StatusInternalServerError, "Failed to parse Github Event")
+		return
+	}
+
+	log.Printf("github event type: %v\n", reflect.TypeOf(event))
+
+	switch event := event.(type) {
+	case *github.PushEvent:
+		log.Printf("Got push event for %d", event.Repo.URL)
+		err := handlePushEvent(gh, event)
+		if err != nil {
+			log.Printf("handlePushEvent error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+	default:
+		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
+	}
+
+	c.JSON(200, "ok")
+}
+
+func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) error {
+	installationId := *payload.Installation.ID
+	repoName := *payload.Repo.Name
+	repoFullName := *payload.Repo.FullName
+	repoOwner := *payload.Repo.Owner.Login
+	cloneURL := *payload.Repo.CloneURL
+	ref := *payload.Ref
+	defaultBranch := *payload.Repo.DefaultBranch
+
+	if strings.HasSuffix(ref, defaultBranch) {
+		go tasks.LoadProjectsFromGithubRepo(gh, strconv.FormatInt(installationId, 10), repoFullName, repoOwner, repoName, cloneURL, defaultBranch)
+	}
+
+	return nil
+}
 
 func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
@@ -89,6 +146,8 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 
 	// here we mark repos that are available one by one
 	for _, repo := range repos {
+		cloneUrl := *repo.CloneURL
+		defaultBranch := *repo.DefaultBranch
 		repoFullName := *repo.FullName
 		repoOwner := strings.Split(*repo.FullName, "/")[0]
 		repoName := *repo.Name
@@ -100,6 +159,8 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
 			return
 		}
+
+		go tasks.LoadProjectsFromGithubRepo(mc.GithubClientProvider, installationId, repoFullName, repoOwner, repoName, cloneUrl, defaultBranch)
 	}
 
 	c.String(http.StatusOK, "success", gin.H{})
