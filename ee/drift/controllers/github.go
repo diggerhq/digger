@@ -102,7 +102,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
+	c.String(http.StatusOK, "success", gin.H{})
 }
 
 // why this validation is needed: https://roadie.io/blog/avoid-leaking-github-org-data/
