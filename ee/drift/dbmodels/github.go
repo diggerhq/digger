@@ -45,7 +45,7 @@ func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 
 	// using Unscoped because we also need to include deleted repos (and undelete them if they exist)
 	var existingRepo model.Repo
-	r := DB.GormDB.Unscoped().Where("organization_id=? AND repos.name=?", orgId, diggerRepoName).Find(&existingRepo)
+	r := DB.GormDB.Unscoped().Where("organisation_id=? AND repos.name=?", orgId, diggerRepoName).Find(&existingRepo)
 
 	if r.Error != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

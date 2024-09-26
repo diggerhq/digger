@@ -80,7 +80,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 
 	// reset all existing repos (soft delete)
 	var ExistingRepos []model.Repo
-	err = dbmodels.DB.GormDB.Delete(ExistingRepos, "organization_id=?", orgId).Error
+	err = dbmodels.DB.GormDB.Delete(ExistingRepos, "organisation_id=?", orgId).Error
 	if err != nil {
 		log.Printf("could not delete repos: %v", err)
 		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)

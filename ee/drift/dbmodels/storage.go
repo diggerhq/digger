@@ -61,7 +61,7 @@ func (db *Database) CreateGithubInstallationLink(orgId string, installationId st
 func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *model.Organisation, diggerConfig string, githubInstallationId string, githubAppId int64, accountId int64, login string) (*model.Repo, error) {
 	var repo model.Repo
 	// check if repo exist already, do nothing in this case
-	result := db.GormDB.Where("name = ? AND organization_id=?", name, org.ID).Find(&repo)
+	result := db.GormDB.Where("name = ? AND organisation_id=?", name, org.ID).Find(&repo)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
