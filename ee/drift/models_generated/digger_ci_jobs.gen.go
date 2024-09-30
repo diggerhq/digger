@@ -49,6 +49,8 @@ func newDiggerCiJob(db *gorm.DB, opts ...gen.DOOption) diggerCiJob {
 	_diggerCiJob.ResourcesUpdated = field.NewInt32(tableName, "resources_updated")
 	_diggerCiJob.ResourcesDeleted = field.NewInt32(tableName, "resources_deleted")
 	_diggerCiJob.ProjectID = field.NewString(tableName, "project_id")
+	_diggerCiJob.DiggerJobID = field.NewString(tableName, "digger_job_id")
+	_diggerCiJob.TerraformOutput = field.NewString(tableName, "terraform_output")
 
 	_diggerCiJob.fillFieldMap()
 
@@ -81,6 +83,8 @@ type diggerCiJob struct {
 	ResourcesUpdated   field.Int32
 	ResourcesDeleted   field.Int32
 	ProjectID          field.String
+	DiggerJobID        field.String
+	TerraformOutput    field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -119,6 +123,8 @@ func (d *diggerCiJob) updateTableName(table string) *diggerCiJob {
 	d.ResourcesUpdated = field.NewInt32(table, "resources_updated")
 	d.ResourcesDeleted = field.NewInt32(table, "resources_deleted")
 	d.ProjectID = field.NewString(table, "project_id")
+	d.DiggerJobID = field.NewString(table, "digger_job_id")
+	d.TerraformOutput = field.NewString(table, "terraform_output")
 
 	d.fillFieldMap()
 
@@ -135,7 +141,7 @@ func (d *diggerCiJob) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (d *diggerCiJob) fillFieldMap() {
-	d.fieldMap = make(map[string]field.Expr, 22)
+	d.fieldMap = make(map[string]field.Expr, 24)
 	d.fieldMap["id"] = d.ID
 	d.fieldMap["spectype"] = d.Spectype
 	d.fieldMap["commentid"] = d.Commentid
@@ -158,6 +164,8 @@ func (d *diggerCiJob) fillFieldMap() {
 	d.fieldMap["resources_updated"] = d.ResourcesUpdated
 	d.fieldMap["resources_deleted"] = d.ResourcesDeleted
 	d.fieldMap["project_id"] = d.ProjectID
+	d.fieldMap["digger_job_id"] = d.DiggerJobID
+	d.fieldMap["terraform_output"] = d.TerraformOutput
 }
 
 func (d diggerCiJob) clone(db *gorm.DB) diggerCiJob {
