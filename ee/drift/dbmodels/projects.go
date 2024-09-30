@@ -2,6 +2,7 @@ package dbmodels
 
 import (
 	"errors"
+	"fmt"
 	"github.com/diggerhq/digger/ee/drift/model"
 	"gorm.io/gorm"
 	"log"
@@ -12,6 +13,23 @@ type DriftStatus string
 var DriftStatusNewDrift = "new drift"
 var DriftStatusNoDrift = "no drift"
 var DriftStatusAcknowledgeDrift = "acknowledged drift"
+
+func (db *Database) GetProjectById(projectId string) (*model.Project, error) {
+	log.Printf("GetProjectById, projectId: %v\n", projectId)
+	var project model.Project
+
+	err := db.GormDB.Where("id = ?", projectId).First(&project).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("could not find project")
+		}
+		log.Printf("Unknown error occurred while fetching database, %v\n", err)
+		return nil, err
+	}
+
+	return &project, nil
+}
 
 // GetProjectByName return project for specified org and repo
 // if record doesn't exist return nil
