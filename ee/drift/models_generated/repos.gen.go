@@ -42,6 +42,8 @@ func newRepo(db *gorm.DB, opts ...gen.DOOption) repo {
 	_repo.GithubAppID = field.NewInt64(tableName, "github_app_id")
 	_repo.AccountID = field.NewInt64(tableName, "account_id")
 	_repo.Login = field.NewString(tableName, "login")
+	_repo.CloneURL = field.NewString(tableName, "clone_url")
+	_repo.DefaultBranch = field.NewString(tableName, "default_branch")
 
 	_repo.fillFieldMap()
 
@@ -67,6 +69,8 @@ type repo struct {
 	GithubAppID          field.Int64
 	AccountID            field.Int64
 	Login                field.String
+	CloneURL             field.String
+	DefaultBranch        field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -98,6 +102,8 @@ func (r *repo) updateTableName(table string) *repo {
 	r.GithubAppID = field.NewInt64(table, "github_app_id")
 	r.AccountID = field.NewInt64(table, "account_id")
 	r.Login = field.NewString(table, "login")
+	r.CloneURL = field.NewString(table, "clone_url")
+	r.DefaultBranch = field.NewString(table, "default_branch")
 
 	r.fillFieldMap()
 
@@ -114,7 +120,7 @@ func (r *repo) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (r *repo) fillFieldMap() {
-	r.fieldMap = make(map[string]field.Expr, 15)
+	r.fieldMap = make(map[string]field.Expr, 17)
 	r.fieldMap["id"] = r.ID
 	r.fieldMap["created_at"] = r.CreatedAt
 	r.fieldMap["updated_at"] = r.UpdatedAt
@@ -130,6 +136,8 @@ func (r *repo) fillFieldMap() {
 	r.fieldMap["github_app_id"] = r.GithubAppID
 	r.fieldMap["account_id"] = r.AccountID
 	r.fieldMap["login"] = r.Login
+	r.fieldMap["clone_url"] = r.CloneURL
+	r.fieldMap["default_branch"] = r.DefaultBranch
 }
 
 func (r repo) clone(db *gorm.DB) repo {

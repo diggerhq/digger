@@ -396,6 +396,7 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
 	installationId := *payload.Installation.ID
+	appId := *payload.Installation.AppID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
 	repoFullName := *payload.Repo.FullName
@@ -591,6 +592,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		ci_backends.CiBackendOptions{
 			GithubClientProvider: gh,
 			GithubInstallationId: installationId,
+			GithubAppId:          appId,
 			RepoName:             repoName,
 			RepoOwner:            repoOwner,
 			RepoFullName:         repoFullName,
@@ -703,6 +705,7 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
 	installationId := *payload.Installation.ID
+	appId := *payload.Installation.AppID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
 	repoFullName := *payload.Repo.FullName
@@ -904,6 +907,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		ci_backends.CiBackendOptions{
 			GithubClientProvider: gh,
 			GithubInstallationId: installationId,
+			GithubAppId:          appId,
 			RepoName:             repoName,
 			RepoOwner:            repoOwner,
 			RepoFullName:         repoFullName,

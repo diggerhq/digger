@@ -17,45 +17,53 @@ import (
 
 var (
 	Q                         = new(Query)
+	DiggerCiJob               *diggerCiJob
+	DiggerCiJobToken          *diggerCiJobToken
 	GithubAppInstallationLink *githubAppInstallationLink
+	OrgSetting                *orgSetting
 	Organisation              *organisation
 	Project                   *project
 	Repo                      *repo
 	User                      *user
-	UserSetting               *userSetting
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	DiggerCiJob = &Q.DiggerCiJob
+	DiggerCiJobToken = &Q.DiggerCiJobToken
 	GithubAppInstallationLink = &Q.GithubAppInstallationLink
+	OrgSetting = &Q.OrgSetting
 	Organisation = &Q.Organisation
 	Project = &Q.Project
 	Repo = &Q.Repo
 	User = &Q.User
-	UserSetting = &Q.UserSetting
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                        db,
+		DiggerCiJob:               newDiggerCiJob(db, opts...),
+		DiggerCiJobToken:          newDiggerCiJobToken(db, opts...),
 		GithubAppInstallationLink: newGithubAppInstallationLink(db, opts...),
+		OrgSetting:                newOrgSetting(db, opts...),
 		Organisation:              newOrganisation(db, opts...),
 		Project:                   newProject(db, opts...),
 		Repo:                      newRepo(db, opts...),
 		User:                      newUser(db, opts...),
-		UserSetting:               newUserSetting(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
+	DiggerCiJob               diggerCiJob
+	DiggerCiJobToken          diggerCiJobToken
 	GithubAppInstallationLink githubAppInstallationLink
+	OrgSetting                orgSetting
 	Organisation              organisation
 	Project                   project
 	Repo                      repo
 	User                      user
-	UserSetting               userSetting
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -63,12 +71,14 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                        db,
+		DiggerCiJob:               q.DiggerCiJob.clone(db),
+		DiggerCiJobToken:          q.DiggerCiJobToken.clone(db),
 		GithubAppInstallationLink: q.GithubAppInstallationLink.clone(db),
+		OrgSetting:                q.OrgSetting.clone(db),
 		Organisation:              q.Organisation.clone(db),
 		Project:                   q.Project.clone(db),
 		Repo:                      q.Repo.clone(db),
 		User:                      q.User.clone(db),
-		UserSetting:               q.UserSetting.clone(db),
 	}
 }
 
@@ -83,32 +93,38 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                        db,
+		DiggerCiJob:               q.DiggerCiJob.replaceDB(db),
+		DiggerCiJobToken:          q.DiggerCiJobToken.replaceDB(db),
 		GithubAppInstallationLink: q.GithubAppInstallationLink.replaceDB(db),
+		OrgSetting:                q.OrgSetting.replaceDB(db),
 		Organisation:              q.Organisation.replaceDB(db),
 		Project:                   q.Project.replaceDB(db),
 		Repo:                      q.Repo.replaceDB(db),
 		User:                      q.User.replaceDB(db),
-		UserSetting:               q.UserSetting.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
+	DiggerCiJob               IDiggerCiJobDo
+	DiggerCiJobToken          IDiggerCiJobTokenDo
 	GithubAppInstallationLink IGithubAppInstallationLinkDo
+	OrgSetting                IOrgSettingDo
 	Organisation              IOrganisationDo
 	Project                   IProjectDo
 	Repo                      IRepoDo
 	User                      IUserDo
-	UserSetting               IUserSettingDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		DiggerCiJob:               q.DiggerCiJob.WithContext(ctx),
+		DiggerCiJobToken:          q.DiggerCiJobToken.WithContext(ctx),
 		GithubAppInstallationLink: q.GithubAppInstallationLink.WithContext(ctx),
+		OrgSetting:                q.OrgSetting.WithContext(ctx),
 		Organisation:              q.Organisation.WithContext(ctx),
 		Project:                   q.Project.WithContext(ctx),
 		Repo:                      q.Repo.WithContext(ctx),
 		User:                      q.User.WithContext(ctx),
-		UserSetting:               q.UserSetting.WithContext(ctx),
 	}
 }
 
