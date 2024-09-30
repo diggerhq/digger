@@ -58,7 +58,7 @@ func (db *Database) CreateGithubInstallationLink(orgId string, installationId st
 	return &link, nil
 }
 
-func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *model.Organisation, diggerConfig string, githubInstallationId string, githubAppId int64, accountId int64, login string) (*model.Repo, error) {
+func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *model.Organisation, diggerConfig string, githubInstallationId string, githubAppId int64, accountId int64, login string, defaultBranch string, cloneUrl string) (*model.Repo, error) {
 	var repo model.Repo
 	// check if repo exist already, do nothing in this case
 	result := db.GormDB.Where("name = ? AND organisation_id=?", name, org.ID).Find(&repo)
@@ -83,6 +83,8 @@ func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisatio
 		GithubAppID:          githubAppId,
 		AccountID:            accountId,
 		Login:                login,
+		DefaultBranch:        defaultBranch,
+		CloneURL:             cloneUrl,
 	}
 	result = db.GormDB.Save(&repo)
 	if result.Error != nil {

@@ -144,7 +144,6 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 	log.Printf("installation id is: %v", installationId)
 
 	var dgprojects = []dg_configuration.Project{dbmodels.ToDiggerProject(project)}
-
 	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
 	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
 		ApplyAfterMerge:   true,

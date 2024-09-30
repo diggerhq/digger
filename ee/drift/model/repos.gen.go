@@ -29,6 +29,8 @@ type Repo struct {
 	GithubAppID          int64          `gorm:"column:github_app_id" json:"github_app_id"`
 	AccountID            int64          `gorm:"column:account_id" json:"account_id"`
 	Login                string         `gorm:"column:login" json:"login"`
+	CloneURL             string         `gorm:"column:clone_url" json:"clone_url"`
+	DefaultBranch        string         `gorm:"column:default_branch" json:"default_branch"`
 }
 
 // TableName Repo's table name
