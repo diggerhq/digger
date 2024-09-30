@@ -53,6 +53,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 	repoFullName := repo.RepoFullName
 	repoOwner := repo.RepoOrganisation
 	repoName := repo.RepoName
+	githubAppId := repo.GithubAppID
 	installationid := repo.GithubInstallationID
 	installationid64, err := strconv.ParseInt(installationid, 10, 64)
 	cloneUrl := repo.CloneURL
@@ -136,7 +137,6 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		log.Printf("Error creating ru name: %v %v", project.Name, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error creating run name")})
 		return
-
 	}
 
 	vcsToken, err := services2.GetVCSToken("github", repoFullName, repoOwner, repoName, installationid64, mc.GithubClientProvider)
@@ -150,11 +150,18 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		ci_backends.CiBackendOptions{
 			GithubClientProvider: mc.GithubClientProvider,
 			GithubInstallationId: installationid64,
+			GithubAppId:          githubAppId,
 			RepoName:             repoName,
 			RepoOwner:            repoOwner,
 			RepoFullName:         repoFullName,
 		},
 	)
+	if err != nil {
+		log.Printf("Error creating CI backend: %v %v", project.Name, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error creating CI backend")})
+		return
+
+	}
 
 	err = ciBackend.TriggerWorkflow(spec, *runName, *vcsToken)
 	if err != nil {

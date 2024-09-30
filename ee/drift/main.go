@@ -74,7 +74,7 @@ func main() {
 	r.POST("github-app-webhook", controller.GithubAppWebHook)
 	r.GET("/github/callback_fe", middleware.WebhookAuth(), controller.GithubAppCallbackPage)
 
-	r.GET("/_internal/trigger_drift_for_project", middleware.WebhookAuth(), controller.TriggerDriftRunForProject)
+	r.POST("/_internal/trigger_drift_for_project", middleware.WebhookAuth(), controller.TriggerDriftRunForProject)
 
 	port := os.Getenv("DIGGER_PORT")
 	if port == "" {

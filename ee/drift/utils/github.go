@@ -91,7 +91,7 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 }
 
 func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) (string, *github2.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
-	ghService, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
+	ghService, token, err := GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
 		return "", nil, nil, nil, fmt.Errorf("error getting github service")

@@ -19,6 +19,7 @@ func (db *Database) CreateDiggerJobToken(organisationId string) (*model.DiggerCi
 	// prefixing token to make easier to retire this type of tokens later
 	token := "cli:" + uuid.New().String()
 	jobToken := &model.DiggerCiJobToken{
+		ID:             uuid.NewString(),
 		Value:          token,
 		OrganisationID: organisationId,
 		Type:           CliJobAccessType,
