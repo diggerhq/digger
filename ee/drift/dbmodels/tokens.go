@@ -1,8 +1,10 @@
 package dbmodels
 
 import (
+	"errors"
 	"github.com/diggerhq/digger/ee/drift/model"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"log"
 	"time"
 )
@@ -31,4 +33,17 @@ func (db *Database) CreateDiggerJobToken(organisationId string) (*model.DiggerCi
 		return nil, err
 	}
 	return jobToken, nil
+}
+
+func (db *Database) GetJobToken(tenantId any) (*model.DiggerCiJobToken, error) {
+	token := &model.DiggerCiJobToken{}
+	result := db.GormDB.Take(token, "value = ?", tenantId)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		} else {
+			return nil, result.Error
+		}
+	}
+	return token, nil
 }

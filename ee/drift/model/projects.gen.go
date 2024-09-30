@@ -25,7 +25,7 @@ type Project struct {
 	LatestDriftCheck   time.Time      `gorm:"column:latest_drift_check" json:"latest_drift_check"`
 	DriftTerraformPlan string         `gorm:"column:drift_terraform_plan" json:"drift_terraform_plan"`
 	ToUpdate           int32          `gorm:"column:to_update" json:"to_update"`
-	ToChange           int32          `gorm:"column:to_change" json:"to_change"`
+	ToCreate           int32          `gorm:"column:to_create" json:"to_create"`
 	ToDelete           int32          `gorm:"column:to_delete" json:"to_delete"`
 	IsAcknowledged     bool           `gorm:"column:is_acknowledged;not null" json:"is_acknowledged"`
 }
