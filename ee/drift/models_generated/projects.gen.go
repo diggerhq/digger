@@ -38,7 +38,7 @@ func newProject(db *gorm.DB, opts ...gen.DOOption) project {
 	_project.LatestDriftCheck = field.NewTime(tableName, "latest_drift_check")
 	_project.DriftTerraformPlan = field.NewString(tableName, "drift_terraform_plan")
 	_project.ToUpdate = field.NewInt32(tableName, "to_update")
-	_project.ToChange = field.NewInt32(tableName, "to_change")
+	_project.ToCreate = field.NewInt32(tableName, "to_create")
 	_project.ToDelete = field.NewInt32(tableName, "to_delete")
 	_project.IsAcknowledged = field.NewBool(tableName, "is_acknowledged")
 
@@ -62,7 +62,7 @@ type project struct {
 	LatestDriftCheck   field.Time
 	DriftTerraformPlan field.String
 	ToUpdate           field.Int32
-	ToChange           field.Int32
+	ToCreate           field.Int32
 	ToDelete           field.Int32
 	IsAcknowledged     field.Bool
 
@@ -92,7 +92,7 @@ func (p *project) updateTableName(table string) *project {
 	p.LatestDriftCheck = field.NewTime(table, "latest_drift_check")
 	p.DriftTerraformPlan = field.NewString(table, "drift_terraform_plan")
 	p.ToUpdate = field.NewInt32(table, "to_update")
-	p.ToChange = field.NewInt32(table, "to_change")
+	p.ToCreate = field.NewInt32(table, "to_create")
 	p.ToDelete = field.NewInt32(table, "to_delete")
 	p.IsAcknowledged = field.NewBool(table, "is_acknowledged")
 
@@ -123,7 +123,7 @@ func (p *project) fillFieldMap() {
 	p.fieldMap["latest_drift_check"] = p.LatestDriftCheck
 	p.fieldMap["drift_terraform_plan"] = p.DriftTerraformPlan
 	p.fieldMap["to_update"] = p.ToUpdate
-	p.fieldMap["to_change"] = p.ToChange
+	p.fieldMap["to_create"] = p.ToCreate
 	p.fieldMap["to_delete"] = p.ToDelete
 	p.fieldMap["is_acknowledged"] = p.IsAcknowledged
 }

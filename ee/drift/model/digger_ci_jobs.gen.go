@@ -36,6 +36,8 @@ type DiggerCiJob struct {
 	ResourcesUpdated   int32          `gorm:"column:resources_updated" json:"resources_updated"`
 	ResourcesDeleted   int32          `gorm:"column:resources_deleted" json:"resources_deleted"`
 	ProjectID          string         `gorm:"column:project_id" json:"project_id"`
+	DiggerJobID        string         `gorm:"column:digger_job_id" json:"digger_job_id"`
+	TerraformOutput    string         `gorm:"column:terraform_output" json:"terraform_output"`
 }
 
 // TableName DiggerCiJob's table name

@@ -104,7 +104,8 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		CommentId: "",
 		Job:       jobSpec,
 		Reporter: spec.ReporterSpec{
-			ReportingStrategy: "noop",
+			ReportingStrategy:     "noop",
+			ReportTerraformOutput: true,
 		},
 		Lock: spec.LockSpec{
 			LockType: "noop",
@@ -128,7 +129,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 			PolicyType: "http",
 		},
 		CommentUpdater: spec.CommentUpdaterSpec{
-			CommentUpdaterType: dg_configuration.CommentRenderModeBasic,
+			CommentUpdaterType: "noop",
 		},
 	}
 
@@ -161,6 +162,13 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error creating CI backend")})
 		return
 
+	}
+
+	_, err = dbmodels.DB.CreateCiJobFromSpec(spec, *runName, project.ID)
+	if err != nil {
+		log.Printf("error creating the job: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error creating job entry")})
+		return
 	}
 
 	err = ciBackend.TriggerWorkflow(spec, *runName, *vcsToken)
