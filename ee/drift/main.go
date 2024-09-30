@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/drift/controllers"
 	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/middleware"
@@ -57,6 +58,7 @@ func main() {
 
 	controller := controllers.MainController{
 		GithubClientProvider: next_utils.DiggerGithubRealClientProvider{},
+		CiBackendProvider:    ci_backends.DefaultBackendProvider{},
 	}
 
 	r.GET("/ping", controller.Ping)
@@ -71,6 +73,8 @@ func main() {
 
 	r.POST("github-app-webhook", controller.GithubAppWebHook)
 	r.GET("/github/callback_fe", middleware.WebhookAuth(), controller.GithubAppCallbackPage)
+
+	r.POST("/_internal/trigger_drift_for_project", middleware.WebhookAuth(), controller.TriggerDriftRunForProject)
 
 	port := os.Getenv("DIGGER_PORT")
 	if port == "" {

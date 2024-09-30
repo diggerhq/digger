@@ -14,6 +14,7 @@ type JenkinsCi struct{}
 type CiBackendOptions struct {
 	GithubClientProvider        utils.GithubClientProvider
 	GithubInstallationId        int64
+	GithubAppId                 int64
 	GitlabProjectId             int
 	GitlabmergeRequestEventName string
 	GitlabCIPipelineID          string

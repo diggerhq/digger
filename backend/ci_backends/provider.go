@@ -13,7 +13,7 @@ type CiBackendProvider interface {
 type DefaultBackendProvider struct{}
 
 func (d DefaultBackendProvider) GetCiBackend(options CiBackendOptions) (CiBackend, error) {
-	client, _, err := utils.GetGithubClient(options.GithubClientProvider, options.GithubInstallationId, options.RepoFullName)
+	client, _, err := utils.GetGithubClientFromAppId(options.GithubClientProvider, options.GithubInstallationId, options.GithubAppId, options.RepoFullName)
 	if err != nil {
 		log.Printf("GetCiBackend: could not get github client: %v", err)
 		return nil, fmt.Errorf("could not get github client: %v", err)

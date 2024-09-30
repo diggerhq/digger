@@ -144,6 +144,12 @@ func GetGithubClient(gh GithubClientProvider, installationId int64, repoFullName
 	ghClient, token, err := gh.Get(installation.GithubAppId, installation.GithubInstallationId)
 	return ghClient, token, err
 }
+
+func GetGithubClientFromAppId(gh GithubClientProvider, installationId int64, githubAppId int64, repoFullName string) (*github.Client, *string, error) {
+	ghClient, token, err := gh.Get(githubAppId, installationId)
+	return ghClient, token, err
+}
+
 func GetGithubService(gh GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
 	ghClient, token, err := GetGithubClient(gh, installationId, repoFullName)
 	if err != nil {
