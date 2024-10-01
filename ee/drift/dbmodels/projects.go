@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/diggerhq/digger/ee/drift/model"
-	"github.com/diggerhq/digger/next/dbmodels"
 	"gorm.io/gorm"
 	"log"
 )
@@ -73,13 +72,13 @@ func (db *Database) LoadProjectsForOrg(orgId string) ([]*model.Project, error) {
 	orgProjects := make([]*model.Project, 0)
 	p := db.Query.Project
 	r := db.Query.Repo
-	repos, err := dbmodels.DB.Query.Project.Select(r.OrganisationID.Eq(orgId)).Find()
+	repos, err := db.Query.Repo.Where(r.OrganisationID.Eq(orgId)).Find()
 	if err != nil {
 		log.Printf("could not find repos for org %v", orgId)
 		return nil, fmt.Errorf("could not find repos for org %v", orgId)
 	}
 	for _, repo := range repos {
-		projects, err := db.Query.Project.Select(p.RepoID.Eq(repo.ID)).Find()
+		projects, err := db.Query.Project.Where(p.RepoID.Eq(repo.ID)).Find()
 		if err != nil {
 			log.Printf("could not query projects for repo: %v", repo.ID)
 			return nil, fmt.Errorf("could not query projects for repo: %v", repo.ID)

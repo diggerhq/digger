@@ -188,12 +188,13 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 func (mc MainController) ProcessAllDrift(c *gin.Context) {
 	diggerHostname := os.Getenv("DIGGER_HOSTNAME")
 	webhookSecret := os.Getenv("DIGGER_WEBHOOK_SECRET")
-	orgSettings, err := dbmodels.DB.Query.OrgSetting.Select().Find()
+	orgSettings, err := dbmodels.DB.Query.OrgSetting.Find()
 	if err != nil {
 		log.Printf("could not select all orgs: %v", err)
 	}
 
 	driftUrl, err := url.JoinPath(diggerHostname, "_internal/process_drift_for_org")
+	log.Printf(driftUrl)
 	if err != nil {
 		log.Printf("could not form drift url: %v", err)
 		c.JSON(500, gin.H{"error": "could not form drift url"})
