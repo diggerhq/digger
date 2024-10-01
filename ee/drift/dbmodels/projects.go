@@ -67,3 +67,23 @@ func (db *Database) CreateProject(name string, repo *model.Repo) (*model.Project
 	log.Printf("Project %s, (id: %v) has been created successfully\n", name, project.ID)
 	return project, nil
 }
+
+func (db *Database) LoadProjectsForOrg(orgId string) ([]*model.Project, error) {
+	orgProjects := make([]*model.Project, 0)
+	p := db.Query.Project
+	r := db.Query.Repo
+	repos, err := db.Query.Repo.Where(r.OrganisationID.Eq(orgId)).Find()
+	if err != nil {
+		log.Printf("could not find repos for org %v", orgId)
+		return nil, fmt.Errorf("could not find repos for org %v", orgId)
+	}
+	for _, repo := range repos {
+		projects, err := db.Query.Project.Where(p.RepoID.Eq(repo.ID)).Find()
+		if err != nil {
+			log.Printf("could not query projects for repo: %v", repo.ID)
+			return nil, fmt.Errorf("could not query projects for repo: %v", repo.ID)
+		}
+		orgProjects = append(orgProjects, projects...)
+	}
+	return orgProjects, nil
+}
