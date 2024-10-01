@@ -76,6 +76,7 @@ func main() {
 
 	r.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", middleware.JobTokenAuth(), controller.SetJobStatusForProject)
 
+	r.POST("/_internal/send_test_slack_notification_for_org", middleware.WebhookAuth(), controller.SendTestSlackNotificationForOrg)
 	r.POST("/_internal/process_drift", middleware.WebhookAuth(), controller.ProcessAllDrift)
 	r.POST("/_internal/process_drift_for_org", middleware.WebhookAuth(), controller.ProcessDriftForOrg)
 	r.POST("/_internal/trigger_drift_for_project", middleware.WebhookAuth(), controller.TriggerDriftRunForProject)
