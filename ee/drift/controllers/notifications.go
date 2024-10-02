@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
-	"github.com/diggerhq/digger/ee/drift/model"
-	utils2 "github.com/diggerhq/digger/next/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/slack-go/slack"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/diggerhq/digger/ee/drift/dbmodels"
+	"github.com/diggerhq/digger/ee/drift/model"
+	utils2 "github.com/diggerhq/digger/next/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/slack-go/slack"
 )
 
 func sendTestSlackWebhook(webhookURL string) error {
@@ -88,6 +89,11 @@ func (mc MainController) SendTestSlackNotificationForOrg(c *gin.Context) {
 
 	os := dbmodels.DB.Query.OrgSetting
 	orgSettings, err := dbmodels.DB.Query.OrgSetting.Where(os.OrgID.Eq(orgId)).First()
+	if err != nil {
+		log.Printf("Error reading org: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error reading org"})
+		return
+	}
 
 	slackNotificationUrl := orgSettings.SlackNotificationURL
 
