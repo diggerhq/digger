@@ -243,7 +243,7 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 			// Get the status code
 			statusCode := resp.StatusCode
 			if statusCode != 200 {
-				log.Printf("got unexpected drift status for project: %v - status: %v", orgSetting.OrgID, statusCode)
+				log.Printf("got unexpected drift status for org: %v - status: %v", orgSetting.OrgID, statusCode)
 			}
 		}
 	}
