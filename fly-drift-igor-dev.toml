@@ -1,15 +1,18 @@
-# fly.toml app configuration file generated for driftapp-backend on 2024-09-23T18:02:57+01:00
+# fly.toml app configuration file generated for driftapp-backend-igor-dev-late-hill-6194 on 2024-09-25T17:22:20+01:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'driftapp-backend'
+app = 'driftapp-backend-igor-dev-late-hill-6194'
 primary_region = 'lhr'
 kill_signal = 'SIGINT'
 kill_timeout = '5s'
 
 [build]
-  dockerfile = 'Dockerfile'
+  dockerfile = 'Dockerfile_drift'
+
+[env]
+  DIGGER_HOSTNAME = 'https://driftapp-backend.digger.dev'
 
 [[services]]
   protocol = 'tcp'
