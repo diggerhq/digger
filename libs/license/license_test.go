@@ -1,3 +1,6 @@
+// use this to ignore tests from external contributions
+//go:build !external
+
 package license
 
 import (
