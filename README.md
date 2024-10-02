@@ -1,3 +1,11 @@
+<div align="center">
+# Digger 
+<p align="center">
+    <a href="https://github.com/diggerhq/digger/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/github/license/diggerhq/digger.svg" alt="License"></a>
+  <a href="https://github.com/diggerhq/digger/stargazers" target="_blank"><img src="https://img.shields.io/github/stars/diggerhq/digger.svg" alt="GitHub stars"></a>
+</p>
+
+
 <img width="1470" alt="digger-opensource-gitops-banner" src="https://github.com/diggerhq/digger/assets/1280498/7fb44db3-38ca-4021-8714-87a2f1a14982">
 
 <h2 align="center">
@@ -7,16 +15,16 @@
   <a href="https://docs.digger.dev/">Docs</a>
 </h2>
 
-CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
+CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialized CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
 
 But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
 
 Digger runs terraform natively in your CI. This is:
 
-- Secure, because cloud access secrets aren't shared with a third-party
-- Cost-effective, because you are not paying for additional compute just to run your terraform
+- Secure, because cloud access secrets aren't shared with a third party
+- Cost-effective, because you are not paying for additional computing  just to run your terraform
 
-## Features
+## 🚀 Features
 
 - Terraform plan and apply in pull request comments
 - Private runners - thanks to the fact that there are no separate runners! Your existing CI's compute environment is used
@@ -26,12 +34,12 @@ Digger runs terraform natively in your CI. This is:
 - Drift detection 
   
 
-## Getting Started
+## ✅ Getting Started
 
 - [Github Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
 - [Github Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
 
-## How it works
+## ⚙️ How it works
 
 Digger has 2 main components:
 - CLI that runs inside your CI and calls terraform with the right arguments
@@ -39,7 +47,7 @@ Digger has 2 main components:
 
 Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB + S3 on AWS, equivalents in other cloud providers)
 
-## Compared to Atlantis
+## 📖 Compared to Atlantis
 
 - No need to host and maintain a server (although you [can](https://docs.digger.dev/self-host/deploy-helm))
 - Secure by design: jobs run in your CI, so sensitive data stays there
@@ -47,19 +55,19 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 - RBAC and policies via OPA
 - Drift detection
 - Apply-after-merge workflows
-- Web UI (cloud based)
+- Web UI (cloud-based)
 - Read more about differences with Atlantis in our [blog post](https://medium.com/@DiggerHQ/digger-and-atlantis-key-differences-c08029ffe112)
 ​
-## Compared to Terraform Cloud and other TACOs
+## 📚 Compared to Terraform Cloud and other TACOs
 
 - Open source; orchestrator can be self-hosted
-- Unlimited runs and unlimited resources-under-management on all tiers
+- Unlimited runs and unlimited resources under management on all tiers
 - Jobs run in your CI, not on a third-party server
 - Supports PR automation (apply before merge)
 - No duplication of the CI/CD stack
 - Secrets not shared with a third party
 
-## Contributing
+## 🤝 Contributing
 
 We love contributions. Check out our [contributing guide](CONTRIBUTING.md) to get started.
 
@@ -67,19 +75,27 @@ Not sure where to get started? You can:
 
 -   Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
 
-## Telemetry
+## 🧪 Telemetry
 
-Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go) for detail. You can disable telemetry collection either by setting `telemetry: false` in digger.yml, or by setting the `TELEMETRY` env variable to `false`.
+Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go) for details. You can disable telemetry collection either by setting `telemetry: false` in digger.yml, or by setting the `TELEMETRY` env variable to `false`.
 
-## Running migrations
+## 🔄 Running migrations
 
 ```
 atlas migrate apply --url $DATABASE_URL
 ```
 
-## Resources
+## 📝 Resources
 
 - [Docs](https://docs.digger.dev/) for comprehensive documentation and guides
 - [Slack](https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q) for discussion with the community and Digger team.
 - [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull request
 - [Medium](https://medium.com/@DiggerHQ) for terraform automation and collaboration insights, articles, tutorials, and updates.
+
+ ## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=diggerhq/digger&type=Timeline)](https://star-history.com/#diggerhq/digger&Timeline)
+
+---
+
+<p align="center">If you find Digger helpful, please give us a ⭐️!</p>
