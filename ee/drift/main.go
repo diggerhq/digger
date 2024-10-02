@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"log/slog"
+	"net/http"
+	"os"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/drift/controllers"
 	"github.com/diggerhq/digger/ee/drift/dbmodels"
@@ -11,10 +16,6 @@ import (
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	sloggin "github.com/samber/slog-gin"
-	"log"
-	"log/slog"
-	"net/http"
-	"os"
 )
 
 func init() {
