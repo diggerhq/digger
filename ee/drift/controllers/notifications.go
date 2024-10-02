@@ -113,7 +113,7 @@ func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) 
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<https://driftapp.digger.dev/%v|%v>", project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":large_green_circle: No Drift", false, false),
 			},
 			nil,
@@ -123,7 +123,7 @@ func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) 
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<https://driftapp.digger.dev/%v|%v>", project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":white_circle: Acknowledged Drift", false, false),
 			},
 			nil,
@@ -133,8 +133,8 @@ func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) 
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<https://driftapp.digger.dev/%v|%v>", project.ID, project.Name), false, false),
-				slack.NewTextBlockObject("mrkdwn", ":white_circle: New Drift", false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", ":large_yellow_circle: Drift detected", false, false),
 			},
 			nil,
 		)
@@ -238,25 +238,25 @@ func (mc MainController) ProcessAllNotifications(c *gin.Context) {
 		matches, err := utils2.MatchesCrontab(cron, time.Now().Add(-15*time.Minute))
 		if err != nil {
 			log.Printf("could not check matching crontab for org :%v", orgSetting.OrgID)
-			c.String(500, "could not check matching crontab for org :%v", orgSetting.OrgID)
-			return
+			continue
 		}
 
 		if matches {
+			fmt.Println("Matching org ID: ", orgSetting.OrgID)
 			payload := RealSlackNotificationForOrgRequest{OrgId: orgSetting.OrgID}
 
 			// Convert payload to JSON
 			jsonPayload, err := json.Marshal(payload)
 			if err != nil {
 				fmt.Println("Process Drift: error marshaling JSON:", err)
-				return
+				continue
 			}
 
 			// Create a new request
 			req, err := http.NewRequest("POST", sendSlackNotificationUrl, bytes.NewBuffer(jsonPayload))
 			if err != nil {
 				fmt.Println("Process slack notification: Error creating request:", err)
-				return
+				continue
 			}
 
 			// Set headers
@@ -268,7 +268,7 @@ func (mc MainController) ProcessAllNotifications(c *gin.Context) {
 			resp, err := client.Do(req)
 			if err != nil {
 				fmt.Println("Error sending request:", err)
-				return
+				continue
 			}
 			defer resp.Body.Close()
 
