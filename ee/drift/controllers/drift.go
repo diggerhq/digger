@@ -4,6 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	services2 "github.com/diggerhq/digger/ee/drift/services"
@@ -15,12 +22,6 @@ import (
 	utils2 "github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"log"
-	"net/http"
-	"net/url"
-	"os"
-	"strconv"
-	"time"
 )
 
 type TriggerDriftRunRequest struct {
@@ -206,8 +207,7 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 		matches, err := utils2.MatchesCrontab(cron, time.Now())
 		if err != nil {
 			log.Printf("could not check matching crontab for org :%v", orgSetting.OrgID)
-			c.String(500, "could not check matching crontab for org :%v", orgSetting.OrgID)
-			return
+			continue
 		}
 
 		if matches {
