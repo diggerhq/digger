@@ -38,8 +38,22 @@ jobs:
       - name: Start Azurite service
         run: azurite --silent &
 
+      - name: Determine if PR is from external contributor
+        id: pr_check
+        run: |
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" = "${{ github.repository }}" ]; then
+          echo "is_external=false" >> $GITHUB_OUTPUT
+          else
+          echo "is_external=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Test
-        run: go test -v ./...
+        run: |
+          if [ "${{ steps.pr_check.outputs.is_external }}" = "true" ]; then
+            go test -v -tags=external ./...
+          else
+            go test -v ./...
+          fi
         env:
           DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY}}
         working-directory: libs
