@@ -5,9 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/ee/drift/dbmodels"
+	"github.com/diggerhq/digger/ee/drift/model"
+	utils2 "github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/slack-go/slack"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
+	"time"
 )
 
 func sendTestSlackWebhook(webhookURL string) error {
@@ -93,4 +99,180 @@ func (mc MainController) SendTestSlackNotificationForOrg(c *gin.Context) {
 	}
 
 	c.String(200, "ok")
+}
+
+func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) {
+	switch project.DriftStatus {
+	case dbmodels.DriftStatusNoDrift:
+		sectionBlock := slack.NewSectionBlock(
+			nil,
+			[]*slack.TextBlockObject{
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<https://driftapp.digger.dev/%v|%v>", project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", ":large_green_circle: No Drift", false, false),
+			},
+			nil,
+		)
+		return sectionBlock, nil
+	case dbmodels.DriftStatusAcknowledgeDrift:
+		sectionBlock := slack.NewSectionBlock(
+			nil,
+			[]*slack.TextBlockObject{
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<https://driftapp.digger.dev/%v|%v>", project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", ":white_circle: Acknowledged Drift", false, false),
+			},
+			nil,
+		)
+		return sectionBlock, nil
+	case dbmodels.DriftStatusNewDrift:
+		sectionBlock := slack.NewSectionBlock(
+			nil,
+			[]*slack.TextBlockObject{
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<https://driftapp.digger.dev/%v|%v>", project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", ":white_circle: New Drift", false, false),
+			},
+			nil,
+		)
+		return sectionBlock, nil
+	default:
+		return nil, fmt.Errorf("Could not")
+	}
+}
+
+type RealSlackNotificationForOrgRequest struct {
+	OrgId string `json:"org_id"`
+}
+
+func (mc MainController) SendRealSlackNotificationForOrg(c *gin.Context) {
+	var request RealSlackNotificationForOrgRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Printf("Error binding JSON: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
+		return
+	}
+	orgId := request.OrgId
+
+	os := dbmodels.DB.Query.OrgSetting
+	orgSettings, err := dbmodels.DB.Query.OrgSetting.Where(os.OrgID.Eq(orgId)).First()
+
+	slackNotificationUrl := orgSettings.SlackNotificationURL
+
+	projects, err := dbmodels.DB.LoadProjectsForOrg(orgId)
+	if err != nil {
+		log.Printf("could not load projects for org %v err: %v", orgId, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not load projects for org " + orgId})
+		return
+	}
+
+	numOfProjectsWithDriftEnabled := 0
+	var messageBlocks []slack.Block
+	fieldsBlock := slack.NewSectionBlock(
+		nil,
+		[]*slack.TextBlockObject{
+			slack.NewTextBlockObject("mrkdwn", "*Project*", false, false),
+			slack.NewTextBlockObject("mrkdwn", "*Status*", false, false),
+		},
+		nil,
+	)
+	messageBlocks = append(messageBlocks, fieldsBlock)
+	messageBlocks = append(messageBlocks, slack.NewDividerBlock())
+	for _, project := range projects {
+		if project.DriftEnabled {
+			numOfProjectsWithDriftEnabled++
+			sectionBlockForProject, err := sectionBlockForProject(*project)
+			if err != nil {
+				log.Printf("could not get block for project: %v err: %v", project.ID, err)
+				c.JSON(500, gin.H{"error": fmt.Sprintf("could not get notification block for project %v", project.ID)})
+				return
+			}
+			messageBlocks = append(messageBlocks, sectionBlockForProject)
+			messageBlocks = append(messageBlocks, slack.NewDividerBlock())
+		}
+	}
+
+	if numOfProjectsWithDriftEnabled == 0 {
+		log.Printf("no projects with drift enabled for org: %v, succeeding", orgId)
+		c.String(200, "ok")
+		return
+	}
+
+	msg := &slack.WebhookMessage{
+		Blocks: &slack.Blocks{
+			BlockSet: messageBlocks,
+		},
+	}
+
+	err = slack.PostWebhook(slackNotificationUrl, msg)
+	if err != nil {
+		log.Printf("error sending slack webhook: %v", err)
+		c.JSON(500, gin.H{"error": "error sending slack webhook"})
+		return
+	}
+
+	c.String(200, "ok")
+}
+
+func (mc MainController) ProcessAllNotifications(c *gin.Context) {
+	diggerHostname := os.Getenv("DIGGER_HOSTNAME")
+	webhookSecret := os.Getenv("DIGGER_WEBHOOK_SECRET")
+	orgSettings, err := dbmodels.DB.Query.OrgSetting.Find()
+	if err != nil {
+		log.Printf("could not select all orgs: %v", err)
+	}
+
+	sendSlackNotificationUrl, err := url.JoinPath(diggerHostname, "_internal/send_slack_notification_for_org")
+	if err != nil {
+		log.Printf("could not form drift url: %v", err)
+		c.JSON(500, gin.H{"error": "could not form drift url"})
+		return
+	}
+
+	for _, orgSetting := range orgSettings {
+		cron := orgSetting.Schedule
+		matches, err := utils2.MatchesCrontab(cron, time.Now().Add(-15*time.Minute))
+		if err != nil {
+			log.Printf("could not check matching crontab for org :%v", orgSetting.OrgID)
+			c.String(500, "could not check matching crontab for org :%v", orgSetting.OrgID)
+			return
+		}
+
+		if matches {
+			payload := RealSlackNotificationForOrgRequest{OrgId: orgSetting.OrgID}
+
+			// Convert payload to JSON
+			jsonPayload, err := json.Marshal(payload)
+			if err != nil {
+				fmt.Println("Process Drift: error marshaling JSON:", err)
+				return
+			}
+
+			// Create a new request
+			req, err := http.NewRequest("POST", sendSlackNotificationUrl, bytes.NewBuffer(jsonPayload))
+			if err != nil {
+				fmt.Println("Process slack notification: Error creating request:", err)
+				return
+			}
+
+			// Set headers
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", webhookSecret))
+
+			// Send the request
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				fmt.Println("Error sending request:", err)
+				return
+			}
+			defer resp.Body.Close()
+
+			// Get the status code
+			statusCode := resp.StatusCode
+			if statusCode != 200 {
+				log.Printf("send slack notification got unexpected status for org: %v - status: %v", orgSetting.OrgID, statusCode)
+			}
+		}
+	}
+
+	c.String(200, "success")
 }
