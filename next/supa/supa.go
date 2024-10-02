@@ -14,7 +14,7 @@ func GetClient() (*supabase.Client, error) {
 	var err error
 	client, err = supabase.NewClient(ApiUrl, ApiKey, nil)
 	if err != nil {
-		fmt.Println("cannot initalize supabase client", err)
+		fmt.Println("cannot initialize supabase client", err)
 		return nil, fmt.Errorf("could not create supabase client: %v", err)
 	}
 	return client, err
