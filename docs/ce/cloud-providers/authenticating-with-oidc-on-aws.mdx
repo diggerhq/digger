@@ -24,6 +24,7 @@ jobs:
       contents: write      # required to merge PRs
       id-token: write      # required for workload-identity-federation
       pull-requests: write # required to post PR comments
+      issues: read         # required to check if PR number is an issue or not
       statuses: write      # required to validate combined PR status
 
     steps:
