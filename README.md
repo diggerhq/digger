@@ -7,7 +7,7 @@
   <a href="https://docs.digger.dev/">Docs</a>
 </h2>
 
-CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
+CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialized CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
 
 But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
 
@@ -83,5 +83,5 @@ atlas migrate apply --url $DATABASE_URL
 
 - [Docs](https://docs.digger.dev/) for comprehensive documentation and guides
 - [Slack](https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q) for discussion with the community and Digger team.
-- [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull request
+- [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull requests
 - [Medium](https://medium.com/@DiggerHQ) for terraform automation and collaboration insights, articles, tutorials, and updates.
