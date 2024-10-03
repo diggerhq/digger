@@ -3,9 +3,10 @@ package dbmodels
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"github.com/diggerhq/digger/ee/drift/model"
 	"gorm.io/gorm"
-	"log"
 )
 
 type DriftStatus string
@@ -57,7 +58,7 @@ func (db *Database) CreateProject(name string, repo *model.Repo) (*model.Project
 	project := &model.Project{
 		Name:        name,
 		RepoID:      repo.ID,
-		DriftStatus: DriftStatusNewDrift,
+		DriftStatus: DriftStatusNoDrift,
 	}
 	result := db.GormDB.Save(project)
 	if result.Error != nil {

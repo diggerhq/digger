@@ -237,7 +237,7 @@ func (mc MainController) ProcessAllNotifications(c *gin.Context) {
 		cron := orgSetting.Schedule
 		matches, err := utils2.MatchesCrontab(cron, time.Now().Add(-15*time.Minute))
 		if err != nil {
-			log.Printf("could not check matching crontab for org :%v", orgSetting.OrgID)
+			log.Printf("could not check matching crontab for org: %v %v", orgSetting.OrgID, err)
 			continue
 		}
 
