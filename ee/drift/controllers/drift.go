@@ -187,15 +187,11 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 }
 
 func (mc MainController) ProcessAllDrift(c *gin.Context) {
-	diggerHostname := os.Getenv("DIGGER_HOSTNAME")
-	webhookSecret := os.Getenv("DIGGER_WEBHOOK_SECRET")
 	orgSettings, err := dbmodels.DB.Query.OrgSetting.Find()
 	if err != nil {
 		log.Printf("could not select all orgs: %v", err)
 	}
 
-	driftUrl, err := url.JoinPath(diggerHostname, "_internal/process_drift_for_org")
-	log.Printf(driftUrl)
 	if err != nil {
 		log.Printf("could not form drift url: %v", err)
 		c.JSON(500, gin.H{"error": "could not form drift url"})
@@ -206,49 +202,59 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 		cron := orgSetting.Schedule
 		matches, err := utils2.MatchesCrontab(cron, time.Now())
 		if err != nil {
-			log.Printf("could not check matching crontab for org :%v", orgSetting.OrgID)
+			log.Printf("could not check matching crontab for org: %v %v", orgSetting.OrgID, err)
 			continue
 		}
 
 		if matches {
-			payload := DriftForOrgRequest{OrgId: orgSetting.OrgID}
-
-			// Convert payload to JSON
-			jsonPayload, err := json.Marshal(payload)
+			log.Printf("Crontab matched for org: %v %v", orgSetting.OrgID, cron);
+			err := sendProcessDriftForOrgRequest(orgSetting.OrgID)
 			if err != nil {
-				fmt.Println("Process Drift: error marshaling JSON:", err)
-				return
+				log.Printf("Failed to send request to process drift for org: %v", orgSetting.OrgID)
+				continue
 			}
-
-			// Create a new request
-			req, err := http.NewRequest("POST", driftUrl, bytes.NewBuffer(jsonPayload))
-			if err != nil {
-				fmt.Println("Process Drift: Error creating request:", err)
-				return
-			}
-
-			// Set headers
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", webhookSecret))
-
-			// Send the request
-			client := &http.Client{}
-			resp, err := client.Do(req)
-			if err != nil {
-				fmt.Println("Error sending request:", err)
-				return
-			}
-			defer resp.Body.Close()
-
-			// Get the status code
-			statusCode := resp.StatusCode
-			if statusCode != 200 {
-				log.Printf("got unexpected drift status for org: %v - status: %v", orgSetting.OrgID, statusCode)
-			}
+		} else {
+			log.Printf("Crontab ignored for org: %v %v", orgSetting.OrgID, cron);
 		}
 	}
 
 	c.String(200, "success")
+}
+
+func sendProcessDriftForOrgRequest(orgId string) error {
+	diggerHostname := os.Getenv("DIGGER_HOSTNAME")
+	webhookSecret := os.Getenv("DIGGER_WEBHOOK_SECRET")
+	payload := DriftForOrgRequest{orgId}
+	driftUrl, _ := url.JoinPath(diggerHostname, "_internal/process_drift_for_org")
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Println("Process Drift: error marshaling JSON:", err)
+		return err
+	}
+
+	req, err := http.NewRequest("POST", driftUrl, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		fmt.Println("Process Drift: Error creating request:", err)
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", webhookSecret))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	statusCode := resp.StatusCode
+	if statusCode != 200 {
+		log.Printf("got unexpected drift status for org: %v - status: %v", orgId, statusCode)
+	}
+	return nil
 }
 
 type DriftForOrgRequest struct {
@@ -274,7 +280,14 @@ func (mc MainController) ProcessDriftForOrg(c *gin.Context) {
 		return
 	}
 	orgId := request.OrgId
+
+	log.Printf("Processing drift for org: %v", orgId)
+
 	projects, err := dbmodels.DB.LoadProjectsForOrg(orgId)
+	if err != nil {
+		fmt.Println("Process Drift: failed to load projects for org:", err)
+		return
+	}
 	for _, project := range projects {
 		if project.DriftEnabled {
 			projectId := project.ID
