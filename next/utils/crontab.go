@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func MatchesCrontab(cronString string, timestamp time.Time, resolution time.Duration) (bool, error) {
+func MatchesCrontab(cronString string, timestamp time.Time) (bool, error) {
 	// Parse the crontab string
 	schedule, err := cron.ParseStandard(cronString)
 	if err != nil {
@@ -14,9 +14,9 @@ func MatchesCrontab(cronString string, timestamp time.Time, resolution time.Dura
 	}
 
 	// Round down the timestamp to the nearest minute
-	roundedTime := timestamp.Truncate(resolution)
+	roundedTime := timestamp.Truncate(time.Minute)
 
 	// Check if the rounded time matches the schedule
-	nextTime := schedule.Next(roundedTime.Add(-resolution))
+	nextTime := schedule.Next(roundedTime.Add(-time.Minute))
 	return nextTime.Equal(roundedTime), nil
 }
