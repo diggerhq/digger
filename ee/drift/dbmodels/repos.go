@@ -3,10 +3,11 @@ package dbmodels
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"github.com/diggerhq/digger/ee/drift/model"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"gorm.io/gorm"
-	"log"
 )
 
 // GetRepo returns digger repo by organisationId and repo name (diggerhq-digger)
