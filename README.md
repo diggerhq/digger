@@ -1,87 +1,108 @@
 <img width="1470" alt="digger-opensource-gitops-banner" src="https://github.com/diggerhq/digger/assets/1280498/7fb44db3-38ca-4021-8714-87a2f1a14982">
 
 <h2 align="center">
-  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Community Slack</a> |
-  <a href="https://calendly.com/diggerdev/diggerdemo">Schedule a call</a> |
-  <a href="https://www.loom.com/share/51f27994d95f4dc5bb6eea579e1fa8dc?sid=403f161a-6c0b-44ac-af57-cc9b56190f64">Demo Video</a> |
-  <a href="https://docs.digger.dev/">Docs</a>
+  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">💬 Join Our Community Slack</a> |
+  <a href="https://calendly.com/diggerdev/diggerdemo">📅 Schedule a Call</a> |
+  <a href="https://www.loom.com/share/51f27994d95f4dc5bb6eea579e1fa8dc?sid=403f161a-6c0b-44ac-af57-cc9b56190f64">🎥 Watch Demo Video</a> |
+  <a href="https://docs.digger.dev/">📚 Read Our Docs</a>
 </h2>
 
-CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
+## 🚀 Introduction
 
-But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
+Implementing CI/CD for Terraform can be [challenging](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). Specialized CI systems (also known as [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783)) like Terraform Cloud, Spacelift, and Atlantis exist to ease the process.
 
-Digger runs terraform natively in your CI. This is:
+However, why manage two separate CI systems when you can reuse your existing CI for Terraform workflows?
 
-- Secure, because cloud access secrets aren't shared with a third-party
-- Cost-effective, because you are not paying for additional compute just to run your terraform
+**Digger** integrates natively with your CI, offering a secure and cost-effective solution by running Terraform within your existing CI infrastructure.
 
-## Features
+### 🔑 Key Benefits
+- **🔒 Secure:** Cloud access secrets remain within your infrastructure, not shared with a third party.
+- **💸 Cost-Effective:** No additional compute costs for running Terraform.
 
-- Terraform plan and apply in pull request comments
-- Private runners - thanks to the fact that there are no separate runners! Your existing CI's compute environment is used
-- Open Policy Agent (OPA) support for RBAC
-- PR-level locks (on top of Terraform native state locks, similar to Atlantis) to avoid race conditions across multiple PRs
-- Terragrunt, Workspaces, multiple Terraform versions, static analysis via Checkov, plan persistence, ...
-- Drift detection 
-  
+---
 
-## Getting Started
+## ✨ Features
 
-- [Github Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
-- [Github Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
+- 📝 Execute `terraform plan` and `terraform apply` from pull request comments.
+- 🏃‍♂️ Use **private runners**—leveraging your existing CI’s compute environment.
+- 🔐 Support for **Open Policy Agent (OPA)** for Role-Based Access Control (RBAC).
+- 🔒 **PR-level locks** to prevent race conditions in multiple pull requests (PRs).
+- 🛠️ Compatibility with **Terragrunt**, multiple **Terraform versions**, **Workspaces**, and static analysis tools like **Checkov**.
+- 📈 **Drift detection** for identifying configuration discrepancies.
 
-## How it works
+---
 
-Digger has 2 main components:
-- CLI that runs inside your CI and calls terraform with the right arguments
-- Orchestrator - a minimal backend (that can also be self-hosted) that triggers CI jobs in response to events such as PR comments
+## 🛠️ Getting Started
 
-Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB + S3 on AWS, equivalents in other cloud providers)
+Start using Digger with these guides:
 
-## Compared to Atlantis
+- [GitHub Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
+- [GitHub Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
 
-- No need to host and maintain a server (although you [can](https://docs.digger.dev/self-host/deploy-helm))
-- Secure by design: jobs run in your CI, so sensitive data stays there
-- Scalable compute: jobs can run in parallel
-- RBAC and policies via OPA
-- Drift detection
-- Apply-after-merge workflows
-- Web UI (cloud based)
-- Read more about differences with Atlantis in our [blog post](https://medium.com/@DiggerHQ/digger-and-atlantis-key-differences-c08029ffe112)
-​
-## Compared to Terraform Cloud and other TACOs
+---
 
-- Open source; orchestrator can be self-hosted
-- Unlimited runs and unlimited resources-under-management on all tiers
-- Jobs run in your CI, not on a third-party server
-- Supports PR automation (apply before merge)
-- No duplication of the CI/CD stack
-- Secrets not shared with a third party
+## 🔧 How Digger Works
 
-## Contributing
+Digger consists of two primary components:
 
-We love contributions. Check out our [contributing guide](CONTRIBUTING.md) to get started.
+1. **CLI:** This runs inside your CI, passing the correct arguments to Terraform.
+2. **Orchestrator:** A minimal backend (self-hostable) that triggers CI jobs based on events (e.g., pull request comments).
 
-Please pick an issue that already exists if you’re interested in contributing, otherwise, feel free to create an issue and triage with the maintainers before creating a PR.
+Digger also uses your cloud infrastructure (e.g., DynamoDB + S3 for AWS) to store PR-level locks and the Terraform plan cache.
 
-Not sure where to get started? You can:
+---
 
--   Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
+## ⚖️ Comparison with Atlantis
 
-## Telemetry
+- **No server hosting required** (self-hosting is optional).
+- **🔐 Secure by design:** Sensitive data stays within your CI environment.
+- **⚡ Scalable compute:** Parallel job execution.
+- **💡 RBAC via OPA**, along with **drift detection**.
+- **✅ Apply-after-merge workflows** and a **Web UI** (cloud-based).
 
-Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go) for detail. You can disable telemetry collection either by setting `telemetry: false` in digger.yml, or by setting the `TELEMETRY` env variable to `false`.
+Learn more about the differences in our [blog post](https://medium.com/@DiggerHQ/digger-and-atlantis-key-differences-c08029ffe112).
 
-## Running migrations
+---
 
-```
+## ⚡ Comparison with Terraform Cloud & Other TACOS
+
+- **🆓 Open-source**, with the option to self-host the orchestrator.
+- **🔄 Unlimited runs** and **unlimited resource management** on all tiers.
+- **🔧 CI integration**—no need to duplicate the CI/CD stack.
+- **🔒 Secrets stay within your infrastructure.**
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! To get started, read our [contributing guide](CONTRIBUTING.md).
+
+You can:
+
+- Pick an existing issue or create a new one.
+- Join our [Slack community](https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q) and ask us any questions.
+
+---
+
+## 📊 Telemetry
+
+Digger collects anonymized telemetry data. See the details in [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go).
+
+To disable telemetry, set `telemetry: false` in your `digger.yml` file or use the `TELEMETRY=false` environment variable.
+
+---
+
+## 🛠️ Running Migrations
+
+To run migrations, use the following command:
+
+```bash
 atlas migrate apply --url $DATABASE_URL
 ```
+## 📚 Resources
+Documentation: Comprehensive guides and references.
+Slack Community: Join discussions with the Digger team and community.
+GitHub: View the source code, submit issues, and contribute.
+Medium: Read our insights, tutorials, and updates on Terraform automation.
 
-## Resources
 
-- [Docs](https://docs.digger.dev/) for comprehensive documentation and guides
-- [Slack](https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q) for discussion with the community and Digger team.
-- [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull request
-- [Medium](https://medium.com/@DiggerHQ) for terraform automation and collaboration insights, articles, tutorials, and updates.
