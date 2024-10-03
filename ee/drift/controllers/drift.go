@@ -200,7 +200,7 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 
 	for _, orgSetting := range orgSettings {
 		cron := orgSetting.Schedule
-		matches, err := utils2.MatchesCrontab(cron, time.Now(), time.Hour)
+		matches, err := utils2.MatchesCrontab(cron, time.Now())
 		if err != nil {
 			log.Printf("could not check matching crontab for org: %v %v", orgSetting.OrgID, err)
 			continue
