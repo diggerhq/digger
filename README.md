@@ -63,6 +63,8 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 
 We love contributions. Check out our [contributing guide](CONTRIBUTING.md) to get started.
 
+Please pick an issue that already exists if you’re interested in contributing, otherwise, feel free to create an issue and triage with the maintainers before creating a PR.
+
 Not sure where to get started? You can:
 
 -   Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
