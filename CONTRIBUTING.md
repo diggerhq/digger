@@ -63,9 +63,9 @@ When you have made changes to the codebase that you would like to contribute bac
 3. Write tests for your changes, if applicable.
 4. Test out your changes in a demo GitHub repository using Github Actions.
 
-   - You can test out the changes from your fork by referencing the Action within a Github workflow file: `uses: <github-username>/digger@your-branch`.
+   - You can test out the changes from your fork by referencing the action within a Github workflow file: `uses: <github-username>/digger@your-branch`.
    - Fork [this demo repository](https://github.com/diggerhq/digger_demo_multienv) to setup and assert your tests.
-   - If you're adding new app level inputs that implies new environment variables, make sure to reference them **both within the `build digger` and `run digger` steps** in [`action.yml`](./action.yml).
+   - If you're adding new app level inputs that imply new environment variables, make sure to reference them **both within the `build digger` and `run digger` steps** in [`action.yml`](./action.yml).
 
 5. Update the documentation to reflect your changes, if applicable.
 6. Submit a pull request to the `develop` branch.
@@ -73,12 +73,12 @@ When you have made changes to the codebase that you would like to contribute bac
 
 ## Release Process
 
-**NOTE: The default branch `@develop` is not guaranteed to be stable and you should always use published release versions in your testing and production environments.**
+**NOTE: The default branch `@develop` is not guaranteed to be stable, and you should always use published release versions in your testing and production environments.**
 
 - All pull requests are merged to the default develop branch after initial unit tests and integration tests are passing and required code review requirements are met.
 - We checkout a pre-release branch to prepare for an upcoming release with the pattern `prerelease-0.1.xx`.
 - We perform additional manual and automated tests in this branch to make sure there are no regressions.
-- Once we are ready we tag the head of our release branch and perform a release on it.
+- Once we are ready, we tag the head of our release branch and perform a release on it.
 - Tagged releases are published as actions and they are the most suitable to be used in production.
 
 ## Code of Conduct
