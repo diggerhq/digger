@@ -433,12 +433,22 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2
 func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []digger_config2.Project, requestedProject *digger_config2.Project, workflows map[string]digger_config2.Workflow) ([]scheduler.Job, bool, error) {
 	jobs := make([]scheduler.Job, 0)
 	//&dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber,
+
+
+
 	switch parseAzureContext.EventType {
 	case AzurePrCreated, AzurePrUpdated, AzurePrReopened:
 		for _, project := range impactedProjects {
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
 				return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
+			}
+
+			var skipMerge bool
+			if workflow.Configuration != nil {
+				skipMerge = workflow.Configuration.SkipMergeCheck
+			} else {
+				skipMerge = false
 			}
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
@@ -461,6 +471,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				CommandEnvVars:     commandEnvVars,
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
+				SkipMergeCheck:     skipMerge,
 			})
 		}
 		return jobs, true, nil
@@ -469,6 +480,13 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 			workflow, ok := workflows[project.Workflow]
 			if !ok {
 				return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
+			}
+
+			var skipMerge bool
+			if workflow.Configuration != nil {
+				skipMerge = workflow.Configuration.SkipMergeCheck
+			} else {
+				skipMerge = false
 			}
 
 			prNumber := parseAzureContext.Event.(AzurePrEvent).Resource.PullRequestId
@@ -491,6 +509,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				CommandEnvVars:     commandEnvVars,
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
+				SkipMergeCheck:    skipMerge,
 			})
 		}
 		return jobs, true, nil
@@ -502,6 +521,14 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				if !ok {
 					return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 				}
+
+				var skipMerge bool
+				if workflow.Configuration != nil {
+					skipMerge = workflow.Configuration.SkipMergeCheck
+				} else {
+					skipMerge = false
+				}
+
 				stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars, true)
 				StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 				jobs = append(jobs, scheduler.Job{
@@ -521,6 +548,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 					CommandEnvVars:     commandEnvVars,
 					StateEnvProvider:   StateEnvProvider,
 					CommandEnvProvider: CommandEnvProvider,
+					SkipMergeCheck:     skipMerge,
 				})
 			}
 			return jobs, true, nil
@@ -557,6 +585,14 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 					if !ok {
 						return nil, false, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 					}
+
+					var skipMerge bool
+					if workflow.Configuration != nil {
+						skipMerge = workflow.Configuration.SkipMergeCheck
+					} else {
+						skipMerge = false
+					}
+		
 					stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars, true)
 					StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 					jobs = append(jobs, scheduler.Job{
@@ -576,6 +612,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 						CommandEnvVars:     commandEnvVars,
 						StateEnvProvider:   StateEnvProvider,
 						CommandEnvProvider: CommandEnvProvider,
+						SkipMergeCheck:    	skipMerge,
 					})
 				}
 			}
