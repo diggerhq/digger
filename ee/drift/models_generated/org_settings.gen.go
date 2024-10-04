@@ -27,12 +27,13 @@ func newOrgSetting(db *gorm.DB, opts ...gen.DOOption) orgSetting {
 
 	tableName := _orgSetting.orgSettingDo.TableName()
 	_orgSetting.ALL = field.NewAsterisk(tableName)
-	_orgSetting.ID = field.NewInt64(tableName, "id")
 	_orgSetting.CreatedAt = field.NewTime(tableName, "created_at")
 	_orgSetting.ScheduleType = field.NewString(tableName, "schedule_type")
 	_orgSetting.Schedule = field.NewString(tableName, "schedule")
 	_orgSetting.SlackNotificationURL = field.NewString(tableName, "slack_notification_url")
 	_orgSetting.OrgID = field.NewString(tableName, "org_id")
+	_orgSetting.ExternalOrgID = field.NewString(tableName, "external_org_id")
+	_orgSetting.ID = field.NewString(tableName, "id")
 
 	_orgSetting.fillFieldMap()
 
@@ -43,12 +44,13 @@ type orgSetting struct {
 	orgSettingDo
 
 	ALL                  field.Asterisk
-	ID                   field.Int64
 	CreatedAt            field.Time
 	ScheduleType         field.String
 	Schedule             field.String
 	SlackNotificationURL field.String
 	OrgID                field.String
+	ExternalOrgID        field.String
+	ID                   field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -65,12 +67,13 @@ func (o orgSetting) As(alias string) *orgSetting {
 
 func (o *orgSetting) updateTableName(table string) *orgSetting {
 	o.ALL = field.NewAsterisk(table)
-	o.ID = field.NewInt64(table, "id")
 	o.CreatedAt = field.NewTime(table, "created_at")
 	o.ScheduleType = field.NewString(table, "schedule_type")
 	o.Schedule = field.NewString(table, "schedule")
 	o.SlackNotificationURL = field.NewString(table, "slack_notification_url")
 	o.OrgID = field.NewString(table, "org_id")
+	o.ExternalOrgID = field.NewString(table, "external_org_id")
+	o.ID = field.NewString(table, "id")
 
 	o.fillFieldMap()
 
@@ -87,13 +90,14 @@ func (o *orgSetting) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (o *orgSetting) fillFieldMap() {
-	o.fieldMap = make(map[string]field.Expr, 6)
-	o.fieldMap["id"] = o.ID
+	o.fieldMap = make(map[string]field.Expr, 7)
 	o.fieldMap["created_at"] = o.CreatedAt
 	o.fieldMap["schedule_type"] = o.ScheduleType
 	o.fieldMap["schedule"] = o.Schedule
 	o.fieldMap["slack_notification_url"] = o.SlackNotificationURL
 	o.fieldMap["org_id"] = o.OrgID
+	o.fieldMap["external_org_id"] = o.ExternalOrgID
+	o.fieldMap["id"] = o.ID
 }
 
 func (o orgSetting) clone(db *gorm.DB) orgSetting {

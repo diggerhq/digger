@@ -12,12 +12,13 @@ const TableNameOrgSetting = "org_settings"
 
 // OrgSetting mapped from table <org_settings>
 type OrgSetting struct {
-	ID                   int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
 	CreatedAt            time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
 	ScheduleType         string    `gorm:"column:schedule_type" json:"schedule_type"`
 	Schedule             string    `gorm:"column:schedule" json:"schedule"`
 	SlackNotificationURL string    `gorm:"column:slack_notification_url" json:"slack_notification_url"`
-	OrgID                string    `gorm:"column:org_id;not null" json:"org_id"`
+	OrgID                string    `gorm:"column:org_id" json:"org_id"`
+	ExternalOrgID        string    `gorm:"column:external_org_id" json:"external_org_id"`
+	ID                   string    `gorm:"column:id;primaryKey;default:gen_random_uuid()" json:"id"`
 }
 
 // TableName OrgSetting's table name
