@@ -53,14 +53,6 @@ jobs:
 
       - name: Test
         run: |
-          
-          go test -json ./... | gotestfmt
-        env:
-          DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY}}
-        working-directory: libs
-
-      - name: Test
-        run: |
           go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
           if [ "${{ steps.pr_check.outputs.is_external }}" = "true" ]; then
             go test -json -tags=external ./... | gotestfmt
