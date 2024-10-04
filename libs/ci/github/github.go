@@ -500,6 +500,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
+				SkipMergeCheck: 	skipMerge,
 			})
 		} else if *payload.Action == "closed" {
 			jobs = append(jobs, scheduler.Job{
@@ -521,6 +522,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
+				SkipMergeCheck: 	skipMerge,
 			})
 		} else if *payload.Action == "converted_to_draft" {
 			var commands []string
@@ -549,6 +551,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
+				SkipMergeCheck: 	skipMerge,
 			})
 		}
 
