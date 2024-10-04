@@ -47,12 +47,25 @@ jobs:
           echo "is_external=true" >> $GITHUB_OUTPUT
           fi
 
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.6.0
+
       - name: Test
         run: |
+          
+          go test -json ./... | gotestfmt
+        env:
+          DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY}}
+        working-directory: libs
+
+      - name: Test
+        run: |
+          go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
           if [ "${{ steps.pr_check.outputs.is_external }}" = "true" ]; then
-            go test -v -tags=external ./...
+            go test -json -tags=external ./... | gotestfmt
           else
-            go test -v ./...
+            go test -json ./... | gotestfmt
           fi
         env:
           DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY}}
