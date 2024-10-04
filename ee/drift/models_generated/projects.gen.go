@@ -40,7 +40,6 @@ func newProject(db *gorm.DB, opts ...gen.DOOption) project {
 	_project.ToUpdate = field.NewInt32(tableName, "to_update")
 	_project.ToCreate = field.NewInt32(tableName, "to_create")
 	_project.ToDelete = field.NewInt32(tableName, "to_delete")
-	_project.IsAcknowledged = field.NewBool(tableName, "is_acknowledged")
 
 	_project.fillFieldMap()
 
@@ -64,7 +63,6 @@ type project struct {
 	ToUpdate           field.Int32
 	ToCreate           field.Int32
 	ToDelete           field.Int32
-	IsAcknowledged     field.Bool
 
 	fieldMap map[string]field.Expr
 }
@@ -94,7 +92,6 @@ func (p *project) updateTableName(table string) *project {
 	p.ToUpdate = field.NewInt32(table, "to_update")
 	p.ToCreate = field.NewInt32(table, "to_create")
 	p.ToDelete = field.NewInt32(table, "to_delete")
-	p.IsAcknowledged = field.NewBool(table, "is_acknowledged")
 
 	p.fillFieldMap()
 
@@ -111,7 +108,7 @@ func (p *project) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *project) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 14)
+	p.fieldMap = make(map[string]field.Expr, 13)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
@@ -125,7 +122,6 @@ func (p *project) fillFieldMap() {
 	p.fieldMap["to_update"] = p.ToUpdate
 	p.fieldMap["to_create"] = p.ToCreate
 	p.fieldMap["to_delete"] = p.ToDelete
-	p.fieldMap["is_acknowledged"] = p.IsAcknowledged
 }
 
 func (p project) clone(db *gorm.DB) project {

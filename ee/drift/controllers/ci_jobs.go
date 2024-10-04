@@ -1,13 +1,14 @@
 package controllers
 
 import (
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/model"
 	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"time"
 )
 
 type SetJobStatusRequest struct {
@@ -119,7 +120,7 @@ func ProjectDriftStateMachineApply(project model.Project, tfplan string, resourc
 	}
 	if !isEmptyPlan && !wasEmptyPlan {
 		if project.DriftTerraformPlan != tfplan {
-			if project.IsAcknowledged {
+			if project.DriftStatus == dbmodels.DriftStatusAcknowledgeDrift {
 				project.DriftStatus = dbmodels.DriftStatusNewDrift
 			}
 		}
