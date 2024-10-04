@@ -36,6 +36,8 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 	_user.ExternalID = field.NewString(tableName, "external_id")
 	_user.FirstName = field.NewString(tableName, "first_name")
 	_user.LastName = field.NewString(tableName, "last_name")
+	_user.StripeCustomerID = field.NewString(tableName, "stripe_customer_id")
+	_user.IsPaying = field.NewBool(tableName, "is_paying")
 
 	_user.fillFieldMap()
 
@@ -45,16 +47,18 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 type user struct {
 	userDo
 
-	ALL            field.Asterisk
-	ID             field.String
-	CreatedAt      field.Time
-	UpdatedAt      field.Time
-	DeletedAt      field.Field
-	Email          field.String
-	OrganisationID field.String
-	ExternalID     field.String
-	FirstName      field.String
-	LastName       field.String
+	ALL              field.Asterisk
+	ID               field.String
+	CreatedAt        field.Time
+	UpdatedAt        field.Time
+	DeletedAt        field.Field
+	Email            field.String
+	OrganisationID   field.String
+	ExternalID       field.String
+	FirstName        field.String
+	LastName         field.String
+	StripeCustomerID field.String
+	IsPaying         field.Bool
 
 	fieldMap map[string]field.Expr
 }
@@ -80,6 +84,8 @@ func (u *user) updateTableName(table string) *user {
 	u.ExternalID = field.NewString(table, "external_id")
 	u.FirstName = field.NewString(table, "first_name")
 	u.LastName = field.NewString(table, "last_name")
+	u.StripeCustomerID = field.NewString(table, "stripe_customer_id")
+	u.IsPaying = field.NewBool(table, "is_paying")
 
 	u.fillFieldMap()
 
@@ -96,7 +102,7 @@ func (u *user) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *user) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 9)
+	u.fieldMap = make(map[string]field.Expr, 11)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
@@ -106,6 +112,8 @@ func (u *user) fillFieldMap() {
 	u.fieldMap["external_id"] = u.ExternalID
 	u.fieldMap["first_name"] = u.FirstName
 	u.fieldMap["last_name"] = u.LastName
+	u.fieldMap["stripe_customer_id"] = u.StripeCustomerID
+	u.fieldMap["is_paying"] = u.IsPaying
 }
 
 func (u user) clone(db *gorm.DB) user {
