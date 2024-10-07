@@ -76,9 +76,22 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 }
 
 func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
-	installationId := c.Request.URL.Query()["installation_id"][0]
-	//setupAction := c.Request.URL.Query()["setup_action"][0]
-	code := c.Request.URL.Query()["code"][0]
+	installationIds := c.Request.URL.Query()["installation_id"]
+	if len(installationIds) == 0 {
+		log.Printf("installationId parameter missing in callback")
+		c.String(http.StatusBadRequest, "installation ID parameter is missing")
+		return
+	}
+	installationId := installationIds[0]
+
+	codes := c.Request.URL.Query()["code"]
+	if len(codes) == 0 {
+		log.Printf("code parameter missing in callback")
+		c.String(http.StatusBadRequest, "code parameter missing in callback")
+		return
+	}
+	code := codes[0]
+
 	clientId := os.Getenv("GITHUB_APP_CLIENT_ID")
 	clientSecret := os.Getenv("GITHUB_APP_CLIENT_SECRET")
 
