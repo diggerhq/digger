@@ -31,6 +31,13 @@ In production, it is best to [use OIDC](/ce/cloud-providers/authenticating-with-
 
 Create a `digger_workflow.yml` file under `.github/workflows` in your repo with the following contents:
 
+<Note>
+  In order to be triggered, the workflow file with the exact same name must
+  exist in the default branch. Github will use the file from a relevant branch -
+  but it will throw a 404 error if a workflow with the same name is not found in
+  the default branch.
+</Note>
+
 ```
 name: Digger Workflow
 
