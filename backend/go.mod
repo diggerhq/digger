@@ -25,7 +25,7 @@ require (
 	github.com/samber/lo v1.39.0
 	github.com/segmentio/analytics-go/v3 v3.3.0
 	github.com/spf13/cast v1.6.0
-	github.com/spf13/viper v1.18.2
+	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/xanzy/go-gitlab v0.106.0
 	golang.org/x/oauth2 v0.20.0
