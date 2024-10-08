@@ -52,6 +52,13 @@ func sendTestSlackWebhook(webhookURL string) error {
 				},
 			},
 			{"type": "divider"},
+			{
+				"type": "section",
+				"fields": []map[string]string{
+					{"type": "mrkdwn", "text": ":arrow_right: *Note: This is a test notification*pwd"},
+				},
+			},
+			{"type": "divider"},
 		},
 	}
 

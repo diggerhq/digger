@@ -119,7 +119,7 @@ func (d DiggerController) TriggerCronForMatchingProjects(c *gin.Context) {
 
 	// TODO: think about pubsub pattern or parallelised calls
 	for _, proj := range driftEnabledProjects {
-		matches, err := utils.MatchesCrontab(proj.DriftCrontab, time.Now(), time.Minute)
+		matches, err := utils.MatchesCrontab(proj.DriftCrontab, time.Now())
 		if err != nil {
 			log.Printf("could not check for matching crontab for project %v, %v", proj.ID, err)
 			// TODO: send metrics here
