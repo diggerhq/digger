@@ -87,15 +87,18 @@ type EnvVarYaml struct {
 }
 
 type BlockYaml struct {
-	// these flags for terraform only
+	// these flags are only for terraform and opentofu
 	Include string `yaml:"include"`
 	Exclude string `yaml:"exclude"`
 
-	// these flags are only for terragrunt only
+	// these flags are only for terragrunt
 	Terragrunt bool    `yaml:"terragrunt"`
 	RootDir    *string `yaml:"root_dir"`
 
-	// these flags for both terraform and terragrunt
+	// these flags are only for opentofu
+	OpenTofu bool `yaml:"opentofu"`
+
+	// common flags
 	BlockName       string                      `yaml:"block_name"`
 	Workflow        string                      `yaml:"workflow"`
 	WorkflowFile    string                      `yaml:"workflow_file"`

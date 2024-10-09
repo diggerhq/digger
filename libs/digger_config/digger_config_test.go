@@ -956,6 +956,42 @@ workflows:
 	assert.Equal(t, 3, len(dg.Projects))
 }
 
+func TestDiggerGenerateProjectsWithOpenTofu(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - include: tofu/*
+      opentofu: true
+    - include: terraform/*
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+	dirsToCreate := []string{"tofu/test1", "tofu/test2", "terraform/one"}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+	assert.Equal(t, "tofu_test1", dg.Projects[0].Name)
+	assert.Equal(t, "tofu_test2", dg.Projects[1].Name)
+	assert.Equal(t, "terraform_one", dg.Projects[2].Name)
+	assert.Equal(t, true, dg.Projects[0].OpenTofu)
+	assert.Equal(t, true, dg.Projects[1].OpenTofu)
+	assert.Equal(t, false, dg.Projects[2].OpenTofu)
+	assert.Equal(t, "tofu/test1", dg.Projects[0].Dir)
+	assert.Equal(t, "tofu/test2", dg.Projects[1].Dir)
+	assert.Equal(t, "terraform/one", dg.Projects[2].Dir)
+	assert.Equal(t, 3, len(dg.Projects))
+}
+
 // TestDiggerGenerateProjectsEmptyParameters test if missing parameters for generate_projects are handled correctly
 func TestDiggerGenerateProjectsEmptyParameters(t *testing.T) {
 	_, teardown := setUp()
