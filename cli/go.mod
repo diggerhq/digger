@@ -17,7 +17,9 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.27.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.16
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.32.6
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/dominikbraun/graph v0.23.0
@@ -26,6 +28,8 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
+	github.com/xanzy/go-gitlab v0.106.0
+	gotest.tools/v3 v3.5.1
 )
 
 require (

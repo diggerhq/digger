@@ -174,6 +174,18 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(projectConfig)
 
+			stateArn, cmdArn := "",""
+			if(projectConfig.AwsRoleToAssume != nil) {
+				if projectConfig.AwsRoleToAssume.State != "" {
+					stateArn = projectConfig.AwsRoleToAssume.State
+				}
+
+				if projectConfig.AwsRoleToAssume.Command != "" {
+					cmdArn = projectConfig.AwsRoleToAssume.Command					
+				}
+			}
+
+
 			job := scheduler.Job{
 				ProjectName:        projectConfig.Name,
 				ProjectDir:         projectConfig.Dir,
@@ -190,6 +202,8 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				EventName:          "drift-detect",
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
+				StateRoleArn: 	 	stateArn,
+				CommandRoleArn: 	cmdArn,				
 			}
 
 			notification, err := driftNotifcationProvider.Get(githubPrService)
