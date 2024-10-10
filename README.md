@@ -14,7 +14,7 @@ But why have 2 CI systems? Why not reuse the async jobs infrastructure with comp
 Digger runs terraform natively in your CI. This is:
 
 - Secure, because cloud access secrets aren't shared with a third-party
-- Cost-effective, because you are not paying for additional compute just to run your terraform
+- Cost-effective, because you are not paying for additional computing just to run your terraform
 
 ## Features
 
@@ -47,7 +47,7 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 - RBAC and policies via OPA
 - Drift detection
 - Apply-after-merge workflows
-- Web UI (cloud based)
+- Web UI (cloud-based)
 - Read more about differences with Atlantis in our [blog post](https://medium.com/@DiggerHQ/digger-and-atlantis-key-differences-c08029ffe112)
 ​
 ## Compared to Terraform Cloud and other TACOs
@@ -71,7 +71,7 @@ Not sure where to get started? You can:
 
 ## Telemetry
 
-Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go) for detail. You can disable telemetry collection either by setting `telemetry: false` in digger.yml, or by setting the `TELEMETRY` env variable to `false`.
+Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go) for details. You can disable telemetry collection either by setting `telemetry: false` in digger.yml, or by setting the `TELEMETRY` env variable to `false`.
 
 ## Running migrations
 
