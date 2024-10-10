@@ -26,19 +26,20 @@ type DependencyConfigurationYaml struct {
 }
 
 type ProjectYaml struct {
-	Name               string                      `yaml:"name"`
-	Dir                string                      `yaml:"dir"`
-	Workspace          string                      `yaml:"workspace"`
-	Terragrunt         bool                        `yaml:"terragrunt"`
-	OpenTofu           bool                        `yaml:"opentofu"`
-	Workflow           string                      `yaml:"workflow"`
-	WorkflowFile       *string                     `yaml:"workflow_file""`
-	IncludePatterns    []string                    `yaml:"include_patterns,omitempty"`
-	ExcludePatterns    []string                    `yaml:"exclude_patterns,omitempty"`
-	DependencyProjects []string                    `yaml:"depends_on,omitempty"`
-	DriftDetection     *bool                       `yaml:"drift_detection,omitempty"`
-	AwsRoleToAssume    *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	Generated          bool                        `yaml:"generated"`
+	Name               		string                      `yaml:"name"`
+	Dir                		string                      `yaml:"dir"`
+	Workspace          		string                      `yaml:"workspace"`
+	Terragrunt         		bool                        `yaml:"terragrunt"`
+	OpenTofu           		bool                        `yaml:"opentofu"`
+	Workflow           		string                      `yaml:"workflow"`
+	WorkflowFile       		*string                     `yaml:"workflow_file""`
+	IncludePatterns    		[]string                    `yaml:"include_patterns,omitempty"`
+	ExcludePatterns    		[]string                    `yaml:"exclude_patterns,omitempty"`
+	DependencyProjects 		[]string                    `yaml:"depends_on,omitempty"`
+	DriftDetection     		*bool                       `yaml:"drift_detection,omitempty"`
+	AwsRoleToAssume    		*AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig		`yaml:"aws_cognito_oidc,omitempty"`
+	Generated          		bool                        `yaml:"generated"`
 }
 
 type WorkflowYaml struct {
@@ -96,16 +97,24 @@ type BlockYaml struct {
 	RootDir    *string `yaml:"root_dir"`
 
 	// these flags for both terraform and terragrunt
-	BlockName       string                      `yaml:"block_name"`
-	Workflow        string                      `yaml:"workflow"`
-	WorkflowFile    string                      `yaml:"workflow_file"`
-	AwsRoleToAssume *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	BlockName       		string                      `yaml:"block_name"`
+	Workflow        		string                      `yaml:"workflow"`
+	WorkflowFile    		string                      `yaml:"workflow_file"`
+	AwsRoleToAssume 		*AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig 		`yaml:"aws_cognito_oidc,omitempty"`
 }
 
 type AssumeRoleForProjectConfig struct {
 	AwsRoleRegion string `yaml:"aws_role_region"`
 	State         string `yaml:"state"`
 	Command       string `yaml:"command"`
+}
+
+type AwsCognitoOidcConfig struct {
+	AwsAccountId  	string `yaml:"aws_account_id"`
+	AwsRegion 		string `yaml:"aws_region,omitempty"`
+	CognitoPoolId 	string `yaml:"cognito_identity_pool_id"`
+	SessionDuration int    `yaml:"session_duration"`
 }
 
 type GenerateProjectsConfigYaml struct {
@@ -115,34 +124,36 @@ type GenerateProjectsConfigYaml struct {
 	Blocks                  []BlockYaml                 `yaml:"blocks"`
 	TerragruntParsingConfig *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`
 	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig    *AwsCognitoOidcConfig		`yaml:"aws_cognito_oidc,omitempty"`
 }
 
 type TerragruntParsingConfig struct {
-	GitRoot                  *string  `yaml:"gitRoot,omitempty"`
-	AutoPlan                 bool     `yaml:"autoPlan"`
-	AutoMerge                bool     `yaml:"autoMerge"`
-	IgnoreParentTerragrunt   *bool    `yaml:"ignoreParentTerragrunt,omitempty"`
-	CreateParentProject      bool     `yaml:"createParentProject"`
-	IgnoreDependencyBlocks   bool     `yaml:"ignoreDependencyBlocks"`
-	Parallel                 *bool    `yaml:"parallel,omitempty"`
-	CreateWorkspace          bool     `yaml:"createWorkspace"`
-	CreateProjectName        bool     `yaml:"createProjectName"`
-	DefaultTerraformVersion  string   `yaml:"defaultTerraformVersion"`
-	DefaultWorkflow          string   `yaml:"defaultWorkflow"`
-	FilterPath               string   `yaml:"filterPath"`
-	OutputPath               string   `yaml:"outputPath"`
-	PreserveWorkflows        *bool    `yaml:"preserveWorkflows,omitempty"`
-	PreserveProjects         bool     `yaml:"preserveProjects"`
-	CascadeDependencies      *bool    `yaml:"cascadeDependencies,omitempty"`
-	DefaultApplyRequirements []string `yaml:"defaultApplyRequirements"`
-	//NumExecutors                   int64	`yaml:"numExecutors"`
-	ProjectHclFiles                []string `yaml:"projectHclFiles"`
-	CreateHclProjectChilds         bool     `yaml:"createHclProjectChilds"`
-	CreateHclProjectExternalChilds *bool    `yaml:"createHclProjectExternalChilds,omitempty"`
-	UseProjectMarkers              bool     `yaml:"useProjectMarkers"`
-	ExecutionOrderGroups           *bool    `yaml:"executionOrderGroups"`
-	WorkflowFile                   string   `yaml:"workflow_file"`
-	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	GitRoot                  		*string  					`yaml:"gitRoot,omitempty"`
+	AutoPlan                 		bool     					`yaml:"autoPlan"`
+	AutoMerge                		bool     					`yaml:"autoMerge"`	
+	IgnoreParentTerragrunt   		*bool    					`yaml:"ignoreParentTerragrunt,omitempty"`
+	CreateParentProject      		bool     					`yaml:"createParentProject"`
+	IgnoreDependencyBlocks   		bool     					`yaml:"ignoreDependencyBlocks"`
+	Parallel                 		*bool    					`yaml:"parallel,omitempty"`
+	CreateWorkspace          		bool     					`yaml:"createWorkspace"`
+	CreateProjectName        		bool     					`yaml:"createProjectName"`
+	DefaultTerraformVersion  		string   					`yaml:"defaultTerraformVersion"`
+	DefaultWorkflow          		string   					`yaml:"defaultWorkflow"`
+	FilterPath               		string   					`yaml:"filterPath"`
+	OutputPath               		string   					`yaml:"outputPath"`
+	PreserveWorkflows        		*bool    					`yaml:"preserveWorkflows,omitempty"`
+	PreserveProjects         		bool     					`yaml:"preserveProjects"`
+	CascadeDependencies      		*bool    					`yaml:"cascadeDependencies,omitempty"`
+	DefaultApplyRequirements 		[]string 					`yaml:"defaultApplyRequirements"`
+	//NumExecutors                  int64	 					`yaml:"numExecutors"`
+	ProjectHclFiles                	[]string 					`yaml:"projectHclFiles"`
+	CreateHclProjectChilds         	bool     					`yaml:"createHclProjectChilds"`
+	CreateHclProjectExternalChilds 	*bool    					`yaml:"createHclProjectExternalChilds,omitempty"`
+	UseProjectMarkers              	bool     					`yaml:"useProjectMarkers"`
+	ExecutionOrderGroups           	*bool    					`yaml:"executionOrderGroups"`
+	WorkflowFile                   	string   					`yaml:"workflow_file"`	
+	AwsRoleToAssume         		*AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig 			*AwsCognitoOidcConfig		`yaml:"aws_cognito_oidc,omitempty"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {

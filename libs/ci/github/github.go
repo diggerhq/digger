@@ -450,6 +450,17 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, performEnvVarInterpolation)
 		pullRequestNumber := payload.PullRequest.Number
 
+		stateRole, cmdRole := "", ""
+		if project.AwsRoleToAssume != nil {
+			if project.AwsRoleToAssume.State != "" {
+				stateRole = project.AwsRoleToAssume.State
+			}
+
+			if project.AwsRoleToAssume.Command != "" {
+				cmdRole = project.AwsRoleToAssume.Command
+			}
+		}
+
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 		if *payload.Action == "closed" && *payload.PullRequest.Merged && *(payload.PullRequest.Base).Ref == *(payload.Repo).DefaultBranch {
 			jobs = append(jobs, scheduler.Job{
@@ -470,7 +481,10 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				Namespace:          *payload.Repo.FullName,
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
+				CommandRoleArn:     cmdRole,
+				StateRoleArn: 	 	stateRole,	
 				StateEnvProvider:   StateEnvProvider,
+			    CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
 			})
 		} else if *payload.Action == "opened" || *payload.Action == "reopened" || *payload.Action == "synchronize" {
 			jobs = append(jobs, scheduler.Job{
@@ -491,7 +505,10 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				Namespace:          *payload.Repo.FullName,
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
+				CommandRoleArn:     cmdRole,
+				StateRoleArn: 	 	stateRole,	
 				StateEnvProvider:   StateEnvProvider,
+				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
 			})
 		} else if *payload.Action == "closed" {
 			jobs = append(jobs, scheduler.Job{
@@ -512,7 +529,10 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				Namespace:          *payload.Repo.FullName,
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
+				CommandRoleArn:     cmdRole,
+				StateRoleArn: 	 	stateRole,	
 				StateEnvProvider:   StateEnvProvider,
+				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
 			})
 		} else if *payload.Action == "converted_to_draft" {
 			var commands []string
@@ -540,7 +560,10 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				Namespace:          *payload.Repo.FullName,
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
+				CommandRoleArn:     cmdRole,
+				StateRoleArn: 	 	stateRole,	
 				StateEnvProvider:   StateEnvProvider,
+				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
 			})
 		}
 

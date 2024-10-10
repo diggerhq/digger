@@ -1153,6 +1153,10 @@ generate_projects:
       aws_role_to_assume:
         state: "arn://abc:xyz:state"
         command: "arn://abc:xyz:cmd"
+      aws_cognito_oidc:
+        cognito_identity_pool_id: "us-east-1:00000000-0000-0000-0000-000000000000"
+        aws_region: "us-east-1"
+        aws_account_id: "000000000000"
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
 	defer deleteFile()
@@ -1171,6 +1175,9 @@ generate_projects:
 	assert.Equal(t, 4, len(dg.Projects))
 	assert.Equal(t, "arn://abc:xyz:cmd", dg.Projects[0].AwsRoleToAssume.Command)
 	assert.Equal(t, "arn://abc:xyz:state", dg.Projects[0].AwsRoleToAssume.State)
+	assert.Equal(t, "us-east-1:00000000-0000-0000-0000-000000000000", dg.Projects[0].AwsCognitoOidcConfig.CognitoPoolId)
+	assert.Equal(t, "us-east-1", dg.Projects[0].AwsCognitoOidcConfig.AwsRegion)
+	assert.Equal(t, "000000000000", dg.Projects[0].AwsCognitoOidcConfig.AwsAccountId)
 	assert.Equal(t, "dev_project", dg.Projects[0].Name)
 	assert.Equal(t, "dev/project", dg.Projects[0].Dir)
 	assert.Equal(t, "dev_project_test3", dg.Projects[1].Name)
@@ -1230,4 +1237,24 @@ func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	assert.Equal(t, expectedImpactingLocations["dev"].ImpactingLocations, projectSourceMapping["dev"].ImpactingLocations)
 	assert.Equal(t, expectedImpactingLocations["prod"].ImpactingLocations, projectSourceMapping["prod"].ImpactingLocations)
 
+}
+
+func TestCognitoTokenSetFromMinConfig(t *testing.T) {
+	diggerCfg := `
+projects:
+  - name: dev
+    dir: .
+    aws_cognito_oidc:
+      cognito_identity_pool_id: "us-east-1:00000000-0000-0000-0000-000000000000"
+      aws_account_id: "000000000000"
+    aws_role_to_assume:
+      state: "arn://abc:xyz:state"
+      command: "arn://abc:xyz:cmd"
+`
+	dg, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+
+	assert.Equal(t, dg.Projects[0].AwsCognitoOidcConfig.CognitoPoolId, "us-east-1:00000000-0000-0000-0000-000000000000")
+	assert.Equal(t, dg.Projects[0].AwsCognitoOidcConfig.AwsAccountId, "000000000000")
 }

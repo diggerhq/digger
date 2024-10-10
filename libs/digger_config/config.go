@@ -28,19 +28,20 @@ type AssumeRoleForProject struct {
 }
 
 type Project struct {
-	Name               string
-	Dir                string
-	Workspace          string
-	Terragrunt         bool
-	OpenTofu           bool
-	Workflow           string
-	WorkflowFile       string
-	IncludePatterns    []string
-	ExcludePatterns    []string
-	DependencyProjects []string
-	DriftDetection     bool
-	AwsRoleToAssume    *AssumeRoleForProject
-	Generated          bool
+	Name               		string
+	Dir                		string
+	Workspace          		string
+	Terragrunt         		bool
+	OpenTofu           		bool
+	Workflow           		string
+	WorkflowFile       		string
+	IncludePatterns    		[]string
+	ExcludePatterns    		[]string
+	DependencyProjects 		[]string
+	DriftDetection     		bool
+	AwsRoleToAssume    		*AssumeRoleForProject
+	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig
+	Generated          		bool	
 }
 
 type Workflow struct {

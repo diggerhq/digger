@@ -25,7 +25,10 @@ type Job struct {
 	StateEnvVars       map[string]string
 	CommandEnvVars     map[string]string
 	StateEnvProvider   *stscreds.WebIdentityRoleProvider
+	StateRoleArn	   string
 	CommandEnvProvider *stscreds.WebIdentityRoleProvider
+	CommandRoleArn	   string
+	CognitoOidcConfig  *configuration.AwsCognitoOidcConfig
 }
 
 type Step struct {

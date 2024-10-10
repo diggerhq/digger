@@ -17,6 +17,8 @@ type StageJson struct {
 	Steps []StepJson `json:"steps"`
 }
 
+type cognitoConfig = digger_config.AwsCognitoOidcConfig
+
 type JobJson struct {
 	JobType                 string            `json:"job_type"`
 	ProjectName             string            `json:"projectName"`
@@ -42,6 +44,7 @@ type JobJson struct {
 	BackendHostname         string            `json:"backend_hostname"`
 	BackendOrganisationName string            `json:"backend_organisation_hostname"`
 	BackendJobToken         string            `json:"backend_job_token"`
+	CognitoOidcConfig       *cognitoConfig	  `json:"aws_cognito_oidc"` 
 }
 
 func (j *JobJson) IsPlan() bool {
@@ -85,6 +88,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 		BackendHostname:         backendHostname,
 		BackendJobToken:         jobToken,
 		BackendOrganisationName: organisationName,
+		CognitoOidcConfig:       job.CognitoOidcConfig,
 	}
 }
 
@@ -107,6 +111,7 @@ func JsonToJob(jobJson JobJson) Job {
 		CommandEnvVars:     jobJson.CommandEnvVars,
 		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName, jobJson.AwsRoleRegion),
 		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName, jobJson.AwsRoleRegion),
+		CognitoOidcConfig:  jobJson.CognitoOidcConfig,
 	}
 }
 
