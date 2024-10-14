@@ -54,6 +54,7 @@ type WorkflowConfigurationYaml struct {
 	// pull request converted to draft
 	OnPullRequestConvertedToDraft []string `yaml:"on_pull_request_to_draft"`
 	OnCommitToDefault             []string `yaml:"on_commit_to_default"`
+	SkipMergeCheck				  bool    `yaml:"skip_merge_check"`
 }
 
 func (s *StageYaml) ToCoreStage() Stage {
@@ -166,6 +167,7 @@ func (w *WorkflowYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			OnCommitToDefault:   []string{"digger unlock"},
 			OnPullRequestPushed: []string{"digger plan"},
 			OnPullRequestClosed: []string{"digger unlock"},
+			SkipMergeCheck:      false,
 		},
 		Plan: &StageYaml{
 			Steps: []StepYaml{

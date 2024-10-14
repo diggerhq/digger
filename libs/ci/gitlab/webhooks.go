@@ -51,6 +51,14 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 		namespace := payload.Project.PathWithNamespace
 		sender := payload.User.Username
 
+
+		var skipMerge bool
+		if workflow.Configuration != nil {
+			skipMerge = workflow.Configuration.SkipMergeCheck
+		} else {
+			skipMerge = false
+		}
+
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 		if payload.ObjectAttributes.Action == "merge" && payload.ObjectAttributes.TargetBranch == defaultBranch {
 			jobs = append(jobs, scheduler.Job{
@@ -71,6 +79,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				RequestedBy:        sender,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
+				SkipMergeCheck:     skipMerge,
 			})
 		} else if payload.ObjectAttributes.Action == "open" || payload.ObjectAttributes.Action == "reopen" || payload.ObjectAttributes.Action == "synchronize" {
 			jobs = append(jobs, scheduler.Job{
@@ -92,6 +101,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				RequestedBy:        sender,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
+				SkipMergeCheck:    	skipMerge,
 			})
 		} else if payload.ObjectAttributes.Action == "close" {
 			jobs = append(jobs, scheduler.Job{
@@ -113,6 +123,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				RequestedBy:        sender,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
+				SkipMergeCheck:    	skipMerge,
 			})
 			//	TODO: Figure how to detect gitlab's "PR converted to draft" event
 		} else if payload.ObjectAttributes.Action == "converted_to_draft" {
@@ -142,6 +153,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				RequestedBy:        sender,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
+				SkipMergeCheck:   	skipMerge,
 			})
 		}
 
