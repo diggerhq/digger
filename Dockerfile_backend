@@ -1,50 +1,58 @@
+# Stage 1: Build the Go application
 FROM golang:1.22 as builder
+
+# Build-time argument for the commit SHA
 ARG COMMIT_SHA
-RUN echo "commit sha: ${COMMIT_SHA}"
+# Print the commit SHA
+RUN echo "Commit SHA: ${COMMIT_SHA}"
 
-# Set the working directory
-WORKDIR $GOPATH/src/github.com/diggerhq/digger
+# Set the working directory inside the container
+WORKDIR /go/src/github.com/diggerhq/digger
 
-# Copy all required source, blacklist files that are not required through `.dockerignore`
+# Copy all source files, excluding unnecessary files through `.dockerignore`
 COPY . .
 
-# Get the vendor library
+# Display Go version
 RUN go version
 
-# RUN vgo install
-
-# https://github.com/ethereum/go-ethereum/issues/2738
-# Build static binary "-getmode=vendor" does not work with go-ethereum
-
+# Build the Go application, embedding the commit SHA in the binary
 RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o backend_exe ./backend/
 
-# Multi-stage build will just copy the binary to an alpine image.
-FROM ubuntu:24.04 as runner
+# Stage 2: Prepare runtime environment using a slim Ubuntu image
+FROM ubuntu:24.04-slim as runner
+
+# Environment variable for Atlas version
 ENV ATLAS_VERSION v0.16.0
+# ARG for commit SHA for consistency, though not really necessary here
 ARG COMMIT_SHA
+
+# Set the working directory inside the runner container
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y ca-certificates curl && apt-get install -y git && apt-get clean all
-RUN update-ca-certificates
+# Install necessary dependencies (combine into one RUN for fewer layers)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates curl git && \
+    rm -rf /var/lib/apt/lists/* && \
+    update-ca-certificates
 
-RUN echo "commit sha: ${COMMIT_SHA}"
+# Output commit SHA for debugging
+RUN echo "Commit SHA: ${COMMIT_SHA}"
 
-# install atlas
+# Install Atlas
 RUN curl -sSf https://atlasgo.sh | sh
 
-
-
-# Set gin to production
-#ENV GIN_MODE=release
-
-# Expose the running port
+# Expose port 3000
 EXPOSE 3000
 
-# Copy the binary to the corresponding folder
+# Copy the built Go binary and other necessary files from the build stage
 COPY --from=builder /go/src/github.com/diggerhq/digger/backend_exe /app/backend
 COPY --from=builder /go/src/github.com/diggerhq/digger/backend/scripts/entrypoint.sh /app/entrypoint.sh
 COPY --from=builder /go/src/github.com/diggerhq/digger/backend/migrations /app/migrations
-ADD backend/templates ./templates
+ADD backend/templates /app/templates
 
-# Run the binary
+# Ensure the entrypoint script is executable
+RUN chmod +x /app/entrypoint.sh
+
+# Run the entrypoint script to start the application
 ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
