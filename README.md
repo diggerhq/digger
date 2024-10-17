@@ -1,9 +1,9 @@
 <img width="1470" alt="digger-opensource-gitops-banner" src="https://github.com/diggerhq/digger/assets/1280498/7fb44db3-38ca-4021-8714-87a2f1a14982">
 
 <h2 align="center">
-  <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Community Slack</a> |
+  <a href="https://bit.ly/diggercommunity">Community Slack</a> |
   <a href="https://calendly.com/diggerdev/diggerdemo">Schedule a call</a> |
-  <a href="https://www.loom.com/share/51f27994d95f4dc5bb6eea579e1fa8dc?sid=403f161a-6c0b-44ac-af57-cc9b56190f64">Demo Video</a> |
+  <a href="https://youtu.be/vPjk3gYSxuE">Demo Video</a> |
   <a href="https://docs.digger.dev/">Docs</a>
 </h2>
 
