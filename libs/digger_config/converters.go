@@ -228,14 +228,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 	projects := copyProjects(diggerYaml.Projects)
 	diggerConfig.Projects = projects
 
-	// update project's workflow if needed
-	for _, project := range diggerConfig.Projects {
-		if project.Workflow == "" {
-			project.Workflow = defaultWorkflowName
-		}
-	}
-
-	// check for project name duplicates
+	// Check for project name duplicates
 	projectNames := make(map[string]bool)
 	for _, project := range diggerConfig.Projects {
 		if projectNames[project.Name] {

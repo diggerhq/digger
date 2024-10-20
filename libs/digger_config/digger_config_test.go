@@ -1231,3 +1231,16 @@ func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	assert.Equal(t, expectedImpactingLocations["prod"].ImpactingLocations, projectSourceMapping["prod"].ImpactingLocations)
 
 }
+
+func TestDiggerConfigDuplicateProjectNames(t *testing.T) {
+	diggerCfg := `
+projects:
+- name: prod
+  dir: path/to/module/test1
+- name: prod
+  dir: path/to/module/test2
+`
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err, "expected error for duplicate project names")
+	assert.Contains(t, err.Error(), "project name 'prod' is duplicated", "error message should mention the duplicate project name")
+}
