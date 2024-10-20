@@ -83,6 +83,8 @@ func main() {
 	r.GET("/github/callback", middleware.SupabaseCookieAuth(), diggerController.GithubAppCallbackPage)
 	r.GET("/github/callback_fe", middleware.WebhookAuth(), diggerController.GithubAppCallbackPage)
 	r.POST("/github-app-webhook", diggerController.GithubAppWebHook)
+	r.GET("/github/setup", controllers.GithubAppSetup)
+	r.GET("/github/exchange-code", diggerController.GithubSetupExchangeCode)
 
 	r.POST("/_internal/process_runs_queue", middleware.WebhookAuth(), diggerController.ProcessRunQueueItems)
 	// process all drift crontabs
