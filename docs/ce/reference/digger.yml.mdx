@@ -232,3 +232,30 @@ You can run plan / apply in a specified project by using the -p option in Github
 ```bash
 digger apply -p my-second-app
 ```
+## Project Name Uniqueness
+
+When defining projects in your `digger.yml` file, it's crucial to ensure that each project has a unique name. Digger relies on project names to organize various resources, including state files. Therefore, maintaining unique project names is an important prerequisite for proper functionality.
+
+Digger automatically checks for duplicate project names when loading the configuration. If any duplicate project names are found, an error will be raised, and the configuration will not be loaded.
+
+For example, the following configuration would result in an error:
+```yml
+projects:
+  - name: my-project
+    dir: ./app1
+  - name: my-project # This will cause an error due to duplicate name
+    dir: ./app2
+```
+
+
+To fix this, ensure each project has a unique name:
+
+```yml
+projects:
+  - name: my-project-app1
+    dir: ./app1
+  - name: my-project-app2
+    dir: ./app2
+```
+This uniqueness check is implemented in the Digger configuration loading process.
+

@@ -2,6 +2,7 @@ package digger_config
 
 import (
 	"errors"
+	"fmt"
 
 	"gopkg.in/yaml.v3"
 )
@@ -273,4 +274,34 @@ func (s *StepYaml) extract(stepMap map[string]interface{}, action string) {
 			}
 		}
 	}
+}
+
+func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) error {
+	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
+		return fmt.Errorf("no projects config found in '%s'", fileName)
+	}
+	if configYaml.DependencyConfiguration != nil {
+		if configYaml.DependencyConfiguration.Mode != DependencyConfigurationHard && configYaml.DependencyConfiguration.Mode != DependencyConfigurationSoft {
+			return fmt.Errorf("dependency config mode can only be '%s' or '%s'", DependencyConfigurationHard, DependencyConfigurationSoft)
+		}
+	}
+
+	if configYaml.GenerateProjectsConfig != nil {
+		if configYaml.GenerateProjectsConfig.Include != "" &&
+			configYaml.GenerateProjectsConfig.Exclude != "" &&
+			len(configYaml.GenerateProjectsConfig.Blocks) != 0 {
+			return fmt.Errorf("if include/exclude patterns are used for project generation, blocks of include/exclude can't be used")
+		}
+	}
+
+	// Check for unique project names
+	projectNames := make(map[string]bool)
+	for _, project := range configYaml.Projects {
+		if projectNames[project.Name] {
+			return fmt.Errorf("duplicate project name '%s' found in '%s'", project.Name, fileName)
+		}
+		projectNames[project.Name] = true
+	}
+
+	return nil
 }
