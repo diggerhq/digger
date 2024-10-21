@@ -175,11 +175,12 @@ workflows:
 
 ### WorkflowConfiguration
 
-| Key                    | Type                                                                    | Default | Required | Description                                                   | Notes |
-| ---------------------- | ----------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------- | ----- |
-| on_pull_request_pushed | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when pull request is pushed             |       |
-| on_pull_request_closed | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when pull request is closed             |       |
-| on_commit_to_default   | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when commit is pushed to default branch |       |
+| Key                    | Type                                                                    | Default | Required | Description                                                          | Notes |
+| ---------------------- | ----------------------------------------------------------------------- | ------- | -------- | -------------------------------------------------------------------- | ----- |
+| on_pull_request_pushed | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when pull request is pushed                    |       |
+| on_pull_request_closed | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when pull request is closed                    |       |
+| on_commit_to_default   | array of enums\[digger plan, digger apply, digger lock, digger unlock\] | \[\]    | no       | list of stages to run when commit is pushed to default branch        |       |
+| skip_merge_check       | boolean                                                                    | false   | no       | Allow a workflow to skip mergeability checks and run digger commands |       |
 
 ### Step
 

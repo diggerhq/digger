@@ -26,6 +26,7 @@ type Job struct {
 	CommandEnvVars     map[string]string
 	StateEnvProvider   *stscreds.WebIdentityRoleProvider
 	CommandEnvProvider *stscreds.WebIdentityRoleProvider
+	SkipMergeCheck	   bool
 }
 
 type Step struct {
