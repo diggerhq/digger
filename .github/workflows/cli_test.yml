@@ -34,7 +34,10 @@ jobs:
         run: |
           go build -v ./cmd/digger
         working-directory: cli
-
+        
       - name: Test
-        run: go test -v ./...
+        shell: bash
+        run: |
+          go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+          go test -json ./... | gotestfmt 
         working-directory: cli
