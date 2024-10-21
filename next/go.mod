@@ -9,7 +9,7 @@ replace github.com/diggerhq/digger/libs => ../libs
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
 	github.com/dchest/uniuri v1.2.0
-	github.com/diggerhq/digger/backend v0.0.0-00010101000000-000000000000
+	github.com/diggerhq/digger/backend v0.0.0-20241021062505-9cd46a2b5de2
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/dominikbraun/graph v0.23.0
 	github.com/getsentry/sentry-go v0.28.1
@@ -20,6 +20,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.46.0
 	github.com/samber/slog-gin v1.13.3
+	github.com/stretchr/testify v1.9.0
 	github.com/supabase-community/supabase-go v0.0.4
 	golang.org/x/oauth2 v0.22.0
 	gorm.io/driver/postgres v1.5.9
@@ -245,7 +246,6 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/supabase-community/functions-go v0.0.0-20220927045802-22373e6cb51d // indirect
 	github.com/supabase-community/gotrue-go v1.2.0 // indirect
