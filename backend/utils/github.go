@@ -212,6 +212,14 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 	return nil
 }
 
+func GetGithubHostname() string {
+	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
+	if githubHostname == "" {
+		githubHostname = "github.com"
+	}
+	return githubHostname
+}
+
 func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
 	timeFilter := time.Now().Add(-5 * time.Minute)
 	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
@@ -219,11 +227,6 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 	})
 	if err != nil {
 		return 0, "#", fmt.Errorf("error listing workflow runs %v", err)
-	}
-
-	githubBaseUrl := os.Getenv("GITHUB_BASE_URL")
-	if (githubBaseUrl == "") {
-		githubBaseUrl = "https://github.com"
 	}
 
 	for _, workflowRun := range runs.WorkflowRuns {
@@ -236,7 +239,7 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
 				if strings.Contains(*step.Name, diggerJobID) {
-					return *workflowRun.ID, fmt.Sprintf("%v/%v/%v/actions/runs/%v", githubBaseUrl, repoOwner, repoName, *workflowRun.ID), nil
+					return *workflowRun.ID, fmt.Sprintf("https://%v/%v/%v/actions/runs/%v", GetGithubHostname(), repoOwner, repoName, *workflowRun.ID), nil
 				}
 			}
 

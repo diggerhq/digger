@@ -6,6 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"reflect"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/locking"
 	"github.com/diggerhq/digger/backend/segment"
@@ -17,15 +27,6 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"log"
-	"math/rand"
-	"net/http"
-	"net/url"
-	"os"
-	"path"
-	"reflect"
-	"strconv"
-	"strings"
 
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
@@ -187,7 +188,7 @@ func GithubAppSetup(c *gin.Context) {
 		},
 	}
 
-	githubHostname := getGithubHostname()
+	githubHostname := utils.GetGithubHostname()
 	url := &url.URL{
 		Scheme: "https",
 		Host:   githubHostname,
@@ -207,14 +208,6 @@ func GithubAppSetup(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "github_setup.tmpl", gin.H{"Target": url.String(), "Manifest": string(jsonManifest)})
-}
-
-func getGithubHostname() string {
-	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
-	if githubHostname == "" {
-		githubHostname = "github.com"
-	}
-	return githubHostname
 }
 
 // GithubSetupExchangeCode handles the user coming back from creating their app
@@ -1248,7 +1241,7 @@ func validateGithubCallback(githubClientProvider utils.GithubClientProvider, cli
 	}
 	httpClient := http.Client{}
 
-	githubHostname := getGithubHostname()
+	githubHostname := utils.GetGithubHostname()
 	reqURL := fmt.Sprintf("https://%v/login/oauth/access_token?client_id=%s&client_secret=%s&code=%s", githubHostname, clientId, clientSecret, code)
 	req, err := http.NewRequest(http.MethodPost, reqURL, nil)
 	if err != nil {
