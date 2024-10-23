@@ -1,4 +1,4 @@
-resource "null_resource" "test15" {}
+resource "null_resource" "test17" {}
 
 #variable "TEST" {
 #  default = "hello"
