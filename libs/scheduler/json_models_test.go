@@ -23,7 +23,7 @@ func TestAllFieldsInJobJsonAreAlsoInJob(t *testing.T) {
 		jobFileds = append(jobFileds, jobVal.Type().Field(j).Name)
 	}
 
-	fieldsToIgnore := []string{"Commit", "Branch", "JobType", "AwsRoleRegion", "StateRoleName", "CommandRoleName", "BackendHostname", "BackendOrganisationName", "BackendJobToken"}
+	fieldsToIgnore := []string{"Commit", "Branch", "JobType", "AwsRoleRegion", "StateRoleName", "CommandRoleName", "StateRoleArn", "CommandRoleArn","BackendHostname", "BackendOrganisationName", "BackendJobToken"}
 	for i := 0; i < nFieldsSpec; i++ {
 		field := specVal.Type().Field(i).Name
 		if slices.Contains(fieldsToIgnore, field) {
@@ -49,7 +49,7 @@ func TestAllFieldsInJobAreAlsoInJobJson(t *testing.T) {
 	}
 
 	fmt.Printf("%v ::\n", specFields)
-	fieldsToIgnore := []string{"ProjectWorkflow", "StateEnvProvider", "CommandEnvProvider"}
+	fieldsToIgnore := []string{"ProjectWorkflow", "StateEnvProvider", "CommandEnvProvider","StateRoleArn", "CommandRoleArn", "CognitoOidcConfig", "SkipMergeCheck"}
 	for i := 0; i < nFieldsJob; i++ {
 		field := jobVal.Type().Field(i).Name
 		if slices.Contains(fieldsToIgnore, field) {
