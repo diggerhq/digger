@@ -4,6 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
+	net "net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/ci"
@@ -13,11 +19,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/v61/github"
-	"log"
-	net "net/http"
-	"os"
-	"strings"
-	"time"
 )
 
 func createTempDir() string {
@@ -220,6 +221,11 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 		return 0, "#", fmt.Errorf("error listing workflow runs %v", err)
 	}
 
+	githubBaseUrl := os.Getenv("GITHUB_BASE_URL")
+	if (githubBaseUrl == "") {
+		githubBaseUrl = "https://github.com"
+	}
+
 	for _, workflowRun := range runs.WorkflowRuns {
 		println(*workflowRun.ID)
 		workflowjobs, _, err := client.Actions.ListWorkflowJobs(context.Background(), repoOwner, repoName, *workflowRun.ID, nil)
@@ -230,7 +236,7 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
 				if strings.Contains(*step.Name, diggerJobID) {
-					return *workflowRun.ID, fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID), nil
+					return *workflowRun.ID, fmt.Sprintf("%v/%v/%v/actions/runs/%v", githubBaseUrl, repoOwner, repoName, *workflowRun.ID), nil
 				}
 			}
 
