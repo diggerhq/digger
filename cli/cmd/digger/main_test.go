@@ -24,6 +24,10 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"bytes"
+	"fmt"
+	"io"
+	"os"
 )
 
 var githubContextNewPullRequestJson = `{
@@ -1028,4 +1032,30 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])
 	assert.NoError(t, err)
+}
+func TestVersionPrinting(t *testing.T) {
+	// Save the original os.Stdout
+	oldStdout := os.Stdout
+
+	// Create a pipe to capture the output
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Call the main function (this will print the version)
+	main()
+
+	// Close the write end of the pipe to flush it
+	w.Close()
+
+	// Restore the original stdout
+	os.Stdout = oldStdout
+
+	// Read the captured output
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	output := buf.String()
+
+	// Check if the output contains the version information
+	assert.Contains(t, output, "Running digger")
+	assert.Contains(t, output, "commit:")
 }

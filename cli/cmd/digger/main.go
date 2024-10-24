@@ -15,6 +15,12 @@ import (
 	"github.com/diggerhq/digger/libs/storage"
 	"log"
 	"os"
+	"github.com/spf13/cobra"
+)
+
+var (
+    version  = "dev"
+    commitID = "unknown"
 )
 
 func exec(actor string, projectName string, repoNamespace string, command string, prNumber int, lock core_locking.Lock, policyChecker core_policy.Checker, prService ci.PullRequestService, orgService ci.OrgService, reporter reporting.Reporter, backendApi core_backend.Api) {
@@ -75,6 +81,15 @@ func main() {
 		usage.ReportErrorAndExit("", fmt.Sprintf("Error occured during command exec: %v", err), 8)
 	}
 
+	fmt.Printf("Running digger %s (commit: %s)\n", version, commitID)
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of Digger",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("Running digger %s (commit: %s)\n", version, commitID)
+		},
+	}
+	rootCmd.AddCommand(versionCmd)
 }
 
 func getImpactedProjectsAsString(projects []digger_config.Project, prNumber int) string {
