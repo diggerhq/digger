@@ -55,6 +55,7 @@ type WorkflowConfiguration struct {
 	OnPullRequestClosed           []string
 	OnPullRequestConvertedToDraft []string
 	OnCommitToDefault             []string
+	SkipMergeCheck				  bool
 }
 
 type TerraformEnvConfig struct {
@@ -86,6 +87,7 @@ func defaultWorkflow() *Workflow {
 			OnPullRequestPushed:           []string{"digger plan"},
 			OnPullRequestConvertedToDraft: []string{},
 			OnPullRequestClosed:           []string{"digger unlock"},
+			SkipMergeCheck: 			  false,
 		},
 		Plan: &Stage{
 			Steps: []Step{

@@ -358,9 +358,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			msg := fmt.Sprintf("Failed to check if PR is mergeable. %v", err)
 			return nil, msg, fmt.Errorf(msg)
 		}
-		log.Printf("PR status, mergeable: %v, merged: %v\n", isMergeable, isMerged)
-		if !isMergeable && !isMerged {
+		log.Printf("PR status, mergeable: %v, merged: %v and skipMergeCheck %v\n", isMergeable, isMerged, job.SkipMergeCheck)
+		if !isMergeable && !isMerged && !job.SkipMergeCheck {
 			comment := reportApplyMergeabilityError(reporter)
+			prService.SetStatus(*job.PullRequestNumber, "failure", job.ProjectName+"/apply")
 
 			return nil, comment, fmt.Errorf(comment)
 		} else {
@@ -633,7 +634,7 @@ func RunJob(
 				return fmt.Errorf(msg)
 			}
 			planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, planJsonOutput)
-			log.Printf(strings.Join(messages, "\n"))
+			log.Print(strings.Join(messages, "\n"))
 			if err != nil {
 				msg := fmt.Sprintf("Failed to validate plan %v", err)
 				log.Printf(msg)
