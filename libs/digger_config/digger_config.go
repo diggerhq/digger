@@ -358,6 +358,7 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 		}
 	}
 
+
 	return configYaml, nil
 }
 

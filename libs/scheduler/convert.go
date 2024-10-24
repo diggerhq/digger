@@ -16,6 +16,13 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			return nil, true, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 		}
 
+		var skipMerge bool
+		if workflow.Configuration != nil {
+			skipMerge = workflow.Configuration.SkipMergeCheck
+		} else {
+			skipMerge = false
+		}
+
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
 		StateEnvProvider, CommandEnvProvider := GetStateAndCommandProviders(project)
 		jobs = append(jobs, Job{
@@ -37,6 +44,7 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			CommandEnvVars:     commandEnvVars,
 			StateEnvProvider:   StateEnvProvider,
 			CommandEnvProvider: CommandEnvProvider,
+			SkipMergeCheck: 	skipMerge,
 		})
 	}
 	return jobs, true, nil

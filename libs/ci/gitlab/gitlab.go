@@ -357,6 +357,13 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				return nil, true, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 			}
 
+			var skipMerge bool
+			if workflow.Configuration != nil {
+				skipMerge = workflow.Configuration.SkipMergeCheck
+			} else {
+				skipMerge = false
+			}
+
 			stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 			jobs = append(jobs, scheduler.Job{
@@ -376,6 +383,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				CommandEnvVars:     commandEnvVars,
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
+				SkipMergeCheck: 	skipMerge,
 			})
 		}
 		return jobs, true, nil
