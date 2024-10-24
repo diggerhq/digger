@@ -4,6 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
+	net "net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/ci"
@@ -13,11 +19,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/v61/github"
-	"log"
-	net "net/http"
-	"os"
-	"strings"
-	"time"
 )
 
 func createTempDir() string {
@@ -211,6 +212,14 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 	return nil
 }
 
+func GetGithubHostname() string {
+	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
+	if githubHostname == "" {
+		githubHostname = "github.com"
+	}
+	return githubHostname
+}
+
 func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
 	timeFilter := time.Now().Add(-5 * time.Minute)
 	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
@@ -230,7 +239,7 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
 				if strings.Contains(*step.Name, diggerJobID) {
-					return *workflowRun.ID, fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID), nil
+					return *workflowRun.ID, fmt.Sprintf("https://%v/%v/%v/actions/runs/%v", GetGithubHostname(), repoOwner, repoName, *workflowRun.ID), nil
 				}
 			}
 
