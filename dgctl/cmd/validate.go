@@ -17,29 +17,40 @@ import (
 var validateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Validate a digger.yml file",
-	Long:  `Validate a digger.yml file`,
+	Long:  `Validate the structure and contents of a digger.yml file.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		_, configYaml, _, err := digger_config.LoadDiggerConfig("./", true, nil)
+		configPath := "./"
+		log.Printf("Starting validation of digger.yml in path: %s", configPath)
+
+		// Load the Digger config file
+		_, configYaml, _, err := digger_config.LoadDiggerConfig(configPath, true, nil)
 		if err != nil {
-			log.Printf("Invalid digger config file: %v. Exiting.", err)
+			log.Printf("Error loading digger.yml: %v", err)
+			fmt.Fprintf(os.Stderr, "Invalid digger config file: %v\n", err)
 			os.Exit(1)
 		}
-		log.Printf("digger.yml loaded successfully, here is your configuration:")
-		s, _ := json.MarshalIndent(configYaml, "", "\t")
-		fmt.Println(string(s))
+
+		// Log success message
+		log.Printf("digger.yml loaded successfully.")
+
+		// Display the configuration in a pretty JSON format
+		prettyConfig, err := json.MarshalIndent(configYaml, "", "\t")
+		if err != nil {
+			log.Printf("Error formatting digger.yml: %v", err)
+			fmt.Fprintf(os.Stderr, "Error formatting digger config file: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Print the formatted configuration
+		fmt.Println("Configuration:")
+		fmt.Println(string(prettyConfig))
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(validateCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// validateCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// validateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// Optionally define any flags that you want to use with the command here
+	// e.g.:
+	// validateCmd.Flags().StringP("config", "c", "", "Specify custom config file path")
 }
