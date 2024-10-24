@@ -115,6 +115,7 @@ workflows:
 | name                     | string                                               |        | yes      | name of the project                                                | must be unique                                                                                             |
 | dir                      | string                                               |        | yes      | directory containing the project                                   |                                                                                                            |
 | workspace                | string                                               | default | no       | terraform workspace to use                                         |                                                                                                           |
+| opentofu                 | boolean                                              | false   | no       | whether to use opentofu                                            |                                                                                                           |
 | terragrunt               | boolean                                              | false   | no       | whether to use terragrunt                                          |                                                                                                           |
 | workflow                 | string                                               | default | no       | workflow to use                                                    | default workflow will be created for you described in workflow section                                    |
 | include\_patterns        | array of strings                                     | \[\]    | no       | list of directory glob patterns to include, e.g. `./modules`       | see [Include / Exclude Patterns](/ce/howto/include-exclude-patterns)                                         |
@@ -124,10 +125,25 @@ workflows:
 
 ### GenerateProjects
 
-| Key     | Type   | Default | Required | Description                         | Notes |
-| ------- | ------ | ------- | -------- | ----------------------------------- | ----- |
-| include | string |         | no       | glob pattern to include directories |       |
-| exclude | string |         | no       | glob pattern to exclude directories |       |
+| Key     | Type                                               | Default | Required | Description                         | Notes |
+| ------- | -------------------------------------------------- | ------- | -------- | ----------------------------------- | ----- |
+| include | string                                             |         | no       | glob pattern to include directories |       |
+| exclude | string                                             |         | no       | glob pattern to exclude directories |       |
+| blocks  | array of [Block](/ce/reference/digger.yml#block)   | \[\]    | no       | list of blocks to generate projects |       |
+
+### Block
+
+| Key                | Type                                                  | Default | Required | Description                                                   | Notes                                                                  |
+| ------------------ | ----------------------------------------------------- | ------- | -------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| block_name         | string                                                |         | no       | name of the block                                             |                                                                        |
+| workflow           | string                                                | default | no       | workflow to use                                               | default workflow will be created for you described in workflow section |
+| workflow_file      | string                                                |         | no       | name of workflow file for GitHub Actions                      |                                                                        |
+| aws_role_to_assume | [RoleToAssume](/ce/reference/digger.yml#roletoassume) |         | no       | A string representing the AWS role to assume for this project |                                                                        |
+| include            | string                                                |         | no       | glob pattern to include directories                           | only for terraform and opentofu                                        |
+| exclude            | string                                                |         | no       | glob pattern to exclude directories                           | only for terraform and opentofu                                        |
+| opentofu           | boolean                                               | false   | no       | whether to use opentofu                                       | only for opentofu                                                      |
+| terragrunt         | boolean                                               | false   | no       | whether to use terragrunt                                     | only for terragrunt                                                    |
+| root_dir           | string                                                |         | no       | root directory of terragrunt projects                         | only for terragrunt                                                    |
 
 ### Workflows
 
