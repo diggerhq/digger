@@ -142,7 +142,7 @@ func GithubAppSetup(c *gin.Context) {
 		RedirectURL           string            `json:"redirect_url"`
 		CallbackUrls          []string          `json:"callback_urls"`
 		RequestOauthOnInstall bool              `json:"request_oauth_on_install"`
-		SetupOnUpdate         bool              `json:"setup_on_update"'`
+		SetupOnUpdate         bool              `json:"setup_on_update"`
 		URL                   string            `json:"url"`
 		Webhook               *githubWebhook    `json:"hook_attributes"`
 	}
