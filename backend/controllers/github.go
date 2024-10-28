@@ -388,8 +388,13 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) e
 }
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
+	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
+	if err != nil {
+		log.Printf("error getting github app isntallation id: %v", err)
+		return fmt.Errorf("error getting github app installation id")
+	}
+
 	installationId := *payload.Installation.ID
-	appId := *payload.Installation.AppID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
 	repoFullName := *payload.Repo.FullName

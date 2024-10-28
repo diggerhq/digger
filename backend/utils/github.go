@@ -53,6 +53,7 @@ func CloneGitRepoAndDoAction(repoUrl string, branch string, token string, action
 		return err
 	}
 	defer func() {
+		log.Printf("removing cloned directory")
 		ferr := os.RemoveAll(dir)
 		log.Printf("WARN: removal of dir %v failed: %v", dir, ferr)
 	}()
