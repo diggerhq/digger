@@ -29,6 +29,7 @@ textarea.prism-live {
     resize: none;
     --selection-background: hsl(320, 80%, 25%);
     --selection-color: hsla(0, 0%, 100%, .8);
+    transition: background-color 0.3s ease;
 }
 
 @supports (not (caret-color: black)) and (-webkit-text-fill-color: black) {
@@ -50,6 +51,10 @@ textarea.prism-live::selection {
     color: var(--selection-color);
 }
 
+textarea.prism-live:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 pre.prism-live {
     flex: 1;
     position: relative;
@@ -59,8 +64,19 @@ pre.prism-live {
     --scrollbar-width: 17px;
     padding-bottom: var(--scrollbar-width);
     padding-right: var(--scrollbar-width);
+    scrollbar-width: thin;
+    scrollbar-color: hsl(200, 50%, 50%) transparent;
 }
 
 pre.prism-live > code:empty::before {
     content: " "
+}
+
+pre.prism-live::-webkit-scrollbar {
+    width: 8px;
+}
+
+pre.prism-live::-webkit-scrollbar-thumb {
+    background-color: hsl(200, 50%, 50%);
+    border-radius: 4px;
 }
