@@ -6,42 +6,33 @@ https://prismjs.com/download.html#themes=prism&languages=markup+css+clike+javasc
  * @author Lea Verou
  */
 
+/* General code styles */
 code[class*="language-"],
 pre[class*="language-"] {
+	/* Improved readability */
 	color: black;
 	background: none;
 	text-shadow: 0 1px white;
 	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
 	font-size: 1em;
-	text-align: left;
+	line-height: 1.5;
 	white-space: pre;
 	word-spacing: normal;
 	word-break: normal;
 	word-wrap: normal;
-	line-height: 1.5;
 
-	-moz-tab-size: 4;
-	-o-tab-size: 4;
+	/* Tab size */
 	tab-size: 4;
-
-	-webkit-hyphens: none;
-	-moz-hyphens: none;
-	-ms-hyphens: none;
-	hyphens: none;
 }
 
+/* Selection styles */
 pre[class*="language-"]::-moz-selection, pre[class*="language-"] ::-moz-selection,
 code[class*="language-"]::-moz-selection, code[class*="language-"] ::-moz-selection {
 	text-shadow: none;
-	background: #b3d4fc;
+	background: #b3d4fc; /* Highlight color */
 }
 
-pre[class*="language-"]::selection, pre[class*="language-"] ::selection,
-code[class*="language-"]::selection, code[class*="language-"] ::selection {
-	text-shadow: none;
-	background: #b3d4fc;
-}
-
+/* Print styles */
 @media print {
 	code[class*="language-"],
 	pre[class*="language-"] {
@@ -54,11 +45,7 @@ pre[class*="language-"] {
 	padding: 1em;
 	margin: .5em 0;
 	overflow: auto;
-}
-
-:not(pre) > code[class*="language-"],
-pre[class*="language-"] {
-	background: #f5f2f0;
+	background: #f5f2f0; /* Background for code blocks */
 }
 
 /* Inline code */
@@ -68,6 +55,7 @@ pre[class*="language-"] {
 	white-space: normal;
 }
 
+/* Token styles */
 .token.comment,
 .token.prolog,
 .token.doctype,
@@ -108,8 +96,7 @@ pre[class*="language-"] {
 .language-css .token.string,
 .style .token.string {
 	color: #9a6e3a;
-	/* This background color was intended by the author of this theme. */
-	background: hsla(0, 0%, 100%, .5);
+	background: hsla(0, 0%, 100%, .5); /* Background for certain tokens */
 }
 
 .token.atrule,
@@ -133,6 +120,7 @@ pre[class*="language-"] {
 .token.bold {
 	font-weight: bold;
 }
+
 .token.italic {
 	font-style: italic;
 }
@@ -140,4 +128,3 @@ pre[class*="language-"] {
 .token.entity {
 	cursor: help;
 }
-
