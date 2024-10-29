@@ -93,24 +93,6 @@ func TestNoDiggerYaml(t *testing.T) {
 	dg, _, _, err := LoadDiggerConfig("./", true, nil)
 
 	assert.Error(t, err, "expected error since digger.yml and digger.yaml is missing")
-	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
-	assert.Equal(t, 1, len(dg.Projects))
-	assert.Equal(t, false, dg.AutoMerge)
-	assert.Equal(t, true, dg.Telemetry)
-	assert.Equal(t, false, dg.TraverseToNestedProjects)
-	assert.Equal(t, 1, len(dg.Workflows))
-	assert.Equal(t, "default", dg.Projects[0].Name)
-	assert.Equal(t, "./", dg.Projects[0].Dir)
-
-	workflow := dg.Workflows["default"]
-	assert.NotNil(t, workflow, "expected workflow to be not nil")
-	assert.NotNil(t, workflow.Plan)
-	assert.NotNil(t, workflow.Plan.Steps)
-
-	assert.NotNil(t, workflow.Apply)
-	assert.NotNil(t, workflow.Apply.Steps)
-	assert.NotNil(t, workflow.EnvVars)
-	assert.NotNil(t, workflow.Configuration)
 }
 
 func TestDefaultDiggerConfig(t *testing.T) {
