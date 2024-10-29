@@ -92,7 +92,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	os.Chdir(tempDir)
 	dg, _, _, err := LoadDiggerConfig("./", true, nil)
 
-	assert.NoError(t, err, "expected error to be nil")
+	assert.Error(t, err, "expected error since digger.yml and digger.yaml is missing")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, 1, len(dg.Projects))
 	assert.Equal(t, false, dg.AutoMerge)
