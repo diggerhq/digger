@@ -52,7 +52,13 @@ func CloneGitRepoAndDoAction(repoUrl string, branch string, token string, action
 		log.Printf("PlainClone error: %v\n", err)
 		return err
 	}
-	defer os.RemoveAll(dir)
+	defer func() {
+		log.Printf("removing cloned directory %v", dir)
+		ferr := os.RemoveAll(dir)
+		if ferr != nil {
+			log.Printf("WARN: removal of dir %v failed: %v", dir, ferr)
+		}
+	}()
 
 	err = action(dir)
 	if err != nil {
