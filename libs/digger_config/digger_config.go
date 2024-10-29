@@ -274,17 +274,16 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 							DefaultWorkflow:   workflow,
 							WorkflowFile:      b.WorkflowFile,
 							FilterPath:        path.Join(terraformDir, *b.RootDir),
-						};						
+						}
 
-						// allow blocks to pass in roles that can be assummed by aws 					
+						// allow blocks to pass in roles that can be assummed by aws
 						tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
-						
 
 						err := hydrateDiggerConfigYamlWithTerragrunt(config, tgParsingConfig, terraformDir)
 						if err != nil {
 							return err
 						}
-						
+
 					}
 				} else {
 					includePatterns = []string{b.Include}
@@ -325,16 +324,7 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 	}
 
 	if fileName == "" {
-		configYaml, err = AutoDetectDiggerConfig(workingDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to auto detect digger digger_config: %v", err)
-		}
-		marshalledConfig, err := yaml.Marshal(configYaml)
-		if err != nil {
-			log.Printf("failed to marshal auto detected digger digger_config: %v", err)
-		} else {
-			log.Printf("Auto detected digger digger_config: \n%v", string(marshalledConfig))
-		}
+		return nil, fmt.Errorf("could not fimd digger.yml or digger.yaml in root of repository")
 	} else {
 		data, err := os.ReadFile(fileName)
 		if err != nil {
@@ -357,7 +347,6 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 			return configYaml, err
 		}
 	}
-
 
 	return configYaml, nil
 }
@@ -512,64 +501,6 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		})
 	}
 	return nil
-}
-
-func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
-	configYaml := &DiggerConfigYaml{}
-	telemetry := true
-	configYaml.Telemetry = &telemetry
-
-	TraverseToNestedProjects := false
-	configYaml.TraverseToNestedProjects = &TraverseToNestedProjects
-
-	AllowDraftPRs := false
-	configYaml.AllowDraftPRs = &AllowDraftPRs
-
-	terragruntDirWalker := &FileSystemTerragruntDirWalker{}
-	terraformDirWalker := &FileSystemTopLevelTerraformDirWalker{}
-	moduleDirWalker := &FileSystemModuleDirWalker{}
-
-	terragruntDirs, err := terragruntDirWalker.GetDirs(workingDir, configYaml)
-
-	if err != nil {
-		return nil, err
-	}
-
-	terraformDirs, err := terraformDirWalker.GetDirs(workingDir, configYaml)
-	if err != nil {
-		return nil, err
-	}
-
-	moduleDirs, err := moduleDirWalker.GetDirs(workingDir, configYaml)
-
-	var modulePatterns []string
-	for _, dir := range moduleDirs {
-		modulePatterns = append(modulePatterns, dir+"/**")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	if len(terragruntDirs) > 0 {
-		configYaml.GenerateProjectsConfig = &GenerateProjectsConfigYaml{
-			Terragrunt: true,
-		}
-		return configYaml, nil
-	} else if len(terraformDirs) > 0 {
-		for _, dir := range terraformDirs {
-			var projectName string
-			if dir == "./" {
-				projectName = "default"
-			} else {
-				projectName = strings.ReplaceAll(dir, "/", "_")
-			}
-			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
-			configYaml.Projects = append(configYaml.Projects, &project)
-		}
-		return configYaml, nil
-	} else {
-		return nil, fmt.Errorf("no terragrunt or terraform project detected in the repository")
-	}
 }
 
 func (c *DiggerConfig) GetProject(projectName string) *Project {
