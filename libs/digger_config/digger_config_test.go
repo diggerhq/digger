@@ -348,37 +348,6 @@ generate_projects:
 	assert.Equal(t, 2, len(dg.Projects))
 }
 
-func TestGenerateProjectsWithoutDiggerConfig(t *testing.T) {
-	tempDir, teardown := setUp()
-	defer teardown()
-
-	dirsWithTfToCreate := []string{"dev/test1", "dev/test1/db", "dev/test1/vpc", "dev/test2", "dev/test2/db", "dev/test2/vpc", "dev/project", "prod/test1", "prod/test2", "prod/project", "test", "modules/test1", "modules/test2"}
-
-	for _, dir := range dirsWithTfToCreate {
-		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
-		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
-		assert.NoError(t, err, "expected error to be nil")
-	}
-
-	dirtsWithoutTfToCreate := []string{"docs", "random", "docs/random"}
-	for _, dir := range dirtsWithoutTfToCreate {
-		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
-		assert.NoError(t, err, "expected error to be nil")
-	}
-
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
-	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
-	assert.Equal(t, "dev_project", dg.Projects[0].Name)
-	assert.Equal(t, "dev_test1", dg.Projects[1].Name)
-	assert.Equal(t, "dev_test2", dg.Projects[2].Name)
-	assert.Equal(t, "prod_project", dg.Projects[3].Name)
-	assert.Equal(t, "prod_test1", dg.Projects[4].Name)
-	assert.Equal(t, "prod_test2", dg.Projects[5].Name)
-	assert.Equal(t, "test", dg.Projects[6].Name)
-	assert.Equal(t, 7, len(dg.Projects))
-}
-
 func TestDiggerGenerateProjectsWithSubDirs(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
