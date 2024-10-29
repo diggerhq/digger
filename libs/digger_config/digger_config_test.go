@@ -90,27 +90,8 @@ func TestNoDiggerYaml(t *testing.T) {
 	defer deleteFile()
 
 	os.Chdir(tempDir)
-	dg, _, _, err := LoadDiggerConfig("./", true, nil)
-
-	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
-	assert.Equal(t, 1, len(dg.Projects))
-	assert.Equal(t, false, dg.AutoMerge)
-	assert.Equal(t, true, dg.Telemetry)
-	assert.Equal(t, false, dg.TraverseToNestedProjects)
-	assert.Equal(t, 1, len(dg.Workflows))
-	assert.Equal(t, "default", dg.Projects[0].Name)
-	assert.Equal(t, "./", dg.Projects[0].Dir)
-
-	workflow := dg.Workflows["default"]
-	assert.NotNil(t, workflow, "expected workflow to be not nil")
-	assert.NotNil(t, workflow.Plan)
-	assert.NotNil(t, workflow.Plan.Steps)
-
-	assert.NotNil(t, workflow.Apply)
-	assert.NotNil(t, workflow.Apply.Steps)
-	assert.NotNil(t, workflow.EnvVars)
-	assert.NotNil(t, workflow.Configuration)
+	_, _, _, err := LoadDiggerConfig("./", true, nil)
+	assert.Error(t, err, "expected error since digger.yml and digger.yaml is missing")
 }
 
 func TestDefaultDiggerConfig(t *testing.T) {
@@ -367,37 +348,6 @@ generate_projects:
 	assert.Equal(t, 2, len(dg.Projects))
 }
 
-func TestGenerateProjectsWithoutDiggerConfig(t *testing.T) {
-	tempDir, teardown := setUp()
-	defer teardown()
-
-	dirsWithTfToCreate := []string{"dev/test1", "dev/test1/db", "dev/test1/vpc", "dev/test2", "dev/test2/db", "dev/test2/vpc", "dev/project", "prod/test1", "prod/test2", "prod/project", "test", "modules/test1", "modules/test2"}
-
-	for _, dir := range dirsWithTfToCreate {
-		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
-		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
-		assert.NoError(t, err, "expected error to be nil")
-	}
-
-	dirtsWithoutTfToCreate := []string{"docs", "random", "docs/random"}
-	for _, dir := range dirtsWithoutTfToCreate {
-		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
-		assert.NoError(t, err, "expected error to be nil")
-	}
-
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
-	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
-	assert.Equal(t, "dev_project", dg.Projects[0].Name)
-	assert.Equal(t, "dev_test1", dg.Projects[1].Name)
-	assert.Equal(t, "dev_test2", dg.Projects[2].Name)
-	assert.Equal(t, "prod_project", dg.Projects[3].Name)
-	assert.Equal(t, "prod_test1", dg.Projects[4].Name)
-	assert.Equal(t, "prod_test2", dg.Projects[5].Name)
-	assert.Equal(t, "test", dg.Projects[6].Name)
-	assert.Equal(t, 7, len(dg.Projects))
-}
-
 func TestDiggerGenerateProjectsWithSubDirs(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
@@ -429,28 +379,6 @@ generate_projects:
 	assert.Equal(t, "dev/test1/utils", dg.Projects[0].Dir)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, 2, len(dg.Projects))
-}
-
-// A .tfvars file should not be recognised as .tf and break parsing for projects nested deeper
-// Issue: https://github.com/diggerhq/digger/issues/887
-func TestDiggerGenerateProjectsWithTfvars(t *testing.T) {
-	tempDir, teardown := setUp()
-	defer teardown()
-
-	dirsWithTfToCreate := []string{"dev/us-east-1"}
-
-	for _, dir := range dirsWithTfToCreate {
-		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
-		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
-		assert.NoError(t, err, "expected error to be nil")
-	}
-
-	defer createFile(path.Join(tempDir, "dev", "blank.tfvars"), "")()
-
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
-	assert.NoError(t, err, "expected error to be nil")
-	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
-	assert.Equal(t, 1, len(dg.Projects))
 }
 
 func TestDiggerGenerateProjectsIgnoreSubdirs(t *testing.T) {
