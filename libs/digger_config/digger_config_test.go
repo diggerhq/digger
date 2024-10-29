@@ -90,8 +90,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	defer deleteFile()
 
 	os.Chdir(tempDir)
-	dg, _, _, err := LoadDiggerConfig("./", true, nil)
-
+	_, _, _, err := LoadDiggerConfig("./", true, nil)
 	assert.Error(t, err, "expected error since digger.yml and digger.yaml is missing")
 }
 
