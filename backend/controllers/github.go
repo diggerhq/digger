@@ -111,14 +111,6 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-	case *github.PushEvent:
-		log.Printf("Got push event for %d", event.Repo.URL)
-		err := handlePushEvent(gh, event)
-		if err != nil {
-			log.Printf("handlePushEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
 	default:
 		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
 	}
@@ -328,62 +320,6 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 			return err
 		}
 	}
-	return nil
-}
-
-func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) error {
-	installationId := *payload.Installation.ID
-	repoName := *payload.Repo.Name
-	repoFullName := *payload.Repo.FullName
-	repoOwner := *payload.Repo.Owner.Login
-	cloneURL := *payload.Repo.CloneURL
-	ref := *payload.Ref
-	defaultBranch := *payload.Repo.DefaultBranch
-
-	link, err := models.DB.GetGithubAppInstallationLink(installationId)
-	if err != nil {
-		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
-		return fmt.Errorf("error getting github app link")
-	}
-
-	orgId := link.OrganisationId
-	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
-	repo, err := models.DB.GetRepo(orgId, diggerRepoName)
-	if err != nil {
-		log.Printf("Error getting Repo: %v", err)
-		return fmt.Errorf("error getting github app link")
-	}
-	if repo == nil {
-		log.Printf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-		return fmt.Errorf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-	}
-
-	_, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
-	if err != nil {
-		log.Printf("Error getting github service: %v", err)
-		return fmt.Errorf("error getting github service")
-	}
-
-	var isMainBranch bool
-	if strings.HasSuffix(ref, defaultBranch) {
-		isMainBranch = true
-	} else {
-		isMainBranch = false
-	}
-
-	err = utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
-		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
-		if err != nil {
-			log.Printf("ERROR load digger.yml: %v", err)
-			return fmt.Errorf("error loading digger.yml %v", err)
-		}
-		models.DB.UpdateRepoDiggerConfig(link.OrganisationId, *config, repo, isMainBranch)
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error while cloning repo: %v", err)
-	}
-
 	return nil
 }
 
@@ -707,7 +643,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		log.Printf("error getting github app isntallation id: %v", err)
 		return fmt.Errorf("error getting github app installation id")
 	}
-	
+
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
