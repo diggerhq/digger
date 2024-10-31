@@ -8,6 +8,8 @@ import (
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/utils"
+	"os"
+	"path/filepath"
 )
 
 //go:embed templates
