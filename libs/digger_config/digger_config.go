@@ -372,7 +372,52 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 	return nil
 }
 
+func checkThatOnlyOneIacSpecifiedPerProject(project *Project) error {
+	nOfIac := 0
+	if project.Terragrunt {
+		nOfIac++
+	}
+	if project.OpenTofu {
+		nOfIac++
+	}
+	if project.Pulumi {
+		nOfIac++
+	}
+	if nOfIac > 1 {
+		return fmt.Errorf("project %v has more than one IAC defined, please specify one of terragrunt or pulumi or opentofu", project.Name)
+	}
+	return nil
+}
+
+func validatePulumiProject(project *Project) error {
+	if project.Pulumi {
+		if project.PulumiStack == "" {
+			return fmt.Errorf("for pulumi project %v you must specify a pulumi stack", project.Name)
+		}
+	}
+	return nil
+}
+func ValidateProjects(config *DiggerConfig) error {
+	projects := config.Projects
+	for _, project := range projects {
+		err := checkThatOnlyOneIacSpecifiedPerProject(&project)
+		if err != nil {
+			return err
+		}
+
+		err = validatePulumiProject(&project)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func ValidateDiggerConfig(config *DiggerConfig) error {
+	err := ValidateProjects(config)
+	if err != nil {
+		return err
+	}
 
 	if config.CommentRenderMode != CommentRenderModeBasic && config.CommentRenderMode != CommentRenderModeGroupByModule {
 		return fmt.Errorf("invalid value for comment_render_mode, %v expecting %v, %v", config.CommentRenderMode, CommentRenderModeBasic, CommentRenderModeGroupByModule)

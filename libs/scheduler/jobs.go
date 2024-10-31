@@ -14,6 +14,7 @@ type Job struct {
 	ProjectWorkflow    string
 	Terragrunt         bool
 	OpenTofu           bool
+	Pulumi             bool
 	Commands           []string
 	ApplyStage         *Stage
 	PlanStage          *Stage
@@ -26,7 +27,7 @@ type Job struct {
 	CommandEnvVars     map[string]string
 	StateEnvProvider   *stscreds.WebIdentityRoleProvider
 	CommandEnvProvider *stscreds.WebIdentityRoleProvider
-	SkipMergeCheck	   bool
+	SkipMergeCheck     bool
 }
 
 type Step struct {

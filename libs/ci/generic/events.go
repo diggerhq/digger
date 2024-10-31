@@ -165,6 +165,7 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			ProjectWorkflow:    project.Workflow,
 			Terragrunt:         project.Terragrunt,
 			OpenTofu:           project.OpenTofu,
+			Pulumi:             project.Pulumi,
 			Commands:           []string{command},
 			ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 			PlanStage:          scheduler.ToConfigStage(workflow.Plan),

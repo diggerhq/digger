@@ -372,6 +372,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				ProjectWorkspace:   project.Workspace,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnPullRequestPushed,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -383,7 +384,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				CommandEnvVars:     commandEnvVars,
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
-				SkipMergeCheck: 	skipMerge,
+				SkipMergeCheck:     skipMerge,
 			})
 		}
 		return jobs, true, nil
@@ -416,6 +417,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 				ProjectWorkspace:   project.Workspace,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnPullRequestClosed,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -471,6 +473,8 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 						ProjectWorkspace:   workspace,
 						Terragrunt:         project.Terragrunt,
 						OpenTofu:           project.OpenTofu,
+						Pulumi:             project.Pulumi,
+						Pulumi:             project.Pulumi,
 						Commands:           []string{command},
 						ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 						PlanStage:          scheduler.ToConfigStage(workflow.Plan),
