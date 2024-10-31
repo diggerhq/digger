@@ -57,6 +57,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.Workspace,
 			p.Terragrunt,
 			p.OpenTofu,
+			p.Pulumi,
 			p.Workflow,
 			workflowFile,
 			p.IncludePatterns,
@@ -65,6 +66,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			driftDetection,
 			roleToAssume,
 			p.Generated,
+			p.PulumiStack,
 		}
 		result[i] = item
 	}
