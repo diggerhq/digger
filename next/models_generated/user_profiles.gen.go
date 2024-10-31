@@ -32,6 +32,12 @@ func newUserProfile(db *gorm.DB, opts ...gen.DOOption) userProfile {
 	_userProfile.AvatarURL = field.NewString(tableName, "avatar_url")
 	_userProfile.CreatedAt = field.NewTime(tableName, "created_at")
 	_userProfile.UserName = field.NewString(tableName, "user_name")
+	_userProfile.Email = field.NewString(tableName, "email")
+	_userProfile.HasAcceptedTerms = field.NewBool(tableName, "has_accepted_terms")
+	_userProfile.HasCompletedProfile = field.NewBool(tableName, "has_completed_profile")
+	_userProfile.HasCreatedOrganization = field.NewBool(tableName, "has_created_organization")
+	_userProfile.IsCreatedThroughOrgInvitation = field.NewBool(tableName, "is_created_through_org_invitation")
+	_userProfile.DefaultOrganization = field.NewString(tableName, "default_organization")
 
 	_userProfile.fillFieldMap()
 
@@ -41,12 +47,18 @@ func newUserProfile(db *gorm.DB, opts ...gen.DOOption) userProfile {
 type userProfile struct {
 	userProfileDo
 
-	ALL       field.Asterisk
-	ID        field.String
-	FullName  field.String
-	AvatarURL field.String
-	CreatedAt field.Time
-	UserName  field.String
+	ALL                           field.Asterisk
+	ID                            field.String
+	FullName                      field.String
+	AvatarURL                     field.String
+	CreatedAt                     field.Time
+	UserName                      field.String
+	Email                         field.String
+	HasAcceptedTerms              field.Bool
+	HasCompletedProfile           field.Bool
+	HasCreatedOrganization        field.Bool
+	IsCreatedThroughOrgInvitation field.Bool
+	DefaultOrganization           field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -68,6 +80,12 @@ func (u *userProfile) updateTableName(table string) *userProfile {
 	u.AvatarURL = field.NewString(table, "avatar_url")
 	u.CreatedAt = field.NewTime(table, "created_at")
 	u.UserName = field.NewString(table, "user_name")
+	u.Email = field.NewString(table, "email")
+	u.HasAcceptedTerms = field.NewBool(table, "has_accepted_terms")
+	u.HasCompletedProfile = field.NewBool(table, "has_completed_profile")
+	u.HasCreatedOrganization = field.NewBool(table, "has_created_organization")
+	u.IsCreatedThroughOrgInvitation = field.NewBool(table, "is_created_through_org_invitation")
+	u.DefaultOrganization = field.NewString(table, "default_organization")
 
 	u.fillFieldMap()
 
@@ -84,12 +102,18 @@ func (u *userProfile) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *userProfile) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 5)
+	u.fieldMap = make(map[string]field.Expr, 11)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["full_name"] = u.FullName
 	u.fieldMap["avatar_url"] = u.AvatarURL
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["user_name"] = u.UserName
+	u.fieldMap["email"] = u.Email
+	u.fieldMap["has_accepted_terms"] = u.HasAcceptedTerms
+	u.fieldMap["has_completed_profile"] = u.HasCompletedProfile
+	u.fieldMap["has_created_organization"] = u.HasCreatedOrganization
+	u.fieldMap["is_created_through_org_invitation"] = u.IsCreatedThroughOrgInvitation
+	u.fieldMap["default_organization"] = u.DefaultOrganization
 }
 
 func (u userProfile) clone(db *gorm.DB) userProfile {
