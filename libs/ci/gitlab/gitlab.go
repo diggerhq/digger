@@ -474,7 +474,6 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 						Terragrunt:         project.Terragrunt,
 						OpenTofu:           project.OpenTofu,
 						Pulumi:             project.Pulumi,
-						Pulumi:             project.Pulumi,
 						Commands:           []string{command},
 						ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 						PlanStage:          scheduler.ToConfigStage(workflow.Plan),
