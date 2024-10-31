@@ -14,6 +14,7 @@ require (
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/dominikbraun/graph v0.23.0
 	github.com/getsentry/sentry-go v0.28.0
+	github.com/gin-contrib/pprof v1.5.0
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-git/go-git/v5 v5.12.0
@@ -113,7 +114,6 @@ require (
 	github.com/creack/pty v1.1.17 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/diggerhq/digger/cli v0.0.0-20240705091808-75187a7aae8e // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dineshba/tf-summarize v0.3.10 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect

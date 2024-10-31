@@ -2,13 +2,19 @@ package bootstrap
 
 import (
 	"embed"
+	"fmt"
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/segment"
+	pprof_gin "github.com/gin-contrib/pprof"
 	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
+	"runtime/pprof"
+
 	"time"
 
 	"github.com/diggerhq/digger/backend/controllers"
@@ -23,6 +29,68 @@ import (
 
 // based on https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
 var Version = "dev"
+
+func setupProfiler(r *gin.Engine) {
+	// Enable pprof endpoints
+	pprof_gin.Register(r)
+
+	// Create profiles directory if it doesn't exist
+	if err := os.MkdirAll("/tmp/profiles", 0755); err != nil {
+		log.Fatalf("Failed to create profiles directory: %v", err)
+	}
+
+	// Start periodic profiling goroutine
+	go periodicProfiling()
+}
+
+func periodicProfiling() {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			// Trigger GC before taking memory profile
+			runtime.GC()
+
+			// Create memory profile
+			timestamp := time.Now().Format("2006-01-02-15-04-05")
+			memProfilePath := filepath.Join("/tmp/profiles", fmt.Sprintf("memory-%s.pprof", timestamp))
+			f, err := os.Create(memProfilePath)
+			if err != nil {
+				log.Printf("Failed to create memory profile: %v", err)
+				continue
+			}
+
+			if err := pprof.WriteHeapProfile(f); err != nil {
+				log.Printf("Failed to write memory profile: %v", err)
+			}
+			f.Close()
+
+			// Cleanup old profiles (keep last 24)
+			cleanupOldProfiles("/tmp/profiles", 168)
+		}
+	}
+}
+
+func cleanupOldProfiles(dir string, keep int) {
+	files, err := filepath.Glob(filepath.Join(dir, "memory-*.pprof"))
+	if err != nil {
+		log.Printf("Failed to list profile files: %v", err)
+		return
+	}
+
+	if len(files) <= keep {
+		return
+	}
+
+	// Sort files by name (which includes timestamp)
+	for i := 0; i < len(files)-keep; i++ {
+		if err := os.Remove(files[i]); err != nil {
+			log.Printf("Failed to remove old profile %s: %v", files[i], err)
+		}
+	}
+}
 
 func Bootstrap(templates embed.FS, diggerController controllers.DiggerController) *gin.Engine {
 	defer segment.CloseClient()
@@ -46,6 +114,11 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	models.ConnectDatabase()
 
 	r := gin.Default()
+
+	if _, exists := os.LookupEnv("DIGGER_PPROF_DEBUG_ENABLED"); exists {
+		setupProfiler(r)
+	}
+
 	// TODO: check "secret"
 	store := gormsessions.NewStore(models.DB.GormDB, true, []byte("secret"))
 
