@@ -7,14 +7,14 @@
   <a href="https://docs.digger.dev/">Docs</a>
 </h2>
 
-CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
+CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialized CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
 
 But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
 
-Digger runs terraform natively in your CI. This is:
+Digger runs Terraform natively in your CI. This is:
 
 - Secure, because cloud access secrets aren't shared with a third-party
-- Cost-effective, because you are not paying for additional compute just to run your terraform
+- Cost-effective, because you are not paying for additional compute just to run your Terraform
 
 ## Features
 
@@ -28,13 +28,13 @@ Digger runs terraform natively in your CI. This is:
 
 ## Getting Started
 
-- [Github Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
-- [Github Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
+- [GitHub Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
+- [GitHub Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
 
 ## How it works
 
 Digger has 2 main components:
-- CLI that runs inside your CI and calls terraform with the right arguments
+- CLI that runs inside your CI and calls Terraform with the right arguments
 - Orchestrator - a minimal backend (that can also be self-hosted) that triggers CI jobs in response to events such as PR comments
 
 Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB + S3 on AWS, equivalents in other cloud providers)
@@ -47,7 +47,7 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 - RBAC and policies via OPA
 - Drift detection
 - Apply-after-merge workflows
-- Web UI (cloud based)
+- Web UI (cloud-based)
 - Read more about differences with Atlantis in our [blog post](https://medium.com/@DiggerHQ/digger-and-atlantis-key-differences-c08029ffe112)
 ​
 ## Compared to Terraform Cloud and other TACOs
