@@ -15,9 +15,6 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/v61/github"
 )
 
@@ -33,25 +30,12 @@ type action func(string) error
 
 func CloneGitRepoAndDoAction(repoUrl string, branch string, token string, action action) error {
 	dir := createTempDir()
-	cloneOptions := git.CloneOptions{
-		URL:           repoUrl,
-		ReferenceName: plumbing.NewBranchReferenceName(branch),
-		Depth:         1,
-		SingleBranch:  true,
-	}
-
-	if token != "" {
-		cloneOptions.Auth = &http.BasicAuth{
-			Username: "x-access-token", // anything except an empty string
-			Password: token,
-		}
-	}
-
-	_, err := git.PlainClone(dir, false, &cloneOptions)
+	git := NewGitShellWithTokenAuth(dir, token)
+	err := git.Clone(repoUrl, branch)
 	if err != nil {
-		log.Printf("PlainClone error: %v\n", err)
 		return err
 	}
+
 	defer func() {
 		log.Printf("removing cloned directory %v", dir)
 		ferr := os.RemoveAll(dir)
