@@ -349,7 +349,7 @@ func (d DiggerExecutor) Apply() (*terraform_utils.TerraformSummary, bool, string
 		if step.Action == "apply" {
 			// TODO: bring it back
 			applyArgs := step.ExtraArgs
-			applyArgs = append(applyArgs, []string{"-lock-timeout=3m"}...)
+			//applyArgs = append(applyArgs, []string{"-lock-timeout=3m"}...)
 
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
