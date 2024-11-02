@@ -227,8 +227,13 @@ func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, s
 			}
 		}
 		if step.Action == "plan" {
-			planArgs := []string{"-out", d.PlanPathProvider.LocalPlanFilePath(), "-lock-timeout=3m"}
+			planArgs := []string{}
+
+			// TODO remove those only for pulumi project
+			//planArgs = append(planArgs, []string{"-out", d.PlanPathProvider.LocalPlanFilePath(), "-lock-timeout=3m"}...)
+
 			planArgs = append(planArgs, step.ExtraArgs...)
+
 			_, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v", err)
@@ -537,7 +542,7 @@ func (d DiggerExecutor) projectId() string {
 // this will log an exit code and error based on the executor of the executor drivers are by filename
 func logCommandFail(exitCode int, err error) {
 
-	_, filename, _, ok := runtime.Caller(1);
+	_, filename, _, ok := runtime.Caller(1)
 	if ok {
 		executor := strings.TrimSuffix(path.Base(filename), path.Ext(filename))
 		log.Printf("Command failed in %v with exit code %v and error %v", executor, exitCode, err)
