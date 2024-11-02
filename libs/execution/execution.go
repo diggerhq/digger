@@ -241,7 +241,10 @@ func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, s
 			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
 			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
 
-			if terraformPlanOutput != "" {
+			// TODO: removal of this if statement
+			if terraformPlanOutput == "" {
+				isEmptyPlan = false
+			} else {
 				isEmptyPlan, planSummary, err = terraform_utils.GetSummaryFromPlanJson(terraformPlanOutput)
 				if err != nil {
 					return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
@@ -255,20 +258,20 @@ func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, s
 					}
 					defer file.Close()
 				}
+			}
 
-				if d.PlanStorage != nil {
+			if d.PlanStorage != nil {
 
-					fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
-					if err != nil {
-						fmt.Println("Error reading file:", err)
-						return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
-					}
+				fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
+				if err != nil {
+					fmt.Println("Error reading file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
+				}
 
-					err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
-					if err != nil {
-						fmt.Println("Error storing artifact file:", err)
-						return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
-					}
+				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
+				if err != nil {
+					fmt.Println("Error storing artifact file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
 				}
 			}
 			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
