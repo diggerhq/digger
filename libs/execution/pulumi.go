@@ -17,7 +17,11 @@ type Pulumi struct {
 
 func (pl Pulumi) Init(params []string, envs map[string]string) (string, string, error) {
 	// TODO: there is no equivalent of "init" in pulumi world, lets do login instead
-	stdout, stderr, _, err := pl.runPululmiCommand("login", true, envs, params...)
+	stdout, stderr, _, err := pl.runPululmiCommand("install", true, envs, params...)
+	if err != nil {
+		return stdout, stderr, err
+	}
+	stdout, stderr, _, err = pl.runPululmiCommand("login", true, envs, params...)
 	return stdout, stderr, err
 }
 
