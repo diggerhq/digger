@@ -52,9 +52,16 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			workflowFile = *p.WorkflowFile
 		}
 
+		workspace := ""
+		if p.Pulumi {
+			workspace = p.PulumiStack
+		} else {
+			workspace = p.Workspace
+		}
+
 		item := Project{p.Name,
 			p.Dir,
-			p.Workspace,
+			workspace,
 			p.Terragrunt,
 			p.OpenTofu,
 			p.Pulumi,
@@ -66,7 +73,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			driftDetection,
 			roleToAssume,
 			p.Generated,
-			p.PulumiStack,
+			workspace,
 		}
 		result[i] = item
 	}
