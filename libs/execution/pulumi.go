@@ -46,7 +46,7 @@ func (pl Pulumi) Plan(params []string, envs map[string]string) (bool, string, st
 
 func (pl Pulumi) Show(params []string, envs map[string]string) (string, string, error) {
 	// TODO: Replace with show command similar to terraform show
-	stdout, stderr := "{}", ""
+	stdout, stderr := "", ""
 	return stdout, stderr, nil
 }
 

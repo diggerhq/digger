@@ -241,18 +241,20 @@ func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, s
 			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
 			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
 
-			isEmptyPlan, planSummary, err = terraform_utils.GetSummaryFromPlanJson(terraformPlanOutput)
-			if err != nil {
-				return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
-			}
-
-			if !isEmptyPlan {
-				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
-				file, err := os.Create(nonEmptyPlanFilepath)
+			if terraformPlanOutput != "" {
+				isEmptyPlan, planSummary, err = terraform_utils.GetSummaryFromPlanJson(terraformPlanOutput)
 				if err != nil {
-					return nil, false, false, "", "", fmt.Errorf("unable to create file: %v", err)
+					return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
 				}
-				defer file.Close()
+
+				if !isEmptyPlan {
+					nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
+					file, err := os.Create(nonEmptyPlanFilepath)
+					if err != nil {
+						return nil, false, false, "", "", fmt.Errorf("unable to create file: %v", err)
+					}
+					defer file.Close()
+				}
 			}
 
 			if err != nil {
