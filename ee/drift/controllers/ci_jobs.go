@@ -17,7 +17,7 @@ type SetJobStatusRequest struct {
 	JobSummary      *iac_utils.IacSummary       `json:"job_summary"`
 	Footprint       *iac_utils.IacPlanFootprint `json:"job_plan_footprint"`
 	PrCommentUrl    string                      `json:"pr_comment_url"`
-	TerraformOutput string                      `json:"terraform_output""`
+	TerraformOutput string                      `json:"terraform_output"`
 }
 
 func (mc MainController) SetJobStatusForProject(c *gin.Context) {
