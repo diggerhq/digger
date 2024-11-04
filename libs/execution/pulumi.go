@@ -35,8 +35,9 @@ func (pl Pulumi) Apply(params []string, plan *string, envs map[string]string) (s
 	return stdout, stderr, err
 }
 
-func (pl Pulumi) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
+func (pl Pulumi) Plan(params []string, envs map[string]string, planArtefactFilePath string) (bool, string, string, error) {
 	pl.selectStack()
+	params = append(params, []string{"--save-plan", planArtefactFilePath}...)
 	stdout, stderr, statusCode, err := pl.runPululmiCommand("preview", true, envs, params...)
 	if err != nil && statusCode != 2 {
 		return false, "", "", err
@@ -44,8 +45,9 @@ func (pl Pulumi) Plan(params []string, envs map[string]string, planJsonFilePath 
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (pl Pulumi) Show(params []string, envs map[string]string, planJsonFilePath string) (string, string, error) {
+func (pl Pulumi) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
 	pl.selectStack()
+	params = append(params, []string{"--plan", planArtefactFilePath}...)
 	params = append(params, []string{"--json"}...)
 	stdout, stderr, statusCode, err := pl.runPululmiCommand("preview", false, envs, params...)
 	if err != nil && statusCode != 2 {

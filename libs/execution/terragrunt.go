@@ -50,9 +50,9 @@ func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (s
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
-	if planJsonFilePath != "" {
-		params = append(params, []string{"-out", planJsonFilePath}...)
+func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planArtefactFilePath string) (bool, string, string, error) {
+	if planArtefactFilePath != "" {
+		params = append(params, []string{"-out", planArtefactFilePath}...)
 	}
 	params = append(params, "-lock-timeout=3m")
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("plan", true, envs, params...)
@@ -63,8 +63,8 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planJ
 	return true, stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planJsonFilePath string) (string, string, error) {
-	params = append(params, []string{"-no-color", "-json", planJsonFilePath}...)
+func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
+	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("show", false, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
