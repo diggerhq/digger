@@ -6,6 +6,7 @@ import (
 	"fmt"
 	tfjson "github.com/hashicorp/terraform-json"
 	"github.com/samber/lo"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -43,6 +44,7 @@ func parsePulumiPlanOutput(terraformJson string) (*tfjson.Plan, error) {
 }
 
 func (tu PulumiUtils) GetSummaryFromPlanJson(planJson string) (bool, *IacSummary, error) {
+	log.Printf("checking plan for json: %v", planJson)
 	var preview PulumiPreview
 	if err := json.Unmarshal([]byte(planJson), &preview); err != nil {
 		return false, &IacSummary{}, err
