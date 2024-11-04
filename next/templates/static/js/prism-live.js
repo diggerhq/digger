@@ -505,7 +505,7 @@
             this.insertText(text);
 
             if (hadSelection) {
-                // By default inserText places the caret at the end, losing any selection
+                // By default insertText places the caret at the end, losing any selection
                 // What we want instead is the replaced text to be selected
                 this.setSelection({start: this.selectionEnd - text.length});
             }
@@ -675,7 +675,7 @@
         }
 
         /**
-         * Get the text node at a given chracter offset
+         * Get the text node at a given character offset
          */
         getNode(offset = this.selectionStart, container = this.code) {
             var node, sum = 0;

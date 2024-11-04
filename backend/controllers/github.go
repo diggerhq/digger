@@ -326,7 +326,7 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
 	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
 	if err != nil {
-		log.Printf("error getting github app isntallation id: %v", err)
+		log.Printf("error getting github app installation id: %v", err)
 		return fmt.Errorf("error getting github app installation id")
 	}
 
@@ -359,9 +359,9 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	if action == "closed" {
 		branchName, _, err := ghService.GetBranchName(prNumber)
 		if err != nil {
-			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not retrive PR details, error: %v", err))
-			log.Printf("Could not retrive PR details error: %v", err)
-			return fmt.Errorf("Could not retrive PR details: %v", err)
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not retrieve PR details, error: %v", err))
+			log.Printf("Could not retrieve PR details error: %v", err)
+			return fmt.Errorf("Could not retrieve PR details: %v", err)
 		}
 		branchExists, err := ghService.CheckBranchExists(branchName)
 		if err != nil {
@@ -409,7 +409,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	if err != nil {
 		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not determine digger command from job: %v", err))
-		return fmt.Errorf("unkown digger command in comment %v", err)
+		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
 
 	if *diggerCommand == orchestrator_scheduler.DiggerCommandNoop {
@@ -541,7 +541,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
-		return fmt.Errorf("error triggerring Digger Jobs")
+		return fmt.Errorf("error triggering Digger Jobs")
 	}
 
 	return nil
@@ -639,7 +639,7 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
 	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
 	if err != nil {
-		log.Printf("error getting github app isntallation id: %v", err)
+		log.Printf("error getting github app installation id: %v", err)
 		return fmt.Errorf("error getting github app installation id")
 	}
 
@@ -709,9 +709,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	diggerCommand, err := orchestrator_scheduler.GetCommandFromComment(*payload.Comment.Body)
 	if err != nil {
-		log.Printf("unkown digger command in comment: %v", *payload.Comment.Body)
+		log.Printf("unknown digger command in comment: %v", *payload.Comment.Body)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Could not recognise comment, error: %v", err))
-		return fmt.Errorf("unkown digger command in comment %v", err)
+		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
 
 	prBranchName, _, err := ghService.GetBranchName(issueNumber)
@@ -860,7 +860,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
-		return fmt.Errorf("error triggerring Digger Jobs")
+		return fmt.Errorf("error triggering Digger Jobs")
 	}
 	return nil
 }
@@ -1028,7 +1028,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 
 	// TODO: Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
 	// create a new org for this installationID
-	// retrive org for current orgID
+	// retrieve org for current orgID
 	installationIdInt64, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {
 		log.Printf("strconv.ParseInt error: %v", err)
@@ -1075,7 +1075,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 
 	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
 	if err != nil {
-		log.Printf("Error retriving github client: %v", err)
+		log.Printf("Error retrieving github client: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		return
 

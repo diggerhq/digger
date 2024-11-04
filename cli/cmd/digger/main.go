@@ -72,7 +72,7 @@ func main() {
 		os.Args = append([]string{os.Args[0]}, "default")
 	}
 	if err := rootCmd.Execute(); err != nil {
-		usage.ReportErrorAndExit("", fmt.Sprintf("Error occured during command exec: %v", err), 8)
+		usage.ReportErrorAndExit("", fmt.Sprintf("Error occurred during command exec: %v", err), 8)
 	}
 
 }

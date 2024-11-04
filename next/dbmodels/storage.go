@@ -1278,7 +1278,7 @@ func (db *Database) UpdateRepoDiggerConfig(orgId string, config configuration.Di
 			projectName := dc.Name
 			p, err := db.GetProjectByName(orgId, repo, projectName)
 			if err != nil {
-				return fmt.Errorf("error retriving project by name: %v", err)
+				return fmt.Errorf("error retrieving project by name: %v", err)
 			}
 			if p == nil {
 				_, err := db.CreateProject(projectName, org, repo, dc.Generated, isMainBranch)

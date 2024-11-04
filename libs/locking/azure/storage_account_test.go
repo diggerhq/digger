@@ -116,7 +116,7 @@ func (suite *SALockTestSuite) TestNewStorageAccountLock_NoAuthMethods() {
 	sal, err := NewStorageAccountLock()
 
 	suite.Nil(sal)
-	suite.Error(err, "expected an error, since no authentication mecanism was provided")
+	suite.Error(err, "expected an error, since no authentication mechanism was provided")
 }
 
 func (suite *SALockTestSuite) TestNewStorageAccountLock_WithSharedKey_MissingAccountName() {

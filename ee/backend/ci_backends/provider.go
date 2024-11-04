@@ -55,5 +55,5 @@ func (b EEBackendProvider) GetCiBackend(options ci_backends.CiBackendOptions) (c
 		ciBackend := &BuildkiteCi{Org: org, Pipeline: pipeline, Client: *buildkite}
 		return ciBackend, nil
 	}
-	return nil, fmt.Errorf("unkown ci system: %v", ciBackendType)
+	return nil, fmt.Errorf("unknown ci system: %v", ciBackendType)
 }

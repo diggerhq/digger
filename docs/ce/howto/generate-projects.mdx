@@ -45,10 +45,10 @@ This will create a project for all sub-directories under environments/core. If s
 
 # Blocks syntax with Terragrunt
 
-You can use blocks generation with terragrunt as well. In order to acheive this all you need to do is specify
+You can use blocks generation with terragrunt as well. In order to achieve this all you need to do is specify
 `terragrunt: true` for each block. Normally you would only have one terragrunt structure and so you will have
 one block entry. However you may be also interested to specify different structure and different parameters
-for different folders. For example, you may have a dev, staging and prod account heirarchy and therefore you
+for different folders. For example, you may have a dev, staging and prod account hierarchy and therefore you
 would specify the blocks in that way. Alternatively maybe you have different providers and you would like to
 specify those different providers as well. Note that for very large terragrunt monorepos segragating by blocks
 will lead to improved performance since it will not unnecessarily traverse an entire tree if no files have been
