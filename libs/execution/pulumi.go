@@ -29,7 +29,7 @@ func (pl Pulumi) Apply(params []string, plan *string, envs map[string]string) (s
 	pl.selectStack()
 	params = append(params, "--yes")
 	if plan != nil {
-		params = append(params, *plan)
+		params = append(params, []string{"--plan", *plan}...)
 	}
 	stdout, stderr, _, err := pl.runPululmiCommand("up", true, envs, params...)
 	return stdout, stderr, err

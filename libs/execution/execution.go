@@ -342,7 +342,6 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 			}
 		}
 		if step.Action == "apply" {
-			// TODO: bring it back
 			applyArgs := step.ExtraArgs
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
