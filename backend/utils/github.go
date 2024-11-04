@@ -4,20 +4,18 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/libs/ci"
-	github2 "github.com/diggerhq/digger/libs/ci/github"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/google/go-github/v61/github"
 	"log"
 	net "net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/bradleyfalzon/ghinstallation/v2"
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/libs/ci"
+	github2 "github.com/diggerhq/digger/libs/ci/github"
+	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/google/go-github/v61/github"
 )
 
 func createTempDir() string {
@@ -32,26 +30,19 @@ type action func(string) error
 
 func CloneGitRepoAndDoAction(repoUrl string, branch string, token string, action action) error {
 	dir := createTempDir()
-	cloneOptions := git.CloneOptions{
-		URL:           repoUrl,
-		ReferenceName: plumbing.NewBranchReferenceName(branch),
-		Depth:         1,
-		SingleBranch:  true,
-	}
-
-	if token != "" {
-		cloneOptions.Auth = &http.BasicAuth{
-			Username: "x-access-token", // anything except an empty string
-			Password: token,
-		}
-	}
-
-	_, err := git.PlainClone(dir, false, &cloneOptions)
+	git := NewGitShellWithTokenAuth(dir, token)
+	err := git.Clone(repoUrl, branch)
 	if err != nil {
-		log.Printf("PlainClone error: %v\n", err)
 		return err
 	}
-	defer os.RemoveAll(dir)
+
+	defer func() {
+		log.Printf("removing cloned directory %v", dir)
+		ferr := os.RemoveAll(dir)
+		if ferr != nil {
+			log.Printf("WARN: removal of dir %v failed: %v", dir, ferr)
+		}
+	}()
 
 	err = action(dir)
 	if err != nil {
@@ -211,6 +202,14 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 	return nil
 }
 
+func GetGithubHostname() string {
+	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
+	if githubHostname == "" {
+		githubHostname = "github.com"
+	}
+	return githubHostname
+}
+
 func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
 	timeFilter := time.Now().Add(-5 * time.Minute)
 	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), repoOwner, repoName, &github.ListWorkflowRunsOptions{
@@ -230,7 +229,7 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 		for _, workflowjob := range workflowjobs.Jobs {
 			for _, step := range workflowjob.Steps {
 				if strings.Contains(*step.Name, diggerJobID) {
-					return *workflowRun.ID, fmt.Sprintf("https://github.com/%v/%v/actions/runs/%v", repoOwner, repoName, *workflowRun.ID), nil
+					return *workflowRun.ID, fmt.Sprintf("https://%v/%v/%v/actions/runs/%v", GetGithubHostname(), repoOwner, repoName, *workflowRun.ID), nil
 				}
 			}
 

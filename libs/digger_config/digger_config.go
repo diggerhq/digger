@@ -283,7 +283,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						if err != nil {
 							return err
 						}
-						
+
 					}
 				} else {
 					includePatterns = []string{b.Include}
@@ -301,6 +301,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								Dir:             dir,
 								Workflow:        workflow,
 								Workspace:       "default",
+								OpenTofu:        b.OpenTofu,
 								AwsRoleToAssume: b.AwsRoleToAssume,
 								Generated:       true,
 								AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
@@ -325,16 +326,7 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 	}
 
 	if fileName == "" {
-		configYaml, err = AutoDetectDiggerConfig(workingDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to auto detect digger digger_config: %v", err)
-		}
-		marshalledConfig, err := yaml.Marshal(configYaml)
-		if err != nil {
-			log.Printf("failed to marshal auto detected digger digger_config: %v", err)
-		} else {
-			log.Printf("Auto detected digger digger_config: \n%v", string(marshalledConfig))
-		}
+		return nil, fmt.Errorf("could not fimd digger.yml or digger.yaml in root of repository")
 	} else {
 		data, err := os.ReadFile(fileName)
 		if err != nil {
@@ -382,7 +374,52 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 	return nil
 }
 
+func checkThatOnlyOneIacSpecifiedPerProject(project *Project) error {
+	nOfIac := 0
+	if project.Terragrunt {
+		nOfIac++
+	}
+	if project.OpenTofu {
+		nOfIac++
+	}
+	if project.Pulumi {
+		nOfIac++
+	}
+	if nOfIac > 1 {
+		return fmt.Errorf("project %v has more than one IAC defined, please specify one of terragrunt or pulumi or opentofu", project.Name)
+	}
+	return nil
+}
+
+func validatePulumiProject(project *Project) error {
+	if project.Pulumi {
+		if project.PulumiStack == "" {
+			return fmt.Errorf("for pulumi project %v you must specify a pulumi stack", project.Name)
+		}
+	}
+	return nil
+}
+func ValidateProjects(config *DiggerConfig) error {
+	projects := config.Projects
+	for _, project := range projects {
+		err := checkThatOnlyOneIacSpecifiedPerProject(&project)
+		if err != nil {
+			return err
+		}
+
+		err = validatePulumiProject(&project)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func ValidateDiggerConfig(config *DiggerConfig) error {
+	err := ValidateProjects(config)
+	if err != nil {
+		return err
+	}
 
 	if config.CommentRenderMode != CommentRenderModeBasic && config.CommentRenderMode != CommentRenderModeGroupByModule {
 		return fmt.Errorf("invalid value for comment_render_mode, %v expecting %v, %v", config.CommentRenderMode, CommentRenderModeBasic, CommentRenderModeGroupByModule)
@@ -512,64 +549,6 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		})
 	}
 	return nil
-}
-
-func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
-	configYaml := &DiggerConfigYaml{}
-	telemetry := true
-	configYaml.Telemetry = &telemetry
-
-	TraverseToNestedProjects := false
-	configYaml.TraverseToNestedProjects = &TraverseToNestedProjects
-
-	AllowDraftPRs := false
-	configYaml.AllowDraftPRs = &AllowDraftPRs
-
-	terragruntDirWalker := &FileSystemTerragruntDirWalker{}
-	terraformDirWalker := &FileSystemTopLevelTerraformDirWalker{}
-	moduleDirWalker := &FileSystemModuleDirWalker{}
-
-	terragruntDirs, err := terragruntDirWalker.GetDirs(workingDir, configYaml)
-
-	if err != nil {
-		return nil, err
-	}
-
-	terraformDirs, err := terraformDirWalker.GetDirs(workingDir, configYaml)
-	if err != nil {
-		return nil, err
-	}
-
-	moduleDirs, err := moduleDirWalker.GetDirs(workingDir, configYaml)
-
-	var modulePatterns []string
-	for _, dir := range moduleDirs {
-		modulePatterns = append(modulePatterns, dir+"/**")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	if len(terragruntDirs) > 0 {
-		configYaml.GenerateProjectsConfig = &GenerateProjectsConfigYaml{
-			Terragrunt: true,
-		}
-		return configYaml, nil
-	} else if len(terraformDirs) > 0 {
-		for _, dir := range terraformDirs {
-			var projectName string
-			if dir == "./" {
-				projectName = "default"
-			} else {
-				projectName = strings.ReplaceAll(dir, "/", "_")
-			}
-			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
-			configYaml.Projects = append(configYaml.Projects, &project)
-		}
-		return configYaml, nil
-	} else {
-		return nil, fmt.Errorf("no terragrunt or terraform project detected in the repository")
-	}
 }
 
 func (c *DiggerConfig) GetProject(projectName string) *Project {

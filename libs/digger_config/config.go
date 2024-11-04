@@ -33,6 +33,7 @@ type Project struct {
 	Workspace          		string
 	Terragrunt         		bool
 	OpenTofu           		bool
+	Pulumi             		bool
 	Workflow           		string
 	WorkflowFile       		string
 	IncludePatterns    		[]string
@@ -42,6 +43,7 @@ type Project struct {
 	AwsRoleToAssume    		*AssumeRoleForProject
 	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig
 	Generated          		bool	
+	PulumiStack        string
 }
 
 type Workflow struct {
@@ -56,6 +58,7 @@ type WorkflowConfiguration struct {
 	OnPullRequestClosed           []string
 	OnPullRequestConvertedToDraft []string
 	OnCommitToDefault             []string
+	SkipMergeCheck                bool
 }
 
 type TerraformEnvConfig struct {
@@ -87,6 +90,7 @@ func defaultWorkflow() *Workflow {
 			OnPullRequestPushed:           []string{"digger plan"},
 			OnPullRequestConvertedToDraft: []string{},
 			OnPullRequestClosed:           []string{"digger unlock"},
+			SkipMergeCheck:                false,
 		},
 		Plan: &Stage{
 			Steps: []Step{

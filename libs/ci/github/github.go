@@ -445,6 +445,13 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 			return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 		}
 
+		var skipMerge bool
+		if workflow.Configuration != nil {
+			skipMerge = workflow.Configuration.SkipMergeCheck
+		} else {
+			skipMerge = false
+		}
+
 		runEnvVars := generic.GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, performEnvVarInterpolation)
@@ -470,6 +477,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				ProjectWorkflow:    project.Workflow,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnCommitToDefault,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -485,6 +493,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				StateRoleArn: 	 	stateRole,	
 				StateEnvProvider:   StateEnvProvider,
 			    CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
+				SkipMergeCheck:     skipMerge,
 			})
 		} else if *payload.Action == "opened" || *payload.Action == "reopened" || *payload.Action == "synchronize" {
 			jobs = append(jobs, scheduler.Job{
@@ -494,6 +503,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				ProjectWorkflow:    project.Workflow,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnPullRequestPushed,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -509,6 +519,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				StateRoleArn: 	 	stateRole,	
 				StateEnvProvider:   StateEnvProvider,
 				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
+				SkipMergeCheck:     skipMerge,
 			})
 		} else if *payload.Action == "closed" {
 			jobs = append(jobs, scheduler.Job{
@@ -518,6 +529,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				ProjectWorkflow:    project.Workflow,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnPullRequestClosed,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -533,6 +545,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				StateRoleArn: 	 	stateRole,	
 				StateEnvProvider:   StateEnvProvider,
 				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
+				SkipMergeCheck:     skipMerge,
 			})
 		} else if *payload.Action == "converted_to_draft" {
 			var commands []string
@@ -549,6 +562,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				ProjectWorkflow:    project.Workflow,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           commands,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -564,6 +578,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				StateRoleArn: 	 	stateRole,	
 				StateEnvProvider:   StateEnvProvider,
 				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
+				SkipMergeCheck:     skipMerge,
 			})
 		}
 

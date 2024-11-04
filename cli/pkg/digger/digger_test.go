@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/execution"
+	"github.com/diggerhq/digger/libs/iac_utils"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"os"
 	"sort"
@@ -55,13 +56,13 @@ func (m *MockTerraformExecutor) Destroy(params []string, envs map[string]string)
 	return "", "", nil
 }
 
-func (m *MockTerraformExecutor) Show(params []string, envs map[string]string) (string, string, error) {
+func (m *MockTerraformExecutor) Show(params []string, envs map[string]string, planJsonFilePath string) (string, string, error) {
 	nonEmptyTerraformPlanJson := "{\"format_version\":\"1.1\",\"terraform_version\":\"1.4.6\",\"planned_values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"triggers\":null},\"sensitive_values\":{}}]}},\"resource_changes\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"no-op\"],\"before\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after_unknown\":{},\"before_sensitive\":{},\"after_sensitive\":{}}},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"create\"],\"before\":null,\"after\":{\"triggers\":null},\"after_unknown\":{\"id\":true},\"before_sensitive\":false,\"after_sensitive\":{}}}],\"prior_state\":{\"format_version\":\"1.0\",\"terraform_version\":\"1.4.6\",\"values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}}]}}},\"configuration\":{\"provider_config\":{\"null\":{\"name\":\"null\",\"full_name\":\"registry.terraform.io/hashicorp/null\"}},\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_config_key\":\"null\",\"schema_version\":0},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_config_key\":\"null\",\"schema_version\":0}]}}}\n"
 	m.Commands = append(m.Commands, RunInfo{"Show", strings.Join(params, " "), time.Now()})
 	return nonEmptyTerraformPlanJson, "", nil
 }
 
-func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Plan", strings.Join(params, " "), time.Now()})
 	return true, "", "", nil
 }
@@ -279,13 +280,14 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 		Reporter:          reporter,
 		PlanStorage:       planStorage,
 		PlanPathProvider:  planPathProvider,
+		IacUtils:          iac_utils.TerraformUtils{},
 	}
 
 	executor.Apply()
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply -lock-timeout=3m", "PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply ", "PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
@@ -368,6 +370,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		Reporter:          reporter,
 		PlanStorage:       planStorage,
 		PlanPathProvider:  planPathProvider,
+		IacUtils:          iac_utils.TerraformUtils{},
 	}
 
 	os.WriteFile(planPathProvider.LocalPlanFilePath(), []byte{123}, 0644)
@@ -377,7 +380,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Init ", "Plan -out plan -lock-timeout=3m", "Show -no-color -json plan", "StorePlanFile plan", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan ", "Show ", "StorePlanFile plan", "Run   echo"}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {

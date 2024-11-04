@@ -106,7 +106,7 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 	})
 	hasDuplicates := len(justNames) != len(lo.Uniq(justNames))
 	if hasDuplicates {
-		return nil, fmt.Errorf("could not load variables due to duplicates: %v", err)
+		return nil, fmt.Errorf("could not load variables due to duplicates")
 	}
 
 	batch := job.Batch

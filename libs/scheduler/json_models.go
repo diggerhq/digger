@@ -26,6 +26,7 @@ type JobJson struct {
 	ProjectWorkspace        string            `json:"projectWorkspace"`
 	Terragrunt              bool              `json:"terragrunt"`
 	OpenTofu                bool              `json:"opentofu"`
+	Pulumi                  bool              `json:"pulumi"`
 	Commands                []string          `json:"commands"`
 	ApplyStage              StageJson         `json:"applyStage"`
 	PlanStage               StageJson         `json:"planStage"`
@@ -45,6 +46,7 @@ type JobJson struct {
 	BackendOrganisationName string            `json:"backend_organisation_hostname"`
 	BackendJobToken         string            `json:"backend_job_token"`
 	CognitoOidcConfig       *cognitoConfig	  `json:"aws_cognito_oidc"` 
+	SkipMergeCheck          bool              `json:"skip_merge_check"`
 }
 
 func (j *JobJson) IsPlan() bool {
@@ -69,6 +71,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 		ProjectDir:              job.ProjectDir,
 		ProjectWorkspace:        job.ProjectWorkspace,
 		OpenTofu:                job.OpenTofu,
+		Pulumi:                  job.Pulumi,
 		Terragrunt:              job.Terragrunt,
 		Commands:                job.Commands,
 		ApplyStage:              stageToJson(job.ApplyStage),
@@ -89,6 +92,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 		BackendJobToken:         jobToken,
 		BackendOrganisationName: organisationName,
 		CognitoOidcConfig:       job.CognitoOidcConfig,
+		SkipMergeCheck:          job.SkipMergeCheck,
 	}
 }
 
@@ -98,6 +102,7 @@ func JsonToJob(jobJson JobJson) Job {
 		ProjectDir:         jobJson.ProjectDir,
 		ProjectWorkspace:   jobJson.ProjectWorkspace,
 		OpenTofu:           jobJson.OpenTofu,
+		Pulumi:             jobJson.Pulumi,
 		Terragrunt:         jobJson.Terragrunt,
 		Commands:           jobJson.Commands,
 		ApplyStage:         jsonToStage(jobJson.ApplyStage),
@@ -112,6 +117,7 @@ func JsonToJob(jobJson JobJson) Job {
 		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName, jobJson.AwsRoleRegion),
 		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName, jobJson.AwsRoleRegion),
 		CognitoOidcConfig:  jobJson.CognitoOidcConfig,
+		SkipMergeCheck:     jobJson.SkipMergeCheck,
 	}
 }
 

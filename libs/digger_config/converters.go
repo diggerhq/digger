@@ -62,11 +62,19 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			workflowFile = *p.WorkflowFile
 		}
 
+		workspace := ""
+		if p.Pulumi {
+			workspace = p.PulumiStack
+		} else {
+			workspace = p.Workspace
+		}
+
 		item := Project{p.Name,
 			p.Dir,
-			p.Workspace,
+			workspace,
 			p.Terragrunt,
 			p.OpenTofu,
+			p.Pulumi,
 			p.Workflow,
 			workflowFile,
 			p.IncludePatterns,
@@ -76,6 +84,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			roleToAssume,
 			awsCognitoOidc,
 			p.Generated,
+			workspace,
 		}
 		result[i] = item
 	}
@@ -132,6 +141,7 @@ func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfi
 	result.OnPullRequestPushed = config.OnPullRequestPushed
 	result.OnCommitToDefault = config.OnCommitToDefault
 	result.OnPullRequestConvertedToDraft = config.OnPullRequestConvertedToDraft
+	result.SkipMergeCheck = config.SkipMergeCheck
 	return &result
 }
 

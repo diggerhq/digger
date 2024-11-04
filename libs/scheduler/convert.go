@@ -16,6 +16,13 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			return nil, true, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 		}
 
+		var skipMerge bool
+		if workflow.Configuration != nil {
+			skipMerge = workflow.Configuration.SkipMergeCheck
+		} else {
+			skipMerge = false
+		}
+
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
 		StateEnvProvider, CommandEnvProvider := GetStateAndCommandProviders(project)
 
@@ -37,6 +44,7 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			ProjectWorkspace: project.Workspace,
 			Terragrunt:       project.Terragrunt,
 			OpenTofu:         project.OpenTofu,
+			Pulumi:           project.Pulumi,
 			// TODO: expose lower level api per command configuration
 			Commands:   []string{command},
 			ApplyStage: ToConfigStage(workflow.Apply),
@@ -53,6 +61,7 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			CommandEnvProvider: CommandEnvProvider,
 			CommandRoleArn:     cmdRole,
 			CognitoOidcConfig:  project.AwsCognitoOidcConfig,
+			SkipMergeCheck:     skipMerge,
 		})
 	}
 	return jobs, true, nil

@@ -147,6 +147,13 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 		}
 
+		var skipMerge bool
+		if workflow.Configuration != nil {
+			skipMerge = workflow.Configuration.SkipMergeCheck
+		} else {
+			skipMerge = false
+		}
+
 		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
@@ -158,6 +165,7 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			ProjectWorkflow:    project.Workflow,
 			Terragrunt:         project.Terragrunt,
 			OpenTofu:           project.OpenTofu,
+			Pulumi:             project.Pulumi,
 			Commands:           []string{command},
 			ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 			PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -170,6 +178,7 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			RequestedBy:        requestedBy,
 			StateEnvProvider:   StateEnvProvider,
 			CommandEnvProvider: CommandEnvProvider,
+			SkipMergeCheck:     skipMerge,
 		})
 	}
 	return jobs, nil

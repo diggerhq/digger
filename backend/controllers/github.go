@@ -6,6 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"reflect"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/locking"
 	"github.com/diggerhq/digger/backend/segment"
@@ -17,15 +27,6 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"log"
-	"math/rand"
-	"net/http"
-	"net/url"
-	"os"
-	"path"
-	"reflect"
-	"strconv"
-	"strings"
 
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
@@ -76,7 +77,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		if *event.Action == "deleted" {
 			err := handleInstallationDeletedEvent(event)
 			if err != nil {
-				c.String(http.StatusInternalServerError, "Failed to handle webhook event.")
+				c.String(http.StatusAccepted, "Failed to handle webhook event.")
 				return
 			}
 		}
@@ -89,7 +90,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		err := handleIssueCommentEvent(gh, event, d.CiBackendProvider)
 		if err != nil {
 			log.Printf("handleIssueCommentEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
+			c.String(http.StatusAccepted, err.Error())
 			return
 		}
 
@@ -98,7 +99,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			err := hook(gh, event, d.CiBackendProvider)
 			if err != nil {
 				log.Printf("handleIssueCommentEvent post hook error: %v", err)
-				c.String(http.StatusInternalServerError, err.Error())
+				c.String(http.StatusAccepted, err.Error())
 				return
 			}
 		}
@@ -107,15 +108,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		err := handlePullRequestEvent(gh, event, d.CiBackendProvider)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-	case *github.PushEvent:
-		log.Printf("Got push event for %d", event.Repo.URL)
-		err := handlePushEvent(gh, event)
-		if err != nil {
-			log.Printf("handlePushEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
+			c.String(http.StatusAccepted, err.Error())
 			return
 		}
 	default:
@@ -141,7 +134,7 @@ func GithubAppSetup(c *gin.Context) {
 		RedirectURL           string            `json:"redirect_url"`
 		CallbackUrls          []string          `json:"callback_urls"`
 		RequestOauthOnInstall bool              `json:"request_oauth_on_install"`
-		SetupOnUpdate         bool              `json:"setup_on_update"'`
+		SetupOnUpdate         bool              `json:"setup_on_update"`
 		URL                   string            `json:"url"`
 		Webhook               *githubWebhook    `json:"hook_attributes"`
 	}
@@ -187,7 +180,7 @@ func GithubAppSetup(c *gin.Context) {
 		},
 	}
 
-	githubHostname := getGithubHostname()
+	githubHostname := utils.GetGithubHostname()
 	url := &url.URL{
 		Scheme: "https",
 		Host:   githubHostname,
@@ -207,14 +200,6 @@ func GithubAppSetup(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "github_setup.tmpl", gin.H{"Target": url.String(), "Manifest": string(jsonManifest)})
-}
-
-func getGithubHostname() string {
-	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
-	if githubHostname == "" {
-		githubHostname = "github.com"
-	}
-	return githubHostname
 }
 
 // GithubSetupExchangeCode handles the user coming back from creating their app
@@ -338,65 +323,14 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 	return nil
 }
 
-func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent) error {
-	installationId := *payload.Installation.ID
-	repoName := *payload.Repo.Name
-	repoFullName := *payload.Repo.FullName
-	repoOwner := *payload.Repo.Owner.Login
-	cloneURL := *payload.Repo.CloneURL
-	ref := *payload.Ref
-	defaultBranch := *payload.Repo.DefaultBranch
-
-	link, err := models.DB.GetGithubAppInstallationLink(installationId)
-	if err != nil {
-		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
-		return fmt.Errorf("error getting github app link")
-	}
-
-	orgId := link.OrganisationId
-	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
-	repo, err := models.DB.GetRepo(orgId, diggerRepoName)
-	if err != nil {
-		log.Printf("Error getting Repo: %v", err)
-		return fmt.Errorf("error getting github app link")
-	}
-	if repo == nil {
-		log.Printf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-		return fmt.Errorf("Repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
-	}
-
-	_, token, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
-	if err != nil {
-		log.Printf("Error getting github service: %v", err)
-		return fmt.Errorf("error getting github service")
-	}
-
-	var isMainBranch bool
-	if strings.HasSuffix(ref, defaultBranch) {
-		isMainBranch = true
-	} else {
-		isMainBranch = false
-	}
-
-	err = utils.CloneGitRepoAndDoAction(cloneURL, defaultBranch, *token, func(dir string) error {
-		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
-		if err != nil {
-			log.Printf("ERROR load digger.yml: %v", err)
-			return fmt.Errorf("error loading digger.yml %v", err)
-		}
-		models.DB.UpdateRepoDiggerConfig(link.OrganisationId, *config, repo, isMainBranch)
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error while cloning repo: %v", err)
-	}
-
-	return nil
-}
-
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
+	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
+	if err != nil {
+		log.Printf("error getting github app isntallation id: %v", err)
+		return fmt.Errorf("error getting github app installation id")
+	}
+
 	installationId := *payload.Installation.ID
-	appId := *payload.Installation.AppID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
 	repoFullName := *payload.Repo.FullName
@@ -444,7 +378,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
-		utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
 	}
@@ -704,8 +637,13 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 }
 
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
+	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
+	if err != nil {
+		log.Printf("error getting github app isntallation id: %v", err)
+		return fmt.Errorf("error getting github app installation id")
+	}
+
 	installationId := *payload.Installation.ID
-	appId := *payload.Installation.AppID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
 	repoFullName := *payload.Repo.FullName
@@ -1248,7 +1186,7 @@ func validateGithubCallback(githubClientProvider utils.GithubClientProvider, cli
 	}
 	httpClient := http.Client{}
 
-	githubHostname := getGithubHostname()
+	githubHostname := utils.GetGithubHostname()
 	reqURL := fmt.Sprintf("https://%v/login/oauth/access_token?client_id=%s&client_secret=%s&code=%s", githubHostname, clientId, clientSecret, code)
 	req, err := http.NewRequest(http.MethodPost, reqURL, nil)
 	if err != nil {

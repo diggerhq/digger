@@ -12,11 +12,17 @@ const TableNameUserProfile = "user_profiles"
 
 // UserProfile mapped from table <user_profiles>
 type UserProfile struct {
-	ID        string    `gorm:"column:id;primaryKey" json:"id"`
-	FullName  string    `gorm:"column:full_name" json:"full_name"`
-	AvatarURL string    `gorm:"column:avatar_url" json:"avatar_url"`
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
-	UserName  string    `gorm:"column:user_name" json:"user_name"`
+	ID                            string    `gorm:"column:id;primaryKey" json:"id"`
+	FullName                      string    `gorm:"column:full_name" json:"full_name"`
+	AvatarURL                     string    `gorm:"column:avatar_url" json:"avatar_url"`
+	CreatedAt                     time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
+	UserName                      string    `gorm:"column:user_name" json:"user_name"`
+	Email                         string    `gorm:"column:email" json:"email"`
+	HasAcceptedTerms              bool      `gorm:"column:has_accepted_terms;default:true" json:"has_accepted_terms"`
+	HasCompletedProfile           bool      `gorm:"column:has_completed_profile" json:"has_completed_profile"`
+	HasCreatedOrganization        bool      `gorm:"column:has_created_organization" json:"has_created_organization"`
+	IsCreatedThroughOrgInvitation bool      `gorm:"column:is_created_through_org_invitation" json:"is_created_through_org_invitation"`
+	DefaultOrganization           string    `gorm:"column:default_organization" json:"default_organization"`
 }
 
 // TableName UserProfile's table name

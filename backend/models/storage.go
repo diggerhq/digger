@@ -783,11 +783,7 @@ func (db *Database) GetDiggerJobFromRunStage(stage DiggerRunStage) (*DiggerJob, 
 	job := &DiggerJob{}
 	result := db.GormDB.Preload("Batch").Take(job, "batch_id = ?", stage.BatchID)
 	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, result.Error
-		} else {
-			return nil, result.Error
-		}
+		return nil, result.Error
 	}
 	return job, nil
 }

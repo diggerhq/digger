@@ -7,6 +7,11 @@ import (
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
+type IacType string
+
+var IacTypeTerraform IacType = "terraform"
+var IacTypePulumi IacType = "pulumi"
+
 type Job struct {
 	ProjectName        string
 	ProjectDir         string
@@ -14,6 +19,7 @@ type Job struct {
 	ProjectWorkflow    string
 	Terragrunt         bool
 	OpenTofu           bool
+	Pulumi             bool
 	Commands           []string
 	ApplyStage         *Stage
 	PlanStage          *Stage
@@ -29,6 +35,7 @@ type Job struct {
 	CommandEnvProvider *stscreds.WebIdentityRoleProvider
 	CommandRoleArn	   string
 	CognitoOidcConfig  *configuration.AwsCognitoOidcConfig
+	SkipMergeCheck     bool
 }
 
 type Step struct {
@@ -71,6 +78,14 @@ func (j *Job) IsPlan() bool {
 
 func (j *Job) IsApply() bool {
 	return slices.Contains(j.Commands, "digger apply")
+}
+
+func (j *Job) IacType() IacType {
+	if j.Pulumi {
+		return IacTypePulumi
+	} else {
+		return IacTypeTerraform
+	}
 }
 
 func IsPlanJobs(jobs []Job) bool {

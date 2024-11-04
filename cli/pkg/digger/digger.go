@@ -23,7 +23,7 @@ import (
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	config "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/terraform_utils"
+	"github.com/diggerhq/digger/libs/iac_utils"
 
 	"github.com/dominikbraun/graph"
 )
@@ -141,7 +141,9 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			terraformOutput = exectorResults[0].TerraformOutput
 		}
 		prNumber := *currentJob.PullRequestNumber
-		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, terraformOutput)
+
+		iacUtils := iac_utils.GetIacUtilsIacType(currentJob.IacType())
+		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, terraformOutput, iacUtils)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
@@ -211,13 +213,20 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	}
 
 	var terraformExecutor execution.TerraformExecutor
+	var iacUtils iac_utils.IacUtils
 	projectPath := path.Join(workingDir, job.ProjectDir)
 	if job.Terragrunt {
 		terraformExecutor = execution.Terragrunt{WorkingDir: projectPath}
+		iacUtils = iac_utils.TerraformUtils{}
 	} else if job.OpenTofu {
 		terraformExecutor = execution.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+		iacUtils = iac_utils.TerraformUtils{}
+	} else if job.Pulumi {
+		terraformExecutor = execution.Pulumi{WorkingDir: projectPath, Stack: job.ProjectWorkspace}
+		iacUtils = iac_utils.PulumiUtils{}
 	} else {
 		terraformExecutor = execution.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+		iacUtils = iac_utils.TerraformUtils{}
 	}
 
 	commandRunner := execution.CommandRunner{}
@@ -244,6 +253,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			Reporter:          reporter,
 			PlanStorage:       planStorage,
 			PlanPathProvider:  planPathProvider,
+			IacUtils:          iacUtils,
 		},
 	}
 	executor := diggerExecutor.Executor.(execution.DiggerExecutor)
@@ -289,7 +299,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					planPolicyFormatter = coreutils.AsComment(summary)
 				}
 
-				planSummary, err := terraform_utils.GetTfSummarizePlan(planJsonOutput)
+				planSummary, err := iacUtils.GetSummarizePlan(planJsonOutput)
 				if err != nil {
 					log.Printf("Failed to summarize plan. %v", err)
 				}
@@ -358,9 +368,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			msg := fmt.Sprintf("Failed to check if PR is mergeable. %v", err)
 			return nil, msg, fmt.Errorf(msg)
 		}
-		log.Printf("PR status, mergeable: %v, merged: %v\n", isMergeable, isMerged)
-		if !isMergeable && !isMerged {
+		log.Printf("PR status, mergeable: %v, merged: %v and skipMergeCheck %v\n", isMergeable, isMerged, job.SkipMergeCheck)
+		if !isMergeable && !isMerged && !job.SkipMergeCheck {
 			comment := reportApplyMergeabilityError(reporter)
+			prService.SetStatus(*job.PullRequestNumber, "failure", job.ProjectName+"/apply")
 
 			return nil, comment, fmt.Errorf(comment)
 		} else {
@@ -587,6 +598,8 @@ func RunJob(
 			terraformExecutor = execution.Terragrunt{WorkingDir: projectPath}
 		} else if job.OpenTofu {
 			terraformExecutor = execution.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+		} else if job.Pulumi {
+			terraformExecutor = execution.Pulumi{WorkingDir: projectPath, Stack: job.ProjectWorkspace}
 		} else {
 			terraformExecutor = execution.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
 		}
@@ -633,7 +646,7 @@ func RunJob(
 				return fmt.Errorf(msg)
 			}
 			planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, planJsonOutput)
-			log.Printf(strings.Join(messages, "\n"))
+			log.Print(strings.Join(messages, "\n"))
 			if err != nil {
 				msg := fmt.Sprintf("Failed to validate plan %v", err)
 				log.Printf(msg)
