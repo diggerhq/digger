@@ -276,16 +276,14 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
 		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, "0", currentDir)
-		if err != nil {
-			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		if !allAppliesSuccessful || err != nil {
 			// aggregate status checks: failure
-			if allAppliesSuccessful {
-				if atLeastOneApply {
-					githubPrService.SetStatus(prNumber, "failure", "digger/apply")
-				} else {
-					githubPrService.SetStatus(prNumber, "failure", "digger/plan")
-				}
+			if scheduler.IsPlanJobs(jobs) {
+				githubPrService.SetStatus(prNumber, "failure", "digger/plan")
+			} else {
+				githubPrService.SetStatus(prNumber, "failure", "digger/apply")
 			}
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
@@ -295,10 +293,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 		if allAppliesSuccessful {
 			// aggreate status checks: success
-			if atLeastOneApply {
-				githubPrService.SetStatus(prNumber, "success", "digger/apply")
-			} else {
+			if scheduler.IsPlanJobs(jobs) {
 				githubPrService.SetStatus(prNumber, "success", "digger/plan")
+			} else {
+				githubPrService.SetStatus(prNumber, "success", "digger/apply")
 			}
 		}
 
