@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/execution"
+	"github.com/diggerhq/digger/libs/iac_utils"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"os"
 	"sort"
@@ -279,13 +280,14 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 		Reporter:          reporter,
 		PlanStorage:       planStorage,
 		PlanPathProvider:  planPathProvider,
+		IacUtils:          iac_utils.TerraformUtils{},
 	}
 
 	executor.Apply()
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply -lock-timeout=3m", "PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply ", "PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
@@ -368,6 +370,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		Reporter:          reporter,
 		PlanStorage:       planStorage,
 		PlanPathProvider:  planPathProvider,
+		IacUtils:          iac_utils.TerraformUtils{},
 	}
 
 	os.WriteFile(planPathProvider.LocalPlanFilePath(), []byte{123}, 0644)
@@ -377,7 +380,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Init ", "Plan -out plan -lock-timeout=3m", "Show -no-color -json plan", "StorePlanFile plan", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan ", "Show ", "StorePlanFile plan", "Run   echo"}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {
