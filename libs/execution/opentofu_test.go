@@ -20,7 +20,7 @@ func TestExecuteTofuPlan(t *testing.T) {
 
 	tf := OpenTofu{WorkingDir: dir, Workspace: "dev"}
 	tf.Init([]string{}, map[string]string{})
-	_, _, _, err := tf.Plan([]string{}, map[string]string{})
+	_, _, _, err := tf.Plan([]string{}, map[string]string{}, "")
 	assert.NoError(t, err)
 }
 
@@ -37,7 +37,7 @@ func TestExecuteTofuApply(t *testing.T) {
 
 	tf := OpenTofu{WorkingDir: dir, Workspace: "dev"}
 	tf.Init([]string{}, map[string]string{})
-	_, _, _, err := tf.Plan([]string{}, map[string]string{})
+	_, _, _, err := tf.Plan([]string{}, map[string]string{}, "")
 	assert.NoError(t, err)
 }
 
@@ -56,7 +56,7 @@ func TestExecuteTofuApplyDefaultWorkspace(t *testing.T) {
 	tf.Init([]string{}, map[string]string{})
 	var planArgs []string
 	planArgs = append(planArgs, "-out", "plan.tfplan")
-	tf.Plan(planArgs, map[string]string{})
+	tf.Plan(planArgs, map[string]string{}, "")
 	plan := "plan.tfplan"
 	_, _, err := tf.Apply([]string{}, &plan, map[string]string{})
 	assert.NoError(t, err)

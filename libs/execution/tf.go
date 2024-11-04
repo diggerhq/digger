@@ -15,8 +15,8 @@ type TerraformExecutor interface {
 	Init([]string, map[string]string) (string, string, error)
 	Apply([]string, *string, map[string]string) (string, string, error)
 	Destroy([]string, map[string]string) (string, string, error)
-	Plan([]string, map[string]string) (bool, string, string, error)
-	Show([]string, map[string]string) (string, string, error)
+	Plan([]string, map[string]string, string) (bool, string, string, error)
+	Show([]string, map[string]string, string) (string, string, error)
 }
 
 type Terraform struct {
@@ -43,6 +43,7 @@ func (tf Terraform) Init(params []string, envs map[string]string) (string, strin
 }
 
 func (tf Terraform) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
+	params = append(params, []string{"-lock-timeout=3m"}...)
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
 	if plan != nil {
 		params = append(params, *plan)
@@ -135,8 +136,12 @@ func (tf Terraform) formatTerraformWorkspaces(list string) string {
 	return list
 }
 
-func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (tf Terraform) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
+	if planJsonFilePath != "" {
+		params = append(params, []string{"-out", planJsonFilePath}...)
+	}
+	params = append(params, "-lock-timeout=3m")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", true, envs, params...)
 	if err != nil && statusCode != 2 {
 		return false, "", "", err
@@ -144,7 +149,8 @@ func (tf Terraform) Plan(params []string, envs map[string]string) (bool, string,
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (tf Terraform) Show(params []string, envs map[string]string) (string, string, error) {
+func (tf Terraform) Show(params []string, envs map[string]string, planJsonFilePath string) (string, string, error) {
+	params = append(params, []string{"-no-color", "-json", planJsonFilePath}...)
 	stdout, stderr, _, err := tf.runTerraformCommand("show", false, envs, params...)
 	if err != nil {
 		return "", "", err

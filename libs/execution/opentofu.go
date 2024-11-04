@@ -30,6 +30,7 @@ func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) 
 			return "", "", err
 		}
 	}
+	params = append(params, []string{"-lock-timeout=3m"}...)
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
 	if plan != nil {
 		params = append(params, *plan)
@@ -38,7 +39,7 @@ func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) 
 	return stdout, stderr, err
 }
 
-func (tf OpenTofu) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (tf OpenTofu) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
 	if tf.Workspace != "default" {
 		err := tf.switchToWorkspace(envs)
 		if err != nil {
@@ -46,6 +47,10 @@ func (tf OpenTofu) Plan(params []string, envs map[string]string) (bool, string, 
 			return false, "", "", err
 		}
 	}
+	if planJsonFilePath != "" {
+		params = append(params, []string{"-out", planJsonFilePath}...)
+	}
+	params = append(params, "-lock-timeout=3m")
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
 	stdout, stderr, statusCode, err := tf.runOpentofuCommand("plan", true, envs, params...)
 	if err != nil && statusCode != 2 {
@@ -54,7 +59,8 @@ func (tf OpenTofu) Plan(params []string, envs map[string]string) (bool, string, 
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (tf OpenTofu) Show(params []string, envs map[string]string) (string, string, error) {
+func (tf OpenTofu) Show(params []string, envs map[string]string, planJsonFilePath string) (string, string, error) {
+	params = append(params, []string{"-no-color", "-json", planJsonFilePath}...)
 	stdout, stderr, _, err := tf.runOpentofuCommand("show", false, envs, params...)
 	if err != nil {
 		return "", "", err

@@ -3,10 +3,10 @@ package execution
 import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
+	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
-	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/samber/lo"
 	"log"
 	"os"
@@ -21,8 +21,8 @@ import (
 )
 
 type Executor interface {
-	Plan() (*terraform_utils.TerraformSummary, bool, bool, string, string, error)
-	Apply() (*terraform_utils.TerraformSummary, bool, string, error)
+	Plan() (*iac_utils.IacSummary, bool, bool, string, string, error)
+	Apply() (*iac_utils.IacSummary, bool, string, error)
 	Destroy() (bool, error)
 }
 
@@ -31,7 +31,7 @@ type LockingExecutorWrapper struct {
 	Executor    Executor
 }
 
-func (l LockingExecutorWrapper) Plan() (*terraform_utils.TerraformSummary, bool, bool, string, string, error) {
+func (l LockingExecutorWrapper) Plan() (*iac_utils.IacSummary, bool, bool, string, string, error) {
 	plan := ""
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
@@ -45,7 +45,7 @@ func (l LockingExecutorWrapper) Plan() (*terraform_utils.TerraformSummary, bool,
 	}
 }
 
-func (l LockingExecutorWrapper) Apply() (*terraform_utils.TerraformSummary, bool, string, error) {
+func (l LockingExecutorWrapper) Apply() (*iac_utils.IacSummary, bool, string, error) {
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
 		msg := fmt.Sprintf("digger apply, error locking project: %v", err)
@@ -102,6 +102,7 @@ type DiggerExecutor struct {
 	Reporter          reporting.Reporter
 	PlanStorage       storage.PlanStorage
 	PlanPathProvider  PlanPathProvider
+	IacUtils          iac_utils.IacUtils
 }
 
 type DiggerOperationType string
@@ -117,16 +118,16 @@ type DiggerExecutorResult struct {
 }
 
 type DiggerExecutorApplyResult struct {
-	ApplySummary terraform_utils.TerraformSummary
+	ApplySummary iac_utils.IacSummary
 }
 
 type DiggerExecutorPlanResult struct {
-	PlanSummary   terraform_utils.TerraformSummary
+	PlanSummary   iac_utils.IacSummary
 	TerraformJson string
 }
 
-func (d DiggerExecutorResult) GetTerraformSummary() terraform_utils.TerraformSummary {
-	var summary terraform_utils.TerraformSummary
+func (d DiggerExecutorResult) GetTerraformSummary() iac_utils.IacSummary {
+	var summary iac_utils.IacSummary
 	if d.OperationType == DiggerOparationTypePlan && d.PlanResult != nil {
 		summary = d.PlanResult.PlanSummary
 	} else if d.OperationType == DiggerOparationTypeApply && d.ApplyResult != nil {
@@ -189,8 +190,8 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 			}
 		}
 
-		showArgs := []string{"-no-color", "-json", *storedPlanPath}
-		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars)
+		showArgs := make([]string, 0)
+		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars, *storedPlanPath)
 		return terraformPlanOutput, nil
 
 	} else {
@@ -198,10 +199,10 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 	}
 }
 
-func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, string, string, error) {
+func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, string, error) {
 	plan := ""
 	terraformPlanOutput := ""
-	planSummary := &terraform_utils.TerraformSummary{}
+	planSummary := &iac_utils.IacSummary{}
 	isEmptyPlan := true
 	var planSteps []scheduler.Step
 
@@ -227,25 +228,23 @@ func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, s
 			}
 		}
 		if step.Action == "plan" {
-			planArgs := []string{}
+			planArgs := make([]string, 0)
 
 			// TODO remove those only for pulumi project
-			//planArgs = append(planArgs, []string{"-out", d.PlanPathProvider.LocalPlanFilePath(), "-lock-timeout=3m"}...)
-
 			planArgs = append(planArgs, step.ExtraArgs...)
 
-			_, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars)
+			_, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath())
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v", err)
 			}
 			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
-			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars)
+			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath())
 
 			// TODO: removal of this if statement
 			if terraformPlanOutput == "" {
 				isEmptyPlan = false
 			} else {
-				isEmptyPlan, planSummary, err = terraform_utils.GetSummaryFromPlanJson(terraformPlanOutput)
+				isEmptyPlan, planSummary, err = d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutput)
 				if err != nil {
 					return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
 				}
@@ -258,20 +257,20 @@ func (d DiggerExecutor) Plan() (*terraform_utils.TerraformSummary, bool, bool, s
 					}
 					defer file.Close()
 				}
+			}
 
-				if d.PlanStorage != nil {
+			if d.PlanStorage != nil {
 
-					fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
-					if err != nil {
-						fmt.Println("Error reading file:", err)
-						return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
-					}
+				fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
+				if err != nil {
+					fmt.Println("Error reading file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
+				}
 
-					err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
-					if err != nil {
-						fmt.Println("Error storing artifact file:", err)
-						return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
-					}
+				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
+				if err != nil {
+					fmt.Println("Error storing artifact file:", err)
+					return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
 				}
 			}
 
@@ -311,10 +310,10 @@ func reportError(r reporting.Reporter, stderr string) {
 	}
 }
 
-func (d DiggerExecutor) Apply() (*terraform_utils.TerraformSummary, bool, string, error) {
+func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 	var applyOutput string
 	var plansFilename *string
-	summary := terraform_utils.TerraformSummary{}
+	summary := iac_utils.IacSummary{}
 	if d.PlanStorage != nil {
 		var err error
 		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
@@ -349,8 +348,6 @@ func (d DiggerExecutor) Apply() (*terraform_utils.TerraformSummary, bool, string
 		if step.Action == "apply" {
 			// TODO: bring it back
 			applyArgs := step.ExtraArgs
-			//applyArgs = append(applyArgs, []string{"-lock-timeout=3m"}...)
-
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
 
@@ -360,7 +357,7 @@ func (d DiggerExecutor) Apply() (*terraform_utils.TerraformSummary, bool, string
 				return nil, false, stdout, fmt.Errorf("error executing apply: %v", err)
 			}
 
-			summary, err = terraform_utils.GetSummaryFromTerraformApplyOutput(stdout)
+			summary, err = d.IacUtils.GetSummaryFromApplyOutput(stdout)
 			if err != nil {
 				log.Printf("Warning: get summary from apply output failed: %v", err)
 			}

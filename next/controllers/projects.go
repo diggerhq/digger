@@ -6,8 +6,8 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/diggerhq/digger/libs/iac_utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/services"
 	//"github.com/diggerhq/digger/next/middleware"
@@ -20,12 +20,12 @@ import (
 )
 
 type SetJobStatusRequest struct {
-	Status          string                                  `json:"status"`
-	Timestamp       time.Time                               `json:"timestamp"`
-	JobSummary      *terraform_utils.TerraformSummary       `json:"job_summary"`
-	Footprint       *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
-	PrCommentUrl    string                                  `json:"pr_comment_url"`
-	TerraformOutput string                                  `json:"terraform_output"`
+	Status          string                      `json:"status"`
+	Timestamp       time.Time                   `json:"timestamp"`
+	JobSummary      *iac_utils.IacSummary       `json:"job_summary"`
+	Footprint       *iac_utils.IacPlanFootprint `json:"job_plan_footprint"`
+	PrCommentUrl    string                      `json:"pr_comment_url"`
+	TerraformOutput string                      `json:"terraform_output"`
 }
 
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {

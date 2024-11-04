@@ -35,8 +35,9 @@ func (pl Pulumi) Apply(params []string, plan *string, envs map[string]string) (s
 	return stdout, stderr, err
 }
 
-func (pl Pulumi) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (pl Pulumi) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
 	pl.selectStack()
+	params = append(params, "-lock-timeout=3m")
 	stdout, stderr, statusCode, err := pl.runPululmiCommand("preview", true, envs, params...)
 	if err != nil && statusCode != 2 {
 		return false, "", "", err
@@ -44,9 +45,13 @@ func (pl Pulumi) Plan(params []string, envs map[string]string) (bool, string, st
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (pl Pulumi) Show(params []string, envs map[string]string) (string, string, error) {
-	// TODO: Replace with show command similar to terraform show
-	stdout, stderr := "", ""
+func (pl Pulumi) Show(params []string, envs map[string]string, planJsonFilePath string) (string, string, error) {
+	pl.selectStack()
+	params = append(params, []string{"--json"}...)
+	stdout, stderr, statusCode, err := pl.runPululmiCommand("preview", false, envs, params...)
+	if err != nil && statusCode != 2 {
+		return "", "", err
+	}
 	return stdout, stderr, nil
 }
 

@@ -7,6 +7,11 @@ import (
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
+type IacType string
+
+var IacTypeTerraform IacType = "terraform"
+var IacTypePulumi IacType = "pulumi"
+
 type Job struct {
 	ProjectName        string
 	ProjectDir         string
@@ -70,6 +75,14 @@ func (j *Job) IsPlan() bool {
 
 func (j *Job) IsApply() bool {
 	return slices.Contains(j.Commands, "digger apply")
+}
+
+func (j *Job) IacType() IacType {
+	if j.Pulumi {
+		return IacTypePulumi
+	} else {
+		return IacTypeTerraform
+	}
 }
 
 func IsPlanJobs(jobs []Job) bool {

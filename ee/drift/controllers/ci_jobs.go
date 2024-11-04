@@ -7,17 +7,17 @@ import (
 
 	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/model"
-	"github.com/diggerhq/digger/libs/terraform_utils"
+	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/gin-gonic/gin"
 )
 
 type SetJobStatusRequest struct {
-	Status          string                                  `json:"status"`
-	Timestamp       time.Time                               `json:"timestamp"`
-	JobSummary      *terraform_utils.TerraformSummary       `json:"job_summary"`
-	Footprint       *terraform_utils.TerraformPlanFootprint `json:"job_plan_footprint"`
-	PrCommentUrl    string                                  `json:"pr_comment_url"`
-	TerraformOutput string                                  `json:"terraform_output""`
+	Status          string                      `json:"status"`
+	Timestamp       time.Time                   `json:"timestamp"`
+	JobSummary      *iac_utils.IacSummary       `json:"job_summary"`
+	Footprint       *iac_utils.IacPlanFootprint `json:"job_plan_footprint"`
+	PrCommentUrl    string                      `json:"pr_comment_url"`
+	TerraformOutput string                      `json:"terraform_output""`
 }
 
 func (mc MainController) SetJobStatusForProject(c *gin.Context) {

@@ -6,8 +6,8 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/terraform_utils"
 	"github.com/samber/lo"
 	"log"
 )
@@ -17,7 +17,7 @@ type ProjectNameSourceDetail struct {
 	Source        string
 	Job           scheduler.SerializedJob
 	JobSpec       scheduler.JobJson
-	PlanFootPrint terraform_utils.TerraformPlanFootprint
+	PlanFootPrint iac_utils.IacPlanFootprint
 }
 
 type SourceGroupingReporter struct {
@@ -42,9 +42,9 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 		return fmt.Errorf("could not convert jobs to map: %v", err)
 	}
 
-	projectNameToFootPrintMap := make(map[string]terraform_utils.TerraformPlanFootprint)
+	projectNameToFootPrintMap := make(map[string]iac_utils.IacPlanFootprint)
 	for _, job := range r.Jobs {
-		var footprint terraform_utils.TerraformPlanFootprint
+		var footprint iac_utils.IacPlanFootprint
 		if job.PlanFootprint != nil {
 			err := json.Unmarshal(job.PlanFootprint, &footprint)
 			if err != nil {
@@ -52,18 +52,20 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 				return fmt.Errorf("could not unmarshal footprint: %v", err)
 			}
 		} else {
-			footprint = terraform_utils.TerraformPlanFootprint{}
+			footprint = iac_utils.IacPlanFootprint{}
 		}
 		projectNameToFootPrintMap[job.ProjectName] = footprint
 	}
 
-	footprints := lo.FilterMap(sourceDetaiItem.Projects, func(project string, i int) (terraform_utils.TerraformPlanFootprint, bool) {
+	// TODO: make it generic based on iac type
+	iacUtils := iac_utils.TerraformUtils{}
+	footprints := lo.FilterMap(sourceDetaiItem.Projects, func(project string, i int) (iac_utils.IacPlanFootprint, bool) {
 		if projectNameToJobMap[project].Status == scheduler.DiggerJobSucceeded {
 			return projectNameToFootPrintMap[project], true
 		}
-		return terraform_utils.TerraformPlanFootprint{}, false
+		return iac_utils.IacPlanFootprint{}, false
 	})
-	allSimilarInGroup, err := terraform_utils.SimilarityCheck(footprints)
+	allSimilarInGroup, err := iacUtils.SimilarityCheck(footprints)
 	if err != nil {
 		return fmt.Errorf("error performing similar check: %v", err)
 	}
@@ -90,7 +92,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 }
 
 // returns a map inverting locations
-func ImpactedSourcesMapToGroupMapping(impactedSources map[string]digger_config.ProjectToSourceMapping, jobMapping map[string]scheduler.SerializedJob, jobSpecMapping map[string]scheduler.JobJson, footprintsMap map[string]terraform_utils.TerraformPlanFootprint) map[string][]ProjectNameSourceDetail {
+func ImpactedSourcesMapToGroupMapping(impactedSources map[string]digger_config.ProjectToSourceMapping, jobMapping map[string]scheduler.SerializedJob, jobSpecMapping map[string]scheduler.JobJson, footprintsMap map[string]iac_utils.IacPlanFootprint) map[string][]ProjectNameSourceDetail {
 
 	projectNameSourceList := make([]ProjectNameSourceDetail, 0)
 	for projectName, locations := range impactedSources {
