@@ -31,6 +31,7 @@ type ProjectYaml struct {
 	Workspace          string                      `yaml:"workspace"`
 	Terragrunt         bool                        `yaml:"terragrunt"`
 	OpenTofu           bool                        `yaml:"opentofu"`
+	Pulumi             bool                        `yaml:"pulumi"`
 	Workflow           string                      `yaml:"workflow"`
 	WorkflowFile       *string                     `yaml:"workflow_file"`
 	IncludePatterns    []string                    `yaml:"include_patterns,omitempty"`
@@ -39,6 +40,7 @@ type ProjectYaml struct {
 	DriftDetection     *bool                       `yaml:"drift_detection,omitempty"`
 	AwsRoleToAssume    *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 	Generated          bool                        `yaml:"generated"`
+	PulumiStack        string                      `yaml:"pulumi_stack"`
 }
 
 type WorkflowYaml struct {
@@ -54,7 +56,7 @@ type WorkflowConfigurationYaml struct {
 	// pull request converted to draft
 	OnPullRequestConvertedToDraft []string `yaml:"on_pull_request_to_draft"`
 	OnCommitToDefault             []string `yaml:"on_commit_to_default"`
-	SkipMergeCheck				  bool    `yaml:"skip_merge_check"`
+	SkipMergeCheck                bool     `yaml:"skip_merge_check"`
 }
 
 func (s *StageYaml) ToCoreStage() Stage {
@@ -140,13 +142,13 @@ type TerragruntParsingConfig struct {
 	CascadeDependencies      *bool    `yaml:"cascadeDependencies,omitempty"`
 	DefaultApplyRequirements []string `yaml:"defaultApplyRequirements"`
 	//NumExecutors                   int64	`yaml:"numExecutors"`
-	ProjectHclFiles                []string `yaml:"projectHclFiles"`
-	CreateHclProjectChilds         bool     `yaml:"createHclProjectChilds"`
-	CreateHclProjectExternalChilds *bool    `yaml:"createHclProjectExternalChilds,omitempty"`
-	UseProjectMarkers              bool     `yaml:"useProjectMarkers"`
-	ExecutionOrderGroups           *bool    `yaml:"executionOrderGroups"`
-	WorkflowFile                   string   `yaml:"workflow_file"`
-	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	ProjectHclFiles                []string                    `yaml:"projectHclFiles"`
+	CreateHclProjectChilds         bool                        `yaml:"createHclProjectChilds"`
+	CreateHclProjectExternalChilds *bool                       `yaml:"createHclProjectExternalChilds,omitempty"`
+	UseProjectMarkers              bool                        `yaml:"useProjectMarkers"`
+	ExecutionOrderGroups           *bool                       `yaml:"executionOrderGroups"`
+	WorkflowFile                   string                      `yaml:"workflow_file"`
+	AwsRoleToAssume                *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {

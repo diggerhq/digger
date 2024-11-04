@@ -51,7 +51,6 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 		namespace := payload.Project.PathWithNamespace
 		sender := payload.User.Username
 
-
 		var skipMerge bool
 		if workflow.Configuration != nil {
 			skipMerge = workflow.Configuration.SkipMergeCheck
@@ -89,6 +88,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				ProjectWorkflow:    project.Workflow,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnPullRequestPushed,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -101,7 +101,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				RequestedBy:        sender,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
-				SkipMergeCheck:    	skipMerge,
+				SkipMergeCheck:     skipMerge,
 			})
 		} else if payload.ObjectAttributes.Action == "close" {
 			jobs = append(jobs, scheduler.Job{
@@ -111,6 +111,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				ProjectWorkflow:    project.Workflow,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnPullRequestClosed,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -123,7 +124,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				RequestedBy:        sender,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
-				SkipMergeCheck:    	skipMerge,
+				SkipMergeCheck:     skipMerge,
 			})
 			//	TODO: Figure how to detect gitlab's "PR converted to draft" event
 		} else if payload.ObjectAttributes.Action == "converted_to_draft" {
@@ -141,6 +142,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				ProjectWorkflow:    project.Workflow,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           commands,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -153,7 +155,7 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				RequestedBy:        sender,
 				CommandEnvProvider: CommandEnvProvider,
 				StateEnvProvider:   StateEnvProvider,
-				SkipMergeCheck:   	skipMerge,
+				SkipMergeCheck:     skipMerge,
 			})
 		}
 

@@ -15,7 +15,7 @@ type Terragrunt struct {
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
-	
+
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("init", true, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -25,6 +25,7 @@ func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (stri
 }
 
 func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
+	params = append(params, []string{"-lock-timeout=3m"}...)
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
 	if plan != nil {
@@ -46,11 +47,14 @@ func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (s
 		logCommandFail(exitCode, err)
 	}
 
-
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool, string, string, error) {
+func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planArtefactFilePath string) (bool, string, string, error) {
+	if planArtefactFilePath != "" {
+		params = append(params, []string{"-out", planArtefactFilePath}...)
+	}
+	params = append(params, "-lock-timeout=3m")
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("plan", true, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -59,7 +63,8 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string) (bool
 	return true, stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Show(params []string, envs map[string]string) (string, string, error) {
+func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
+	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("show", false, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -81,7 +86,7 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 		}
 	}
 
-	// Set up common output buffers 
+	// Set up common output buffers
 	var mwout, mwerr io.Writer
 	var stdout, stderr bytes.Buffer
 	if printOutputToStdout {

@@ -31,6 +31,7 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			ProjectWorkspace: project.Workspace,
 			Terragrunt:       project.Terragrunt,
 			OpenTofu:         project.OpenTofu,
+			Pulumi:           project.Pulumi,
 			// TODO: expose lower level api per command configuration
 			Commands:   []string{command},
 			ApplyStage: ToConfigStage(workflow.Apply),
@@ -44,7 +45,7 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			CommandEnvVars:     commandEnvVars,
 			StateEnvProvider:   StateEnvProvider,
 			CommandEnvProvider: CommandEnvProvider,
-			SkipMergeCheck: 	skipMerge,
+			SkipMergeCheck:     skipMerge,
 		})
 	}
 	return jobs, true, nil

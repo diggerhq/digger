@@ -434,8 +434,6 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 	jobs := make([]scheduler.Job, 0)
 	//&dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber,
 
-
-
 	switch parseAzureContext.EventType {
 	case AzurePrCreated, AzurePrUpdated, AzurePrReopened:
 		for _, project := range impactedProjects {
@@ -460,6 +458,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				ProjectWorkspace:   project.Workspace,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnPullRequestPushed,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -498,6 +497,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				ProjectWorkspace:   project.Workspace,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
 				Commands:           workflow.Configuration.OnPullRequestClosed,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -509,7 +509,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 				CommandEnvVars:     commandEnvVars,
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
-				SkipMergeCheck:    skipMerge,
+				SkipMergeCheck:     skipMerge,
 			})
 		}
 		return jobs, true, nil
@@ -537,6 +537,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 					ProjectWorkspace:   project.Workspace,
 					Terragrunt:         project.Terragrunt,
 					OpenTofu:           project.OpenTofu,
+					Pulumi:             project.Pulumi,
 					Commands:           workflow.Configuration.OnCommitToDefault,
 					ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 					PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -592,7 +593,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 					} else {
 						skipMerge = false
 					}
-		
+
 					stateEnvVars, commandEnvVars := digger_config2.CollectTerraformEnvConfig(workflow.EnvVars, true)
 					StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 					jobs = append(jobs, scheduler.Job{
@@ -601,6 +602,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 						ProjectWorkspace:   workspace,
 						Terragrunt:         project.Terragrunt,
 						OpenTofu:           project.OpenTofu,
+						Pulumi:             project.Pulumi,
 						Commands:           []string{command},
 						ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 						PlanStage:          scheduler.ToConfigStage(workflow.Plan),
@@ -612,7 +614,7 @@ func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []dig
 						CommandEnvVars:     commandEnvVars,
 						StateEnvProvider:   StateEnvProvider,
 						CommandEnvProvider: CommandEnvProvider,
-						SkipMergeCheck:    	skipMerge,
+						SkipMergeCheck:     skipMerge,
 					})
 				}
 			}

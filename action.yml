@@ -65,6 +65,10 @@ inputs:
     description: Setup OpenToFu
     required: false
     default: 'false'
+  setup-pulumi:
+    description: Setup Pulumi
+    required: false
+    default: 'false'
   terragrunt-version:
     description: Terragrunt version
     required: false
@@ -73,6 +77,11 @@ inputs:
     description: OpenTofu version
     required: false
     default: v1.6.1
+  pulumi-version:
+    description: Pulumi version
+    required: false
+    default: v3.3.0
+
   setup-terraform:
     description: Setup terraform
     required: false
@@ -271,6 +280,12 @@ runs:
         tofu_version: ${{ inputs.opentofu-version }}
         tofu_wrapper: false
       if: inputs.setup-opentofu == 'true'
+
+    - name: Setup Pulumi
+      uses: pulumi/actions@v4
+      with:
+        tofu_version: ${{ inputs.pulumi-version }}
+      if: inputs.setup-pulumi == 'true'
 
     - name: Setup Checkov
       run: |

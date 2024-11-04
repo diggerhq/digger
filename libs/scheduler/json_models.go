@@ -24,6 +24,7 @@ type JobJson struct {
 	ProjectWorkspace        string            `json:"projectWorkspace"`
 	Terragrunt              bool              `json:"terragrunt"`
 	OpenTofu                bool              `json:"opentofu"`
+	Pulumi                  bool              `json:"pulumi"`
 	Commands                []string          `json:"commands"`
 	ApplyStage              StageJson         `json:"applyStage"`
 	PlanStage               StageJson         `json:"planStage"`
@@ -67,6 +68,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 		ProjectDir:              job.ProjectDir,
 		ProjectWorkspace:        job.ProjectWorkspace,
 		OpenTofu:                job.OpenTofu,
+		Pulumi:                  job.Pulumi,
 		Terragrunt:              job.Terragrunt,
 		Commands:                job.Commands,
 		ApplyStage:              stageToJson(job.ApplyStage),
@@ -96,6 +98,7 @@ func JsonToJob(jobJson JobJson) Job {
 		ProjectDir:         jobJson.ProjectDir,
 		ProjectWorkspace:   jobJson.ProjectWorkspace,
 		OpenTofu:           jobJson.OpenTofu,
+		Pulumi:             jobJson.Pulumi,
 		Terragrunt:         jobJson.Terragrunt,
 		Commands:           jobJson.Commands,
 		ApplyStage:         jsonToStage(jobJson.ApplyStage),

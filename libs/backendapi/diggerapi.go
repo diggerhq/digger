@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/terraform_utils"
 	"io"
 	"log"
 	"mime"
@@ -29,7 +29,7 @@ func (n NoopApi) ReportProjectRun(namespace string, projectName string, startedA
 	return nil
 }
 
-func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform_utils.TerraformSummary, planJson string, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
+func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 
@@ -129,14 +129,14 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	return nil
 }
 
-func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *terraform_utils.TerraformSummary, planJson string, PrCommentUrl string, terraformOutput string) (*scheduler.SerializedBatch, error) {
+func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
 		log.Fatalf("Not able to parse digger cloud url: %v", err)
 	}
 
 	var planSummaryJson interface{}
-	var planFootprint *terraform_utils.TerraformPlanFootprint = &terraform_utils.TerraformPlanFootprint{}
+	var planFootprint = &iac_utils.IacPlanFootprint{}
 	if summary == nil {
 		log.Printf("Warning: nil passed to plan result, sending empty")
 		planSummaryJson = nil
@@ -145,7 +145,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 		planSummary := summary
 		planSummaryJson = planSummary.ToJson()
 		if planJson != "" {
-			planFootprint, err = terraform_utils.GetPlanFootprint(planJson)
+			planFootprint, err = iacUtils.GetPlanFootprint(planJson)
 			if err != nil {
 				log.Printf("Error, could not get footprint from json plan: %v", err)
 			}

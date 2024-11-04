@@ -1,67 +1,21 @@
-package terraform_utils
+package iac_utils
 
 import (
 	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"regexp"
-	"sort"
-	"strings"
-
 	"github.com/dineshba/tf-summarize/terraformstate"
 	"github.com/dineshba/tf-summarize/writer"
 	tfjson "github.com/hashicorp/terraform-json"
-
 	"github.com/samber/lo"
+	"regexp"
+	"strings"
 )
 
-type TerraformSummary struct {
-	ResourcesCreated uint `json:"resources_created"`
-	ResourcesUpdated uint `json:"resources_updated"`
-	ResourcesDeleted uint `json:"resources_deleted"`
+type TerraformUtils struct {
 }
 
-type Change struct {
-	Actions []string `json:"actions"`
-}
-
-// TerraformPlanFootprint represents a derivation of a terraform plan json that has
-// any sensitive data stripped out. Used for performing operations such
-// as plan similarity check
-type TerraformPlanFootprint struct {
-	Addresses []string `json:"addresses"`
-}
-
-func (f *TerraformPlanFootprint) ToJson() map[string]interface{} {
-	if f == nil {
-		return map[string]interface{}{}
-	}
-	return map[string]interface{}{
-		"addresses": f.Addresses,
-	}
-}
-
-func (footprint TerraformPlanFootprint) hash() string {
-	addresses := make([]string, len(footprint.Addresses))
-	copy(addresses, footprint.Addresses)
-	sort.Strings(addresses)
-	// concatenate all the addreses after sorting to form the hash
-	return lo.Reduce(addresses, func(a string, b string, i int) string {
-		return a + b
-	}, "")
-}
-
-func (p *TerraformSummary) ToJson() map[string]interface{} {
-	if p == nil {
-		return map[string]interface{}{}
-	}
-	return map[string]interface{}{
-		"resources_created": p.ResourcesCreated,
-		"resources_updated": p.ResourcesUpdated,
-		"resources_deleted": p.ResourcesDeleted,
-	}
-}
 func parseTerraformPlanOutput(terraformJson string) (*tfjson.Plan, error) {
 	var plan tfjson.Plan
 	if err := json.Unmarshal([]byte(terraformJson), &plan); err != nil {
@@ -71,7 +25,7 @@ func parseTerraformPlanOutput(terraformJson string) (*tfjson.Plan, error) {
 	return &plan, nil
 }
 
-func GetSummaryFromPlanJson(planJson string) (bool, *TerraformSummary, error) {
+func (tu TerraformUtils) GetSummaryFromPlanJson(planJson string) (bool, *IacSummary, error) {
 	tfplan, err := parseTerraformPlanOutput(planJson)
 	if err != nil {
 		return false, nil, fmt.Errorf("Error while parsing json file: %v", err)
@@ -89,7 +43,7 @@ func GetSummaryFromPlanJson(planJson string) (bool, *TerraformSummary, error) {
 		isPlanEmpty = false
 	}
 
-	planSummary := TerraformSummary{}
+	planSummary := IacSummary{}
 	for _, resourceChange := range tfplan.ResourceChanges {
 		switch resourceChange.Change.Actions[0] {
 		case "create":
@@ -103,7 +57,7 @@ func GetSummaryFromPlanJson(planJson string) (bool, *TerraformSummary, error) {
 	return isPlanEmpty, &planSummary, nil
 }
 
-func GetSummaryFromTerraformApplyOutput(applyOutput string) (TerraformSummary, error) {
+func (tu TerraformUtils) GetSummaryFromApplyOutput(applyOutput string) (IacSummary, error) {
 	scanner := bufio.NewScanner(strings.NewReader(applyOutput))
 	var added, changed, destroyed uint = 0, 0, 0
 
@@ -121,17 +75,17 @@ func GetSummaryFromTerraformApplyOutput(applyOutput string) (TerraformSummary, e
 	}
 
 	if !foundResourcesLine {
-		return TerraformSummary{}, fmt.Errorf("could not find resources line in terraform apply output")
+		return IacSummary{}, fmt.Errorf("could not find resources line in terraform apply output")
 	}
 
-	return TerraformSummary{
+	return IacSummary{
 		ResourcesCreated: added,
 		ResourcesUpdated: changed,
 		ResourcesDeleted: destroyed,
 	}, nil
 }
 
-func GetPlanFootprint(planJson string) (*TerraformPlanFootprint, error) {
+func (tu TerraformUtils) GetPlanFootprint(planJson string) (*IacPlanFootprint, error) {
 	tfplan, err := parseTerraformPlanOutput(planJson)
 	if err != nil {
 		return nil, err
@@ -139,21 +93,21 @@ func GetPlanFootprint(planJson string) (*TerraformPlanFootprint, error) {
 	planAddresses := lo.Map[*tfjson.ResourceChange, string](tfplan.ResourceChanges, func(change *tfjson.ResourceChange, idx int) string {
 		return change.Address
 	})
-	footprint := TerraformPlanFootprint{
+	footprint := IacPlanFootprint{
 		Addresses: planAddresses,
 	}
 	return &footprint, nil
 }
 
-func PerformPlanSimilarityCheck(footprint1 TerraformPlanFootprint, footprint2 TerraformPlanFootprint) (bool, error) {
+func (tu TerraformUtils) PerformPlanSimilarityCheck(footprint1 IacPlanFootprint, footprint2 IacPlanFootprint) (bool, error) {
 	return footprint1.hash() == footprint2.hash(), nil
 }
 
-func SimilarityCheck(footprints []TerraformPlanFootprint) (bool, error) {
+func (tu TerraformUtils) SimilarityCheck(footprints []IacPlanFootprint) (bool, error) {
 	if len(footprints) < 2 {
 		return true, nil
 	}
-	footprintHashes := lo.Map(footprints, func(footprint TerraformPlanFootprint, i int) string {
+	footprintHashes := lo.Map(footprints, func(footprint IacPlanFootprint, i int) string {
 		return footprint.hash()
 	})
 	allSimilar := lo.EveryBy(footprintHashes, func(footprint string) bool {
@@ -163,7 +117,7 @@ func SimilarityCheck(footprints []TerraformPlanFootprint) (bool, error) {
 
 }
 
-func GetTfSummarizePlan(planJson string) (string, error) {
+func (tu TerraformUtils) GetSummarizePlan(planJson string) (string, error) {
 	plan := tfjson.Plan{}
 	err := json.Unmarshal([]byte(planJson), &plan)
 	if err != nil {
