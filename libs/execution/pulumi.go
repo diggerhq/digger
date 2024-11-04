@@ -111,6 +111,7 @@ func (pl Pulumi) runPululmiCommand(command string, printOutputToStdout bool, env
 	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
 	if err != nil && cmd.ProcessState.ExitCode() != 2 {
 		log.Println("Error:", err)
+		log.Printf("stdout %v | stderr %v", stdout, stderr)
 	}
 
 	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err
