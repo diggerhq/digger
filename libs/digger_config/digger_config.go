@@ -301,6 +301,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								Dir:             dir,
 								Workflow:        workflow,
 								Workspace:       "default",
+								OpenTofu:        b.OpenTofu,
 								AwsRoleToAssume: b.AwsRoleToAssume,
 								Generated:       true,
 							}

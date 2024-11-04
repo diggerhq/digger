@@ -21,7 +21,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-And similarly for openTofu:
+And similarly for OpenTofu:
 
 ```
 jobs:
@@ -37,3 +37,7 @@ jobs:
         GITHUB_CONTEXT: ${{ toJson(github) }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+<Note>
+When you use OpenTofu, you also need to enable `opentofu: true` in the project settings in digger.yml.
+</Note>
