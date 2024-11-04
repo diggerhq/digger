@@ -37,7 +37,6 @@ func (pl Pulumi) Apply(params []string, plan *string, envs map[string]string) (s
 
 func (pl Pulumi) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
 	pl.selectStack()
-	params = append(params, "-lock-timeout=3m")
 	stdout, stderr, statusCode, err := pl.runPululmiCommand("preview", true, envs, params...)
 	if err != nil && statusCode != 2 {
 		return false, "", "", err
