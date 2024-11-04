@@ -237,26 +237,21 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v", err)
 			}
-			showArgs := []string{"-no-color", "-json", d.PlanPathProvider.LocalPlanFilePath()}
+			showArgs := make([]string, 0)
 			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath())
 
-			// TODO: removal of this if statement
-			if terraformPlanOutput == "" {
-				isEmptyPlan = false
-			} else {
-				isEmptyPlan, planSummary, err = d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutput)
-				if err != nil {
-					return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
-				}
+			isEmptyPlan, planSummary, err = d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutput)
+			if err != nil {
+				return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
+			}
 
-				if !isEmptyPlan {
-					nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
-					file, err := os.Create(nonEmptyPlanFilepath)
-					if err != nil {
-						return nil, false, false, "", "", fmt.Errorf("unable to create file: %v", err)
-					}
-					defer file.Close()
+			if !isEmptyPlan {
+				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
+				file, err := os.Create(nonEmptyPlanFilepath)
+				if err != nil {
+					return nil, false, false, "", "", fmt.Errorf("unable to create file: %v", err)
 				}
+				defer file.Close()
 			}
 
 			if d.PlanStorage != nil {
@@ -274,6 +269,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 				}
 			}
 
+			// TODO: move this function to iacUtils interface and implement for pulumi
 			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
 			if err != nil {
 				log.Printf("error publishing comment: %v", err)
