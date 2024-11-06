@@ -70,6 +70,8 @@ func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planA
 		logCommandFail(exitCode, err)
 	}
 
+	log.Printf("results of show command: %v, %v, %v, %v", stdout, stderr, exitCode, err)
+
 	return stdout, stderr, err
 }
 
