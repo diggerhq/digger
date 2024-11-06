@@ -3,12 +3,13 @@ package digger_config
 import (
 	"errors"
 	"fmt"
-	"github.com/samber/lo"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/samber/lo"
 
 	"github.com/diggerhq/digger/libs/digger_config/terragrunt/atlantis"
 
@@ -304,6 +305,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								OpenTofu:        b.OpenTofu,
 								AwsRoleToAssume: b.AwsRoleToAssume,
 								Generated:       true,
+								WorkflowFile:    &b.WorkflowFile,
 							}
 							config.Projects = append(config.Projects, &project)
 						}
