@@ -305,7 +305,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								OpenTofu:        b.OpenTofu,
 								AwsRoleToAssume: b.AwsRoleToAssume,
 								Generated:       true,
-								WorkflowFile:    &b.WorkflowFile,
+								WorkflowFile:    b.WorkflowFile,
 							}
 							config.Projects = append(config.Projects, &project)
 						}
@@ -542,7 +542,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			Workspace:       atlantisProject.Workspace,
 			Terragrunt:      true,
 			Workflow:        atlantisProject.Workflow,
-			WorkflowFile:    &workflowFile,
+			WorkflowFile:    workflowFile,
 			IncludePatterns: atlantisProject.Autoplan.WhenModified,
 			Generated:       true,
 			AwsRoleToAssume: parsingConfig.AwsRoleToAssume,

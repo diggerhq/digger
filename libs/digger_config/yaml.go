@@ -33,7 +33,7 @@ type ProjectYaml struct {
 	OpenTofu           bool                        `yaml:"opentofu"`
 	Pulumi             bool                        `yaml:"pulumi"`
 	Workflow           string                      `yaml:"workflow"`
-	WorkflowFile       *string                     `yaml:"workflow_file"`
+	WorkflowFile       string                      `yaml:"workflow_file"`
 	IncludePatterns    []string                    `yaml:"include_patterns,omitempty"`
 	ExcludePatterns    []string                    `yaml:"exclude_patterns,omitempty"`
 	DependencyProjects []string                    `yaml:"depends_on,omitempty"`
