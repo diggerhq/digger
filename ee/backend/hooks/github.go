@@ -84,9 +84,9 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 
 	diggerCommand, err := scheduler.GetCommandFromComment(*payload.Comment.Body)
 	if err != nil {
-		log.Printf("unkown digger command in comment: %v", *payload.Comment.Body)
+		log.Printf("unknown digger command in comment: %v", *payload.Comment.Body)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Could not recognise comment, error: %v", err))
-		return fmt.Errorf("unkown digger command in comment %v", err)
+		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
 
 	// attempting to lock for performing drift apply command
@@ -177,7 +177,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
-		return fmt.Errorf("error triggerring Digger Jobs")
+		return fmt.Errorf("error triggering Digger Jobs")
 	}
 
 	// === now unlocking the project ===

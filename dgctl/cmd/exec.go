@@ -161,15 +161,15 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 
 func cleanupDiggerOutput(output string) string {
 
-	startingDelimeter := "<========= DIGGER RUNNING IN MANUAL MODE =========>"
+	startingDelimiter := "<========= DIGGER RUNNING IN MANUAL MODE =========>"
 	endingDelimiter := "<========= DIGGER COMPLETED =========>"
 
 	startPos := 0
 	endPos := len(output)
 	// removes output of terraform -version command that terraform-exec executes on every run
-	i := strings.Index(output, startingDelimeter)
+	i := strings.Index(output, startingDelimiter)
 	if i != -1 {
-		startPos = i + len(startingDelimeter)
+		startPos = i + len(startingDelimiter)
 	}
 
 	e := strings.Index(output, endingDelimiter)

@@ -137,8 +137,8 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 
 	appInstallation, err := dbmodels.DB.GetGithubAppInstallationByOrgAndRepo(orgId, repo.RepoFullName, dbmodels.GithubAppInstallActive)
 	if err != nil {
-		log.Printf("error retriving app installation")
-		return nil, nil, fmt.Errorf("error retriving app installation %v", err)
+		log.Printf("error retrieving app installation")
+		return nil, nil, fmt.Errorf("error retrieving app installation %v", err)
 	}
 	installationId := appInstallation.GithubInstallationID
 	log.Printf("installation id is: %v", installationId)
@@ -214,7 +214,7 @@ func ConvertJobsToDiggerJobs(jobType orchestrator_scheduler.DiggerCommand, vcsTy
 	organisation, err := dbmodels.DB.GetOrganisationById(organisationId)
 	if err != nil {
 		log.Printf("Error getting organisation: %v %v", organisationId, err)
-		return nil, nil, fmt.Errorf("error retriving organisation")
+		return nil, nil, fmt.Errorf("error retrieving organisation")
 	}
 	organisationName := organisation.Title
 

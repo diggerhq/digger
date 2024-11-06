@@ -19,7 +19,7 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.Dig
 	organisation, err := models.DB.GetOrganisationById(organisationId)
 	if err != nil {
 		log.Printf("Error getting organisation: %v %v", organisationId, err)
-		return nil, nil, fmt.Errorf("error retriving organisation")
+		return nil, nil, fmt.Errorf("error retrieving organisation")
 	}
 	organisationName := organisation.Name
 

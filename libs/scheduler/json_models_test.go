@@ -17,10 +17,10 @@ func TestAllFieldsInJobJsonAreAlsoInJob(t *testing.T) {
 
 	jobVal := reflect.Indirect(reflect.ValueOf(job))
 	nFieldsJob := jobVal.Type().NumField()
-	jobFileds := make([]string, 0)
+	jobFields := make([]string, 0)
 
 	for j := 0; j < nFieldsJob; j++ {
-		jobFileds = append(jobFileds, jobVal.Type().Field(j).Name)
+		jobFields = append(jobFields, jobVal.Type().Field(j).Name)
 	}
 
 	fieldsToIgnore := []string{"Commit", "Branch", "JobType", "AwsRoleRegion", "StateRoleName", "CommandRoleName", "BackendHostname", "BackendOrganisationName", "BackendJobToken"}
@@ -29,7 +29,7 @@ func TestAllFieldsInJobJsonAreAlsoInJob(t *testing.T) {
 		if slices.Contains(fieldsToIgnore, field) {
 			continue
 		}
-		assert.True(t, slices.Contains(jobFileds, field),
+		assert.True(t, slices.Contains(jobFields, field),
 			"IMPORTANT: Please ensure all fields are correctly passed in serialization")
 	}
 }

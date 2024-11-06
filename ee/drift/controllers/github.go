@@ -109,7 +109,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	// retrive org for current orgID
+	// retrieve org for current orgID
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 	if !exists {
 		log.Printf("missing argument orgId in github callback")
@@ -133,7 +133,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 
 	client, _, err := mc.GithubClientProvider.Get(*installation.AppID, installationId64)
 	if err != nil {
-		log.Printf("Error retriving github client: %v", err)
+		log.Printf("Error retrieving github client: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		return
 

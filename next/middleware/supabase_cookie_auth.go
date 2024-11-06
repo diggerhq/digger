@@ -45,7 +45,7 @@ func SupabaseCookieAuth() gin.HandlerFunc {
 		}
 		userId := user.ID.String()
 
-		// TODO: We will have an additional cookie represnting the orgId of the user, and we will just query
+		// TODO: We will have an additional cookie representing the orgId of the user, and we will just query
 		// for membership to verify
 		var orgsForUser []model.OrganizationMember
 
