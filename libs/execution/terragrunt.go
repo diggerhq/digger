@@ -27,7 +27,10 @@ func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (stri
 func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
 	params = append(params, []string{"-lock-timeout=3m"}...)
 	params = append(params, "--auto-approve")
+	params = append(params, "-no-color")
+	params = append(params, "--terragrunt-no-color")
 	params = append(params, "--terragrunt-non-interactive")
+
 	if plan != nil {
 		params = append(params, *plan)
 	}
@@ -42,6 +45,9 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
+	params = append(params, "-no-color")
+	params = append(params, "--terragrunt-no-color")
+
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("destroy", true, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -55,6 +61,9 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planA
 		params = append(params, []string{"-out", planArtefactFilePath}...)
 	}
 	params = append(params, "-lock-timeout=3m")
+	params = append(params, "-no-color")
+	params = append(params, "--terragrunt-no-color")
+
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("plan", true, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -64,7 +73,7 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planA
 }
 
 func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
-	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
+	params = append(params, []string{"-no-color", "--terragrunt-no-color", "-json", planArtefactFilePath}...)
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("show", false, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)

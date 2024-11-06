@@ -271,6 +271,9 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 			// TODO: move this function to iacUtils interface and implement for pulumi
 			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
+
+			log.Printf("the cleaned up plan: %v", plan)
+
 			if err != nil {
 				log.Printf("error publishing comment: %v", err)
 			}
