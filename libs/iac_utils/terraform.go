@@ -9,6 +9,7 @@ import (
 	"github.com/dineshba/tf-summarize/writer"
 	tfjson "github.com/hashicorp/terraform-json"
 	"github.com/samber/lo"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -26,6 +27,7 @@ func parseTerraformPlanOutput(terraformJson string) (*tfjson.Plan, error) {
 }
 
 func (tu TerraformUtils) GetSummaryFromPlanJson(planJson string) (bool, *IacSummary, error) {
+	log.Printf("attempting to parse plan json: %v", planJson)
 	tfplan, err := parseTerraformPlanOutput(planJson)
 	if err != nil {
 		return false, nil, fmt.Errorf("Error while parsing json file: %v", err)
