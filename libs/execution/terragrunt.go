@@ -15,7 +15,9 @@ type Terragrunt struct {
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
-
+	params = append(params, "-input=false")
+	params = append(params, "-no-color")
+	params = append(params, "--terragrunt-no-color")
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("init", true, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
