@@ -3,7 +3,7 @@ title: "External providers code execution"
 ---
 
 Digger executes terraform in github actions within previlliged environments. Since terraform has the ability
-to execute arbitrary code based on data blocks or external providers this can lead to a user with mallicious
+to execute arbitrary code based on data blocks or external providers this can lead to a user with malicious
 intent to expose the environment variables within the CI environment, potentially leaking cloud secrets.
 
 How to avoid this?

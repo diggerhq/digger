@@ -412,7 +412,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	if err != nil {
 		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
 		backend_utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: could not determine digger command from job: %v", err))
-		return fmt.Errorf("unkown digger command in comment %v", err)
+		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
 
 	if *diggerCommand == orchestrator_scheduler.DiggerCommandNoop {
@@ -486,7 +486,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		backend_utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
-		return fmt.Errorf("error triggerring Digger Jobs")
+		return fmt.Errorf("error triggering Digger Jobs")
 	}
 
 	return nil
@@ -633,7 +633,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	// retrive org for current orgID
+	// retrieve org for current orgID
 	orgId := c.GetString(middleware.ORGANISATION_ID_KEY)
 	org, err := dbmodels.DB.GetOrganisationById(orgId)
 	if err != nil {
@@ -652,7 +652,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 
 	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
 	if err != nil {
-		log.Printf("Error retriving github client: %v", err)
+		log.Printf("Error retrieving github client: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		return
 

@@ -256,7 +256,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 	if err != nil {
 		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: could not determine digger command from job: %v", err))
-		return fmt.Errorf("unkown digger command in comment %v", err)
+		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
 
 	if *diggerCommand == scheduler.DiggerCommandNoop {
@@ -431,9 +431,9 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 
 	diggerCommand, err := scheduler.GetCommandFromComment(commentBody)
 	if err != nil {
-		log.Printf("unkown digger command in comment: %v", commentBody)
+		log.Printf("unknown digger command in comment: %v", commentBody)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Could not recognise comment, error: %v", err))
-		return fmt.Errorf("unkown digger command in comment %v", err)
+		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
 
 	prBranchName, _, err := glService.GetBranchName(issueNumber)
@@ -589,7 +589,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	if err != nil {
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
-		return fmt.Errorf("error triggerring Digger Jobs")
+		return fmt.Errorf("error triggering Digger Jobs")
 	}
 	return nil
 }

@@ -43,7 +43,7 @@ func (footprint IacPlanFootprint) hash() string {
 	addresses := make([]string, len(footprint.Addresses))
 	copy(addresses, footprint.Addresses)
 	sort.Strings(addresses)
-	// concatenate all the addreses after sorting to form the hash
+	// concatenate all the addresses after sorting to form the hash
 	return lo.Reduce(addresses, func(a string, b string, i int) string {
 		return a + b
 	}, "")

@@ -18,8 +18,8 @@ func (ghi GithubIssueNotification) Send(projectName string, plan string) error {
 	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
 	existingIssues, err := (*ghi.GithubService).ListIssues()
 	if err != nil {
-		log.Printf("failed to retrive issues: %v", err)
-		return fmt.Errorf("failed to retrive issues: %v", err)
+		log.Printf("failed to retrieve issues: %v", err)
+		return fmt.Errorf("failed to retrieve issues: %v", err)
 	}
 
 	theIssue, exists := lo.Find(existingIssues, func(item *orchestrator.Issue) bool {

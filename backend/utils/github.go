@@ -168,7 +168,7 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/apply")
 			}
 			if err != nil {
-				log.Printf("Erorr setting status: %v", err)
+				log.Printf("Error setting status: %v", err)
 				return fmt.Errorf("Error setting pr status: %v", err)
 			}
 		}

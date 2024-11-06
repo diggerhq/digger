@@ -104,8 +104,8 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 
 	appInstallation, err := dbmodels.DB.GetGithubAppInstallationByOrgAndRepo(orgId, repo.RepoFullName, dbmodels.GithubAppInstallActive)
 	if err != nil {
-		log.Printf("error retriving app installation")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "error retriving app installation"})
+		log.Printf("error retrieving app installation")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "error retrieving app installation"})
 		return
 	}
 	installationId := appInstallation.GithubInstallationID
@@ -147,7 +147,7 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 
 	_, err = dbmodels.DB.CreateDiggerRunQueueItem(diggerRun.ID, projectId)
 	if err != nil {
-		log.Printf("Error creating queing run: %v", err)
+		log.Printf("Error creating queuing run: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error adding run to queue"})
 		return
 	}
