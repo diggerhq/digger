@@ -16,8 +16,7 @@ type Terragrunt struct {
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "-input=false")
-	params = append(params, "-no-color")
-	params = append(params, "--terragrunt-no-color")
+
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("init", true, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -29,9 +28,6 @@ func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (stri
 func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
 	params = append(params, []string{"-lock-timeout=3m"}...)
 	params = append(params, "--auto-approve")
-	params = append(params, "-no-color")
-	params = append(params, "--terragrunt-no-color")
-	params = append(params, "--terragrunt-non-interactive")
 
 	if plan != nil {
 		params = append(params, *plan)
@@ -46,9 +42,6 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 
 func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
-	params = append(params, "--terragrunt-non-interactive")
-	params = append(params, "-no-color")
-	params = append(params, "--terragrunt-no-color")
 
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("destroy", true, envs, params...)
 	if exitCode != 0 {
@@ -63,8 +56,6 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planA
 		params = append(params, []string{"-out", planArtefactFilePath}...)
 	}
 	params = append(params, "-lock-timeout=3m")
-	params = append(params, "-no-color")
-	params = append(params, "--terragrunt-no-color")
 
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("plan", true, envs, params...)
 	if exitCode != 0 {
@@ -75,7 +66,7 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planA
 }
 
 func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
-	params = append(params, []string{"-no-color", "--terragrunt-no-color", "-json", planArtefactFilePath}...)
+	params = append(params, []string{"-json", planArtefactFilePath}...)
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("show", false, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -89,6 +80,7 @@ func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planA
 func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, arg ...string) (stdOut string, stdErr string, exitCode int, err error) {
 	args := []string{command}
 	args = append(args, arg...)
+	args = append(args, []string{"-no-color", "--terragrunt-no-color", "--terragrunt-non-interactive"}...)
 
 	expandedArgs := make([]string, 0)
 	for _, p := range args {
@@ -115,8 +107,6 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 	cmd.Dir = terragrunt.WorkingDir
 
 	env := os.Environ()
-	env = append(env, "TF_CLI_ARGS=-no-color")
-	env = append(env, "TF_IN_AUTOMATION=true")
 
 	for k, v := range envs {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
