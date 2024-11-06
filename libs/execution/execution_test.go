@@ -2,6 +2,8 @@ package execution
 
 import (
 	"github.com/stretchr/testify/assert"
+	"log"
+	"os"
 	"strings"
 	"testing"
 )
@@ -259,4 +261,35 @@ Changes to Outputs:
 	res := cleanupTerraformPlan(true, nil, stdout, "")
 	index := strings.Index(stdout, "OpenTofu will perform the following actions:")
 	assert.Equal(t, stdout[index:], res)
+}
+
+func TestCleanupTrg(t *testing.T) {
+	stdout := `23:21:39.514 STDOUT terraform: aws_s3_bucket.example: Refreshing state... [id=my-tf-test-bucket20240516184950890200000001]
+23:21:39.757 STDOUT terraform: Terraform used the selected providers to generate the following execution
+23:21:39.757 STDOUT terraform: plan. Resource actions are indicated with the following symbols:
+23:21:39.757 STDOUT terraform:   ~ update in-place
+23:21:39.757 STDOUT terraform: Terraform will perform the following actions:
+23:21:39.757 STDOUT terraform:   # aws_s3_bucket.example will be updated in-place
+23:21:39.757 STDOUT terraform:   ~ resource "aws_s3_bucket" "example" {
+23:21:39.757 STDOUT terraform:         id                          = "my-tf-test-bucket20240516184950890200000001"
+23:21:39.757 STDOUT terraform:       ~ tags                        = {
+23:21:39.757 STDOUT terraform:             "Environment" = "env5"
+23:21:39.757 STDOUT terraform:           ~ "Name"        = "My bucket env534" -> "My bucket env535"
+23:21:39.757 STDOUT terraform:         }
+23:21:39.757 STDOUT terraform:       ~ tags_all                    = {
+23:21:39.757 STDOUT terraform:           ~ "Name"        = "My bucket env534" -> "My bucket env535"
+23:21:39.758 STDOUT terraform:             # (1 unchanged element hidden)
+23:21:39.758 STDOUT terraform:         }
+23:21:39.758 STDOUT terraform:         # (12 unchanged attributes hidden)
+23:21:39.758 STDOUT terraform:         # (3 unchanged blocks hidden)
+23:21:39.758 STDOUT terraform:     }
+23:21:39.758 STDOUT terraform: Plan: 0 to add, 1 to change, 0 to destroy.`
+	res := cleanupTerraformPlan(true, nil, stdout, "")
+	log.Printf("the result is %v", res)
+}
+
+func init() {
+	log.SetOutput(os.Stdout)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	log.Println("Initialized the logger successfully")
 }
