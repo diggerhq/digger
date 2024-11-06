@@ -570,7 +570,7 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	})
 	if err != nil {
 		log.Printf("Error cloning and loading config: %v", err)
-		return "", nil, nil, nil, fmt.Errorf("error cloning and loading config")
+		return "", nil, nil, nil, fmt.Errorf("error cloning and loading config %v", err)
 	}
 
 	log.Printf("Digger config loadded successfully\n")
@@ -601,7 +601,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, r
 	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch, changedFiles)
 	if err != nil {
 		log.Printf("Error loading digger.yml: %v", err)
-		return "", nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml")
+		return "", nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml: %v", err)
 	}
 
 	log.Printf("Digger config loadded successfully\n")
