@@ -7,6 +7,44 @@ import (
 	"log"
 )
 
+// CommentReporterManager thin wrapper around CommentReporter that makes it "Lazy" so we dont comment anything when it is initialized
+// and we can update comment at any time (intial update creates a new comment, future updates will update that comment)
+type CommentReporterManager struct {
+	CommentReporter *CommentReporter
+	prService       ci.PullRequestService
+	prNumber        int
+}
+
+func InitCommentReporterManager(prService ci.PullRequestService, prNumber int) CommentReporterManager {
+	return CommentReporterManager{
+		CommentReporter: nil,
+		prService:       prService,
+		prNumber:        prNumber,
+	}
+}
+
+func (cm *CommentReporterManager) GetCommentReporter() (*CommentReporter, error) {
+	if cm.CommentReporter != nil {
+		return cm.CommentReporter, nil
+	} else {
+		cr, err := InitCommentReporter(cm.prService, cm.prNumber, "digger report")
+		cm.CommentReporter = cr
+		return cr, err
+	}
+}
+
+func (cm *CommentReporterManager) UpdateComment(commentMessage string) (*CommentReporter, error) {
+	if cm.CommentReporter != nil {
+		err := UpdateCRComment(cm.CommentReporter, commentMessage)
+		return cm.CommentReporter, err
+	} else {
+		cr, err := InitCommentReporter(cm.prService, cm.prNumber, commentMessage)
+		cm.CommentReporter = cr
+		return cr, err
+
+	}
+}
+
 type CommentReporter struct {
 	PrNumber  int
 	PrService ci.PullRequestService
@@ -30,6 +68,14 @@ func InitCommentReporter(prService ci.PullRequestService, prNumber int, commentM
 	}, nil
 }
 
+func UpdateCRComment(cr *CommentReporter, comment string) error {
+	commentId := cr.CommentId
+	prNumber := cr.PrNumber
+	prService := cr.PrService
+	err := prService.EditComment(prNumber, commentId, comment)
+	return err
+
+}
 func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 	prNumber := cr.PrNumber
 	prService := cr.PrService
