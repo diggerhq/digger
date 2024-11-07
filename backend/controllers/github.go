@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/locking"
@@ -377,7 +378,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	commentReporterManager := utils.InitCommentReporterManager(ghService, prNumber)
-	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING"); exists {
+	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING_CONFIG"); exists {
 		_, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting....")
 		if err != nil {
 			log.Printf("Error initializing comment reporter: %v", err)
@@ -693,7 +694,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 	commentReporterManager := utils.InitCommentReporterManager(ghService, issueNumber)
-	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING"); exists {
+	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING_CONFIG"); exists {
 		_, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting....")
 		if err != nil {
 			log.Printf("Error initializing comment reporter: %v", err)
