@@ -20,8 +20,9 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.46.0
 	github.com/samber/slog-gin v1.13.3
+	github.com/stretchr/testify v1.9.0
 	github.com/supabase-community/supabase-go v0.0.4
-	golang.org/x/oauth2 v0.22.0
+	golang.org/x/oauth2 v0.24.0
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gen v0.3.26
 	gorm.io/gorm v1.25.11
@@ -245,7 +246,6 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/supabase-community/functions-go v0.0.0-20220927045802-22373e6cb51d // indirect
 	github.com/supabase-community/gotrue-go v1.2.0 // indirect
