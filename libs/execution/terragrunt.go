@@ -107,7 +107,7 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 	cmd.Dir = terragrunt.WorkingDir
 
 	env := os.Environ()
-
+	env = append(env, "TERRAGRUNT_FORWARD_TF_STDOUT=1")
 	for k, v := range envs {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
