@@ -76,7 +76,6 @@ func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planA
 func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, arg ...string) (stdOut string, stdErr string, exitCode int, err error) {
 	args := []string{command}
 	args = append(args, arg...)
-	args = append(args, []string{"-no-color", "--terragrunt-no-color", "--terragrunt-non-interactive"}...)
 
 	expandedArgs := make([]string, 0)
 	for _, p := range args {
@@ -105,6 +104,7 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 	env := os.Environ()
 	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")
+	env = append(env, "TERRAGRUNT_NO_COLOR=true")
 	env = append(env, "TERRAGRUNT_NON_INTERACTIVE=true")
 	env = append(env, "TERRAGRUNT_FORWARD_TF_STDOUT=1")
 
