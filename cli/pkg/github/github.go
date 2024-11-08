@@ -25,7 +25,7 @@ import (
 	"strings"
 )
 
-func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotifcationProvider drift.DriftNotificationProvider) {
+func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotificationProvider drift.DriftNotificationProvider) {
 	log.Printf("Using GitHub.\n")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
@@ -34,7 +34,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		usage.SendUsageRecord("", "log", "non github initialisation")
 	}
 
-	// default policy checker for backwards compatability, will be overriden in orchestrator flow
+	// default policy checker for backwards compatibility, will be overridden in orchestrator flow
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
 	orgName := os.Getenv("DIGGER_ORGANISATION")
@@ -208,7 +208,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				CommandRoleArn: 	cmdArn,				
 			}
 
-			notification, err := driftNotifcationProvider.Get(githubPrService)
+			notification, err := driftNotificationProvider.Get(githubPrService)
 			if err != nil {
 				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get drift notification type: %v", err), 8)
 			}
@@ -255,7 +255,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			prBranchName, _, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
 
 			if err != nil {
-				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while retriving default branch from Issue: %v", err), 6)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while retrieving default branch from Issue: %v", err), 6)
 			}
 			defaultBranch := *commentEvent.Repo.DefaultBranch
 			repoFullName := *commentEvent.Repo.FullName
@@ -308,7 +308,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		}
 
 		if allAppliesSuccessful {
-			// aggreate status checks: success
+			// aggregate status checks: success
 			if scheduler.IsPlanJobs(jobs) {
 				githubPrService.SetStatus(prNumber, "success", "digger/plan")
 			} else {

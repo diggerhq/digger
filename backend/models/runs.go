@@ -117,7 +117,7 @@ func (r *DiggerRun) MapToJsonStruct() (interface{}, error) {
 func (r DiggerRunStage) MapToJsonStruct() (*SerializedRunStage, error) {
 	job, err := DB.GetDiggerJobFromRunStage(r)
 	if err != nil {
-		log.Printf("Could not retrive job from run")
+		log.Printf("Could not retrieve job from run")
 		return nil, err
 	}
 

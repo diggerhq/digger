@@ -39,7 +39,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
-	log.Printf("settings tatus for job: %v, new status: %v, tfout: %v, job summary: %v", jobId, request.Status, request.TerraformOutput, request.JobSummary)
+	log.Printf("settings status for job: %v, new status: %v, tfout: %v, job summary: %v", jobId, request.Status, request.TerraformOutput, request.JobSummary)
 
 	job, err := dbmodels.DB.GetDiggerCiJob(jobId)
 	if err != nil {
@@ -72,7 +72,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 
 		project, err := dbmodels.DB.GetProjectById(job.ProjectID)
 		if err != nil {
-			log.Printf("Error retriving project: %v", err)
+			log.Printf("Error retrieving project: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving project"})
 			return
 

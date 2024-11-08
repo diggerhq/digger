@@ -156,7 +156,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		}
 		err = UpdateAggregateStatus(batchResult, prService)
 		if err != nil {
-			log.Printf("error udpating aggregate status check: %v.\n", err)
+			log.Printf("error updating aggregate status check: %v.\n", err)
 			return false, false, err
 		}
 

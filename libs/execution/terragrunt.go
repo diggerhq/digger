@@ -104,6 +104,9 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 	env := os.Environ()
 	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")
+	env = append(env, "TERRAGRUNT_NO_COLOR=true")
+	env = append(env, "TERRAGRUNT_NON_INTERACTIVE=true")
+	env = append(env, "TERRAGRUNT_FORWARD_TF_STDOUT=1")
 
 	for k, v := range envs {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))

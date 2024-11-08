@@ -58,8 +58,8 @@ func copyProjects(projects []*ProjectYaml) []Project {
 		}		
 
 		workflowFile := "digger_workflow.yml"
-		if p.WorkflowFile != nil {
-			workflowFile = *p.WorkflowFile
+		if p.WorkflowFile != "" {
+			workflowFile = p.WorkflowFile
 		}
 
 		workspace := ""

@@ -26,21 +26,21 @@ type DependencyConfigurationYaml struct {
 }
 
 type ProjectYaml struct {
-	Name               		string                      `yaml:"name"`
-	Dir                		string                      `yaml:"dir"`
-	Workspace          		string                      `yaml:"workspace"`
-	Terragrunt         		bool                        `yaml:"terragrunt"`
-	OpenTofu           		bool                        `yaml:"opentofu"`
-	Pulumi		            bool                        `yaml:"pulumi"`
-	Workflow           		string                      `yaml:"workflow"`
-	WorkflowFile       		*string                     `yaml:"workflow_file""`
-	IncludePatterns    		[]string                    `yaml:"include_patterns,omitempty"`
-	ExcludePatterns    		[]string                    `yaml:"exclude_patterns,omitempty"`
-	DependencyProjects 		[]string                    `yaml:"depends_on,omitempty"`
-	DriftDetection     		*bool                       `yaml:"drift_detection,omitempty"`
-	AwsRoleToAssume    		*AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig		`yaml:"aws_cognito_oidc,omitempty"`
-	Generated          		bool                        `yaml:"generated"`
+	Name               string                      `yaml:"name"`
+	Dir                string                      `yaml:"dir"`
+	Workspace          string                      `yaml:"workspace"`
+	Terragrunt         bool                        `yaml:"terragrunt"`
+	OpenTofu           bool                        `yaml:"opentofu"`
+	Pulumi             bool                        `yaml:"pulumi"`
+	Workflow           string                      `yaml:"workflow"`
+	WorkflowFile       string                      `yaml:"workflow_file"`
+	IncludePatterns    []string                    `yaml:"include_patterns,omitempty"`
+	ExcludePatterns    []string                    `yaml:"exclude_patterns,omitempty"`
+	DependencyProjects []string                    `yaml:"depends_on,omitempty"`
+	DriftDetection     *bool                       `yaml:"drift_detection,omitempty"`
+	AwsRoleToAssume    *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	Generated          bool                        `yaml:"generated"`
+	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig	`yaml:"aws_cognito_oidc,omitempty"`
 	PulumiStack        string                      `yaml:"pulumi_stack"`
 }
 

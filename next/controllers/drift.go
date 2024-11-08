@@ -57,8 +57,8 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 
 	appInstallation, err := dbmodels.DB.GetGithubAppInstallationByOrgAndRepo(orgId, repo.RepoFullName, dbmodels.GithubAppInstallActive)
 	if err != nil {
-		log.Printf("error retriving app installation")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "error retriving app installation"})
+		log.Printf("error retrieving app installation")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "error retrieving app installation"})
 		return
 	}
 	installationId := appInstallation.GithubInstallationID
