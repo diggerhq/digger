@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -53,28 +54,50 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 	gh := d.GithubClientProvider
 	log.Printf("GithubAppWebHook")
 
-	payload, err := github.ValidatePayload(c.Request, []byte(os.Getenv("GITHUB_WEBHOOK_SECRET")))
+	payload, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		log.Printf("Error validating github app webhook's payload: %v", err)
-		c.String(http.StatusBadRequest, "Error validating github app webhook's payload")
+		log.Printf("Error reading payload: %v", err)
+		c.String(http.StatusBadRequest, "failed to read payload")
 		return
 	}
 
-	webhookType := github.WebHookType(c.Request)
-	event, err := github.ParseWebHook(webhookType, payload)
+	// Parse the webhook without validation
+	event, err := github.ParseWebHook(github.WebHookType(c.Request), payload)
 	if err != nil {
-		log.Printf("Failed to parse Github Event. :%v\n", err)
-		c.String(http.StatusInternalServerError, "Failed to parse Github Event")
+		log.Printf("Error parsing webhook: %v", err)
+		c.String(http.StatusBadRequest, "Failed to parse webhook", http.StatusBadRequest)
 		return
+	}
+
+	validatePayload := func(appId int64) error {
+		_, _, webhookSecret, _, err := d.GithubClientProvider.FetchCredentials(strconv.FormatInt(appId, 10))
+		if err != nil {
+			log.Printf("could not fetch credentials for the app: %v", err)
+			return err
+		}
+
+		_, err = github.ValidatePayload(c.Request, []byte(os.Getenv(webhookSecret)))
+		if err != nil {
+			log.Printf("Error validating github app webhook's payload: %v", err)
+			return err
+		}
+		return nil
 	}
 
 	log.Printf("github event type: %v\n", reflect.TypeOf(event))
 
 	switch event := event.(type) {
 	case *github.InstallationEvent:
+		appId := *event.Installation.AppID
+		err := validatePayload(appId)
+		if err != nil {
+			log.Printf("Error validating webhook: %v", err)
+			c.String(http.StatusBadRequest, "Failed to parse webhook", http.StatusBadRequest)
+		}
 		log.Printf("InstallationEvent, action: %v\n", *event.Action)
 
 		if *event.Action == "deleted" {
+
 			err := handleInstallationDeletedEvent(event)
 			if err != nil {
 				c.String(http.StatusAccepted, "Failed to handle webhook event.")
@@ -82,12 +105,19 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			}
 		}
 	case *github.IssueCommentEvent:
+		appId := *event.Installation.AppID
+		err := validatePayload(appId)
+		if err != nil {
+			log.Printf("Error validating webhook: %v", err)
+			c.String(http.StatusBadRequest, "Failed to parse webhook", http.StatusBadRequest)
+		}
+
 		log.Printf("IssueCommentEvent, action: %v\n", *event.Action)
 		if event.Sender.Type != nil && *event.Sender.Type == "Bot" {
 			c.String(http.StatusOK, "OK")
 			return
 		}
-		err := handleIssueCommentEvent(gh, event, d.CiBackendProvider)
+		err = handleIssueCommentEvent(gh, event, d.CiBackendProvider)
 		if err != nil {
 			log.Printf("handleIssueCommentEvent error: %v", err)
 			c.String(http.StatusAccepted, err.Error())
@@ -104,8 +134,22 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			}
 		}
 	case *github.PullRequestEvent:
+		appId := *event.Installation.AppID
+		err := validatePayload(appId)
+		if err != nil {
+			log.Printf("Error validating webhook: %v", err)
+			c.String(http.StatusBadRequest, "Failed to parse webhook", http.StatusBadRequest)
+		}
+
+		_, err = github.ValidatePayload(c.Request, []byte(os.Getenv("GITHUB_WEBHOOK_SECRET")))
+		if err != nil {
+			log.Printf("Error validating github app webhook's payload: %v", err)
+			c.String(http.StatusBadRequest, "Error validating github app webhook's payload")
+			return
+		}
+
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
-		err := handlePullRequestEvent(gh, event, d.CiBackendProvider)
+		err = handlePullRequestEvent(gh, event, d.CiBackendProvider)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
 			c.String(http.StatusAccepted, err.Error())
@@ -230,11 +274,6 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 		return
 	}
 	log.Printf("Found credentials for GitHub app %v with id %d", *cfg.Name, cfg.GetID())
-
-	_, err = models.DB.CreateGithubApp(cfg.GetName(), cfg.GetID(), cfg.GetHTMLURL())
-	if err != nil {
-		c.Error(fmt.Errorf("Failed to create github app record on callback"))
-	}
 
 	PEM := cfg.GetPEM()
 	PemBase64 := base64.StdEncoding.EncodeToString([]byte(PEM))
@@ -1028,8 +1067,14 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
 	//setupAction := c.Request.URL.Query()["setup_action"][0]
 	code := c.Request.URL.Query()["code"][0]
-	clientId := os.Getenv("GITHUB_APP_CLIENT_ID")
-	clientSecret := os.Getenv("GITHUB_APP_CLIENT_SECRET")
+	appId := c.Request.URL.Query().Get("state")
+
+	clientId, clientSecret, _, _, err := d.GithubClientProvider.FetchCredentials(appId)
+	if err != nil {
+		log.Printf("could not fetch credentials for the app: %v", err)
+		c.String(500, "could not find credentials for github app")
+		return
+	}
 
 	installationId64, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {

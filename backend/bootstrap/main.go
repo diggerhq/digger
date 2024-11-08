@@ -163,9 +163,8 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	// authless endpoint because we no longer rely on orgId
 	r.GET("/github/callback", diggerController.GithubAppCallbackPage)
 	githubGroup.GET("/repos", diggerController.GithubReposPage)
-	githubGroup.GET("/setup", controllers.GithubAppSetup)
 	githubGroup.GET("/exchange-code", diggerController.GithubSetupExchangeCode)
-
+	
 	authorized := r.Group("/")
 	authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(models.CliJobAccessType, models.AccessPolicyType, models.AdminPolicyType))
 

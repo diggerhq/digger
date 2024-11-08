@@ -41,12 +41,19 @@ func main() {
 	cfg := config.DiggerConfig
 
 	eeController := controllers.DiggerEEController{
-		GitlabProvider:    utils.GitlabClientProvider{},
-		CiBackendProvider: ci_backends2.EEBackendProvider{},
+		GithubClientProvider: github.DiggerGithubEEClientProvider{},
+		GitlabProvider:       utils.GitlabClientProvider{},
+		CiBackendProvider:    ci_backends2.EEBackendProvider{},
 	}
 
 	r.POST("/get-spec", eeController.GetSpec)
 	r.POST("/gitlab-webhook", eeController.GitlabWebHookHandler)
+
+	githubGroup := r.Group("/github")
+	githubGroup.Use(middleware.GetWebMiddleware())
+	githubGroup.GET("/connections", controllers.GithubAppConnections)
+	githubGroup.GET("/connections/confirm", eeController.GithubAppConnectionsConfirm)
+	githubGroup.GET("/connections/:connection_id/delete", eeController.GithubAppConnectionsDelete)
 
 	legacyUiShown := os.Getenv("DIGGER_LEGACY_UI")
 	if legacyUiShown != "" {
