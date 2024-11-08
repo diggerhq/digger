@@ -229,6 +229,7 @@ func(job *Job) AuthCognito() error {
 		)
 
 		stsClient := getStsClient(cfg)
+		defaultStsClient = nil
 		if job.StateRoleArn != "" {		
 
 			creds, err := stsClient.AssumeRole(context.Background(), &sts.AssumeRoleInput{
