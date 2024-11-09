@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -54,70 +53,50 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 	gh := d.GithubClientProvider
 	log.Printf("GithubAppWebHook")
 
-	payload, err := io.ReadAll(c.Request.Body)
+	appID := c.GetHeader("X-GitHub-Hook-Installation-Target-ID")
+	log.Printf("app id from header is: %v", appID)
+	_, _, webhookSecret, _, err := d.GithubClientProvider.FetchCredentials(appID)
+
+	payload, err := github.ValidatePayload(c.Request, []byte(webhookSecret))
 	if err != nil {
-		log.Printf("Error reading payload: %v", err)
-		c.String(http.StatusBadRequest, "failed to read payload")
+		log.Printf("Error validating github app webhook's payload: %v", err)
+		c.String(http.StatusBadRequest, "Error validating github app webhook's payload")
 		return
 	}
 
-	// Parse the webhook without validation
-	event, err := github.ParseWebHook(github.WebHookType(c.Request), payload)
+	webhookType := github.WebHookType(c.Request)
+	event, err := github.ParseWebHook(webhookType, payload)
 	if err != nil {
-		log.Printf("Error parsing webhook: %v", err)
-		c.String(http.StatusBadRequest, "Failed to parse webhook", http.StatusBadRequest)
+		log.Printf("Failed to parse Github Event. :%v\n", err)
+		c.String(http.StatusInternalServerError, "Failed to parse Github Event")
 		return
-	}
-
-	validatePayload := func(appId int64) error {
-		_, _, webhookSecret, _, err := d.GithubClientProvider.FetchCredentials(strconv.FormatInt(appId, 10))
-		if err != nil {
-			log.Printf("could not fetch credentials for the app: %v", err)
-			return err
-		}
-
-		_, err = github.ValidatePayload(c.Request, []byte(os.Getenv(webhookSecret)))
-		if err != nil {
-			log.Printf("Error validating github app webhook's payload: %v", err)
-			return err
-		}
-		return nil
 	}
 
 	log.Printf("github event type: %v\n", reflect.TypeOf(event))
 
+	appId64, err := strconv.ParseInt(appID, 10, 64)
+	if err != nil {
+		log.Printf("Error converting appId string to int64: %v", err)
+		return
+	}
+
 	switch event := event.(type) {
 	case *github.InstallationEvent:
-		appId := *event.Installation.AppID
-		err := validatePayload(appId)
-		if err != nil {
-			log.Printf("Error validating webhook: %v", err)
-			c.String(http.StatusBadRequest, "Failed to parse webhook", http.StatusBadRequest)
-		}
 		log.Printf("InstallationEvent, action: %v\n", *event.Action)
-
 		if *event.Action == "deleted" {
-
-			err := handleInstallationDeletedEvent(event)
+			err := handleInstallationDeletedEvent(event, appId64)
 			if err != nil {
 				c.String(http.StatusAccepted, "Failed to handle webhook event.")
 				return
 			}
 		}
 	case *github.IssueCommentEvent:
-		appId := *event.Installation.AppID
-		err := validatePayload(appId)
-		if err != nil {
-			log.Printf("Error validating webhook: %v", err)
-			c.String(http.StatusBadRequest, "Failed to parse webhook", http.StatusBadRequest)
-		}
-
 		log.Printf("IssueCommentEvent, action: %v\n", *event.Action)
 		if event.Sender.Type != nil && *event.Sender.Type == "Bot" {
 			c.String(http.StatusOK, "OK")
 			return
 		}
-		err = handleIssueCommentEvent(gh, event, d.CiBackendProvider)
+		err = handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64)
 		if err != nil {
 			log.Printf("handleIssueCommentEvent error: %v", err)
 			c.String(http.StatusAccepted, err.Error())
@@ -134,22 +113,8 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			}
 		}
 	case *github.PullRequestEvent:
-		appId := *event.Installation.AppID
-		err := validatePayload(appId)
-		if err != nil {
-			log.Printf("Error validating webhook: %v", err)
-			c.String(http.StatusBadRequest, "Failed to parse webhook", http.StatusBadRequest)
-		}
-
-		_, err = github.ValidatePayload(c.Request, []byte(os.Getenv("GITHUB_WEBHOOK_SECRET")))
-		if err != nil {
-			log.Printf("Error validating github app webhook's payload: %v", err)
-			c.String(http.StatusBadRequest, "Error validating github app webhook's payload")
-			return
-		}
-
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
-		err = handlePullRequestEvent(gh, event, d.CiBackendProvider)
+		err = handlePullRequestEvent(gh, event, d.CiBackendProvider, appId64)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
 			c.String(http.StatusAccepted, err.Error())
@@ -338,10 +303,8 @@ generate_projects:
 	return repo, org, nil
 }
 
-func handleInstallationDeletedEvent(installation *github.InstallationEvent) error {
+func handleInstallationDeletedEvent(installation *github.InstallationEvent, appId int64) error {
 	installationId := *installation.Installation.ID
-	appId := *installation.Installation.AppID
-
 	link, err := models.DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		return err
@@ -362,8 +325,7 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 	return nil
 }
 
-func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
-	appId := *payload.Installation.AppID
+func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -679,8 +641,7 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 	}
 }
 
-func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
-	appId := *payload.Installation.AppID
+func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login

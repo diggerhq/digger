@@ -187,6 +187,7 @@
                 <thead>
                     <tr>
                         <th>App Name</th>
+                        <th>App ID</th>
                         <th>Client ID</th>
                         <th>Installation Link</th>
                         <th></th>
@@ -196,6 +197,7 @@
                     {{ range .connections }}
                     <tr>
                         <td>{{ .Name }}</td>
+                        <td>{{ .GithubId }}</td>
                         <td>{{ .ClientID }}</td>
                         <td><a href="{{ .GithubAppUrl }}/installations/new?state={{ .GithubId }}">{{ .GithubAppUrl }}<a></td>
                         <td>
