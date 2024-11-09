@@ -363,12 +363,7 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 }
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
-	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
-	if err != nil {
-		log.Printf("error getting github app installation id: %v", err)
-		return fmt.Errorf("error getting github app installation id")
-	}
-
+	appId := *payload.Installation.AppID
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -685,12 +680,7 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 }
 
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
-	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
-	if err != nil {
-		log.Printf("error getting github app installation id: %v", err)
-		return fmt.Errorf("error getting github app installation id")
-	}
-
+	appId := *payload.Installation.AppID
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
