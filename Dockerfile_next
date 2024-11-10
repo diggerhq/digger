@@ -1,49 +1,53 @@
-FROM golang:1.22.4 as builder
+# Stage 1: Builder
+FROM golang:1.22.4 AS builder
+
+# Build arguments
 ARG COMMIT_SHA
-RUN echo "commit sha: ${COMMIT_SHA}"
+RUN echo "Commit SHA: ${COMMIT_SHA}"
 
 # Set the working directory
 WORKDIR $GOPATH/src/github.com/diggerhq/digger
 
-# Copy all required source, blacklist files that are not required through `.dockerignore`
+# Cache Go dependencies by copying only the go.mod and go.sum files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the application code
 COPY . .
 
-# Get the vendor library
-RUN go version
-
-# RUN vgo install
-
-# https://github.com/ethereum/go-ethereum/issues/2738
-# Build static binary "-getmode=vendor" does not work with go-ethereum
-
+# Build the static binary
 RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o next_exe ./next/
 
-# Multi-stage build will just copy the binary to an alpine image.
-FROM ubuntu:24.04 as runner
-ENV ATLAS_VERSION v0.28.0
+# Stage 2: Runner
+FROM ubuntu:24.04-slim AS runner
+ENV ATLAS_VERSION v0.16.0
 ARG COMMIT_SHA
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y ca-certificates curl && apt-get install -y git && apt-get clean all
-RUN update-ca-certificates
+# Install necessary packages and clean up in a single step
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates curl git && \
+    rm -rf /var/lib/apt/lists/* && \
+    update-ca-certificates
 
-RUN echo "commit sha: ${COMMIT_SHA}"
+# Print commit SHA
+RUN echo "Commit SHA: ${COMMIT_SHA}"
 
-# install atlas
+# Install Atlas
 RUN curl -sSf https://atlasgo.sh | sh
 
-
-
-# Set gin to production
 #ENV GIN_MODE=release
 
 # Expose the running port
 EXPOSE 3000
 
-# Copy the binary to the corresponding folder
+# Copy binary and entrypoint
 COPY --from=builder /go/src/github.com/diggerhq/digger/next_exe /app/next
 COPY --from=builder /go/src/github.com/diggerhq/digger/next/scripts/entrypoint.sh /app/entrypoint.sh
 ADD next/templates ./templates
 
-# Run the binary
+# Set entrypoint and permissions
+RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
+
