@@ -18,7 +18,7 @@ RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o next_exe ./next/
 
 # Stage 2: Runner
 FROM ubuntu:24.04 AS runner
-ENV ATLAS_VERSION v0.16.0
+ENV ATLAS_VERSION v0.28.0
 ARG COMMIT_SHA
 WORKDIR /app
 
