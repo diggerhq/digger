@@ -31,9 +31,10 @@ func main() {
 		log.Printf("error checking license %v", err)
 		os.Exit(1)
 	}
+	githubProvider := github.DiggerGithubEEClientProvider{}
 	diggerController := ce_controllers.DiggerController{
 		CiBackendProvider:                  ci_backends2.EEBackendProvider{},
-		GithubClientProvider:               github.DiggerGithubEEClientProvider{},
+		GithubClientProvider:               githubProvider,
 		GithubWebhookPostIssueCommentHooks: []ce_controllers.IssueCommentHook{hooks.DriftReconcilliationHook},
 	}
 
@@ -41,7 +42,7 @@ func main() {
 	cfg := config.DiggerConfig
 
 	eeController := controllers.DiggerEEController{
-		GithubClientProvider: github.DiggerGithubEEClientProvider{},
+		GithubClientProvider: githubProvider,
 		GitlabProvider:       utils.GitlabClientProvider{},
 		CiBackendProvider:    ci_backends2.EEBackendProvider{},
 	}
