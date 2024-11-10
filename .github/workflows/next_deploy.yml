@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
+      - fix/dockerfile-next
 jobs:
   deploy:
     name: Deploy app
