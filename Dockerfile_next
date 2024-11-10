@@ -8,19 +8,17 @@ RUN echo "Commit SHA: ${COMMIT_SHA}"
 # Set the working directory
 WORKDIR $GOPATH/src/github.com/diggerhq/digger
 
-# Cache Go dependencies by copying only the go.mod and go.sum files
-COPY go.mod go.sum ./
+# copy the application
+COPY . .
 RUN go mod download
 
-# Copy the rest of the application code
-COPY . .
 
 # Build the static binary
 RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o next_exe ./next/
 
 # Stage 2: Runner
-FROM ubuntu:24.04-slim AS runner
-ENV ATLAS_VERSION v0.16.0
+FROM ubuntu:24.04 AS runner
+ENV ATLAS_VERSION v0.28.0
 ARG COMMIT_SHA
 WORKDIR /app
 
