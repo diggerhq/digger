@@ -17,7 +17,7 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.27.0
+	github.com/aws/aws-sdk-go-v2 v1.31.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.16
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.32.6
@@ -27,7 +27,7 @@ require (
 	github.com/samber/lo v1.39.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.18.2
+	github.com/spf13/viper v1.19.0
 	github.com/xanzy/go-gitlab v0.106.0
 	gotest.tools/v3 v3.5.1
 )
@@ -54,16 +54,15 @@ require (
 	github.com/apparentlymart/go-versions v1.0.1 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.27.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.2 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.16 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.13.20 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.20 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.3 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.7 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.18 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.18 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.26.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.20.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.9 // indirect
@@ -74,7 +73,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.20.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.10 // indirect
-	github.com/aws/smithy-go v1.20.2 // indirect
+	github.com/aws/smithy-go v1.21.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/bmatcuk/doublestar v1.3.1 // indirect
@@ -170,7 +169,6 @@ require (
 	github.com/urfave/cli/v2 v2.25.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/xanzy/go-gitlab v0.106.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	github.com/zclconf/go-cty-yaml v1.0.3 // indirect
