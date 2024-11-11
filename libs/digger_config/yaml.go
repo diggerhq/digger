@@ -40,6 +40,7 @@ type ProjectYaml struct {
 	DriftDetection     *bool                       `yaml:"drift_detection,omitempty"`
 	AwsRoleToAssume    *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 	Generated          bool                        `yaml:"generated"`
+	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig	`yaml:"aws_cognito_oidc,omitempty"`
 	PulumiStack        string                      `yaml:"pulumi_stack"`
 }
 
@@ -106,12 +107,20 @@ type BlockYaml struct {
 	Workflow        string                      `yaml:"workflow"`
 	WorkflowFile    string                      `yaml:"workflow_file"`
 	AwsRoleToAssume *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig 		`yaml:"aws_cognito_oidc,omitempty"`
 }
 
 type AssumeRoleForProjectConfig struct {
 	AwsRoleRegion string `yaml:"aws_role_region"`
 	State         string `yaml:"state"`
 	Command       string `yaml:"command"`
+}
+
+type AwsCognitoOidcConfig struct {
+	AwsAccountId  	string `yaml:"aws_account_id"`
+	AwsRegion 		string `yaml:"aws_region,omitempty"`
+	CognitoPoolId 	string `yaml:"cognito_identity_pool_id"`
+	SessionDuration int    `yaml:"session_duration"`
 }
 
 type GenerateProjectsConfigYaml struct {
@@ -121,6 +130,7 @@ type GenerateProjectsConfigYaml struct {
 	Blocks                  []BlockYaml                 `yaml:"blocks"`
 	TerragruntParsingConfig *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`
 	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig    *AwsCognitoOidcConfig		`yaml:"aws_cognito_oidc,omitempty"`
 }
 
 type TerragruntParsingConfig struct {
@@ -149,6 +159,7 @@ type TerragruntParsingConfig struct {
 	ExecutionOrderGroups           *bool                       `yaml:"executionOrderGroups"`
 	WorkflowFile                   string                      `yaml:"workflow_file"`
 	AwsRoleToAssume                *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig 			*AwsCognitoOidcConfig		`yaml:"aws_cognito_oidc,omitempty"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {

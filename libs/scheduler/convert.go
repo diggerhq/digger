@@ -25,6 +25,19 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
 		StateEnvProvider, CommandEnvProvider := GetStateAndCommandProviders(project)
+
+		stateRole, cmdRole := "", ""		
+
+		if project.AwsRoleToAssume != nil {
+			if project.AwsRoleToAssume.State != "" {
+				stateRole = project.AwsRoleToAssume.State
+			}
+
+			if project.AwsRoleToAssume.Command != "" {
+				cmdRole = project.AwsRoleToAssume.Command
+			} 
+		} 
+	
 		jobs = append(jobs, Job{
 			ProjectName:      project.Name,
 			ProjectDir:       project.Dir,
@@ -44,7 +57,10 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			StateEnvVars:       stateEnvVars,
 			CommandEnvVars:     commandEnvVars,
 			StateEnvProvider:   StateEnvProvider,
+			StateRoleArn:     	stateRole,	
 			CommandEnvProvider: CommandEnvProvider,
+			CommandRoleArn:     cmdRole,
+			CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 			SkipMergeCheck:     skipMerge,
 		})
 	}

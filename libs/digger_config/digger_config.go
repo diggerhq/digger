@@ -249,6 +249,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						Workspace:       "default",
 						AwsRoleToAssume: config.GenerateProjectsConfig.AwsRoleToAssume,
 						Generated:       true,
+						AwsCognitoOidcConfig: config.GenerateProjectsConfig.AwsCognitoOidcConfig,
 					}
 					config.Projects = append(config.Projects, &project)
 				}
@@ -271,14 +272,13 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						}
 
 						tgParsingConfig := TerragruntParsingConfig{
-							CreateProjectName: true,
-							DefaultWorkflow:   workflow,
-							WorkflowFile:      b.WorkflowFile,
-							FilterPath:        path.Join(terraformDir, *b.RootDir),
-						}
-
-						// allow blocks to pass in roles that can be assummed by aws
-						tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
+							CreateProjectName: 	  true,
+							DefaultWorkflow:   	  workflow,
+							WorkflowFile:      	  b.WorkflowFile,
+							FilterPath:        	  path.Join(terraformDir, *b.RootDir),
+							AwsRoleToAssume:   	  b.AwsRoleToAssume,
+							AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
+						};						
 
 						err := hydrateDiggerConfigYamlWithTerragrunt(config, tgParsingConfig, terraformDir)
 						if err != nil {
@@ -305,6 +305,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								OpenTofu:        b.OpenTofu,
 								AwsRoleToAssume: b.AwsRoleToAssume,
 								Generated:       true,
+								AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
 								WorkflowFile:    b.WorkflowFile,
 							}
 							config.Projects = append(config.Projects, &project)
@@ -546,6 +547,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			IncludePatterns: atlantisProject.Autoplan.WhenModified,
 			Generated:       true,
 			AwsRoleToAssume: parsingConfig.AwsRoleToAssume,
+			AwsCognitoOidcConfig: parsingConfig.AwsCognitoOidcConfig,
 		})
 	}
 	return nil
