@@ -322,7 +322,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	commitSha := payload.PullRequest.Head.GetSHA()
 	sourceBranch := payload.PullRequest.Head.GetRef()
 	targetBranch := payload.PullRequest.Base.GetRef()
-
+	targetBranchName := strings.TrimPrefix(targetBranch, "refs/heads/")
 	link, err := dbmodels.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
 		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
@@ -351,6 +351,9 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	var dgprojects []dg_configuration.Project = []dg_configuration.Project{}
 	for _, proj := range projects {
 		projectBranch := proj.Branch
+		if proj.Branch == "" {
+			projectBranch = targetBranchName
+		}
 		if targetBranch == projectBranch {
 			dgprojects = append(dgprojects, dbmodels.ToDiggerProject(proj))
 		}
