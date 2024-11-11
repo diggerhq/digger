@@ -47,6 +47,16 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			}
 		}
 
+		var awsCognitoOidc *AwsCognitoOidcConfig = nil 
+		if p.AwsCognitoOidcConfig != nil {
+			awsCognitoOidc = &AwsCognitoOidcConfig{
+				CognitoPoolId: 		p.AwsCognitoOidcConfig.CognitoPoolId,
+				AwsAccountId:  		p.AwsCognitoOidcConfig.AwsAccountId,
+				AwsRegion:     		p.AwsCognitoOidcConfig.AwsRegion,				
+				SessionDuration:    p.AwsCognitoOidcConfig.SessionDuration,
+			}
+		}		
+
 		workflowFile := "digger_workflow.yml"
 		if p.WorkflowFile != "" {
 			workflowFile = p.WorkflowFile
@@ -72,6 +82,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.DependencyProjects,
 			driftDetection,
 			roleToAssume,
+			awsCognitoOidc,
 			p.Generated,
 			workspace,
 		}

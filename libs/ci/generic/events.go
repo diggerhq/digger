@@ -154,6 +154,17 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			skipMerge = false
 		}
 
+		stateRole, cmdRole := "", ""
+		if project.AwsRoleToAssume != nil {
+			if project.AwsRoleToAssume.State != "" {
+				stateRole = project.AwsRoleToAssume.State
+			}
+
+			if project.AwsRoleToAssume.Command != "" {
+				cmdRole = project.AwsRoleToAssume.Command
+			}
+		}
+
 		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
@@ -178,6 +189,9 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			RequestedBy:        requestedBy,
 			StateEnvProvider:   StateEnvProvider,
 			CommandEnvProvider: CommandEnvProvider,
+			CommandRoleArn:    	cmdRole,
+			StateRoleArn:     	stateRole,
+			CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 			SkipMergeCheck:     skipMerge,
 		})
 	}
