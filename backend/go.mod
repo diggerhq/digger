@@ -8,7 +8,7 @@ replace github.com/diggerhq/digger/libs => ../libs
 replace github.com/ugorji/go => github.com/ugorji/go v1.2.12
 
 require (
-	ariga.io/atlas-provider-gorm v0.3.4
+	ariga.io/atlas-provider-gorm v0.5.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/diggerhq/digger/libs v0.4.15
