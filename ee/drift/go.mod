@@ -13,7 +13,7 @@ require (
 	github.com/google/go-github/v61 v61.0.0
 	github.com/orandin/slog-gorm v1.4.0
 	github.com/samber/slog-gin v1.13.3
-	golang.org/x/oauth2 v0.22.0
+	golang.org/x/oauth2 v0.24.0
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gen v0.3.26
 	gorm.io/gorm v1.25.12

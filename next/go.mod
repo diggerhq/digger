@@ -22,7 +22,7 @@ require (
 	github.com/samber/slog-gin v1.13.3
 	github.com/stretchr/testify v1.9.0
 	github.com/supabase-community/supabase-go v0.0.4
-	golang.org/x/oauth2 v0.22.0
+	golang.org/x/oauth2 v0.24.0
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gen v0.3.26
 	gorm.io/gorm v1.25.11
