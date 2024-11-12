@@ -36,6 +36,7 @@ type DiggerGithubClientMockProvider struct {
 type GithubClientProvider interface {
 	NewClient(netClient *net.Client) (*github.Client, error)
 	Get(githubAppId int64, installationId int64) (*github.Client, *string, error)
+	FetchCredentials(githubAppId string) (string, string, string, string, error)
 }
 
 func (gh DiggerGithubRealClientProvider) NewClient(netClient *net.Client) (*github.Client, error) {
@@ -79,6 +80,9 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 	return ghClient, &token, nil
 }
 
+func (gh DiggerGithubRealClientProvider) FetchCredentials(githubAppId string) (string, string, string, string, error) {
+	return "", "", "", "", nil
+}
 func (gh DiggerGithubClientMockProvider) NewClient(netClient *net.Client) (*github.Client, error) {
 	ghClient := github.NewClient(gh.MockedHTTPClient)
 	return ghClient, nil
@@ -88,6 +92,10 @@ func (gh DiggerGithubClientMockProvider) Get(githubAppId int64, installationId i
 	ghClient, _ := gh.NewClient(gh.MockedHTTPClient)
 	token := "token"
 	return ghClient, &token, nil
+}
+
+func (gh DiggerGithubClientMockProvider) FetchCredentials(githubAppId string) (string, string, string, string, error) {
+	return "", "", "", "", nil
 }
 
 func GetGithubClient(gh GithubClientProvider, installationId int64, repoFullName string) (*github.Client, *string, error) {
