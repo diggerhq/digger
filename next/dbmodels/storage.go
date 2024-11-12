@@ -1102,7 +1102,7 @@ func (db *Database) CreateProject(name string, org *model.Organization, repo *mo
 		Name:           name,
 		OrganizationID: org.ID,
 		RepoID:         repo.ID,
-		Status:         string(ProjectActive),
+		Status:         string(rune(ProjectActive)),
 		IsGenerated:    isGenerated,
 		IsInMainBranch: isInMainBranch,
 	}
