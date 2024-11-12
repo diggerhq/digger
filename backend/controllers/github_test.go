@@ -589,7 +589,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 
 	// migrate tables
 	err = gdb.AutoMigrate(&models.Policy{}, &models.Organisation{}, &models.Repo{}, &models.Project{}, &models.Token{},
-		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.GithubApp{}, &models.GithubAppInstallationLink{},
+		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.GithubAppConnection{}, &models.GithubAppInstallationLink{},
 		&models.GithubDiggerJobLink{}, &models.DiggerJob{}, &models.DiggerJobParentLink{}, &models.JobToken{})
 	if err != nil {
 		log.Fatal(err)
@@ -706,7 +706,7 @@ func TestGithubHandleIssueCommentEvent(t *testing.T) {
 	var payload github.IssueCommentEvent
 	err := json.Unmarshal([]byte(issueCommentPayload), &payload)
 	assert.NoError(t, err)
-	err = handleIssueCommentEvent(gh, &payload, nil)
+	err = handleIssueCommentEvent(gh, &payload, nil, 0)
 	assert.NoError(t, err)
 
 	jobs, err := models.DB.GetPendingParentDiggerJobs(nil)

@@ -1,12 +1,22 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
-type GithubApp struct {
+type GithubAppConnection struct {
 	gorm.Model
-	GithubId     int64
-	Name         string
-	GithubAppUrl string
+	GithubId                  int64 // app id
+	ClientID                  string
+	ClientSecretEncrypted     string
+	WebhookSecretEncrypted    string
+	PrivateKeyEncrypted       string
+	PrivateKeyBase64Encrypted string
+	Org                       string
+	Name                      string
+	GithubAppUrl              string
+	OrganisationID            uint
+	Organisation              Organisation
 }
 
 type GithubAppInstallStatus int

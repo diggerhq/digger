@@ -436,8 +436,19 @@ func (db *Database) GetGithubAppInstallationLink(installationId int64) (*GithubA
 	return &link, nil
 }
 
-func (db *Database) CreateGithubApp(name string, githubId int64, url string) (*GithubApp, error) {
-	app := GithubApp{Name: name, GithubId: githubId, GithubAppUrl: url}
+func (db *Database) CreateGithubAppConnection(name string, githubId int64, ClientID string, ClientSecretEncrypted string, WebhookSecretEncrypted string, PrivateKeyEncrypted string, PrivateKeyBase64Encrypted string, Org string, url string, orgId uint) (*GithubAppConnection, error) {
+	app := GithubAppConnection{
+		Name:                      name,
+		GithubId:                  githubId,
+		ClientID:                  ClientID,
+		ClientSecretEncrypted:     ClientSecretEncrypted,
+		WebhookSecretEncrypted:    WebhookSecretEncrypted,
+		PrivateKeyEncrypted:       PrivateKeyEncrypted,
+		PrivateKeyBase64Encrypted: PrivateKeyBase64Encrypted,
+		Org:                       Org,
+		GithubAppUrl:              url,
+		OrganisationID:            orgId,
+	}
 	result := db.GormDB.Save(&app)
 	if result.Error != nil {
 		return nil, result.Error
@@ -446,9 +457,19 @@ func (db *Database) CreateGithubApp(name string, githubId int64, url string) (*G
 	return &app, nil
 }
 
+func (db *Database) GetGithubAppConnectionById(id string) (*GithubAppConnection, error) {
+	app := GithubAppConnection{}
+	result := db.GormDB.Where("id = ?", id).Find(&app)
+	if result.Error != nil {
+		log.Printf("Failed to find GitHub App for id: %v, error: %v\n", id, result.Error)
+		return nil, result.Error
+	}
+	return &app, nil
+}
+
 // GetGithubApp return GithubApp by Id
-func (db *Database) GetGithubApp(gitHubAppId any) (*GithubApp, error) {
-	app := GithubApp{}
+func (db *Database) GetGithubAppConnection(gitHubAppId any) (*GithubAppConnection, error) {
+	app := GithubAppConnection{}
 	result := db.GormDB.Where("github_id = ?", gitHubAppId).Find(&app)
 	if result.Error != nil {
 		log.Printf("Failed to find GitHub App for id: %v, error: %v\n", gitHubAppId, result.Error)

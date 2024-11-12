@@ -65,6 +65,7 @@ type DiggerGithubClientMockProvider struct {
 type GithubClientProvider interface {
 	NewClient(netClient *net.Client) (*github.Client, error)
 	Get(githubAppId int64, installationId int64) (*github.Client, *string, error)
+	FetchCredentials(githubAppId string) (string, string, string, string, error)
 }
 
 func (gh DiggerGithubRealClientProvider) NewClient(netClient *net.Client) (*github.Client, error) {
@@ -108,6 +109,18 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 	return ghClient, &token, nil
 }
 
+func (gh DiggerGithubRealClientProvider) FetchCredentials(githubAppId string) (string, string, string, string, error) {
+	clientId := os.Getenv("GITHUB_APP_CLIENT_ID")
+	clientSecret := os.Getenv("GITHUB_APP_CLIENT_SECRET")
+	webhookSecret := os.Getenv("GITHUB_APP_WEBHOOK_SECRET")
+	privateKeyb64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
+
+	if clientId == "" || clientSecret == "" || webhookSecret == "" {
+		return "", "", "", "", fmt.Errorf("the values of GITHUB_APP_CLIENT_ID or GITHUB_APP_CLIENT_SECRET are not set")
+	}
+	return clientId, clientSecret, webhookSecret, privateKeyb64, nil
+}
+
 func (gh DiggerGithubClientMockProvider) NewClient(netClient *net.Client) (*github.Client, error) {
 	ghClient := github.NewClient(gh.MockedHTTPClient)
 	return ghClient, nil
@@ -119,17 +132,15 @@ func (gh DiggerGithubClientMockProvider) Get(githubAppId int64, installationId i
 	return ghClient, &token, nil
 }
 
+func (gh DiggerGithubClientMockProvider) FetchCredentials(githubAppId string) (string, string, string, string, error) {
+	return "clientId", "clientSecret", "", "", nil
+}
+
 func GetGithubClient(gh GithubClientProvider, installationId int64, repoFullName string) (*github.Client, *string, error) {
 	installation, err := models.DB.GetGithubAppInstallationByIdAndRepo(installationId, repoFullName)
 	if err != nil {
 		log.Printf("Error getting installation: %v", err)
 		return nil, nil, fmt.Errorf("Error getting installation: %v", err)
-	}
-
-	_, err = models.DB.GetGithubApp(installation.GithubAppId)
-	if err != nil {
-		log.Printf("Error getting app: %v", err)
-		return nil, nil, fmt.Errorf("Error getting app: %v", err)
 	}
 
 	ghClient, token, err := gh.Get(installation.GithubAppId, installation.GithubInstallationId)

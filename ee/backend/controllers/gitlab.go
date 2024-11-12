@@ -28,8 +28,9 @@ import (
 )
 
 type DiggerEEController struct {
-	GitlabProvider    utils.GitlabProvider
-	CiBackendProvider ci_backends.CiBackendProvider
+	GithubClientProvider utils.GithubClientProvider
+	GitlabProvider       utils.GitlabProvider
+	CiBackendProvider    ci_backends.CiBackendProvider
 }
 
 func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {

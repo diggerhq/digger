@@ -53,7 +53,11 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 	gh := d.GithubClientProvider
 	log.Printf("GithubAppWebHook")
 
-	payload, err := github.ValidatePayload(c.Request, []byte(os.Getenv("GITHUB_WEBHOOK_SECRET")))
+	appID := c.GetHeader("X-GitHub-Hook-Installation-Target-ID")
+	log.Printf("app id from header is: %v", appID)
+	_, _, webhookSecret, _, err := d.GithubClientProvider.FetchCredentials(appID)
+
+	payload, err := github.ValidatePayload(c.Request, []byte(webhookSecret))
 	if err != nil {
 		log.Printf("Error validating github app webhook's payload: %v", err)
 		c.String(http.StatusBadRequest, "Error validating github app webhook's payload")
@@ -70,12 +74,17 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 
 	log.Printf("github event type: %v\n", reflect.TypeOf(event))
 
+	appId64, err := strconv.ParseInt(appID, 10, 64)
+	if err != nil {
+		log.Printf("Error converting appId string to int64: %v", err)
+		return
+	}
+
 	switch event := event.(type) {
 	case *github.InstallationEvent:
 		log.Printf("InstallationEvent, action: %v\n", *event.Action)
-
 		if *event.Action == "deleted" {
-			err := handleInstallationDeletedEvent(event)
+			err := handleInstallationDeletedEvent(event, appId64)
 			if err != nil {
 				c.String(http.StatusAccepted, "Failed to handle webhook event.")
 				return
@@ -87,7 +96,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusOK, "OK")
 			return
 		}
-		err := handleIssueCommentEvent(gh, event, d.CiBackendProvider)
+		err = handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64)
 		if err != nil {
 			log.Printf("handleIssueCommentEvent error: %v", err)
 			c.String(http.StatusAccepted, err.Error())
@@ -105,7 +114,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		}
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
-		err := handlePullRequestEvent(gh, event, d.CiBackendProvider)
+		err = handlePullRequestEvent(gh, event, d.CiBackendProvider, appId64)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
 			c.String(http.StatusAccepted, err.Error())
@@ -231,11 +240,6 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 	}
 	log.Printf("Found credentials for GitHub app %v with id %d", *cfg.Name, cfg.GetID())
 
-	_, err = models.DB.CreateGithubApp(cfg.GetName(), cfg.GetID(), cfg.GetHTMLURL())
-	if err != nil {
-		c.Error(fmt.Errorf("Failed to create github app record on callback"))
-	}
-
 	PEM := cfg.GetPEM()
 	PemBase64 := base64.StdEncoding.EncodeToString([]byte(PEM))
 	c.HTML(http.StatusOK, "github_setup.tmpl", gin.H{
@@ -299,10 +303,8 @@ generate_projects:
 	return repo, org, nil
 }
 
-func handleInstallationDeletedEvent(installation *github.InstallationEvent) error {
+func handleInstallationDeletedEvent(installation *github.InstallationEvent, appId int64) error {
 	installationId := *installation.Installation.ID
-	appId := *installation.Installation.AppID
-
 	link, err := models.DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		return err
@@ -323,13 +325,7 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent) erro
 	return nil
 }
 
-func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
-	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
-	if err != nil {
-		log.Printf("error getting github app installation id: %v", err)
-		return fmt.Errorf("error getting github app installation id")
-	}
-
+func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -645,13 +641,7 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 	}
 }
 
-func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
-	appId, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
-	if err != nil {
-		log.Printf("error getting github app installation id: %v", err)
-		return fmt.Errorf("error getting github app installation id")
-	}
-
+func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -1028,8 +1018,14 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
 	//setupAction := c.Request.URL.Query()["setup_action"][0]
 	code := c.Request.URL.Query()["code"][0]
-	clientId := os.Getenv("GITHUB_APP_CLIENT_ID")
-	clientSecret := os.Getenv("GITHUB_APP_CLIENT_SECRET")
+	appId := c.Request.URL.Query().Get("state")
+
+	clientId, clientSecret, _, _, err := d.GithubClientProvider.FetchCredentials(appId)
+	if err != nil {
+		log.Printf("could not fetch credentials for the app: %v", err)
+		c.String(500, "could not find credentials for github app")
+		return
+	}
 
 	installationId64, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {
