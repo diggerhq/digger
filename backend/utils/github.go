@@ -115,7 +115,7 @@ func (gh DiggerGithubRealClientProvider) FetchCredentials(githubAppId string) (s
 	webhookSecret := os.Getenv("GITHUB_WEBHOOK_SECRET")
 	privateKeyb64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
 
-	if clientId == "" || clientSecret == "" || webhookSecret == "" {
+	if clientId == "" || clientSecret == "" || webhookSecret == "" || privateKeyb64 == "" {
 		return "", "", "", "", fmt.Errorf("the values of GITHUB_APP_CLIENT_ID or GITHUB_APP_CLIENT_SECRET are not set")
 	}
 	return clientId, clientSecret, webhookSecret, privateKeyb64, nil
