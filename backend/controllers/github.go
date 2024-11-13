@@ -95,7 +95,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusOK, "OK")
 			return
 		}
-		handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64, d.GithubWebhookPostIssueCommentHooks)
+		go handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64, d.GithubWebhookPostIssueCommentHooks)
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
 		// run it as a goroutine to avoid timeouts
