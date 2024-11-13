@@ -101,7 +101,7 @@ func (gh DiggerGithubEEClientProvider) FetchCredentials(githubAppId string) (str
 	webhookSecret := os.Getenv("GITHUB_WEBHOOK_SECRET")
 	privateKeyb64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
 
-	if clientId != "" && clientSecret != "" && webhookSecret != "" && privateKeyb64 != "" {
+	if clientId == "" || clientSecret == "" || webhookSecret == "" || privateKeyb64 == "" {
 		log.Printf("Info: found github client credentials from env variables, using those")
 		return clientId, clientSecret, webhookSecret, privateKeyb64, nil
 	}
