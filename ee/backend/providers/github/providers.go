@@ -98,7 +98,7 @@ func (gh DiggerGithubEEClientProvider) Get(githubAppId int64, installationId int
 func (gh DiggerGithubEEClientProvider) FetchCredentials(githubAppId string) (string, string, string, string, error) {
 	clientId := os.Getenv("GITHUB_APP_CLIENT_ID")
 	clientSecret := os.Getenv("GITHUB_APP_CLIENT_SECRET")
-	webhookSecret := os.Getenv("GITHUB_APP_WEBHOOK_SECRET")
+	webhookSecret := os.Getenv("GITHUB_WEBHOOK_SECRET")
 	privateKeyb64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
 
 	if clientId != "" && clientSecret != "" && webhookSecret != "" && privateKeyb64 != "" {
