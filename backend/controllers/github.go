@@ -6,16 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"math/rand"
-	"net/http"
-	"net/url"
-	"os"
-	"path"
-	"reflect"
-	"strconv"
-	"strings"
-
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/locking"
 	"github.com/diggerhq/digger/backend/segment"
@@ -27,6 +17,15 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"reflect"
+	"strconv"
+	"strings"
 
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
@@ -96,35 +95,16 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusOK, "OK")
 			return
 		}
-		err = handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64)
-		if err != nil {
-			log.Printf("handleIssueCommentEvent error: %v", err)
-			c.String(http.StatusAccepted, err.Error())
-			return
-		}
-
-		log.Printf("executing issue comment event post hooks:")
-		for _, hook := range d.GithubWebhookPostIssueCommentHooks {
-			err := hook(gh, event, d.CiBackendProvider)
-			if err != nil {
-				log.Printf("handleIssueCommentEvent post hook error: %v", err)
-				c.String(http.StatusAccepted, err.Error())
-				return
-			}
-		}
+		handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64, d.GithubWebhookPostIssueCommentHooks)
 	case *github.PullRequestEvent:
 		log.Printf("Got pull request event for %d", *event.PullRequest.ID)
-		err = handlePullRequestEvent(gh, event, d.CiBackendProvider, appId64)
-		if err != nil {
-			log.Printf("handlePullRequestEvent error: %v", err)
-			c.String(http.StatusAccepted, err.Error())
-			return
-		}
+		// run it as a goroutine to avoid timeouts
+		go handlePullRequestEvent(gh, event, d.CiBackendProvider, appId64)
 	default:
 		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
 	}
 
-	c.JSON(200, "ok")
+	c.JSON(http.StatusAccepted, "ok")
 }
 
 func GithubAppSetup(c *gin.Context) {
@@ -641,7 +621,7 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 	}
 }
 
-func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
+func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64, postCommentHooks []IssueCommentHook) error {
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -870,6 +850,15 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		log.Printf("TriggerDiggerJobs error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
 		return fmt.Errorf("error triggering Digger Jobs")
+	}
+
+	log.Printf("executing issue comment event post hooks:")
+	for _, hook := range postCommentHooks {
+		err := hook(gh, payload, ciBackendProvider)
+		if err != nil {
+			log.Printf("handleIssueCommentEvent post hook error: %v", err)
+			return fmt.Errorf("error during postevent hooks: %v", err)
+		}
 	}
 	return nil
 }
