@@ -1006,6 +1006,68 @@ generate_projects:
 	assert.NoError(t, err)
 }
 
+func TestDiggerTerragruntProjectGenerationVeryLargeMonorepo(t *testing.T) {
+	// based on https://github.com/transcend-io/terragrunt-atlantis-config/tree/master/test_examples/chained_dependencies
+	// TODO: this test is a bit slow because we are cloning the whole repo, maybe we can copy it to a smaller repo
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    defaultWorkflow: default
+`
+
+	repoUrl := "https://github.com/diggerhq/terragrunt-monorepo-large.git"
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
+	assert.NoError(t, err)
+
+	// example dir: /test_examples/chained_dependencies
+	projectDir := tempDir + "/terragrunt-monorepo"
+
+	err = createAndCloseFile(path.Join(projectDir, "digger.yml"), diggerCfg)
+	assert.NoError(t, err)
+	_, _, _, err = LoadDiggerConfig(projectDir, true, nil)
+	assert.NoError(t, err)
+}
+
+func TestDiggerTerragruntProjectGenerationVeryLargeMonorepoStressTest(t *testing.T) {
+	// based on https://github.com/transcend-io/terragrunt-atlantis-config/tree/master/test_examples/chained_dependencies
+	// TODO: this test is a bit slow because we are cloning the whole repo, maybe we can copy it to a smaller repo
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    defaultWorkflow: default
+`
+
+	repoUrl := "https://github.com/diggerhq/terragrunt-monorepo-large.git"
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
+	assert.NoError(t, err)
+
+	// example dir: /test_examples/chained_dependencies
+	projectDir := tempDir + "/stress-test"
+
+	err = createAndCloseFile(path.Join(projectDir, "digger.yml"), diggerCfg)
+	assert.NoError(t, err)
+	_, _, _, err = LoadDiggerConfig(projectDir, true, nil)
+	assert.NoError(t, err)
+}
+
 func TestDiggerTerragruntProjectGenerationBasicModule(t *testing.T) {
 	// based on https://github.com/transcend-io/terragrunt-atlantis-config/tree/master/test_examples/basic_module
 

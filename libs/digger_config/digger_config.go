@@ -243,12 +243,12 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 				if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
 					projectName := strings.ReplaceAll(dir, "/", "_")
 					project := ProjectYaml{
-						Name:            projectName,
-						Dir:             dir,
-						Workflow:        defaultWorkflowName,
-						Workspace:       "default",
-						AwsRoleToAssume: config.GenerateProjectsConfig.AwsRoleToAssume,
-						Generated:       true,
+						Name:                 projectName,
+						Dir:                  dir,
+						Workflow:             defaultWorkflowName,
+						Workspace:            "default",
+						AwsRoleToAssume:      config.GenerateProjectsConfig.AwsRoleToAssume,
+						Generated:            true,
 						AwsCognitoOidcConfig: config.GenerateProjectsConfig.AwsCognitoOidcConfig,
 					}
 					config.Projects = append(config.Projects, &project)
@@ -272,13 +272,13 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						}
 
 						tgParsingConfig := TerragruntParsingConfig{
-							CreateProjectName: 	  true,
-							DefaultWorkflow:   	  workflow,
-							WorkflowFile:      	  b.WorkflowFile,
-							FilterPath:        	  path.Join(terraformDir, *b.RootDir),
-							AwsRoleToAssume:   	  b.AwsRoleToAssume,
+							CreateProjectName:    true,
+							DefaultWorkflow:      workflow,
+							WorkflowFile:         b.WorkflowFile,
+							FilterPaths:          []string{path.Join(terraformDir, *b.RootDir)},
+							AwsRoleToAssume:      b.AwsRoleToAssume,
 							AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
-						};						
+						}
 
 						err := hydrateDiggerConfigYamlWithTerragrunt(config, tgParsingConfig, terraformDir)
 						if err != nil {
@@ -298,15 +298,15 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
 							projectName := strings.ReplaceAll(dir, "/", "_")
 							project := ProjectYaml{
-								Name:            projectName,
-								Dir:             dir,
-								Workflow:        workflow,
-								Workspace:       "default",
-								OpenTofu:        b.OpenTofu,
-								AwsRoleToAssume: b.AwsRoleToAssume,
-								Generated:       true,
+								Name:                 projectName,
+								Dir:                  dir,
+								Workflow:             workflow,
+								Workspace:            "default",
+								OpenTofu:             b.OpenTofu,
+								AwsRoleToAssume:      b.AwsRoleToAssume,
+								Generated:            true,
 								AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
-								WorkflowFile:    b.WorkflowFile,
+								WorkflowFile:         b.WorkflowFile,
 							}
 							config.Projects = append(config.Projects, &project)
 						}
@@ -488,27 +488,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		workflowFile = parsingConfig.WorkflowFile
 	}
 
-	atlantisConfig, _, err := atlantis.Parse(
-		root,
-		parsingConfig.ProjectHclFiles,
-		projectExternalChilds,
-		parsingConfig.AutoMerge,
-		parallel,
-		parsingConfig.FilterPath,
-		parsingConfig.CreateHclProjectChilds,
-		ignoreParentTerragrunt,
-		parsingConfig.IgnoreDependencyBlocks,
-		cascadeDependencies,
-		parsingConfig.DefaultWorkflow,
-		parsingConfig.DefaultApplyRequirements,
-		parsingConfig.AutoPlan,
-		parsingConfig.DefaultTerraformVersion,
-		parsingConfig.CreateProjectName,
-		parsingConfig.CreateWorkspace,
-		parsingConfig.PreserveProjects,
-		parsingConfig.UseProjectMarkers,
-		executionOrderGroups,
-	)
+	atlantisConfig, _, err := atlantis.Parse(root, parsingConfig.ProjectHclFiles, projectExternalChilds, parsingConfig.AutoMerge, parallel, parsingConfig.FilterPaths, parsingConfig.CreateHclProjectChilds, ignoreParentTerragrunt, parsingConfig.IgnoreDependencyBlocks, cascadeDependencies, parsingConfig.DefaultWorkflow, parsingConfig.DefaultApplyRequirements, parsingConfig.AutoPlan, parsingConfig.DefaultTerraformVersion, parsingConfig.CreateProjectName, parsingConfig.CreateWorkspace, parsingConfig.PreserveProjects, false, parsingConfig.UseProjectMarkers, executionOrderGroups, nil)
 	if err != nil {
 		return fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
 	}
@@ -538,15 +518,15 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		}
 
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
-			Name:            atlantisProject.Name,
-			Dir:             projectDir,
-			Workspace:       atlantisProject.Workspace,
-			Terragrunt:      true,
-			Workflow:        atlantisProject.Workflow,
-			WorkflowFile:    workflowFile,
-			IncludePatterns: atlantisProject.Autoplan.WhenModified,
-			Generated:       true,
-			AwsRoleToAssume: parsingConfig.AwsRoleToAssume,
+			Name:                 atlantisProject.Name,
+			Dir:                  projectDir,
+			Workspace:            atlantisProject.Workspace,
+			Terragrunt:           true,
+			Workflow:             atlantisProject.Workflow,
+			WorkflowFile:         workflowFile,
+			IncludePatterns:      atlantisProject.Autoplan.WhenModified,
+			Generated:            true,
+			AwsRoleToAssume:      parsingConfig.AwsRoleToAssume,
 			AwsCognitoOidcConfig: parsingConfig.AwsCognitoOidcConfig,
 		})
 	}
