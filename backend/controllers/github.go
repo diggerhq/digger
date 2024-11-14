@@ -318,7 +318,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	branch := payload.PullRequest.Head.GetRef()
 	action := *payload.Action
 	labels := payload.PullRequest.Labels
-	labelsStr := lo.Map(labels, func(label *github.Label, i int) string {
+	prLabelsStr := lo.Map(labels, func(label *github.Label, i int) string {
 		return *label.Name
 	})
 
@@ -366,7 +366,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
+	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, organisationId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
@@ -672,6 +672,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	commentBody := *payload.Comment.Body
 	defaultBranch := *payload.Repo.DefaultBranch
 	isPullRequest := payload.Issue.IsPullRequest()
+	labels := payload.Issue.Labels
+	prLabelsStr := lo.Map(labels, func(label *github.Label, i int) string {
+		return *label.Name
+	})
 
 	if !isPullRequest {
 		log.Printf("comment not on pullrequest, ignroning")
@@ -709,7 +713,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		}
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
+	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
