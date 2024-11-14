@@ -1,11 +1,13 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dchest/uniuri"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
@@ -404,6 +406,22 @@ func (db *Database) GetGithubAppInstallationByIdAndRepo(installationId int64, re
 	// If not found, the values will be default values, which means ID will be 0
 	if installation.Model.ID == 0 {
 		return nil, fmt.Errorf("GithubAppInstallation with id=%v doesn't exist", installationId)
+	}
+	return &installation, nil
+}
+
+func (db *Database) GetInstallationForRepo(repoFullName string) (*GithubAppInstallation, error) {
+	installation := GithubAppInstallation{}
+	result := db.GormDB.Where("status=? AND repo=?", GithubAppInstallActive, repoFullName).First(&installation)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+
+	// If not found, the values will be default values, which means ID will be 0
+	if installation.Model.ID == 0 {
+		return nil, fmt.Errorf("GithubAppInstallation with id=%v doesn't exist", repoFullName)
 	}
 	return &installation, nil
 }
@@ -1261,4 +1279,69 @@ func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
 		return nil, result.Error
 	}
 	return lock, nil
+}
+
+func (db *Database) UpsertRepoCache(orgId uint, repoFullName string, diggerYmlStr string, diggerConfig configuration.DiggerConfig, projectsGraph graph.Graph[string, configuration.Project]) (*RepoCache, error) {
+	var repoCache RepoCache
+
+	configMarshalled, err := json.Marshal(diggerConfig)
+	if err != nil {
+		log.Printf("could not marshal config: %v", err)
+		return nil, fmt.Errorf("could not marshal config: %v", err)
+	}
+
+	projectsGraphMarshalled, err := json.Marshal(projectsGraph)
+	if err != nil {
+		log.Printf("could not marshal graph: %v", err)
+		return nil, fmt.Errorf("could not marshal grpah: %v", err)
+
+	}
+	// check if repo exist already, do nothing in this case
+	result := db.GormDB.Where("org_id = ? AND organisation_id=?", orgId, repoFullName).Find(&repoCache)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			// create record here
+			repoCache = RepoCache{
+				OrgId:         orgId,
+				RepoFullName:  repoFullName,
+				DiggerYmlStr:  diggerYmlStr,
+				DiggerConfig:  configMarshalled,
+				ProjectsGraph: projectsGraphMarshalled,
+			}
+			result = db.GormDB.Save(&repoCache)
+			if result.Error != nil {
+				log.Printf("Failed to create repo cache: %v, error: %v\n", repoFullName, result.Error)
+				return nil, result.Error
+			}
+		} else {
+			return nil, result.Error
+		}
+	}
+	if result.RowsAffected > 0 {
+		// record already exist, do nothing
+		repoCache.DiggerConfig = configMarshalled
+		repoCache.ProjectsGraph = projectsGraphMarshalled
+		repoCache.DiggerYmlStr = diggerYmlStr
+		result = db.GormDB.Save(&repoCache)
+		return &repoCache, nil
+	}
+
+	log.Printf("Repo cache %s, (id: %v) has been created successfully\n", repoFullName, repoCache.ID)
+	return &repoCache, nil
+}
+
+func (db *Database) GetRepoCache(orgId uint, repoFullName string) (*RepoCache, error) {
+	var repoCache RepoCache
+
+	err := db.GormDB.
+		Where("org_id = ? AND repo_full_name = ?", orgId, repoFullName).First(&repoCache).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("repo cache not found %v", err)
+		}
+		log.Printf("Failed to find digger repo for orgId: %v, and repoName: %v, error: %v\n", repoFullName)
+		return nil, err
+	}
+	return &repoCache, nil
 }
