@@ -185,7 +185,7 @@ func(job *Job) AuthBackendConfig() error {
 
 func(job *Job) AuthTerragrunt() error {
 	var err error
-	if(job.StateEnvProvider != nil) {
+	if job.StateEnvProvider != nil {
 		job.StateEnvVars, err = populateKeys(job.StateEnvVars, *job.StateEnvProvider)
 		if err != nil {
 			log.Printf("Failed to get keys from role (StateEnvProvider): %v", err)
