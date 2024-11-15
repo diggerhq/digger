@@ -357,6 +357,11 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
+	if !slices.Contains([]string{"closed", "opened", "reopened", "synchronize", "converted_to_draft"}, action) {
+		log.Printf("The action %v is not one that we should act on, ignoring webhook event", action)
+		return nil
+	}
+
 	commentReporterManager := utils.InitCommentReporterManager(ghService, prNumber)
 	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING_CONFIG"); exists {
 		_, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting....")
@@ -605,7 +610,6 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 		return "", nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml: %v", err)
 	}
 
-	log.Printf("Digger config loadded successfully\n")
 	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, nil
 }
 
