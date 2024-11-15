@@ -8,7 +8,6 @@ CREATE TABLE "public"."repo_caches" (
   "repo_full_name" text NULL,
   "digger_yml_str" text NULL,
   "digger_config" bytea NULL,
-  "projects_graph" bytea NULL,
   PRIMARY KEY ("id")
 );
 -- Create index "idx_repo_caches_deleted_at" to table: "repo_caches"

@@ -9,7 +9,7 @@ import (
 
 func WebhookAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		webhookSecret := os.Getenv("DIGGER_WEBHOOK_SECRET")
+		webhookSecret := os.Getenv("DIGGER_INTERNAL_SECRET")
 		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader == "" {
 			c.String(http.StatusForbidden, "No Authorization header provided")

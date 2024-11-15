@@ -54,7 +54,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 	log.Printf("GithubAppWebHook")
 
 	appID := c.GetHeader("X-GitHub-Hook-Installation-Target-ID")
-	log.Printf("app id from header is: %v", appID)
+
 	_, _, webhookSecret, _, err := d.GithubClientProvider.FetchCredentials(appID)
 
 	payload, err := github.ValidatePayload(c.Request, []byte(webhookSecret))
@@ -589,7 +589,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	}
 
 	// check if items should be loaded from cache
-	if val, _ := os.LookupEnv("DIGGER_CONFIG_REPO_CACHE"); val == "1" && !slices.Contains(prLabels, "digger:no-cache") {
+	if val, _ := os.LookupEnv("DIGGER_CONFIG_REPO_CACHE_ENABLED"); val == "1" && !slices.Contains(prLabels, "digger:no-cache") {
 		diggerYmlStr, config, dependencyGraph, err := retrieveConfigFromCache(orgId, repoFullName)
 		if err != nil {
 			log.Printf("could not load from cache")
@@ -622,13 +622,13 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_confi
 		return "", nil, nil, fmt.Errorf("failed to load repoCache unmarshall config %v", err)
 	}
 
-	var ProjectGraph graph.Graph[string, dg_configuration.Project]
-	err = json.Unmarshal(repoCache.ProjectsGraph, &ProjectGraph)
+	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(config.Projects)
 	if err != nil {
-		log.Printf("Error: failed to load repoCache unmarshall ProjectGraph %v", err)
-		return "", nil, nil, fmt.Errorf("failed to load repoCache unmarshall ProjectGraph %v", err)
+		log.Printf("error retrieving graph of dependencies:", err)
+		return "", nil, nil, fmt.Errorf("error retrieving graph of dependencies:", err)
 	}
-	return repoCache.DiggerYmlStr, &config, &ProjectGraph, nil
+
+	return repoCache.DiggerYmlStr, &config, &projectsGraph, nil
 }
 
 func GetRepoByInstllationId(installationId int64, repoOwner string, repoName string) (*models.Repo, error) {
