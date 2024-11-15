@@ -1340,7 +1340,7 @@ func (db *Database) GetRepoCache(orgId uint, repoFullName string) (*RepoCache, e
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("repo cache not found %v", err)
 		}
-		log.Printf("Failed to find digger repo for orgId: %v, and repoName: %v, error: %v\n", repoFullName)
+		log.Printf("Failed to find digger repo for orgId: %v, and repoName: %v, error: %v\n", orgId, repoFullName, err)
 		return nil, err
 	}
 	return &repoCache, nil
