@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dchest/uniuri"
@@ -298,7 +299,7 @@ func (db *Database) GetRepo(orgIdKey any, repoName string) (*Repo, error) {
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, fmt.Errorf("repo not found %v", repoName)
 		}
 		log.Printf("Failed to find digger repo for orgId: %v, and repoName: %v, error: %v\n", orgIdKey, repoName, err)
 		return nil, err
@@ -1261,4 +1262,58 @@ func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
 		return nil, result.Error
 	}
 	return lock, nil
+}
+
+func (db *Database) UpsertRepoCache(orgId uint, repoFullName string, diggerYmlStr string, diggerConfig configuration.DiggerConfig) (*RepoCache, error) {
+	var repoCache RepoCache
+
+	configMarshalled, err := json.Marshal(diggerConfig)
+	if err != nil {
+		log.Printf("could not marshal config: %v", err)
+		return nil, fmt.Errorf("could not marshal config: %v", err)
+	}
+
+	// check if repo exist already, do nothing in this case
+	result := db.GormDB.Where("org_id = ? AND repo_full_name=?", orgId, repoFullName).Find(&repoCache)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected > 0 {
+		// record already exist, do nothing
+		repoCache.DiggerConfig = configMarshalled
+		repoCache.DiggerYmlStr = diggerYmlStr
+		result = db.GormDB.Save(&repoCache)
+	} else {
+		// create record here
+		repoCache = RepoCache{
+			OrgId:        orgId,
+			RepoFullName: repoFullName,
+			DiggerYmlStr: diggerYmlStr,
+			DiggerConfig: configMarshalled,
+		}
+		result = db.GormDB.Save(&repoCache)
+		if result.Error != nil {
+			log.Printf("Failed to create repo cache: %v, error: %v\n", repoFullName, result.Error)
+			return nil, result.Error
+		}
+	}
+
+	log.Printf("Repo cache %s, (id: %v) has been created successfully\n", repoFullName, repoCache.ID)
+	return &repoCache, nil
+}
+
+func (db *Database) GetRepoCache(orgId uint, repoFullName string) (*RepoCache, error) {
+	var repoCache RepoCache
+
+	err := db.GormDB.
+		Where("org_id = ? AND repo_full_name = ?", orgId, repoFullName).First(&repoCache).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("repo cache not found %v", err)
+		}
+		log.Printf("Failed to find digger repo for orgId: %v, and repoName: %v, error: %v\n", orgId, repoFullName, err)
+		return nil, err
+	}
+	return &repoCache, nil
 }

@@ -24,6 +24,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -53,7 +54,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 	log.Printf("GithubAppWebHook")
 
 	appID := c.GetHeader("X-GitHub-Hook-Installation-Target-ID")
-	log.Printf("app id from header is: %v", appID)
+
 	_, _, webhookSecret, _, err := d.GithubClientProvider.FetchCredentials(appID)
 
 	payload, err := github.ValidatePayload(c.Request, []byte(webhookSecret))
@@ -316,6 +317,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	commitSha := payload.PullRequest.Head.GetSHA()
 	branch := payload.PullRequest.Head.GetRef()
 	action := *payload.Action
+	labels := payload.PullRequest.Labels
+	prLabelsStr := lo.Map(labels, func(label *github.Label, i int) string {
+		return *label.Name
+	})
 
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
@@ -361,7 +366,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
+	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, organisationId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
@@ -563,7 +568,7 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 }
 
 // TODO: Refactor this func to receive ghService as input
-func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, error) {
+func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []string, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, error) {
 	ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
@@ -583,6 +588,17 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, r
 		return "", nil, nil, nil, nil, nil, fmt.Errorf("error getting changed files")
 	}
 
+	// check if items should be loaded from cache
+	if val, _ := os.LookupEnv("DIGGER_CONFIG_REPO_CACHE_ENABLED"); val == "1" && !slices.Contains(prLabels, "digger:no-cache") {
+		diggerYmlStr, config, dependencyGraph, err := retrieveConfigFromCache(orgId, repoFullName)
+		if err != nil {
+			log.Printf("could not load from cache")
+		} else {
+			log.Printf("successfully loaded from cache")
+			return diggerYmlStr, ghService, config, *dependencyGraph, &prBranch, &prCommitSha, nil
+		}
+	}
+
 	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch, changedFiles)
 	if err != nil {
 		log.Printf("Error loading digger.yml: %v", err)
@@ -591,6 +607,28 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, installationId int64, r
 
 	log.Printf("Digger config loadded successfully\n")
 	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, nil
+}
+
+func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_configuration.DiggerConfig, *graph.Graph[string, dg_configuration.Project], error) {
+	repoCache, err := models.DB.GetRepoCache(orgId, repoFullName)
+	if err != nil {
+		log.Printf("Error: failed to load repoCache, going to try live load %v", err)
+		return "", nil, nil, fmt.Errorf("")
+	}
+	var config dg_configuration.DiggerConfig
+	err = json.Unmarshal(repoCache.DiggerConfig, &config)
+	if err != nil {
+		log.Printf("Error: failed to load repoCache unmarshall config %v", err)
+		return "", nil, nil, fmt.Errorf("failed to load repoCache unmarshall config %v", err)
+	}
+
+	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(config.Projects)
+	if err != nil {
+		log.Printf("error retrieving graph of dependencies: %v", err)
+		return "", nil, nil, fmt.Errorf("error retrieving graph of dependencies: %v", err)
+	}
+
+	return repoCache.DiggerYmlStr, &config, &projectsGraph, nil
 }
 
 func GetRepoByInstllationId(installationId int64, repoOwner string, repoName string) (*models.Repo, error) {
@@ -634,6 +672,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	commentBody := *payload.Comment.Body
 	defaultBranch := *payload.Repo.DefaultBranch
 	isPullRequest := payload.Issue.IsPullRequest()
+	labels := payload.Issue.Labels
+	prLabelsStr := lo.Map(labels, func(label *github.Label, i int) string {
+		return *label.Name
+	})
 
 	if !isPullRequest {
 		log.Printf("comment not on pullrequest, ignroning")
@@ -671,7 +713,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		}
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, err := getDiggerConfigForPR(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
+	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)

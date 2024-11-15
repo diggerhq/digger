@@ -35,7 +35,9 @@ jobs:
         working-directory: backend
 
       - name: Test
-        run: go test -v ./...
+        run: |
+          go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+          go test -json ./... | gotestfmt
         env:
           GITHUB_PAT_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         working-directory: backend
