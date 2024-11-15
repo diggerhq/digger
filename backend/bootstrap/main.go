@@ -221,6 +221,9 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	runsApiGroup.GET("/:run_id", controllers.RunDetails)
 	runsApiGroup.POST("/:run_id/approve", controllers.ApproveRun)
 
+	// internal endpoints not meant to be exposed to public and protected behing webhook secret
+	r.POST("_internal/update_repo_cache", middleware.WebhookAuth(), diggerController.UpdateRepoCache)
+
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 
 	return r
