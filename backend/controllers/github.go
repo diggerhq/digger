@@ -624,8 +624,8 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_confi
 
 	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(config.Projects)
 	if err != nil {
-		log.Printf("error retrieving graph of dependencies:", err)
-		return "", nil, nil, fmt.Errorf("error retrieving graph of dependencies:", err)
+		log.Printf("error retrieving graph of dependencies: %v", err)
+		return "", nil, nil, fmt.Errorf("error retrieving graph of dependencies: %v", err)
 	}
 
 	return repoCache.DiggerYmlStr, &config, &projectsGraph, nil
