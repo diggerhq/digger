@@ -843,7 +843,10 @@ generate_projects:
   blocks:
     - include: dev/*
       exclude: dev/project
+      include_patterns: ["modules/**"]
+      exclude_patterns: ["modules/dontincludeme/**"]
       workflow: dev_workflow
+      workspace: devdev
     - include: prod/*
       exclude: prod/project
       workflow: prod_workflow
@@ -878,9 +881,19 @@ workflows:
 	assert.Equal(t, "dev_workflow", dg.Projects[0].Workflow)
 	assert.Equal(t, "dev_workflow", dg.Projects[1].Workflow)
 	assert.Equal(t, "prod_workflow", dg.Projects[2].Workflow)
+	assert.Equal(t, "devdev", dg.Projects[0].Workspace)
+	assert.Equal(t, "devdev", dg.Projects[1].Workspace)
+	assert.Equal(t, "default", dg.Projects[2].Workspace)
 	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, "prod/one", dg.Projects[2].Dir)
+	assert.Equal(t, []string{"modules/**"}, dg.Projects[0].IncludePatterns)
+	assert.Equal(t, []string{"modules/**"}, dg.Projects[1].IncludePatterns)
+	assert.Nil(t, dg.Projects[2].IncludePatterns)
+	assert.Equal(t, []string{"modules/dontincludeme/**"}, dg.Projects[0].ExcludePatterns)
+	assert.Equal(t, []string{"modules/dontincludeme/**"}, dg.Projects[1].ExcludePatterns)
+	assert.Nil(t, dg.Projects[2].ExcludePatterns)
+
 	assert.Equal(t, 3, len(dg.Projects))
 }
 
