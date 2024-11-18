@@ -24,9 +24,18 @@ generate_projects:
       workflow: default_work_flow
     - include: "environments/dev/**"
       workflow: default_work_flow
-    - include: "environments/qa/**"
+    - include: "environments/dev/**"
+      exclude: "environments/dev/local-tests/**"
+      workspace: "qa"
       workflow: default_work_flow
+      include_patterns: ["modules/**"]
+      exclude_patterns: ["modules/dontincludeme/**"]
 ```
+
+Note that there is a distinction between `include_patterns`, `exclude_patterns` and `include`, `exclude`.
+`include` and `exclude` are used to decide which project get generated in the first place
+whereas `include_patterns` and `exclude_patterns` are used to decide which additional folders should cause the generated project to trigger
+
 
 [Demo repo](https://github.com/diggerhq/generate_projects_demo)
 

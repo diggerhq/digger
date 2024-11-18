@@ -843,6 +843,8 @@ generate_projects:
   blocks:
     - include: dev/*
       exclude: dev/project
+      include_patterns: ["modules/**"]
+      exclude_patterns: ["modules/dontincludeme/**"]
       workflow: dev_workflow
     - include: prod/*
       exclude: prod/project
@@ -881,6 +883,13 @@ workflows:
 	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, "prod/one", dg.Projects[2].Dir)
+	assert.Equal(t, []string{"modules/**"}, dg.Projects[0].IncludePatterns)
+	assert.Equal(t, []string{}, dg.Projects[1].IncludePatterns)
+	assert.Equal(t, []string{}, dg.Projects[2].IncludePatterns)
+	assert.Equal(t, []string{"modules/dontincludeme/**"}, dg.Projects[0].ExcludePatterns)
+	assert.Equal(t, []string{}, dg.Projects[1].ExcludePatterns)
+	assert.Equal(t, []string{}, dg.Projects[2].ExcludePatterns)
+
 	assert.Equal(t, 3, len(dg.Projects))
 }
 
