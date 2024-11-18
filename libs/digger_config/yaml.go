@@ -94,8 +94,8 @@ type BlockYaml struct {
 	// these flags are only for terraform and opentofu
 	Include         string   `yaml:"include"`
 	Exclude         string   `yaml:"exclude"`
-	IncludePatterns []string `yaml:"include_patterns"`
-	ExcludePatterns []string `yaml:"exclude_patterns"`
+	IncludePatterns []string `yaml:"include_patterns,omitempty"`
+	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
 
 	// these flags are only for terragrunt
 	Terragrunt bool    `yaml:"terragrunt"`

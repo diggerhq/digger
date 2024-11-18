@@ -884,11 +884,11 @@ workflows:
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, "prod/one", dg.Projects[2].Dir)
 	assert.Equal(t, []string{"modules/**"}, dg.Projects[0].IncludePatterns)
-	assert.Equal(t, []string{}, dg.Projects[1].IncludePatterns)
-	assert.Equal(t, []string{}, dg.Projects[2].IncludePatterns)
+	assert.Equal(t, []string{"modules/**"}, dg.Projects[1].IncludePatterns)
+	assert.Nil(t, dg.Projects[2].IncludePatterns)
 	assert.Equal(t, []string{"modules/dontincludeme/**"}, dg.Projects[0].ExcludePatterns)
-	assert.Equal(t, []string{}, dg.Projects[1].ExcludePatterns)
-	assert.Equal(t, []string{}, dg.Projects[2].ExcludePatterns)
+	assert.Equal(t, []string{"modules/dontincludeme/**"}, dg.Projects[1].ExcludePatterns)
+	assert.Nil(t, dg.Projects[2].ExcludePatterns)
 
 	assert.Equal(t, 3, len(dg.Projects))
 }
