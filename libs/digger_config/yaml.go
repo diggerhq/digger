@@ -26,22 +26,22 @@ type DependencyConfigurationYaml struct {
 }
 
 type ProjectYaml struct {
-	Name               string                      `yaml:"name"`
-	Dir                string                      `yaml:"dir"`
-	Workspace          string                      `yaml:"workspace"`
-	Terragrunt         bool                        `yaml:"terragrunt"`
-	OpenTofu           bool                        `yaml:"opentofu"`
-	Pulumi             bool                        `yaml:"pulumi"`
-	Workflow           string                      `yaml:"workflow"`
-	WorkflowFile       string                      `yaml:"workflow_file"`
-	IncludePatterns    []string                    `yaml:"include_patterns,omitempty"`
-	ExcludePatterns    []string                    `yaml:"exclude_patterns,omitempty"`
-	DependencyProjects []string                    `yaml:"depends_on,omitempty"`
-	DriftDetection     *bool                       `yaml:"drift_detection,omitempty"`
-	AwsRoleToAssume    *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	Generated          bool                        `yaml:"generated"`
-	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig	`yaml:"aws_cognito_oidc,omitempty"`
-	PulumiStack        string                      `yaml:"pulumi_stack"`
+	Name                 string                      `yaml:"name"`
+	Dir                  string                      `yaml:"dir"`
+	Workspace            string                      `yaml:"workspace"`
+	Terragrunt           bool                        `yaml:"terragrunt"`
+	OpenTofu             bool                        `yaml:"opentofu"`
+	Pulumi               bool                        `yaml:"pulumi"`
+	Workflow             string                      `yaml:"workflow"`
+	WorkflowFile         string                      `yaml:"workflow_file"`
+	IncludePatterns      []string                    `yaml:"include_patterns,omitempty"`
+	ExcludePatterns      []string                    `yaml:"exclude_patterns,omitempty"`
+	DependencyProjects   []string                    `yaml:"depends_on,omitempty"`
+	DriftDetection       *bool                       `yaml:"drift_detection,omitempty"`
+	AwsRoleToAssume      *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	Generated            bool                        `yaml:"generated"`
+	AwsCognitoOidcConfig *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
+	PulumiStack          string                      `yaml:"pulumi_stack"`
 }
 
 type WorkflowYaml struct {
@@ -92,8 +92,10 @@ type EnvVarYaml struct {
 
 type BlockYaml struct {
 	// these flags are only for terraform and opentofu
-	Include string `yaml:"include"`
-	Exclude string `yaml:"exclude"`
+	Include         string   `yaml:"include"`
+	Exclude         string   `yaml:"exclude"`
+	IncludePatterns []string `yaml:"include_patterns"`
+	ExcludePatterns []string `yaml:"exclude_patterns"`
 
 	// these flags are only for terragrunt
 	Terragrunt bool    `yaml:"terragrunt"`
@@ -103,11 +105,12 @@ type BlockYaml struct {
 	OpenTofu bool `yaml:"opentofu"`
 
 	// common flags
-	BlockName       string                      `yaml:"block_name"`
-	Workflow        string                      `yaml:"workflow"`
-	WorkflowFile    string                      `yaml:"workflow_file"`
-	AwsRoleToAssume *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig 		`yaml:"aws_cognito_oidc,omitempty"`
+	Workspace            string                      `yaml:"worksapce"`
+	BlockName            string                      `yaml:"block_name"`
+	Workflow             string                      `yaml:"workflow"`
+	WorkflowFile         string                      `yaml:"workflow_file"`
+	AwsRoleToAssume      *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
 }
 
 type AssumeRoleForProjectConfig struct {
@@ -117,9 +120,9 @@ type AssumeRoleForProjectConfig struct {
 }
 
 type AwsCognitoOidcConfig struct {
-	AwsAccountId  	string `yaml:"aws_account_id"`
-	AwsRegion 		string `yaml:"aws_region,omitempty"`
-	CognitoPoolId 	string `yaml:"cognito_identity_pool_id"`
+	AwsAccountId    string `yaml:"aws_account_id"`
+	AwsRegion       string `yaml:"aws_region,omitempty"`
+	CognitoPoolId   string `yaml:"cognito_identity_pool_id"`
 	SessionDuration int    `yaml:"session_duration"`
 }
 
@@ -130,7 +133,7 @@ type GenerateProjectsConfigYaml struct {
 	Blocks                  []BlockYaml                 `yaml:"blocks"`
 	TerragruntParsingConfig *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`
 	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	AwsCognitoOidcConfig    *AwsCognitoOidcConfig		`yaml:"aws_cognito_oidc,omitempty"`
+	AwsCognitoOidcConfig    *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
 }
 
 type TerragruntParsingConfig struct {
@@ -159,7 +162,7 @@ type TerragruntParsingConfig struct {
 	ExecutionOrderGroups           *bool                       `yaml:"executionOrderGroups"`
 	WorkflowFile                   string                      `yaml:"workflow_file"`
 	AwsRoleToAssume                *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	AwsCognitoOidcConfig 			*AwsCognitoOidcConfig		`yaml:"aws_cognito_oidc,omitempty"`
+	AwsCognitoOidcConfig           *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
