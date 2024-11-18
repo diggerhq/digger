@@ -52,15 +52,8 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 		return
 	}
 
-	cloneUrl := repo.RepoUrl
+	cloneUrl := fmt.Sprintf("https://%v/%v", utils.GetGithubHostname(), repo.RepoFullName)
 	branch := request.Branch
-
-	//ghInstallation, err := models.DB.GetInstallationForRepo(repoFullName)
-	//if err != nil {
-	//	log.Printf("could not get repo: %v", err)
-	//	c.String(500, fmt.Sprintf("coulnt not get repository %v %v", repoFullName, orgId))
-	//	return
-	//}
 
 	_, token, err := utils.GetGithubService(d.GithubClientProvider, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
