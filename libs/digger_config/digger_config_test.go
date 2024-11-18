@@ -846,6 +846,7 @@ generate_projects:
       include_patterns: ["modules/**"]
       exclude_patterns: ["modules/dontincludeme/**"]
       workflow: dev_workflow
+      workspace: devdev
     - include: prod/*
       exclude: prod/project
       workflow: prod_workflow
@@ -880,6 +881,9 @@ workflows:
 	assert.Equal(t, "dev_workflow", dg.Projects[0].Workflow)
 	assert.Equal(t, "dev_workflow", dg.Projects[1].Workflow)
 	assert.Equal(t, "prod_workflow", dg.Projects[2].Workflow)
+	assert.Equal(t, "devdev", dg.Projects[0].Workspace)
+	assert.Equal(t, "devdev", dg.Projects[1].Workspace)
+	assert.Equal(t, "default", dg.Projects[2].Workspace)
 	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, "prod/one", dg.Projects[2].Dir)

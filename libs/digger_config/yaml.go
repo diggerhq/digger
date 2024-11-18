@@ -105,7 +105,7 @@ type BlockYaml struct {
 	OpenTofu bool `yaml:"opentofu"`
 
 	// common flags
-	Workspace            string                      `yaml:"worksapce"`
+	Workspace            string                      `yaml:"workspace"`
 	BlockName            string                      `yaml:"block_name"`
 	Workflow             string                      `yaml:"workflow"`
 	WorkflowFile         string                      `yaml:"workflow_file"`
