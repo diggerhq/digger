@@ -593,15 +593,20 @@ func RunJob(
 		}
 
 		var terraformExecutor execution.TerraformExecutor
+		var iacUtils iac_utils.IacUtils
 		projectPath := path.Join(workingDir, job.ProjectDir)
 		if job.Terragrunt {
 			terraformExecutor = execution.Terragrunt{WorkingDir: projectPath}
+			iacUtils = iac_utils.TerraformUtils{}
 		} else if job.OpenTofu {
 			terraformExecutor = execution.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+			iacUtils = iac_utils.TerraformUtils{}
 		} else if job.Pulumi {
 			terraformExecutor = execution.Pulumi{WorkingDir: projectPath, Stack: job.ProjectWorkspace}
+			iacUtils = iac_utils.PulumiUtils{}
 		} else {
 			terraformExecutor = execution.Terraform{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
+			iacUtils = iac_utils.TerraformUtils{}
 		}
 
 		commandRunner := execution.CommandRunner{}
@@ -627,6 +632,7 @@ func RunJob(
 			TerraformExecutor: terraformExecutor,
 			PlanStorage:       planStorage,
 			PlanPathProvider:  planPathProvider,
+			IacUtils:          iacUtils,
 		}
 
 		switch command {
