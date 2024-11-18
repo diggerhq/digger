@@ -243,12 +243,12 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 				if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
 					projectName := strings.ReplaceAll(dir, "/", "_")
 					project := ProjectYaml{
-						Name:            projectName,
-						Dir:             dir,
-						Workflow:        defaultWorkflowName,
-						Workspace:       "default",
-						AwsRoleToAssume: config.GenerateProjectsConfig.AwsRoleToAssume,
-						Generated:       true,
+						Name:                 projectName,
+						Dir:                  dir,
+						Workflow:             defaultWorkflowName,
+						Workspace:            "default",
+						AwsRoleToAssume:      config.GenerateProjectsConfig.AwsRoleToAssume,
+						Generated:            true,
 						AwsCognitoOidcConfig: config.GenerateProjectsConfig.AwsCognitoOidcConfig,
 					}
 					config.Projects = append(config.Projects, &project)
@@ -272,13 +272,13 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						}
 
 						tgParsingConfig := TerragruntParsingConfig{
-							CreateProjectName: 	  true,
-							DefaultWorkflow:   	  workflow,
-							WorkflowFile:      	  b.WorkflowFile,
-							FilterPath:        	  path.Join(terraformDir, *b.RootDir),
-							AwsRoleToAssume:   	  b.AwsRoleToAssume,
+							CreateProjectName:    true,
+							DefaultWorkflow:      workflow,
+							WorkflowFile:         b.WorkflowFile,
+							FilterPath:           path.Join(terraformDir, *b.RootDir),
+							AwsRoleToAssume:      b.AwsRoleToAssume,
 							AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
-						};						
+						}
 
 						err := hydrateDiggerConfigYamlWithTerragrunt(config, tgParsingConfig, terraformDir)
 						if err != nil {
@@ -294,19 +294,26 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						workflow = b.Workflow
 					}
 
+					workspace := "default"
+					if b.Workspace != "" {
+						workspace = b.Workspace
+					}
+
 					for _, dir := range dirs {
 						if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
 							projectName := strings.ReplaceAll(dir, "/", "_")
 							project := ProjectYaml{
-								Name:            projectName,
-								Dir:             dir,
-								Workflow:        workflow,
-								Workspace:       "default",
-								OpenTofu:        b.OpenTofu,
-								AwsRoleToAssume: b.AwsRoleToAssume,
-								Generated:       true,
+								Name:                 projectName,
+								Dir:                  dir,
+								Workflow:             workflow,
+								Workspace:            workspace,
+								OpenTofu:             b.OpenTofu,
+								AwsRoleToAssume:      b.AwsRoleToAssume,
+								Generated:            true,
 								AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
-								WorkflowFile:    b.WorkflowFile,
+								WorkflowFile:         b.WorkflowFile,
+								IncludePatterns:      b.IncludePatterns,
+								ExcludePatterns:      b.ExcludePatterns,
 							}
 							config.Projects = append(config.Projects, &project)
 						}
@@ -538,15 +545,15 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		}
 
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
-			Name:            atlantisProject.Name,
-			Dir:             projectDir,
-			Workspace:       atlantisProject.Workspace,
-			Terragrunt:      true,
-			Workflow:        atlantisProject.Workflow,
-			WorkflowFile:    workflowFile,
-			IncludePatterns: atlantisProject.Autoplan.WhenModified,
-			Generated:       true,
-			AwsRoleToAssume: parsingConfig.AwsRoleToAssume,
+			Name:                 atlantisProject.Name,
+			Dir:                  projectDir,
+			Workspace:            atlantisProject.Workspace,
+			Terragrunt:           true,
+			Workflow:             atlantisProject.Workflow,
+			WorkflowFile:         workflowFile,
+			IncludePatterns:      atlantisProject.Autoplan.WhenModified,
+			Generated:            true,
+			AwsRoleToAssume:      parsingConfig.AwsRoleToAssume,
 			AwsCognitoOidcConfig: parsingConfig.AwsCognitoOidcConfig,
 		})
 	}
