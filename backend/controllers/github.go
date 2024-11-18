@@ -1163,7 +1163,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		repoFullName := *repo.FullName
 		repoOwner := strings.Split(*repo.FullName, "/")[0]
 		repoName := *repo.Name
-		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
+		repoUrl := fmt.Sprintf("https://%v/%v", utils.GetGithubHostname(), repoFullName)
 		_, err := models.DB.GithubRepoAdded(installationId64, *installation.AppID, *installation.Account.Login, *installation.Account.ID, repoFullName)
 		if err != nil {
 			log.Printf("github repos added error: %v", err)
