@@ -10,6 +10,7 @@ import (
 	"github.com/diggerhq/digger/next/model"
 	nextutils "github.com/diggerhq/digger/next/utils"
 	"log"
+	"time"
 )
 
 func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullRequestService, gh nextutils.GithubClientProvider) error {
@@ -146,7 +147,6 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 			return fmt.Errorf("could not get plan batch: %v", err)
 		}
 		batchStatus := batch.Status
-		approvalRequired := true
 
 		// if failed then go straight to failed
 		if batchStatus == int16(orchestrator_scheduler.BatchJobFailed) {
@@ -166,15 +166,24 @@ func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullR
 
 		// if successful then
 		if batchStatus == int16(orchestrator_scheduler.BatchJobSucceeded) {
-			if approvalRequired {
-				dr.Status = string(dbmodels.RunPendingApproval)
+			project, err := dbmodels.DB.GetProject(dr.ProjectID)
+			if err != nil {
+				log.Printf("could not get project: %v", err)
+				return fmt.Errorf("could not get project: %v", err)
+			}
+
+			if project.AutoApprove {
+				dr.Status = string(dbmodels.RunApproved)
+				dr.ApprovalAuthor = "autoapproved"
+				dr.ApprovalDate = time.Now()
+				dr.IsApproved = true
 				err := dbmodels.DB.UpdateDiggerRun(dr)
 				if err != nil {
 					log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunID, dr.ProjectName)
 					return fmt.Errorf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunID, dr.ProjectName)
 				}
 			} else {
-				dr.Status = string(dbmodels.RunApproved)
+				dr.Status = string(dbmodels.RunPendingApproval)
 				err := dbmodels.DB.UpdateDiggerRun(dr)
 				if err != nil {
 					log.Printf("ERROR: Failed to update Digger Run for queueID: %v [%v %v]", queueItem.ID, queueItem.DiggerRunID, dr.ProjectName)

@@ -57,6 +57,7 @@ var (
 	Team                             *team
 	TeamMember                       *teamMember
 	UserAPIKey                       *userAPIKey
+	UserM2mApplication               *userM2mApplication
 	UserNotification                 *userNotification
 	UserOnboarding                   *userOnboarding
 	UserPrivateInfo                  *userPrivateInfo
@@ -106,6 +107,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Team = &Q.Team
 	TeamMember = &Q.TeamMember
 	UserAPIKey = &Q.UserAPIKey
+	UserM2mApplication = &Q.UserM2mApplication
 	UserNotification = &Q.UserNotification
 	UserOnboarding = &Q.UserOnboarding
 	UserPrivateInfo = &Q.UserPrivateInfo
@@ -156,6 +158,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Team:                             newTeam(db, opts...),
 		TeamMember:                       newTeamMember(db, opts...),
 		UserAPIKey:                       newUserAPIKey(db, opts...),
+		UserM2mApplication:               newUserM2mApplication(db, opts...),
 		UserNotification:                 newUserNotification(db, opts...),
 		UserOnboarding:                   newUserOnboarding(db, opts...),
 		UserPrivateInfo:                  newUserPrivateInfo(db, opts...),
@@ -207,6 +210,7 @@ type Query struct {
 	Team                             team
 	TeamMember                       teamMember
 	UserAPIKey                       userAPIKey
+	UserM2mApplication               userM2mApplication
 	UserNotification                 userNotification
 	UserOnboarding                   userOnboarding
 	UserPrivateInfo                  userPrivateInfo
@@ -259,6 +263,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Team:                             q.Team.clone(db),
 		TeamMember:                       q.TeamMember.clone(db),
 		UserAPIKey:                       q.UserAPIKey.clone(db),
+		UserM2mApplication:               q.UserM2mApplication.clone(db),
 		UserNotification:                 q.UserNotification.clone(db),
 		UserOnboarding:                   q.UserOnboarding.clone(db),
 		UserPrivateInfo:                  q.UserPrivateInfo.clone(db),
@@ -318,6 +323,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Team:                             q.Team.replaceDB(db),
 		TeamMember:                       q.TeamMember.replaceDB(db),
 		UserAPIKey:                       q.UserAPIKey.replaceDB(db),
+		UserM2mApplication:               q.UserM2mApplication.replaceDB(db),
 		UserNotification:                 q.UserNotification.replaceDB(db),
 		UserOnboarding:                   q.UserOnboarding.replaceDB(db),
 		UserPrivateInfo:                  q.UserPrivateInfo.replaceDB(db),
@@ -367,6 +373,7 @@ type queryCtx struct {
 	Team                             ITeamDo
 	TeamMember                       ITeamMemberDo
 	UserAPIKey                       IUserAPIKeyDo
+	UserM2mApplication               IUserM2mApplicationDo
 	UserNotification                 IUserNotificationDo
 	UserOnboarding                   IUserOnboardingDo
 	UserPrivateInfo                  IUserPrivateInfoDo
@@ -416,6 +423,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Team:                             q.Team.WithContext(ctx),
 		TeamMember:                       q.TeamMember.WithContext(ctx),
 		UserAPIKey:                       q.UserAPIKey.WithContext(ctx),
+		UserM2mApplication:               q.UserM2mApplication.WithContext(ctx),
 		UserNotification:                 q.UserNotification.WithContext(ctx),
 		UserOnboarding:                   q.UserOnboarding.WithContext(ctx),
 		UserPrivateInfo:                  q.UserPrivateInfo.WithContext(ctx),
