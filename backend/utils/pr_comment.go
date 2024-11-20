@@ -91,6 +91,17 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 				"|:clock11: **%v**|pending...|\n", job.ProjectName)
 		}
 	}
+
+	const GithubCommentMaxLength = 65536
+
+	if len(message) > GithubCommentMaxLength {
+		// TODO: Handle the case where message is too long by trimming
+		log.Printf("WARN: message is too long, trimming")
+		log.Printf(message)
+		const footer = "[trimmed]"
+		trimLength := len(message) - GithubCommentMaxLength + len(footer)
+		message = message[:len(message)-trimLength] + footer
+	}
 	err := prService.EditComment(prNumber, commentId, message)
 	return err
 }
