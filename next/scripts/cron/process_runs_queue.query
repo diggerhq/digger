@@ -1,6 +1,6 @@
 select
   cron.schedule(
-    'invoke-function-every-half-minute',
+    'process-runs-queue',
     '30 seconds',
     $$
     select
