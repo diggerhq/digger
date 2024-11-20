@@ -41,6 +41,7 @@ type Project struct {
 	WorkflowFile            string         `gorm:"column:workflow_file" json:"workflow_file"`
 	IncludePatterns         string         `gorm:"column:include_patterns" json:"include_patterns"`
 	ExcludePatterns         string         `gorm:"column:exclude_patterns" json:"exclude_patterns"`
+	AutoApprove             bool           `gorm:"column:auto_approve;not null" json:"auto_approve"`
 }
 
 // TableName Project's table name
