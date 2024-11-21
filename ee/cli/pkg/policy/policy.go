@@ -108,7 +108,11 @@ func (p DiggerRepoPolicyProvider) GetAccessPolicy(organisation string, repo stri
 }
 
 func (p DiggerRepoPolicyProvider) GetPlanPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
-	return "", nil
+	policy, err := p.getPolicyFileContents(repository, projectname, projectDir, "plan.rego")
+	if err != nil {
+		return policy, err
+	}
+	return policy, nil
 }
 
 func (p DiggerRepoPolicyProvider) GetDriftPolicy() (string, error) {
