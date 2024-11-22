@@ -930,14 +930,14 @@ WHERE
 	return runqueuesWithData, nil
 }
 
-func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*model.DiggerJob, error) {
-	diggerJob, err := db.GetDiggerJob(diggerJobId)
+func (db *Database) UpdateDiggerJobSummary(diggerJobSummaryId string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) (*model.DiggerJob, error) {
+	diggerJob, err := db.GetDiggerJob(diggerJobSummaryId)
 	if err != nil {
 		return nil, fmt.Errorf("Could not get digger job")
 	}
 	var jobSummary *model.DiggerJobSummary
 
-	jobSummary, err = db.Query.DiggerJobSummary.Select(db.Query.DiggerJobSummary.ID.Eq(diggerJobId)).First()
+	jobSummary, err = db.Query.DiggerJobSummary.Select(db.Query.DiggerJobSummary.ID.Eq(diggerJobSummaryId)).First()
 	if err != nil {
 		return nil, fmt.Errorf("could not get digger job summary: %v", err)
 	}
@@ -950,7 +950,7 @@ func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated 
 		return nil, result.Error
 	}
 
-	log.Printf("DiggerJob %v summary has been updated successfully\n", diggerJobId)
+	log.Printf("DiggerJob %v summary has been updated successfully\n", diggerJobSummaryId)
 	return diggerJob, nil
 }
 
