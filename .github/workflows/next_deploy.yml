@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - develop    # change to main if needed
-      - fix/dockerfile-next
+      - feat/regen-db
 jobs:
   deploy:
     name: Deploy app
