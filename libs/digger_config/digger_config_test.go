@@ -941,9 +941,9 @@ func TestDiggerGenerateProjectsEmptyParameters(t *testing.T) {
 	diggerCfg := `
 generate_projects:
 `
-	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
-	assert.Error(t, err)
-	assert.Equal(t, "no projects digger_config found in 'loaded_yaml_string'", err.Error())
+	config, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(config.))
 }
 
 // TestDiggerGenerateProjectsTooManyParameters include/exclude and blocks of include/exclude can't be used together
