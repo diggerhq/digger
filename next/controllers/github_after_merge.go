@@ -8,6 +8,7 @@ import (
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/dbmodels"
+	"github.com/diggerhq/digger/next/services"
 	nextutils "github.com/diggerhq/digger/next/utils"
 	"github.com/google/go-github/v61/github"
 	"log"
@@ -66,6 +67,11 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 		}
 	}
 	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
+	workflows, err := services.GetWorkflowsForRepoAndBranch(gh, repo.ID, targetBranch, commitId)
+	if err != nil {
+		log.Printf("error getting workflows from config: %v", err)
+		return fmt.Errorf("error getting workflows from config")
+	}
 	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
 		ApplyAfterMerge:   true,
 		AllowDraftPRs:     false,
@@ -73,23 +79,11 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 		DependencyConfiguration: dg_configuration.DependencyConfiguration{
 			Mode: dg_configuration.DependencyConfigurationHard,
 		},
-		PrLocks:   false,
-		Projects:  dgprojects,
-		AutoMerge: false,
-		Telemetry: false,
-		Workflows: map[string]dg_configuration.Workflow{
-			"default": dg_configuration.Workflow{
-				EnvVars: nil,
-				Plan:    nil,
-				Apply:   nil,
-				Configuration: &dg_configuration.WorkflowConfiguration{
-					OnPullRequestPushed:           []string{"digger plan"},
-					OnPullRequestClosed:           []string{},
-					OnPullRequestConvertedToDraft: []string{},
-					OnCommitToDefault:             []string{},
-				},
-			},
-		},
+		PrLocks:                    false,
+		Projects:                   dgprojects,
+		AutoMerge:                  false,
+		Telemetry:                  false,
+		Workflows:                  workflows,
 		MentionDriftedProjectsInPR: false,
 		TraverseToNestedProjects:   false,
 	}

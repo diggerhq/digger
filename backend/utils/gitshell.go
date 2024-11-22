@@ -103,6 +103,13 @@ func (g *GitShell) runCommand(args ...string) (string, error) {
 	return strings.TrimSpace(stdout.String()), nil
 }
 
+func (g *GitShell) Checkout(branchOrCommit string) error {
+	args := []string{"checkout"}
+	args = append(args, branchOrCommit)
+	_, err := g.runCommand(args...)
+	return err
+}
+
 // Clone with authentication
 func (g *GitShell) Clone(repoURL, branch string) error {
 	authURL, err := g.formatAuthURL(repoURL)

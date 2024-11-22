@@ -145,6 +145,12 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 
 	var dgprojects = []dg_configuration.Project{dbmodels.ToDiggerProject(project)}
 	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
+	workflows, err := GetWorkflowsForRepoAndBranch(gh, repo.ID, branch, "")
+	if err != nil {
+		log.Printf("error retrieving digger.yml workflows: %v ", err)
+		return nil, nil, fmt.Errorf("error retrieving digger.yml workflows:  %v", err)
+
+	}
 	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
 		ApplyAfterMerge:   true,
 		AllowDraftPRs:     false,
@@ -152,23 +158,11 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 		DependencyConfiguration: dg_configuration.DependencyConfiguration{
 			Mode: dg_configuration.DependencyConfigurationHard,
 		},
-		PrLocks:   false,
-		Projects:  dgprojects,
-		AutoMerge: false,
-		Telemetry: false,
-		Workflows: map[string]dg_configuration.Workflow{
-			"default": dg_configuration.Workflow{
-				EnvVars: nil,
-				Plan:    nil,
-				Apply:   nil,
-				Configuration: &dg_configuration.WorkflowConfiguration{
-					OnPullRequestPushed:           []string{command},
-					OnPullRequestClosed:           []string{},
-					OnPullRequestConvertedToDraft: []string{},
-					OnCommitToDefault:             []string{},
-				},
-			},
-		},
+		PrLocks:                    false,
+		Projects:                   dgprojects,
+		AutoMerge:                  false,
+		Telemetry:                  false,
+		Workflows:                  workflows,
 		MentionDriftedProjectsInPR: false,
 		TraverseToNestedProjects:   false,
 	}
