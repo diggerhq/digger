@@ -55,6 +55,7 @@ func newProject(db *gorm.DB, opts ...gen.DOOption) project {
 	_project.IncludePatterns = field.NewString(tableName, "include_patterns")
 	_project.AutoApprove = field.NewBool(tableName, "auto_approve")
 	_project.ExcludePatterns = field.NewString(tableName, "exclude_patterns")
+	_project.Workflow = field.NewString(tableName, "workflow")
 
 	_project.fillFieldMap()
 
@@ -93,6 +94,7 @@ type project struct {
 	IncludePatterns         field.String
 	AutoApprove             field.Bool
 	ExcludePatterns         field.String
+	Workflow                field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -137,6 +139,7 @@ func (p *project) updateTableName(table string) *project {
 	p.IncludePatterns = field.NewString(table, "include_patterns")
 	p.AutoApprove = field.NewBool(table, "auto_approve")
 	p.ExcludePatterns = field.NewString(table, "exclude_patterns")
+	p.Workflow = field.NewString(table, "workflow")
 
 	p.fillFieldMap()
 
@@ -153,7 +156,7 @@ func (p *project) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *project) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 28)
+	p.fieldMap = make(map[string]field.Expr, 29)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["created_at"] = p.CreatedAt
@@ -182,6 +185,7 @@ func (p *project) fillFieldMap() {
 	p.fieldMap["include_patterns"] = p.IncludePatterns
 	p.fieldMap["auto_approve"] = p.AutoApprove
 	p.fieldMap["exclude_patterns"] = p.ExcludePatterns
+	p.fieldMap["workflow"] = p.Workflow
 }
 
 func (p project) clone(db *gorm.DB) project {
