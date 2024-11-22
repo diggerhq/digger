@@ -43,6 +43,13 @@ func RunSpec(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
 	}
 
+	// for additional output reporting
+	diggerOutPath := os.Getenv("DIGGER_OUT")
+	if diggerOutPath == "" {
+		diggerOutPath = os.Getenv("RUNNER_TEMP") + "/digger-out.log"
+		os.Setenv("DIGGER_OUT", diggerOutPath)
+	}
+
 	if spec.Job.Commit != "" {
 		// checking out to the commit ID
 		log.Printf("fetching commit ID %v", spec.Job.Commit)

@@ -30,6 +30,30 @@ type FileSystemTerragruntDirWalker struct {
 type FileSystemModuleDirWalker struct {
 }
 
+func CheckOrCreateDiggerFile(dir string) error {
+	// Check for digger.yml
+	ymlPath := filepath.Join(dir, "digger.yml")
+	yamlPath := filepath.Join(dir, "digger.yaml")
+
+	// Check if either file exists
+	if _, err := os.Stat(ymlPath); err == nil {
+		return nil // digger.yml exists
+	}
+	if _, err := os.Stat(yamlPath); err == nil {
+		return nil // digger.yaml exists
+	}
+
+	// Neither file exists, create digger.yml
+	file, err := os.Create(ymlPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// File is created empty by default
+	return nil
+}
+
 func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
 	var files []string
 	listOfFiles, err := os.ReadDir(workingDir)
@@ -363,9 +387,6 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 }
 
 func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) error {
-	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
-		return fmt.Errorf("no projects digger_config found in '%s'", fileName)
-	}
 	if configYaml.DependencyConfiguration != nil {
 		if configYaml.DependencyConfiguration.Mode != DependencyConfigurationHard && configYaml.DependencyConfiguration.Mode != DependencyConfigurationSoft {
 			return fmt.Errorf("dependency digger_config mode can only be '%s' or '%s'", DependencyConfigurationHard, DependencyConfigurationSoft)
