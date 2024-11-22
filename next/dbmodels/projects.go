@@ -9,18 +9,18 @@ import (
 
 func ToDiggerProject(p *model.Project) digger_config.Project {
 	return digger_config.Project{
-		Name:               p.Name,
-		Dir:                p.TerraformWorkingDir,
-		Workspace:          func() string {
+		Name: p.Name,
+		Dir:  p.TerraformWorkingDir,
+		Workspace: func() string {
 			if p.Workspace == "" {
 				return "default"
 			}
 			return p.Workspace
 		}(),
-		Terragrunt:         (p.IacType == "terragrunt"),
-		OpenTofu:           (p.IacType == "opentofu"),
-		Workflow:           "default",
-		WorkflowFile:       func() string {
+		Terragrunt: (p.IacType == "terragrunt"),
+		OpenTofu:   (p.IacType == "opentofu"),
+		Workflow:   p.Workflow,
+		WorkflowFile: func() string {
 			if p.WorkflowFile == "" {
 				return "digger_workflow.yml"
 			}
