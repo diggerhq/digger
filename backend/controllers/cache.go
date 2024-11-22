@@ -67,7 +67,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 
 	// update the cache here, do it async for immediate response
 	go func() {
-		err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, *token, func(dir string) error {
+		err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
 			diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 			diggerYmlStr = string(diggerYmlBytes)
 			config, _, _, err = dg_configuration.LoadDiggerConfig(dir, true, nil)

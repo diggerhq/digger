@@ -25,6 +25,14 @@ func createTempDir() string {
 	return tempDir
 }
 
+func GetGithubHostname() string {
+	githubHostname := os.Getenv("DIGGER_GITHUB_HOSTNAME")
+	if githubHostname == "" {
+		githubHostname = "github.com"
+	}
+	return githubHostname
+}
+
 // just a wrapper around github client to be able to use mocks
 type DiggerGithubRealClientProvider struct {
 }

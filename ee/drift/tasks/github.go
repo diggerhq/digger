@@ -42,7 +42,7 @@ func LoadProjectsFromGithubRepo(gh utils2.GithubClientProvider, installationId s
 		return fmt.Errorf("error getting github service")
 	}
 
-	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, *token, func(dir string) error {
+	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
 		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
 			log.Printf("ERROR load digger.yml: %v", err)

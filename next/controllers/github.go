@@ -357,6 +357,11 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	}
 
 	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
+	workflows, err := services.GetWorkflowsForRepoAndBranch(gh, repo.ID, sourceBranch, commitSha)
+	if err != nil {
+		log.Printf("error getting workflows from config: %v", err)
+		return fmt.Errorf("error getting workflows from config")
+	}
 	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
 		ApplyAfterMerge:   true,
 		AllowDraftPRs:     false,
@@ -364,23 +369,11 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 		DependencyConfiguration: dg_configuration.DependencyConfiguration{
 			Mode: dg_configuration.DependencyConfigurationHard,
 		},
-		PrLocks:   false,
-		Projects:  dgprojects,
-		AutoMerge: false,
-		Telemetry: false,
-		Workflows: map[string]dg_configuration.Workflow{
-			"default": dg_configuration.Workflow{
-				EnvVars: nil,
-				Plan:    nil,
-				Apply:   nil,
-				Configuration: &dg_configuration.WorkflowConfiguration{
-					OnPullRequestPushed:           []string{"digger plan"},
-					OnPullRequestClosed:           []string{},
-					OnPullRequestConvertedToDraft: []string{},
-					OnCommitToDefault:             []string{},
-				},
-			},
-		},
+		PrLocks:                    false,
+		Projects:                   dgprojects,
+		AutoMerge:                  false,
+		Telemetry:                  false,
+		Workflows:                  workflows,
 		MentionDriftedProjectsInPR: false,
 		TraverseToNestedProjects:   false,
 	}
@@ -540,7 +533,7 @@ func getDiggerConfigForBranch(gh next_utils.GithubClientProvider, installationId
 		log.Printf("Error getting changed files: %v", err)
 		return "", nil, nil, nil, fmt.Errorf("error getting changed files")
 	}
-	err = backend_utils.CloneGitRepoAndDoAction(cloneUrl, branch, *token, func(dir string) error {
+	err = backend_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
