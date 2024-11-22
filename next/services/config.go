@@ -40,6 +40,12 @@ func GetWorkflowsForRepoAndBranch(gh utils.GithubClientProvider, repoId int64, b
 	var config *dg_configuration.DiggerConfig
 
 	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, commitHash, *token, func(dir string) error {
+		// we create a blank file if it does not exist
+		err := dg_configuration.CheckOrCreateDiggerFile(dir)
+		if err != nil {
+			log.Printf("Error creating blank digger.yml if not exists: %v", err)
+			return err
+		}
 		config, _, _, err = dg_configuration.LoadDiggerConfig(dir, false, nil)
 		if err != nil {
 			log.Printf("Error loading digger config: %v", err)

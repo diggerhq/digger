@@ -80,17 +80,19 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		err := handlePullRequestEvent(gh, event, d.CiBackendProvider)
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
 		}
+		c.String(http.StatusAccepted, err.Error())
+		return
+
 	case *github.PushEvent:
 		log.Printf("Got push event for %d", event.Repo.URL)
 		handlePushEventApplyAfterMerge(gh, event)
 		if err != nil {
 			log.Printf("handlePushEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
 		}
+		c.String(http.StatusAccepted, err.Error())
+		return
+
 	default:
 		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
 	}
