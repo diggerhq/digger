@@ -1,0 +1,7 @@
+workflows:
+  default:
+    plan:
+      steps:
+        - init
+        - plan
+        - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
