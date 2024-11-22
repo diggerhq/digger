@@ -419,8 +419,9 @@ func TestMissingProjectsReturnsError(t *testing.T) {
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
-	_, _, _, err := LoadDiggerConfig(tempDir, true, nil)
-	assert.ErrorContains(t, err, "no projects digger_config found")
+	config, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, len(config.Projects), 0)
 }
 
 func TestDiggerConfigCustomWorkflow(t *testing.T) {
@@ -943,7 +944,7 @@ generate_projects:
 `
 	config, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(config.))
+	assert.Equal(t, 0, len(config.Projects))
 }
 
 // TestDiggerGenerateProjectsTooManyParameters include/exclude and blocks of include/exclude can't be used together
