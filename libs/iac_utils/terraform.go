@@ -39,8 +39,11 @@ func (tu TerraformUtils) GetSummaryFromPlanJson(planJson string) (bool, *IacSumm
 		}
 	}
 
-	if tfplan.OutputChanges != nil {
-		isPlanEmpty = false
+	for _, change := range tfplan.OutputChanges {
+		if len(change.Actions) != 1 || change.Actions[0] != "no-op" {
+			isPlanEmpty = false
+			break
+		}
 	}
 
 	planSummary := IacSummary{}
