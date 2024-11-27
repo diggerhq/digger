@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/diggerhq/digger/backend/ci_backends"
+	config2 "github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/locking"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
@@ -371,7 +373,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, _, _, err := getDiggerConfigForPR(gh, organisationId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
+	diggerYmlStr, ghService, config, projectsGraph, _, _, changedFiles, err := getDiggerConfigForPR(gh, organisationId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		return fmt.Errorf("error getting digger config")
@@ -398,6 +400,25 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		// This one is for aggregate reporting
 		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 		return nil
+	}
+
+	// ratio of impacted projects to changed files should be less than MAX_RATIO
+	maxProjects := config2.GetMaxProjectsCreated()
+	if maxProjects < 0 {
+		if len(impactedProjects) > maxProjects {
+			log.Printf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects)
+			commentReporterManager.UpdateComment(fmt.Sprintf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects))
+			log.Printf("Information about the event:")
+			log.Printf("GH payload: %v", payload)
+			log.Printf("PR changed files: %v", changedFiles)
+			log.Printf("digger.yml STR: %v", diggerYmlStr)
+			log.Printf("Parsed config: %v", config)
+			log.Printf("Dependency graph:")
+			spew.Dump(projectsGraph)
+			log.Printf("Impacted Projects: %v", impactedProjects)
+			log.Printf("Impacted Project jobs: %v", jobsForImpactedProjects)
+			return fmt.Errorf("error processing event")
+		}
 	}
 
 	diggerCommand, err := orchestrator_scheduler.GetCommandFromJob(jobsForImpactedProjects[0])
@@ -573,24 +594,24 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 }
 
 // TODO: Refactor this func to receive ghService as input
-func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []string, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, error) {
+func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []string, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, []string, error) {
 	ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
-		return "", nil, nil, nil, nil, nil, fmt.Errorf("error getting github service")
+		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("error getting github service")
 	}
 
 	var prBranch string
 	prBranch, prCommitSha, err := ghService.GetBranchName(prNumber)
 	if err != nil {
 		log.Printf("Error getting branch name: %v", err)
-		return "", nil, nil, nil, nil, nil, fmt.Errorf("error getting branch name")
+		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("error getting branch name")
 	}
 
 	changedFiles, err := ghService.GetChangedFiles(prNumber)
 	if err != nil {
 		log.Printf("Error getting changed files: %v", err)
-		return "", nil, nil, nil, nil, nil, fmt.Errorf("error getting changed files")
+		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("error getting changed files")
 	}
 
 	// check if items should be loaded from cache
@@ -600,17 +621,17 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 			log.Printf("could not load from cache")
 		} else {
 			log.Printf("successfully loaded from cache")
-			return diggerYmlStr, ghService, config, *dependencyGraph, &prBranch, &prCommitSha, nil
+			return diggerYmlStr, ghService, config, *dependencyGraph, &prBranch, &prCommitSha, changedFiles, nil
 		}
 	}
 
 	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch, changedFiles)
 	if err != nil {
 		log.Printf("Error loading digger.yml: %v", err)
-		return "", nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml: %v", err)
+		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml: %v", err)
 	}
 
-	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, nil
+	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, changedFiles, nil
 }
 
 func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_configuration.DiggerConfig, *graph.Graph[string, dg_configuration.Project], error) {
@@ -717,7 +738,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		}
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
+	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, changedFiles, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		log.Printf("getDiggerConfigForPR error: %v", err)
@@ -763,6 +784,33 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
+	if err != nil {
+		log.Printf("Error converting event to jobs: %v", err)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error converting event to jobs: %v", err))
+		return fmt.Errorf("error converting event to jobs")
+	}
+	log.Printf("GitHub IssueComment event converted to Jobs successfully\n")
+
+	// ratio of impacted projects to changed files should be less than MAX_RATIO
+	maxProjects := config2.GetMaxProjectsCreated()
+	if maxProjects < 0 {
+		if len(impactedProjects) > maxProjects {
+			log.Printf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects)
+			commentReporterManager.UpdateComment(fmt.Sprintf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects))
+			log.Printf("Information about the event:")
+			log.Printf("GH payload: %v", payload)
+			log.Printf("PR changed files: %v", changedFiles)
+			log.Printf("digger.yml STR: %v", diggerYmlStr)
+			log.Printf("Parsed config: %v", config)
+			log.Printf("Dependency graph:")
+			spew.Dump(projectsGraph)
+			log.Printf("Impacted Projects: %v", impactedProjects)
+			log.Printf("Impacted Project jobs: %v", jobs)
+			return fmt.Errorf("error processing event")
+		}
+	}
+
 	// perform unlocking in backend
 	if config.PrLocks {
 		for _, project := range impactedProjects {
@@ -790,14 +838,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
 		return nil
 	}
-
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
-	if err != nil {
-		log.Printf("Error converting event to jobs: %v", err)
-		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error converting event to jobs: %v", err))
-		return fmt.Errorf("error converting event to jobs")
-	}
-	log.Printf("GitHub IssueComment event converted to Jobs successfully\n")
 
 	err = utils.ReportInitialJobsStatus(commentReporter, jobs)
 	if err != nil {
