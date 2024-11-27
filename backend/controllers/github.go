@@ -404,10 +404,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	// ratio of impacted projects to changed files should be less than MAX_RATIO
 	maxProjects := config2.GetMaxProjectsCreated()
-	if maxProjects < 0 {
+	if maxProjects > 0 {
 		if len(impactedProjects) > maxProjects {
 			log.Printf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects)
-			commentReporterManager.UpdateComment(fmt.Sprintf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects))
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects))
 			log.Printf("Information about the event:")
 			log.Printf("GH payload: %v", payload)
 			log.Printf("PR changed files: %v", changedFiles)
@@ -794,10 +794,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	// ratio of impacted projects to changed files should be less than MAX_RATIO
 	maxProjects := config2.GetMaxProjectsCreated()
-	if maxProjects < 0 {
+	if maxProjects > 0 {
 		if len(impactedProjects) > maxProjects {
 			log.Printf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects)
-			commentReporterManager.UpdateComment(fmt.Sprintf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects))
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects))
 			log.Printf("Information about the event:")
 			log.Printf("GH payload: %v", payload)
 			log.Printf("PR changed files: %v", changedFiles)
