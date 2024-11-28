@@ -415,7 +415,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			log.Printf("Dependency graph:")
 			spew.Dump(projectsGraph)
 			log.Printf("Impacted Projects: %v", impactedProjects)
-			log.Printf("Impacted Project jobs: %v", jobs)
+			log.Printf("Impacted Project jobs: %v", jobsForImpactedProjects)
 			return fmt.Errorf("error processing event")
 		}
 	}
