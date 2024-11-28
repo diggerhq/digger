@@ -402,12 +402,11 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return nil
 	}
 
-	// ratio of impacted projects to changed files should be less than MAX_RATIO
-	maxProjects := config2.GetMaxProjectsCreated()
-	if maxProjects > 0 {
-		if len(impactedProjects) > maxProjects {
-			log.Printf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects)
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects))
+	// if flag set we dont allow more projects impacted than the number of changed files in PR (safety check)
+	if config2.LimitByNumOfFilesChanged() {
+		if len(impactedProjects) > len(changedFiles) {
+			log.Printf("Error the number impacted projects %v exceeds number of changed files: %v", len(impactedProjects), len(changedFiles))
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds number of changed files: %v", len(impactedProjects), len(changedFiles)))
 			log.Printf("Information about the event:")
 			log.Printf("GH payload: %v", payload)
 			log.Printf("PR changed files: %v", changedFiles)
@@ -416,11 +415,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			log.Printf("Dependency graph:")
 			spew.Dump(projectsGraph)
 			log.Printf("Impacted Projects: %v", impactedProjects)
-			log.Printf("Impacted Project jobs: %v", jobsForImpactedProjects)
+			log.Printf("Impacted Project jobs: %v", jobs)
 			return fmt.Errorf("error processing event")
 		}
 	}
-
 	diggerCommand, err := orchestrator_scheduler.GetCommandFromJob(jobsForImpactedProjects[0])
 	if err != nil {
 		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
@@ -792,12 +790,11 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 	log.Printf("GitHub IssueComment event converted to Jobs successfully\n")
 
-	// ratio of impacted projects to changed files should be less than MAX_RATIO
-	maxProjects := config2.GetMaxProjectsCreated()
-	if maxProjects > 0 {
-		if len(impactedProjects) > maxProjects {
-			log.Printf("Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects)
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds maximum allowed: %v", len(impactedProjects), maxProjects))
+	// if flag set we dont allow more projects impacted than the number of changed files in PR (safety check)
+	if config2.LimitByNumOfFilesChanged() {
+		if len(impactedProjects) > len(changedFiles) {
+			log.Printf("Error the number impacted projects %v exceeds number of changed files: %v", len(impactedProjects), len(changedFiles))
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds number of changed files: %v", len(impactedProjects), len(changedFiles)))
 			log.Printf("Information about the event:")
 			log.Printf("GH payload: %v", payload)
 			log.Printf("PR changed files: %v", changedFiles)
