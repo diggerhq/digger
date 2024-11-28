@@ -68,10 +68,13 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		if *event.Action == "deleted" {
 			err := handleInstallationDeletedEvent(event)
 			if err != nil {
-				c.String(http.StatusInternalServerError, "Failed to handle webhook event.")
+				log.Printf("Failed to handle webhook event. %v", err)
 				return
 			}
 		}
+
+		c.String(http.StatusAccepted, "ok")
+		return
 
 	case *github.IssueCommentEvent:
 		log.Printf("IssueCommentEvent, action: %v\n", *event.Action)
@@ -81,7 +84,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		if err != nil {
 			log.Printf("handlePullRequestEvent error: %v", err)
 		}
-		c.String(http.StatusAccepted, err.Error())
+		c.String(http.StatusAccepted, "ok")
 		return
 
 	case *github.PushEvent:
@@ -90,7 +93,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		if err != nil {
 			log.Printf("handlePushEvent error: %v", err)
 		}
-		c.String(http.StatusAccepted, err.Error())
+		c.String(http.StatusAccepted, "ok")
 		return
 
 	default:
