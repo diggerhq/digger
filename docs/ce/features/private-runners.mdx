@@ -20,7 +20,7 @@ With github specifically there is good support for [self-hosted runners](https:/
 which means that you can create agents for github actions in your private infrastructure's VPC and github will then run the jobs there.
 
 The easiest way to achieve self-hosted runners is by running the agent in something like an EC2 instance. Alternatively if you already have a kubernetes cluster
-you could opt for using the []Actions runner controller](which will provide you with actions right in your cluster). Once you have set up and configured your controllers
+you could opt for using the [Actions runner controller](which will provide you with actions right in your cluster). Once you have set up and configured your controllers
 you can then reference the name of your self-hosted runners in the digger workflow:
 
 ```
