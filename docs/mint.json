@@ -83,7 +83,8 @@
         "ce/features/opa-policies",
         "ce/features/concurrency",
         "ce/features/pr-level-locks",
-        "ce/features/plan-persistence"
+        "ce/features/plan-persistence",
+        "ce/features/private-runners"
       ]
     },
     {
