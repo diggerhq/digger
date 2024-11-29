@@ -1,0 +1,35 @@
+---
+title: "Private Runners"
+---
+
+In many situations you wish to run digger with private runners. For example if you are provisioning resources in a private k8s cluster in this case you will not be able to use cloud runners.
+
+While digger does not natively support k8s agents it is very easy to do it indirectly using github actions runners.
+In the typical digger flow you are using a workflow that looks like this:
+
+```
+name: Digger Workflow
+on:
+    # ....
+jobs:
+  digger-job:
+    runs-on: ubuntu-latest
+```
+
+With github specifically there is good support for [self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners)
+which means that you can create agents for github actions in your private infrastructure's VPC and github will then run the jobs there.
+
+The easiest way to achieve self-hosted runners is by running the agent in something like an EC2 instance. Alternatively if you already have a kubernetes cluster
+you could opt for using the [Actions runner controller](which will provide you with actions right in your cluster). Once you have set up and configured your controllers
+you can then reference the name of your self-hosted runners in the digger workflow:
+
+```
+name: Digger Workflow
+on:
+    # ....
+jobs:
+  digger-job:
+    runs-on: my-selfhosted-ubuntu
+```
+
+In this way all of digger future jobs will run within your infrastructure.
