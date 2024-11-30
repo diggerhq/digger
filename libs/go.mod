@@ -18,7 +18,7 @@ require (
 	github.com/aws/smithy-go v1.22.0
 	github.com/bmatcuk/doublestar/v4 v4.6.1
 	github.com/caarlos0/env/v11 v11.1.0
-	github.com/dineshba/tf-summarize v0.3.10
+	github.com/dineshba/tf-summarize v0.3.14
 	github.com/dominikbraun/graph v0.23.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/go-github/v61 v61.0.0

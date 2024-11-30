@@ -528,6 +528,8 @@ github.com/dimchansky/utfbom v1.1.1 h1:vV6w1AhK4VMnhBno/TPVCoK9U/LP0PkLCS9tbxHdi
 github.com/dimchansky/utfbom v1.1.1/go.mod h1:SxdoEBH5qIqFocHMyGOXVAybYJdr71b1Q/j0mACtrfE=
 github.com/dineshba/tf-summarize v0.3.10 h1:fwnTwTcbcGw0GojUil4cIC5ZqGvQvhKiDqV8M3YWzXU=
 github.com/dineshba/tf-summarize v0.3.10/go.mod h1:MGQb9cFmr3CJhMG4k8Zfx/gs5WZ8TA2QB0wXrplvEPU=
+github.com/dineshba/tf-summarize v0.3.14 h1:ND220kW3wlpiHt4yIkNX4AXQ1guaSA0AhTFhipyQX0s=
+github.com/dineshba/tf-summarize v0.3.14/go.mod h1:ZkWsMJ46c70ZfflCgZfM2SFy+9ulRYNbzscfhCsDC5w=
 github.com/dnaeon/go-vcr v1.2.0 h1:zHCHvJYTMh1N7xnV7zf1m1GPBF9Ad0Jk/whtQ1663qI=
 github.com/dnaeon/go-vcr v1.2.0/go.mod h1:R4UdLID7HZT3taECzJs4YgbbH6PIGXB6W/sc5OLb6RQ=
 github.com/docker/go-connections v0.4.0 h1:El9xVISelRB7BuFusrZozjnkIM5YnzCViNKohAFqRJQ=
