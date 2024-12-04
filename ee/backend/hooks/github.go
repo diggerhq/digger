@@ -151,7 +151,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, defaultBranch, issueNumber, repoOwner, repoName, repoFullName, "", reporterCommentId, diggerYmlStr, 0)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, defaultBranch, issueNumber, repoOwner, repoName, repoFullName, "", reporterCommentId, nil, diggerYmlStr, 0)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

@@ -22,19 +22,20 @@ const DiggerVCSGithub DiggerVCSType = "github"
 const DiggerVCSGitlab DiggerVCSType = "gitlab"
 
 type DiggerBatch struct {
-	ID                   uuid.UUID `gorm:"primary_key"`
-	VCS                  DiggerVCSType
-	PrNumber             int
-	CommentId            *int64
-	Status               orchestrator_scheduler.DiggerBatchStatus
-	BranchName           string
-	DiggerConfig         string
-	GithubInstallationId int64
-	GitlabProjectId      int
-	RepoFullName         string
-	RepoOwner            string
-	RepoName             string
-	BatchType            orchestrator_scheduler.DiggerCommand
+	ID                            uuid.UUID `gorm:"primary_key"`
+	VCS                           DiggerVCSType
+	PrNumber                      int
+	CommentId                     *int64
+	PlaceholderCommentIdForReport *string
+	Status                        orchestrator_scheduler.DiggerBatchStatus
+	BranchName                    string
+	DiggerConfig                  string
+	GithubInstallationId          int64
+	GitlabProjectId               int
+	RepoFullName                  string
+	RepoOwner                     string
+	RepoName                      string
+	BatchType                     orchestrator_scheduler.DiggerCommand
 	// used for module source grouping comments
 	SourceDetails []byte
 }
