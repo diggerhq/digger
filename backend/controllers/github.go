@@ -500,7 +500,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
-	placeholderComment, err := ghService.PublishComment(prNumber, "<digger report placehoder>")
+	placeholderComment, err := ghService.PublishComment(prNumber, "digger report placehoder")
 	if err != nil {
 		log.Printf("strconv.ParseInt error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not create placeholder commentId for report: %v", err))
@@ -882,7 +882,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("comment reporter error: %v", err)
 	}
 
-	placeholderComment, err := ghService.PublishComment(issueNumber, "<digger report placehoder>")
+	placeholderComment, err := ghService.PublishComment(issueNumber, "digger report placehoder")
 	if err != nil {
 		log.Printf("strconv.ParseInt error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not create placeholder commentId for report: %v", err))
