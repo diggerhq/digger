@@ -516,27 +516,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		workflowFile = parsingConfig.WorkflowFile
 	}
 
-	atlantisConfig, _, err := atlantis.Parse(
-		root,
-		parsingConfig.ProjectHclFiles,
-		projectExternalChilds,
-		parsingConfig.AutoMerge,
-		parallel,
-		parsingConfig.FilterPath,
-		parsingConfig.CreateHclProjectChilds,
-		ignoreParentTerragrunt,
-		parsingConfig.IgnoreDependencyBlocks,
-		cascadeDependencies,
-		parsingConfig.DefaultWorkflow,
-		parsingConfig.DefaultApplyRequirements,
-		parsingConfig.AutoPlan,
-		parsingConfig.DefaultTerraformVersion,
-		parsingConfig.CreateProjectName,
-		parsingConfig.CreateWorkspace,
-		parsingConfig.PreserveProjects,
-		parsingConfig.UseProjectMarkers,
-		executionOrderGroups,
-	)
+	atlantisConfig, _, err := atlantis.Parse(root, parsingConfig.ProjectHclFiles, projectExternalChilds, parsingConfig.AutoMerge, parallel, parsingConfig.FilterPath, parsingConfig.CreateHclProjectChilds, ignoreParentTerragrunt, parsingConfig.IgnoreDependencyBlocks, parsingConfig.IgnoreIncludeBlocks, cascadeDependencies, parsingConfig.DefaultWorkflow, parsingConfig.DefaultApplyRequirements, parsingConfig.AutoPlan, parsingConfig.DefaultTerraformVersion, parsingConfig.CreateProjectName, parsingConfig.CreateWorkspace, parsingConfig.PreserveProjects, parsingConfig.UseProjectMarkers, executionOrderGroups)
 	if err != nil {
 		return fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
 	}
