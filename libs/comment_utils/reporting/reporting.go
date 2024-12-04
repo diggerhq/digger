@@ -205,7 +205,9 @@ func appendToExistingComment(ciService ci.PullRequestService, prNumber int, exis
 
 	// strip first and last lines
 	lines := strings.Split(existingCommentBody, "\n")
-	lines = lines[1 : len(lines)-1]
+	if len(lines) > 1 {
+		lines = lines[1 : len(lines)-1]
+	}
 	existingCommentBody = strings.Join(lines, "\n")
 
 	existingCommentBody = existingCommentBody + "\n\n" + reportToAppend + "\n"
