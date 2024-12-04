@@ -526,6 +526,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.CreateHclProjectChilds,
 		ignoreParentTerragrunt,
 		parsingConfig.IgnoreDependencyBlocks,
+		parsingConfig.IgnoreIncludeBlocks,
 		cascadeDependencies,
 		parsingConfig.DefaultWorkflow,
 		parsingConfig.DefaultApplyRequirements,
