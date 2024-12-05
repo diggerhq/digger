@@ -23,8 +23,6 @@ jobs:
       issues: write
 
     steps:
-      - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
-        run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
       - uses: actions/checkout@v4
 
       - name: Setup Infracost
