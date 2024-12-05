@@ -20,7 +20,7 @@ func FilterPathsOutsideOfProjectPath(projectPath string, patterns []string) ([]s
 	res := make([]string, 0)
 	for _, pattern := range patterns {
 		if strings.HasPrefix(pattern, projectPath) {
-			res = append(res, path.Join(pattern))
+			res = append(res, pattern)
 		}
 	}
 	return res, nil
