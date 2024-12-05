@@ -1,6 +1,8 @@
 projects:
   - name: dev
     dir: .
+  - name: staging
+    dir: .
 
 workflows:
   default:
