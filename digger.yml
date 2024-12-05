@@ -1,3 +1,7 @@
+projects:
+  - name: dev
+    dir: .
+
 workflows:
   default:
     plan:
