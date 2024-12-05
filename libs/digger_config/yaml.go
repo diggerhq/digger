@@ -143,7 +143,6 @@ type TerragruntParsingConfig struct {
 	IgnoreParentTerragrunt     *bool    `yaml:"ignoreParentTerragrunt,omitempty"`
 	CreateParentProject        bool     `yaml:"createParentProject"`
 	IgnoreDependencyBlocks     bool     `yaml:"ignoreDependencyBlocks"`
-	IgnoreIncludeBlocks        bool     `yaml:"ignoreIncludeBlocks"`
 	TriggerProjectsFromDirOnly bool     `yaml:"triggerProjectsFromDirOnly"`
 	Parallel                   *bool    `yaml:"parallel,omitempty"`
 	CreateWorkspace            bool     `yaml:"createWorkspace"`
