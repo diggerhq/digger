@@ -45,3 +45,13 @@ func TestGetPatternsRelativeToRepo(t *testing.T) {
 	assert.Equal(t, "myProject/terraform/environments/devel/*.hcl", res[0])
 
 }
+
+func TestFilterPathsOutsideOfProjectPath(t *testing.T) {
+	projectDir := "staging/aws/us-east-1/k8s"
+	includePatterns := []string{"staging/aws/us-east-1/k8s/*.hcl", "staging/terragrunt-root.hcl vpc/*.tf*", "staging/aws/us-east-1/aws_region.tfvars", "staging/aws/aws_assume_role_arn.tfvars", "staging/aws/us-east-1/k8s/*.tf*"}
+	res, _ := FilterPathsOutsideOfProjectPath(projectDir, includePatterns)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, "staging/aws/us-east-1/k8s/*.hcl", res[0])
+	assert.Equal(t, "staging/aws/us-east-1/k8s/*.tf*", res[1])
+
+}
