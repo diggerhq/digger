@@ -299,7 +299,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 							CreateProjectName:    true,
 							DefaultWorkflow:      workflow,
 							WorkflowFile:         b.WorkflowFile,
-							FilterPath:           path.Join(terraformDir, *b.RootDir),
+							FilterPaths:          []string{path.Join(terraformDir, *b.RootDir)},
 							AwsRoleToAssume:      b.AwsRoleToAssume,
 							AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
 						}
@@ -522,7 +522,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		projectExternalChilds,
 		parsingConfig.AutoMerge,
 		parallel,
-		parsingConfig.FilterPath,
+		parsingConfig.FilterPaths,
 		parsingConfig.CreateHclProjectChilds,
 		ignoreParentTerragrunt,
 		parsingConfig.IgnoreDependencyBlocks,
@@ -536,6 +536,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.PreserveProjects,
 		parsingConfig.UseProjectMarkers,
 		executionOrderGroups,
+		parsingConfig.TriggerProjectsFromDirOnly,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
@@ -561,10 +562,6 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		// normalize paths
 		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
 		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
-
-		if parsingConfig.TriggerProjectsFromDirOnly {
-			atlantisProject.Autoplan.WhenModified, err = FilterPathsOutsideOfProjectPath(projectDir, atlantisProject.Autoplan.WhenModified)
-		}
 
 		if err != nil {
 			return fmt.Errorf("could not normalize patterns: %v", err)
