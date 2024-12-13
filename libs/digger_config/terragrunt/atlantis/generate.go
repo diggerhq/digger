@@ -312,6 +312,31 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 	}
 }
 
+func createBaseProject(dir string, workflow string, terraformVersion string, applyRequirements *[]string, autoPlan bool, dependencies []string, createProjectName bool, createWorkspace bool) *AtlantisProject {
+	project := &AtlantisProject{
+		Dir:               filepath.ToSlash(dir),
+		Workflow:          workflow,
+		TerraformVersion:  terraformVersion,
+		ApplyRequirements: applyRequirements,
+		Autoplan: AutoplanConfig{
+			Enabled:      autoPlan,
+			WhenModified: uniqueStrings(dependencies),
+		},
+	}
+
+	if createProjectName || createWorkspace {
+		projectName := projectNameFromDir(project.Dir)
+		if createProjectName {
+			project.Name = projectName
+		}
+		if createWorkspace {
+			project.Workspace = projectName
+		}
+	}
+
+	return project
+}
+
 // Creates an AtlantisProject for a directory
 func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, sourcePath string, triggerProjectsFromDirOnly bool) (*AtlantisProject, []string, error) {
 	options, err := options.NewTerragruntOptionsWithConfigPath(sourcePath)
@@ -344,26 +369,16 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 			return nil, potentialProjectDependencies, nil
 		}
 
-		project := &AtlantisProject{
-			Dir:               filepath.ToSlash(relativeSourceDir),
-			Workflow:          defaultWorkflow,
-			TerraformVersion:  defaultTerraformVersion,
-			ApplyRequirements: &defaultApplyRequirements,
-			Autoplan: AutoplanConfig{
-				Enabled:      autoPlan,
-				WhenModified: uniqueStrings(relativeDependencies),
-			},
-		}
-		projectName := projectNameFromDir(project.Dir)
-
-		if createProjectName {
-			project.Name = projectName
-		}
-
-		if createWorkspace {
-			project.Workspace = projectName
-		}
-
+		project := createBaseProject(
+			relativeSourceDir,
+			defaultWorkflow,
+			defaultTerraformVersion,
+			&defaultApplyRequirements,
+			autoPlan,
+			relativeDependencies,
+			createProjectName,
+			createWorkspace,
+		)
 		return project, potentialProjectDependencies, nil
 	}
 
@@ -426,16 +441,16 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		terraformVersion = locals.TerraformVersion
 	}
 
-	project := &AtlantisProject{
-		Dir:               filepath.ToSlash(relativeSourceDir),
-		Workflow:          workflow,
-		TerraformVersion:  terraformVersion,
-		ApplyRequirements: applyRequirements,
-		Autoplan: AutoplanConfig{
-			Enabled:      resolvedAutoPlan,
-			WhenModified: uniqueStrings(relativeDependencies),
-		},
-	}
+	project := createBaseProject(
+		relativeSourceDir,
+		workflow,
+		terraformVersion,
+		applyRequirements,
+		resolvedAutoPlan,
+		relativeDependencies,
+		createProjectName,
+		createWorkspace,
+	)
 
 	projectName := projectNameFromDir(project.Dir)
 
