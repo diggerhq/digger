@@ -5,23 +5,12 @@ import (
 	"log"
 	"path"
 	"path/filepath"
-	"strings"
 )
 
 func GetPatternsRelativeToRepo(projectPath string, patterns []string) ([]string, error) {
 	res := make([]string, 0)
 	for _, pattern := range patterns {
 		res = append(res, path.Join(projectPath, pattern))
-	}
-	return res, nil
-}
-
-func FilterPathsOutsideOfProjectPath(projectPath string, patterns []string) ([]string, error) {
-	res := make([]string, 0)
-	for _, pattern := range patterns {
-		if strings.HasPrefix(pattern, projectPath) {
-			res = append(res, pattern)
-		}
 	}
 	return res, nil
 }

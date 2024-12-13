@@ -149,7 +149,7 @@ type TerragruntParsingConfig struct {
 	CreateProjectName          bool     `yaml:"createProjectName"`
 	DefaultTerraformVersion    string   `yaml:"defaultTerraformVersion"`
 	DefaultWorkflow            string   `yaml:"defaultWorkflow"`
-	FilterPaths                []string `yaml:"filterPath"`
+	FilterPath                 string   `yaml:"filterPath"`
 	OutputPath                 string   `yaml:"outputPath"`
 	PreserveWorkflows          *bool    `yaml:"preserveWorkflows,omitempty"`
 	PreserveProjects           bool     `yaml:"preserveProjects"`
