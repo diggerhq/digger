@@ -536,6 +536,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.PreserveProjects,
 		parsingConfig.UseProjectMarkers,
 		executionOrderGroups,
+		parsingConfig.TriggerProjectsFromDirOnly,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
@@ -561,10 +562,6 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		// normalize paths
 		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
 		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
-
-		if parsingConfig.TriggerProjectsFromDirOnly {
-			atlantisProject.Autoplan.WhenModified, err = FilterPathsOutsideOfProjectPath(projectDir, atlantisProject.Autoplan.WhenModified)
-		}
 
 		if err != nil {
 			return fmt.Errorf("could not normalize patterns: %v", err)
