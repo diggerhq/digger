@@ -376,6 +376,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	diggerYmlStr, ghService, config, projectsGraph, _, _, changedFiles, err := getDiggerConfigForPR(gh, organisationId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error loading digger config: %v", err))
 		return fmt.Errorf("error getting digger config")
 	}
 
