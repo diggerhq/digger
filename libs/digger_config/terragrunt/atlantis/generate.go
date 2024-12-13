@@ -339,6 +339,11 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	}
 
 	if triggerProjectsFromDirOnly {
+		// TODO: Figure out easy way to make it also work with other values of gitRoot through prefix matching
+		if relativeSourceDir == "." {
+			return nil, potentialProjectDependencies, nil
+		}
+
 		project := &AtlantisProject{
 			Dir:               filepath.ToSlash(relativeSourceDir),
 			Workflow:          defaultWorkflow,
@@ -354,6 +359,11 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		if createProjectName {
 			project.Name = projectName
 		}
+
+		if createWorkspace {
+			project.Workspace = projectName
+		}
+
 		return project, potentialProjectDependencies, nil
 	}
 
