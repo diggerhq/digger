@@ -744,6 +744,43 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting digger config")
 	}
 
+	// terraform code generator
+	if os.Getenv("DIGGER_GENERATION_ENABLED") == "1" {
+		if strings.HasPrefix(*payload.Comment.Body, "digger generate") {
+			projectName := ci.ParseProjectName(*payload.Comment.Body)
+			if projectName == "" {
+				commentReporterManager.UpdateComment(fmt.Sprintf(":x: generate requires argument -p <project_name>: %v", err))
+				log.Printf("missing project in command: %v", *payload.Comment.Body)
+				return fmt.Errorf("generate requires argument -p <project_name>: %v", err)
+			}
+
+			project := config.GetProject(projectName)
+			if project == nil {
+				commentReporterManager.UpdateComment(fmt.Sprintf("could not find project %v in digger.yml", projectName))
+				log.Printf("could not find project %v in digger.yml", projectName)
+				return fmt.Errorf("could not find project %v in digger.yml", projectName)
+			}
+
+			generationEndpoint := os.Getenv("DIGGER_GENERATION_ENDPOINT")
+			if generationEndpoint == "" {
+				commentReporterManager.UpdateComment(fmt.Sprintf(":x: server does not have generation endpoint configured, please verify"))
+				log.Printf("server does not have generation endpoint configured, please verify")
+				return fmt.Errorf("server does not have generation endpoint configured, please verify")
+			}
+			webhookSecret := os.Getenv("DIGGER_GENERATION_WEBHOOK_SECRET")
+			appCode := "mycode"
+			terraformCode, err := utils.GenerateTerraformCode(appCode, generationEndpoint, webhookSecret)
+			if err != nil {
+				commentReporterManager.UpdateComment(fmt.Sprintf(":x: server does not have generation endpoint configured, please verify"))
+				log.Printf("server does not have generation endpoint configured, please verify")
+				return fmt.Errorf("server does not have generation endpoint configured, please verify")
+			}
+			// comment terraform code to project dir
+			//project.Dir
+			log.Printf(terraformCode)
+		}
+	}
+
 	commentIdStr := strconv.FormatInt(userCommentId, 10)
 	err = ghService.CreateCommentReaction(commentIdStr, string(dg_github.GithubCommentEyesReaction))
 	if err != nil {
