@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/digger_config"
 	"io"
 	"net/http"
 )
