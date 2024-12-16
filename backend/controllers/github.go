@@ -309,6 +309,12 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent, appI
 }
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in handlePullRequestEvent handler: %v", r)
+		}
+	}()
+
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -684,6 +690,12 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 }
 
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64, postCommentHooks []IssueCommentHook) error {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in handleIssueCommentEvent handler: %v", r)
+		}
+	}()
+
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
