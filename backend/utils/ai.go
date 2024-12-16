@@ -55,10 +55,11 @@ func GenerateTerraformCode(appCode string, generationEndpoint string, webhookSec
 
 	type GeneratorResponse struct {
 		Result string `json:"result"`
+		Status string `json:"status"`
 	}
 
 	var response GeneratorResponse
-	err = json.Unmarshal(body, &resp)
+	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return "", fmt.Errorf("unable to parse generator response: %v", err)
 	}
