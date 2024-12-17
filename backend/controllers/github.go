@@ -26,6 +26,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -312,6 +313,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Recovered from panic in handlePullRequestEvent handler: %v", r)
+			log.Printf("\n=== PANIC RECOVERED ===\n")
+			log.Printf("Error: %v\n", r)
+			log.Printf("Stack Trace:\n%s", string(debug.Stack()))
+			log.Printf("=== END PANIC ===\n")
 		}
 	}()
 
@@ -693,6 +698,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Recovered from panic in handleIssueCommentEvent handler: %v", r)
+			log.Printf("\n=== PANIC RECOVERED ===\n")
+			log.Printf("Error: %v\n", r)
+			log.Printf("Stack Trace:\n%s", string(debug.Stack()))
+			log.Printf("=== END PANIC ===\n")
 		}
 	}()
 
