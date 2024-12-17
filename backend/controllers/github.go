@@ -22,26 +22,26 @@ import (
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/locking"
-	"github.com/diggerhq/digger/backend/segment"
-	"github.com/diggerhq/digger/backend/services"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/generic"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
-	dg_locking "github.com/diggerhq/digger/libs/locking"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
-
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/segment"
+	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	dg_locking "github.com/diggerhq/digger/libs/locking"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v61/github"
+	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
+	"gorm.io/gorm"
+	"runtime/debug"
 )
 
 type IssueCommentHook func(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error
@@ -311,6 +311,16 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent, appI
 }
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in handlePullRequestEvent handler: %v", r)
+			log.Printf("\n=== PANIC RECOVERED ===\n")
+			log.Printf("Error: %v\n", r)
+			log.Printf("Stack Trace:\n%s", string(debug.Stack()))
+			log.Printf("=== END PANIC ===\n")
+		}
+	}()
+
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -686,6 +696,16 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 }
 
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64, postCommentHooks []IssueCommentHook) error {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in handleIssueCommentEvent handler: %v", r)
+			log.Printf("\n=== PANIC RECOVERED ===\n")
+			log.Printf("Error: %v\n", r)
+			log.Printf("Stack Trace:\n%s", string(debug.Stack()))
+			log.Printf("=== END PANIC ===\n")
+		}
+	}()
+
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
