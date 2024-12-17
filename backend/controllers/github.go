@@ -812,9 +812,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 				var appCode strings.Builder
 				for _, file := range comparison.Files {
-					if file.Size > MaxPatchSize {
-						return "", fmt.Errorf("file %s exceeds maximum allowed size", *file.Filename)
-					}
 					if file.Patch == nil {
 						continue // Skip files without patches
 					}
