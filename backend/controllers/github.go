@@ -795,6 +795,8 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 			// Get all code content from the repository at a specific commit
 			getCodeFromCommit := func(ghService *dg_github.GithubService, repoOwner, repoName string, commitSha *string, projectDir string) (string, error) {
+				const MaxPatchSize = 1024 * 1024 // 1MB limit
+
 				// Get the commit's changes compared to default branch
 				comparison, _, err := ghService.Client.Repositories.CompareCommits(
 					context.Background(),
@@ -810,10 +812,13 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 				var appCode strings.Builder
 				for _, file := range comparison.Files {
+					if file.Size > MaxPatchSize {
+						return "", fmt.Errorf("file %s exceeds maximum allowed size", *file.Filename)
+					}
 					if file.Patch == nil {
 						continue // Skip files without patches
 					}
-					log.Printf("file patch: %v", *file.Patch)
+					log.Printf("Processing patch for file: %s", *file.Filename)
 					if *file.Additions > 0 {
 						lines := strings.Split(*file.Patch, "\n")
 						for _, line := range lines {
@@ -827,7 +832,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 				}
 
 				if appCode.Len() == 0 {
-					return "", fmt.Errorf("no changes found in commit: %s", *commitSha)
+					return "", fmt.Errorf("no code changes found in commit %s. Please ensure the PR contains added or modified code", *commitSha)
 				}
 
 				return appCode.String(), nil
