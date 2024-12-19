@@ -121,17 +121,6 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 				Title:     title,
 				TimeOfRun: time.Now(),
 			}
-		case "latest_run_comment":
-			return reporting.LatestRunCommentStrategy{
-				TimeOfRun: time.Now(),
-			}
-		case "always_same_comment":
-			return reporting.AlwaysSameCommentStrategy{
-				Title:     title,
-				TimeOfRun: time.Now(),
-				CommentId: *reporterSpec.ReportCommentId,
-			}
-
 		default:
 			return reporting.MultipleCommentsStrategy{}
 		}

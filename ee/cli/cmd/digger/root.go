@@ -90,10 +90,6 @@ func PreRun(cmd *cobra.Command, args []string) {
 		ReportStrategy = &reporting.CommentPerRunStrategy{
 			TimeOfRun: time.Now(),
 		}
-	} else if os.Getenv("REPORTING_STRATEGY") == "latest_run_comment" {
-		ReportStrategy = &reporting.LatestRunCommentStrategy{
-			TimeOfRun: time.Now(),
-		}
 	} else {
 		ReportStrategy = &reporting.MultipleCommentsStrategy{}
 	}

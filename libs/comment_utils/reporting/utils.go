@@ -30,7 +30,13 @@ func PostInitialSourceComments(ghService ci.PullRequestService, prNumber int, im
 			CiService:      ghService,
 			ReportStrategy: CommentPerRunStrategy{fmt.Sprintf("Report for location: %v", location), time.Now()},
 		}
-		commentId, _, err := reporter.Report("Comment Reporter", func(report string) string { return "" })
+		err := reporter.Report("Comment Reporter", func(report string) string { return "" })
+		if err != nil {
+			log.Printf("Error reporting source module comment: %v", err)
+			return nil, fmt.Errorf("error reporting source module comment: %v", err)
+		}
+
+		commentId, _, err := reporter.Flush()
 		if err != nil {
 			log.Printf("Error reporting source module comment: %v", err)
 			return nil, fmt.Errorf("error reporting source module comment: %v", err)

@@ -294,12 +294,12 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 func reportError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init.", false))
+		commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
 	} else {
-		_, _, commentErr := r.Report(stderr, utils.AsComment("Error during init."))
+		commentErr := r.Report(stderr, utils.AsComment("Error during init."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
@@ -376,12 +376,12 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 
 func reportApplyError(r reporting.Reporter, err error) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying.", false))
+		commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", err)
 		}
 	} else {
-		_, _, commentErr := r.Report(err.Error(), utils.AsComment("Error during applying."))
+		commentErr := r.Report(err.Error(), utils.AsComment("Error during applying."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", err)
 		}
@@ -396,7 +396,7 @@ func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOut
 		formatter = utils.GetTerraformOutputAsComment("Apply output")
 	}
 
-	_, _, commentErr := r.Report(applyOutput, formatter)
+	commentErr := r.Report(applyOutput, formatter)
 	if commentErr != nil {
 		log.Printf("error publishing comment: %v", commentErr)
 	}
@@ -404,12 +404,12 @@ func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOut
 
 func reportTerraformError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
+		commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
 	} else {
-		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
+		commentErr := r.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
@@ -428,7 +428,7 @@ func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 		output, _ := os.ReadFile(diggerOutPath)
 		outputStr := string(output)
 		if len(outputStr) > 0 {
-			_, _, commentErr := r.Report(outputStr, formatter)
+			commentErr := r.Report(outputStr, formatter)
 			if commentErr != nil {
 				log.Printf("error publishing comment: %v", commentErr)
 			}
