@@ -156,7 +156,7 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 			IsSupportMarkdown: true,
 			ReportStrategy:    strategy,
 		}
-		return reporting.NewCiReporterLazy(ciReporter), nil
+		return ciReporter, nil
 	default:
 		return reporting.NoopReporter{}, nil
 	}
