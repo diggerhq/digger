@@ -87,7 +87,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 	BackendApi = NewBackendApi(hostName, token)
 
 	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
-		ReportStrategy = &reporting.CommentPerRunStrategy{
+		ReportStrategy = &reporting.SingleCommentStrategy{
 			TimeOfRun: time.Now(),
 		}
 	} else {

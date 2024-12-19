@@ -117,7 +117,7 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 	getStrategy := func(strategy string) reporting.ReportStrategy {
 		switch reporterSpec.ReportingStrategy {
 		case "comments_per_run":
-			return reporting.CommentPerRunStrategy{
+			return reporting.SingleCommentStrategy{
 				Title:     title,
 				TimeOfRun: time.Now(),
 			}

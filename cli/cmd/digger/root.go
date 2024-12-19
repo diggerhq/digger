@@ -93,7 +93,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 	//PolicyChecker = policy.NewPolicyChecker(hostName, orgName, token)
 
 	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
-		ReportStrategy = &reporting.CommentPerRunStrategy{
+		ReportStrategy = &reporting.SingleCommentStrategy{
 			TimeOfRun: time.Now(),
 		}
 	} else {

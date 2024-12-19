@@ -28,7 +28,7 @@ func PostInitialSourceComments(ghService ci.PullRequestService, prNumber int, im
 		reporter := CiReporter{
 			PrNumber:       prNumber,
 			CiService:      ghService,
-			ReportStrategy: CommentPerRunStrategy{fmt.Sprintf("Report for location: %v", location), time.Now()},
+			ReportStrategy: SingleCommentStrategy{fmt.Sprintf("Report for location: %v", location), time.Now()},
 		}
 		err := reporter.Report("Comment Reporter", func(report string) string { return "" })
 		if err != nil {
