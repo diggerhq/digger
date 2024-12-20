@@ -247,10 +247,11 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 	prManager := &MockPRManager{}
 	lock := &MockProjectLock{}
 	planStorage := &MockPlanStorage{}
+	strategy := reporting.NewMultipleCommentsStrategy()
 	reporter := &reporting.CiReporter{
 		CiService:         prManager,
 		PrNumber:          1,
-		ReportStrategy:    &reporting.MultipleCommentsStrategy{},
+		ReportStrategy:    &strategy,
 		IsSupportMarkdown: true,
 	}
 	planPathProvider := &MockPlanPathProvider{}
@@ -297,10 +298,11 @@ func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
 	prManager := &MockPRManager{}
 	lock := &MockProjectLock{}
 	planStorage := &MockPlanStorage{}
+	strategy := reporting.NewMultipleCommentsStrategy()
 	reporter := &reporting.CiReporter{
 		CiService:      prManager,
 		PrNumber:       1,
-		ReportStrategy: &reporting.MultipleCommentsStrategy{},
+		ReportStrategy: &strategy,
 	}
 	planPathProvider := &MockPlanPathProvider{}
 	executor := execution.DiggerExecutor{

@@ -27,7 +27,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 type JobSpecProvider struct{}
@@ -117,12 +116,9 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 	getStrategy := func(strategy string) reporting.ReportStrategy {
 		switch reporterSpec.ReportingStrategy {
 		case "comments_per_run":
-			return reporting.SingleCommentStrategy{
-				Title:     title,
-				TimeOfRun: time.Now(),
-			}
+			return reporting.NewSingleCommentStrategy()
 		default:
-			return reporting.MultipleCommentsStrategy{}
+			return reporting.NewMultipleCommentsStrategy()
 		}
 	}
 

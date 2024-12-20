@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 )
 
 type RunConfig struct {
@@ -87,11 +86,11 @@ func PreRun(cmd *cobra.Command, args []string) {
 	BackendApi = NewBackendApi(hostName, token)
 
 	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
-		ReportStrategy = &reporting.SingleCommentStrategy{
-			TimeOfRun: time.Now(),
-		}
+		strategy := reporting.NewSingleCommentStrategy()
+		ReportStrategy = &strategy
 	} else {
-		ReportStrategy = &reporting.MultipleCommentsStrategy{}
+		strategy := reporting.NewMultipleCommentsStrategy()
+		ReportStrategy = &strategy
 	}
 
 	var err error

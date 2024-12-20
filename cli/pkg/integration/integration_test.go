@@ -44,10 +44,11 @@ func getProjectLockForTests() (error, *locking.PullRequestLock) {
 	repositoryName := "test_dynamodb_lock"
 	ghToken := "token"
 	githubPrService, _ := dg_github.GithubServiceProviderBasic{}.NewService(ghToken, repositoryName, repoOwner)
+	strategy := reporting.NewMultipleCommentsStrategy()
 	reporter := reporting.CiReporter{
 		CiService:      &githubPrService,
 		PrNumber:       1,
-		ReportStrategy: &reporting.MultipleCommentsStrategy{},
+		ReportStrategy: &strategy,
 	}
 
 	projectLock := &locking.PullRequestLock{
