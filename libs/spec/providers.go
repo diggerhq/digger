@@ -133,15 +133,6 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 			IsSupportMarkdown: true,
 			ReportStrategy:    strategy,
 		}, nil
-	case "lazy":
-		strategy := getStrategy(reporterSpec.ReportingStrategy)
-		ciReporter := reporting.CiReporter{
-			CiService:         ciService,
-			PrNumber:          prNumber,
-			IsSupportMarkdown: true,
-			ReportStrategy:    strategy,
-		}
-		return ciReporter, nil
 	default:
 		return reporting.NoopReporter{}, nil
 	}

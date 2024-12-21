@@ -419,6 +419,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			return fmt.Errorf("error processing event")
 		}
 	}
+
 	diggerCommand, err := orchestrator_scheduler.GetCommandFromJob(jobsForImpactedProjects[0])
 	if err != nil {
 		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
