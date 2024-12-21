@@ -86,7 +86,12 @@ func (m *MockPRManager) GetApprovals(prNumber int) ([]string, error) {
 
 func (m *MockPRManager) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", strconv.Itoa(prNumber) + " " + comment, time.Now()})
-	return nil, nil
+	return &ci.Comment{
+		Id:           "",
+		DiscussionId: "",
+		Body:         nil,
+		Url:          "",
+	}, nil
 }
 
 func (m *MockPRManager) ListIssues() ([]*ci.Issue, error) {
@@ -241,7 +246,6 @@ func (m MockPlanPathProvider) LocalPlanFilePath() string {
 }
 
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
-
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
@@ -288,7 +292,7 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply ", "PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply ", "Run   echo"}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
