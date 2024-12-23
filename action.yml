@@ -275,7 +275,7 @@ runs:
       if: inputs.setup-terragrunt == 'true'
 
     - name: Setup OpenTofu
-      uses: opentofu/setup-opentofu@v1.0.3
+      uses: opentofu/setup-opentofu@v1.0.5
       with:
         tofu_version: ${{ inputs.opentofu-version }}
         tofu_wrapper: false
