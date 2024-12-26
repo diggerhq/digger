@@ -18,20 +18,6 @@
     "type": "github",
     "url": "https://github.com/diggerhq/digger"
   },
-  "tabs": [
-    {
-      "name": "Digger Community Edition",
-      "url": "ce"
-    },
-    {
-      "name": "Digger Team",
-      "url": "team"
-    },
-    {
-      "name": "Digger Enterprise",
-      "url": "ee"
-    }
-  ],
   "anchors": [
     {
       "name": "Slack",
@@ -66,7 +52,6 @@
       "group": "Digger Enterprise",
       "pages": [
         "ee/ee-setup",
-        "ee/dashboard",
         "ee/drift-detection",
         "ee/rbac",
         "ee/opa",
@@ -165,10 +150,6 @@
         "ce/troubleshooting/action-errors",
         "ce/troubleshooting/comments"
       ]
-    },
-    {
-      "group": "Getting Started",
-      "pages": ["team/getting-started/gha-aws"]
     }
   ],
   "footerSocials": {
