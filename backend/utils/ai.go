@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func GenerateTerraformCode(appCode string, generationEndpoint string, webhookSecret string) (string, error) {
+func GenerateTerraformCode(appCode string, generationEndpoint string, apiToken string) (string, error) {
 
 	payload := map[string]string{
 		"code": appCode,
@@ -28,7 +28,7 @@ func GenerateTerraformCode(appCode string, generationEndpoint string, webhookSec
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Webhook-Secret", webhookSecret) // Replace with your webhook secret
+	req.Header.Set("Authorization", "Bearer "+apiToken)
 
 	// Make the request
 	client := &http.Client{}
