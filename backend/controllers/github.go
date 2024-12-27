@@ -980,7 +980,7 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 		if projectName == "" {
 			commentReporterManager.UpdateComment(fmt.Sprintf(":x: generate requires argument -p <project_name>"))
 			log.Printf("missing project in command: %v", *payload.Comment.Body)
-			return fmt.Errorf("generate requires argument -p <project_name>: %v")
+			return fmt.Errorf("generate requires argument -p <project_name>")
 		}
 
 		project := config.GetProject(projectName)
