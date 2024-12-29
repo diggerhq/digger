@@ -482,16 +482,16 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
+	err = CreateTerraformOutputsSummary(d.GithubClientProvider, batch)
+	if err != nil {
+		log.Printf("could not generate terraform plans summary: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate terraform plans summary"})
+	}
+
 	err = AutomergePRforBatchIfEnabled(d.GithubClientProvider, batch)
 	if err != nil {
 		log.Printf("Error merging PR with automerge option: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
-	}
-
-	err = CreateTerraformPlansSummary(d.GithubClientProvider, batch)
-	if err != nil {
-		log.Printf("could not generate terraform plans summary: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate terraform plans summary"})
 	}
 
 	// return batch summary to client
@@ -499,7 +499,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error getting batch details: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
-
 	}
 
 	UpdateCommentsForBatchGroup(d.GithubClientProvider, batch, res.Jobs)
@@ -654,14 +653,14 @@ func GetPrServiceFromBatch(batch *models.DiggerBatch, gh utils.GithubClientProvi
 	return nil, fmt.Errorf("could not retrieive a service for %v", batch.VCS)
 }
 
-func CreateTerraformPlansSummary(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
 	diggerYmlString := batch.DiggerConfig
 	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
 	if err != nil {
 		log.Printf("Error loading digger config from batch: %v", err)
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
-
+	
 	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
 
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && config.Reporting.AiSummary == true {
