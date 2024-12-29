@@ -34,7 +34,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"runtime/debug"
@@ -596,8 +595,11 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	var dependencyGraph graph.Graph[string, dg_configuration.Project]
 
 	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
-		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
-		diggerYmlStr = string(diggerYmlBytes)
+		diggerYmlStr, err = dg_configuration.ReadDiggerYmlFileContents(dir)
+		if err != nil {
+			log.Printf("could not load digger config: %v", err)
+			return err
+		}
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
 		if err != nil {
 			log.Printf("Error loading digger config: %v", err)
