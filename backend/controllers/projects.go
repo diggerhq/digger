@@ -696,13 +696,12 @@ func CreateTerraformPlansSummary(gh utils.GithubClientProvider, batch *models.Di
 			return fmt.Errorf("could not summarise terraform outputs: %v", err)
 		}
 
-		if batch.AiSummaryCommentId == nil {
+		if batch.AiSummaryCommentId == "" {
 			log.Printf("could not post summary comment, initial comment not found")
 			return fmt.Errorf("could not post summary comment, initial comment not found")
 		}
 
-		var commentIdStr = strconv.FormatInt(*batch.AiSummaryCommentId, 10)
-		prService.EditComment(batch.PrNumber, commentIdStr, summary)
+		prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, summary)
 	}
 	return nil
 }
