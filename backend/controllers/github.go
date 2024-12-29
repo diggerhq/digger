@@ -779,7 +779,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	// terraform code generator
 	if os.Getenv("DIGGER_GENERATION_ENABLED") == "1" {
 		err = GenerateTerraformFromCode(payload, commentReporterManager, config, defaultBranch, ghService, repoOwner, repoName, commitSha, issueNumber, branch)
-		return err
+		if err != nil {
+			log.Printf("terraform generation failed: %v", err)
+			return err
+		}
 	}
 
 	commentIdStr := strconv.FormatInt(userCommentId, 10)
