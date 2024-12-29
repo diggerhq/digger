@@ -660,12 +660,9 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
-	log.Printf("creating AI summary now")
-
 	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
 
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && config.Reporting.AiSummary == true {
-		log.Printf("initiating ai summary creation")
 		prService, err := GetPrServiceFromBatch(batch, gh)
 		if err != nil {
 			log.Printf("Error getting github service: %v", err)
@@ -685,7 +682,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 			return fmt.Errorf("could not get jobs for batch: %v", err)
 		}
 
-		var terraformOutputs = ""
+		var terraformOutputs = "## AI Summary for terraform runs\n\n"
 		for _, job := range jobs {
 			var jobSpec orchestrator_scheduler.JobJson
 			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
