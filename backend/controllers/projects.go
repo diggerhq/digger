@@ -710,7 +710,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 			return fmt.Errorf("could not summarise terraform outputs: %v", err)
 		}
 
-		summary = "## AI summary for terraform plans \n\n" + summary
+		summary = "## AI summary for terraform outputs \n\n" + summary
 		prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, summary)
 	}
 	return nil
