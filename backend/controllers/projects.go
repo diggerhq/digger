@@ -691,7 +691,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 			return fmt.Errorf("could not get jobs for batch: %v", err)
 		}
 
-		var terraformOutputs = "## AI Summary for terraform runs\n\n"
+		var terraformOutputs = ""
 		for _, job := range jobs {
 			var jobSpec orchestrator_scheduler.JobJson
 			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
@@ -710,6 +710,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 			return fmt.Errorf("could not summarise terraform outputs: %v", err)
 		}
 
+		summary = "## AI summary for terraform plans \n\n" + summary
 		prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, summary)
 	}
 	return nil
