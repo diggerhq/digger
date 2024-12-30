@@ -34,7 +34,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"runtime/debug"
@@ -511,7 +510,19 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		log.Printf("strconv.ParseInt error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0)
+
+	var aiSummaryCommentId = ""
+	if config.Reporting.AiSummary {
+		aiSummaryComment, err := ghService.PublishComment(prNumber, "AI Summary will be posted here after completion")
+		if err != nil {
+			log.Printf("could not post ai summary comment: %v", err)
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not post ai comment summary comment id: %v", err))
+			return fmt.Errorf("could not post ai summary comment: %v", err)
+		}
+		aiSummaryCommentId = aiSummaryComment.Id
+	}
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -585,8 +596,11 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	var dependencyGraph graph.Graph[string, dg_configuration.Project]
 
 	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
-		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
-		diggerYmlStr = string(diggerYmlBytes)
+		diggerYmlStr, err = dg_configuration.ReadDiggerYmlFileContents(dir)
+		if err != nil {
+			log.Printf("could not load digger config: %v", err)
+			return err
+		}
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
 		if err != nil {
 			log.Printf("Error loading digger config: %v", err)
@@ -768,7 +782,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	// terraform code generator
 	if os.Getenv("DIGGER_GENERATION_ENABLED") == "1" {
 		err = GenerateTerraformFromCode(payload, commentReporterManager, config, defaultBranch, ghService, repoOwner, repoName, commitSha, issueNumber, branch)
-		return err
+		if err != nil {
+			log.Printf("terraform generation failed: %v", err)
+			return err
+		}
 	}
 
 	commentIdStr := strconv.FormatInt(userCommentId, 10)
@@ -902,7 +919,18 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("comment reporter error: %v", err)
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0)
+	var aiSummaryCommentId = ""
+	if config.Reporting.AiSummary {
+		aiSummaryComment, err := ghService.PublishComment(issueNumber, "AI Summary will be posted here after completion")
+		if err != nil {
+			log.Printf("could not post ai summary comment: %v", err)
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not post ai comment summary comment id: %v", err))
+			return fmt.Errorf("could not post ai summary comment: %v", err)
+		}
+		aiSummaryCommentId = aiSummaryComment.Id
+	}
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

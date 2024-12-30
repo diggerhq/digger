@@ -47,15 +47,15 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			}
 		}
 
-		var awsCognitoOidc *AwsCognitoOidcConfig = nil 
+		var awsCognitoOidc *AwsCognitoOidcConfig = nil
 		if p.AwsCognitoOidcConfig != nil {
 			awsCognitoOidc = &AwsCognitoOidcConfig{
-				CognitoPoolId: 		p.AwsCognitoOidcConfig.CognitoPoolId,
-				AwsAccountId:  		p.AwsCognitoOidcConfig.AwsAccountId,
-				AwsRegion:     		p.AwsCognitoOidcConfig.AwsRegion,				
-				SessionDuration:    p.AwsCognitoOidcConfig.SessionDuration,
+				CognitoPoolId:   p.AwsCognitoOidcConfig.CognitoPoolId,
+				AwsAccountId:    p.AwsCognitoOidcConfig.AwsAccountId,
+				AwsRegion:       p.AwsCognitoOidcConfig.AwsRegion,
+				SessionDuration: p.AwsCognitoOidcConfig.SessionDuration,
 			}
-		}		
+		}
 
 		workflowFile := "digger_workflow.yml"
 		if p.WorkflowFile != "" {
@@ -169,6 +169,19 @@ func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 	return result
 }
 
+func copyReporterConfig(r *ReportingConfigYaml) ReporterConfig {
+	if r == nil {
+		return ReporterConfig{
+			AiSummary: false,
+		}
+	}
+
+	return ReporterConfig{
+		AiSummary: r.AiSummary,
+	}
+
+}
+
 func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, graph.Graph[string, Project], error) {
 	var diggerConfig DiggerConfig
 
@@ -181,6 +194,14 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 			Mode: DependencyConfigurationHard,
 		}
 	}
+
+	if diggerYaml.ReportTerraformOutputs != nil {
+		diggerConfig.ReportTerraformOutputs = *diggerYaml.ReportTerraformOutputs
+	} else {
+		diggerConfig.ReportTerraformOutputs = false
+	}
+
+	diggerConfig.Reporting = copyReporterConfig(diggerYaml.Reporting)
 
 	if diggerYaml.AutoMerge != nil {
 		diggerConfig.AutoMerge = *diggerYaml.AutoMerge

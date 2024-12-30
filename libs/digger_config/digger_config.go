@@ -30,6 +30,20 @@ type FileSystemTerragruntDirWalker struct {
 type FileSystemModuleDirWalker struct {
 }
 
+func ReadDiggerYmlFileContents(dir string) (string, error) {
+	var diggerYmlBytes []byte
+	diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
+	if err != nil {
+		// if file doesn't exist look for digger.yaml instead
+		diggerYmlBytes, err = os.ReadFile(path.Join(dir, "digger.yaml"))
+		if err != nil {
+			return "", fmt.Errorf("could not read the file both digger.yml and digger.yaml are missing: %v", err)
+		}
+	}
+	diggerYmlStr := string(diggerYmlBytes)
+	return diggerYmlStr, nil
+}
+
 func CheckOrCreateDiggerFile(dir string) error {
 	// Check for digger.yml
 	ymlPath := filepath.Join(dir, "digger.yml")

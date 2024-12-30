@@ -822,6 +822,7 @@ github.com/bos-hieu/mongostore v0.0.3 h1:wla8pz4VQU8JOcbo+sBbuvFVBBHt3yRelVSi6YI
 github.com/bos-hieu/mongostore v0.0.3/go.mod h1:8AbbVmDEb0yqJsBrWxZIAZOxIfv/tsP8CDtdHduZHGg=
 github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874 h1:N7oVaKyGp8bttX0bfZGmcGkjz7DLQXhAn3DNd3T0ous=
 github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874/go.mod h1:r5xuitiExdLAJ09PR7vBVENGvp4ZuTBeWTGtxuX3K+c=
+github.com/bradleyfalzon/ghinstallation v1.1.1 h1:pmBXkxgM1WeF8QYvDLT5kuQiHMcmf+X015GI0KM/E3I=
 github.com/bradleyfalzon/ghinstallation v1.1.1/go.mod h1:vyCmHTciHx/uuyN82Zc3rXN3X2KTK8nUTCrTMwAhcug=
 github.com/bradleypeabody/gorilla-sessions-memcache v0.0.0-20181103040241-659414f458e1 h1:4QHxgr7hM4gVD8uOwrk8T1fjkKRLwaLjmTkU0ibhZKU=
 github.com/bradleypeabody/gorilla-sessions-memcache v0.0.0-20181103040241-659414f458e1/go.mod h1:dkChI7Tbtx7H1Tj7TqGSZMOeGpMP5gLHtjroHd4agiI=
