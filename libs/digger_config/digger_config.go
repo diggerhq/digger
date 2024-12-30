@@ -36,6 +36,9 @@ func ReadDiggerYmlFileContents(dir string) (string, error) {
 	if err != nil {
 		// if file doesn't exist look for digger.yaml instead
 		diggerYmlBytes, err = os.ReadFile(path.Join(dir, "digger.yaml"))
+		if err != nil {
+			return "", fmt.Errorf("could not read the file both digger.yml and digger.yaml are missing: %v", err)
+		}
 	}
 	diggerYmlStr := string(diggerYmlBytes)
 	return diggerYmlStr, nil
