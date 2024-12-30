@@ -15,6 +15,12 @@ type DiggerConfig struct {
 	Workflows                  map[string]Workflow
 	MentionDriftedProjectsInPR bool
 	TraverseToNestedProjects   bool
+	Reporting                  ReporterConfig
+	ReportTerraformOutputs     bool
+}
+
+type ReporterConfig struct {
+	AiSummary bool
 }
 
 type DependencyConfiguration struct {
@@ -28,22 +34,22 @@ type AssumeRoleForProject struct {
 }
 
 type Project struct {
-	Name               		string
-	Dir                		string
-	Workspace          		string
-	Terragrunt         		bool
-	OpenTofu           		bool
-	Pulumi             		bool
-	Workflow           		string
-	WorkflowFile       		string
-	IncludePatterns    		[]string
-	ExcludePatterns    		[]string
-	DependencyProjects 		[]string
-	DriftDetection     		bool
-	AwsRoleToAssume    		*AssumeRoleForProject
-	AwsCognitoOidcConfig 	*AwsCognitoOidcConfig
-	Generated          		bool	
-	PulumiStack        string
+	Name                 string
+	Dir                  string
+	Workspace            string
+	Terragrunt           bool
+	OpenTofu             bool
+	Pulumi               bool
+	Workflow             string
+	WorkflowFile         string
+	IncludePatterns      []string
+	ExcludePatterns      []string
+	DependencyProjects   []string
+	DriftDetection       bool
+	AwsRoleToAssume      *AssumeRoleForProject
+	AwsCognitoOidcConfig *AwsCognitoOidcConfig
+	Generated            bool
+	PulumiStack          string
 }
 
 type Workflow struct {
