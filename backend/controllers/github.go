@@ -517,6 +517,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		if err != nil {
 			log.Printf("could not post ai summary comment: %v", err)
 			commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not post ai comment summary comment id: %v", err))
+			return fmt.Errorf("could not post ai summary comment: %v", err)
 		}
 		aiSummaryCommentId = aiSummaryComment.Id
 	}
@@ -924,6 +925,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		if err != nil {
 			log.Printf("could not post ai summary comment: %v", err)
 			commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not post ai comment summary comment id: %v", err))
+			return fmt.Errorf("could not post ai summary comment: %v", err)
 		}
 		aiSummaryCommentId = aiSummaryComment.Id
 	}
