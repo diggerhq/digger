@@ -5,7 +5,6 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"log"
-	"strings"
 	"time"
 )
 
@@ -13,189 +12,177 @@ type CiReporter struct {
 	CiService         ci.PullRequestService
 	PrNumber          int
 	IsSupportMarkdown bool
+	IsSuppressed      bool
 	ReportStrategy    ReportStrategy
 }
 
-func (ciReporter CiReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
-	commentId, commentUrl, err := ciReporter.ReportStrategy.Report(ciReporter.CiService, ciReporter.PrNumber, report, reportFormatting, ciReporter.SupportsMarkdown())
-	return commentId, commentUrl, err
+func (ciReporter CiReporter) Report(projectName string, report string, reportFormatting func(report string) string) error {
+	err := ciReporter.ReportStrategy.Report(projectName, report, reportFormatting)
+	return err
 }
 
-func (ciReporter CiReporter) Flush() (string, string, error) {
-	return "", "", nil
+func (ciReporter CiReporter) Flush() ([]string, []string, error) {
+	commentIds, commentUrls, err := ciReporter.ReportStrategy.Flush(ciReporter.CiService, ciReporter.PrNumber, ciReporter.IsSupportMarkdown)
+	return commentIds, commentUrls, err
 }
 
-func (ciReporter CiReporter) Suppress() error {
-	return nil
+func (ciReporter CiReporter) Suppress(projectName string) error {
+	return ciReporter.ReportStrategy.Suppress(projectName)
 }
 
 func (ciReporter CiReporter) SupportsMarkdown() bool {
 	return ciReporter.IsSupportMarkdown
 }
 
-type CiReporterLazy struct {
-	CiReporter   CiReporter
-	isSuppressed bool
-	reports      []string
-	formatters   []func(report string) string
-}
+type StdOutReporter struct{}
 
-func NewCiReporterLazy(ciReporter CiReporter) *CiReporterLazy {
-	return &CiReporterLazy{
-		CiReporter:   ciReporter,
-		isSuppressed: false,
-		reports:      []string{},
-		formatters:   []func(report string) string{},
-	}
-}
-
-func (lazyReporter *CiReporterLazy) Report(report string, reportFormatting func(report string) string) (string, string, error) {
-	lazyReporter.reports = append(lazyReporter.reports, report)
-	lazyReporter.formatters = append(lazyReporter.formatters, reportFormatting)
-	return "", "", nil
-}
-
-func (lazyReporter *CiReporterLazy) Flush() (string, string, error) {
-	if lazyReporter.isSuppressed {
-		log.Printf("Reporter is suprresed, ignoring messages ...")
-		return "", "", nil
-	}
-	var commentId, commentUrl string
-	for i, _ := range lazyReporter.formatters {
-		var err error
-		commentId, commentUrl, err = lazyReporter.CiReporter.ReportStrategy.Report(lazyReporter.CiReporter.CiService, lazyReporter.CiReporter.PrNumber, lazyReporter.reports[i], lazyReporter.formatters[i], lazyReporter.SupportsMarkdown())
-		if err != nil {
-			log.Printf("failed to report strategy: ")
-			return "", "", err
-		}
-	}
-	// clear the buffers
-	lazyReporter.formatters = []func(comment string) string{}
-	lazyReporter.reports = []string{}
-	return commentId, commentUrl, nil
-}
-
-func (lazyReporter *CiReporterLazy) Suppress() error {
-	lazyReporter.isSuppressed = true
+func (reporter StdOutReporter) Report(projectName string, report string, reportFormatting func(report string) string) error {
+	log.Printf("Info: %v", report)
 	return nil
 }
 
-func (lazyReporter *CiReporterLazy) SupportsMarkdown() bool {
-	return lazyReporter.CiReporter.IsSupportMarkdown
-}
-
-type StdOutReporter struct{}
-
-func (reporter StdOutReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
-	log.Printf("Info: %v", report)
-	return "", "", nil
-}
-
-func (reporter StdOutReporter) Flush() (string, string, error) {
-	return "", "", nil
+func (reporter StdOutReporter) Flush() ([]string, []string, error) {
+	return []string{}, []string{}, nil
 }
 
 func (reporter StdOutReporter) SupportsMarkdown() bool {
 	return false
 }
 
-func (reporter StdOutReporter) Suppress() error {
+func (reporter StdOutReporter) Suppress(string) error {
 	return nil
 }
 
 type ReportStrategy interface {
-	Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (commentId string, commentUrl string, error error)
+	Report(projectName string, report string, reportFormatter func(report string) string) (error error)
+	Flush(ciService ci.PullRequestService, PrNumber int, supportsCollapsibleComment bool) (commentId []string, commentUrl []string, error error)
+	Suppress(projectName string) error
 }
 
-type CommentPerRunStrategy struct {
-	Title     string
-	TimeOfRun time.Time
+type ReportFormat struct {
+	Report          string
+	ReportFormatter func(report string) string
 }
 
-func (strategy CommentPerRunStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	comments, err := ciService.GetComments(PrNumber)
-	if err != nil {
-		return "", "", fmt.Errorf("error getting comments: %v", err)
+type SingleCommentStrategy struct {
+	TimeOfRun  time.Time
+	formatters map[string][]ReportFormat
+}
+
+func NewSingleCommentStrategy() SingleCommentStrategy {
+	return SingleCommentStrategy{
+		TimeOfRun:  time.Now(),
+		formatters: make(map[string][]ReportFormat),
 	}
-
-	var reportTitle string
-	if strategy.Title != "" {
-		reportTitle = strategy.Title + " " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
-	} else {
-		reportTitle = "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
-	}
-	commentId, commentUrl, err := upsertComment(ciService, PrNumber, report, reportFormatter, comments, reportTitle, supportsCollapsibleComment)
-	return commentId, commentUrl, err
 }
 
-func upsertComment(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, supportsCollapsible bool) (string, string, error) {
-	report = reportFormatter(report)
-	commentIdForThisRun := ""
-	var commentBody string
-	var commentUrl string
-	for _, comment := range comments {
-		if strings.Contains(*comment.Body, reportTitle) {
-			commentIdForThisRun = comment.Id
-			commentBody = *comment.Body
-			commentUrl = comment.Url
-			break
+func (strategy SingleCommentStrategy) Report(projectName string, report string, reportFormatter func(report string) string) error {
+	if _, exists := strategy.formatters[projectName]; !exists {
+		strategy.formatters[projectName] = []ReportFormat{}
+	}
+	strategy.formatters[projectName] = append(strategy.formatters[projectName], ReportFormat{
+		Report:          report,
+		ReportFormatter: reportFormatter,
+	})
+
+	return nil
+}
+
+func (strategy SingleCommentStrategy) Flush(ciService ci.PullRequestService, PrNumber int, supportsCollapsibleComment bool) ([]string, []string, error) {
+	var completeComment = ""
+	for projectName, projectFormatters := range strategy.formatters {
+		projectTitle := "report for " + projectName + " " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
+		var projectComment = ""
+		for _, f := range projectFormatters {
+			report := f.ReportFormatter(f.Report)
+			projectComment = projectComment + "\n" + report
 		}
-	}
-
-	if commentIdForThisRun == "" {
-		var commentMessage string
-		if !supportsCollapsible {
-			commentMessage = utils.AsComment(reportTitle)(report)
+		if !supportsCollapsibleComment {
+			projectComment = utils.AsComment(projectTitle)(projectComment)
 		} else {
-			commentMessage = utils.AsCollapsibleComment(reportTitle, false)(report)
+			projectComment = utils.AsCollapsibleComment(projectTitle, false)(projectComment)
 		}
-		comment, err := ciService.PublishComment(PrNumber, commentMessage)
+		completeComment = completeComment + "\n" + projectComment
+	}
+
+	c, err := ciService.PublishComment(PrNumber, completeComment)
+	if err != nil {
+		log.Printf("error while publishing reporter comment: %v", err)
+		return nil, nil, fmt.Errorf("error while publishing reporter comment: %v", err)
+	}
+	return []string{c.Id}, []string{c.Url}, nil
+}
+
+func (strategy SingleCommentStrategy) Suppress(projectName string) error {
+	// TODO: figure out how to suppress a particular project (probably pop it from the formatters map?)
+	return nil
+}
+
+type MultipleCommentsStrategy struct {
+	formatters map[string][]ReportFormat
+	TimeOfRun  time.Time
+}
+
+func NewMultipleCommentsStrategy() MultipleCommentsStrategy {
+	return MultipleCommentsStrategy{
+		TimeOfRun:  time.Now(),
+		formatters: make(map[string][]ReportFormat),
+	}
+}
+
+func (strategy MultipleCommentsStrategy) Report(projectName string, report string, reportFormatter func(report string) string) error {
+	if _, exists := strategy.formatters[projectName]; !exists {
+		strategy.formatters[projectName] = []ReportFormat{}
+	}
+	strategy.formatters[projectName] = append(strategy.formatters[projectName], ReportFormat{
+		Report:          report,
+		ReportFormatter: reportFormatter,
+	})
+
+	return nil
+}
+
+func (strategy MultipleCommentsStrategy) Flush(ciService ci.PullRequestService, PrNumber int, supportsCollapsibleComment bool) ([]string, []string, error) {
+	hasError := false
+	var latestError error = nil
+	commentIds := make([]string, 0)
+	commentUrls := make([]string, 0)
+	for projectName, projectFormatters := range strategy.formatters {
+		projectTitle := "Digger run report for " + projectName + " " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
+		var projectComment = ""
+		for _, f := range projectFormatters {
+			report := f.ReportFormatter(f.Report)
+			projectComment = projectComment + "\n" + report
+		}
+		if !supportsCollapsibleComment {
+			projectComment = utils.AsComment(projectTitle)(projectComment)
+		} else {
+			projectComment = utils.AsCollapsibleComment(projectTitle, false)(projectComment)
+		}
+		c, err := ciService.PublishComment(PrNumber, projectComment)
 		if err != nil {
-			return "", "", fmt.Errorf("error publishing comment: %v", err)
+			log.Printf("error while publishing reporter comment: %v", err)
+			hasError = true
+			latestError = err
+			// append placeholders
+			commentIds = append(commentIds, "0")
+			commentUrls = append(commentUrls, "")
+
+		} else {
+			commentIds = append(commentIds, c.Id)
+			commentUrls = append(commentUrls, c.Url)
 		}
-		return fmt.Sprintf("%v", comment.Id), comment.Url, nil
 	}
 
-	// strip first and last lines
-	lines := strings.Split(commentBody, "\n")
-	lines = lines[1 : len(lines)-1]
-	commentBody = strings.Join(lines, "\n")
-
-	commentBody = commentBody + "\n\n" + report + "\n"
-
-	var completeComment string
-	if !supportsCollapsible {
-		completeComment = utils.AsComment(reportTitle)(commentBody)
-	} else {
-		completeComment = utils.AsCollapsibleComment(reportTitle, false)(commentBody)
+	if hasError {
+		log.Printf("could not publish all comments")
+		return commentIds, commentUrls, latestError
 	}
 
-	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
-
-	if err != nil {
-		return "", "", fmt.Errorf("error editing comment: %v", err)
-	}
-	return fmt.Sprintf("%v", commentIdForThisRun), commentUrl, nil
+	return commentIds, commentUrls, nil
 }
 
-type LatestRunCommentStrategy struct {
-	TimeOfRun time.Time
-}
-
-func (strategy LatestRunCommentStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	comments, err := ciService.GetComments(PrNumber)
-	if err != nil {
-		return "", "", fmt.Errorf("error getting comments: %v", err)
-	}
-
-	reportTitle := "Digger latest run report"
-	commentId, commentUrl, err := upsertComment(ciService, PrNumber, report, reportFormatter, comments, reportTitle, supportsCollapsibleComment)
-	return commentId, commentUrl, err
-}
-
-type MultipleCommentsStrategy struct{}
-
-func (strategy MultipleCommentsStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	_, err := ciService.PublishComment(PrNumber, reportFormatter(report))
-	return "", "", err
+func (strategy MultipleCommentsStrategy) Suppress(projectName string) error {
+	// TODO: figure out how to suppress a particular project (probably pop it from the formatters map?)
+	return nil
 }

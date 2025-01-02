@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 )
 
 type RunConfig struct {
@@ -93,15 +92,11 @@ func PreRun(cmd *cobra.Command, args []string) {
 	//PolicyChecker = policy.NewPolicyChecker(hostName, orgName, token)
 
 	if os.Getenv("REPORTING_STRATEGY") == "comments_per_run" || os.Getenv("ACCUMULATE_PLANS") == "true" {
-		ReportStrategy = &reporting.CommentPerRunStrategy{
-			TimeOfRun: time.Now(),
-		}
-	} else if os.Getenv("REPORTING_STRATEGY") == "latest_run_comment" {
-		ReportStrategy = &reporting.LatestRunCommentStrategy{
-			TimeOfRun: time.Now(),
-		}
+		strategy := reporting.NewSingleCommentStrategy()
+		ReportStrategy = &strategy
 	} else {
-		ReportStrategy = &reporting.MultipleCommentsStrategy{}
+		strategy := reporting.NewMultipleCommentsStrategy()
+		ReportStrategy = &strategy
 	}
 
 	var err error

@@ -27,7 +27,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 type JobSpecProvider struct{}
@@ -117,16 +116,9 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 	getStrategy := func(strategy string) reporting.ReportStrategy {
 		switch reporterSpec.ReportingStrategy {
 		case "comments_per_run":
-			return reporting.CommentPerRunStrategy{
-				Title:     title,
-				TimeOfRun: time.Now(),
-			}
-		case "latest_run_comment":
-			return reporting.LatestRunCommentStrategy{
-				TimeOfRun: time.Now(),
-			}
+			return reporting.NewSingleCommentStrategy()
 		default:
-			return reporting.MultipleCommentsStrategy{}
+			return reporting.NewMultipleCommentsStrategy()
 		}
 	}
 
@@ -141,15 +133,6 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 			IsSupportMarkdown: true,
 			ReportStrategy:    strategy,
 		}, nil
-	case "lazy":
-		strategy := getStrategy(reporterSpec.ReportingStrategy)
-		ciReporter := reporting.CiReporter{
-			CiService:         ciService,
-			PrNumber:          prNumber,
-			IsSupportMarkdown: true,
-			ReportStrategy:    strategy,
-		}
-		return reporting.NewCiReporterLazy(ciReporter), nil
 	default:
 		return reporting.NoopReporter{}, nil
 	}

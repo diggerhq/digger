@@ -5,9 +5,10 @@ import (
 )
 
 type ReporterSpec struct {
-	ReporterType          string `json:"reporter_type"`
-	ReportingStrategy     string `json:"reporting_strategy"`
-	ReportTerraformOutput bool   `json:"report_terraform_output"`
+	ReporterType          string  `json:"reporter_type"`
+	ReportingStrategy     string  `json:"reporting_strategy"`
+	ReportTerraformOutput bool    `json:"report_terraform_output"`
+	ReportCommentId       *string `json:"report_comment_id,omitempty"`
 }
 
 type CommentUpdaterSpec struct {
