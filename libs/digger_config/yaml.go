@@ -19,6 +19,12 @@ type DiggerConfigYaml struct {
 	GenerateProjectsConfig     *GenerateProjectsConfigYaml  `yaml:"generate_projects"`
 	TraverseToNestedProjects   *bool                        `yaml:"traverse_to_nested_projects"`
 	MentionDriftedProjectsInPR *bool                        `yaml:"mention_drifted_projects_in_pr"`
+	ReportTerraformOutputs     *bool                        `yaml:"report_terraform_outputs"`
+	Reporting                  *ReportingConfigYaml         `yaml:"reporting"`
+}
+
+type ReportingConfigYaml struct {
+	AiSummary bool `yaml:"ai_summary"`
 }
 
 type DependencyConfigurationYaml struct {
@@ -137,24 +143,24 @@ type GenerateProjectsConfigYaml struct {
 }
 
 type TerragruntParsingConfig struct {
-	GitRoot                  *string  `yaml:"gitRoot,omitempty"`
-	AutoPlan                 bool     `yaml:"autoPlan"`
-	AutoMerge                bool     `yaml:"autoMerge"`
-	IgnoreParentTerragrunt   *bool    `yaml:"ignoreParentTerragrunt,omitempty"`
-	CreateParentProject      bool     `yaml:"createParentProject"`
-	IgnoreDependencyBlocks   bool     `yaml:"ignoreDependencyBlocks"`
-	IgnoreIncludeBlocks      bool     `yaml:"ignoreIncludeBlocks"`
-	Parallel                 *bool    `yaml:"parallel,omitempty"`
-	CreateWorkspace          bool     `yaml:"createWorkspace"`
-	CreateProjectName        bool     `yaml:"createProjectName"`
-	DefaultTerraformVersion  string   `yaml:"defaultTerraformVersion"`
-	DefaultWorkflow          string   `yaml:"defaultWorkflow"`
-	FilterPath               string   `yaml:"filterPath"`
-	OutputPath               string   `yaml:"outputPath"`
-	PreserveWorkflows        *bool    `yaml:"preserveWorkflows,omitempty"`
-	PreserveProjects         bool     `yaml:"preserveProjects"`
-	CascadeDependencies      *bool    `yaml:"cascadeDependencies,omitempty"`
-	DefaultApplyRequirements []string `yaml:"defaultApplyRequirements"`
+	GitRoot                    *string  `yaml:"gitRoot,omitempty"`
+	AutoPlan                   bool     `yaml:"autoPlan"`
+	AutoMerge                  bool     `yaml:"autoMerge"`
+	IgnoreParentTerragrunt     *bool    `yaml:"ignoreParentTerragrunt,omitempty"`
+	CreateParentProject        bool     `yaml:"createParentProject"`
+	IgnoreDependencyBlocks     bool     `yaml:"ignoreDependencyBlocks"`
+	TriggerProjectsFromDirOnly bool     `yaml:"triggerProjectsFromDirOnly"`
+	Parallel                   *bool    `yaml:"parallel,omitempty"`
+	CreateWorkspace            bool     `yaml:"createWorkspace"`
+	CreateProjectName          bool     `yaml:"createProjectName"`
+	DefaultTerraformVersion    string   `yaml:"defaultTerraformVersion"`
+	DefaultWorkflow            string   `yaml:"defaultWorkflow"`
+	FilterPath                 string   `yaml:"filterPath"`
+	OutputPath                 string   `yaml:"outputPath"`
+	PreserveWorkflows          *bool    `yaml:"preserveWorkflows,omitempty"`
+	PreserveProjects           bool     `yaml:"preserveProjects"`
+	CascadeDependencies        *bool    `yaml:"cascadeDependencies,omitempty"`
+	DefaultApplyRequirements   []string `yaml:"defaultApplyRequirements"`
 	//NumExecutors                   int64	`yaml:"numExecutors"`
 	ProjectHclFiles                []string                    `yaml:"projectHclFiles"`
 	CreateHclProjectChilds         bool                        `yaml:"createHclProjectChilds"`

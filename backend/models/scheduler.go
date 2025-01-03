@@ -26,6 +26,7 @@ type DiggerBatch struct {
 	VCS                           DiggerVCSType
 	PrNumber                      int
 	CommentId                     *int64
+	AiSummaryCommentId     string
 	PlaceholderCommentIdForReport *string
 	Status                        orchestrator_scheduler.DiggerBatchStatus
 	BranchName                    string
@@ -36,6 +37,7 @@ type DiggerBatch struct {
 	RepoOwner                     string
 	RepoName                      string
 	BatchType                     orchestrator_scheduler.DiggerCommand
+	ReportTerraformOutputs bool
 	// used for module source grouping comments
 	SourceDetails []byte
 }

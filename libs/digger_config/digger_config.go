@@ -30,6 +30,20 @@ type FileSystemTerragruntDirWalker struct {
 type FileSystemModuleDirWalker struct {
 }
 
+func ReadDiggerYmlFileContents(dir string) (string, error) {
+	var diggerYmlBytes []byte
+	diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
+	if err != nil {
+		// if file doesn't exist look for digger.yaml instead
+		diggerYmlBytes, err = os.ReadFile(path.Join(dir, "digger.yaml"))
+		if err != nil {
+			return "", fmt.Errorf("could not read the file both digger.yml and digger.yaml are missing: %v", err)
+		}
+	}
+	diggerYmlStr := string(diggerYmlBytes)
+	return diggerYmlStr, nil
+}
+
 func CheckOrCreateDiggerFile(dir string) error {
 	// Check for digger.yml
 	ymlPath := filepath.Join(dir, "digger.yml")
@@ -526,7 +540,6 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.CreateHclProjectChilds,
 		ignoreParentTerragrunt,
 		parsingConfig.IgnoreDependencyBlocks,
-		parsingConfig.IgnoreIncludeBlocks,
 		cascadeDependencies,
 		parsingConfig.DefaultWorkflow,
 		parsingConfig.DefaultApplyRequirements,
@@ -537,6 +550,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.PreserveProjects,
 		parsingConfig.UseProjectMarkers,
 		executionOrderGroups,
+		parsingConfig.TriggerProjectsFromDirOnly,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
@@ -562,6 +576,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		// normalize paths
 		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
 		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
+
 		if err != nil {
 			return fmt.Errorf("could not normalize patterns: %v", err)
 		}

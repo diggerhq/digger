@@ -333,7 +333,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		log.Printf("strconv.ParseInt error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, 0, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, nil, diggeryamlStr, projectId)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, 0, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, nil, diggeryamlStr, projectId, "", false)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -524,7 +524,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		log.Printf("ParseInt err: %v", err)
 		return fmt.Errorf("parseint error: %v", err)
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, nil, diggerYmlStr, projectId)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, nil, diggerYmlStr, projectId, "", false)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

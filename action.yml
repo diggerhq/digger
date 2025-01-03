@@ -428,11 +428,9 @@ runs:
       name: cache-save
       if: ${{ always() && inputs.cache-dependencies == 'true' && steps.restore_cache.outputs.cache-hit != 'true' }}
       with:
-        path: |
-          ${{ steps.golang-env.outputs.build-cache-path }}
-          ${{ steps.golang-env.outputs.module-cache-path }}
-        key: digger-cli-cache-${{ hashFiles('.digger.go.sum') }}
-
+        path: ${{ github.workspace }}/cache
+        key: digger-cache-${{ hashFiles('**/cache') }}
+        
 branding:
   icon: globe
   color: purple

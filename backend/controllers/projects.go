@@ -17,6 +17,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -323,7 +324,6 @@ type SetJobStatusRequest struct {
 	Footprint       *iac_utils.IacPlanFootprint `json:"job_plan_footprint"`
 	PrCommentUrl    string                      `json:"pr_comment_url"`
 	TerraformOutput string                      `json:"terraform_output"`
-
 }
 
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
@@ -482,6 +482,11 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
+	err = CreateTerraformOutputsSummary(d.GithubClientProvider, batch)
+	if err != nil {
+		log.Printf("could not generate terraform plans summary: %v", err)
+	}
+
 	err = AutomergePRforBatchIfEnabled(d.GithubClientProvider, batch)
 	if err != nil {
 		log.Printf("Error merging PR with automerge option: %v", err)
@@ -493,7 +498,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error getting batch details: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
-
 	}
 
 	UpdateCommentsForBatchGroup(d.GithubClientProvider, batch, res.Jobs)
@@ -648,6 +652,70 @@ func GetPrServiceFromBatch(batch *models.DiggerBatch, gh utils.GithubClientProvi
 	return nil, fmt.Errorf("could not retrieive a service for %v", batch.VCS)
 }
 
+func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	diggerYmlString := batch.DiggerConfig
+	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
+	if err != nil {
+		log.Printf("Error loading digger config from batch: %v", err)
+		return fmt.Errorf("error loading digger config from batch: %v", err)
+	}
+
+	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && config.Reporting.AiSummary == true {
+		prService, err := GetPrServiceFromBatch(batch, gh)
+		if err != nil {
+			log.Printf("Error getting github service: %v", err)
+			prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n could not communicate with github")
+			return fmt.Errorf("error getting github service: %v", err)
+		}
+
+		if batch.AiSummaryCommentId == "" {
+			log.Printf("could not post summary comment, initial comment not found")
+			prService.PublishComment(batch.PrNumber, ":x: could not generate AI summary \n\n could not communicate with github")
+			return fmt.Errorf("could not post summary comment, initial comment not found")
+		}
+
+		summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
+		if summaryEndpoint == "" {
+			log.Printf("could not generate AI summary, ai summary endpoint missing")
+			prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n comment ID is missing ")
+			return fmt.Errorf("could not generate AI summary, ai summary endpoint missing")
+		}
+		apiToken := os.Getenv("DIGGER_AI_SUMMARY_API_TOKEN")
+
+		jobs, err := models.DB.GetDiggerJobsForBatch(batch.ID)
+		if err != nil {
+			log.Printf("could not get jobs for batch: %v", err)
+			prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n error fetching jobs ")
+			return fmt.Errorf("could not get jobs for batch: %v", err)
+		}
+
+		var terraformOutputs = ""
+		for _, job := range jobs {
+			var jobSpec orchestrator_scheduler.JobJson
+			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
+			if err != nil {
+				log.Printf("could not summarise plans due to unmarshalling error: %v", err)
+				prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n error fetching job spec")
+				return fmt.Errorf("could not summarise plans due to unmarshalling error: %v", err)
+			}
+			projectName := jobSpec.ProjectName
+			terraformOutputs += fmt.Sprintf("terraform output for %v \n\n", projectName) + job.TerraformOutput
+		}
+		summary, err := utils.GetAiSummaryFromTerraformPlans(terraformOutputs, summaryEndpoint, apiToken)
+		if err != nil {
+			log.Printf("could not summarise terraform outputs: %v", err)
+			prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n error generating summary from plans")
+			return fmt.Errorf("could not summarise terraform outputs: %v", err)
+		}
+
+		summary = "## AI summary for terraform plans \n\n" + summary
+		prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, summary)
+	}
+	return nil
+}
+
 func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
 	diggerYmlString := batch.DiggerConfig
 	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
@@ -663,13 +731,6 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		automerge = false
 	}
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.DiggerCommandApply && automerge == true {
-		//ghService, _, err := utils.GetGithubService(
-		//	gh,
-		//	batch.GithubInstallationId,
-		//	batch.RepoFullName,
-		//	batch.RepoOwner,
-		//	batch.RepoName,
-		//)
 		prService, err := GetPrServiceFromBatch(batch, gh)
 		if err != nil {
 			log.Printf("Error getting github service: %v", err)
