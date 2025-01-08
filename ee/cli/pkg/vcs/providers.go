@@ -37,6 +37,12 @@ func (v VCSProviderAdvanced) GetPrService(vcsSpec spec.VcsSpec) (ci.PullRequestS
 
 func (v VCSProviderAdvanced) GetOrgService(vcsSpec spec.VcsSpec) (ci.OrgService, error) {
 	switch vcsSpec.VcsType {
+	case "github":
+		token := os.Getenv("GITHUB_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
+		}
+		return github2.GithubServiceProviderAdvanced{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
 	case "gitlab":
 		token := os.Getenv("GITLAB_TOKEN")
 		if token == "" {
