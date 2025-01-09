@@ -34,9 +34,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"reflect"
-	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -430,6 +428,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			return fmt.Errorf("error processing event")
 		}
 	}
+
 	diggerCommand, err := orchestrator_scheduler.GetCommandFromJob(jobsForImpactedProjects[0])
 	if err != nil {
 		log.Printf("could not determine digger command from job: %v", jobsForImpactedProjects[0].Commands)
@@ -523,6 +522,15 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs)
+
+	placeholderComment, err := ghService.PublishComment(prNumber, "digger report placehoder")
+	if err != nil {
+		log.Printf("strconv.ParseInt error: %v", err)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not create placeholder commentId for report: %v", err))
+		return fmt.Errorf("comment reporter error: %v", err)
+	}
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, &placeholderComment.Id, diggerYmlStr, 0)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -931,6 +939,14 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs)
+	placeholderComment, err := ghService.PublishComment(issueNumber, "digger report placehoder")
+	if err != nil {
+		log.Printf("strconv.ParseInt error: %v", err)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not create placeholder commentId for report: %v", err))
+		return fmt.Errorf("comment reporter error: %v", err)
+	}
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, &placeholderComment.Id, diggerYmlStr, 0)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

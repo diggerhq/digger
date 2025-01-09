@@ -223,7 +223,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				reportError(d.Reporter, stderr)
+				reportError(d.ProjectName, d.Reporter, stderr)
 				return nil, false, false, "", "", fmt.Errorf("error running init: %v", err)
 			}
 		}
@@ -288,18 +288,18 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			}
 		}
 	}
-	reportAdditionalOutput(d.Reporter, d.projectId())
+	reportAdditionalOutput(d.Reporter, d.ProjectName)
 	return planSummary, true, !isEmptyPlan, plan, terraformPlanOutput, nil
 }
 
-func reportError(r reporting.Reporter, stderr string) {
+func reportError(projectName string, r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init.", false))
+		commentErr := r.Report(projectName, stderr, utils.AsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
 	} else {
-		_, _, commentErr := r.Report(stderr, utils.AsComment("Error during init."))
+		commentErr := r.Report(projectName, stderr, utils.AsComment("Error during init."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
@@ -337,7 +337,7 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 		if step.Action == "init" {
 			stdout, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				reportTerraformError(d.Reporter, stderr)
+				reportTerraformError(d.ProjectName, d.Reporter, stderr)
 				return nil, false, stdout, fmt.Errorf("error running init: %v", err)
 			}
 		}
@@ -346,9 +346,9 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 			stdout, stderr, err := d.TerraformExecutor.Apply(applyArgs, plansFilename, d.CommandEnvVars)
 			applyOutput = cleanupTerraformApply(true, err, stdout, stderr)
 
-			reportTerraformApplyOutput(d.Reporter, d.projectId(), applyOutput)
+			reportTerraformApplyOutput(d.Reporter, d.ProjectName, applyOutput)
 			if err != nil {
-				reportApplyError(d.Reporter, err)
+				reportApplyError(d.ProjectName, d.Reporter, err)
 				return nil, false, stdout, fmt.Errorf("error executing apply: %v", err)
 			}
 
@@ -370,25 +370,25 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 			}
 		}
 	}
-	reportAdditionalOutput(d.Reporter, d.projectId())
+	reportAdditionalOutput(d.Reporter, d.ProjectName)
 	return &summary, true, applyOutput, nil
 }
 
-func reportApplyError(r reporting.Reporter, err error) {
+func reportApplyError(projectName string, r reporting.Reporter, err error) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying.", false))
+		commentErr := r.Report(projectName, err.Error(), utils.AsCollapsibleComment("Error during applying.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", err)
 		}
 	} else {
-		_, _, commentErr := r.Report(err.Error(), utils.AsComment("Error during applying."))
+		commentErr := r.Report(projectName, err.Error(), utils.AsComment("Error during applying."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", err)
 		}
 	}
 }
 
-func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOutput string) {
+func reportTerraformApplyOutput(r reporting.Reporter, projectName string, applyOutput string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
 		formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply output", false)
@@ -396,39 +396,39 @@ func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOut
 		formatter = utils.GetTerraformOutputAsComment("Apply output")
 	}
 
-	_, _, commentErr := r.Report(applyOutput, formatter)
+	commentErr := r.Report(projectName, applyOutput, formatter)
 	if commentErr != nil {
 		log.Printf("error publishing comment: %v", commentErr)
 	}
 }
 
-func reportTerraformError(r reporting.Reporter, stderr string) {
+func reportTerraformError(projectName string, r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
+		commentErr := r.Report(projectName, stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
 	} else {
-		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
+		commentErr := r.Report(projectName, stderr, utils.GetTerraformOutputAsComment("Error during init."))
 		if commentErr != nil {
 			log.Printf("error publishing comment: %v", commentErr)
 		}
 	}
 }
 
-func reportAdditionalOutput(r reporting.Reporter, projectId string) {
+func reportAdditionalOutput(r reporting.Reporter, projectName string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>"+projectId+"</b>", false)
+		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>"+projectName+"</b>", false)
 	} else {
-		formatter = utils.GetTerraformOutputAsComment("Additional output for " + projectId)
+		formatter = utils.GetTerraformOutputAsComment("Additional output for " + projectName)
 	}
 	diggerOutPath := os.Getenv("DIGGER_OUT")
 	if _, err := os.Stat(diggerOutPath); err == nil {
 		output, _ := os.ReadFile(diggerOutPath)
 		outputStr := string(output)
 		if len(outputStr) > 0 {
-			_, _, commentErr := r.Report(outputStr, formatter)
+			commentErr := r.Report(projectName, outputStr, formatter)
 			if commentErr != nil {
 				log.Printf("error publishing comment: %v", commentErr)
 			}
@@ -459,7 +459,7 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				reportError(d.Reporter, stderr)
+				reportError(d.ProjectName, d.Reporter, stderr)
 				return false, fmt.Errorf("error running init: %v", err)
 			}
 		}

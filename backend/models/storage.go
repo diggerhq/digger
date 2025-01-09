@@ -617,7 +617,7 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool) (*DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, placeholderCommentIdForReport *string, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool) (*DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &DiggerBatch{
 		ID:                     uid,
@@ -628,6 +628,7 @@ func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationI
 		RepoFullName:           repoFullname,
 		PrNumber:               PRNumber,
 		CommentId:              commentId,
+		PlaceholderCommentIdForReport: placeholderCommentIdForReport,
 		Status:                 scheduler.BatchJobCreated,
 		BranchName:             branchName,
 		DiggerConfig:           diggerConfig,

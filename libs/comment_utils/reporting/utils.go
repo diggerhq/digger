@@ -5,7 +5,6 @@ import (
 	"github.com/diggerhq/digger/libs/ci"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log"
-	"time"
 )
 
 type SourceDetails struct {
@@ -28,15 +27,22 @@ func PostInitialSourceComments(ghService ci.PullRequestService, prNumber int, im
 		reporter := CiReporter{
 			PrNumber:       prNumber,
 			CiService:      ghService,
-			ReportStrategy: CommentPerRunStrategy{fmt.Sprintf("Report for location: %v", location), time.Now()},
+			ReportStrategy: NewSingleCommentStrategy(),
 		}
-		commentId, _, err := reporter.Report("Comment Reporter", func(report string) string { return "" })
+
+		err := reporter.Report(location, "Comment Reporter", func(report string) string { return "" })
 		if err != nil {
 			log.Printf("Error reporting source module comment: %v", err)
 			return nil, fmt.Errorf("error reporting source module comment: %v", err)
 		}
 
-		sourceDetails = append(sourceDetails, SourceDetails{location, commentId, projects})
+		commentIds, _, err := reporter.Flush()
+		if err != nil {
+			log.Printf("Error reporting source module comment: %v", err)
+			return nil, fmt.Errorf("error reporting source module comment: %v", err)
+		}
+
+		sourceDetails = append(sourceDetails, SourceDetails{location, commentIds[0], projects})
 	}
 
 	return sourceDetails, nil

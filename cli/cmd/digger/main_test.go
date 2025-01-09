@@ -895,8 +895,11 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, &prManager)
 
 	reporter := &reporting.CiReporter{
-		CiService: &prManager,
-		PrNumber:  prNumber,
+		CiService:         &prManager,
+		PrNumber:          prNumber,
+		IsSupportMarkdown: true,
+		IsSuppressed:      false,
+		ReportStrategy:    reporting.NewMultipleCommentsStrategy(),
 	}
 
 	event := context.Event.(github.PullRequestEvent)
@@ -923,8 +926,11 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	planStorage := storage.MockPlanStorage{}
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, &prManager)
 	reporter := &reporting.CiReporter{
-		CiService: &prManager,
-		PrNumber:  prNumber,
+		CiService:         &prManager,
+		PrNumber:          prNumber,
+		ReportStrategy:    reporting.NewMultipleCommentsStrategy(),
+		IsSuppressed:      false,
+		IsSupportMarkdown: true,
 	}
 
 	policyChecker := policy.MockPolicyChecker{}
