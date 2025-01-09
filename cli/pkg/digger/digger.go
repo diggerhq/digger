@@ -131,7 +131,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		}
 
 		currentJob := jobs[0]
-		repoNameForBackendReporting := strings.ReplaceAll(currentJob.Namespace, "/", "-")
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
@@ -143,7 +142,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		prNumber := *currentJob.PullRequestNumber
 
 		iacUtils := iac_utils.GetIacUtilsIacType(currentJob.IacType())
-		batchResult, err := backendApi.ReportProjectJobStatus(repoNameForBackendReporting, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, terraformOutput, iacUtils)
+		batchResult, err := backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, terraformOutput, iacUtils)
 		if err != nil {
 			log.Printf("error reporting Job status: %v.\n", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)

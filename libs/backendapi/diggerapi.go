@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -129,7 +130,8 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	return nil
 }
 
-func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+	repoNameForBackendReporting := strings.ReplaceAll(repoFullName, "/", "-")
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
 		log.Fatalf("Not able to parse digger cloud url: %v", err)
@@ -152,7 +154,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 		}
 	}
 
-	u.Path = filepath.Join(u.Path, "repos", repo, "projects", projectName, "jobs", jobId, "set-status")
+	u.Path = filepath.Join(u.Path, "repos", repoNameForBackendReporting, "projects", projectName, "jobs", jobId, "set-status")
 	request := map[string]interface{}{
 		"status":             status,
 		"timestamp":          timestamp,
