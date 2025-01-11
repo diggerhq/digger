@@ -137,8 +137,7 @@ func RunSpec(
 
 	jobs := []scheduler.Job{job}
 
-	fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
-	_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "", "", nil)
+	_, err = backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "", "", nil)
 	if err != nil {
 		message := fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err)
 		reportError(spec, backendApi, message, err)
