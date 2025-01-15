@@ -96,9 +96,10 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 		"    dir: dev\n" +
 		"auto_merge: true"
 	batch.BatchType = orchestrator_scheduler.DiggerCommandApply
+	batch.CoverAllImpactedProjects = false
 	err = AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
-	assert.True(t, isMergeCalled)
+	assert.False(t, isMergeCalled)
 
 	batch.DiggerConfig = "" +
 		"projects:\n" +
@@ -106,9 +107,8 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 		"    dir: dev\n" +
 		"auto_merge: true"
 	batch.BatchType = orchestrator_scheduler.DiggerCommandApply
-	batch.CoverAllImpactedProjects = false
+	batch.CoverAllImpactedProjects = true
 	err = AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
-	assert.False(t, isMergeCalled)
-
+	assert.True(t, isMergeCalled)
 }
