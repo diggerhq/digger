@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
@@ -10,10 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"log"
-	"os"
-	"strings"
-	"testing"
 )
 
 func init() {
@@ -143,7 +144,7 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 
 	for i, testParam := range testParameters {
 		ciService := github2.MockCiService{}
-		batch, _ := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, 123, "", "", "", 22, "", "", "", nil, 0, "", false)
+		batch, _ := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, 123, "", "", "", 22, "", "", "", nil, 0, "", false, true)
 		project, _ := models.DB.CreateProject(fmt.Sprintf("test%v", i), nil, nil, false, false)
 		planStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())
 		applyStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())

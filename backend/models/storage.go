@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/dchest/uniuri"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	scheduler "github.com/diggerhq/digger/libs/scheduler"
@@ -11,9 +15,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"time"
 )
 
 func (db *Database) GetProjectsFromContext(c *gin.Context, orgIdKey string) ([]Project, bool) {
@@ -617,24 +618,25 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool) (*DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool, coverAllImpactedProjects bool) (*DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &DiggerBatch{
-		ID:                     uid,
-		VCS:                    vcsType,
-		GithubInstallationId:   githubInstallationId,
-		RepoOwner:              repoOwner,
-		RepoName:               repoName,
-		RepoFullName:           repoFullname,
-		PrNumber:               PRNumber,
-		CommentId:              commentId,
-		Status:                 scheduler.BatchJobCreated,
-		BranchName:             branchName,
-		DiggerConfig:           diggerConfig,
-		BatchType:              batchType,
-		GitlabProjectId:        gitlabProjectId,
-		AiSummaryCommentId:     aiSummaryCommentId,
-		ReportTerraformOutputs: reportTerraformOutputs,
+		ID:                       uid,
+		VCS:                      vcsType,
+		GithubInstallationId:     githubInstallationId,
+		RepoOwner:                repoOwner,
+		RepoName:                 repoName,
+		RepoFullName:             repoFullname,
+		PrNumber:                 PRNumber,
+		CommentId:                commentId,
+		Status:                   scheduler.BatchJobCreated,
+		BranchName:               branchName,
+		DiggerConfig:             diggerConfig,
+		BatchType:                batchType,
+		GitlabProjectId:          gitlabProjectId,
+		AiSummaryCommentId:       aiSummaryCommentId,
+		ReportTerraformOutputs:   reportTerraformOutputs,
+		CoverAllImpactedProjects: coverAllImpactedProjects,
 	}
 	result := db.GormDB.Save(batch)
 	if result.Error != nil {

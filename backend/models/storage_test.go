@@ -1,15 +1,16 @@
 package models
 
 import (
+	"log"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	"os"
-	"strings"
-	"testing"
 )
 
 func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
@@ -151,7 +152,7 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	resourcesUpdated := uint(2)
 	resourcesDeleted := uint(3)
 
-	batch, err := DB.CreateDiggerBatch(DiggerVCSGithub, 123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId, 0, "", false)
+	batch, err := DB.CreateDiggerBatch(DiggerVCSGithub, 123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId, 0, "", false, true)
 	assert.NoError(t, err)
 
 	job, err := DB.CreateDiggerJob(batch.ID, []byte(jobSpec), "workflow_file.yml")

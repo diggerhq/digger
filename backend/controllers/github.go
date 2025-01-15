@@ -6,6 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"reflect"
+	"runtime/debug"
+	"slices"
+	"strconv"
+	"strings"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
@@ -29,17 +41,6 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
-	"log"
-	"math/rand"
-	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
-	"reflect"
-	"runtime/debug"
-	"slices"
-	"strconv"
-	"strings"
 )
 
 type IssueCommentHook func(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error
@@ -397,7 +398,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error processing event")
 	}
 
-	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config, false)
+	jobsForImpactedProjects, coverAllImpactedProjects, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config, false)
 	if err != nil {
 		log.Printf("Error converting event to jobsForImpactedProjects: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error converting event to jobsForImpactedProjects: %v", err))
@@ -522,7 +523,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		aiSummaryCommentId = aiSummaryComment.Id
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -827,7 +828,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error converting event to jobs: %v", err))
@@ -930,7 +931,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		aiSummaryCommentId = aiSummaryComment.Id
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *branch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
