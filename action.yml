@@ -379,17 +379,13 @@ runs:
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
         # if terraform-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
-        TF_PLUGIN_CACHE_DIR: ${{
-          inputs.terraform-cache-dir == '' &&
+        TF_PLUGIN_CACHE_DIR: ${{ inputs.terraform-cache-dir == '' &&
           format('{0}/cache', github.workspace) ||
-          inputs.terraform-cache-dir
-        }}
+          inputs.terraform-cache-dir }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{
-          inputs.terragrunt-cache-dir == '' &&
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ inputs.terragrunt-cache-dir == '' &&
           format('{0}/cache', github.workspace) ||
-          inputs.terragrunt-cache-dir
-        }}
+          inputs.terragrunt-cache-dir }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
           if [[ ${{ inputs.ee }} == "true" ]]; then
@@ -426,18 +422,14 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         # if terraform-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
-        TF_PLUGIN_CACHE_DIR: ${{ 
-          inputs.terraform-cache-dir == '' && 
+        TF_PLUGIN_CACHE_DIR: ${{ inputs.terraform-cache-dir == '' && 
           format('{0}/cache', github.workspace) || 
-          inputs.terraform-cache-dir
-        }}
+          inputs.terraform-cache-dir }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         # if terragrunt-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{
-          inputs.terragrunt-cache-dir == '' &&
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ inputs.terragrunt-cache-dir == '' &&
           format('{0}/cache', github.workspace) ||
-          inputs.terragrunt-cache-dir
-        }}
+          inputs.terragrunt-cache-dir }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
       shell: bash
