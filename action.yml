@@ -167,6 +167,15 @@ inputs:
     description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
     default: 'false'
+  terraform-cache-dir:
+    description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
+    required: false
+    default: ''
+  terragrunt-cache-dir:
+    description: "allows overriding of the terragrunt cache dir to ${github.workspace}/cache"
+    required: false
+    default: ''
+
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
     required: false
@@ -369,9 +378,18 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
-        TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
+        # if terraform-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
+        TF_PLUGIN_CACHE_DIR: ${{
+          inputs.terraform-cache-dir == '' &&
+          format('{0}/cache', github.workspace) ||
+          inputs.terraform-cache-dir
+        }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{
+          inputs.terragrunt-cache-dir == '' &&
+          format('{0}/cache', github.workspace) ||
+          inputs.terragrunt-cache-dir
+        }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
           if [[ ${{ inputs.ee }} == "true" ]]; then
@@ -407,9 +425,19 @@ runs:
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
-        TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
+        # if terraform-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
+        TF_PLUGIN_CACHE_DIR: ${{ 
+          inputs.terraform-cache-dir == '' && 
+          format('{0}/cache', github.workspace) || 
+          inputs.terraform-cache-dir
+        }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
+        # if terragrunt-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{
+          inputs.terragrunt-cache-dir == '' &&
+          format('{0}/cache', github.workspace) ||
+          inputs.terragrunt-cache-dir
+        }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
       shell: bash
