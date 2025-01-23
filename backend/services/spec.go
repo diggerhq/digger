@@ -88,7 +88,7 @@ func getVariablesSpecFromEnvMap(envVars map[string]string, stage string) []spec.
 
 func findDuplicatesInStage(variablesSpec []spec.VariableSpec, stage string) (error) {
 	// Extract the names from VariableSpec
-	justNames := lo.Map(variablesSpec, func(item VariableSpec, i int) string {
+	justNames := lo.Map(variablesSpec, func(item spec.VariableSpec, i int) string {
 		return item.Name
 	})
 
@@ -101,7 +101,7 @@ func findDuplicatesInStage(variablesSpec []spec.VariableSpec, stage string) (err
 	}))
 
 	if len(duplicates) > 0 {
-		return fmt.Errorf("In %v stage, found duplicate variables: %v", stage, duplicates)
+		return fmt.Errorf("duplicate variable names found in '%s' stage: %v", stage, strings.Join(duplicates, ", "))
 	}
 
 	return nil // No duplicates found
@@ -119,13 +119,13 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 	commandVariables := getVariablesSpecFromEnvMap(jobSpec.CommandEnvVars, "commands")
 	runVariables := getVariablesSpecFromEnvMap(jobSpec.RunEnvVars, "run")
 
-	if err := checkDuplicatesInStage(stateVariables, "state"); err != nil {
+	if err := findDuplicatesInStage(stateVariables, "state"); err != nil {
 		return nil, err
 	}
-	if err := checkDuplicatesInStage(commandVariables, "commands"); err != nil {
+	if err := findDuplicatesInStage(commandVariables, "commands"); err != nil {
 		return nil, err
 	}
-	if err := checkDuplicatesInStage(runVariables, "run"); err != nil {
+	if err := findDuplicatesInStage(runVariables, "run"); err != nil {
 		return nil, err
 	}
 
