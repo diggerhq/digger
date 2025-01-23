@@ -60,7 +60,7 @@ func GetRunNameFromJob(job models.DiggerJob) (*string, error) {
 	return &runName, nil
 }
 
-func getVariablesSpecFromEnvMap(envVars map[string]string) []spec.VariableSpec {
+func getVariablesSpecFromEnvMap(envVars map[string]string, stage string) []spec.VariableSpec {
 	variablesSpec := make([]spec.VariableSpec, 0)
 	for k, v := range envVars {
 		if strings.HasPrefix(v, "$DIGGER_") {
@@ -70,6 +70,7 @@ func getVariablesSpecFromEnvMap(envVars map[string]string) []spec.VariableSpec {
 				Value:          val,
 				IsSecret:       false,
 				IsInterpolated: true,
+				Stage:          stage,
 			})
 		} else {
 			variablesSpec = append(variablesSpec, spec.VariableSpec{
@@ -77,11 +78,33 @@ func getVariablesSpecFromEnvMap(envVars map[string]string) []spec.VariableSpec {
 				Value:          v,
 				IsSecret:       false,
 				IsInterpolated: false,
+				Stage:          stage,
 			})
 
 		}
 	}
 	return variablesSpec
+}
+
+func findDuplicatesInStage(variablesSpec []spec.VariableSpec, stage string) (error) {
+	// Extract the names from VariableSpec
+	justNames := lo.Map(variablesSpec, func(item VariableSpec, i int) string {
+		return item.Name
+	})
+
+	// Group names by their occurrence
+	nameCounts := lo.CountValues(justNames)
+
+	// Filter names that occur more than once
+	duplicates := lo.Keys(lo.Filter(nameCounts, func(count int, name string) bool {
+		return count > 1
+	}))
+
+	if len(duplicates) > 0 {
+		return fmt.Errorf("In %v stage, found duplicate variables: %v", stage, duplicates)
+	}
+
+	return nil // No duplicates found
 }
 
 func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
@@ -92,22 +115,24 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 		return nil, fmt.Errorf("could not marshal json string: %v", err)
 	}
 
+	stateVariables := getVariablesSpecFromEnvMap(jobSpec.StateEnvVars, "state")
+	commandVariables := getVariablesSpecFromEnvMap(jobSpec.CommandEnvVars, "commands")
+	runVariables := getVariablesSpecFromEnvMap(jobSpec.RunEnvVars, "run")
+
+	if err := checkDuplicatesInStage(stateVariables, "state"); err != nil {
+		return nil, err
+	}
+	if err := checkDuplicatesInStage(commandVariables, "commands"); err != nil {
+		return nil, err
+	}
+	if err := checkDuplicatesInStage(runVariables, "run"); err != nil {
+		return nil, err
+	}
+
 	variablesSpec := make([]spec.VariableSpec, 0)
-	stateVariables := getVariablesSpecFromEnvMap(jobSpec.StateEnvVars)
-	commandVariables := getVariablesSpecFromEnvMap(jobSpec.CommandEnvVars)
-	runVariables := getVariablesSpecFromEnvMap(jobSpec.RunEnvVars)
 	variablesSpec = append(variablesSpec, stateVariables...)
 	variablesSpec = append(variablesSpec, commandVariables...)
 	variablesSpec = append(variablesSpec, runVariables...)
-
-	// check for duplicates in list of variablesSpec
-	justNames := lo.Map(variablesSpec, func(item spec.VariableSpec, i int) string {
-		return item.Name
-	})
-	hasDuplicates := len(justNames) != len(lo.Uniq(justNames))
-	if hasDuplicates {
-		return nil, fmt.Errorf("could not load variables due to duplicates")
-	}
 
 	batch := job.Batch
 
