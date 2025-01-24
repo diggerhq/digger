@@ -96,7 +96,7 @@ func findDuplicatesInStage(variablesSpec []spec.VariableSpec, stage string) (err
 	nameCounts := lo.CountValues(justNames)
 
 	// Filter names that occur more than once
-	duplicates := lo.Keys(lo.Filter(nameCounts, func(count int, name string) bool {
+	duplicates := lo.Keys(lo.PickBy(nameCounts, func(name string, count int) bool {
 		return count > 1
 	}))
 
