@@ -434,6 +434,13 @@ func GetRuntimeToken() (string, error) {
 	if token == "" {
 		return "", fmt.Errorf("unable to get the ACTIONS_RUNTIME_TOKEN env variable")
 	}
+
+	// Basic JWT format validation (should have 3 parts separated by dots)
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("the provided JWT token is invalid: incorrect format")
+	}
+
 	return token, nil
 }
 
