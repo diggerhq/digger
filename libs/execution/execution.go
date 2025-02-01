@@ -262,7 +262,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 					return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
 				}
 
-				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
+				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 				if err != nil {
 					fmt.Println("Error storing artifact file:", err)
 					return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)

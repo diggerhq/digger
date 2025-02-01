@@ -109,7 +109,7 @@ func TestPlanStorageAWS_E2E(t *testing.T) {
 	assert.Equal(t, false, exists)
 
 	data := []byte("test")
-	err = psa.StorePlanFile(data, "test", planFilename)
+	err = psa.StorePlanFile(data, "", "test", planFilename)
 	if err != nil {
 		require.NoError(t, err)
 	}

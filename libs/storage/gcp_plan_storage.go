@@ -29,8 +29,8 @@ func (psg *PlanStorageGcp) PlanExists(artifactName string, storedPlanFilePath st
 	return true, nil
 }
 
-func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
-	fullPath := fileName
+func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, localFilePath string, artifactName string, storedPlanFilePath string) error {
+	fullPath := storedPlanFilePath
 	obj := psg.Bucket.Object(fullPath)
 	writer := obj.NewWriter(context.Background())
 	defer writer.Close()

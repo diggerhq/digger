@@ -3,7 +3,6 @@ package storage
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"io"
@@ -25,59 +24,15 @@ type GithubPlanStorage struct {
 	ZipManager        Zipper
 }
 
-func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, storedPlanFilePath string) error {
-	actionsRuntimeToken := os.Getenv("ACTIONS_RUNTIME_TOKEN")
-	actionsRuntimeURL := os.Getenv("ACTIONS_RUNTIME_URL")
-	githubRunID := os.Getenv("GITHUB_RUN_ID")
-	artifactBase := fmt.Sprintf("%s_apis/pipelines/workflows/%s/artifacts?api-version=6.0-preview", actionsRuntimeURL, githubRunID)
-
-	headers := map[string]string{
-		"Accept":        "application/json;api-version=6.0-preview",
-		"Authorization": "Bearer " + actionsRuntimeToken,
-		"Content-Type":  "application/json",
-	}
-
-	// Create Artifact
-	createArtifactURL := artifactBase
-	createArtifactData := map[string]string{"type": "actions_storage", "name": artifactName}
-	createArtifactBody, _ := json.Marshal(createArtifactData)
-	createArtifactResponse, err := doRequest("POST", createArtifactURL, headers, createArtifactBody)
-	if createArtifactResponse == nil || err != nil {
-		return fmt.Errorf("could not create artifact with github %v", err)
-	}
-	defer createArtifactResponse.Body.Close()
-
-	// Extract Resource URL
-	createArtifactResponseBody, _ := io.ReadAll(createArtifactResponse.Body)
-	var createArtifactResponseMap map[string]interface{}
-	json.Unmarshal(createArtifactResponseBody, &createArtifactResponseMap)
-	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
-
-	// Upload Data
-	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, storedPlanFilePath)
-	uploadData := fileContents
-	dataLen := len(uploadData)
-	headers["Content-Type"] = "application/octet-stream"
-	headers["Content-Range"] = fmt.Sprintf("bytes 0-%v/%v", dataLen-1, dataLen)
-	_, err = doRequest("PUT", uploadURL, headers, uploadData)
+func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, localFilePath string, artifactName string, storedPlanFilePath string) error {
+	files := []string{localFilePath}
+	_, err := UploadArtifact(context.Background(), artifactName, files, "/", &UploadArtifactOptions{
+		RetentionDays:    nil,
+		CompressionLevel: nil,
+	})
 	if err != nil {
-		return fmt.Errorf("could not upload artifact file %v", err)
+		return err
 	}
-
-	// Update Artifact Size
-	headers = map[string]string{
-		"Accept":        "application/json;api-version=6.0-preview",
-		"Authorization": "Bearer " + actionsRuntimeToken,
-		"Content-Type":  "application/json",
-	}
-	updateArtifactURL := fmt.Sprintf("%s&artifactName=%s", artifactBase, artifactName)
-	updateArtifactData := map[string]int{"size": dataLen}
-	updateArtifactBody, _ := json.Marshal(updateArtifactData)
-	_, err = doRequest("PATCH", updateArtifactURL, headers, updateArtifactBody)
-	if err != nil {
-		return fmt.Errorf("could finalize artefact upload: %v", err)
-	}
-
 	return nil
 }
 

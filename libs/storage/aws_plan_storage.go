@@ -53,11 +53,11 @@ func (psa *PlanStorageAWS) PlanExists(artifactName, storedPlanFilePath string) (
 	return true, nil
 }
 
-func (psa *PlanStorageAWS) StorePlanFile(fileContents []byte, artifactName, fileName string) error {
+func (psa *PlanStorageAWS) StorePlanFile(fileContents []byte, localFilePath string, artifactName string, storedPlanFilePath string) error {
 	input := &s3.PutObjectInput{
 		Body:   bytes.NewReader(fileContents),
 		Bucket: aws.String(psa.Bucket),
-		Key:    aws.String(fileName),
+		Key:    aws.String(storedPlanFilePath),
 	}
 	_, err := psa.Client.PutObject(psa.Context, input)
 	if err != nil {

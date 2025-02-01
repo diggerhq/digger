@@ -36,7 +36,7 @@ func TestGCPPlanStorageStorageAndRetrieval(t *testing.T) {
 	contents := []byte{'a'}
 	artefactName := "myartefact"
 	fileName := "myplan.tfplan"
-	err = planStorage.StorePlanFile(contents, artefactName, fileName)
+	err = planStorage.StorePlanFile(contents, "", artefactName, fileName)
 	fmt.Printf("error StorePlanFile: %v", err)
 	assert.Nil(t, err)
 	exists, err := planStorage.PlanExists(artefactName, fileName)
@@ -74,7 +74,7 @@ func TestAWSPlanStorageStorageAndRetrieval(t *testing.T) {
 	contents := []byte{'a'}
 	artefactName := "myartefact"
 	fileName := "myplan.tfplan"
-	err = planStorage.StorePlanFile(contents, artefactName, fileName)
+	err = planStorage.StorePlanFile(contents, "", artefactName, fileName)
 	if err != nil {
 		log.Printf("error StorePlanFile: %v", err)
 	}
