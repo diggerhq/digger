@@ -447,28 +447,33 @@ func GetRuntimeToken() (string, error) {
 // GetBackendIdsFromToken uses the JWT token claims to get the
 // workflow run and workflow job run backend ids
 func GetBackendIdsFromToken() (BackendIds, error) {
-	token, err := GetRuntimeToken() // You'll need to implement this similar to the TypeScript version
+	runtimeToken, err := GetRuntimeToken() // You'll need to implement this similar to the TypeScript version
 	if err != nil {
 		return BackendIds{}, fmt.Errorf("missing runtime token, %v", err)
 	}
 
-	log.Printf("got the token: %v", token)
-
+	type ActionsToken struct {
+		Scp string `json:"scp"`
+	}
 	// Parse and validate the token
+	var token ActionsToken
+
 	claims := jwt.MapClaims{}
-	_, err = jwt.ParseWithClaims(token, &claims, nil)
+	_, err = jwt.ParseWithClaims(runtimeToken, &claims, func(token *jwt.Token) (interface{}, error) {
+		// Your key validation here
+		return []byte(runtimeToken), nil
+	})
 	if err != nil {
 		return BackendIds{}, InvalidJwtError
 	}
 
 	// Get the scope claim
-	scp, ok := claims["scp"].(string)
-	if !ok {
-		return BackendIds{}, InvalidJwtError
-	}
+	// Convert the claims to your struct
+	jsonbytes, _ := json.Marshal(claims)
+	json.Unmarshal(jsonbytes, &token)
 
 	// Split the scope into parts
-	scpParts := strings.Split(scp, " ")
+	scpParts := strings.Split(token.Scp, " ")
 	if len(scpParts) == 0 {
 		return BackendIds{}, InvalidJwtError
 	}
