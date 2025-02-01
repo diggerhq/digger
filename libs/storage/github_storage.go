@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/golang-jwt/jwt"
 	"io"
 	"log"
 	"math/big"
@@ -15,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -177,7 +179,7 @@ func UploadArtifact(ctx context.Context, name string, files []string, rootDirect
 	}
 
 	// Get backend IDs
-	backendIDs, err := getBackendIDsFromToken()
+	backendIDs, err := GetBackendIdsFromToken()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get backend IDs: %w", err)
 	}
@@ -187,8 +189,8 @@ func UploadArtifact(ctx context.Context, name string, files []string, rootDirect
 
 	// Create artifact request
 	createReq := &CreateArtifactRequest{
-		WorkflowRunBackendID:    backendIDs.WorkflowRunBackendID,
-		WorkflowJobRunBackendID: backendIDs.WorkflowJobRunBackendID,
+		WorkflowRunBackendID:    backendIDs.WorkflowRunBackendId,
+		WorkflowJobRunBackendID: backendIDs.WorkflowJobRunBackendId,
 		Name:                    name,
 		Version:                 4,
 	}
@@ -229,8 +231,8 @@ func UploadArtifact(ctx context.Context, name string, files []string, rootDirect
 
 	// Finalize artifact
 	finalizeReq := &FinalizeArtifactRequest{
-		WorkflowRunBackendID:    backendIDs.WorkflowRunBackendID,
-		WorkflowJobRunBackendID: backendIDs.WorkflowJobRunBackendID,
+		WorkflowRunBackendID:    backendIDs.WorkflowRunBackendId,
+		WorkflowJobRunBackendID: backendIDs.WorkflowJobRunBackendId,
 		Name:                    name,
 		Size:                    fmt.Sprintf("%d", uploadResult.UploadSize),
 	}
@@ -420,21 +422,76 @@ func getUploadZipSpecification(files []string, rootDirectory string) ([]UploadZi
 	return specs, nil
 }
 
-func getBackendIDsFromToken() (*BackendIDs, error) {
-	// This is a placeholder implementation. You'll need to implement
-	// the actual token parsing logic based on your authentication system
-	runID := os.Getenv("GITHUB_RUN_ID")
-	jobID := os.Getenv("GITHUB_JOB_ID")
+type BackendIds struct {
+	WorkflowRunBackendId    string
+	WorkflowJobRunBackendId string
+}
 
-	if runID == "" || jobID == "" {
-		return nil, fmt.Errorf("required environment variables GITHUB_RUN_ID and GITHUB_JOB_ID not found")
+var InvalidJwtError = fmt.Errorf("failed to get backend IDs: the provided JWT token is invalid and/or missing claims")
+
+func GetRuntimeToken() (string, error) {
+	token := os.Getenv("ACTIONS_RUNTIME_TOKEN")
+	if token == "" {
+		return "", fmt.Errorf("unable to get the ACTIONS_RUNTIME_TOKEN env variable")
+	}
+	return token, nil
+}
+
+// GetBackendIdsFromToken uses the JWT token claims to get the
+// workflow run and workflow job run backend ids
+func GetBackendIdsFromToken() (BackendIds, error) {
+	token, err := GetRuntimeToken() // You'll need to implement this similar to the TypeScript version
+	if err != nil {
+		return BackendIds{}, fmt.Errorf("missing runtime token, %v", err)
 	}
 
-	return &BackendIDs{
-		WorkflowRunBackendID:    runID,
-		WorkflowJobRunBackendID: jobID,
-	}, nil
+	// Parse and validate the token
+	claims := jwt.MapClaims{}
+	_, err = jwt.ParseWithClaims(token, &claims, nil)
+	if err != nil {
+		return BackendIds{}, InvalidJwtError
+	}
+
+	// Get the scope claim
+	scp, ok := claims["scp"].(string)
+	if !ok {
+		return BackendIds{}, InvalidJwtError
+	}
+
+	// Split the scope into parts
+	scpParts := strings.Split(scp, " ")
+	if len(scpParts) == 0 {
+		return BackendIds{}, InvalidJwtError
+	}
+
+	// Look for Actions.Results scope
+	for _, scopes := range scpParts {
+		scopeParts := strings.Split(scopes, ":")
+		if scopeParts[0] != "Actions.Results" {
+			// not the Actions.Results scope
+			continue
+		}
+
+		if len(scopeParts) != 3 {
+			// missing expected number of claims
+			return BackendIds{}, InvalidJwtError
+		}
+
+		ids := BackendIds{
+			WorkflowRunBackendId:    scopeParts[1],
+			WorkflowJobRunBackendId: scopeParts[2],
+		}
+
+		// Log debug information
+		log.Printf(fmt.Sprintf("Workflow Run Backend ID: %s", ids.WorkflowRunBackendId))
+		log.Printf(fmt.Sprintf("Workflow Job Run Backend ID: %s", ids.WorkflowJobRunBackendId))
+
+		return ids, nil
+	}
+
+	return BackendIds{}, InvalidJwtError
 }
+
 func createZipUploadStream(specs []UploadZipSpecification, compressionLevel int) (io.Reader, error) {
 	buf := new(bytes.Buffer)
 	writer := zip.NewWriter(buf)
