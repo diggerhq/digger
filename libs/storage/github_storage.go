@@ -445,6 +445,8 @@ func GetBackendIdsFromToken() (BackendIds, error) {
 		return BackendIds{}, fmt.Errorf("missing runtime token, %v", err)
 	}
 
+	log.Printf("got the token: %v", token)
+
 	// Parse and validate the token
 	claims := jwt.MapClaims{}
 	_, err = jwt.ParseWithClaims(token, &claims, nil)
