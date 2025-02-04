@@ -16,6 +16,12 @@ jobs:
         uses: opentofu/setup-opentofu@v1.0.4
         with:
           tofu_version: 1.8.5
+          
+      - name: Setup terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+          terraform_version: "1.5.5"
 
       - name: Download Go
         uses: actions/setup-go@v5

@@ -167,6 +167,11 @@ inputs:
     description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
     default: 'false'
+  terraform-cache-dir:
+    description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
+    required: false
+    default: ''
+
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
     required: false
@@ -247,11 +252,21 @@ runs:
         subscription-id: ${{ inputs.azure-subscription-id }}
       if: ${{ inputs.setup-azure == 'true' && inputs.azure-client-id != '' }}
 
+    # if terraform-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
+    - name: retrieve cache dir
+      shell: bash
+      run: |
+        CACHE_DIR=${{ inputs.terraform-cache-dir == '' &&
+          format('{0}/cache', github.workspace) ||
+          inputs.terraform-cache-dir }}
+        echo "TF_PLUGIN_CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
+        echo "TERRAGRUNT_PROVIDER_CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
+
     - uses: actions/cache/restore@v4
       id: restore_cache
       name: restore_cache
       with:
-        path: ${{ github.workspace }}/cache
+        path: $TF_PLUGIN_CACHE_DIR
         key: digger-cache
         restore-keys: |
           digger-cache
@@ -346,6 +361,7 @@ runs:
         mkdir -p $GITHUB_WORKSPACE/cache
       shell: bash
 
+
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
       shell: bash
@@ -369,9 +385,7 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
-        TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
           if [[ ${{ inputs.ee }} == "true" ]]; then
@@ -407,9 +421,7 @@ runs:
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
-        TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
       shell: bash
@@ -428,7 +440,7 @@ runs:
       name: cache-save
       if: ${{ always() && inputs.cache-dependencies == 'true' && steps.restore_cache.outputs.cache-hit != 'true' }}
       with:
-        path: ${{ github.workspace }}/cache
+        path: $TF_PLUGIN_CACHE_DIR
         key: digger-cache-${{ hashFiles('**/cache') }}
         
 branding:
