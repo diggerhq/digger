@@ -169,7 +169,7 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 
 	issueNumber := 0
 
-	jobs, err := generic.CreateJobsForProjects(dgprojects, command, string(event), repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch)
+	jobs, err := generic.CreateJobsForProjects(dgprojects, command, string(event), repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch, false)
 	if err != nil {
 		log.Printf("Error creating jobs: %v", err)
 		return nil, nil, fmt.Errorf("error creating jobs: %v", err)
