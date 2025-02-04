@@ -463,7 +463,9 @@ func GetBackendIdsFromToken() (BackendIds, error) {
 		// Your key validation here
 		return []byte(runtimeToken), nil
 	})
+
 	if err != nil {
+		log.Printf("error parsing claims: %v", err)
 		return BackendIds{}, InvalidJwtError
 	}
 
@@ -475,6 +477,7 @@ func GetBackendIdsFromToken() (BackendIds, error) {
 	// Split the scope into parts
 	scpParts := strings.Split(token.Scp, " ")
 	if len(scpParts) == 0 {
+		log.Printf("scp parts missing: %v", scpParts)
 		return BackendIds{}, InvalidJwtError
 	}
 
@@ -487,6 +490,7 @@ func GetBackendIdsFromToken() (BackendIds, error) {
 		}
 
 		if len(scopeParts) != 3 {
+			log.Printf("scope parts are not 3: %v", err)
 			// missing expected number of claims
 			return BackendIds{}, InvalidJwtError
 		}
