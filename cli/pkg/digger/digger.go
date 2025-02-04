@@ -65,8 +65,10 @@ func DetectCI() CIName {
 }
 
 func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
-
 	defer reporter.Flush()
+
+	log.Printf("Info: [TF_PLUGIN_CACHE_DIR=%v] ", os.Getenv("TF_PLUGIN_CACHE_DIR"))
+	log.Printf("Info: [TERRAGRUNT_PROVIDER_CACHE_DIR=%v", os.Getenv("TERRAGRUNT_PROVIDER_CACHE_DIR"))
 
 	runStartedAt := time.Now()
 
