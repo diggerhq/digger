@@ -129,7 +129,7 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 		return nil, false, fmt.Errorf("command is not supported: %v", diggerCommand)
 	}
 
-	jobs, err := CreateJobsForProjects(runForProjects, commandToRun, "issue_comment", repoFullName, requestedBy, workflows, &prNumber, nil, defaultBranch, prBranch)
+	jobs, err := CreateJobsForProjects(runForProjects, commandToRun, "issue_comment", repoFullName, requestedBy, workflows, &prNumber, nil, defaultBranch, prBranch, true)
 	if err != nil {
 		return nil, false, err
 	}
@@ -138,7 +138,7 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 
 }
 
-func CreateJobsForProjects(projects []digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string) ([]scheduler.Job, error) {
+func CreateJobsForProjects(projects []digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string, performEnvVarsInterpolations bool) ([]scheduler.Job, error) {
 	jobs := make([]scheduler.Job, 0)
 
 	for _, project := range projects {
@@ -166,7 +166,7 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 		}
 
 		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
-		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, performEnvVarsInterpolations)
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 		workspace := project.Workspace
 		jobs = append(jobs, scheduler.Job{
@@ -189,8 +189,8 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			RequestedBy:        requestedBy,
 			StateEnvProvider:   StateEnvProvider,
 			CommandEnvProvider: CommandEnvProvider,
-			CommandRoleArn:    	cmdRole,
-			StateRoleArn:     	stateRole,
+			CommandRoleArn:     cmdRole,
+			StateRoleArn:       stateRole,
 			CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 			SkipMergeCheck:     skipMerge,
 		})
