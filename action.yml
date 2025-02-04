@@ -171,10 +171,6 @@ inputs:
     description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
     required: false
     default: ''
-  terragrunt-cache-dir:
-    description: "allows overriding of the terragrunt cache dir to ${github.workspace}/cache"
-    required: false
-    default: ''
 
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
