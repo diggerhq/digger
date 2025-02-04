@@ -453,58 +453,55 @@ func GetBackendIdsFromToken() (BackendIds, error) {
 	}
 
 	type ActionsToken struct {
+		jwt.StandardClaims
 		Scp string `json:"scp"`
 	}
 	// Parse and validate the token
-	var token ActionsToken
+	//var token ActionsToken
+	parser := jwt.Parser{
+		SkipClaimsValidation: true,
+	}
 
-	claims := jwt.MapClaims{}
-	_, err = jwt.ParseWithClaims(runtimeToken, &claims, func(token *jwt.Token) (interface{}, error) {
-		// Your key validation here
-		return []byte(runtimeToken), nil
-	})
-
+	claims := &ActionsToken{}
+	_, _, err = parser.ParseUnverified(runtimeToken, claims)
 	if err != nil {
-		log.Printf("error parsing claims: %v", err)
+		log.Printf("could not parse token: %v", err)
+		return BackendIds{}, fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	if claims.Scp == "" {
+		log.Printf("scp is empty")
 		return BackendIds{}, InvalidJwtError
 	}
 
-	// Get the scope claim
-	// Convert the claims to your struct
-	jsonbytes, _ := json.Marshal(claims)
-	json.Unmarshal(jsonbytes, &token)
-
-	// Split the scope into parts
-	scpParts := strings.Split(token.Scp, " ")
+	// Split the scopes
+	scpParts := strings.Split(claims.Scp, " ")
+	log.Printf("scp parts are: %v", scpParts)
 	if len(scpParts) == 0 {
-		log.Printf("scp parts missing: %v", scpParts)
+		log.Printf("no scp parts: %v", scpParts)
 		return BackendIds{}, InvalidJwtError
 	}
 
-	// Look for Actions.Results scope
+	// Rest of your logic remains the same
 	for _, scopes := range scpParts {
 		scopeParts := strings.Split(scopes, ":")
 		if scopeParts[0] != "Actions.Results" {
-			// not the Actions.Results scope
 			continue
 		}
 
 		if len(scopeParts) != 3 {
-			log.Printf("scope parts are not 3: %v", err)
-			// missing expected number of claims
 			return BackendIds{}, InvalidJwtError
 		}
 
-		ids := BackendIds{
+		ids := &BackendIds{
 			WorkflowRunBackendId:    scopeParts[1],
 			WorkflowJobRunBackendId: scopeParts[2],
 		}
 
-		// Log debug information
-		log.Printf(fmt.Sprintf("Workflow Run Backend ID: %s", ids.WorkflowRunBackendId))
-		log.Printf(fmt.Sprintf("Workflow Job Run Backend ID: %s", ids.WorkflowJobRunBackendId))
+		log.Printf("Workflow Run Backend ID: %s", ids.WorkflowRunBackendId)
+		log.Printf("Workflow Job Run Backend ID: %s", ids.WorkflowJobRunBackendId)
 
-		return ids, nil
+		return BackendIds{}, nil
 	}
 
 	return BackendIds{}, InvalidJwtError
