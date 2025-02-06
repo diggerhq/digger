@@ -100,6 +100,18 @@ inputs:
   upload-plan-destination-s3-bucket:
     description: Name of the destination bucket for AWS S3. Should be provided if destination == aws
     required: false
+  upload-plan-destination-s3-encryption-enabled:
+    description: If encryption is to be enabled for s3 bucket
+    required: false
+    default: "false"
+  upload-plan-destination-s3-encryption-type:
+    description: the type of encryption to use for the S3 bucket, either AES256 or KMS
+    required: false
+    default: "AES256"
+  upload-plan-destination-s3-encryption-kms-key-id:
+    description: for encryption of type KMS you need to specify the KMS key ID to use
+    required: false
+
   upload-plan-destination-gcp-bucket:
     description: Name of the destination bucket for a GCP bucket. Should be provided if destination == gcp
     required: false
@@ -367,6 +379,9 @@ runs:
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
+        PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
+        PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
         GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
         GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
@@ -404,6 +419,9 @@ runs:
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
+        PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
+        PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
         GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
         GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
