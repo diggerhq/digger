@@ -24,12 +24,53 @@ type S3Client interface {
 	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
 }
 
+type AwsS3EncryptionType string
+
+const (
+	ServerSideEncryptionAes256 AwsS3EncryptionType = "AES256"
+	ServerSideEncryptionAwsKms AwsS3EncryptionType = "aws:kms"
+)
+
 type PlanStorageAWS struct {
-	Client  S3Client
-	Bucket  string
-	Context context.Context
+	Client            S3Client
+	Bucket            string
+	Context           context.Context
+	EncryptionEnabled bool
+	EncryptionType    AwsS3EncryptionType
+	KMSEncryptionId   string
 }
 
+func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType string, KMSEncryptionId string) (*PlanStorageAWS, error) {
+	if bucketName == "" {
+		return nil, fmt.Errorf("AWS_S3_BUCKET is not defined")
+	}
+	ctx, client, err := GetAWSStorageClient()
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve aws storage client")
+	}
+	planStorage := &PlanStorageAWS{
+		Context: ctx,
+		Client:  client,
+		Bucket:  bucketName,
+	}
+	if encryptionEnabled {
+		planStorage.EncryptionEnabled = true
+		if encryptionType == "AES256" {
+			planStorage.EncryptionType = ServerSideEncryptionAes256
+		} else if encryptionType == "KMS" {
+			if KMSEncryptionId == "" {
+				return nil, fmt.Errorf("KMS encryption requested but no KMS key specified")
+			}
+			planStorage.EncryptionType = ServerSideEncryptionAwsKms
+			planStorage.KMSEncryptionId = KMSEncryptionId
+		} else {
+			return nil, fmt.Errorf("unknown encryption type specified for aws plan bucket: %v", encryptionType)
+		}
+	}
+
+	return planStorage, nil
+
+}
 func (psa *PlanStorageAWS) PlanExists(artifactName, storedPlanFilePath string) (bool, error) {
 	input := &s3.HeadObjectInput{
 		Bucket: aws.String(psa.Bucket),
@@ -59,6 +100,15 @@ func (psa *PlanStorageAWS) StorePlanFile(fileContents []byte, artifactName, file
 		Bucket: aws.String(psa.Bucket),
 		Key:    aws.String(fileName),
 	}
+
+	// support for encryption
+	if psa.EncryptionEnabled {
+		input.ServerSideEncryption = types.ServerSideEncryption(psa.EncryptionType)
+		if psa.EncryptionType == ServerSideEncryptionAwsKms {
+			input.SSEKMSKeyId = aws.String(psa.KMSEncryptionId)
+		}
+	}
+
 	_, err := psa.Client.PutObject(psa.Context, input)
 	if err != nil {
 		log.Printf("Failed to write file to bucket: %v", err)

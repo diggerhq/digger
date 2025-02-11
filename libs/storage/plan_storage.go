@@ -235,18 +235,14 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			Context: ctx,
 		}
 	case uploadDestination == "aws":
-		ctx, client, err := GetAWSStorageClient()
-		if err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("Failed to create AWS storage client: %s", err))
-		}
 		bucketName := strings.ToLower(os.Getenv("AWS_S3_BUCKET"))
-		if bucketName == "" {
-			return nil, fmt.Errorf("AWS_S3_BUCKET is not defined")
-		}
-		planStorage = &PlanStorageAWS{
-			Context: ctx,
-			Client:  client,
-			Bucket:  bucketName,
+		encryptionEnabled := os.Getenv("PLAN_UPLOAD_S3_ENCRYPTION_ENABLED") == "true"
+		encryptionType := os.Getenv("PLAN_UPLOAD_S3_ENCRYPTION_TYPE")
+		encryptionKmsId := os.Getenv("PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID")
+		var err error
+		planStorage, err = NewAWSPlanStorage(bucketName, encryptionEnabled, encryptionType, encryptionKmsId)
+		if err != nil {
+			return nil, fmt.Errorf("error while creating AWS plan storage: %v", err)
 		}
 	case uploadDestination == "gitlab":
 	//TODO implement me
