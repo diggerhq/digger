@@ -7,7 +7,7 @@ app = 'digger-pro'
 primary_region = 'lhr'
 
 [env]
-  DIGGER_HOSTNAME = 'https://ui-backend.digger.dev'
+  DIGGER_CLOUD_HOSTNAME = 'https://ui-backend.digger.dev'
 
 [build]
   dockerfile = 'Dockerfile_backend'
