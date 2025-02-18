@@ -16,4 +16,4 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only --config fly-pro.toml
         env:
-          FLY_API_TOKEN: ${{ secrets.FLYIO_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLYIO_PRO_TOKEN }}
