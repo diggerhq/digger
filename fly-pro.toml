@@ -1,37 +1,25 @@
-# fly.toml app configuration file generated for next-backend on 2024-07-19T08:47:44+01:00
+# fly.toml app configuration file generated for digger-pro on 2025-02-18T09:50:24+03:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'next-backend'
+app = 'digger-pro'
 primary_region = 'lhr'
-kill_signal = 'SIGINT'
-kill_timeout = '5s'
-
-[env]
-  DIGGER_HOSTNAME = 'https://ui-backend.digger.dev'
 
 [build]
-  dockerfile = 'Dockerfile_backend'
+  [build.args]
+    GO_VERSION = '1.22.4'
 
-[[services]]
-  protocol = 'tcp'
-  internal_port = 3000
+[env]
+  PORT = '8080'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
   processes = ['app']
-
-  [[services.ports]]
-    port = 80
-    handlers = ['http']
-    force_https = true
-
-  [[services.ports]]
-    port = 443
-    handlers = ['tls', 'http']
-
-  [services.concurrency]
-    type = 'connections'
-    hard_limit = 25
-    soft_limit = 20
 
 [[vm]]
   memory = '1gb'
