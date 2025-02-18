@@ -6,20 +6,30 @@
 app = 'digger-pro'
 primary_region = 'lhr'
 
-[build]
-  [build.args]
-    GO_VERSION = '1.22.4'
-
 [env]
-  PORT = '8080'
+  DIGGER_HOSTNAME = 'https://ui-backend.digger.dev'
 
-[http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = 'stop'
-  auto_start_machines = true
-  min_machines_running = 0
+[build]
+  dockerfile = 'Dockerfile_backend'
+
+[[services]]
+  protocol = 'tcp'
+  internal_port = 3000
   processes = ['app']
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
+  [services.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
 
 [[vm]]
   memory = '1gb'
