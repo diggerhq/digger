@@ -3,6 +3,12 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"path"
+	"strings"
+	"time"
+
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
@@ -12,11 +18,6 @@ import (
 	"github.com/diggerhq/digger/libs/policy"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
-	"log"
-	"os"
-	"path"
-	"strings"
-	"time"
 
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/usage"
@@ -68,7 +69,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 	defer reporter.Flush()
 
 	log.Printf("Info: [TF_PLUGIN_CACHE_DIR=%v] ", os.Getenv("TF_PLUGIN_CACHE_DIR"))
-	log.Printf("Info: [TERRAGRUNT_PROVIDER_CACHE_DIR=%v", os.Getenv("TERRAGRUNT_PROVIDER_CACHE_DIR"))
+	log.Printf("Info: [TG_PROVIDER_CACHE_DIR=%v", os.Getenv("TG_PROVIDER_CACHE_DIR"))
 
 	runStartedAt := time.Now()
 
