@@ -7,6 +7,7 @@ type User struct {
 	Email          string `gorm:"uniqueIndex"`
 	ExternalSource string `gorm:"uniqueIndex:idx_user_external_source"`
 	ExternalId     string `gorm:"uniqueIndex:idx_user_external_source"`
-	OrgId          *uint
+	OrganisationId *uint
+	Organisation   Organisation
 	Username       string `gorm:"uniqueIndex:idx_user"`
 }

@@ -1037,7 +1037,7 @@ func (db *Database) CreateUser(email string, externalSource string, externalId s
 		Email:          email,
 		ExternalId:     externalId,
 		ExternalSource: externalSource,
-		OrgId:          &orgId,
+		OrganisationId: &orgId,
 		Username:       username,
 	}
 	result := db.GormDB.Save(user)
