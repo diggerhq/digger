@@ -26,6 +26,7 @@ func (d DiggerController) CreateOrgInternal(c *gin.Context) {
 	externalSource := request.ExternalSource
 	externalId := request.ExternalId
 
+	log.Printf("creating org for %v %v %v", name, externalSource, externalId)
 	org, err := models.DB.CreateOrganisation(name, externalSource, externalId)
 	if err != nil {
 		log.Printf("Error creating org: %v", err)
