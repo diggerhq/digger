@@ -4,5 +4,8 @@ import "gorm.io/gorm"
 
 type User struct {
 	gorm.Model
-	Username string `gorm:"uniqueIndex:idx_user"`
+	Email      string
+	ExternalId string
+	OrgId      *uint
+	Username   string `gorm:"uniqueIndex:idx_user"`
 }
