@@ -18,7 +18,7 @@ func (d DiggerController) CreateOrgInternal(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error binding JSON"})
 		return
 	}
 
@@ -34,7 +34,7 @@ func (d DiggerController) CreateOrgInternal(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"status": "success", "org_id": org.ID})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "org_id": org.ID})
 }
 
 func (d DiggerController) CreateUserInternal(c *gin.Context) {
@@ -58,9 +58,8 @@ func (d DiggerController) CreateUserInternal(c *gin.Context) {
 
 	org, err := models.DB.GetOrganisation(externalOrgId)
 	if err != nil {
-		log.Printf("Error retriving org: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retriving org"})
-		return
+		log.Printf("Error retrieving org: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving org"})
 	}
 
 	// for now using email for username since we want to deprecate that field
