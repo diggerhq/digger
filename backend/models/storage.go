@@ -1032,8 +1032,14 @@ func (db *Database) GetOrganisation(tenantId any) (*Organisation, error) {
 	return org, nil
 }
 
-func (db *Database) CreateUser(email string, externalId string, orgId uint, username string) (*User, error) {
-	user := &User{Email: email, ExternalId: externalId, OrgId: &orgId, Username: username}
+func (db *Database) CreateUser(email string, externalSource string, externalId string, orgId uint, username string) (*User, error) {
+	user := &User{
+		Email:          email,
+		ExternalId:     externalId,
+		ExternalSource: externalSource,
+		OrgId:          &orgId,
+		Username:       username,
+	}
 	result := db.GormDB.Save(user)
 	if result.Error != nil {
 		log.Printf("Failed to create user: %v, error: %v\n", externalId, result.Error)

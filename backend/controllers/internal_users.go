@@ -39,9 +39,10 @@ func (d DiggerController) CreateOrgInternal(c *gin.Context) {
 
 func (d DiggerController) CreateUserInternal(c *gin.Context) {
 	type UserCreateRequest struct {
-		UserExternalId string `json:"external_id"`
-		UserEmail      string `json:"email"`
-		OrgExternalId  string `json:"external_org_id"`
+		UserExternalSource string `json:"external_source"`
+		UserExternalId     string `json:"external_id"`
+		UserEmail          string `json:"email"`
+		OrgExternalId      string `json:"external_org_id"`
 	}
 
 	var request UserCreateRequest
@@ -53,6 +54,7 @@ func (d DiggerController) CreateUserInternal(c *gin.Context) {
 	}
 
 	extUserId := request.UserExternalId
+	extUserSource := request.UserExternalSource
 	userEmail := request.UserEmail
 	externalOrgId := request.OrgExternalId
 
@@ -64,7 +66,7 @@ func (d DiggerController) CreateUserInternal(c *gin.Context) {
 
 	// for now using email for username since we want to deprecate that field
 	username := userEmail
-	user, err := models.DB.CreateUser(userEmail, extUserId, org.ID, username)
+	user, err := models.DB.CreateUser(userEmail, extUserSource, extUserId, org.ID, username)
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating user"})
