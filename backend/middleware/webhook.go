@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func WebhookAuth() gin.HandlerFunc {
+func InternalApiAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		webhookSecret := os.Getenv("DIGGER_INTERNAL_SECRET")
 		authHeader := c.Request.Header.Get("Authorization")
