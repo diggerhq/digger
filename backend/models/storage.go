@@ -1032,6 +1032,23 @@ func (db *Database) GetOrganisation(tenantId any) (*Organisation, error) {
 	return org, nil
 }
 
+func (db *Database) CreateUser(email string, externalSource string, externalId string, orgId uint, username string) (*User, error) {
+	user := &User{
+		Email:          email,
+		ExternalId:     externalId,
+		ExternalSource: externalSource,
+		OrganisationId: &orgId,
+		Username:       username,
+	}
+	result := db.GormDB.Save(user)
+	if result.Error != nil {
+		log.Printf("Failed to create user: %v, error: %v\n", externalId, result.Error)
+		return nil, result.Error
+	}
+	log.Printf("User (id: %v) has been created successfully\n", externalId)
+	return user, nil
+}
+
 func (db *Database) CreateOrganisation(name string, externalSource string, tenantId string) (*Organisation, error) {
 	org := &Organisation{Name: name, ExternalSource: externalSource, ExternalId: tenantId}
 	result := db.GormDB.Save(org)
