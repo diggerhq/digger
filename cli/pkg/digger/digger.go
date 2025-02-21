@@ -69,7 +69,8 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 	defer reporter.Flush()
 
 	log.Printf("Info: [TF_PLUGIN_CACHE_DIR=%v] ", os.Getenv("TF_PLUGIN_CACHE_DIR"))
-	log.Printf("Info: [TG_PROVIDER_CACHE_DIR=%v]", os.Getenv("TG_PROVIDER_CACHE_DIR"))
+	log.Printf("Info: [TG_PROVIDER_CACHE_DIR=%v] ", os.Getenv("TG_PROVIDER_CACHE_DIR"))
+	log.Printf("Info: [TERRAGRUNT_PROVIDER_CACHE_DIR=%v] ", os.Getenv("TERRAGRUNT_PROVIDER_CACHE_DIR"))
 
 	runStartedAt := time.Now()
 
