@@ -224,7 +224,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	// internal endpoints not meant to be exposed to public and protected behind webhook secret
 	r.POST("_internal/update_repo_cache", middleware.InternalApiAuth(), diggerController.UpdateRepoCache)
 	r.POST("_internal/api/create_user", middleware.InternalApiAuth(), diggerController.CreateUserInternal)
-	r.POST("_internal/api/create_org", middleware.InternalApiAuth(), diggerController.CreateOrgInternal)
+	r.POST("_internal/api/upsert_org", middleware.InternalApiAuth(), diggerController.UpsertOrgInternal)
 
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 

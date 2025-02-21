@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func (d DiggerController) CreateOrgInternal(c *gin.Context) {
+func (d DiggerController) UpsertOrgInternal(c *gin.Context) {
 	type OrgCreateRequest struct {
 		Name           string `json:"org_name"`
 		ExternalSource string `json:"external_source"`
@@ -27,7 +27,18 @@ func (d DiggerController) CreateOrgInternal(c *gin.Context) {
 	externalId := request.ExternalId
 
 	log.Printf("creating org for %v %v %v", name, externalSource, externalId)
-	org, err := models.DB.CreateOrganisation(name, externalSource, externalId)
+	var org *models.Organisation
+	org, err = models.DB.GetOrganisation(externalId)
+	if err != nil {
+		log.Printf("Error while retriving org: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating org"})
+		return
+	}
+
+	if org == nil {
+		org, err = models.DB.CreateOrganisation(name, externalSource, externalId)
+	}
+
 	if err != nil {
 		log.Printf("Error creating org: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating org"})
