@@ -20,6 +20,7 @@ func LinkGithubInstallationToOrgApi(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid request format"})
 		return
 	}
 
