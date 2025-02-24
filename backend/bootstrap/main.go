@@ -206,26 +206,23 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	admin.POST("/tokens/issue-access-token", controllers.IssueAccessTokenForOrg)
 
 	r.Use(middleware.CORSMiddleware())
-	projectsApiGroup := r.Group("/api/projects")
-	projectsApiGroup.Use(middleware.GetApiMiddleware())
-	projectsApiGroup.GET("/", controllers.FindProjectsForOrg)
-	projectsApiGroup.GET("/:project_id", controllers.ProjectDetails)
-	projectsApiGroup.GET("/:project_id/runs", controllers.RunsForProject)
-
-	activityApiGroup := r.Group("/api/activity")
-	activityApiGroup.Use(middleware.GetApiMiddleware())
-	activityApiGroup.GET("/", controllers.GetActivity)
-
-	runsApiGroup := r.Group("/api/runs")
-	runsApiGroup.Use(middleware.CORSMiddleware(), middleware.GetApiMiddleware())
-	runsApiGroup.GET("/:run_id", controllers.RunDetails)
-	runsApiGroup.POST("/:run_id/approve", controllers.ApproveRun)
 
 	// internal endpoints not meant to be exposed to public and protected behind webhook secret
 	if enableInternal := os.Getenv("DIGGER_ENABLE_INTERNAL_ENDPOINTS"); enableInternal == "true" {
 		r.POST("_internal/update_repo_cache", middleware.InternalApiAuth(), diggerController.UpdateRepoCache)
 		r.POST("_internal/api/create_user", middleware.InternalApiAuth(), diggerController.CreateUserInternal)
 		r.POST("_internal/api/upsert_org", middleware.InternalApiAuth(), diggerController.UpsertOrgInternal)
+	}
+
+	if enableApi := os.Getenv("DIGGER_ENABLE_API_ENDPOINTS"); enableApi == "true" {
+		apiGroup := r.Group("/api")
+		apiGroup.Use(middleware.HeadersApiAuth())
+
+		reposApiGroup := apiGroup.Group("/repos")
+		reposApiGroup.GET("/", controllers.ListReposApi)
+
+		githubApiGroup := apiGroup.Group("/github")
+		githubApiGroup.POST("/link", controllers.LinkGithubInstallationToOrgApi)
 	}
 
 	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
