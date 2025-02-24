@@ -130,7 +130,7 @@ func (r *Repo) MapToJsonStruct() interface{} {
 	return struct {
 		Id               uint   `json:"id"`
 		Name             string `json:"name"`
-		RepoFullName     string `json:"directory"`
+		RepoFullName     string `json:"repo_full_name"`
 		RepoUrl          string `json:"repo_url"`
 		VCS              string `json:"vcs"`
 		OrganisationID   uint   `json:"organisation_id"`
