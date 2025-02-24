@@ -126,7 +126,12 @@ func (p *Project) MapToJsonStruct() interface{} {
 	}
 }
 func (r *Repo) MapToJsonStruct() interface{} {
-
+	OrganisationName := func() string {
+		if r.Organisation == nil {
+			return ""
+		}
+		return r.Organisation.Name
+	}
 	return struct {
 		Id               uint   `json:"id"`
 		Name             string `json:"name"`
@@ -142,7 +147,7 @@ func (r *Repo) MapToJsonStruct() interface{} {
 		RepoUrl:          r.RepoUrl,
 		VCS:              string(r.VCS),
 		OrganisationID:   r.OrganisationID,
-		OrganisationName: r.Organisation.Name,
+		OrganisationName: OrganisationName(),
 	}
 }
 

@@ -33,6 +33,9 @@ func LinkGithubInstallationToOrgApi(c *gin.Context) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Printf("could not find organisation: %v", err)
 			c.JSON(http.StatusNotFound, gin.H{"status": "Could not find organisation: " + organisationId})
+		} else {
+			log.Printf("database error while finding organisation: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "Internal server error"})
 		}
 		return
 	}
