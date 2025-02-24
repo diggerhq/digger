@@ -1,8 +1,9 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Organisation struct {
@@ -19,7 +20,8 @@ type Repo struct {
 	RepoOrganisation string
 	RepoName         string
 	RepoUrl          string
-	OrganisationID   uint `gorm:"uniqueIndex:idx_org_repo"`
+	VCS              DiggerVCSType `gorm:"default:'github'"`
+	OrganisationID   uint          `gorm:"uniqueIndex:idx_org_repo"`
 	Organisation     *Organisation
 	DiggerConfig     string
 }
@@ -122,7 +124,31 @@ func (p *Project) MapToJsonStruct() interface{} {
 		IsGenerated:           p.IsGenerated,
 		IsInMainBranch:        p.IsInMainBranch,
 	}
-
+}
+func (r *Repo) MapToJsonStruct() interface{} {
+	OrganisationName := func() string {
+		if r.Organisation == nil {
+			return ""
+		}
+		return r.Organisation.Name
+	}
+	return struct {
+		Id               uint   `json:"id"`
+		Name             string `json:"name"`
+		RepoFullName     string `json:"repo_full_name"`
+		RepoUrl          string `json:"repo_url"`
+		VCS              string `json:"vcs"`
+		OrganisationID   uint   `json:"organisation_id"`
+		OrganisationName string `json:"organisation_name"`
+	}{
+		Id:               r.ID,
+		Name:             r.RepoName,
+		RepoFullName:     r.RepoFullName,
+		RepoUrl:          r.RepoUrl,
+		VCS:              string(r.VCS),
+		OrganisationID:   r.OrganisationID,
+		OrganisationName: OrganisationName(),
+	}
 }
 
 type Token struct {
