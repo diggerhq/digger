@@ -33,6 +33,6 @@ func HeadersApiAuth() gin.HandlerFunc {
 		c.Set(ORGANISATION_SOURCE_KEY, orgSource)
 		c.Set(USER_ID_KEY, userId)
 
-		return
+		c.Next()
 	}
 }

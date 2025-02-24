@@ -46,10 +46,5 @@ func ListReposApi(c *gin.Context) {
 	response := make(map[string]interface{})
 	response["result"] = marshalledRepos
 
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Unknown error occurred while marshalling response")
-		return
-	}
-
 	c.JSON(http.StatusOK, response)
 }
