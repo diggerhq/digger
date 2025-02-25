@@ -27,7 +27,11 @@ func GetJobsForRepoApi(c *gin.Context) {
 	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("could not find organisation: %v err: %v", organisationId, err)
 			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
+		} else {
+			log.Printf("could not fetch organisation: %v err: %v", organisationId, err)
+			c.String(http.StatusNotFound, "Could not fetch organisation: "+organisationId)
 		}
 		return
 	}
