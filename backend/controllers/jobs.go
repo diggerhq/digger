@@ -38,7 +38,7 @@ func GetJobsForRepoApi(c *gin.Context) {
 
 	repo, err := models.DB.GetRepoById(org.ID, repoId)
 	if err != nil {
-		log.Printf("could not fetch repo details")
+		log.Printf("could not fetch repo details %v", err)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching jobs from database")
 		return
 	}
