@@ -6,6 +6,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"log"
 	"net/http"
 )
 
@@ -18,6 +19,9 @@ func GetDashboardStatusApi(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
+		} else {
+			log.Printf("could not fetch organisation: %v err: %v", organisationId, err)
+			c.String(http.StatusNotFound, "Could not fetch organisation: "+organisationId)
 		}
 		return
 	}
