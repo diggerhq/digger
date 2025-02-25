@@ -220,12 +220,11 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 		reposApiGroup := apiGroup.Group("/repos")
 		reposApiGroup.GET("/", controllers.ListReposApi)
+		reposApiGroup.GET("/:repo_id/jobs", controllers.GetJobsForRepoApi)
 
 		githubApiGroup := apiGroup.Group("/github")
 		githubApiGroup.POST("/link", controllers.LinkGithubInstallationToOrgApi)
 	}
-
-	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 
 	return r
 }

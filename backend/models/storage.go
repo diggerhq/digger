@@ -924,6 +924,27 @@ func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error
 	return jobs, nil
 }
 
+func (db *Database) GetJobsByRepoName(orgId uint, repoFullName string) ([]JobQueryResult, error) {
+	var results []JobQueryResult
+
+	query := `
+		SELECT 
+			j.id, j.created_at, j.updated_at, j.deleted_at,
+			j.digger_job_id, j.status, j.workflow_run_url,
+			j.workflow_file, j.terraform_output, db.pr_number, db.repo_full_name, db.branch_name
+		FROM digger_jobs j, digger_batches db, organisations o, github_app_installation_links l
+		WHERE o.id = l.organisation_id
+			AND l.github_installation_id = db.github_installation_id
+			AND db.id = j.batch_id
+		  	AND o.id = ?
+			AND db.repo_full_name = ?
+		ORDER BY j.created_at
+	`
+
+	err := db.GormDB.Raw(query, orgId, repoFullName).Scan(&results).Error
+	return results, err
+}
+
 func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []scheduler.DiggerJobStatus) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
