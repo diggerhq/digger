@@ -214,34 +214,17 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		r.POST("_internal/api/upsert_org", middleware.InternalApiAuth(), diggerController.UpsertOrgInternal)
 	}
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
 	if enableApi := os.Getenv("DIGGER_ENABLE_API_ENDPOINTS"); enableApi == "true" {
 		apiGroup := r.Group("/api")
 		apiGroup.Use(middleware.HeadersApiAuth())
 
 		reposApiGroup := apiGroup.Group("/repos")
 		reposApiGroup.GET("/", controllers.ListReposApi)
-<<<<<<< Updated upstream
-
-		githubApiGroup := apiGroup.Group("/github")
-		githubApiGroup.POST("/link", controllers.LinkGithubInstallationToOrgApi)
-	}
-
-=======
 		reposApiGroup.GET("/:repo_id/jobs", controllers.GetJobsForRepoApi)
 
 		githubApiGroup := apiGroup.Group("/github")
 		githubApiGroup.POST("/link", controllers.LinkGithubInstallationToOrgApi)
-
 	}
-
->>>>>>> Stashed changes
->>>>>>> Stashed changes
-	fronteggWebhookProcessor.POST("/create-org-from-frontegg", controllers.CreateFronteggOrgFromWebhook)
 
 	return r
 }
