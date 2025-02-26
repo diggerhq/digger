@@ -7,7 +7,7 @@ app = 'digger-pro'
 primary_region = 'lhr'
 
 [env]
-  DIGGER_CLOUD_HOSTNAME = 'https://ui-backend.digger.dev'
+  DIGGER_HOSTNAME = 'https://ui-backend.digger.dev'
   JWT_AUTH = 'true'
 
 [build]
