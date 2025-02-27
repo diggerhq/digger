@@ -30,6 +30,7 @@ import (
 type DiggerEEController struct {
 	GithubClientProvider utils.GithubClientProvider
 	GitlabProvider       utils.GitlabProvider
+	BitbucketProvider    utils.BitbucketProvider
 	CiBackendProvider    ci_backends.CiBackendProvider
 }
 
@@ -164,7 +165,7 @@ func handlePushEvent(gh utils.GitlabProvider, payload *gitlab.PushEvent, organis
 		}
 		models.DB.UpdateRepoDiggerConfig(organisationId, *config, repo, isMainBranch)
 		return nil
-	})
+	}, "")
 	if err != nil {
 		return fmt.Errorf("error while cloning repo: %v", err)
 	}
@@ -218,7 +219,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	diggeryamlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranch(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, prNumber, discussionId)
+	diggeryamlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranchGitlab(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, prNumber, discussionId)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
@@ -407,7 +408,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	diggerYmlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranch(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, issueNumber, discussionId)
+	diggerYmlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranchGitlab(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, issueNumber, discussionId)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 // Define the base URL for the Bitbucket API.
@@ -41,35 +43,16 @@ func (b BitbucketAPI) sendRequest(method, url string, body []byte) (*http.Respon
 }
 
 type DiffStat struct {
-	Pagelen int `json:"pagelen"`
-	Values  []struct {
-		Type         string `json:"type"`
-		Status       string `json:"status"`
-		LinesRemoved int    `json:"lines_removed"`
-		LinesAdded   int    `json:"lines_added"`
-		Old          struct {
-			Path        string `json:"path"`
-			EscapedPath string `json:"escaped_path"`
-			Type        string `json:"type"`
-			Links       struct {
-				Self struct {
-					Href string `json:"href"`
-				} `json:"self"`
-			} `json:"links"`
-		} `json:"old"`
+	Values []struct {
+		Status string `json:"status"`
+		Old    struct {
+			Path string `json:"path"`
+		} `json:"old,omitempty"`
 		New struct {
-			Path        string `json:"path"`
-			EscapedPath string `json:"escaped_path"`
-			Type        string `json:"type"`
-			Links       struct {
-				Self struct {
-					Href string `json:"href"`
-				} `json:"self"`
-			} `json:"links"`
-		} `json:"new"`
+			Path string `json:"path"`
+		} `json:"new,omitempty"`
 	} `json:"values"`
-	Page int `json:"page"`
-	Size int `json:"size"`
+	Next string `json:"next,omitempty"`
 }
 
 func (b BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
@@ -81,10 +64,10 @@ func (b BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
 	}
 	defer resp.Body.Close()
 
+	log.Printf("url %v", url)
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get changed files. Status code: %d", resp.StatusCode)
 	}
-
 	diffStat := &DiffStat{}
 	err = json.NewDecoder(resp.Body).Decode(diffStat)
 	if err != nil {

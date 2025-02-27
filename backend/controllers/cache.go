@@ -76,7 +76,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 				return err
 			}
 			return nil
-		})
+		}, "")
 
 		if err != nil {
 			log.Printf("could not load digger config :%v", err)

@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/bitbucket"
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/bitbucket"
 	orchestrator_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	locking2 "github.com/diggerhq/digger/libs/locking"

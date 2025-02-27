@@ -589,7 +589,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 
 	// migrate tables
 	err = gdb.AutoMigrate(&models.Policy{}, &models.Organisation{}, &models.Repo{}, &models.Project{}, &models.Token{},
-		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.GithubAppConnection{}, &models.GithubAppInstallationLink{},
+		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.VCSConnection{}, &models.GithubAppInstallationLink{},
 		&models.GithubDiggerJobLink{}, &models.DiggerJob{}, &models.DiggerJobParentLink{}, &models.JobToken{})
 	if err != nil {
 		log.Fatal(err)

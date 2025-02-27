@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dchest/uniuri"
+	"github.com/diggerhq/digger/backend/queries"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
@@ -437,18 +438,20 @@ func (db *Database) GetGithubAppInstallationLink(installationId int64) (*GithubA
 	return &link, nil
 }
 
-func (db *Database) CreateGithubAppConnection(name string, githubId int64, ClientID string, ClientSecretEncrypted string, WebhookSecretEncrypted string, PrivateKeyEncrypted string, PrivateKeyBase64Encrypted string, Org string, url string, orgId uint) (*GithubAppConnection, error) {
-	app := GithubAppConnection{
-		Name:                      name,
-		GithubId:                  githubId,
-		ClientID:                  ClientID,
-		ClientSecretEncrypted:     ClientSecretEncrypted,
-		WebhookSecretEncrypted:    WebhookSecretEncrypted,
-		PrivateKeyEncrypted:       PrivateKeyEncrypted,
-		PrivateKeyBase64Encrypted: PrivateKeyBase64Encrypted,
-		Org:                       Org,
-		GithubAppUrl:              url,
-		OrganisationID:            orgId,
+func (db *Database) CreateVCSConnection(name string, githubId int64, ClientID string, ClientSecretEncrypted string, WebhookSecretEncrypted string, PrivateKeyEncrypted string, PrivateKeyBase64Encrypted string, Org string, url string, bitbucketAccessTokenEnc string, bitbucketWebhookSecretEnc string, orgId uint) (*VCSConnection, error) {
+	app := VCSConnection{
+		Name:                            name,
+		GithubId:                        githubId,
+		ClientID:                        ClientID,
+		ClientSecretEncrypted:           ClientSecretEncrypted,
+		WebhookSecretEncrypted:          WebhookSecretEncrypted,
+		PrivateKeyEncrypted:             PrivateKeyEncrypted,
+		PrivateKeyBase64Encrypted:       PrivateKeyBase64Encrypted,
+		Org:                             Org,
+		GithubAppUrl:                    url,
+		BitbucketWebhookSecretEncrypted: bitbucketWebhookSecretEnc,
+		BitbucketAccessTokenEncrypted:   bitbucketAccessTokenEnc,
+		OrganisationID:                  orgId,
 	}
 	result := db.GormDB.Save(&app)
 	if result.Error != nil {
@@ -458,8 +461,8 @@ func (db *Database) CreateGithubAppConnection(name string, githubId int64, Clien
 	return &app, nil
 }
 
-func (db *Database) GetGithubAppConnectionById(id string) (*GithubAppConnection, error) {
-	app := GithubAppConnection{}
+func (db *Database) GetVCSConnectionById(id string) (*VCSConnection, error) {
+	app := VCSConnection{}
 	result := db.GormDB.Where("id = ?", id).Find(&app)
 	if result.Error != nil {
 		log.Printf("Failed to find GitHub App for id: %v, error: %v\n", id, result.Error)
@@ -469,8 +472,8 @@ func (db *Database) GetGithubAppConnectionById(id string) (*GithubAppConnection,
 }
 
 // GetGithubApp return GithubApp by Id
-func (db *Database) GetGithubAppConnection(gitHubAppId any) (*GithubAppConnection, error) {
-	app := GithubAppConnection{}
+func (db *Database) GetVCSConnection(gitHubAppId any) (*VCSConnection, error) {
+	app := VCSConnection{}
 	result := db.GormDB.Where("github_id = ?", gitHubAppId).Find(&app)
 	if result.Error != nil {
 		log.Printf("Failed to find GitHub App for id: %v, error: %v\n", gitHubAppId, result.Error)
@@ -924,8 +927,8 @@ func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error
 	return jobs, nil
 }
 
-func (db *Database) GetJobsByRepoName(orgId uint, repoFullName string) ([]JobQueryResult, error) {
-	var results []JobQueryResult
+func (db *Database) GetJobsByRepoName(orgId uint, repoFullName string) ([]queries.JobQueryResult, error) {
+	var results []queries.JobQueryResult
 
 	query := `
 		SELECT 
