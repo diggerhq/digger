@@ -20,6 +20,7 @@ type DiggerVCSType string
 
 const DiggerVCSGithub DiggerVCSType = "github"
 const DiggerVCSGitlab DiggerVCSType = "gitlab"
+const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
 
 type DiggerBatch struct {
 	ID                     uuid.UUID `gorm:"primary_key"`

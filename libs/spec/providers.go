@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/bitbucket"
 	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/ci/gitlab"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -195,6 +196,18 @@ func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, 
 			return nil, fmt.Errorf("failed to get gitlab service, could not parse context: %v", err)
 		}
 		return gitlab.NewGitLabService(token, context, "")
+	case "bitbucket":
+		token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get bitbucket service: GITLAB_TOKEN not specified")
+		}
+		return bitbucket.BitbucketAPI{
+			AuthToken:     token,
+			HttpClient:    http.Client{},
+			RepoWorkspace: vcsSpec.RepoOwner,
+			RepoName:      vcsSpec.RepoName,
+		}, nil
+
 	default:
 		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
 	}

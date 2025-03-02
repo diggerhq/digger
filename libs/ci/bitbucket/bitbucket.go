@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -81,6 +83,26 @@ func (b BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
 	return files, nil
 }
 
+type BitbucketCommentResponse struct {
+	ID      int `json:"id"`
+	Content struct {
+		Raw string `json:"raw"`
+	} `json:"content"`
+	Links struct {
+		Self struct {
+			Href string `json:"href"`
+		} `json:"self"`
+		HTML struct {
+			Href string `json:"href"`
+		} `json:"html"`
+	} `json:"links"`
+	CreatedOn string `json:"created_on"`
+	User      struct {
+		DisplayName string `json:"display_name"`
+		UUID        string `json:"uuid"`
+	} `json:"user"`
+}
+
 func (b BitbucketAPI) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
@@ -105,7 +127,25 @@ func (b BitbucketAPI) PublishComment(prNumber int, comment string) (*ci.Comment,
 		return nil, fmt.Errorf("failed to publish comment. Status code: %d", resp.StatusCode)
 	}
 
-	return nil, nil
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response:", err)
+		return nil, fmt.Errorf("error reading response: %v", err)
+	}
+
+	var commentResponse BitbucketCommentResponse
+	if err := json.Unmarshal(body, &commentResponse); err != nil {
+		fmt.Println("Error parsing response:", err)
+		return nil, fmt.Errorf("error parsing response: %v", err)
+	}
+
+	res := ci.Comment{
+		Id:           strconv.Itoa(commentResponse.ID),
+		DiscussionId: "",
+		Body:         &comment,
+		Url:          commentResponse.Links.HTML.Href,
+	}
+	return &res, nil
 }
 
 func (svc BitbucketAPI) ListIssues() ([]*ci.Issue, error) {
@@ -123,8 +163,10 @@ func (svc BitbucketAPI) UpdateIssue(ID int64, title string, body string) (int64,
 func (b BitbucketAPI) EditComment(prNumber int, id string, comment string) error {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments/%s", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber, id)
 
-	commentBody := map[string]string{
-		"content": comment,
+	commentBody := map[string]interface{}{
+		"content": map[string]string{
+			"raw": comment,
+		},
 	}
 
 	commentJSON, err := json.Marshal(commentBody)
@@ -473,6 +515,137 @@ func (svc BitbucketAPI) SetOutput(prNumber int, key string, value string) error 
 
 func (b BitbucketAPI) GetUserTeams(organisation string, user string) ([]string, error) {
 	return nil, fmt.Errorf("not implemented")
+}
+
+type PipelineResponse struct {
+	UUID        string `json:"uuid"`
+	BuildNumber int    `json:"build_number"`
+	CreatedOn   string `json:"created_on"`
+	Creator     struct {
+		DisplayName string `json:"display_name"`
+		UUID        string `json:"uuid"`
+		AccountID   string `json:"account_id"`
+		Nickname    string `json:"nickname"`
+		Type        string `json:"type"`
+		Links       struct {
+			Self struct {
+				Href string `json:"href"`
+			} `json:"self"`
+			HTML struct {
+				Href string `json:"href"`
+			} `json:"html"`
+			Avatar struct {
+				Href string `json:"href"`
+			} `json:"avatar"`
+		} `json:"links"`
+	} `json:"creator"`
+	Repository struct {
+		Name     string `json:"name"`
+		FullName string `json:"full_name"`
+		UUID     string `json:"uuid"`
+		Type     string `json:"type"`
+		Links    struct {
+			Self struct {
+				Href string `json:"href"`
+			} `json:"self"`
+			HTML struct {
+				Href string `json:"href"`
+			} `json:"html"`
+			Avatar struct {
+				Href string `json:"href"`
+			} `json:"avatar"`
+		} `json:"links"`
+	} `json:"repository"`
+	Target struct {
+		Type     string `json:"type"`
+		RefName  string `json:"ref_name"`
+		RefType  string `json:"ref_type"`
+		Selector struct {
+			Type string `json:"type"`
+		} `json:"selector"`
+		Commit struct {
+			Type string `json:"type"`
+			Hash string `json:"hash"`
+		} `json:"commit"`
+	} `json:"target"`
+	Trigger struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"trigger"`
+	State struct {
+		Name  string `json:"name"`
+		Type  string `json:"type"`
+		Stage struct {
+			Name string `json:"name"`
+			Type string `json:"type"`
+		} `json:"stage"`
+	} `json:"state"`
+	Variables []struct {
+		Key     string `json:"key"`
+		Value   string `json:"value"`
+		Secured bool   `json:"secured"`
+		UUID    string `json:"uuid"`
+	} `json:"variables"`
+	Links struct {
+		Self struct {
+			Href string `json:"href"`
+		} `json:"self"`
+		HTML struct {
+			Href string `json:"href"`
+		} `json:"html"`
+	} `json:"links"`
+}
+
+// trigger pipeline from a specific branch
+func (b BitbucketAPI) TriggerPipeline(branch string, variables []interface{}) (string, error) {
+	url := fmt.Sprintf("%s/repositories/%s/%s/pipelines", bitbucketBaseURL, b.RepoWorkspace, b.RepoName)
+
+	log.Printf("pipeline trigger url: %v branch %v", url, branch)
+	triggerOptions := map[string]interface{}{
+		"target": map[string]interface{}{
+			"ref_type": "branch",
+			"type":     "pipeline_ref_target",
+			"ref_name": branch,
+			"selector": map[string]interface{}{
+				"type":    "custom",
+				"pattern": "digger",
+			},
+		},
+		"variables": variables,
+	}
+
+	triggerJSON, err := json.Marshal(triggerOptions)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := b.sendRequest("POST", url, triggerJSON)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("the response from bitbucket is: %v", string(body))
+		return "", fmt.Errorf("failed to trigger pipeline: %d", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response:", err)
+		return "", fmt.Errorf("error reading response: %v", err)
+	}
+
+	var triggerPipelineResponse PipelineResponse
+	if err := json.Unmarshal(body, &triggerPipelineResponse); err != nil {
+		fmt.Println("Error parsing response:", err)
+		return "", fmt.Errorf("error parsing response: %v", err)
+	}
+
+	log.Printf(triggerPipelineResponse.Links.HTML.Href)
+	return "", nil
+
 }
 
 func FindImpactedProjectsInBitbucket(diggerConfig *configuration.DiggerConfig, prNumber int, prService ci.PullRequestService) ([]configuration.Project, error) {

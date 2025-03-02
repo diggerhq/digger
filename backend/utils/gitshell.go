@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -129,7 +128,6 @@ func (g *GitShell) Clone(repoURL, branch string) error {
 		args = append(args, "-b", branch)
 	}
 
-	log.Printf("auth url: %v", authURL)
 	args = append(args, "--depth", "1")
 	args = append(args, "--single-branch", authURL, g.workDir)
 

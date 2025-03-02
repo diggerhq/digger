@@ -595,7 +595,7 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	var diggerYmlStr string
 	var dependencyGraph graph.Graph[string, dg_configuration.Project]
 
-	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
+	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 		diggerYmlStr, err = dg_configuration.ReadDiggerYmlFileContents(dir)
 		if err != nil {
 			log.Printf("could not load digger config: %v", err)
@@ -607,7 +607,7 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 			return err
 		}
 		return nil
-	}, "")
+	})
 	if err != nil {
 		log.Printf("Error cloning and loading config: %v", err)
 		return "", nil, nil, nil, fmt.Errorf("error cloning and loading config %v", err)

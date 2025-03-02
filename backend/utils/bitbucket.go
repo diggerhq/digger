@@ -59,7 +59,7 @@ func GetDiggerConfigForBitbucketBranch(bb BitbucketProvider, token string, repoF
 		return "", nil, nil, fmt.Errorf("error getting changed files")
 	}
 
-	err = CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "", func(dir string) error {
+	err = CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "x-token-auth", func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
