@@ -12,6 +12,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/utils"
+	ci_backends2 "github.com/diggerhq/digger/ee/backend/ci_backends"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -116,26 +117,25 @@ func (ee DiggerEEController) BitbucketWebhookHandler(c *gin.Context) {
 			log.Printf("error parsing pullrequest:comment_created event: %v", err)
 			log.Printf("error parsing pullrequest:comment_created event: %v", err)
 		}
-		handleIssueCommentEventBB(ee.BitbucketProvider, &pullRequestCommentCreated, ee.CiBackendProvider, orgId, bitbucketAccessToken)
-		return
+		go handleIssueCommentEventBB(ee.BitbucketProvider, &pullRequestCommentCreated, ee.CiBackendProvider, orgId, bitbucketAccessToken)
 	case "pullrequest:created":
 		err := json.Unmarshal(bodyBytes, &pullRequestCreated)
 		if err != nil {
 			log.Printf("error parsing pullrequest:created event: %v", err)
 		}
 		log.Printf("pullrequest:created")
-		return
 	case "repo:push":
 		err := json.Unmarshal(bodyBytes, &repoPush)
 		if err != nil {
 			log.Printf("error parsing repo:push event: %v", err)
 		}
 		log.Printf("repo:push")
-		return
 	default:
 		log.Printf("unknown event key: %s", eventKey)
 		return
 	}
+
+	c.String(http.StatusAccepted, "ok")
 }
 
 func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payload *BitbucketCommentCreatedEvent, ciBackendProvider ci_backends.CiBackendProvider, organisationId uint, bbAccessToken string) error {
@@ -149,14 +149,11 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	commentId := payload.Comment.ID
 	commentBody := payload.Comment.Content.Raw
 	branch := payload.PullRequest.Source.Branch.Name
-	commitSha := payload.PullRequest.Source.Commit.Hash
+	// TODO: figure why git fetch fails in bb pipeline
+	commitSha := "" //payload.PullRequest.Source.Commit.Hash
 	defaultBranch := payload.PullRequest.Source.Branch.Name
 	actor := payload.Actor.Nickname
 	//discussionId := payload.Comment.ID
-
-	log.Printf("clone url %v", cloneURL)
-	log.Printf("access token :%v", bbAccessToken)
-	log.Printf("repoowner %v reponame %v", repoOwner, repoName)
 
 	if !strings.HasPrefix(commentBody, "digger") {
 		log.Printf("comment is not a Digger command, ignoring")
@@ -212,7 +209,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
 		return fmt.Errorf("error processing event")
 	}
-	log.Printf("GitHub IssueComment event processed successfully\n")
+	log.Printf("Bitbucket IssueComment event processed successfully\n")
 
 	// perform unlocking in backend
 	if config.PrLocks {
@@ -286,7 +283,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		log.Printf("ParseInt err: %v", err)
 		return fmt.Errorf("parseint error: %v", err)
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -325,18 +322,13 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 
 	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
 
-	ciBackend, err := ciBackendProvider.GetCiBackend(
-		ci_backends.CiBackendOptions{
-			RepoName:     repoName,
-			RepoOwner:    repoOwner,
-			RepoFullName: repoFullName,
-			// BB data
-		},
-	)
-	if err != nil {
-		log.Printf("GetCiBackend error: %v", err)
-		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: GetCiBackend error: %v", err))
-		return fmt.Errorf("error fetching ci backed %v", err)
+	// hardcoded bitbucket ci backend for this controller
+	// TODO: making this configurable based on env variable and connection
+	ciBackend := ci_backends2.BitbucketPipelineCI{
+		RepoName:  repoName,
+		RepoOwner: repoOwner,
+		Branch:    branch,
+		Client:    bbService,
 	}
 	err = controllers.TriggerDiggerJobs(ciBackend, repoFullName, repoOwner, repoName, batchId, issueNumber, bbService, nil)
 	if err != nil {

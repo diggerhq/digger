@@ -157,7 +157,7 @@ func handlePushEvent(gh utils.GitlabProvider, payload *gitlab.PushEvent, organis
 		isMainBranch = false
 	}
 
-	err = utils.CloneGitRepoAndDoAction(cloneURL, pushBranch, "", token, func(dir string) error {
+	err = utils.CloneGitRepoAndDoAction(cloneURL, pushBranch, "", token, "", func(dir string) error {
 		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
 			log.Printf("ERROR load digger.yml: %v", err)
@@ -165,7 +165,7 @@ func handlePushEvent(gh utils.GitlabProvider, payload *gitlab.PushEvent, organis
 		}
 		models.DB.UpdateRepoDiggerConfig(organisationId, *config, repo, isMainBranch)
 		return nil
-	}, "")
+	})
 	if err != nil {
 		return fmt.Errorf("error while cloning repo: %v", err)
 	}
