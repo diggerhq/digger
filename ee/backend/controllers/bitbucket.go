@@ -117,7 +117,7 @@ func (ee DiggerEEController) BitbucketWebhookHandler(c *gin.Context) {
 			log.Printf("error parsing pullrequest:comment_created event: %v", err)
 			log.Printf("error parsing pullrequest:comment_created event: %v", err)
 		}
-		go handleIssueCommentEventBB(ee.BitbucketProvider, &pullRequestCommentCreated, ee.CiBackendProvider, orgId, bitbucketAccessToken)
+		go handleIssueCommentEventBB(ee.BitbucketProvider, &pullRequestCommentCreated, ee.CiBackendProvider, orgId, &connectionEncrypted.ID, bitbucketAccessToken)
 	case "pullrequest:created":
 		err := json.Unmarshal(bodyBytes, &pullRequestCreated)
 		if err != nil {
@@ -138,7 +138,7 @@ func (ee DiggerEEController) BitbucketWebhookHandler(c *gin.Context) {
 	c.String(http.StatusAccepted, "ok")
 }
 
-func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payload *BitbucketCommentCreatedEvent, ciBackendProvider ci_backends.CiBackendProvider, organisationId uint, bbAccessToken string) error {
+func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payload *BitbucketCommentCreatedEvent, ciBackendProvider ci_backends.CiBackendProvider, organisationId uint, vcsConnectionId *uint, bbAccessToken string) error {
 	repoFullName := payload.Repository.FullName
 	repoOwner := payload.Repository.Owner.Username
 	repoName := payload.Repository.Name
@@ -283,7 +283,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		log.Printf("ParseInt err: %v", err)
 		return fmt.Errorf("parseint error: %v", err)
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false, vcsConnectionId)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

@@ -114,7 +114,7 @@ func (l LockProvider) GetLock(lockSpec LockSpec) (locking.Lock, error) {
 
 type ReporterProvider struct{}
 
-func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, ciService ci.PullRequestService, prNumber int) (reporting.Reporter, error) {
+func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, ciService ci.PullRequestService, prNumber int, vcs string) (reporting.Reporter, error) {
 	getStrategy := func(strategy string) reporting.ReportStrategy {
 		switch reporterSpec.ReportingStrategy {
 		case "comments_per_run":
@@ -131,6 +131,10 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 		}
 	}
 
+	isSupportMarkdown := true
+	if vcs == "bitbucket" {
+		isSupportMarkdown = false
+	}
 	switch reporterSpec.ReporterType {
 	case "noop":
 		return reporting.NoopReporter{}, nil
@@ -139,7 +143,7 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 		return reporting.CiReporter{
 			CiService:         ciService,
 			PrNumber:          prNumber,
-			IsSupportMarkdown: true,
+			IsSupportMarkdown: isSupportMarkdown,
 			ReportStrategy:    strategy,
 		}, nil
 	case "lazy":
@@ -147,7 +151,7 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 		ciReporter := reporting.CiReporter{
 			CiService:         ciService,
 			PrNumber:          prNumber,
-			IsSupportMarkdown: true,
+			IsSupportMarkdown: isSupportMarkdown,
 			ReportStrategy:    strategy,
 		}
 		return reporting.NewCiReporterLazy(ciReporter), nil

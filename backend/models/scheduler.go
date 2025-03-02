@@ -39,7 +39,9 @@ type DiggerBatch struct {
 	BatchType              orchestrator_scheduler.DiggerCommand
 	ReportTerraformOutputs bool
 	// used for module source grouping comments
-	SourceDetails []byte
+	SourceDetails   []byte
+	VCSConnectionId *uint ``
+	VCSConnection   VCSConnection
 }
 
 type DiggerJob struct {

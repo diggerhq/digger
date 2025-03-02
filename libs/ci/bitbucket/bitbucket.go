@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/diggerhq/digger/libs/ci"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/diggerhq/digger/libs/ci"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 // Define the base URL for the Bitbucket API.
@@ -66,7 +63,6 @@ func (b BitbucketAPI) GetChangedFiles(prNumber int) ([]string, error) {
 	}
 	defer resp.Body.Close()
 
-	log.Printf("url %v", url)
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get changed files. Status code: %d", resp.StatusCode)
 	}
@@ -600,7 +596,6 @@ type PipelineResponse struct {
 func (b BitbucketAPI) TriggerPipeline(branch string, variables []interface{}) (string, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pipelines", bitbucketBaseURL, b.RepoWorkspace, b.RepoName)
 
-	log.Printf("pipeline trigger url: %v branch %v", url, branch)
 	triggerOptions := map[string]interface{}{
 		"target": map[string]interface{}{
 			"ref_type": "branch",
@@ -626,8 +621,6 @@ func (b BitbucketAPI) TriggerPipeline(branch string, variables []interface{}) (s
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
-		log.Printf("the response from bitbucket is: %v", string(body))
 		return "", fmt.Errorf("failed to trigger pipeline: %d", resp.StatusCode)
 	}
 
@@ -643,7 +636,6 @@ func (b BitbucketAPI) TriggerPipeline(branch string, variables []interface{}) (s
 		return "", fmt.Errorf("error parsing response: %v", err)
 	}
 
-	log.Printf(triggerPipelineResponse.Links.HTML.Href)
 	return "", nil
 
 }
