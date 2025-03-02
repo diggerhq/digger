@@ -186,16 +186,6 @@ func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, 
 			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
 		}
 		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
-	case "gitlab":
-		token := os.Getenv("GITLAB_TOKEN")
-		if token == "" {
-			return nil, fmt.Errorf("failed to get gitlab service: GITLAB_TOKEN not specified")
-		}
-		context, err := gitlab.ParseGitLabContext()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get gitlab service, could not parse context: %v", err)
-		}
-		return gitlab.NewGitLabService(token, context, "")
 	case "bitbucket":
 		token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
 		if token == "" {
@@ -207,6 +197,16 @@ func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, 
 			RepoWorkspace: vcsSpec.RepoOwner,
 			RepoName:      vcsSpec.RepoName,
 		}, nil
+	case "gitlab":
+		token := os.Getenv("GITLAB_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get gitlab service: GITLAB_TOKEN not specified")
+		}
+		context, err := gitlab.ParseGitLabContext()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get gitlab service, could not parse context: %v", err)
+		}
+		return gitlab.NewGitLabService(token, context, "")
 
 	default:
 		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
@@ -223,6 +223,17 @@ func (v VCSProviderBasic) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) 
 			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
 		}
 		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
+	case "bitbucket":
+		token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get bitbucket service: GITLAB_TOKEN not specified")
+		}
+		return bitbucket.BitbucketAPI{
+			AuthToken:     token,
+			HttpClient:    http.Client{},
+			RepoWorkspace: vcsSpec.RepoOwner,
+			RepoName:      vcsSpec.RepoName,
+		}, nil
 	case "gitlab":
 		token := os.Getenv("GITLAB_TOKEN")
 		if token == "" {
