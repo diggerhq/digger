@@ -538,7 +538,7 @@ func getDiggerConfigForBranch(gh next_utils.GithubClientProvider, installationId
 		log.Printf("Error getting changed files: %v", err)
 		return "", nil, nil, nil, fmt.Errorf("error getting changed files")
 	}
-	err = backend_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
+	err = backend_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)

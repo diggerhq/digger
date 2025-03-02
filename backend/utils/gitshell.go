@@ -12,9 +12,10 @@ import (
 )
 
 type GitAuth struct {
-	Username string
-	Password string // Can be either password or access token
-	Token    string // x-access-token
+	Username      string
+	Password      string // Can be either password or access token
+	TokenUsername string // if set will replace x-access-token (needed for bitbucket which uses x-token-auth)
+	Token         string // x-access-token
 }
 
 type GitShell struct {
@@ -41,11 +42,12 @@ func NewGitShell(workDir string, auth *GitAuth) *GitShell {
 	}
 }
 
-func NewGitShellWithTokenAuth(workDir string, token string) *GitShell {
+func NewGitShellWithTokenAuth(workDir string, token string, tokenUsername string) *GitShell {
 	auth := GitAuth{
-		Username: "x-access-token",
-		Password: "",
-		Token:    token,
+		Username:      "x-access-token",
+		Password:      "",
+		TokenUsername: tokenUsername,
+		Token:         token,
 	}
 	return NewGitShell(workDir, &auth)
 }
@@ -64,7 +66,11 @@ func (g *GitShell) formatAuthURL(repoURL string) (string, error) {
 	// Handle different auth types
 	if g.auth.Token != "" {
 		// X-Access-Token authentication
-		parsedURL.User = url.UserPassword("x-access-token", g.auth.Token)
+		tokenUsername := g.auth.TokenUsername
+		if tokenUsername == "" {
+			tokenUsername = "x-access-token"
+		}
+		parsedURL.User = url.UserPassword(tokenUsername, g.auth.Token)
 	} else if g.auth.Username != "" {
 		// Username/password or personal access token
 		parsedURL.User = url.UserPassword(g.auth.Username, g.auth.Password)
@@ -121,6 +127,7 @@ func (g *GitShell) Clone(repoURL, branch string) error {
 	if branch != "" {
 		args = append(args, "-b", branch)
 	}
+
 	args = append(args, "--depth", "1")
 	args = append(args, "--single-branch", authURL, g.workDir)
 

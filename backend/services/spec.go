@@ -34,6 +34,31 @@ func GetVCSTokenFromJob(job models.DiggerJob, gh utils.GithubClientProvider) (*s
 		}
 	case models.DiggerVCSGitlab:
 		token = os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
+	case models.DiggerVCSBitbucket:
+		// TODO: Refactor this peice into its own
+		if batch.VCSConnectionId == nil {
+			return nil, fmt.Errorf("connection ID not set, could not get vcs token")
+		}
+		log.Printf("vcs connection id %v", batch.VCSConnectionId)
+		connectionId := strconv.Itoa(int(*batch.VCSConnectionId))
+		connectionEncrypted, err := models.DB.GetVCSConnectionById(connectionId)
+		if err != nil {
+			log.Printf("failed to fetch connection: %v", err)
+			return nil, fmt.Errorf("failed to fetch connection: %v", err)
+		}
+
+		secret := os.Getenv("DIGGER_ENCRYPTION_SECRET")
+		if secret == "" {
+			log.Printf("ERROR: no encryption secret specified, please specify DIGGER_ENCRYPTION_SECRET as 32 bytes base64 string")
+			return nil, fmt.Errorf("ERROR: no encryption secret specified, please specify DIGGER_ENCRYPTION_SECRET as 32 bytes base64 string")
+		}
+		connectionDecrypted, err := utils.DecryptConnection(connectionEncrypted, []byte(secret))
+		if err != nil {
+			log.Printf("ERROR: could not perform decryption: %v", err)
+			return nil, fmt.Errorf("ERROR: could not perform decryption: %v", err)
+		}
+		bitbucketAccessToken := connectionDecrypted.BitbucketAccessToken
+		token = bitbucketAccessToken
 	default:
 		return nil, fmt.Errorf("unknown batch VCS: %v", batch.VCS)
 	}

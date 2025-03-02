@@ -3,9 +3,6 @@ package bootstrap
 import (
 	"embed"
 	"fmt"
-	"github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/segment"
-	pprof_gin "github.com/gin-contrib/pprof"
 	"html/template"
 	"io/fs"
 	"log"
@@ -14,6 +11,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+
+	"github.com/diggerhq/digger/backend/config"
+	"github.com/diggerhq/digger/backend/segment"
+	pprof_gin "github.com/gin-contrib/pprof"
 
 	"time"
 
@@ -216,7 +217,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 	if enableApi := os.Getenv("DIGGER_ENABLE_API_ENDPOINTS"); enableApi == "true" {
 		apiGroup := r.Group("/api")
-		apiGroup.Use(middleware.HeadersApiAuth())
+		apiGroup.Use(middleware.InternalApiAuth(), middleware.HeadersApiAuth())
 
 		reposApiGroup := apiGroup.Group("/repos")
 		reposApiGroup.GET("/", controllers.ListReposApi)
@@ -224,6 +225,12 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 		githubApiGroup := apiGroup.Group("/github")
 		githubApiGroup.POST("/link", controllers.LinkGithubInstallationToOrgApi)
+
+		vcsApiGroup := apiGroup.Group("/connections")
+		vcsApiGroup.GET("/:id", controllers.GetVCSConnection)
+		vcsApiGroup.GET("/", controllers.ListVCSConnectionsApi)
+		vcsApiGroup.POST("/", controllers.CreateVCSConnectionApi)
+		vcsApiGroup.DELETE("/:id", controllers.DeleteVCSConnection)
 	}
 
 	return r

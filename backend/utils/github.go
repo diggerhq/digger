@@ -28,9 +28,9 @@ func createTempDir() string {
 
 type action func(string) error
 
-func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, token string, action action) error {
+func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, token string, tokenUsername string, action action) error {
 	dir := createTempDir()
-	git := NewGitShellWithTokenAuth(dir, token)
+	git := NewGitShellWithTokenAuth(dir, token, tokenUsername)
 	err := git.Clone(repoUrl, branch)
 	if err != nil {
 		return err

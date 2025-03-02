@@ -103,7 +103,7 @@ func GithubAppConnections(c *gin.Context) {
 		return
 	}
 
-	var connections []models.GithubAppConnection
+	var connections []models.VCSConnection
 
 	// GORM query
 	result := models.DB.GormDB.Where("organisation_id = ?", orgId).Find(&connections)
@@ -192,7 +192,7 @@ func (d DiggerEEController) GithubAppConnectionsConfirm(c *gin.Context) {
 		return
 	}
 
-	_, err = models.DB.CreateGithubAppConnection(cfg.GetName(), cfg.GetID(), cfg.GetClientID(), clientSecretEnc, webhookSecretEnc, PEMEnc, PEM64Enc, *cfg.Owner.Login, cfg.GetHTMLURL(), orgId)
+	_, err = models.DB.CreateVCSConnection(cfg.GetName(), cfg.GetID(), cfg.GetClientID(), clientSecretEnc, webhookSecretEnc, PEMEnc, PEM64Enc, *cfg.Owner.Login, cfg.GetHTMLURL(), "", "", orgId)
 	if err != nil {
 		log.Printf("failed to create github app connection record: %v", err)
 		c.String(500, fmt.Sprintf("Failed to create github app record on callback"))
@@ -215,7 +215,7 @@ func (d DiggerEEController) GithubAppConnectionsDelete(c *gin.Context) {
 		c.Error(fmt.Errorf("Ignoring callback, missing code query parameter"))
 	}
 
-	connection := models.GithubAppConnection{}
+	connection := models.VCSConnection{}
 	result := models.DB.GormDB.Where("id = ?", connectionId).Delete(&connection)
 	if result.Error != nil {
 		log.Printf("error while deleting record %v: %v", connectionId, result.Error.Error())

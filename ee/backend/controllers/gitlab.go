@@ -30,6 +30,7 @@ import (
 type DiggerEEController struct {
 	GithubClientProvider utils.GithubClientProvider
 	GitlabProvider       utils.GitlabProvider
+	BitbucketProvider    utils.BitbucketProvider
 	CiBackendProvider    ci_backends.CiBackendProvider
 }
 
@@ -156,7 +157,7 @@ func handlePushEvent(gh utils.GitlabProvider, payload *gitlab.PushEvent, organis
 		isMainBranch = false
 	}
 
-	err = utils.CloneGitRepoAndDoAction(cloneURL, pushBranch, "", token, func(dir string) error {
+	err = utils.CloneGitRepoAndDoAction(cloneURL, pushBranch, "", token, "", func(dir string) error {
 		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
 			log.Printf("ERROR load digger.yml: %v", err)
@@ -218,7 +219,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	diggeryamlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranch(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, prNumber, discussionId)
+	diggeryamlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranchGitlab(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, prNumber, discussionId)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
@@ -333,7 +334,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		log.Printf("strconv.ParseInt error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, 0, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggeryamlStr, projectId, "", false)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, 0, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggeryamlStr, projectId, "", false, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -407,7 +408,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	diggerYmlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranch(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, issueNumber, discussionId)
+	diggerYmlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranchGitlab(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, issueNumber, discussionId)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
@@ -524,7 +525,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		log.Printf("ParseInt err: %v", err)
 		return fmt.Errorf("parseint error: %v", err)
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, projectId, "", false)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, projectId, "", false, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
