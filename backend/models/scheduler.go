@@ -20,6 +20,7 @@ type DiggerVCSType string
 
 const DiggerVCSGithub DiggerVCSType = "github"
 const DiggerVCSGitlab DiggerVCSType = "gitlab"
+const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
 
 type DiggerBatch struct {
 	ID                     uuid.UUID `gorm:"primary_key"`
@@ -38,7 +39,9 @@ type DiggerBatch struct {
 	BatchType              orchestrator_scheduler.DiggerCommand
 	ReportTerraformOutputs bool
 	// used for module source grouping comments
-	SourceDetails []byte
+	SourceDetails   []byte
+	VCSConnectionId *uint ``
+	VCSConnection   VCSConnection
 }
 
 type DiggerJob struct {

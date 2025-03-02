@@ -99,7 +99,7 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber)
+	reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber, spec.VCS.VcsType)
 	if err != nil {
 		message := fmt.Sprintf("could not get reporter: %v", err)
 		reportError(spec, backendApi, message, err)

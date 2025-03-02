@@ -50,7 +50,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 
 	// migrate tables
 	err = gdb.AutoMigrate(&models.Policy{}, &models.Organisation{}, &models.Repo{}, &models.Project{}, &models.Token{},
-		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.GithubAppConnection{}, &models.GithubAppInstallationLink{},
+		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.VCSConnection{}, &models.GithubAppInstallationLink{},
 		&models.GithubDiggerJobLink{}, &models.DiggerJob{}, &models.DiggerJobParentLink{}, &models.DiggerRun{}, &models.DiggerRunQueueItem{})
 	if err != nil {
 		log.Fatal(err)
@@ -143,7 +143,7 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 
 	for i, testParam := range testParameters {
 		ciService := github2.MockCiService{}
-		batch, _ := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, 123, "", "", "", 22, "", "", "", nil, 0, "", false)
+		batch, _ := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, 123, "", "", "", 22, "", "", "", nil, 0, "", false, nil)
 		project, _ := models.DB.CreateProject(fmt.Sprintf("test%v", i), nil, nil, false, false)
 		planStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())
 		applyStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())

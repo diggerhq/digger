@@ -46,7 +46,7 @@ func GetGitlabService(gh GitlabProvider, projectId int, repoName string, repoFul
 	return &service, nil
 }
 
-func GetDiggerConfigForBranch(gh GitlabProvider, projectId int, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int, discussionId string) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func GetDiggerConfigForBranchGitlab(gh GitlabProvider, projectId int, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int, discussionId string) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	token := os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
 
 	service, err := GetGitlabService(gh, projectId, repoName, repoFullName, prNumber, discussionId)
@@ -62,7 +62,7 @@ func GetDiggerConfigForBranch(gh GitlabProvider, projectId int, repoFullName str
 		log.Printf("Error getting changed files: %v", err)
 		return "", nil, nil, fmt.Errorf("error getting changed files")
 	}
-	err = CloneGitRepoAndDoAction(cloneUrl, branch, "", token, func(dir string) error {
+	err = CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "", func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
 		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)

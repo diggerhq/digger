@@ -44,7 +44,7 @@ func (gh DiggerGithubEEClientProvider) Get(githubAppId int64, installationId int
 
 	if githubAppPrivateKeyB64 == "" {
 		log.Printf("Info: could not find env variable for private key, attempting to find via connection ID")
-		connectionEnc, err := models.DB.GetGithubAppConnection(githubAppId)
+		connectionEnc, err := models.DB.GetVCSConnection(githubAppId)
 		if err != nil {
 			log.Printf("could not find app using app id: %v", githubAppId)
 			return nil, nil, fmt.Errorf("could not find app using app id: %v", githubAppId)
@@ -108,7 +108,7 @@ func (gh DiggerGithubEEClientProvider) FetchCredentials(githubAppId string) (str
 
 	log.Printf("Info: client ID and secret env variables not set, trying to find app via connection ID")
 
-	connectionEnc, err := models.DB.GetGithubAppConnection(githubAppId)
+	connectionEnc, err := models.DB.GetVCSConnection(githubAppId)
 	if err != nil {
 		log.Printf("could not find app using githubAppId id: %v", githubAppId)
 		return "", "", "", "", fmt.Errorf("could not find app using githubAppId id: %v", githubAppId)

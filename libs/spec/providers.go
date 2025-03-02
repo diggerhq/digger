@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/bitbucket"
 	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/ci/gitlab"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -113,7 +114,7 @@ func (l LockProvider) GetLock(lockSpec LockSpec) (locking.Lock, error) {
 
 type ReporterProvider struct{}
 
-func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, ciService ci.PullRequestService, prNumber int) (reporting.Reporter, error) {
+func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, ciService ci.PullRequestService, prNumber int, vcs string) (reporting.Reporter, error) {
 	getStrategy := func(strategy string) reporting.ReportStrategy {
 		switch reporterSpec.ReportingStrategy {
 		case "comments_per_run":
@@ -130,6 +131,10 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 		}
 	}
 
+	isSupportMarkdown := true
+	if vcs == "bitbucket" {
+		isSupportMarkdown = false
+	}
 	switch reporterSpec.ReporterType {
 	case "noop":
 		return reporting.NoopReporter{}, nil
@@ -138,7 +143,7 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 		return reporting.CiReporter{
 			CiService:         ciService,
 			PrNumber:          prNumber,
-			IsSupportMarkdown: true,
+			IsSupportMarkdown: isSupportMarkdown,
 			ReportStrategy:    strategy,
 		}, nil
 	case "lazy":
@@ -146,7 +151,7 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 		ciReporter := reporting.CiReporter{
 			CiService:         ciService,
 			PrNumber:          prNumber,
-			IsSupportMarkdown: true,
+			IsSupportMarkdown: isSupportMarkdown,
 			ReportStrategy:    strategy,
 		}
 		return reporting.NewCiReporterLazy(ciReporter), nil
@@ -185,6 +190,17 @@ func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, 
 			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
 		}
 		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
+	case "bitbucket":
+		token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get bitbucket service: GITLAB_TOKEN not specified")
+		}
+		return bitbucket.BitbucketAPI{
+			AuthToken:     token,
+			HttpClient:    http.Client{},
+			RepoWorkspace: vcsSpec.RepoOwner,
+			RepoName:      vcsSpec.RepoName,
+		}, nil
 	case "gitlab":
 		token := os.Getenv("GITLAB_TOKEN")
 		if token == "" {
@@ -195,6 +211,7 @@ func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, 
 			return nil, fmt.Errorf("failed to get gitlab service, could not parse context: %v", err)
 		}
 		return gitlab.NewGitLabService(token, context, "")
+
 	default:
 		return nil, fmt.Errorf("could not get PRService, unknown type %v", vcsSpec.VcsType)
 	}
@@ -210,6 +227,17 @@ func (v VCSProviderBasic) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) 
 			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
 		}
 		return github.GithubServiceProviderBasic{}.NewService(token, vcsSpec.RepoName, vcsSpec.RepoOwner)
+	case "bitbucket":
+		token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("failed to get bitbucket service: GITLAB_TOKEN not specified")
+		}
+		return bitbucket.BitbucketAPI{
+			AuthToken:     token,
+			HttpClient:    http.Client{},
+			RepoWorkspace: vcsSpec.RepoOwner,
+			RepoName:      vcsSpec.RepoName,
+		}, nil
 	case "gitlab":
 		token := os.Getenv("GITLAB_TOKEN")
 		if token == "" {

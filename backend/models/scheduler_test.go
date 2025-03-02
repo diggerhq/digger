@@ -38,7 +38,7 @@ func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
 
 	// migrate tables
 	err = gdb.AutoMigrate(&Policy{}, &Organisation{}, &Repo{}, &Project{}, &Token{},
-		&User{}, &ProjectRun{}, &GithubAppInstallation{}, &GithubAppConnection{}, &GithubAppInstallationLink{},
+		&User{}, &ProjectRun{}, &GithubAppInstallation{}, &VCSConnection{}, &GithubAppInstallationLink{},
 		&GithubDiggerJobLink{}, &DiggerJob{}, &DiggerJobParentLink{})
 	if err != nil {
 		log.Fatal(err)
