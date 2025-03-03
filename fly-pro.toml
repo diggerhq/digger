@@ -12,7 +12,7 @@ primary_region = 'lhr'
   JWT_AUTH = 'true'
 
 [build]
-  dockerfile = 'Dockerfile_backend'
+  dockerfile = 'Dockerfile_backend_ee'
 
 [[services]]
   protocol = 'tcp'
