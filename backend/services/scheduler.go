@@ -6,10 +6,14 @@ import (
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
 	"log"
+	"runtime/debug"
+	"time"
 )
 
 func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoFullName string, repoOwner string, repoName string, workflowFileName string, gh utils.GithubClientProvider) error {
@@ -131,5 +135,68 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 		return err
 	}
 
+	go UpdateWorkflowUrlForJob(job, ciBackend, spec, gh)
+
 	return nil
+}
+
+// This is meant to run asyncronously since it queries for job url
+// in case of github we don't get it immediately but with some delay
+func UpdateWorkflowUrlForJob(job *models.DiggerJob, ciBackend ci_backends.CiBackend, spec *spec.Spec, gh utils.GithubClientProvider) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in UpdateWorkflowUrlForJob handler: %v", r)
+			log.Printf("\n=== PANIC RECOVERED ===\n")
+			log.Printf("Error: %v\n", r)
+			log.Printf("Stack Trace:\n%s", string(debug.Stack()))
+			log.Printf("=== END PANIC ===\n")
+		}
+	}()
+
+	batch := job.Batch
+	// for now we only perform this update for github
+	if batch.VCS != models.DiggerVCSGithub {
+		return
+	}
+	for n := 0; n < 30; n++ {
+		time.Sleep(1 * time.Second)
+		workflowUrl, err := ciBackend.GetWorkflowUrl(*spec)
+		if err != nil {
+			log.Printf("DiggerJobId %v: error while attempting to fetch workflow url: %v", job.DiggerJobID, err)
+		} else {
+			if workflowUrl == "#" || workflowUrl == "" {
+				log.Printf("DiggerJobId %v: got blank workflow url as response, ignoring", job.DiggerJobID)
+			} else {
+				job.WorkflowRunUrl = &workflowUrl
+				err = models.DB.UpdateDiggerJob(job)
+				if err != nil {
+					log.Printf("DiggerJobId %v: Error updating digger job: %v", job.DiggerJobID, err)
+					continue
+				} else {
+					log.Printf("DiggerJobId %v: successfully updated workflow run url to: %v for DiggerJobID: %v", job.DiggerJobID, workflowUrl, job.DiggerJobID)
+				}
+
+				// refresh the batch from DB to get accurate results
+				batch, err = models.DB.GetDiggerBatch(&job.Batch.ID)
+				if err != nil {
+					log.Printf("DiggerJobId %v: Error getting batch: %v", job.DiggerJobID, err)
+					continue
+				}
+				res, err := batch.MapToJsonStruct()
+				if err != nil {
+					log.Printf("DiggerJobId %v: Error getting batch details: %v", job.DiggerJobID, err)
+					continue
+				}
+				// TODO: make this abstract and extracting the right "prService" based on VCS
+				client, _, err := utils.GetGithubService(gh, batch.GithubInstallationId, spec.VCS.RepoFullname, spec.VCS.RepoOwner, spec.VCS.RepoName)
+				err = comment_updater.BasicCommentUpdater{}.UpdateComment(res.Jobs, *spec.Job.PullRequestNumber, client, spec.CommentId)
+				if err != nil {
+					log.Printf("diggerJobId: %v error whilst updating comment %v", job.DiggerJobID, err)
+					continue
+				}
+				return
+			}
+		}
+	}
+
 }

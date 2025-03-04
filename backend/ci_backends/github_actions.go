@@ -3,6 +3,7 @@ package ci_backends
 import (
 	"context"
 	"encoding/json"
+	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
@@ -29,4 +30,14 @@ func (g GithubActionCi) TriggerWorkflow(spec spec.Spec, runName string, vcsToken
 	})
 
 	return err
+}
+
+func (g GithubActionCi) GetWorkflowUrl(spec spec.Spec) (string, error) {
+	_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(g.Client, spec.VCS.RepoOwner, spec.VCS.RepoName, spec.JobId)
+	if err != nil {
+		log.Printf("Error getting workflow ID from job: %v", err)
+		return "", err
+	} else {
+		return workflowRunUrl, nil
+	}
 }

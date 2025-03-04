@@ -59,3 +59,7 @@ func (gl GitlabPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, vcsTo
 
 	return err
 }
+
+func (g GitlabPipelineCI) GetWorkflowUrl(spec spec.Spec) (string, error) {
+	return "", nil
+}
