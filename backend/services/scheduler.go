@@ -6,7 +6,6 @@ import (
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
@@ -135,14 +134,13 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 		return err
 	}
 
-	go UpdateWorkflowUrlForJob(job, ciBackend, spec, gh)
+	go UpdateWorkflowUrlForJob(job, ciBackend, spec)
 
 	return nil
 }
 
 // This is meant to run asyncronously since it queries for job url
-// in case of github we don't get it immediately but with some delay
-func UpdateWorkflowUrlForJob(job *models.DiggerJob, ciBackend ci_backends.CiBackend, spec *spec.Spec, gh utils.GithubClientProvider) {
+func UpdateWorkflowUrlForJob(job *models.DiggerJob, ciBackend ci_backends.CiBackend, spec *spec.Spec) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Recovered from panic in UpdateWorkflowUrlForJob handler: %v", r)
@@ -176,27 +174,10 @@ func UpdateWorkflowUrlForJob(job *models.DiggerJob, ciBackend ci_backends.CiBack
 					log.Printf("DiggerJobId %v: successfully updated workflow run url to: %v for DiggerJobID: %v", job.DiggerJobID, workflowUrl, job.DiggerJobID)
 				}
 
-				// refresh the batch from DB to get accurate results
-				batch, err = models.DB.GetDiggerBatch(&job.Batch.ID)
-				if err != nil {
-					log.Printf("DiggerJobId %v: Error getting batch: %v", job.DiggerJobID, err)
-					continue
-				}
-				res, err := batch.MapToJsonStruct()
-				if err != nil {
-					log.Printf("DiggerJobId %v: Error getting batch details: %v", job.DiggerJobID, err)
-					continue
-				}
-				// TODO: make this abstract and extracting the right "prService" based on VCS
-				client, _, err := utils.GetGithubService(gh, batch.GithubInstallationId, spec.VCS.RepoFullname, spec.VCS.RepoOwner, spec.VCS.RepoName)
-				err = comment_updater.BasicCommentUpdater{}.UpdateComment(res.Jobs, *spec.Job.PullRequestNumber, client, spec.CommentId)
-				if err != nil {
-					log.Printf("diggerJobId: %v error whilst updating comment %v", job.DiggerJobID, err)
-					continue
-				}
 				return
 			}
 		}
 	}
 
+	// if we get to here its highly likely that the workflow job entirely failed to start for some reason
 }
