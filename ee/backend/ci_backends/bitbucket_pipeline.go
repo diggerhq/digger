@@ -37,3 +37,10 @@ func (bbp BitbucketPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, v
 	_, err = bbp.Client.TriggerPipeline(bbp.Branch, variables)
 	return err
 }
+
+// GetWorkflowUrl fetch workflow url after triggering a job
+// since some CI don't return url automatically we split it out to become a
+// followup method
+func (bbp BitbucketPipelineCI) GetWorkflowUrl(spec spec.Spec) (string, error) {
+	return "", nil
+}

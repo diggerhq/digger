@@ -364,21 +364,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			return
 		}
 
-		client, _, err := utils.GetGithubClient(d.GithubClientProvider, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
-		if err != nil {
-			log.Printf("Error Creating github client: %v", err)
-		} else {
-			_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, job.Batch.RepoOwner, job.Batch.RepoName, job.DiggerJobID)
-			if err != nil {
-				log.Printf("Error getting workflow ID from job: %v", err)
-			} else {
-				job.WorkflowRunUrl = &workflowRunUrl
-				err = models.DB.UpdateDiggerJob(job)
-				if err != nil {
-					log.Printf("Error updating digger job: %v", err)
-				}
-			}
-		}
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
 		job.TerraformOutput = request.TerraformOutput
@@ -463,6 +448,24 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 		return
 	}
+
+	// attempt to update workflow run url
+	client, _, err := utils.GetGithubClient(d.GithubClientProvider, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
+	if err != nil {
+		log.Printf("Error Creating github client: %v", err)
+	} else {
+		_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, job.Batch.RepoOwner, job.Batch.RepoName, job.DiggerJobID)
+		if err != nil {
+			log.Printf("Error getting workflow ID from job: %v", err)
+		} else if workflowRunUrl != "#" && workflowRunUrl != "" {
+			job.WorkflowRunUrl = &workflowRunUrl
+			err = models.DB.UpdateDiggerJob(job)
+			if err != nil {
+				log.Printf("Error updating digger job: %v", err)
+			}
+		}
+	}
+
 	job.StatusUpdatedAt = request.Timestamp
 	err = models.DB.GormDB.Save(&job).Error
 	if err != nil {
