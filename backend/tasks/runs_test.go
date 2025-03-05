@@ -28,6 +28,10 @@ func (m MockCiBackend) TriggerWorkflow(spec spec.Spec, runName string, vcsToken 
 	return nil
 }
 
+func (m MockCiBackend) GetWorkflowUrl(spec spec.Spec) (string, error) {
+	return "", nil
+}
+
 func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	log.Println("setup suite")
 

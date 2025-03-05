@@ -24,6 +24,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 )
@@ -139,6 +140,16 @@ func (ee DiggerEEController) BitbucketWebhookHandler(c *gin.Context) {
 }
 
 func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payload *BitbucketCommentCreatedEvent, ciBackendProvider ci_backends.CiBackendProvider, organisationId uint, vcsConnectionId *uint, bbAccessToken string) error {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in handleIssueCommentEventBB handler: %v", r)
+			log.Printf("\n=== PANIC RECOVERED ===\n")
+			log.Printf("Error: %v\n", r)
+			log.Printf("Stack Trace:\n%s", string(debug.Stack()))
+			log.Printf("=== END PANIC ===\n")
+		}
+	}()
+
 	repoFullName := payload.Repository.FullName
 	repoOwner := payload.Repository.Owner.Username
 	repoName := payload.Repository.Name

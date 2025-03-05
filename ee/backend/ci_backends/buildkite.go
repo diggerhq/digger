@@ -31,3 +31,7 @@ func (b BuildkiteCi) TriggerWorkflow(spec spec.Spec, runName string, vcsToken st
 	return err
 
 }
+
+func (b BuildkiteCi) GetWorkflowUrl(spec spec.Spec) (string, error) {
+	return "", nil
+}
