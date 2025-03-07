@@ -27,7 +27,7 @@ type StorageAccount struct {
 func NewStorageAccountLock() (*StorageAccount, error) {
 	authMethod := os.Getenv("DIGGER_AZURE_AUTH_METHOD")
 	if authMethod == "" {
-		return nil, fmt.Errorf("'DIGGER_AZURE_AUTH_METHOD' environment variable must be set to either 'SHARED_KEY' or 'CONNECTION_STRING' or 'CLIENT_SECRET'")
+		return nil, fmt.Errorf("'DIGGER_AZURE_AUTH_METHOD' environment variable must be set to either 'SHARED_KEY' or 'CONNECTION_STRING' or 'CLIENT_SECRET' or 'MANAGED_IDENTITY")
 	}
 
 	svcClient, err := getServiceClient(authMethod)
@@ -128,6 +128,10 @@ func getServiceClient(authMethod string) (*aztables.ServiceClient, error) {
 		return getClientSecretSvcClient()
 	}
 
+	if authMethod == "MANAGED_IDENTITY" {
+		return getManagedIdentitySvcCLient()
+	}
+
 	return nil, fmt.Errorf("could not initialize service client, because no valid authentication method was found")
 }
 
@@ -183,6 +187,27 @@ func getClientSecretSvcClient() (*aztables.ServiceClient, error) {
 	svcClient, err := aztables.NewServiceClient(serviceURL, cred, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not create service client with client secret authentication: %v", err)
+	}
+	return svcClient, nil
+}
+
+func getManagedIdentitySvcCLient() (*aztables.ServiceClient, error) {
+	saName := os.Getenv("DIGGER_AZURE_SA_NAME")
+
+	if saName == "" {
+		return nil, fmt.Errorf("you must set 'DIGGER_AZURE_SA_NAME' when using managed identity authentication")
+	}
+
+	serviceURL := getServiceURL(saName)
+
+	cred, err := azidentity.NewManagedIdentityCredential(nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create create managed identity credential: %v", err)
+	}
+
+	svcClient, err := aztables.NewServiceClient(serviceURL, cred, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create service client with managed identity authentication: %v", err)
 	}
 	return svcClient, nil
 }

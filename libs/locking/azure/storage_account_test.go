@@ -64,6 +64,17 @@ var (
 				loadClientSecretEnv()
 			},
 		},
+		{
+			name: "Managed Identity authentication mode",
+			loadEnv: func(s *SALockTestSuite) {
+				// Skip this test case if we are not testing on a real storage account
+				if !usingRealSA {
+					s.T().Skip("Managed identity method can only be tested when used against a real storage account.")
+					return
+				}
+				loadManagedIdentityEnv()
+			},
+		},
 	}
 )
 
@@ -131,6 +142,15 @@ func (suite *SALockTestSuite) TestNewStorageAccountLock_WithSharedKey_MissingAcc
 func (suite *SALockTestSuite) TestNewStorageAccountLock_WithClientSecret_MissingEnv() {
 	loadClientSecretEnv()
 	os.Setenv("DIGGER_AZURE_CLIENT_ID", "")
+
+	sal, err := NewStorageAccountLock()
+	suite.Nil(sal)
+	suite.Error(err, "should have got an error")
+}
+
+func (suite *SALockTestSuite) TestNewStorageAccountLock_WithManagedIdentity_MissingEnv() {
+	loadManagedIdentityEnv()
+	os.Setenv("DIGGER_AZURE_SA_NAME", "")
 
 	sal, err := NewStorageAccountLock()
 	suite.Nil(sal)
@@ -370,6 +390,12 @@ func loadClientSecretEnv() {
 	os.Setenv("DIGGER_AZURE_TENANT_ID", envs["DIGGER_AZURE_TENANT_ID"])
 	os.Setenv("DIGGER_AZURE_CLIENT_ID", envs["DIGGER_AZURE_CLIENT_ID"])
 	os.Setenv("DIGGER_AZURE_CLIENT_SECRET", envs["DIGGER_AZURE_CLIENT_SECRET"])
+	os.Setenv("DIGGER_AZURE_SA_NAME", envs["DIGGER_AZURE_SA_NAME"])
+}
+
+func loadManagedIdentityEnv() {
+	os.Setenv("DIGGER_AZURE_AUTH_METHOD", "MANAGED_IDENTITY")
+
 	os.Setenv("DIGGER_AZURE_SA_NAME", envs["DIGGER_AZURE_SA_NAME"])
 }
 
