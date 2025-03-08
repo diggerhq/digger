@@ -231,6 +231,10 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		vcsApiGroup.GET("/", controllers.ListVCSConnectionsApi)
 		vcsApiGroup.POST("/", controllers.CreateVCSConnectionApi)
 		vcsApiGroup.DELETE("/:id", controllers.DeleteVCSConnection)
+
+		policyApiGroup := apiGroup.Group("/policies")
+		policyApiGroup.GET("/:policy_type", controllers.PolicyOrgGetApi)
+		policyApiGroup.PUT("/", controllers.PolicyOrgUpsertApi)
 	}
 
 	return r
