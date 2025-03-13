@@ -278,7 +278,7 @@ runs:
       id: restore_cache
       name: restore_cache
       with:
-        path: $TF_PLUGIN_CACHE_DIR
+        path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache
         restore-keys: |
           digger-cache
@@ -458,7 +458,7 @@ runs:
       name: cache-save
       if: ${{ always() && inputs.cache-dependencies == 'true' && steps.restore_cache.outputs.cache-hit != 'true' }}
       with:
-        path: $TF_PLUGIN_CACHE_DIR
+        path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache-${{ hashFiles('**/cache') }}
         
 branding:
