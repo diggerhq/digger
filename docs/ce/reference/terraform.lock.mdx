@@ -1,0 +1,32 @@
+---
+title: "handling terraform.lock file"
+---
+
+The `.terraform.lock.hcl` file is an important part of Terraform's dependency management system.
+Digger does not currently take opinions on how you manage .terraform.lock files however please be aware that since digger runs terraform
+ within ephemeral jobs that if terraform.lock file gets updated within a job its not going to be commited back to the PR.
+ Having said that, digger does not pass any `-upgrade` flag during init flag currently. Therefore it is recommended that you use semantic versions
+ in your terraform providers and commit .terraform.local file manually. Then when updating versions of providers you can run another `terraform init -upgrade` file to update the file again,
+ then commit it to the PR where you are upgrading provider versions.
+
+ Here are some general best practices for working with this file:
+
+## Core Best Practices
+
+1. **Always commit to version control** - The lock file should be committed to your version control system (Git, etc.) to ensure all team members and CI/CD pipelines use exactly the same provider versions.
+
+2. **Don't edit manually** - The lock file is generated and maintained by Terraform. Manual edits can break the hashing verification system.
+
+3. **Use in CI/CD pipelines** - Ensure your automation uses the lock file by not running `terraform init -upgrade` in pipelines.
+
+4. **Update deliberately** - Use `terraform init -upgrade` when you intentionally want to update providers, not as part of regular workflows.
+
+## Additional Recommendations
+
+5. **Review changes** - When the lock file changes after an upgrade, review the differences to understand what provider versions have changed.
+
+6. **Test after updates** - After updating provider versions, thoroughly test your infrastructure code to catch any breaking changes.
+
+7. **Use provider constraints** - In your Terraform configuration, specify version constraints for providers to control which versions can be selected during upgrades.
+
+8. **Understand cross-platform hashes** - The lock file contains hashes for different platforms. If your team uses multiple platforms, you may need to run `terraform providers lock` with the `-platform` flag to add hashes for other platforms.
