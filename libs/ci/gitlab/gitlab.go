@@ -314,7 +314,7 @@ func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, 
 
 func (gitlabService GitLabService) CheckBranchExists(branchName string) (bool, error) {
 	projectId := *gitlabService.Context.ProjectId
-	log.Printf("CheckBranchExists branchName : %d, projectId: %d \n", branchName, projectId)
+	log.Printf("CheckBranchExists branchName : %v, projectId: %d \n", branchName, projectId)
 	_, resp, err := gitlabService.Client.Branches.GetBranch(projectId, branchName)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
