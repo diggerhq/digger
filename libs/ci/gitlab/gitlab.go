@@ -301,7 +301,28 @@ func (gitlabService GitLabService) GetApprovals(prNumber int) ([]string, error) 
 
 func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, error) {
 	//TODO implement me
-	return "", "", nil
+	projectId := *gitlabService.Context.ProjectId
+	log.Printf("CheckBranchExists prNumber : %d, projectId: %d \n", prNumber, projectId)
+	options := go_gitlab.GetMergeRequestsOptions{}
+	pr, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, prNumber, &options)
+	if err != nil {
+		log.Printf("error while getting branch name for pr: %v", err)
+		return "", "", err
+	}
+	return pr.SourceBranch, pr.SHA, nil
+}
+
+func (gitlabService GitLabService) CheckBranchExists(branchName string) (bool, error) {
+	projectId := *gitlabService.Context.ProjectId
+	log.Printf("CheckBranchExists branchName : %v, projectId: %d \n", branchName, projectId)
+	_, resp, err := gitlabService.Client.Branches.GetBranch(projectId, branchName)
+	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (svc GitLabService) SetOutput(prNumber int, key string, value string) error {
