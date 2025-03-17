@@ -197,6 +197,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 	isDraft := payload.ObjectAttributes.WorkInProgress
 	branch := payload.ObjectAttributes.SourceBranch
 	commitSha := payload.ObjectAttributes.LastCommit.ID
+	action := payload.ObjectAttributes.Action
 	//defaultBranch := payload.Repository.DefaultBranch
 	//actor := payload.User.Username
 	//discussionId := ""
@@ -208,6 +209,30 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		log.Printf("GetGithubService error: %v", glerr)
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
+
+	// here we check if pr was merged and automatic deletion is enabled, to avoid errors when
+	// pr is merged and the branch does not exist we handle that gracefully
+	if action == "merge" {
+		sourceBranch, _, err := glService.GetBranchName(prNumber)
+		if err != nil {
+			utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not retrieve PR details, error: %v", err))
+			log.Printf("Could not retrieve PR details error: %v", err)
+			return fmt.Errorf("Could not retrieve PR details: %v", err)
+		}
+
+		branchExists, err := glService.CheckBranchExists(sourceBranch)
+		if err != nil {
+			utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not check if branch exists, error: %v", err))
+			log.Printf("Could not check if branch exists, error: %v", err)
+			return fmt.Errorf("Could not check if branch exists: %v", err)
+
+		}
+		if !branchExists {
+			log.Printf("automatic branch deletion is configured, ignoring pr closed event")
+			return nil
+		}
+	}
+
 	comment, err := glService.PublishComment(prNumber, fmt.Sprintf("Report for pull request (%v)", commitSha))
 	discussionId := comment.DiscussionId
 
