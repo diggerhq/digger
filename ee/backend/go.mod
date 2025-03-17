@@ -19,7 +19,7 @@ require (
 	github.com/robert-nix/ansihtml v1.0.1
 	github.com/samber/lo v1.46.0
 	github.com/xanzy/go-gitlab v0.106.0
-	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
+	golang.org/x/exp 054e65f0b394
 )
 
 require (
