@@ -72,7 +72,7 @@ inputs:
   terragrunt-version:
     description: Terragrunt version
     required: false
-    default: v0.55.5
+    default: v0.73.7
   opentofu-version:
     description: OpenTofu version
     required: false
@@ -272,6 +272,7 @@ runs:
           format('{0}/cache', github.workspace) ||
           inputs.terraform-cache-dir }}
         echo "TF_PLUGIN_CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
+        echo "TG_PROVIDER_CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
         echo "TERRAGRUNT_PROVIDER_CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
 
     - uses: actions/cache/restore@v4
@@ -400,6 +401,7 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
+        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
@@ -439,6 +441,7 @@ runs:
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
+        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
@@ -460,7 +463,7 @@ runs:
       with:
         path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache-${{ hashFiles('**/cache') }}
-        
+
 branding:
   icon: globe
   color: purple
