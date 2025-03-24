@@ -251,12 +251,18 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 	if err != nil {
 		log.Printf("error getting pull request : %v", err)
 		return fmt.Errorf("error getting pull request : %v", err)
-
 	}
+
+	// previously was setting description as "statusContext" but
+	// faced some issues with too long strings of > 140 chars:
+	// 422 Validation Failed [{Resource:Status Field:description Code:custom Message:description is too long (maximum is 140 characters)}]
+	// since description isn't shown in ui setting to blank for now
+	description := ""
+
 	_, _, err = svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
 		State:       &status,
 		Context:     &statusContext,
-		Description: &statusContext,
+		Description: &description,
 	})
 	return err
 }
@@ -490,9 +496,9 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
 				CommandRoleArn:     cmdRole,
-				StateRoleArn: 	 	stateRole,	
+				StateRoleArn:       stateRole,
 				StateEnvProvider:   StateEnvProvider,
-			    CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
+				CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 				SkipMergeCheck:     skipMerge,
 			})
 		} else if *payload.Action == "opened" || *payload.Action == "reopened" || *payload.Action == "synchronize" {
@@ -516,9 +522,9 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
 				CommandRoleArn:     cmdRole,
-				StateRoleArn: 	 	stateRole,	
+				StateRoleArn:       stateRole,
 				StateEnvProvider:   StateEnvProvider,
-				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
+				CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 				SkipMergeCheck:     skipMerge,
 			})
 		} else if *payload.Action == "closed" {
@@ -542,9 +548,9 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
 				CommandRoleArn:     cmdRole,
-				StateRoleArn: 	 	stateRole,	
+				StateRoleArn:       stateRole,
 				StateEnvProvider:   StateEnvProvider,
-				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
+				CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 				SkipMergeCheck:     skipMerge,
 			})
 		} else if *payload.Action == "converted_to_draft" {
@@ -575,9 +581,9 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				RequestedBy:        *payload.Sender.Login,
 				CommandEnvProvider: CommandEnvProvider,
 				CommandRoleArn:     cmdRole,
-				StateRoleArn: 	 	stateRole,	
+				StateRoleArn:       stateRole,
 				StateEnvProvider:   StateEnvProvider,
-				CognitoOidcConfig: 	project.AwsCognitoOidcConfig,
+				CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 				SkipMergeCheck:     skipMerge,
 			})
 		}
