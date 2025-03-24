@@ -11,7 +11,7 @@ require (
 	github.com/buildkite/go-buildkite/v3 v3.11.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/diggerhq/digger/backend v0.0.0-20241111113338-9a40639ab83c
-	github.com/diggerhq/digger/ee/drift v0.0.0-20241227171610-34d1db1e4299
+	github.com/diggerhq/digger/ee/drift v0.0.0-20250324163118-d07625c2f026
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/go-github/v61 v61.0.0
@@ -194,6 +194,7 @@ require (
 	github.com/jstemmer/go-junit-report v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
+	github.com/ktrysmt/go-bitbucket v0.9.81 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
