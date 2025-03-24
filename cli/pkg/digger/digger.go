@@ -131,7 +131,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		_, jobPrCommentUrl, err := reporter.Flush()
 		if err != nil {
 			log.Printf("error while sending job comments %v", err)
-			cmt, cmt_err := prService.PublishComment(*currentJob.PullRequestNumber, fmt.Sprintf(":yellow_circle: Warning: failed to post comment for project %v, recieved error: %v.\n\n you may review details in the job logs", currentJob.ProjectName, err))
+			cmt, cmt_err := prService.PublishComment(*currentJob.PullRequestNumber, fmt.Sprintf(":yellow_circle: Warning: failed to post report for project %v, recieved error: %v.\n\n you may review details in the job logs", currentJob.ProjectName, err))
 			if cmt_err != nil {
 				log.Printf("Error while posting error comment: %v", err)
 				return false, false, fmt.Errorf("failed to post reporter error comment, aborting. Error: %v", err)
