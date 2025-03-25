@@ -21,5 +21,6 @@ func PostCommentForBatch(batch *models.DiggerBatch, comment string, githubClient
 		}
 		return nil
 	}
+	log.Printf("Warning: Unknown vcs type: %v", batch.VCS)
 	return nil
 }
