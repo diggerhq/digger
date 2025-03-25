@@ -493,7 +493,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	err = AutomergePRforBatchIfEnabled(d.GithubClientProvider, batch)
 	if err != nil {
 		log.Printf("Error merging PR with automerge option: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
+		err = utils.PostCommentForBatch(job.Batch, fmt.Sprintf(":yellow_circle: Warning could not automerge PR, please remember to merge it manually. Error: (%v)", err), d.GithubClientProvider)
+		if err != nil {
+			log.Printf("Error while posting comment about automerge: %v", err)
+		}
 	}
 
 	// return batch summary to client
