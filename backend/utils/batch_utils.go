@@ -17,7 +17,7 @@ func PostCommentForBatch(batch *models.DiggerBatch, comment string, githubClient
 		_, err = ghService.PublishComment(batch.PrNumber, comment)
 		if err != nil {
 			log.Printf("error publishing comment (%v): %v", comment, err)
-			return fmt.Errorf("error getting publishing comment (%v): %v", comment, err)
+			return fmt.Errorf("error publishing comment (%v): %v", comment, err)
 		}
 		return nil
 	}
