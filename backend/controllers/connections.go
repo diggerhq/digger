@@ -38,7 +38,7 @@ func ListVCSConnectionsApi(c *gin.Context) {
 	connectionsSlim := lo.Map(connections, func(c models.VCSConnection, i int) gin.H {
 		return gin.H{
 			"connection_id":   c.ID,
-			"vcs":             "bitbucket",
+			"vcs":             c.VCSType,
 			"connection_name": c.Name,
 		}
 	})
@@ -81,8 +81,6 @@ func CreateVCSConnectionApi(c *gin.Context) {
 		return
 	}
 
-	log.Printf("received request: %v", request)
-
 	secret := os.Getenv("DIGGER_ENCRYPTION_SECRET")
 	if secret == "" {
 		log.Printf("ERROR: no encryption secret specified")
@@ -118,9 +116,9 @@ func CreateVCSConnectionApi(c *gin.Context) {
 		return
 	}
 
-	connection, err := models.DB.CreateVCSConnection(request.Name, 0, "", "", "", "", "", "", "", bitbucketAccessTokenEncrypted, bitbucketWebhookSecretEncrypted, gitlabWebhookSecret, gitlabAccessTokenEncrypted, org.ID)
+	connection, err := models.DB.CreateVCSConnection(request.Name, models.DiggerVCSType(request.VCS), 0, "", "", "", "", "", "", "", bitbucketAccessTokenEncrypted, bitbucketWebhookSecretEncrypted, gitlabWebhookSecret, gitlabAccessTokenEncrypted, org.ID)
 	if err != nil {
-		log.Printf("")
+		log.Printf("failed to create vcs connection")
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

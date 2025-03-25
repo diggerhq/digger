@@ -19,9 +19,9 @@ type VCSConnection struct {
 	BitbucketWebhookSecretEncrypted string
 	GitlabAccessTokenEncrypted      string
 	GitlabWebhookSecretEncrypted    string
-
-	OrganisationID uint
-	Organisation   Organisation
+	VCSType                         DiggerVCSType `gorm:"default:bitbucket"`
+	OrganisationID                  uint
+	Organisation                    Organisation
 }
 
 // TODO: Create migration to rename this table to vcs_connections
