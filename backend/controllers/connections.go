@@ -64,6 +64,8 @@ func CreateVCSConnectionApi(c *gin.Context) {
 		Name                   string `json:"connection_name"`
 		BitbucketAccessToken   string `json:"bitbucket_access_token"`
 		BitbucketWebhookSecret string `json:"bitbucket_webhook_secret"`
+		GitlabAccessToken      string `json:"gitlab_access_token"`
+		GitlabWebhookSecret    string `json:"gitlab_webhook_secret"`
 	}
 
 	var request CreateVCSConnectionRequest
@@ -72,11 +74,14 @@ func CreateVCSConnectionApi(c *gin.Context) {
 		return
 	}
 
-	if request.VCS != "bitbucket" {
+	if request.VCS != string(models.DiggerVCSBitbucket) &&
+		request.VCS != string(models.DiggerVCSGitlab) {
 		log.Printf("VCS type not supported: %v", request.VCS)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "VCS type not supported"})
 		return
 	}
+
+	log.Printf("received request: %v", request)
 
 	secret := os.Getenv("DIGGER_ENCRYPTION_SECRET")
 	if secret == "" {
@@ -87,32 +92,33 @@ func CreateVCSConnectionApi(c *gin.Context) {
 
 	bitbucketAccessTokenEncrypted, err := utils.AESEncrypt([]byte(secret), request.BitbucketAccessToken)
 	if err != nil {
-		log.Printf("could not encrypt access token: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt access token"})
+		log.Printf("could not encrypt bitbucket access token: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt bitbucket access token"})
 		return
 	}
 
 	bitbucketWebhookSecretEncrypted, err := utils.AESEncrypt([]byte(secret), request.BitbucketWebhookSecret)
 	if err != nil {
-		log.Printf("could not encrypt webhook secret: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt webhook secret"})
+		log.Printf("could not encrypt bitbucket webhook secret: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt bitbucket webhook secret"})
 		return
 	}
 
-	connection, err := models.DB.CreateVCSConnection(
-		request.Name,
-		0,
-		"",
-		"",
-		"",
-		"",
-		"",
-		"",
-		"",
-		bitbucketAccessTokenEncrypted,
-		bitbucketWebhookSecretEncrypted,
-		org.ID,
-	)
+	gitlabAccessTokenEncrypted, err := utils.AESEncrypt([]byte(secret), request.GitlabAccessToken)
+	if err != nil {
+		log.Printf("could not encrypt gitlab access token: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt gitlab access token"})
+		return
+	}
+
+	gitlabWebhookSecret, err := utils.AESEncrypt([]byte(secret), request.GitlabWebhookSecret)
+	if err != nil {
+		log.Printf("could not encrypt gitlab webhook secret: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt gitlab access token"})
+		return
+	}
+
+	connection, err := models.DB.CreateVCSConnection(request.Name, 0, "", "", "", "", "", "", "", bitbucketAccessTokenEncrypted, bitbucketWebhookSecretEncrypted, gitlabWebhookSecret, gitlabAccessTokenEncrypted, org.ID)
 	if err != nil {
 		log.Printf("")
 	}

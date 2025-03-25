@@ -17,8 +17,11 @@ type VCSConnection struct {
 	GithubAppUrl                    string
 	BitbucketAccessTokenEncrypted   string
 	BitbucketWebhookSecretEncrypted string
-	OrganisationID                  uint
-	Organisation                    Organisation
+	GitlabAccessTokenEncrypted      string
+	GitlabWebhookSecretEncrypted    string
+
+	OrganisationID uint
+	Organisation   Organisation
 }
 
 // TODO: Create migration to rename this table to vcs_connections
