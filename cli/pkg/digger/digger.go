@@ -791,7 +791,7 @@ func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *gra
 	return sortedCommands
 }
 
-func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrategy string) {
+func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrategy config.AutomergeStrategy) {
 	time.Sleep(5 * time.Second)
 
 	// CheckAccessPolicy if it was manually merged
@@ -821,7 +821,7 @@ func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrate
 			log.Fatalf("PR is not mergeable")
 		}
 
-		err = ciService.MergePullRequest(prNumber, mergeStrategy)
+		err = ciService.MergePullRequest(prNumber, string(mergeStrategy))
 		if err != nil {
 			log.Fatalf("failed to merge PR, %v", err)
 		}
