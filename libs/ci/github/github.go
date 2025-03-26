@@ -284,7 +284,7 @@ func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, err
 	return *statuses.State, nil
 }
 
-func (svc GithubService) MergePullRequest(prNumber int) error {
+func (svc GithubService) MergePullRequest(prNumber int, mergeStrategy string) error {
 	isPullRequest, err := svc.IsPullRequest(prNumber)
 	if err != nil {
 		log.Printf("error checking if PR is issue: %v", err)
@@ -314,7 +314,7 @@ func (svc GithubService) MergePullRequest(prNumber int) error {
 	}
 
 	_, _, err = svc.Client.PullRequests.Merge(context.Background(), svc.Owner, svc.RepoName, prNumber, "auto-merge", &github.PullRequestOptions{
-		MergeMethod: "squash",
+		MergeMethod: mergeStrategy,
 		SHA:         pr.Head.GetSHA(),
 	})
 	return err
