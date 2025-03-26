@@ -17,7 +17,7 @@ type DiggerConfig struct {
 	PrLocks                    bool
 	Projects                   []Project
 	AutoMerge                  bool
-	AutoMergeStrategy          string
+	AutoMergeStrategy          AutomergeStrategy
 	Telemetry                  bool
 	Workflows                  map[string]Workflow
 	MentionDriftedProjectsInPR bool

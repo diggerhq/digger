@@ -214,9 +214,9 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		if err != nil {
 			return nil, nil, err
 		}
-		diggerConfig.AutoMergeStrategy = *diggerYaml.AutoMergeStrategy
+		diggerConfig.AutoMergeStrategy = AutomergeStrategy(*diggerYaml.AutoMergeStrategy)
 	} else {
-		diggerConfig.AutoMergeStrategy = string(AutomergeStrategySquash)
+		diggerConfig.AutoMergeStrategy = AutomergeStrategySquash
 	}
 
 	if diggerYaml.ApplyAfterMerge != nil {

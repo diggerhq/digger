@@ -744,7 +744,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 			log.Printf("Error getting github service: %v", err)
 			return fmt.Errorf("error getting github service: %v", err)
 		}
-		err = prService.MergePullRequest(batch.PrNumber, automergeStrategy)
+		err = prService.MergePullRequest(batch.PrNumber, string(automergeStrategy))
 		if err != nil {
 			log.Printf("Error merging pull request: %v", err)
 			return fmt.Errorf("error merging pull request: %v", err)
