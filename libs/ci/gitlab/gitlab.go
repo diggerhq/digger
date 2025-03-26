@@ -215,7 +215,7 @@ func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequestID i
 	return "success", nil
 }
 
-func (gitlabService GitLabService) MergePullRequest(mergeRequestID int) error {
+func (gitlabService GitLabService) MergePullRequest(mergeRequestID int, mergeStrategy string) error {
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
 	mergeWhenPipelineSucceeds := true

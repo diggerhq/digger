@@ -11,4 +11,12 @@ projects:
 - name: production
   dir: prod
 auto_merge: true
+auto_merge_strategy: "squash" # optional, only supported on github
 ```
+
+If you are using github VCS you can also specify
+`auto_merge_strategy` to define the type of strategy. Possible values are:
+
+- squash: for squash merge
+- rebase: for rebase merge
+- merge: for merge commits merge

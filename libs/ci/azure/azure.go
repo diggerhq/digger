@@ -273,7 +273,7 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 	return "pending", nil
 }
 
-func (a *AzureReposService) MergePullRequest(prNumber int) error {
+func (a *AzureReposService) MergePullRequest(prNumber int, mergeStrategy string) error {
 	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,

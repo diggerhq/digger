@@ -729,20 +729,22 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		log.Printf("Error loading digger config from batch: %v", err)
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
-
-	var automerge bool
-	if diggerConfigYml.AutoMerge != nil {
-		automerge = *diggerConfigYml.AutoMerge
-	} else {
-		automerge = false
+	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	if err != nil {
+		log.Printf("Error loading digger config from yaml: %v", err)
+		return fmt.Errorf("error loading digger config from yaml: %v", err)
 	}
+
+	automerge := config.AutoMerge
+	automergeStrategy := config.AutoMergeStrategy
+
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.DiggerCommandApply && automerge == true {
 		prService, err := GetPrServiceFromBatch(batch, gh)
 		if err != nil {
 			log.Printf("Error getting github service: %v", err)
 			return fmt.Errorf("error getting github service: %v", err)
 		}
-		err = prService.MergePullRequest(batch.PrNumber)
+		err = prService.MergePullRequest(batch.PrNumber, string(automergeStrategy))
 		if err != nil {
 			log.Printf("Error merging pull request: %v", err)
 			return fmt.Errorf("error merging pull request: %v", err)

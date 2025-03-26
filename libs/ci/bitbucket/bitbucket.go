@@ -381,7 +381,7 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 
 }
 
-func (b BitbucketAPI) MergePullRequest(prNumber int) error {
+func (b BitbucketAPI) MergePullRequest(prNumber int, mergeStrategy string) error {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/merge", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("POST", url, nil)
