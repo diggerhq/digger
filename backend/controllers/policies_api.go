@@ -2,18 +2,20 @@ package controllers
 
 import (
 	"errors"
+	"log/slog"
+	"net/http"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
 )
 
 func PolicyOrgGetApi(c *gin.Context) {
 	policyType := c.Param("policy_type")
 
 	if policyType != "plan" && policyType != "access" {
+		slog.Warn("Invalid policy type requested", "policyType", policyType)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid policy type requested: " + policyType})
 		return
 	}
@@ -24,10 +26,10 @@ func PolicyOrgGetApi(c *gin.Context) {
 	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Printf("could not find organisation: %v", err)
+			slog.Info("Organisation not found", "organisationId", organisationId, "source", organisationSource, "error", err)
 			c.JSON(http.StatusNotFound, gin.H{"status": "Could not find organisation: " + organisationId})
 		} else {
-			log.Printf("database error while finding organisation: %v", err)
+			slog.Error("Database error while finding organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "Internal server error"})
 		}
 		return
@@ -40,13 +42,16 @@ func PolicyOrgGetApi(c *gin.Context) {
 		First(&policy).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Policy not found for organisation", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType)
 			c.JSON(http.StatusNotFound, gin.H{"error": "Could not find policy for organisation ext ID: " + organisationId})
 		} else {
+			slog.Error("Error fetching policy", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType, "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unknown error occurred while fetching database"})
 		}
 		return
 	}
 
+	slog.Debug("Policy found", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType)
 	c.JSON(http.StatusOK, gin.H{"result": policy.Policy})
 }
 
@@ -59,7 +64,7 @@ func PolicyOrgUpsertApi(c *gin.Context) {
 	var request PolicyUpsertRequest
 	err := c.BindJSON(&request)
 	if err != nil {
-		log.Printf("Error binding JSON: %v", err)
+		slog.Error("Error binding JSON", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid request format"})
 		return
 	}
@@ -71,10 +76,10 @@ func PolicyOrgUpsertApi(c *gin.Context) {
 	err = models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Printf("could not find organisation: %v", err)
+			slog.Info("Organisation not found", "organisationId", organisationId, "source", organisationSource, "error", err)
 			c.JSON(http.StatusNotFound, gin.H{"status": "Could not find organisation: " + organisationId})
 		} else {
-			log.Printf("database error while finding organisation: %v", err)
+			slog.Error("Database error while finding organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "Internal server error"})
 		}
 		return
@@ -95,20 +100,21 @@ func PolicyOrgUpsertApi(c *gin.Context) {
 		}).Error
 
 		if err != nil {
-			log.Printf("Error creating policy: %v", err)
+			slog.Error("Error creating policy", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error creating policy")
 			return
 		}
+		slog.Info("Created new policy", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType)
 	} else {
 		policy.Policy = policyData
 		err := models.DB.GormDB.Save(policy).Error
 		if err != nil {
-			log.Printf("Error updating policy: %v", err)
+			slog.Error("Error updating policy", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType, "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating policy"})
 			return
 		}
+		slog.Info("Updated existing policy", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
-
 }

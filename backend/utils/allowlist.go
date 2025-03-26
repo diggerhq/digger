@@ -1,26 +1,19 @@
 package utils
 
 import (
-	"github.com/samber/lo"
-	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"strings"
-)
 
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
+	"github.com/samber/lo"
+)
 
 func ExtractCleanRepoName(gitlabURL string) (string, error) {
 	// Parse the URL
 	parsedURL, err := url.Parse(gitlabURL)
 	if err != nil {
+		slog.Error("Failed to parse URL", "url", gitlabURL, "error", err)
 		return "", err
 	}
 
@@ -31,25 +24,33 @@ func ExtractCleanRepoName(gitlabURL string) (string, error) {
 	// If the URL ends with .git, remove it
 	repoName = strings.TrimSuffix(repoName, ".git")
 
+	slog.Debug("Extracted clean repo name", "originalUrl", gitlabURL, "cleanName", repoName)
 	return repoName, nil
 }
 
 func IsInRepoAllowList(repoUrl string) bool {
 	allowList := os.Getenv("DIGGER_REPO_ALLOW_LIST")
 	if allowList == "" {
+		slog.Debug("No repo allow list defined, allowing all repos")
 		return true
 	}
+
 	allowedReposUrls := strings.Split(allowList, ",")
 	// gitlab.com/diggerhq/test
 	// https://gitlab.com/diggerhq/test
 
 	repoName, err := ExtractCleanRepoName(repoUrl)
 	if err != nil {
-		log.Printf("warning could not parse url: %v", repoUrl)
+		slog.Warn("Could not parse repository URL", "url", repoUrl, "error", err)
+		return false
 	}
 
 	exists := lo.Contains(allowedReposUrls, repoName)
+	if exists {
+		slog.Debug("Repository is in allow list", "repo", repoName)
+	} else {
+		slog.Info("Repository is not in allow list", "repo", repoName, "allowList", allowList)
+	}
 
 	return exists
-
 }
