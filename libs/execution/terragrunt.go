@@ -75,6 +75,7 @@ func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planA
 
 func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, arg ...string) (stdOut string, stdErr string, exitCode int, err error) {
 	args := []string{command}
+	args = append(args, "--experiment", "stacks", "stack", "run")
 	args = append(args, arg...)
 
 	expandedArgs := make([]string, 0)
