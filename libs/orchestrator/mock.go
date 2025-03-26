@@ -47,7 +47,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetCombinedPul
 	return "", nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) MergePullRequest(prNumber int) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) MergePullRequest(prNumber int, mergeStrategy string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "MergePullRequest")
 	return nil
 }

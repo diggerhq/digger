@@ -113,7 +113,7 @@ func (m *MockPRManager) GetCombinedPullRequestStatus(prNumber int) (string, erro
 	return "", nil
 }
 
-func (m *MockPRManager) MergePullRequest(prNumber int) error {
+func (m *MockPRManager) MergePullRequest(prNumber int, mergeStrategy string) error {
 	m.Commands = append(m.Commands, RunInfo{"MergePullRequest", strconv.Itoa(prNumber), time.Now()})
 	return nil
 }

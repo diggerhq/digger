@@ -175,17 +175,16 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(projectConfig)
 
-			stateArn, cmdArn := "",""
-			if(projectConfig.AwsRoleToAssume != nil) {
+			stateArn, cmdArn := "", ""
+			if projectConfig.AwsRoleToAssume != nil {
 				if projectConfig.AwsRoleToAssume.State != "" {
 					stateArn = projectConfig.AwsRoleToAssume.State
 				}
 
 				if projectConfig.AwsRoleToAssume.Command != "" {
-					cmdArn = projectConfig.AwsRoleToAssume.Command					
+					cmdArn = projectConfig.AwsRoleToAssume.Command
 				}
 			}
-
 
 			job := scheduler.Job{
 				ProjectName:        projectConfig.Name,
@@ -204,8 +203,8 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				EventName:          "drift-detect",
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
-				StateRoleArn: 	 	stateArn,
-				CommandRoleArn: 	cmdArn,				
+				StateRoleArn:       stateArn,
+				CommandRoleArn:     cmdArn,
 			}
 
 			notification, err := driftNotificationProvider.Get(githubPrService)
@@ -303,7 +302,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		}
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
-			digger.MergePullRequest(&githubPrService, prNumber)
+			digger.MergePullRequest(&githubPrService, prNumber, diggerConfig.AutoMergeStrategy)
 			log.Println("PR merged successfully")
 		}
 
