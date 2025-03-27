@@ -30,7 +30,7 @@ jobs:
           goos: linux
           goarch: amd64
           goversion: 1.21.1
-          project_path: ./cli/cmd/digger
+          project_path: ./ee/cli/cmd/digger
           binary_name: digger
           pre_command: export CGO_ENABLED=0
           ldflags: ${{ matrix.ldflags }}
