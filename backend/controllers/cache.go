@@ -35,7 +35,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
 		slog.Error("Could not get installation link", "error", err, "repoFullName", repoFullName, "installationId", installationId)
-		c.String(500, fmt.Sprintf("coulnt not find installation link %v %v", repoFullName, installationId))
+		c.String(http.StatusInternalServerError, fmt.Sprintf("coulnt not find installation link %v %v", repoFullName, installationId))
 		return
 	}
 	orgId := link.OrganisationId
@@ -48,7 +48,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	repo, err := models.DB.GetRepo(orgId, repoDiggerName)
 	if err != nil {
 		slog.Error("Could not get repo", "error", err, "repoFullName", repoFullName, "orgId", orgId)
-		c.String(500, fmt.Sprintf("coulnt not get repository %v %v", repoFullName, orgId))
+		c.String(http.StatusInternalServerError, fmt.Sprintf("coulnt not get repository %v %v", repoFullName, orgId))
 		return
 	}
 
@@ -58,7 +58,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	_, token, err := utils.GetGithubService(d.GithubClientProvider, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		slog.Error("Could not get GitHub service", "error", err, "repoFullName", repoFullName, "orgId", orgId)
-		c.String(500, fmt.Sprintf("could not get github service %v %v", repoFullName, orgId))
+		c.String(http.StatusInternalServerError, fmt.Sprintf("could not get github service %v %v", repoFullName, orgId))
 		return
 	}
 
@@ -90,5 +90,5 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 		slog.Info("Successfully updated repo cache", "repoFullName", repoFullName, "orgId", orgId)
 	}()
 
-	c.String(200, "successfully submitted cache for processing, check backend logs for progress")
+	c.String(http.StatusOK, "successfully submitted cache for processing, check backend logs for progress")
 }

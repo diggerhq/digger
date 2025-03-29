@@ -60,7 +60,7 @@ func LinkGithubInstallationToOrgApi(c *gin.Context) {
 	if link != nil {
 		if link.OrganisationId == org.ID {
 			slog.Info("Installation already linked to this org", "installationId", installationId, "orgId", org.ID)
-			c.JSON(200, gin.H{"status": "already linked to this org"})
+			c.JSON(http.StatusOK, gin.H{"status": "already linked to this org"})
 			return
 		} else {
 			slog.Warn("Installation ID already linked to another org",
