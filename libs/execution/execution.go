@@ -2,19 +2,20 @@ package execution
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/storage"
-	"github.com/samber/lo"
-	"log"
+	"log/slog"
 	"os"
 	"path"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/comment_utils/utils"
+	"github.com/diggerhq/digger/libs/iac_utils"
+	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/storage"
+	"github.com/samber/lo"
 
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -37,7 +38,7 @@ func (l LockingExecutorWrapper) Plan() (*iac_utils.IacSummary, bool, bool, strin
 	if err != nil {
 		return nil, false, false, "", "", fmt.Errorf("digger plan, error locking project: %v", err)
 	}
-	log.Printf("Lock result: %t\n", locked)
+	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Plan()
 	} else {
@@ -51,7 +52,7 @@ func (l LockingExecutorWrapper) Apply() (*iac_utils.IacSummary, bool, string, er
 		msg := fmt.Sprintf("digger apply, error locking project: %v", err)
 		return nil, false, msg, fmt.Errorf(msg)
 	}
-	log.Printf("Lock result: %t\n", locked)
+	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Apply()
 	} else {
@@ -64,7 +65,7 @@ func (l LockingExecutorWrapper) Destroy() (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("digger destroy, error locking project: %v", err)
 	}
-	log.Printf("Lock result: %t\n", locked)
+	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Destroy()
 	} else {
@@ -176,7 +177,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
 	}
 	if storedPlanExists {
-		log.Printf("Pre-apply plan retrieval: stored plan exists in artefact, retrieving")
+		slog.Info("Pre-apply plan retrieval: stored plan exists in artefact, retrieving")
 		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName(), planPathProvider.StoredPlanFilePath())
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
@@ -219,7 +220,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 		}
 	}
 	for _, step := range planSteps {
-		log.Printf(" Running step: %v\n", step.Action)
+		slog.Info("Running step", "action", step.Action)
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
@@ -272,7 +273,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			// TODO: move this function to iacUtils interface and implement for pulumi
 			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
 			if err != nil {
-				log.Printf("error publishing comment: %v", err)
+				slog.Error("error publishing comment", "error", err)
 			}
 		}
 		if step.Action == "run" {
@@ -281,7 +282,9 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 			}
 			commands = append(commands, step.Value)
-			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
+			slog.Info("Running command",
+				"command", step.Value,
+				"project", d.ProjectNamespace+"#"+d.ProjectName)
 			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error running command: %v", err)
@@ -296,12 +299,12 @@ func reportError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
 		_, _, commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", commentErr)
+			slog.Error("error publishing comment", "error", commentErr)
 		}
 	} else {
 		_, _, commentErr := r.Report(stderr, utils.AsComment("Error during init."))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", commentErr)
+			slog.Error("error publishing comment", "error", commentErr)
 		}
 	}
 }
@@ -354,7 +357,7 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 
 			summary, err = d.IacUtils.GetSummaryFromApplyOutput(stdout)
 			if err != nil {
-				log.Printf("Warning: get summary from apply output failed: %v", err)
+				slog.Warn("warning: get summary from apply output failed", "error", err)
 			}
 		}
 		if step.Action == "run" {
@@ -363,7 +366,9 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 			}
 			commands = append(commands, step.Value)
-			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
+			slog.Info("Running command",
+				"command", step.Value,
+				"project", d.ProjectNamespace+"#"+d.ProjectName)
 			_, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
 				return nil, false, stderr, fmt.Errorf("error running command: %v", err)
@@ -378,12 +383,12 @@ func reportApplyError(r reporting.Reporter, err error) {
 	if r.SupportsMarkdown() {
 		_, _, commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying.", false))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", err)
+			slog.Error("error publishing comment", "error", err)
 		}
 	} else {
 		_, _, commentErr := r.Report(err.Error(), utils.AsComment("Error during applying."))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", err)
+			slog.Error("error publishing comment", "error", err)
 		}
 	}
 }
@@ -398,7 +403,7 @@ func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOut
 
 	_, _, commentErr := r.Report(applyOutput, formatter)
 	if commentErr != nil {
-		log.Printf("error publishing comment: %v", commentErr)
+		slog.Error("error publishing comment", "error", commentErr)
 	}
 }
 
@@ -406,12 +411,12 @@ func reportTerraformError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
 		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", commentErr)
+			slog.Error("error publishing comment", "error", commentErr)
 		}
 	} else {
 		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", commentErr)
+			slog.Error("error publishing comment", "error", commentErr)
 		}
 	}
 }
@@ -430,17 +435,17 @@ func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 		if len(outputStr) > 0 {
 			_, _, commentErr := r.Report(outputStr, formatter)
 			if commentErr != nil {
-				log.Printf("error publishing comment: %v", commentErr)
+				slog.Error("error publishing comment", "error", commentErr)
 			}
 		} else {
-			log.Printf("empty $DIGGER_OUT file at: %v", diggerOutPath)
+			slog.Debug("empty $DIGGER_OUT file", "path", diggerOutPath)
 		}
 		err = os.Remove(diggerOutPath)
 		if err != nil {
-			log.Printf("error removing $DIGGER_OUT file at: %v, %v", diggerOutPath, err)
+			slog.Error("error removing $DIGGER_OUT file", "path", diggerOutPath, "error", err)
 		}
 	} else {
-		log.Printf("no $DIGGER_OUT file at: %v", diggerOutPath)
+		slog.Debug("no $DIGGER_OUT file", "path", diggerOutPath)
 	}
 }
 
@@ -538,12 +543,16 @@ func (d DiggerExecutor) projectId() string {
 
 // this will log an exit code and error based on the executor of the executor drivers are by filename
 func logCommandFail(exitCode int, err error) {
-
 	_, filename, _, ok := runtime.Caller(1)
 	if ok {
 		executor := strings.TrimSuffix(path.Base(filename), path.Ext(filename))
-		log.Printf("Command failed in %v with exit code %v and error %v", executor, exitCode, err)
+		slog.Error("command failed",
+			"executor", executor,
+			"exitCode", exitCode,
+			"error", err)
 	} else {
-		log.Printf("Command failed in unknown executor with exit code %v and error %v", exitCode, err)
+		slog.Error("command failed in unknown executor",
+			"exitCode", exitCode,
+			"error", err)
 	}
 }

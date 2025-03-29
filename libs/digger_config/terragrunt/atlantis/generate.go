@@ -2,6 +2,7 @@ package atlantis
 
 import (
 	"context"
+	"log/slog"
 	"regexp"
 	"sort"
 
@@ -12,7 +13,6 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/hashicorp/go-getter"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/singleflight"
 
 	"os"
@@ -678,6 +678,7 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 	for _, projectHclFile := range projectHclFiles {
 		err := filepath.Walk(gitRoot, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
+				slog.Error("error walking directory", "path", path, "error", err)
 				return err
 			}
 
@@ -689,12 +690,14 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 		})
 
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("failed to walk directory tree", "error", err, "gitRoot", gitRoot)
+			panic(err)
 		}
 
 		for _, uniquePath := range orderedHclFilePaths[projectHclFile] {
 			uniqueAbsPath, err := filepath.Abs(uniquePath)
 			if err != nil {
+				slog.Error("failed to get absolute path", "path", uniquePath, "error", err)
 				return nil
 			}
 			uniqueHclFileAbsPaths[projectHclFile] = append(uniqueHclFileAbsPaths[projectHclFile], uniqueAbsPath)
@@ -793,7 +796,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						for i := range atlantisConfig.Projects {
 							if atlantisConfig.Projects[i].Dir == project.Dir {
 								updateProject = true
-								log.Info("Updated project for ", terragruntPath)
+								slog.Info("Updated project", "path", terragruntPath)
 								atlantisConfig.Projects[i] = *project
 
 								// projects should be unique, let's exit for loop for performance
@@ -803,11 +806,11 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						}
 
 						if !updateProject {
-							log.Info("Created project for ", terragruntPath)
+							slog.Info("Created project", "path", terragruntPath)
 							atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 						}
 					} else {
-						log.Info("Created project for ", terragruntPath)
+						slog.Info("Created project", "path", terragruntPath)
 						atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 					}
 
@@ -840,7 +843,9 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 				lock.Lock()
 				defer lock.Unlock()
 
-				log.Info("Created "+projectHcl+" project for ", workingDir)
+				slog.Info("Created project",
+					"type", projectHcl,
+					"workingDir", workingDir)
 				atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 
 				return nil
@@ -894,7 +899,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 		if hasChanges {
 			// Should be unreachable
-			log.Warn("Computing execution_order_groups failed. Probably cycle exists")
+			slog.Warn("Computing execution_order_groups failed. Probably cycle exists")
 		}
 
 		// Sort by execution_order_group

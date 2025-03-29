@@ -2,7 +2,7 @@ package scheduler
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 )
 
 type DiggerBatchStatus int8
@@ -112,7 +112,10 @@ func (b *SerializedBatch) IsPlan() (bool, error) {
 	// TODO: Introduce a batch-level field to check for is plan or apply
 	jobSpecs, err := GetJobSpecs(b.Jobs)
 	if err != nil {
-		log.Printf("error while fetching job specs: %v", err)
+		slog.Error("Error fetching job specs",
+			"batchId", b.ID,
+			"prNumber", b.PrNumber,
+			"error", err)
 		return false, fmt.Errorf("error while fetching job specs: %v", err)
 	}
 	return IsPlanJobSpecs(jobSpecs), nil
@@ -121,7 +124,10 @@ func (b *SerializedBatch) IsPlan() (bool, error) {
 func (b *SerializedBatch) IsApply() (bool, error) {
 	jobSpecs, err := GetJobSpecs(b.Jobs)
 	if err != nil {
-		log.Printf("error while fetching job specs: %v", err)
+		slog.Error("Error fetching job specs",
+			"batchId", b.ID,
+			"prNumber", b.PrNumber,
+			"error", err)
 		return false, fmt.Errorf("error while fetching job specs: %v", err)
 	}
 	return IsPlanJobSpecs(jobSpecs), nil

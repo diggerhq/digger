@@ -1,10 +1,11 @@
 package execution
 
 import (
-	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExecuteTofuPlan(t *testing.T) {
@@ -12,7 +13,7 @@ func TestExecuteTofuPlan(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 

@@ -3,13 +3,14 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/generic"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/generic"
+	"github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
@@ -67,9 +68,8 @@ func (svc GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	for {
 		files, resp, err := svc.Client.PullRequests.ListFiles(context.Background(), svc.Owner, svc.RepoName, prNumber, &opts)
 		if err != nil {
-			log.Printf("error getting pull request: %v", err)
+			slog.Error("error getting pull request files", "error", err, "prNumber", prNumber)
 			return nil, fmt.Errorf("error getting pull request: %v", err)
-
 		}
 
 		for _, file := range files {
@@ -93,7 +93,7 @@ func (svc GithubService) GetChangedFilesForCommit(owner string, repo string, com
 	for {
 		commit, resp, err := svc.Client.Repositories.GetCommit(context.Background(), owner, repo, commitID, &opts)
 		if err != nil {
-			log.Printf("error getting commitfiles: %v", err)
+			slog.Error("error getting commit files", "error", err, "commitID", commitID)
 			return nil, fmt.Errorf("error getting commitfiles: %v", err)
 		}
 		for _, file := range commit.Files {
@@ -120,7 +120,7 @@ func (svc GithubService) ListIssues() ([]*ci.Issue, error) {
 	for {
 		issues, resp, err := svc.Client.Issues.ListByRepo(context.Background(), svc.Owner, svc.RepoName, opts)
 		if err != nil {
-			log.Printf("error getting pull request files: %v", err)
+			slog.Error("error getting issues", "error", err)
 			return nil, fmt.Errorf("error getting pull request files: %v", err)
 		}
 		for _, issue := range issues {
@@ -219,7 +219,7 @@ func (svc GithubService) CreateCommentReaction(id string, reaction string) error
 
 	_, _, err = svc.Client.Reactions.CreateIssueCommentReaction(context.Background(), svc.Owner, svc.RepoName, commentId, reaction)
 	if err != nil {
-		log.Printf("could not addd reaction to comment: %v", err)
+		slog.Error("could not add reaction to comment", "error", err, "commentId", commentId, "reaction", reaction)
 		return fmt.Errorf("could not addd reaction to comment: %v", err)
 	}
 	return nil
@@ -228,7 +228,7 @@ func (svc GithubService) CreateCommentReaction(id string, reaction string) error
 func (svc GithubService) IsPullRequest(PrNumber int) (bool, error) {
 	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, PrNumber)
 	if err != nil {
-		log.Printf("error getting pull request (as issue): %v", err)
+		slog.Error("error getting pull request (as issue)", "error", err, "prNumber", PrNumber)
 		return false, fmt.Errorf("error getting pull request (as issue): %v", err)
 	}
 	return issue.IsPullRequest(), nil
@@ -238,18 +238,17 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 	// we have to check if prNumber is an issue or not
 	isPullRequest, err := svc.IsPullRequest(prNumber)
 	if err != nil {
-		log.Printf("error checking if pull request is issue: %v", err)
+		slog.Error("error checking if pull request is issue", "error", err, "prNumber", prNumber)
 		return fmt.Errorf("error checking if pull request is issue: %v", err)
-
 	}
 	if !isPullRequest {
-		log.Printf("issue is not of type pull request, ignoring")
+		slog.Info("issue is not of type pull request, ignoring", "prNumber", prNumber)
 		return nil
 	}
 
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Printf("error getting pull request : %v", err)
+		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
 		return fmt.Errorf("error getting pull request : %v", err)
 	}
 
@@ -270,15 +269,14 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Printf("error getting pull request: %v", err)
+		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
 		return "", fmt.Errorf("error getting pull request: %v", err)
 	}
 
 	statuses, _, err := svc.Client.Repositories.GetCombinedStatus(context.Background(), svc.Owner, svc.RepoName, pr.Head.GetSHA(), nil)
 	if err != nil {
-		log.Printf("error getting combined status: %v", err)
+		slog.Error("error getting combined status", "error", err, "prNumber", prNumber, "sha", pr.Head.GetSHA())
 		return "", fmt.Errorf("error getting combined status: %v", err)
-
 	}
 
 	return *statuses.State, nil
@@ -287,7 +285,7 @@ func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, err
 func (svc GithubService) MergePullRequest(prNumber int, mergeStrategy string) error {
 	isPullRequest, err := svc.IsPullRequest(prNumber)
 	if err != nil {
-		log.Printf("error checking if PR is issue: %v", err)
+		slog.Error("error checking if PR is issue", "error", err, "prNumber", prNumber)
 		return fmt.Errorf("error checking if PR is issue: %v", err)
 	}
 
@@ -300,16 +298,15 @@ func (svc GithubService) MergePullRequest(prNumber int, mergeStrategy string) er
 
 		_, _, err := svc.Client.Issues.Edit(context.Background(), svc.Owner, svc.RepoName, prNumber, issueRequest)
 		if err != nil {
-			log.Printf("error closing issue (merging): %v", err)
+			slog.Error("error closing issue (merging)", "error", err, "prNumber", prNumber)
 			return fmt.Errorf("error closing issue (merging): %v", err)
 		}
 		return nil
-
 	}
 
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Printf("error getting pull request: %v", err)
+		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
 		return fmt.Errorf("error getting pull request: %v", err)
 	}
 
@@ -329,7 +326,7 @@ func isMergeableState(mergeableState string) bool {
 	}
 	_, exists := mergeableStates[strings.ToLower(mergeableState)]
 	if !exists {
-		log.Printf("pr.GetMergeableState() returned: %v", mergeableState)
+		slog.Debug("non-standard mergeable state", "mergeableState", mergeableState)
 	}
 
 	return exists
@@ -338,7 +335,7 @@ func isMergeableState(mergeableState string) bool {
 func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 	isPullRequest, err := svc.IsPullRequest(prNumber)
 	if err != nil {
-		log.Printf("could not get pull request type: %v", err)
+		slog.Error("could not get pull request type", "error", err, "prNumber", prNumber)
 		return false, fmt.Errorf("could not get pull request type: %v", err)
 	}
 
@@ -349,7 +346,7 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Printf("error getting pull request: %v", err)
+		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
 		return false, fmt.Errorf("error getting pull request: %v", err)
 	}
 	return pr.GetMergeable() && isMergeableState(pr.GetMergeableState()), nil
@@ -359,7 +356,7 @@ func (svc GithubService) IsMerged(prNumber int) (bool, error) {
 	// we have to check if prNumber is an issue or not
 	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Printf("error getting pull request (as issue): %v", err)
+		slog.Error("error getting pull request (as issue)", "error", err, "prNumber", prNumber)
 		return false, fmt.Errorf("error getting pull request (as issue): %v", err)
 	}
 
@@ -370,7 +367,7 @@ func (svc GithubService) IsMerged(prNumber int) (bool, error) {
 
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Printf("error getting pull request: %v", err)
+		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
 		return false, fmt.Errorf("error getting pull request: %v", err)
 	}
 	return *pr.Merged, nil
@@ -379,7 +376,7 @@ func (svc GithubService) IsMerged(prNumber int) (bool, error) {
 func (svc GithubService) IsClosed(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Printf("error getting pull request: %v", err)
+		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
 		return false, fmt.Errorf("error getting pull request: %v", err)
 	}
 
@@ -406,7 +403,7 @@ func (svc GithubService) SetOutput(prNumber int, key string, value string) error
 func (svc GithubService) GetBranchName(prNumber int) (string, string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		log.Printf("error getting pull request: %v", err)
+		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
 		return "", "", fmt.Errorf("error getting pull request: %v", err)
 	}
 
@@ -416,7 +413,7 @@ func (svc GithubService) GetBranchName(prNumber int) (string, string, error) {
 func (svc GithubService) GetHeadCommitFromBranch(branch string) (string, string, error) {
 	branchInfo, _, err := svc.Client.Repositories.GetBranch(context.Background(), svc.Owner, svc.RepoName, branch, 0)
 	if err != nil {
-		fmt.Printf("Error fetching branch: %v\n", err)
+		slog.Error("error fetching branch", "error", err, "branch", branch)
 		return "", "", fmt.Errorf("could not retrive branch details: %v", err)
 	}
 
@@ -448,6 +445,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 	for _, project := range impactedProjects {
 		workflow, ok := workflows[project.Workflow]
 		if !ok {
+			slog.Error("failed to find workflow config", "workflow", project.Workflow, "project", project.Name)
 			return nil, false, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 		}
 
@@ -476,6 +474,11 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 		if *payload.Action == "closed" && *payload.PullRequest.Merged && *(payload.PullRequest.Base).Ref == *(payload.Repo).DefaultBranch {
+			slog.Info("processing merged PR to default branch",
+				"prNumber", *pullRequestNumber,
+				"project", project.Name,
+				"action", *payload.Action)
+
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
@@ -502,6 +505,11 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				SkipMergeCheck:     skipMerge,
 			})
 		} else if *payload.Action == "opened" || *payload.Action == "reopened" || *payload.Action == "synchronize" {
+			slog.Info("processing PR update",
+				"prNumber", *pullRequestNumber,
+				"project", project.Name,
+				"action", *payload.Action)
+
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
@@ -528,6 +536,10 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				SkipMergeCheck:     skipMerge,
 			})
 		} else if *payload.Action == "closed" {
+			slog.Info("processing PR closed",
+				"prNumber", *pullRequestNumber,
+				"project", project.Name)
+
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
@@ -561,6 +573,11 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				commands = workflow.Configuration.OnPullRequestConvertedToDraft
 			}
 
+			slog.Info("processing PR converted to draft",
+				"prNumber", *pullRequestNumber,
+				"project", project.Name,
+				"allowDraftPRs", config.AllowDraftPRs)
+
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
 				ProjectDir:         project.Dir,
@@ -587,7 +604,6 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				SkipMergeCheck:     skipMerge,
 			})
 		}
-
 	}
 	return jobs, true, nil
 }
@@ -599,18 +615,32 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 	switch event := ghEvent.(type) {
 	case github.PullRequestEvent:
 		prNumber = *event.GetPullRequest().Number
+		slog.Info("processing GitHub PR event",
+			"prNumber", prNumber,
+			"action", *event.Action)
+
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
+			slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
 		}
 
 		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
+		slog.Info("identified impacted projects",
+			"count", len(impactedProjects),
+			"prNumber", prNumber)
+
 	case github.IssueCommentEvent:
 		prNumber = *event.GetIssue().Number
+		slog.Info("processing GitHub issue comment event",
+			"prNumber", prNumber,
+			"comment", *event.Comment.Body)
+
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 		if err != nil {
+			slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
 		}
 
@@ -618,18 +648,34 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 		requestedProject := scheduler.ParseProjectName(*event.Comment.Body)
 
 		if requestedProject == "" {
+			slog.Debug("no specific project requested in comment", "prNumber", prNumber)
 			return impactedProjects, nil, prNumber, nil
 		}
 
+		slog.Debug("specific project requested in comment",
+			"requestedProject", requestedProject,
+			"prNumber", prNumber)
+
 		for _, project := range impactedProjects {
 			if project.Name == requestedProject {
+				slog.Debug("found requested project in impacted projects",
+					"project", requestedProject,
+					"prNumber", prNumber)
 				return impactedProjects, &project, prNumber, nil
 			}
 		}
+
+		slog.Error("requested project not found in modified projects",
+			"requestedProject", requestedProject,
+			"prNumber", prNumber)
 		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
+
 	case github.MergeGroupEvent:
+		slog.Debug("merge group event received - not handled")
 		return nil, nil, 0, UnhandledMergeGroupEventError
+
 	default:
+		slog.Error("unsupported event type", "type", fmt.Sprintf("%T", ghEvent))
 		return nil, nil, 0, fmt.Errorf("unsupported event type")
 	}
 	return impactedProjects, nil, prNumber, nil
@@ -639,18 +685,39 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 	var impactedProjects []digger_config.Project
 	var prNumber int
 	prNumber = *payload.PullRequest.Number
+
+	slog.Info("processing GitHub pull request event",
+		"prNumber", prNumber,
+		"action", *payload.Action)
+
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 	if err != nil {
+		slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 		return nil, nil, prNumber, fmt.Errorf("could not get changed files")
 	}
+
 	impactedProjects, impactedProjectsSourceLocations := diggerConfig.GetModifiedProjects(changedFiles)
+	slog.Info("identified directly impacted projects",
+		"count", len(impactedProjects),
+		"prNumber", prNumber)
 
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
+		slog.Debug("using hard dependency mode, finding all dependent projects", "prNumber", prNumber)
+		originalCount := len(impactedProjects)
+
 		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
 		if err != nil {
+			slog.Error("failed to find all projects dependant on impacted projects",
+				"error", err,
+				"prNumber", prNumber)
 			return nil, nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}
+
+		slog.Info("dependencies resolved",
+			"originalCount", originalCount,
+			"totalCount", len(impactedProjects),
+			"prNumber", prNumber)
 	}
 
 	return impactedProjects, impactedProjectsSourceLocations, prNumber, nil
@@ -664,21 +731,37 @@ func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_conf
 	owner := *payload.Repo.Owner.Login
 	repo := *payload.Repo.Name
 
+	slog.Info("processing GitHub push event",
+		"commitId", commitId,
+		"owner", owner,
+		"repo", repo)
+
 	// TODO: Refactor to make generic interface
 	changedFiles, err := ciService.(*GithubService).GetChangedFilesForCommit(owner, repo, commitId)
 	if err != nil {
+		slog.Error("could not get changed files for commit",
+			"error", err,
+			"commitId", commitId,
+			"owner", owner,
+			"repo", repo)
 		return nil, nil, nil, 0, fmt.Errorf("could not get changed files")
 	}
 
 	impactedProjects, impactedProjectsSourceMapping := diggerConfig.GetModifiedProjects(changedFiles)
+	slog.Info("identified impacted projects from push",
+		"count", len(impactedProjects),
+		"commitId", commitId)
+
 	return impactedProjects, impactedProjectsSourceMapping, nil, prNumber, nil
 }
 
 func issueCommentEventContainsComment(event interface{}, comment string) bool {
-	switch event.(type) {
+	switch event := event.(type) {
 	case github.IssueCommentEvent:
-		event := event.(github.IssueCommentEvent)
 		if strings.Contains(*event.Comment.Body, comment) {
+			slog.Debug("comment matches pattern",
+				"pattern", comment,
+				"commentId", *event.Comment.ID)
 			return true
 		}
 	}
@@ -686,9 +769,17 @@ func issueCommentEventContainsComment(event interface{}, comment string) bool {
 }
 
 func CheckIfHelpComment(event interface{}) bool {
-	return issueCommentEventContainsComment(event, "digger help")
+	result := issueCommentEventContainsComment(event, "digger help")
+	if result {
+		slog.Debug("help comment detected")
+	}
+	return result
 }
 
 func CheckIfShowProjectsComment(event interface{}) bool {
-	return issueCommentEventContainsComment(event, "digger show-projects")
+	result := issueCommentEventContainsComment(event, "digger show-projects")
+	if result {
+		slog.Debug("show-projects comment detected")
+	}
+	return result
 }
