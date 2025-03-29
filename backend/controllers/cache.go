@@ -35,7 +35,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
 		slog.Error("Could not get installation link", "error", err, "repoFullName", repoFullName, "installationId", installationId)
-		c.String(http.StatusInternalServerError, fmt.Sprintf("coulnt not find installation link %v %v", repoFullName, installationId))
+		c.String(http.StatusInternalServerError, fmt.Sprintf("could not find installation link %v %v", repoFullName, installationId))
 		return
 	}
 	orgId := link.OrganisationId
@@ -48,7 +48,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	repo, err := models.DB.GetRepo(orgId, repoDiggerName)
 	if err != nil {
 		slog.Error("Could not get repo", "error", err, "repoFullName", repoFullName, "orgId", orgId)
-		c.String(http.StatusInternalServerError, fmt.Sprintf("coulnt not get repository %v %v", repoFullName, orgId))
+		c.String(http.StatusInternalServerError, fmt.Sprintf("could not get repository %v %v", repoFullName, orgId))
 		return
 	}
 
