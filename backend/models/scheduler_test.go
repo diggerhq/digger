@@ -1,24 +1,17 @@
 package models
 
 import (
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"log"
-	"os"
-	"strings"
-	"testing"
 )
 
-func init() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-}
-
 func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
-	log.Println("setup suite")
-
 	// database file name
 	dbName := "database_test.db"
 
@@ -26,14 +19,14 @@ func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
 	e := os.Remove(dbName)
 	if e != nil {
 		if !strings.Contains(e.Error(), "no such file or directory") {
-			log.Fatal(e)
+			panic(e)
 		}
 	}
 
 	// open and create a new database
 	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// migrate tables
@@ -41,7 +34,7 @@ func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
 		&User{}, &ProjectRun{}, &GithubAppInstallation{}, &VCSConnection{}, &GithubAppInstallationLink{},
 		&GithubDiggerJobLink{}, &DiggerJob{}, &DiggerJobParentLink{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	database := &Database{GormDB: gdb}
@@ -51,28 +44,27 @@ func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
 	orgName := "testOrg"
 	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	repoName := "test repo"
 	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	projectName := "test project"
 	_, err = database.CreateProject(projectName, org, repo, false, false)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// Return a function to teardown the test
 	return func(tb testing.TB) {
-		log.Println("teardown suite")
 		e := os.Remove(dbName)
 		if e != nil {
 			if !strings.Contains(e.Error(), "no such file or directory") {
-				log.Fatal(e)
+				panic(e)
 			}
 		}
 	}, database

@@ -1,20 +1,18 @@
 package models
 
 import (
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	"os"
-	"strings"
-	"testing"
 )
 
 func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
-	log.Println("setup suite")
-
 	// database file name
 	dbName := "database_storage_test.db"
 
@@ -22,7 +20,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 	e := os.Remove(dbName)
 	if e != nil {
 		if !strings.Contains(e.Error(), "no such file or directory") {
-			log.Fatal(e)
+			panic(e)
 		}
 	}
 
@@ -31,7 +29,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// migrate tables
@@ -39,7 +37,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 		&User{}, &ProjectRun{}, &GithubAppInstallation{}, &VCSConnection{}, &GithubAppInstallationLink{},
 		&GithubDiggerJobLink{}, &DiggerJob{}, &DiggerJobParentLink{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	database := &Database{GormDB: gdb}
@@ -51,23 +49,17 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 	orgName := "testOrg"
 	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	DB = database
 	// Return a function to teardown the test
 	return func(tb testing.TB) {
-		log.Println("teardown suite")
 		err = os.Remove(dbName)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}, database, org
-}
-
-func init() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func TestCreateGithubInstallationLink(t *testing.T) {

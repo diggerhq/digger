@@ -2,25 +2,57 @@ package utils
 
 import (
 	"fmt"
+	"log/slog"
+
 	"github.com/diggerhq/digger/backend/models"
-	"log"
 )
 
 func PostCommentForBatch(batch *models.DiggerBatch, comment string, githubClientProvider GithubClientProvider) error {
+	slog.Debug("Posting comment for batch",
+		"batchId", batch.ID,
+		"vcs", batch.VCS,
+		"repo", batch.RepoFullName,
+		"prNumber", batch.PrNumber,
+		"commentLength", len(comment),
+	)
+
 	// todo: perform for rest of vcs as well
 	if batch.VCS == models.DiggerVCSGithub {
 		ghService, _, err := GetGithubService(githubClientProvider, batch.GithubInstallationId, batch.RepoFullName, batch.RepoOwner, batch.RepoName)
 		if err != nil {
-			log.Printf("error getting ghService: %v", err)
+			slog.Error("Error getting GitHub service",
+				"batchId", batch.ID,
+				"installationId", batch.GithubInstallationId,
+				"repo", batch.RepoFullName,
+				"error", err,
+			)
 			return fmt.Errorf("error getting ghService: %v", err)
 		}
+
 		_, err = ghService.PublishComment(batch.PrNumber, comment)
 		if err != nil {
-			log.Printf("error publishing comment (%v): %v", comment, err)
+			slog.Error("Error publishing comment",
+				"batchId", batch.ID,
+				"prNumber", batch.PrNumber,
+				"repo", batch.RepoFullName,
+				"error", err,
+			)
 			return fmt.Errorf("error publishing comment (%v): %v", comment, err)
 		}
+
+		slog.Info("Successfully posted comment",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+			"repo", batch.RepoFullName,
+		)
 		return nil
 	}
-	log.Printf("Warning: Unknown vcs type: %v", batch.VCS)
+
+	slog.Warn("Unknown VCS type, comment not posted",
+		"batchId", batch.ID,
+		"vcs", batch.VCS,
+		"repo", batch.RepoFullName,
+		"prNumber", batch.PrNumber,
+	)
 	return nil
 }

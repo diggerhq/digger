@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -59,12 +60,12 @@ func periodicProfiling() {
 			memProfilePath := filepath.Join("/tmp/profiles", fmt.Sprintf("memory-%s.pprof", timestamp))
 			f, err := os.Create(memProfilePath)
 			if err != nil {
-				log.Printf("Failed to create memory profile: %v", err)
+				slog.Error("Failed to create memory profile", "error", err)
 				continue
 			}
 
 			if err := pprof.WriteHeapProfile(f); err != nil {
-				log.Printf("Failed to write memory profile: %v", err)
+				slog.Error("Failed to write memory profile", "error", err)
 			}
 			f.Close()
 
@@ -77,7 +78,7 @@ func periodicProfiling() {
 func cleanupOldProfiles(dir string, keep int) {
 	files, err := filepath.Glob(filepath.Join(dir, "memory-*.pprof"))
 	if err != nil {
-		log.Printf("Failed to list profile files: %v", err)
+		slog.Error("Failed to list profile files", "error", err)
 		return
 	}
 
@@ -88,7 +89,7 @@ func cleanupOldProfiles(dir string, keep int) {
 	// Sort files by name (which includes timestamp)
 	for i := 0; i < len(files)-keep; i++ {
 		if err := os.Remove(files[i]); err != nil {
-			log.Printf("Failed to remove old profile %s: %v", files[i], err)
+			slog.Error("Failed to remove old profile", "file", files[i], "error", err)
 		}
 	}
 }
@@ -108,7 +109,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		Release:          "api@" + Version,
 		Debug:            true,
 	}); err != nil {
-		log.Printf("Sentry initialization failed: %v\n", err)
+		slog.Error("Sentry initialization failed", "error", err)
 	}
 
 	//database migrations
@@ -241,7 +242,9 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 }
 
 func initLogging() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	log.Println("Initialized the logger successfully")
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
 }

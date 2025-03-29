@@ -3,6 +3,10 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -10,9 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"io"
-	"log"
-	"net/http"
 )
 
 type CreatePolicyInput struct {
@@ -37,7 +38,7 @@ func findPolicy(c *gin.Context, policyType string) {
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
 	if !exists {
-		log.Printf("Organisation ID not found in context")
+		slog.Warn("Organisation ID not found in context")
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
@@ -51,17 +52,21 @@ func findPolicy(c *gin.Context, policyType string) {
 			First(&policy).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
+				slog.Debug("Policy not found", "repo", repo, "projectName", projectName, "policyType", policyType)
 				c.String(http.StatusNotFound, fmt.Sprintf("Could not find policy for repo %v and project name %v", repo, projectName))
 			} else {
+				slog.Error("Error fetching policy", "repo", repo, "projectName", projectName, "policyType", policyType, "error", err)
 				c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
 			}
 			return
 		}
 	} else {
+		slog.Warn("Invalid request parameters", "repo", repo, "projectName", projectName)
 		c.String(http.StatusBadRequest, "Should pass repo and project name")
 		return
 	}
 
+	slog.Debug("Policy found", "repo", repo, "projectName", projectName, "policyType", policyType)
 	c.Header("Content-Type", "text/plain; charset=utf-8")
 	c.String(http.StatusOK, policy.Policy)
 }
@@ -88,8 +93,10 @@ func findPolicyForOrg(c *gin.Context, policyType string) {
 		First(&policy).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Debug("Policy not found for organisation", "organisation", organisation, "policyType", policyType)
 			c.String(http.StatusNotFound, "Could not find policy for organisation: "+organisation)
 		} else {
+			slog.Error("Error fetching policy for organisation", "organisation", organisation, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
 		}
 		return
@@ -98,11 +105,15 @@ func findPolicyForOrg(c *gin.Context, policyType string) {
 	loggedInOrganisation := c.GetUint(middleware.ORGANISATION_ID_KEY)
 
 	if policy.OrganisationID != loggedInOrganisation {
-		log.Printf("Organisation ID %v does not match logged in organisation ID %v", policy.OrganisationID, loggedInOrganisation)
+		slog.Warn("Authorization mismatch",
+			"policyOrgId", policy.OrganisationID,
+			"loggedInOrgId", loggedInOrganisation,
+			"organisation", organisation)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
 
+	slog.Debug("Organisation policy found", "organisation", organisation, "policyType", policyType)
 	c.Header("Content-Type", "text/plain; charset=utf-8")
 	c.String(http.StatusOK, policy.Policy)
 }
@@ -130,7 +141,7 @@ func upsertPolicyForOrg(c *gin.Context, policyType string) {
 	// Validate input
 	policyData, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		// Handle the error
+		slog.Error("Error reading request body", "error", err)
 		c.String(http.StatusInternalServerError, "Error reading request body")
 		return
 	}
@@ -139,6 +150,7 @@ func upsertPolicyForOrg(c *gin.Context, policyType string) {
 	org := models.Organisation{}
 	orgResult := models.DB.GormDB.Where("name = ?", organisation).Take(&org)
 	if orgResult.RowsAffected == 0 {
+		slog.Debug("Organisation not found", "organisation", organisation)
 		c.String(http.StatusNotFound, "Could not find organisation: "+organisation)
 		return
 	}
@@ -146,7 +158,10 @@ func upsertPolicyForOrg(c *gin.Context, policyType string) {
 	loggedInOrganisation := c.GetUint(middleware.ORGANISATION_ID_KEY)
 
 	if org.ID != loggedInOrganisation {
-		log.Printf("Organisation ID %v does not match logged in organisation ID %v", org.ID, loggedInOrganisation)
+		slog.Warn("Authorization mismatch",
+			"orgId", org.ID,
+			"loggedInOrgId", loggedInOrganisation,
+			"organisation", organisation)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
@@ -163,17 +178,19 @@ func upsertPolicyForOrg(c *gin.Context, policyType string) {
 		}).Error
 
 		if err != nil {
-			log.Printf("Error creating policy: %v", err)
+			slog.Error("Error creating policy", "organisation", organisation, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error creating policy")
 			return
 		}
+		slog.Info("Created new policy", "organisation", organisation, "policyType", policyType)
 	} else {
 		err := policyResult.Update("policy", string(policyData)).Error
 		if err != nil {
-			log.Printf("Error updating policy: %v", err)
+			slog.Error("Error updating policy", "organisation", organisation, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error updating policy")
 			return
 		}
+		slog.Info("Updated existing policy", "organisation", organisation, "policyType", policyType)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
@@ -195,6 +212,7 @@ func upsertPolicyForRepoAndProject(c *gin.Context, policyType string) {
 	orgID, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
 	if !exists {
+		slog.Warn("Organisation ID not found in context")
 		c.String(http.StatusUnauthorized, "Not authorized")
 		return
 	}
@@ -204,7 +222,7 @@ func upsertPolicyForRepoAndProject(c *gin.Context, policyType string) {
 	// Validate input
 	policyData, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		// Handle the error
+		slog.Error("Error reading request body", "error", err)
 		c.String(http.StatusInternalServerError, "Error reading request body")
 		return
 	}
@@ -219,10 +237,11 @@ func upsertPolicyForRepoAndProject(c *gin.Context, policyType string) {
 		}
 		result := models.DB.GormDB.Create(&repoModel)
 		if result.Error != nil {
-			log.Printf("Error creating repo: %v", err)
+			slog.Error("Error creating repo", "repo", repo, "error", result.Error)
 			c.String(http.StatusInternalServerError, "Error creating missing repo")
 			return
 		}
+		slog.Info("Created new repo", "repo", repo, "orgId", orgID)
 	}
 
 	projectModel := models.Project{}
@@ -235,10 +254,11 @@ func upsertPolicyForRepoAndProject(c *gin.Context, policyType string) {
 		}
 		err := models.DB.GormDB.Create(&projectModel).Error
 		if err != nil {
-			log.Printf("Error creating project: %v", err)
+			slog.Error("Error creating project", "project", projectName, "repo", repo, "error", err)
 			c.String(http.StatusInternalServerError, "Error creating missing project")
 			return
 		}
+		slog.Info("Created new project", "project", projectName, "repo", repo, "orgId", orgID)
 	}
 
 	var policy models.Policy
@@ -254,17 +274,19 @@ func upsertPolicyForRepoAndProject(c *gin.Context, policyType string) {
 			Policy:         string(policyData),
 		}).Error
 		if err != nil {
-			log.Printf("Error creating policy: %v", err)
+			slog.Error("Error creating policy", "repo", repo, "project", projectName, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error creating policy")
 			return
 		}
+		slog.Info("Created new policy for repo and project", "repo", repo, "project", projectName, "policyType", policyType)
 	} else {
 		err := policyResult.Update("policy", string(policyData)).Error
 		if err != nil {
-			log.Printf("Error updating policy: %v", err)
+			slog.Error("Error updating policy", "repo", repo, "project", projectName, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error updating policy")
 			return
 		}
+		slog.Info("Updated existing policy for repo and project", "repo", repo, "project", projectName, "policyType", policyType)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
@@ -274,6 +296,7 @@ func IssueAccessTokenForOrg(c *gin.Context) {
 	organisation_ID, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
 	if !exists {
+		slog.Warn("Organisation ID not found in context")
 		c.String(http.StatusUnauthorized, "Not authorized")
 		return
 	}
@@ -281,7 +304,7 @@ func IssueAccessTokenForOrg(c *gin.Context) {
 	org := models.Organisation{}
 	orgResult := models.DB.GormDB.Where("id = ?", organisation_ID).Take(&org)
 	if orgResult.RowsAffected == 0 {
-		log.Printf("Could not find organisation: %v", organisation_ID)
+		slog.Error("Could not find organisation", "organisationId", organisation_ID)
 		c.String(http.StatusInternalServerError, "Unexpected error")
 		return
 	}
@@ -296,11 +319,12 @@ func IssueAccessTokenForOrg(c *gin.Context) {
 	}).Error
 
 	if err != nil {
-		log.Printf("Error creating token: %v", err)
+		slog.Error("Error creating token", "orgId", org.ID, "error", err)
 		c.String(http.StatusInternalServerError, "Unexpected error")
 		return
 	}
 
+	slog.Info("Created access token for organisation", "orgId", org.ID)
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
@@ -308,19 +332,24 @@ func loadDiggerConfig(configYaml *dg_configuration.DiggerConfigYaml) (*dg_config
 
 	err := dg_configuration.ValidateDiggerConfigYaml(configYaml, "loaded config")
 	if err != nil {
+		slog.Error("Error validating config", "error", err)
 		return nil, nil, fmt.Errorf("error validating config: %v", err)
 	}
 
 	config, depGraph, err := dg_configuration.ConvertDiggerYamlToConfig(configYaml)
 	if err != nil {
+		slog.Error("Error converting config", "error", err)
 		return nil, nil, fmt.Errorf("error converting config: %v", err)
 	}
 
 	err = dg_configuration.ValidateDiggerConfig(config)
 
 	if err != nil {
+		slog.Error("Error validating converted config", "error", err)
 		return nil, nil, fmt.Errorf("error validating config: %v", err)
 	}
+
+	slog.Debug("Successfully loaded digger config")
 	return config, depGraph, nil
 }
 
@@ -332,5 +361,6 @@ func GetIndependentProjects(depGraph graph.Graph[string, string], projectsToFilt
 			res = append(res, project)
 		}
 	}
+	slog.Debug("Found independent projects", "count", len(res), "totalProjects", len(projectsToFilter))
 	return res, nil
 }
