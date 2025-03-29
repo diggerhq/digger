@@ -6,8 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
 	"io"
+
+	"github.com/diggerhq/digger/backend/models"
 )
 
 // Encrypt encrypts a plaintext string using AES-256-GCM

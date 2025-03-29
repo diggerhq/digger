@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"errors"
+	"log/slog"
+	"net/http"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
 )
 
 func GetDashboardStatusApi(c *gin.Context) {
@@ -18,9 +19,10 @@ func GetDashboardStatusApi(c *gin.Context) {
 	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found", "organisationId", organisationId, "source", organisationSource)
 			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
 		} else {
-			log.Printf("could not fetch organisation: %v err: %v", organisationId, err)
+			slog.Error("Could not fetch organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
 			c.String(http.StatusNotFound, "Could not fetch organisation: "+organisationId)
 		}
 		return
@@ -28,5 +30,6 @@ func GetDashboardStatusApi(c *gin.Context) {
 
 	response := make(map[string]interface{})
 
+	slog.Debug("Fetching dashboard status", "organisationId", organisationId, "orgId", org.ID)
 	c.JSON(http.StatusOK, response)
 }

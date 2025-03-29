@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"errors"
-	"github.com/samber/lo"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/samber/lo"
 
 	"github.com/diggerhq/digger/backend/utils"
 	"gorm.io/gorm"
@@ -22,7 +23,7 @@ func ListVCSConnectionsApi(c *gin.Context) {
 	var org models.Organisation
 	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
-		log.Printf("could not fetch organisation: %v err: %v", organisationId, err)
+		slog.Error("Could not fetch organisation", "organisationId", organisationId, "error", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Could not fetch organisation"})
 		return
 	}
@@ -30,7 +31,7 @@ func ListVCSConnectionsApi(c *gin.Context) {
 	var connections []models.VCSConnection
 	err = models.DB.GormDB.Where("organisation_id = ?", org.ID).Find(&connections).Error
 	if err != nil {
-		log.Printf("could not fetch VCS connections: %v", err)
+		slog.Error("Could not fetch VCS connections", "organisationId", organisationId, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch VCS connections"})
 		return
 	}
@@ -54,7 +55,7 @@ func CreateVCSConnectionApi(c *gin.Context) {
 	var org models.Organisation
 	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
-		log.Printf("could not fetch organisation: %v err: %v", organisationId, err)
+		slog.Error("Could not fetch organisation", "organisationId", organisationId, "error", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Could not fetch organisation"})
 		return
 	}
@@ -68,33 +69,34 @@ func CreateVCSConnectionApi(c *gin.Context) {
 
 	var request CreateVCSConnectionRequest
 	if err := c.BindJSON(&request); err != nil {
+		slog.Error("Invalid request body", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	if request.VCS != "bitbucket" {
-		log.Printf("VCS type not supported: %v", request.VCS)
+		slog.Error("VCS type not supported", "type", request.VCS)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "VCS type not supported"})
 		return
 	}
 
 	secret := os.Getenv("DIGGER_ENCRYPTION_SECRET")
 	if secret == "" {
-		log.Printf("ERROR: no encryption secret specified")
+		slog.Error("No encryption secret specified")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt access token"})
 		return
 	}
 
 	bitbucketAccessTokenEncrypted, err := utils.AESEncrypt([]byte(secret), request.BitbucketAccessToken)
 	if err != nil {
-		log.Printf("could not encrypt access token: %v", err)
+		slog.Error("Could not encrypt access token", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt access token"})
 		return
 	}
 
 	bitbucketWebhookSecretEncrypted, err := utils.AESEncrypt([]byte(secret), request.BitbucketWebhookSecret)
 	if err != nil {
-		log.Printf("could not encrypt webhook secret: %v", err)
+		slog.Error("Could not encrypt webhook secret", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt webhook secret"})
 		return
 	}
@@ -114,9 +116,12 @@ func CreateVCSConnectionApi(c *gin.Context) {
 		org.ID,
 	)
 	if err != nil {
-		log.Printf("")
+		slog.Error("Could not create VCS connection", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create VCS connection"})
+		return
 	}
 
+	slog.Info("Created VCS connection", "connectionId", connection.ID, "organisationId", org.ID)
 	c.JSON(http.StatusCreated, gin.H{
 		"connection": connection.ID,
 	})
@@ -131,9 +136,10 @@ func GetVCSConnection(c *gin.Context) {
 	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found", "organisationId", organisationId)
 			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
 		} else {
-			log.Printf("could not fetch organisation: %v err: %v", organisationId, err)
+			slog.Error("Could not fetch organisation", "organisationId", organisationId, "error", err)
 			c.String(http.StatusNotFound, "Could not fetch organisation: "+organisationId)
 		}
 		return
@@ -143,9 +149,10 @@ func GetVCSConnection(c *gin.Context) {
 	err = models.DB.GormDB.Where("id = ? AND organisation_id = ?", connectionId, org.ID).First(&connection).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Connection not found", "connectionId", connectionId, "organisationId", org.ID)
 			c.String(http.StatusNotFound, "Could not find connection: "+connectionId)
 		} else {
-			log.Printf("could not fetch connection: %v err: %v", connectionId, err)
+			slog.Error("Could not fetch connection", "connectionId", connectionId, "error", err)
 			c.String(http.StatusInternalServerError, "Could not fetch connection")
 		}
 		return
@@ -166,9 +173,10 @@ func DeleteVCSConnection(c *gin.Context) {
 	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found", "organisationId", organisationId)
 			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
 		} else {
-			log.Printf("could not fetch organisation: %v err: %v", organisationId, err)
+			slog.Error("Could not fetch organisation", "organisationId", organisationId, "error", err)
 			c.String(http.StatusNotFound, "Could not fetch organisation: "+organisationId)
 		}
 		return
@@ -178,9 +186,10 @@ func DeleteVCSConnection(c *gin.Context) {
 	err = models.DB.GormDB.Where("id = ? AND organisation_id = ?", connectionId, org.ID).First(&connection).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Connection not found", "connectionId", connectionId, "organisationId", org.ID)
 			c.String(http.StatusNotFound, "Could not find connection: "+connectionId)
 		} else {
-			log.Printf("could not fetch connection: %v err: %v", connectionId, err)
+			slog.Error("Could not fetch connection", "connectionId", connectionId, "error", err)
 			c.String(http.StatusInternalServerError, "Could not fetch connection")
 		}
 		return
@@ -188,11 +197,12 @@ func DeleteVCSConnection(c *gin.Context) {
 
 	err = models.DB.GormDB.Delete(&connection).Error
 	if err != nil {
-		log.Printf("could not delete connection: %v err: %v", connectionId, err)
+		slog.Error("Could not delete connection", "connectionId", connectionId, "error", err)
 		c.String(http.StatusInternalServerError, "Could not delete connection")
 		return
 	}
 
+	slog.Info("Successfully deleted VCS connection", "connectionId", connectionId, "organisationId", org.ID)
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 	})
