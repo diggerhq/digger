@@ -2,16 +2,17 @@ package digger
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/execution"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/execution"
+	"github.com/diggerhq/digger/libs/iac_utils"
+	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -86,7 +87,13 @@ func (m *MockPRManager) GetApprovals(prNumber int) ([]string, error) {
 
 func (m *MockPRManager) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", strconv.Itoa(prNumber) + " " + comment, time.Now()})
-	return nil, nil
+	id := "mock-comment-id"
+	url := "http://example.com/comment/1"
+	return &ci.Comment{
+		Id:   id,
+		Url:  url,
+		Body: &comment,
+	}, nil
 }
 
 func (m *MockPRManager) ListIssues() ([]*ci.Issue, error) {
