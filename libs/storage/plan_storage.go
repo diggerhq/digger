@@ -101,7 +101,7 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 		slog.Error("Failed to finalize GitHub artifact upload",
 			"error", err,
 			"artifactName", artifactName)
-		return fmt.Errorf("could finalize artefact upload: %v", err)
+		return fmt.Errorf("could finalize artifact upload: %v", err)
 	}
 
 	slog.Info("Successfully stored plan file in GitHub artifacts",

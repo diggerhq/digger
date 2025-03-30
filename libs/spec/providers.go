@@ -235,7 +235,7 @@ func (v VCSProviderBasic) GetPrService(vcsSpec VcsSpec) (ci.PullRequestService, 
 		token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
 		if token == "" {
 			slog.Error("DIGGER_BITBUCKET_ACCESS_TOKEN environment variable not set")
-			return nil, fmt.Errorf("failed to get bitbucket service: GITLAB_TOKEN not specified")
+			return nil, fmt.Errorf("failed to get bitbucket service: DIGGER_BITBUCKET_ACCESS_TOKEN not specified")
 		}
 		slog.Debug("Using Bitbucket PR service")
 		return bitbucket.BitbucketAPI{

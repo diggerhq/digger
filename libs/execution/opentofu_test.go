@@ -1,7 +1,6 @@
 package execution
 
 import (
-	"log"
 	"os"
 	"testing"
 
@@ -30,7 +29,7 @@ func TestExecuteTofuApply(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 
@@ -47,7 +46,7 @@ func TestExecuteTofuApplyDefaultWorkspace(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 

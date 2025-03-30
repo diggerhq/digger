@@ -27,7 +27,7 @@ func (l LicenseKeyChecker) Check() error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		slog.Error("Error marshalling JSON for license validation", "error", err)
-		return fmt.Errorf("error marhsalling json for license validation: %v", err)
+		return fmt.Errorf("error marshalling JSON for license validation: %v", err)
 	}
 
 	// Create a new POST request

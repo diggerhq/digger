@@ -335,7 +335,10 @@ func (fetcher *GithubAwsTokenFetcher) GetIdentityToken() ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	parsed := &TokenResponse{}
-	json.NewDecoder(resp.Body).Decode(parsed)
+	if err := json.NewDecoder(resp.Body).Decode(parsed); err != nil {
+		slog.Error("Failed to decode token response", "error", err)
+		return nil, fmt.Errorf("failed to decode token response: %v", err)
+	}
 
 	slog.Debug("Successfully fetched GitHub identity token")
 	return []byte(parsed.Value), nil
