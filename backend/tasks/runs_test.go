@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -36,14 +35,14 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	e := os.Remove(dbName)
 	if e != nil {
 		if !strings.Contains(e.Error(), "no such file or directory") {
-			log.Fatal(e)
+			panic(e)
 		}
 	}
 
 	// open and create a new database
 	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// migrate tables
@@ -51,7 +50,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.VCSConnection{}, &models.GithubAppInstallationLink{},
 		&models.GithubDiggerJobLink{}, &models.DiggerJob{}, &models.DiggerJobParentLink{}, &models.DiggerRun{}, &models.DiggerRunQueueItem{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	database := &models.Database{GormDB: gdb}
@@ -63,21 +62,21 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	orgName := "testOrg"
 	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create digger repo
 	repoName := "test repo"
 	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create test project
 	projectName := "test project"
 	_, err = database.CreateProject(projectName, org, repo, false, false)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	models.DB = database

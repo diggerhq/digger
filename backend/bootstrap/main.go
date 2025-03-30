@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -38,7 +37,8 @@ func setupProfiler(r *gin.Engine) {
 
 	// Create profiles directory if it doesn't exist
 	if err := os.MkdirAll("/tmp/profiles", 0755); err != nil {
-		log.Fatalf("Failed to create profiles directory: %v", err)
+		slog.Error("Failed to create profiles directory", "error", err)
+		panic(err)
 	}
 
 	// Start periodic profiling goroutine
