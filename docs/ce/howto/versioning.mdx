@@ -4,9 +4,7 @@ description: "For serious usecases always use a pinned version which is of the f
 ---
 
 <Warning>
-  For serious usecases always use a pinned version which is of the form @vX.Y.Z
-  since this will download a compiled binary. In addition to being faster to run, it
-  is also more secure than using a commit from a branch
+  For serious usecases always use a commit SHA reference for the digger action, of the format `@<40-character-commit-SHA>`. We recommend using a commit SHA from one of [our releases](https://github.com/diggerhq/digger/releases), since this will download a compiled binary. In addition to being faster to run, it is also more secure than using a commit from a branch or tag.
 </Warning>
 
 ## Use vLatest tag
@@ -15,18 +13,18 @@ The default and recommended way of versioning Digger is to use the vLatest tag, 
 
 ```
 - name: digger
-  uses: diggerhq/digger@vX.Y.Z
+  uses: diggerhq/digger@vLatest
   env:
     ...
 ```
 
 ## Use a pinned version
 
-To pin a specific release of Digger, you can use `@vX.Y.Z` tag in your workflow file:
+To pin a specific release of Digger, look up the release in [our releases](https://github.com/diggerhq/digger/releases). Copy the full commit SHA from the release and use it in your workflow file:
 
 ```
 - name: digger
-  uses: diggerhq/digger@vX.Y.Z
+  uses: diggerhq/digger@28a8ecd4ccb31f9196b1cbc9ceb14025059f97dc # v0.6.93
   env:
     ...
 ```
