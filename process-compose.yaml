@@ -1,0 +1,130 @@
+version: "0.5"
+
+log_location: "${PRJ_DATA_DIR}/process-compose.log"
+log_level: info
+log_length: 3000
+log_configuration:
+  rotation:
+    max_size_mb: 10
+    max_age_days: 7
+    max_backups: 3
+    compress: true
+  fields_order: ["time", "level", "message"]
+  disable_json: true
+  timestamp_format: "2006-01-02 15:04:05.000"
+  no_metadata: false
+  add_timestamp: true
+  no_color: true
+
+processes:
+  pg_init:
+    command: |
+      set -e
+      # Create data directory if it doesn't exist
+      mkdir -p "${PG_DATA_DIR}"
+
+      # Initialize PostgreSQL data directory if needed
+      if [ ! -f "${PG_DATA_DIR}/PG_VERSION" ]; then
+        echo "Initializing PostgreSQL data directory..."
+        initdb -D "${PG_DATA_DIR}" --auth=trust
+
+        # Configure PostgreSQL for our needs
+        echo "listen_addresses = '*'" >> "${PG_DATA_DIR}/postgresql.conf"
+        echo "unix_socket_directories = ''" >> "${PG_DATA_DIR}/postgresql.conf"
+        echo "host all all 0.0.0.0/0 trust" >> "${PG_DATA_DIR}/pg_hba.conf"
+        echo "PostgreSQL data directory initialized."
+      else
+        echo "PostgreSQL data directory already exists."
+      fi
+
+      # Start PostgreSQL server temporarily to create the database
+      echo "Starting temporary PostgreSQL server..."
+      pg_ctl -D "${PG_DATA_DIR}" -o "-h localhost" -l "${PG_DATA_DIR}/pg_init.log" start
+
+      # Wait for server to start
+      for i in {1..30}; do
+        if pg_isready -h localhost >/dev/null 2>&1; then
+          echo "PostgreSQL server is ready."
+          break
+        fi
+        echo "Waiting for PostgreSQL to start... ($i/30)"
+        sleep 1
+      done
+
+      # Get current username
+      CURRENT_USER=$(whoami)
+      echo "Current username: $CURRENT_USER"
+
+      # Create user database if it doesn't exist
+      if ! psql -h localhost -d postgres -c '\l' | grep -q "$CURRENT_USER"; then
+        echo "Creating user database '$CURRENT_USER'..."
+        createdb -h localhost "$CURRENT_USER"
+        echo "Database '$CURRENT_USER' created successfully."
+      else
+        echo "Database '$CURRENT_USER' already exists."
+      fi
+
+      # Create the strate database if it doesn't exist
+      if ! psql -h localhost -d postgres -c '\l' | grep -q strate; then
+        echo "Creating strate database..."
+        createdb -h localhost strate
+        echo "Database 'strate' created successfully."
+      else
+        echo "Database 'strate' already exists."
+      fi
+
+      # Stop the temporary server
+      echo "Stopping temporary PostgreSQL server..."
+      pg_ctl -D "${PG_DATA_DIR}" stop -m fast
+
+      echo "PostgreSQL initialization complete."
+    environment:
+      - "PGHOST=localhost"
+      - "PG_DATA_DIR=${PG_DATA_DIR}"
+
+  postgres:
+    command: "postgres -D ${PG_DATA_DIR} -h localhost"
+    availability:
+      restart: "on_failure"
+      backoff_seconds: 5
+    depends_on:
+      pg_init:
+        condition: process_completed_successfully
+    readiness_probe:
+      exec:
+        command: "pg_isready -h localhost"
+      initial_delay_seconds: 5
+      period_seconds: 3
+      timeout_seconds: 1
+      success_threshold: 1
+      failure_threshold: 3
+    shutdown:
+      command: "pg_ctl -D ${PG_DATA_DIR} stop -m fast"
+      signal: 15
+      timeout_seconds: 10
+    environment:
+      - "PGHOST=localhost"
+      - "PG_DATA_DIR=${PG_DATA_DIR}"
+
+  pgweb:
+    command: "pgweb --host=localhost --port=5432 --db=strate"
+    availability:
+      restart: "on_failure"
+      backoff_seconds: 2
+    depends_on:
+      postgres:
+        condition: process_healthy
+    environment:
+      - "PGHOST=localhost"
+      - "PGWEB_DATABASE_URL=postgres://postgres@localhost:5432/strate?sslmode=disable"
+    readiness_probe:
+      http_get:
+        host: "127.0.0.1"
+        port: "8081"
+        path: "/"
+        scheme: "http"
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 1
+      success_threshold: 1
+      failure_threshold: 3

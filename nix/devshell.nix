@@ -6,7 +6,10 @@ perSystem.devshell.mkShell {
     go-outline
     gotools
     mockgen
+    pgweb
+    postgresql_17
     revive
+    process-compose
   ];
 
   env = [

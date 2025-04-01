@@ -10,3 +10,6 @@
 # Nix
 result*
 repl-result-*
+
+# process-compose
+.data/
