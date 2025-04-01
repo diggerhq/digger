@@ -1,7 +1,12 @@
+# misc
 .idea/
-**/.env
-**/.env*
 .DS_Store
-venv/
-**/__pycache__/
-__azurite*
+
+# Direnv
+/.direnv
+/.envrc.private
+/env
+
+# Nix
+result*
+repl-result-*
