@@ -10,8 +10,6 @@ type CiBackend interface {
 	GetWorkflowUrl(spec spec.Spec) (string, error)
 }
 
-type JenkinsCi struct{}
-
 type CiBackendOptions struct {
 	GithubClientProvider        utils.GithubClientProvider
 	GithubInstallationId        int64
