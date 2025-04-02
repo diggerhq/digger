@@ -99,22 +99,21 @@ func CreateVCSConnectionApi(c *gin.Context) {
 
 	bitbucketWebhookSecretEncrypted, err := utils.AESEncrypt([]byte(secret), request.BitbucketWebhookSecret)
 	if err != nil {
-    slog.Error("Could not encrypt bitbucket webhook secret", "error", err)
+		slog.Error("Could not encrypt bitbucket webhook secret", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt bitbucket webhook secret"})
 		return
 	}
 
 	gitlabAccessTokenEncrypted, err := utils.AESEncrypt([]byte(secret), request.GitlabAccessToken)
 	if err != nil {
-    slog.Error("Could not encrypt gitlab access secret", "error", err)    
+		slog.Error("Could not encrypt gitlab access secret", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt gitlab access token"})
 		return
 	}
 
 	gitlabWebhookSecret, err := utils.AESEncrypt([]byte(secret), request.GitlabWebhookSecret)
 	if err != nil {
-    slog.Error("Could not encrypt gitlab webhook secret", "error", err)    
-		log.Printf("could not encrypt gitlab webhook secret: %v", err)
+		slog.Error("Could not encrypt gitlab webhook secret", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encrypt gitlab webhook secret"})
 		return
 	}
