@@ -87,7 +87,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 						}
 					}
 				}
-				return true
+				return false
 			})
 			if err != nil {
 				return nil, err
