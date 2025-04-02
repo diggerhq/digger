@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -50,8 +50,11 @@ type RoleProvider interface {
 type AwsRoleProvider struct{}
 
 func (a AwsRoleProvider) GetKeysFromRole(role string) (*aws.Credentials, error) {
+	slog.Debug("Attempting to get keys from role", "role", role)
+
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
+		slog.Error("Failed to load AWS config", "error", err)
 		return nil, fmt.Errorf("GetKeysFromRole: Could not create aws session, %v", err)
 	}
 	stsService := sts.NewFromConfig(cfg)
@@ -62,14 +65,25 @@ func (a AwsRoleProvider) GetKeysFromRole(role string) (*aws.Credentials, error) 
 		ExternalId:      aws.String(EnvProviderName),
 	}
 
+	slog.Debug("Calling AssumeRole",
+		"roleArn", role,
+		"sessionName", EnvProviderName)
+
 	resp, err := stsService.AssumeRole(context.Background(), params)
 	if err != nil {
-		log.Printf("error in GetkeysFromRole %v", err)
+		slog.Error("Failed to assume role",
+			"role", role,
+			"error", err)
 		return nil, ErrRoleNotValid
 	}
+
 	akey := *resp.Credentials.AccessKeyId
 	asecret := *resp.Credentials.SecretAccessKey
 	asesstoken := *resp.Credentials.SessionToken
+
+	slog.Info("Successfully assumed role",
+		"role", role,
+		"expirationTime", resp.Credentials.Expiration)
 
 	return &aws.Credentials{
 		AccessKeyID:     akey,
@@ -80,11 +94,15 @@ func (a AwsRoleProvider) GetKeysFromRole(role string) (*aws.Credentials, error) 
 
 // Retrieve retrieves the keys from the environment.
 func (e *EnvProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	slog.Debug("Retrieving AWS credentials from environment")
+
 	e.retrieved = false
 	//assign id from env vars
 	idEnvVars := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY"}
 	id, err := assignEnv(idEnvVars)
 	if err != nil {
+		slog.Error("AWS access key ID not found in environment",
+			"searchedVars", idEnvVars)
 		return aws.Credentials{}, ErrAccessKeyIDNotFound
 	}
 
@@ -92,16 +110,21 @@ func (e *EnvProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	secretEnvVars := []string{"DIGGER_AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY", "AWS_SECRET_KEY"}
 	secret, err := assignEnv(secretEnvVars)
 	if err != nil {
+		slog.Error("AWS secret access key not found in environment",
+			"searchedVars", secretEnvVars)
 		return aws.Credentials{}, ErrSecretAccessKeyNotFound
 	}
 
+	sessionToken := os.Getenv("AWS_SESSION_TOKEN")
 	e.retrieved = true
+
+	slog.Debug("AWS credentials successfully retrieved from environment")
+
 	return aws.Credentials{
 		AccessKeyID:     id,
 		SecretAccessKey: secret,
-		SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
+		SessionToken:    sessionToken,
 	}, nil
-
 }
 
 // Assign first non-nil env var

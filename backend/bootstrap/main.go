@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,7 +14,9 @@ import (
 
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/segment"
+	"github.com/diggerhq/digger/backend/utils"
 	pprof_gin "github.com/gin-contrib/pprof"
+	sloggin "github.com/samber/slog-gin"
 
 	"time"
 
@@ -38,7 +39,8 @@ func setupProfiler(r *gin.Engine) {
 
 	// Create profiles directory if it doesn't exist
 	if err := os.MkdirAll("/tmp/profiles", 0755); err != nil {
-		log.Fatalf("Failed to create profiles directory: %v", err)
+		slog.Error("Failed to create profiles directory", "error", err)
+		panic(err)
 	}
 
 	// Start periodic profiling goroutine
@@ -108,6 +110,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		TracesSampleRate: 0.1,
 		Release:          "api@" + Version,
 		Debug:            true,
+		DebugWriter:      utils.NewSentrySlogWriter(slog.Default().WithGroup("sentry")),
 	}); err != nil {
 		slog.Error("Sentry initialization failed", "error", err)
 	}
@@ -116,6 +119,8 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	models.ConnectDatabase()
 
 	r := gin.Default()
+
+	r.Use(sloggin.New(slog.Default().WithGroup("http")))
 
 	if _, exists := os.LookupEnv("DIGGER_PPROF_DEBUG_ENABLED"); exists {
 		setupProfiler(r)

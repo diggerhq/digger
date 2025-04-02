@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 )
@@ -26,14 +26,14 @@ func (l LicenseKeyChecker) Check() error {
 	// Convert the data to JSON
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Println("Error marshalling JSON:", err)
-		return fmt.Errorf("error marhsalling json for license validation: %v", err)
+		slog.Error("Error marshalling JSON for license validation", "error", err)
+		return fmt.Errorf("error marshalling JSON for license validation: %v", err)
 	}
 
 	// Create a new POST request
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Println("Error creating request:", err)
+		slog.Error("Error creating request for license validation", "error", err)
 		return fmt.Errorf("error creating request for license validation: %v", err)
 	}
 
@@ -42,21 +42,27 @@ func (l LicenseKeyChecker) Check() error {
 
 	// Send the request using http.DefaultClient
 	client := &http.Client{}
+
+	slog.Debug("Sending license validation request", "url", url)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error sending request:", err)
+		slog.Error("Error sending license validation request", "error", err)
 		return fmt.Errorf("error sending request for license validation: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 200 {
+	if resp.StatusCode == http.StatusOK {
+		slog.Info("License validation successful", "status", resp.StatusCode)
 		return nil
 	} else {
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Printf("error while reading response body")
+			slog.Error("Error reading license validation response body", "error", err)
 		}
-		return fmt.Errorf("license key is not valid: %v", string(bodyBytes))
+		responseText := string(bodyBytes)
+		slog.Error("License validation failed",
+			"status", resp.StatusCode,
+			"response", responseText)
+		return fmt.Errorf("license key is not valid: %v", responseText)
 	}
-
 }
