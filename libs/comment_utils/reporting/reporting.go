@@ -2,11 +2,12 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/comment_utils/utils"
 )
 
 type CiReporter struct {
@@ -57,15 +58,15 @@ func (lazyReporter *CiReporterLazy) Report(report string, reportFormatting func(
 
 func (lazyReporter *CiReporterLazy) Flush() (string, string, error) {
 	if lazyReporter.isSuppressed {
-		log.Printf("Reporter is suprresed, ignoring messages ...")
+		slog.Info("reporter is suppressed, ignoring messages")
 		return "", "", nil
 	}
 	var commentId, commentUrl string
-	for i, _ := range lazyReporter.formatters {
+	for i := range lazyReporter.formatters {
 		var err error
 		commentId, commentUrl, err = lazyReporter.CiReporter.ReportStrategy.Report(lazyReporter.CiReporter.CiService, lazyReporter.CiReporter.PrNumber, lazyReporter.reports[i], lazyReporter.formatters[i], lazyReporter.SupportsMarkdown())
 		if err != nil {
-			log.Printf("failed to report strategy: ")
+			slog.Error("failed to report strategy", "error", err)
 			return "", "", err
 		}
 	}
@@ -87,7 +88,7 @@ func (lazyReporter *CiReporterLazy) SupportsMarkdown() bool {
 type StdOutReporter struct{}
 
 func (reporter StdOutReporter) Report(report string, reportFormatting func(report string) string) (string, string, error) {
-	log.Printf("Info: %v", report)
+	slog.Info("report", "content", report)
 	return "", "", nil
 }
 
@@ -115,6 +116,7 @@ type CommentPerRunStrategy struct {
 func (strategy CommentPerRunStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
 	comments, err := ciService.GetComments(PrNumber)
 	if err != nil {
+		slog.Error("error getting comments", "error", err, "prNumber", PrNumber)
 		return "", "", fmt.Errorf("error getting comments: %v", err)
 	}
 
@@ -151,6 +153,7 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 		}
 		comment, err := ciService.PublishComment(PrNumber, commentMessage)
 		if err != nil {
+			slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
 			return "", "", fmt.Errorf("error publishing comment: %v", err)
 		}
 		return fmt.Sprintf("%v", comment.Id), comment.Url, nil
@@ -173,6 +176,7 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
 
 	if err != nil {
+		slog.Error("error editing comment", "error", err, "commentId", commentIdForThisRun, "prNumber", PrNumber)
 		return "", "", fmt.Errorf("error editing comment: %v", err)
 	}
 	return fmt.Sprintf("%v", commentIdForThisRun), commentUrl, nil
@@ -185,6 +189,7 @@ type LatestRunCommentStrategy struct {
 func (strategy LatestRunCommentStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
 	comments, err := ciService.GetComments(PrNumber)
 	if err != nil {
+		slog.Error("error getting comments", "error", err, "prNumber", PrNumber)
 		return "", "", fmt.Errorf("error getting comments: %v", err)
 	}
 
@@ -196,6 +201,10 @@ func (strategy LatestRunCommentStrategy) Report(ciService ci.PullRequestService,
 type MultipleCommentsStrategy struct{}
 
 func (strategy MultipleCommentsStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	_, err := ciService.PublishComment(PrNumber, reportFormatter(report))
-	return "", "", err
+	comment, err := ciService.PublishComment(PrNumber, reportFormatter(report))
+	if err != nil {
+		slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
+		return "", "", err
+	}
+	return comment.Id, comment.Url, nil
 }

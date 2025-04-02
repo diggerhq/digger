@@ -1,10 +1,10 @@
 package execution
 
 import (
-	"github.com/stretchr/testify/assert"
-	"log"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExecuteTerraformPlan(t *testing.T) {
@@ -12,7 +12,7 @@ func TestExecuteTerraformPlan(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 
@@ -29,7 +29,7 @@ func TestExecuteTerraformApply(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 
@@ -46,7 +46,7 @@ func TestExecuteTerraformApplyDefaultWorkspace(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 

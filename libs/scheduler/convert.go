@@ -2,17 +2,24 @@ package scheduler
 
 import (
 	"fmt"
+	"log/slog"
+
 	"github.com/diggerhq/digger/libs/digger_config"
-	"log"
 )
 
 func ConvertProjectsToJobs(actor string, repoNamespace string, command string, prNumber int, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]Job, bool, error) {
 	jobs := make([]Job, 0)
 
-	log.Printf("ConvertToCommands, command: %s\n", command)
+	slog.Info("Converting projects to jobs",
+		"command", command,
+		"projectCount", len(impactedProjects))
+
 	for _, project := range impactedProjects {
 		workflow, ok := workflows[project.Workflow]
 		if !ok {
+			slog.Error("Failed to find workflow config",
+				"workflowName", project.Workflow,
+				"projectName", project.Name)
 			return nil, true, fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", project.Workflow, project.Name)
 		}
 
@@ -26,7 +33,7 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
 		StateEnvProvider, CommandEnvProvider := GetStateAndCommandProviders(project)
 
-		stateRole, cmdRole := "", ""		
+		stateRole, cmdRole := "", ""
 
 		if project.AwsRoleToAssume != nil {
 			if project.AwsRoleToAssume.State != "" {
@@ -35,9 +42,20 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 
 			if project.AwsRoleToAssume.Command != "" {
 				cmdRole = project.AwsRoleToAssume.Command
-			} 
-		} 
-	
+			}
+		}
+
+		slog.Debug("Creating job for project",
+			"projectName", project.Name,
+			"projectDir", project.Dir,
+			"workspace", project.Workspace,
+			"terragrunt", project.Terragrunt,
+			"openTofu", project.OpenTofu,
+			"pulumi", project.Pulumi,
+			"hasStateRole", stateRole != "",
+			"hasCommandRole", cmdRole != "",
+			"hasCognitoConfig", project.AwsCognitoOidcConfig != nil)
+
 		jobs = append(jobs, Job{
 			ProjectName:      project.Name,
 			ProjectDir:       project.Dir,
@@ -57,12 +75,14 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			StateEnvVars:       stateEnvVars,
 			CommandEnvVars:     commandEnvVars,
 			StateEnvProvider:   StateEnvProvider,
-			StateRoleArn:     	stateRole,	
+			StateRoleArn:       stateRole,
 			CommandEnvProvider: CommandEnvProvider,
 			CommandRoleArn:     cmdRole,
 			CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 			SkipMergeCheck:     skipMerge,
 		})
 	}
+
+	slog.Info("Successfully converted projects to jobs", "jobCount", len(jobs))
 	return jobs, true, nil
 }

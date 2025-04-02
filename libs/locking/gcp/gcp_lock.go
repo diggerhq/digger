@@ -3,7 +3,7 @@ package gcp
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -29,13 +29,21 @@ func (googleLock *GoogleStorageLock) Lock(transactionId int, resource string) (b
 
 	bucketAttrs, err := googleLock.Bucket.Attrs(googleLock.Context)
 	if err != nil {
-		log.Printf("failed to get bucket attributes: %v\n", err)
+		slog.Error("Failed to get bucket attributes", "error", err)
 	}
 	bucketName := bucketAttrs.Name
 
 	if err := wc.Close(); err != nil {
-		log.Printf("createFile: unable to close bucket %q, file %q: %v\n", bucketName, fileName, err)
+		slog.Error("Unable to close bucket file",
+			"bucket", bucketName,
+			"file", fileName,
+			"error", err)
 	}
+
+	slog.Debug("Lock acquired",
+		"resource", resource,
+		"transactionId", transactionId,
+		"bucket", bucketName)
 	return true, nil
 }
 
@@ -44,18 +52,22 @@ func (googleLock *GoogleStorageLock) Unlock(resource string) (bool, error) {
 
 	existingLockTransactionId, err := googleLock.GetLock(resource)
 	if err != nil {
-		log.Printf("failed to get lock: %v\n", err)
+		slog.Error("Failed to get lock", "resource", resource, "error", err)
 	}
 	if existingLockTransactionId == nil {
+		slog.Debug("No lock exists to unlock", "resource", resource)
 		return false, nil
 	}
 
 	fileObject := googleLock.Bucket.Object(fileName)
 	err = fileObject.Delete(googleLock.Context)
 	if err != nil {
-		return false, fmt.Errorf("failed to delete lock file: %v\n", err)
+		return false, fmt.Errorf("failed to delete lock file: %v", err)
 	}
 
+	slog.Debug("Lock released",
+		"resource", resource,
+		"transactionId", *existingLockTransactionId)
 	return true, nil
 }
 
@@ -74,8 +86,13 @@ func (googleLock *GoogleStorageLock) GetLock(resource string) (*int, error) {
 	lockIdStr := fileMetadata["LockId"]
 	transactionId, err := strconv.Atoi(lockIdStr)
 	if err != nil {
-		log.Printf("failed to parse LockId in object's metadata: %v\n", err)
+		slog.Error("Failed to parse LockId in object's metadata",
+			"resource", resource,
+			"rawLockId", lockIdStr,
+			"error", err)
 	}
+
+	slog.Debug("Retrieved lock information", "resource", resource, "transactionId", transactionId)
 	return &transactionId, nil
 }
 
@@ -84,7 +101,11 @@ func GetGoogleStorageClient() (context.Context, *storage.Client) {
 
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-		log.Fatalf("Failed to create Google Storage client: %v", err)
+		slog.Error("Failed to create Google Storage client", "error", err)
+		// Since the original used log.Fatalf which exits, we'll maintain that behavior
+		panic(fmt.Sprintf("Failed to create Google Storage client: %v", err))
 	}
+
+	slog.Info("Google Storage client created successfully")
 	return ctx, client
 }

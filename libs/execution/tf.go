@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"regexp"
@@ -34,7 +34,9 @@ func (tf Terraform) Init(params []string, envs map[string]string) (string, strin
 	if tf.Workspace != "default" {
 		werr := tf.switchToWorkspace(envs)
 		if werr != nil {
-			log.Printf("Fatal: Error terraform switch to workspace %v", err)
+			slog.Error("Failed to switch workspace",
+				"workspace", tf.Workspace,
+				"error", werr)
 			return "", "", werr
 		}
 	}
@@ -65,11 +67,13 @@ func (tf Terraform) switchToWorkspace(envs map[string]string) error {
 	}
 	workspaces = tf.formatTerraformWorkspaces(workspaces)
 	if strings.Contains(workspaces, tf.Workspace) {
+		slog.Debug("Selecting existing workspace", "workspace", tf.Workspace)
 		_, _, _, err := tf.runTerraformCommand("workspace", true, envs, "select", tf.Workspace)
 		if err != nil {
 			return err
 		}
 	} else {
+		slog.Debug("Creating new workspace", "workspace", tf.Workspace)
 		_, _, _, err := tf.runTerraformCommand("workspace", true, envs, "new", tf.Workspace)
 		if err != nil {
 			return err
@@ -102,7 +106,13 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 	}
 
 	cmd := exec.Command("terraform", expandedArgs...)
-	log.Printf("Running command: terraform %v", RedactSecrets(expandedArgs))
+	slog.Info("Running Terraform command",
+		slog.Group("command",
+			"binary", "terraform",
+			"args", RedactSecrets(expandedArgs),
+			"workingDir", tf.WorkingDir,
+		),
+	)
 	cmd.Dir = tf.WorkingDir
 
 	env := os.Environ()
@@ -117,7 +127,11 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 
 	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
 	if err != nil && cmd.ProcessState.ExitCode() != 2 {
-		log.Println("Error:", err)
+		slog.Error("Command execution failed",
+			"command", "terraform",
+			"exitCode", cmd.ProcessState.ExitCode(),
+			"error", err,
+		)
 	}
 
 	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err
@@ -129,7 +143,6 @@ type StdWriter struct {
 }
 
 func (tf Terraform) formatTerraformWorkspaces(list string) string {
-
 	list = strings.TrimSpace(list)
 	char_replace := strings.NewReplacer("*", "", "\n", ",", " ", "")
 	list = char_replace.Replace(list)
