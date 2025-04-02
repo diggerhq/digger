@@ -6,16 +6,16 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/diggerhq/digger/cli/pkg/digger"
-	"github.com/diggerhq/digger/cli/pkg/usage"
-	"github.com/diggerhq/digger/cli/pkg/utils"
-	"github.com/diggerhq/digger/libs/backendapi"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/spec"
-	"github.com/diggerhq/digger/libs/storage"
+	"github.com/go-substrate/strate/cli/pkg/digger"
+	"github.com/go-substrate/strate/cli/pkg/usage"
+	"github.com/go-substrate/strate/cli/pkg/utils"
+	"github.com/go-substrate/strate/libs/backendapi"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/comment_utils/reporting"
+	comment_summary "github.com/go-substrate/strate/libs/comment_utils/summary"
+	"github.com/go-substrate/strate/libs/scheduler"
+	"github.com/go-substrate/strate/libs/spec"
+	"github.com/go-substrate/strate/libs/storage"
 )
 
 func RunSpecManualCommand(

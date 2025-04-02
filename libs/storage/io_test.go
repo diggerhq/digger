@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 	"github.com/stretchr/testify/assert"
 )
 

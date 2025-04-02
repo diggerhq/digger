@@ -7,10 +7,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/diggerhq/digger/backend/models"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
+	"github.com/go-substrate/strate/backend/models"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
+	"github.com/go-substrate/strate/libs/scheduler"
 	"github.com/google/uuid"
 )
 

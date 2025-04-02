@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/diggerhq/digger/libs/ci"
+	"github.com/go-substrate/strate/libs/ci"
 )
 
 type MockCiService struct {

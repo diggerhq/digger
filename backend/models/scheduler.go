@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	orchestrator_scheduler "github.com/go-substrate/strate/libs/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

@@ -1,4 +1,4 @@
-module github.com/diggerhq/digger/libs
+module github.com/go-substrate/strate/libs
 
 go 1.24.1
 

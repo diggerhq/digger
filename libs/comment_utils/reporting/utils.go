@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/diggerhq/digger/libs/ci"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/ci"
+	dg_configuration "github.com/go-substrate/strate/libs/digger_config"
 )
 
 type SourceDetails struct {

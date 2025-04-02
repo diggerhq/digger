@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 	sts "github.com/aws/aws-sdk-go-v2/service/sts"
 
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 )
 
 type CognitoClient interface {

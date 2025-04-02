@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diggerhq/digger/backend/utils"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/spec"
+	"github.com/go-substrate/strate/backend/utils"
+	orchestrator_scheduler "github.com/go-substrate/strate/libs/scheduler"
+	"github.com/go-substrate/strate/libs/spec"
 	"github.com/google/go-github/v61/github"
 )
 

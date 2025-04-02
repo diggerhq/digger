@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/diggerhq/digger/backend/models"
+	"github.com/go-substrate/strate/backend/models"
 )
 
 // Encrypt encrypts a plaintext string using AES-256-GCM

@@ -6,9 +6,9 @@ import (
 	"os"
 	"path"
 
-	orchestrator_gitlab "github.com/diggerhq/digger/libs/ci/gitlab"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
+	orchestrator_gitlab "github.com/go-substrate/strate/libs/ci/gitlab"
+	dg_configuration "github.com/go-substrate/strate/libs/digger_config"
 	"github.com/xanzy/go-gitlab"
 )
 

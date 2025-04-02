@@ -13,7 +13,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/diggerhq/digger/libs/locking/gcp"
+	"github.com/go-substrate/strate/libs/locking/gcp"
 
 	"github.com/google/go-github/v61/github"
 )

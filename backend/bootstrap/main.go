@@ -13,18 +13,18 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/segment"
 	pprof_gin "github.com/gin-contrib/pprof"
+	"github.com/go-substrate/strate/backend/config"
+	"github.com/go-substrate/strate/backend/segment"
 
-	"github.com/diggerhq/digger/backend/controllers"
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/sessions"
 	gormsessions "github.com/gin-contrib/sessions/gorm"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/controllers"
+	"github.com/go-substrate/strate/backend/middleware"
+	"github.com/go-substrate/strate/backend/models"
 )
 
 // based on https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications

@@ -3,13 +3,13 @@ package main
 import (
 	"log"
 
-	"github.com/diggerhq/digger/backend/ci_backends"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/services"
-	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/github"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/backend/ci_backends"
+	"github.com/go-substrate/strate/backend/models"
+	"github.com/go-substrate/strate/backend/services"
+	"github.com/go-substrate/strate/backend/utils"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/ci/github"
+	orchestrator_scheduler "github.com/go-substrate/strate/libs/scheduler"
 )
 
 func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.PullRequestService, gh utils.GithubClientProvider) {

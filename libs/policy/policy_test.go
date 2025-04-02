@@ -3,7 +3,7 @@ package policy
 import (
 	"testing"
 
-	"github.com/diggerhq/digger/libs/ci"
+	"github.com/go-substrate/strate/libs/ci"
 )
 
 type OpaExamplePolicyProvider struct{}

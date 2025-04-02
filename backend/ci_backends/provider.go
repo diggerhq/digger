@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diggerhq/digger/backend/utils"
+	"github.com/go-substrate/strate/backend/utils"
 )
 
 type CiBackendProvider interface {

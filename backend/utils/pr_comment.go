@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/scheduler"
 )
 
 // CommentReporterManager thin wrapper around CommentReporter that makes it "Lazy" so we dont comment anything when it is initialized

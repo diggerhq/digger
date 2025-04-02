@@ -7,12 +7,12 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/digger"
-	"github.com/diggerhq/digger/cli/pkg/usage"
-	backend2 "github.com/diggerhq/digger/libs/backendapi"
-	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/spec"
+	"github.com/go-substrate/strate/cli/pkg/digger"
+	"github.com/go-substrate/strate/cli/pkg/usage"
+	backend2 "github.com/go-substrate/strate/libs/backendapi"
+	comment_summary "github.com/go-substrate/strate/libs/comment_utils/summary"
+	"github.com/go-substrate/strate/libs/scheduler"
+	"github.com/go-substrate/strate/libs/spec"
 	"github.com/samber/lo"
 )
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/scheduler"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

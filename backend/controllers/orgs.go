@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/models"
 	"github.com/golang-jwt/jwt"
 )
 

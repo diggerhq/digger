@@ -3,7 +3,7 @@ package scheduler
 import (
 	"slices"
 
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 )
 
 type StepJson struct {

@@ -18,23 +18,23 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/diggerhq/digger/backend/ci_backends"
-	config2 "github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/locking"
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/segment"
-	"github.com/diggerhq/digger/backend/services"
-	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/generic"
-	dg_github "github.com/diggerhq/digger/libs/ci/github"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	dg_locking "github.com/diggerhq/digger/libs/locking"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/ci_backends"
+	config2 "github.com/go-substrate/strate/backend/config"
+	"github.com/go-substrate/strate/backend/locking"
+	"github.com/go-substrate/strate/backend/middleware"
+	"github.com/go-substrate/strate/backend/models"
+	"github.com/go-substrate/strate/backend/segment"
+	"github.com/go-substrate/strate/backend/services"
+	"github.com/go-substrate/strate/backend/utils"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/ci/generic"
+	dg_github "github.com/go-substrate/strate/libs/ci/github"
+	comment_updater "github.com/go-substrate/strate/libs/comment_utils/reporting"
+	dg_configuration "github.com/go-substrate/strate/libs/digger_config"
+	dg_locking "github.com/go-substrate/strate/libs/locking"
+	orchestrator_scheduler "github.com/go-substrate/strate/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
@@ -404,7 +404,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	if len(jobsForImpactedProjects) == 0 {
 		// do not report if no projects are impacted to minimise noise in the PR thread
-		// TODO use status checks instead: https://github.com/diggerhq/digger/issues/1135
+		// TODO use status checks instead: https://github.com/go-substrate/strate/issues/1135
 		log.Printf("No projects impacted; not starting any jobs")
 		// This one is for aggregate reporting
 		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)

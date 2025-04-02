@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 	"github.com/spf13/cobra"
 )
 

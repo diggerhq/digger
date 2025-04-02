@@ -9,19 +9,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
-	"github.com/diggerhq/digger/libs/locking/aws"
-	"github.com/diggerhq/digger/libs/locking/azure"
-	"github.com/diggerhq/digger/libs/locking/gcp"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/comment_utils/utils"
+	"github.com/go-substrate/strate/libs/locking/aws"
+	"github.com/go-substrate/strate/libs/locking/azure"
+	"github.com/go-substrate/strate/libs/locking/gcp"
 
 	"cloud.google.com/go/storage"
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	"github.com/diggerhq/digger/libs/locking/aws/envprovider"
+	"github.com/go-substrate/strate/libs/comment_utils/reporting"
+	"github.com/go-substrate/strate/libs/locking/aws/envprovider"
 )
 
 type PullRequestLock struct {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 )
 
 func ConvertProjectsToJobs(actor string, repoNamespace string, command string, prNumber int, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]Job, bool, error) {

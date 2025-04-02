@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/libs/ci"
-	github2 "github.com/diggerhq/digger/libs/ci/github"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/backend/models"
+	"github.com/go-substrate/strate/libs/ci"
+	github2 "github.com/go-substrate/strate/libs/ci/github"
+	"github.com/go-substrate/strate/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 )
 

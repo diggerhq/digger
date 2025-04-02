@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/scheduler"
 )
 
 func (db *Database) GetRepoCount(orgID uint) (int64, error) {

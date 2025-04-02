@@ -1,8 +1,8 @@
 package ci_backends
 
 import (
-	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/spec"
+	"github.com/go-substrate/strate/backend/utils"
+	"github.com/go-substrate/strate/libs/spec"
 )
 
 type CiBackend interface {

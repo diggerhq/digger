@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/diggerhq/digger/libs/ci/github/models"
+	"github.com/go-substrate/strate/libs/ci/github/models"
 	"github.com/google/go-github/v61/github"
 )
 

@@ -19,7 +19,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/diggerhq/digger/dgctl/cmd"
+	"github.com/go-substrate/strate/dgctl/cmd"
 )
 
 func init() {

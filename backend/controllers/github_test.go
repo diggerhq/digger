@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	orchestrator "github.com/diggerhq/digger/libs/scheduler"
+	orchestrator "github.com/go-substrate/strate/libs/scheduler"
 
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/backend/models"
+	"github.com/go-substrate/strate/backend/utils"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 	"github.com/google/go-github/v61/github"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 	"github.com/stretchr/testify/assert"

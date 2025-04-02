@@ -1,6 +1,6 @@
 package policy
 
-import "github.com/diggerhq/digger/libs/ci"
+import "github.com/go-substrate/strate/libs/ci"
 
 type MockPolicyChecker struct{}
 

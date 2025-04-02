@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/scheduler"
 
-	digger_config2 "github.com/diggerhq/digger/libs/digger_config"
+	digger_config2 "github.com/go-substrate/strate/libs/digger_config"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 )

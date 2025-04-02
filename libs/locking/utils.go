@@ -3,7 +3,7 @@ package locking
 import (
 	"fmt"
 
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/scheduler"
 )
 
 func PerformLockingActionFromCommand(prLock PullRequestLock, command scheduler.DiggerCommand) error {

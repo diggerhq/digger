@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity/types"
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 	"github.com/stretchr/testify/assert"
 )
 

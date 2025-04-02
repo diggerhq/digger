@@ -1,7 +1,7 @@
 package spec
 
 import (
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/scheduler"
 )
 
 type ReporterSpec struct {

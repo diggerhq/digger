@@ -10,15 +10,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/storage"
+	"github.com/go-substrate/strate/libs/comment_utils/utils"
+	"github.com/go-substrate/strate/libs/iac_utils"
+	"github.com/go-substrate/strate/libs/locking"
+	"github.com/go-substrate/strate/libs/scheduler"
+	"github.com/go-substrate/strate/libs/storage"
 	"github.com/samber/lo"
 
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/comment_utils/reporting"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 )
 
 type Executor interface {

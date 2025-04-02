@@ -7,14 +7,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/diggerhq/digger/cli/pkg/utils"
-	"github.com/diggerhq/digger/libs/backendapi"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/bitbucket"
-	orchestrator_github "github.com/diggerhq/digger/libs/ci/github"
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	locking2 "github.com/diggerhq/digger/libs/locking"
-	core_policy "github.com/diggerhq/digger/libs/policy"
+	"github.com/go-substrate/strate/cli/pkg/utils"
+	"github.com/go-substrate/strate/libs/backendapi"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/ci/bitbucket"
+	orchestrator_github "github.com/go-substrate/strate/libs/ci/github"
+	"github.com/go-substrate/strate/libs/comment_utils/reporting"
+	locking2 "github.com/go-substrate/strate/libs/locking"
+	core_policy "github.com/go-substrate/strate/libs/policy"
 	"github.com/spf13/cobra"
 )
 

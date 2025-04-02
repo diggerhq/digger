@@ -4,7 +4,7 @@ import (
 	"slices"
 
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 )
 
 type IacType string

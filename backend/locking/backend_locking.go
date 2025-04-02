@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/diggerhq/digger/backend/models"
+	"github.com/go-substrate/strate/backend/models"
 	"gorm.io/gorm"
 )
 

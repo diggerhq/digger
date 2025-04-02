@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/scheduler"
 
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/caarlos0/env/v11"
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 	go_gitlab "github.com/xanzy/go-gitlab"
 )
 

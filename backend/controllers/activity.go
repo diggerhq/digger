@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/middleware"
+	"github.com/go-substrate/strate/backend/models"
 	"gorm.io/gorm"
 )
 

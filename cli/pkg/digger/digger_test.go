@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/execution"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	orchestrator "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/execution"
+	"github.com/go-substrate/strate/libs/iac_utils"
+	orchestrator "github.com/go-substrate/strate/libs/scheduler"
 
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
+	"github.com/go-substrate/strate/libs/comment_utils/reporting"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 	"github.com/stretchr/testify/assert"
 )
 

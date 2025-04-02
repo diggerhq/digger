@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/middleware"
+	"github.com/go-substrate/strate/backend/models"
+	orchestrator_scheduler "github.com/go-substrate/strate/libs/scheduler"
 	"gorm.io/gorm"
 )
 

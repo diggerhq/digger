@@ -18,15 +18,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/dgctl/utils"
-	"github.com/diggerhq/digger/libs/backendapi"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/spec"
+	"github.com/go-substrate/strate/dgctl/utils"
+	"github.com/go-substrate/strate/libs/backendapi"
+	orchestrator_scheduler "github.com/go-substrate/strate/libs/scheduler"
+	"github.com/go-substrate/strate/libs/spec"
 	"github.com/google/go-github/v61/github"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 	"github.com/spf13/cobra"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diggerhq/digger/backend/models"
+	"github.com/go-substrate/strate/backend/models"
 )
 
 func PostCommentForBatch(batch *models.DiggerBatch, comment string, githubClientProvider GithubClientProvider) error {

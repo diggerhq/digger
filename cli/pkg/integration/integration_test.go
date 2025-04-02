@@ -8,19 +8,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/libs/ci/generic"
-	"github.com/diggerhq/digger/libs/execution"
-	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/locking/aws"
-	"github.com/diggerhq/digger/libs/storage"
+	"github.com/go-substrate/strate/libs/ci/generic"
+	"github.com/go-substrate/strate/libs/execution"
+	"github.com/go-substrate/strate/libs/locking"
+	"github.com/go-substrate/strate/libs/locking/aws"
+	"github.com/go-substrate/strate/libs/storage"
 
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
+	comment_updater "github.com/go-substrate/strate/libs/comment_utils/summary"
 
-	"github.com/diggerhq/digger/cli/pkg/digger"
-	"github.com/diggerhq/digger/cli/pkg/github/models"
-	dg_github "github.com/diggerhq/digger/libs/ci/github"
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/cli/pkg/digger"
+	"github.com/go-substrate/strate/cli/pkg/github/models"
+	dg_github "github.com/go-substrate/strate/libs/ci/github"
+	"github.com/go-substrate/strate/libs/comment_utils/reporting"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -90,7 +90,7 @@ var githubContextDiggerPlanCommentMinJson = `{
       "author_association": "CONTRIBUTOR",
       "body": "digger plan",
       "created_at": "2023-03-13T15:14:08Z",
-      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
+      "html_url": "https://github.com/go-substrate/strate_demo/pull/11#issuecomment-1466341992",
       "id": 1466341992,
       "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
       "node_id": "IC_kwDOJG5hVM5XZppo"
@@ -103,7 +103,7 @@ var githubContextDiggerPlanCommentMinJson = `{
       "created_at": "2023-03-10T14:09:35Z",
       "draft": false,
       "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
-      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
       "id": 1619042081,
       "labels": [],
       "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
@@ -111,9 +111,9 @@ var githubContextDiggerPlanCommentMinJson = `{
       "node_id": "PR_kwDOJG5hVM5LxUWM",
       "number": 11,
       "pull_request": {
-        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
-        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
-        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "diff_url": "https://github.com/go-substrate/strate_demo/pull/11.diff",
+        "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
+        "patch_url": "https://github.com/go-substrate/strate_demo/pull/11.patch",
         "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
       }
     }
@@ -137,7 +137,7 @@ var githubContextDiggerApplyCommentMinJson = `{
       "author_association": "CONTRIBUTOR",
       "body": "digger apply",
       "created_at": "2023-03-13T15:14:08Z",
-      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
+      "html_url": "https://github.com/go-substrate/strate_demo/pull/11#issuecomment-1466341992",
       "id": 1466341992,
       "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
       "node_id": "IC_kwDOJG5hVM5XZppo"
@@ -150,7 +150,7 @@ var githubContextDiggerApplyCommentMinJson = `{
       "created_at": "2023-03-10T14:09:35Z",
       "draft": false,
       "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
-      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
       "id": 1619042081,
       "labels": [],
       "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
@@ -158,9 +158,9 @@ var githubContextDiggerApplyCommentMinJson = `{
       "node_id": "PR_kwDOJG5hVM5LxUWM",
       "number": 11,
       "pull_request": {
-        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
-        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
-        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "diff_url": "https://github.com/go-substrate/strate_demo/pull/11.diff",
+        "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
+        "patch_url": "https://github.com/go-substrate/strate_demo/pull/11.patch",
         "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
       }
     }
@@ -184,7 +184,7 @@ var githubContextDiggerUnlockCommentMinJson = `{
       "author_association": "CONTRIBUTOR",
       "body": "digger unlock",
       "created_at": "2023-03-13T15:14:08Z",
-      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
+      "html_url": "https://github.com/go-substrate/strate_demo/pull/11#issuecomment-1466341992",
       "id": 1466341992,
       "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
       "node_id": "IC_kwDOJG5hVM5XZppo"
@@ -197,7 +197,7 @@ var githubContextDiggerUnlockCommentMinJson = `{
       "created_at": "2023-03-10T14:09:35Z",
       "draft": false,
       "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
-      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
       "id": 1619042081,
       "labels": [],
       "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
@@ -205,9 +205,9 @@ var githubContextDiggerUnlockCommentMinJson = `{
       "node_id": "PR_kwDOJG5hVM5LxUWM",
       "number": 11,
       "pull_request": {
-        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
-        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
-        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "diff_url": "https://github.com/go-substrate/strate_demo/pull/11.diff",
+        "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
+        "patch_url": "https://github.com/go-substrate/strate_demo/pull/11.patch",
         "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
       }
     }
@@ -221,7 +221,7 @@ var githubContextNewPullRequestMinJson = `{
     "repository": "digger_demo",
     "repository_owner": "diggerhq",
     "repository_owner_id": "71334590",
-    "repositoryUrl": "git://github.com/diggerhq/digger_demo.git",
+    "repositoryUrl": "git://github.com/go-substrate/strate_demo.git",
     "run_id": "4385306738",
     "run_number": "63",
     "retention_days": "90",
@@ -263,7 +263,7 @@ var githubContextNewPullRequestMinJson = `{
         "commits_url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11/commits",
         "created_at": "2023-03-10T14:09:35Z",
         "deletions": 3,
-        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
+        "diff_url": "https://github.com/go-substrate/strate_demo/pull/11.diff",
         "draft": false,
         "head": {
           "label": "diggerhq:test-prod",
@@ -281,7 +281,7 @@ var githubContextNewPullRequestMinJson = `{
             "following_url": "https://api.github.com/users/diggerhq/following{/other_user}"
           }
         },
-        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+        "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
         "id": 1271219596,
         "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
         "labels": [],
@@ -309,7 +309,7 @@ var githubContextUnknownEventJson = `{
       "author_association": "CONTRIBUTOR",
       "body": "digger plan",
       "created_at": "2023-03-13T15:14:08Z",
-      "html_url": "https://github.com/diggerhq/digger_demo/pull/11#issuecomment-1466341992",
+      "html_url": "https://github.com/go-substrate/strate_demo/pull/11#issuecomment-1466341992",
       "id": 1466341992,
       "issue_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11",
       "node_id": "IC_kwDOJG5hVM5XZppo"
@@ -322,7 +322,7 @@ var githubContextUnknownEventJson = `{
       "created_at": "2023-03-10T14:09:35Z",
       "draft": false,
       "events_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/events",
-      "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
+      "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
       "id": 1619042081,
       "labels": [],
       "labels_url": "https://api.github.com/repos/diggerhq/digger_demo/issues/11/labels{/name}",
@@ -330,9 +330,9 @@ var githubContextUnknownEventJson = `{
       "node_id": "PR_kwDOJG5hVM5LxUWM",
       "number": 11,
       "pull_request": {
-        "diff_url": "https://github.com/diggerhq/digger_demo/pull/11.diff",
-        "html_url": "https://github.com/diggerhq/digger_demo/pull/11",
-        "patch_url": "https://github.com/diggerhq/digger_demo/pull/11.patch",
+        "diff_url": "https://github.com/go-substrate/strate_demo/pull/11.diff",
+        "html_url": "https://github.com/go-substrate/strate_demo/pull/11",
+        "patch_url": "https://github.com/go-substrate/strate_demo/pull/11.patch",
         "url": "https://api.github.com/repos/diggerhq/digger_demo/pulls/11"
       }
     }

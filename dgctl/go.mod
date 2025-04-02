@@ -1,11 +1,11 @@
-module github.com/diggerhq/digger/dgctl
+module github.com/go-substrate/strate/dgctl
 
 go 1.24.1
 
-replace github.com/diggerhq/digger/libs => ../libs
+replace github.com/go-substrate/strate/libs => ../libs
 
 require (
-	github.com/diggerhq/digger/libs v0.0.0-00010101000000-000000000000
+	github.com/go-substrate/strate/libs v0.0.0-00010101000000-000000000000
 	github.com/google/go-github/v61 v61.0.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5

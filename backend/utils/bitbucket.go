@@ -7,9 +7,9 @@ import (
 	"os"
 	"path"
 
-	orchestrator_bitbucket "github.com/diggerhq/digger/libs/ci/bitbucket"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
+	orchestrator_bitbucket "github.com/go-substrate/strate/libs/ci/bitbucket"
+	dg_configuration "github.com/go-substrate/strate/libs/digger_config"
 	"github.com/ktrysmt/go-bitbucket"
 )
 

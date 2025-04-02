@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/backend/models"
+	"github.com/go-substrate/strate/backend/utils"
+	orchestrator_scheduler "github.com/go-substrate/strate/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
 	"github.com/migueleliasweb/go-github-mock/src/mock"

@@ -3,8 +3,8 @@ package backendapi
 import (
 	"time"
 
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/iac_utils"
+	"github.com/go-substrate/strate/libs/scheduler"
 )
 
 type MockBackendApi struct{}

@@ -8,10 +8,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/models"
+	"github.com/go-substrate/strate/backend/utils"
+	dg_configuration "github.com/go-substrate/strate/libs/digger_config"
 )
 
 func (d DiggerController) UpdateRepoCache(c *gin.Context) {

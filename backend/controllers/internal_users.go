@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/models"
 )
 
 func (d DiggerController) UpsertOrgInternal(c *gin.Context) {

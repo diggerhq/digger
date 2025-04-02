@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
-	"github.com/diggerhq/digger/libs/ci"
+	core_drift "github.com/go-substrate/strate/cli/pkg/core/drift"
+	"github.com/go-substrate/strate/libs/ci"
 )
 
 type DriftNotificationProvider interface {

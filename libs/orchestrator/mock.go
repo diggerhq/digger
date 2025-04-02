@@ -3,7 +3,7 @@ package orchestrator
 import (
 	"fmt"
 
-	"github.com/diggerhq/digger/libs/ci"
+	"github.com/go-substrate/strate/libs/ci"
 )
 
 type MockGithubPullrequestManager struct {

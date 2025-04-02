@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/segment"
-	"github.com/diggerhq/digger/backend/services"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/models"
+	"github.com/go-substrate/strate/backend/segment"
+	"github.com/go-substrate/strate/backend/services"
 	"github.com/golang-jwt/jwt"
 )
 

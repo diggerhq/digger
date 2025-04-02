@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/comment_utils/utils"
 )
 
 type CiReporter struct {

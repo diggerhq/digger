@@ -3,7 +3,7 @@ package utils
 import (
 	"testing"
 
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 )
 
 func TestImpactedProjectsOnlyGraph(t *testing.T) {

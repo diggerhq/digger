@@ -3,9 +3,9 @@ package github
 import (
 	"testing"
 
-	"github.com/diggerhq/digger/libs/ci/generic"
+	"github.com/go-substrate/strate/libs/ci/generic"
 
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 	"github.com/stretchr/testify/assert"
 )
 

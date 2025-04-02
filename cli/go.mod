@@ -1,8 +1,8 @@
-module github.com/diggerhq/digger/cli
+module github.com/go-substrate/strate/cli
 
 go 1.24.1
 
-replace github.com/diggerhq/digger/libs => ../libs
+replace github.com/go-substrate/strate/libs => ../libs
 
 require (
 	cloud.google.com/go/storage v1.46.0 // indirect
@@ -19,8 +19,8 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.28.3
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.36.5
-	github.com/diggerhq/digger/libs v0.4.15
 	github.com/dominikbraun/graph v0.23.0
+	github.com/go-substrate/strate/libs v0.4.15
 	github.com/google/go-github/v61 v61.0.0
 	github.com/samber/lo v1.39.0
 	github.com/spf13/cobra v1.8.1

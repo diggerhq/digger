@@ -7,11 +7,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/middleware"
+	"github.com/go-substrate/strate/backend/models"
+	dg_configuration "github.com/go-substrate/strate/libs/digger_config"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

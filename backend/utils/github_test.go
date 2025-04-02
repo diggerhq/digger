@@ -22,7 +22,7 @@ func TestGithubCloneWithInvalidTokenThrowsErr(t *testing.T) {
 func TestGithubCloneWithPublicRepoThrowsNoError(t *testing.T) {
 	token := os.Getenv("GITHUB_PAT_TOKEN")
 	f := func(d string) error { return nil }
-	err := CloneGitRepoAndDoAction("https://github.com/diggerhq/digger", "develop", "", token, "", f)
+	err := CloneGitRepoAndDoAction("https://github.com/go-substrate/strate", "develop", "", token, "", f)
 	assert.Nil(t, err)
 }
 
@@ -40,6 +40,6 @@ func TestGithubCloneWithPrivateRepoAndValidTokenThrowsNoError(t *testing.T) {
 func TestGithubCloneWithInvalidBranchThrowsError(t *testing.T) {
 	token := os.Getenv("GITHUB_PAT_TOKEN")
 	f := func(d string) error { return nil }
-	err := CloneGitRepoAndDoAction("https://github.com/diggerhq/digger", "not-a-branch", "", token, "", f)
+	err := CloneGitRepoAndDoAction("https://github.com/go-substrate/strate", "not-a-branch", "", token, "", f)
 	assert.NotNil(t, err)
 }

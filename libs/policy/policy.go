@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/diggerhq/digger/libs/ci"
+	"github.com/go-substrate/strate/libs/ci"
 	"github.com/open-policy-agent/opa/rego"
 )
 

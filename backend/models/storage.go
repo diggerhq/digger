@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/dchest/uniuri"
-	"github.com/diggerhq/digger/backend/queries"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
-	scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/queries"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
+	scheduler "github.com/go-substrate/strate/libs/scheduler"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"gorm.io/gorm"

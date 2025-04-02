@@ -3,11 +3,11 @@ package gitlab
 import (
 	"fmt"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/generic"
-	"github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/ci/generic"
+	"github.com/go-substrate/strate/libs/digger_config"
+	"github.com/go-substrate/strate/libs/scheduler"
 	"github.com/xanzy/go-gitlab"
 )
 

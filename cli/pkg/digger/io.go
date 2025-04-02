@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/scheduler"
 )
 
 func UpdateAggregateStatus(batch *scheduler.SerializedBatch, prService ci.PullRequestService) error {

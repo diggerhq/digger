@@ -3,8 +3,8 @@ package locking
 import (
 	"testing"
 
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	"github.com/diggerhq/digger/libs/orchestrator"
+	"github.com/go-substrate/strate/libs/comment_utils/reporting"
+	"github.com/go-substrate/strate/libs/orchestrator"
 
 	"github.com/stretchr/testify/assert"
 )

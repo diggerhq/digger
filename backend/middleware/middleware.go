@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/services"
 	"github.com/gin-gonic/gin"
+	"github.com/go-substrate/strate/backend/models"
+	"github.com/go-substrate/strate/backend/services"
 )
 
 func GetWebMiddleware() gin.HandlerFunc {

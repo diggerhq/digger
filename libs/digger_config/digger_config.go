@@ -11,7 +11,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/diggerhq/digger/libs/digger_config/terragrunt/atlantis"
+	"github.com/go-substrate/strate/libs/digger_config/terragrunt/atlantis"
 
 	"github.com/dominikbraun/graph"
 	"gopkg.in/yaml.v3"

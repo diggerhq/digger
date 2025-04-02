@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/diggerhq/digger/libs/ci"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/ci"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 )
 
 // Define the base URL for the Bitbucket API.

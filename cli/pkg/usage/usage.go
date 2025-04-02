@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os"
 
-	configuration "github.com/diggerhq/digger/libs/digger_config"
+	configuration "github.com/go-substrate/strate/libs/digger_config"
 )
 
 var (

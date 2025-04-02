@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
-	"github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/go-substrate/strate/libs/ci"
+	"github.com/go-substrate/strate/libs/comment_utils/utils"
+	"github.com/go-substrate/strate/libs/digger_config"
+	"github.com/go-substrate/strate/libs/iac_utils"
+	"github.com/go-substrate/strate/libs/scheduler"
 	"github.com/samber/lo"
 )
 

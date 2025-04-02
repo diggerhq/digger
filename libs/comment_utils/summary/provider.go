@@ -3,7 +3,7 @@ package comment_updater
 import (
 	"fmt"
 
-	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/go-substrate/strate/libs/digger_config"
 )
 
 type CommentUpdaterProvider interface {

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/diggerhq/digger/cli/pkg/usage"
+	"github.com/go-substrate/strate/cli/pkg/usage"
 )
 
 /*

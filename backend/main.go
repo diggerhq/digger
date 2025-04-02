@@ -4,11 +4,11 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/diggerhq/digger/backend/bootstrap"
-	"github.com/diggerhq/digger/backend/ci_backends"
-	"github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/controllers"
-	"github.com/diggerhq/digger/backend/utils"
+	"github.com/go-substrate/strate/backend/bootstrap"
+	"github.com/go-substrate/strate/backend/ci_backends"
+	"github.com/go-substrate/strate/backend/config"
+	"github.com/go-substrate/strate/backend/controllers"
+	"github.com/go-substrate/strate/backend/utils"
 )
 
 //go:embed templates
