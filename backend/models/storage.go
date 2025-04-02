@@ -514,9 +514,10 @@ func (db *Database) GetGithubAppInstallationLink(installationId int64) (*GithubA
 	return &link, nil
 }
 
-func (db *Database) CreateVCSConnection(name string, githubId int64, ClientID string, ClientSecretEncrypted string, WebhookSecretEncrypted string, PrivateKeyEncrypted string, PrivateKeyBase64Encrypted string, Org string, url string, bitbucketAccessTokenEnc string, bitbucketWebhookSecretEnc string, orgId uint) (*VCSConnection, error) {
+func (db *Database) CreateVCSConnection(name string, vcsType DiggerVCSType, githubId int64, ClientID string, ClientSecretEncrypted string, WebhookSecretEncrypted string, PrivateKeyEncrypted string, PrivateKeyBase64Encrypted string, Org string, url string, bitbucketAccessTokenEnc string, bitbucketWebhookSecretEnc string, gitlabWebhookSecret string, gitlabAccessToken string, orgId uint) (*VCSConnection, error) {
 	app := VCSConnection{
 		Name:                            name,
+		VCSType:                         vcsType,
 		GithubId:                        githubId,
 		ClientID:                        ClientID,
 		ClientSecretEncrypted:           ClientSecretEncrypted,
@@ -527,6 +528,8 @@ func (db *Database) CreateVCSConnection(name string, githubId int64, ClientID st
 		GithubAppUrl:                    url,
 		BitbucketWebhookSecretEncrypted: bitbucketWebhookSecretEnc,
 		BitbucketAccessTokenEncrypted:   bitbucketAccessTokenEnc,
+		GitlabWebhookSecretEncrypted:    gitlabWebhookSecret,
+		GitlabAccessTokenEncrypted:      gitlabAccessToken,
 		OrganisationID:                  orgId,
 	}
 	result := db.GormDB.Save(&app)

@@ -17,6 +17,9 @@ type VCSConnection struct {
 	GithubAppUrl                    string
 	BitbucketAccessTokenEncrypted   string
 	BitbucketWebhookSecretEncrypted string
+	GitlabAccessTokenEncrypted      string
+	GitlabWebhookSecretEncrypted    string
+	VCSType                         DiggerVCSType `gorm:"default:bitbucket"`
 	OrganisationID                  uint
 	Organisation                    Organisation
 }
