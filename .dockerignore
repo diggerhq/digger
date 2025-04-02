@@ -36,26 +36,6 @@ dgctl/**/dgctl.generated.json
 dgctl/**/.dgctl
 dgctl/**/dgctl
 
-# flyctl launch added from ee/backend/.gitignore
-ee/backend/**/main
-ee/backend/**/backend
-ee/backend/**/.idea
-ee/backend/**/.DS_Store
-ee/backend/**/venv
-ee/backend/**/**/__pycache__
-ee/backend/**/__azurite*
-ee/backend/**/digger
-ee/backend/**/cloud
-ee/backend/**/*.env
-ee/backend/**/*.env.*
-ee/backend/**/.docker-compose-env
-ee/backend/**/controllers/database_test.db
-
-# flyctl launch added from ee/cli/.gitignore
-ee/cli/**/**/digger
-!ee/cli/pkg/digger
-!ee/cli/cmd/digger
-
 # flyctl launch added from libs/digger_config/.gitignore
 libs/digger_config/**/.idea
 
