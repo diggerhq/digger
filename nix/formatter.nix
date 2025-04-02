@@ -9,44 +9,60 @@ let
     package = pkgs.treefmt;
     projectRootFile = "flake.nix";
     programs = {
-        deadnix.enable = true;
-            nixfmt.enable = true;
+      deadnix.enable = true;
+      nixfmt.enable = true;
 
-            shellcheck.enable = true;
-            shfmt.enable = true;
+      shellcheck.enable = true;
+      shfmt.enable = true;
 
-            yamlfmt.enable = true;
+      yamlfmt.enable = true;
+      yamlfmt.settings = {
+        formatter = {
+          type = "basic";
+          indent = 2;
+          retain_line_breaks = true;
+        };
+      };
+
+      gofumpt.enable = true;
+      goimports.enable = true;
     };
     settings.formatter = {
-        deadnix.pipeline = "nix";
-            deadnix.priority = 1;
-            nixfmt.pipeline = "nix";
-            nixfmt.priority = 2;
+      deadnix.pipeline = "nix";
+      deadnix.priority = 1;
+      nixfmt.pipeline = "nix";
+      nixfmt.priority = 2;
 
-            shellcheck.pipeline = "shell";
-            shellcheck.includes = [
-              "*.sh"
-              "*.bash"
-              "*.envrc"
-              "*.envrc.*"
-              "bin/*"
-            ];
-            shellcheck.priority = 1;
-            shfmt.pipeline = "shell";
-            shfmt.includes = [
-              "*.sh"
-              "*.bash"
-              "*.envrc"
-              "*.envrc.*"
-              "bin/*"
-            ];
-            shfmt.priority = 2;
+      shellcheck.pipeline = "shell";
+      shellcheck.includes = [
+        "*.sh"
+        "*.bash"
+        "*.envrc"
+        "*.envrc.*"
+        "bin/*"
+      ];
+      shellcheck.priority = 1;
+      shfmt.pipeline = "shell";
+      shfmt.includes = [
+        "*.sh"
+        "*.bash"
+        "*.envrc"
+        "*.envrc.*"
+        "bin/*"
+      ];
+      shfmt.priority = 2;
 
-            yamlfmt.pipeline = "yaml";
-            yamlfmt.priority = 1;
+      yamlfmt.pipeline = "yaml";
+      yamlfmt.priority = 1;
+
+      gofumpt.pipeline = "go";
+      gofumpt.priority = 1;
+
+      goimports.pipeline = "go";
+      goimports.priority = 2;
     };
 
-      };
+  };
 
   formatter = inputs.treefmt-nix.lib.mkWrapper pkgs treefmt-settings;
 
