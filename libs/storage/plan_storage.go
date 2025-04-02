@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/locking/gcp"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/locking/gcp"
 
 	"github.com/google/go-github/v61/github"
 )
@@ -108,7 +109,6 @@ func doRequest(method, url string, headers map[string]string, body []byte) (*htt
 
 func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
 	plansFilename, err := gps.DownloadLatestPlans(artifactName)
-
 	if err != nil {
 		return nil, fmt.Errorf("error downloading plan: %v", err)
 	}
@@ -118,7 +118,6 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, artifactNam
 	}
 
 	plansFilename, err = gps.ZipManager.GetFileFromZip(plansFilename, localPlanFilePath)
-
 	if err != nil {
 		return nil, fmt.Errorf("error extracting plan: %v", err)
 	}
@@ -129,7 +128,6 @@ func (gps *GithubPlanStorage) PlanExists(artifactName string, storedPlanFilePath
 	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
 		PerPage: 100,
 	})
-
 	if err != nil {
 		return false, err
 	}
@@ -150,7 +148,6 @@ func (gps *GithubPlanStorage) DownloadLatestPlans(storedPlanFilePath string) (st
 	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
 		PerPage: 100,
 	})
-
 	if err != nil {
 		return "", err
 	}
@@ -162,14 +159,12 @@ func (gps *GithubPlanStorage) DownloadLatestPlans(storedPlanFilePath string) (st
 	}
 
 	downloadUrl, _, err := gps.Client.Actions.DownloadArtifact(context.Background(), gps.Owner, gps.RepoName, *latestPlans.ID, 0)
-
 	if err != nil {
 		return "", err
 	}
 	filename := storedPlanFilePath + ".zip"
 
 	err = downloadArtifactIntoFile(downloadUrl, filename)
-
 	if err != nil {
 		return "", err
 	}
@@ -177,7 +172,6 @@ func (gps *GithubPlanStorage) DownloadLatestPlans(storedPlanFilePath string) (st
 }
 
 func downloadArtifactIntoFile(artifactUrl *url.URL, outputFile string) error {
-
 	cmd := exec.Command("wget", "-O", outputFile, artifactUrl.String())
 	_, err := cmd.Output()
 	if err != nil {
@@ -245,7 +239,7 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			return nil, fmt.Errorf("error while creating AWS plan storage: %v", err)
 		}
 	case uploadDestination == "gitlab":
-	//TODO implement me
+	// TODO implement me
 	default:
 		log.Printf("unknown plan destination type %v, using noop", uploadDestination)
 		planStorage = &MockPlanStorage{}

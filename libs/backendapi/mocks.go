@@ -1,13 +1,13 @@
 package backendapi
 
 import (
+	"time"
+
 	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"time"
 )
 
-type MockBackendApi struct {
-}
+type MockBackendApi struct{}
 
 func (t MockBackendApi) ReportProject(namespace string, projectName string, configuration string) error {
 	return nil

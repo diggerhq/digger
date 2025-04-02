@@ -2,13 +2,14 @@ package utils
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path"
+
 	orchestrator_gitlab "github.com/diggerhq/digger/libs/ci/gitlab"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
 	"github.com/xanzy/go-gitlab"
-	"log"
-	"os"
-	"path"
 )
 
 type GitlabProvider interface {

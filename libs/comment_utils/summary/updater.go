@@ -2,19 +2,19 @@ package comment_updater
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"log"
 )
 
 type CommentUpdater interface {
 	UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error
 }
 
-type BasicCommentUpdater struct {
-}
+type BasicCommentUpdater struct{}
 
 func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
 	jobSpecs, err := scheduler.GetJobSpecs(jobs)
@@ -52,8 +52,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	return nil
 }
 
-type NoopCommentUpdater struct {
-}
+type NoopCommentUpdater struct{}
 
 func (b NoopCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
 	return nil

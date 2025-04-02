@@ -2,13 +2,14 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/services"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/services"
+	"github.com/gin-gonic/gin"
 )
 
 func GetWebMiddleware() gin.HandlerFunc {

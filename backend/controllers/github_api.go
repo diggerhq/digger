@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"errors"
+	"log"
+	"net/http"
+	"strconv"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"strconv"
 )
 
 func LinkGithubInstallationToOrgApi(c *gin.Context) {
@@ -48,7 +49,6 @@ func LinkGithubInstallationToOrgApi(c *gin.Context) {
 	}
 
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
-
 	if err != nil {
 		log.Printf("could not get installation link: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "Could not get installation link"})

@@ -9,8 +9,10 @@ import (
 
 type IacType string
 
-var IacTypeTerraform IacType = "terraform"
-var IacTypePulumi IacType = "pulumi"
+var (
+	IacTypeTerraform IacType = "terraform"
+	IacTypePulumi    IacType = "pulumi"
+)
 
 type Job struct {
 	ProjectName        string
@@ -31,9 +33,9 @@ type Job struct {
 	StateEnvVars       map[string]string
 	CommandEnvVars     map[string]string
 	StateEnvProvider   *stscreds.WebIdentityRoleProvider
-	StateRoleArn	   string
+	StateRoleArn       string
 	CommandEnvProvider *stscreds.WebIdentityRoleProvider
-	CommandRoleArn	   string
+	CommandRoleArn     string
 	CognitoOidcConfig  *configuration.AwsCognitoOidcConfig
 	SkipMergeCheck     bool
 }
@@ -56,7 +58,6 @@ func ToConfigStep(configState configuration.Step) Step {
 		ExtraArgs: configState.ExtraArgs,
 		Shell:     configState.Shell,
 	}
-
 }
 
 func ToConfigStage(configStage *configuration.Stage) *Stage {

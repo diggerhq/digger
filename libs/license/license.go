@@ -10,8 +10,7 @@ import (
 	"os"
 )
 
-type LicenseKeyChecker struct {
-}
+type LicenseKeyChecker struct{}
 
 func (l LicenseKeyChecker) Check() error {
 	licenseKey := os.Getenv("DIGGER_LICENSE_KEY")
@@ -58,5 +57,4 @@ func (l LicenseKeyChecker) Check() error {
 		}
 		return fmt.Errorf("license key is not valid: %v", string(bodyBytes))
 	}
-
 }

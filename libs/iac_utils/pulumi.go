@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	tfjson "github.com/hashicorp/terraform-json"
-	"github.com/samber/lo"
 	"regexp"
 	"strings"
+
+	tfjson "github.com/hashicorp/terraform-json"
+	"github.com/samber/lo"
 )
 
 // PulumiPreview represents the root structure of Pulumi preview JSON
@@ -116,7 +117,6 @@ func (tu PulumiUtils) SimilarityCheck(footprints []IacPlanFootprint) (bool, erro
 		return footprint == footprintHashes[0]
 	})
 	return allSimilar, nil
-
 }
 
 func (tu PulumiUtils) GetSummarizePlan(planJson string) (string, error) {

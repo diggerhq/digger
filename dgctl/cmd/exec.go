@@ -8,13 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/dgctl/utils"
-	"github.com/diggerhq/digger/libs/backendapi"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/spec"
-	"github.com/google/go-github/v61/github"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"io"
 	"log"
 	"net/http"
@@ -24,6 +17,14 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/dgctl/utils"
+	"github.com/diggerhq/digger/libs/backendapi"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/spec"
+	"github.com/google/go-github/v61/github"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/spf13/cobra"
@@ -104,7 +105,6 @@ func GetSpec(diggerUrl string, authToken string, command string, actor string, p
 	}
 
 	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
-
 	if err != nil {
 		return nil, fmt.Errorf("error while creating request: %v", err)
 	}
@@ -114,7 +114,6 @@ func GetSpec(diggerUrl string, authToken string, command string, actor string, p
 
 	client := http.DefaultClient
 	resp, err := client.Do(req)
-
 	if err != nil {
 		return nil, fmt.Errorf("error while sending request: %v", err)
 	}
@@ -160,7 +159,6 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 }
 
 func cleanupDiggerOutput(output string) string {
-
 	startingDelimiter := "<========= DIGGER RUNNING IN MANUAL MODE =========>"
 	endingDelimiter := "<========= DIGGER COMPLETED =========>"
 
@@ -332,7 +330,6 @@ var execCmd = &cobra.Command{
 
 		log.Printf("streaming logs from remote job:")
 		logsContent, err := GetUrlContents(logs.String())
-
 		if err != nil {
 			log.Printf("error while fetching logs: %v", err)
 			os.Exit(1)
@@ -360,5 +357,4 @@ func init() {
 	}
 
 	rootCmd.AddCommand(execCmd)
-
 }

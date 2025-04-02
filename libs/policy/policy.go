@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/open-policy-agent/opa/rego"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/open-policy-agent/opa/rego"
 )
 
 const DefaultAccessPolicy = `
@@ -27,8 +28,7 @@ type DiggerHttpPolicyProvider struct {
 	HttpClient         *http.Client
 }
 
-type NoOpPolicyChecker struct {
-}
+type NoOpPolicyChecker struct{}
 
 func (p NoOpPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 	return true, nil
@@ -128,7 +128,6 @@ func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, 
 	}
 	u.Path = "/repos/" + namespace + "/projects/" + projectName + "/access-policy"
 	req, err := http.NewRequest("GET", u.String(), nil)
-
 	if err != nil {
 		return "", nil, err
 	}
@@ -145,7 +144,6 @@ func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, 
 		return "", resp, nil
 	}
 	return string(body), resp, nil
-
 }
 
 func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
@@ -155,7 +153,6 @@ func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, pr
 	}
 	u.Path = "/repos/" + namespace + "/projects/" + projectName + "/plan-policy"
 	req, err := http.NewRequest("GET", u.String(), nil)
-
 	if err != nil {
 		return "", nil, err
 	}
@@ -172,7 +169,6 @@ func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, pr
 		return "", resp, nil
 	}
 	return string(body), resp, nil
-
 }
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
@@ -260,9 +256,7 @@ type DiggerPolicyChecker struct {
 
 // TODO refactor to use AccessPolicyContext - too many arguments
 func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
-
 	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName, projectDir)
-
 	if err != nil {
 		log.Printf("Error while fetching policy: %v", err)
 		return false, err
@@ -276,7 +270,7 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prServic
 	}
 
 	// list of pull request approvals (if applicable)
-	var approvals = make([]string, 0)
+	approvals := make([]string, 0)
 	if prService != nil && prNumber != nil {
 		approvals, err = (*prService).GetApprovals(*prNumber)
 	}
@@ -301,7 +295,6 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prServic
 		rego.Query("data.digger.allow"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
-
 	if err != nil {
 		return false, err
 	}
@@ -353,7 +346,6 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisati
 		rego.Query("data.digger.deny"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
-
 	if err != nil {
 		return false, nil, err
 	}
@@ -377,7 +369,6 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisati
 				decisionsResult = append(decisionsResult, d.(string))
 				log.Printf("denied: %v\n", d)
 			}
-
 		}
 
 	}
@@ -391,7 +382,7 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisati
 
 func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectName string) (bool, error) {
 	// TODO: Get rid of organisation if its not needed
-	//organisation := p.PolicyProvider.GetOrganisation()
+	// organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetDriftPolicy()
 	if err != nil {
 		log.Printf("Error while fetching drift policy: %v", err)
@@ -413,7 +404,6 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 		rego.Query("data.digger.enable"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
-
 	if err != nil {
 		return false, err
 	}
@@ -450,7 +440,8 @@ func NewPolicyChecker(hostname string, organisationName string, authToken string
 				DiggerOrganisation: organisationName,
 				AuthToken:          authToken,
 				HttpClient:         http.DefaultClient,
-			}}
+			},
+		}
 	}
 	return policyChecker
 }

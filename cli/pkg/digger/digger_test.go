@@ -2,16 +2,17 @@ package digger
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/execution"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/execution"
+	"github.com/diggerhq/digger/libs/iac_utils"
+	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -161,7 +162,6 @@ func (m *MockPRManager) GetBranchName(prNumber int) (string, string, error) {
 func (m *MockPRManager) SetOutput(prNumber int, key string, value string) error {
 	m.Commands = append(m.Commands, RunInfo{"SetOutput", strconv.Itoa(prNumber), time.Now()})
 	return nil
-
 }
 
 type MockProjectLock struct {
@@ -241,7 +241,6 @@ func (m MockPlanPathProvider) LocalPlanFilePath() string {
 }
 
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
-
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
@@ -291,7 +290,6 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 }
 
 func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
-
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
@@ -373,7 +371,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		IacUtils:          iac_utils.TerraformUtils{},
 	}
 
-	os.WriteFile(planPathProvider.LocalPlanFilePath(), []byte{123}, 0644)
+	os.WriteFile(planPathProvider.LocalPlanFilePath(), []byte{123}, 0o644)
 	defer os.Remove(planPathProvider.LocalPlanFilePath())
 
 	executor.Plan()
@@ -467,11 +465,10 @@ func TestSortedCommandByDependency(t *testing.T) {
 	assert.Equal(t, "project4", sortedCommands[1].ProjectName)
 	assert.Equal(t, "project2", sortedCommands[2].ProjectName)
 	assert.Equal(t, "project1", sortedCommands[3].ProjectName)
-
 }
 
 func TestParseWorkspace(t *testing.T) {
-	var commentTests = []struct {
+	commentTests := []struct {
 		in  string
 		out string
 		err bool
@@ -497,5 +494,4 @@ func TestParseWorkspace(t *testing.T) {
 			}
 		}
 	}
-
 }

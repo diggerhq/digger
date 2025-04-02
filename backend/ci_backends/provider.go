@@ -2,8 +2,9 @@ package ci_backends
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/utils"
 	"log"
+
+	"github.com/diggerhq/digger/backend/utils"
 )
 
 type CiBackendProvider interface {

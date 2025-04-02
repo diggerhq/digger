@@ -3,13 +3,14 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/samber/lo"
-	"log"
 )
 
 type ProjectNameSourceDetail struct {
@@ -27,7 +28,6 @@ type SourceGroupingReporter struct {
 }
 
 func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, location string, terraformOutputs map[string]string) error {
-
 	sourceDetaiItem, found := lo.Find(sourceDetails, func(item SourceDetails) bool {
 		return item.SourceLocation == location
 	})
@@ -93,7 +93,6 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 
 // returns a map inverting locations
 func ImpactedSourcesMapToGroupMapping(impactedSources map[string]digger_config.ProjectToSourceMapping, jobMapping map[string]scheduler.SerializedJob, jobSpecMapping map[string]scheduler.JobJson, footprintsMap map[string]iac_utils.IacPlanFootprint) map[string][]ProjectNameSourceDetail {
-
 	projectNameSourceList := make([]ProjectNameSourceDetail, 0)
 	for projectName, locations := range impactedSources {
 		for _, location := range locations.ImpactingLocations {

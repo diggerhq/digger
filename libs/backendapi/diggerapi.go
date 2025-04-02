@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/scheduler"
 	"io"
 	"log"
 	"mime"
@@ -17,10 +15,12 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/libs/iac_utils"
+	"github.com/diggerhq/digger/libs/scheduler"
 )
 
-type NoopApi struct {
-}
+type NoopApi struct{}
 
 func (n NoopApi) ReportProject(namespace string, projectName string, configurationYaml string) error {
 	return nil
@@ -66,7 +66,6 @@ func (d DiggerApi) ReportProject(namespace string, projectName string, configura
 	}
 
 	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
-
 	if err != nil {
 		return fmt.Errorf("error while creating request: %v", err)
 	}
@@ -75,7 +74,6 @@ func (d DiggerApi) ReportProject(namespace string, projectName string, configura
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", d.AuthToken))
 
 	resp, err := d.HttpClient.Do(req)
-
 	if err != nil {
 		return fmt.Errorf("error while sending request: %v", err)
 	}
@@ -109,7 +107,6 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	}
 
 	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
-
 	if err != nil {
 		return fmt.Errorf("error while creating request: %v", err)
 	}
@@ -118,7 +115,6 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", d.AuthToken))
 
 	resp, err := d.HttpClient.Do(req)
-
 	if err != nil {
 		return fmt.Errorf("error while sending request: %v", err)
 	}
@@ -138,7 +134,7 @@ func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName strin
 	}
 
 	var planSummaryJson interface{}
-	var planFootprint = &iac_utils.IacPlanFootprint{}
+	planFootprint := &iac_utils.IacPlanFootprint{}
 	if summary == nil {
 		log.Printf("Warning: nil passed to plan result, sending empty")
 		planSummaryJson = nil
@@ -170,7 +166,6 @@ func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName strin
 	}
 
 	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
-
 	if err != nil {
 		return nil, fmt.Errorf("error while creating request: %v", err)
 	}
@@ -179,7 +174,6 @@ func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName strin
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", d.AuthToken))
 
 	resp, err := d.HttpClient.Do(req)
-
 	if err != nil {
 		return nil, fmt.Errorf("error while sending request: %v", err)
 	}
@@ -325,7 +319,6 @@ func (d DiggerApi) DownloadJobArtefact(downloadTo string) (*string, error) {
 	// note that fileName include absolute path to the zip file
 	fileName := tempZipFile.Name()
 	return &fileName, nil
-
 }
 
 func NewBackendApi(hostName string, authToken string) Api {

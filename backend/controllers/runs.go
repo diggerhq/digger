@@ -3,14 +3,15 @@ package controllers
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func RunsForProject(c *gin.Context) {
@@ -130,7 +131,6 @@ func RunDetails(c *gin.Context) {
 }
 
 func ApproveRun(c *gin.Context) {
-
 	currentOrg, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 	runIdStr := c.Param("run_id")
 

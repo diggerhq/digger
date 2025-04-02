@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/locking/aws"
 	"github.com/diggerhq/digger/libs/locking/azure"
 	"github.com/diggerhq/digger/libs/locking/gcp"
-	"log"
-	"os"
-	"strconv"
-	"strings"
 
 	"cloud.google.com/go/storage"
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
@@ -32,8 +33,7 @@ type PullRequestLock struct {
 	PrNumber         int
 }
 
-type NoOpLock struct {
-}
+type NoOpLock struct{}
 
 func (noOpLock NoOpLock) Lock(transactionId int, resource string) (bool, error) {
 	return true, nil
@@ -52,7 +52,6 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 	log.Printf("Lock %s\n", lockId)
 
 	noHangingLocks, err := projectLock.verifyNoHangingLocks()
-
 	if err != nil {
 		return false, err
 	}
@@ -62,7 +61,6 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 	}
 
 	existingLockTransactionId, err := projectLock.InternalLock.GetLock(lockId)
-
 	if err != nil {
 		log.Printf("failed to get lock: %v\n", err)
 		return false, err
@@ -126,7 +124,6 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 	// TODO: Also include CI type (github, gitlab etc. into this lockID in order to avoid collision across VCS)
 	lockId := projectLock.LockId()
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
-
 	if err != nil {
 		return false, err
 	}

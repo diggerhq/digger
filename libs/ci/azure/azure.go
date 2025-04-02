@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/scheduler"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/scheduler"
 
 	digger_config2 "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
@@ -119,7 +120,6 @@ func (a *Azure) UnmarshalJSON(data []byte) error {
 
 func NewAzureReposService(patToken string, baseUrl string, projectName string, repositoryId string) (*AzureReposService, error) {
 	client, err := git.NewClient(context.Background(), azuredevops.NewPatConnection(baseUrl, patToken))
-
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,6 @@ func (a *AzureReposService) GetUserTeams(organisation string, user string) ([]st
 }
 
 func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
-
 	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
@@ -259,7 +258,7 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 		}
 	}
 
-	var allSuccess = true
+	allSuccess := true
 	for _, status := range latestUniqueRequestStatuses {
 		if status.State != nil || *status.State != git.GitStatusStateValues.Succeeded {
 			allSuccess = false
@@ -353,12 +352,12 @@ func (a *AzureReposService) CreateCommentReaction(id string, reaction string) er
 }
 
 func (a *AzureReposService) GetBranchName(prNumber int) (string, string, error) {
-	//TODO implement me
+	// TODO implement me
 	return "", "", nil
 }
 
 func (svc *AzureReposService) SetOutput(prNumber int, key string, value string) error {
-	//TODO implement me
+	// TODO implement me
 	return nil
 }
 
@@ -379,7 +378,6 @@ func (a *AzureReposService) GetComments(prNumber int) ([]ci.Comment, error) {
 		})
 	}
 	return result, nil
-
 }
 
 func (svc *AzureReposService) GetApprovals(prNumber int) ([]string, error) {
@@ -396,7 +394,6 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2
 	case AzurePrEvent:
 		prNumber = azureEvent.(AzurePrEvent).Resource.PullRequestId
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not get changed files: %v", err)
 		}
@@ -405,7 +402,6 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2
 	case AzureCommentEvent:
 		prNumber = azureEvent.(AzureCommentEvent).Resource.PullRequest.PullRequestId
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not get changed files: %v", err)
 		}

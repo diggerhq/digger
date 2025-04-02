@@ -2,11 +2,12 @@ package gitlab
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/caarlos0/env/v11"
@@ -102,7 +103,6 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *digger_confi
 
 	mergeRequestId := gitlabContext.MergeRequestIId
 	changedFiles, err := service.GetChangedFiles(*mergeRequestId)
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get changed files")
 	}
@@ -142,7 +142,6 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 	log.Printf("projectId: %d", *gitlabService.Context.ProjectId)
 	log.Printf("mergeRequestId: %d", mergeRequestId)
 	mergeRequestChanges, _, err := gitlabService.Client.MergeRequests.ListMergeRequestDiffs(*gitlabService.Context.ProjectId, mergeRequestId, opt)
-
 	if err != nil {
 		return nil, fmt.Errorf("error getting gitlab's merge request: %v", err)
 	}
@@ -151,7 +150,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 
 	for i, change := range mergeRequestChanges {
 		fileNames[i] = change.NewPath
-		//log.Printf("changed file: %s \n", change.NewPath)
+		// log.Printf("changed file: %s \n", change.NewPath)
 	}
 	return fileNames, nil
 }
@@ -204,13 +203,13 @@ func (svc GitLabService) UpdateIssue(ID int64, title string, body string) (int64
 // https://docs.gitlab.com/ee/user/project/merge_requests/status_checks.html#add-a-status-check-service
 // only supported by 'Ultimate' plan
 func (gitlabService GitLabService) SetStatus(mergeRequestID int, status string, statusContext string) error {
-	//TODO implement me
+	// TODO implement me
 	log.Printf("SetStatus: mergeRequest: %d, status: %s, statusContext: %s\n", mergeRequestID, status, statusContext)
 	return nil
 }
 
 func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequestID int) (string, error) {
-	//TODO implement me
+	// TODO implement me
 
 	return "success", nil
 }
@@ -280,7 +279,6 @@ func (gitlabService GitLabService) EditComment(prNumber int, id string, comment 
 	}
 
 	return err
-
 }
 
 func (gitlabService GitLabService) CreateCommentReaction(id string, reaction string) error {
@@ -289,7 +287,7 @@ func (gitlabService GitLabService) CreateCommentReaction(id string, reaction str
 }
 
 func (gitlabService GitLabService) GetComments(prNumber int) ([]ci.Comment, error) {
-	//TODO implement me
+	// TODO implement me
 	return nil, nil
 }
 
@@ -300,7 +298,7 @@ func (gitlabService GitLabService) GetApprovals(prNumber int) ([]string, error) 
 }
 
 func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, error) {
-	//TODO implement me
+	// TODO implement me
 	projectId := *gitlabService.Context.ProjectId
 	log.Printf("CheckBranchExists prNumber : %d, projectId: %d \n", prNumber, projectId)
 	options := go_gitlab.GetMergeRequestsOptions{}
@@ -326,7 +324,7 @@ func (gitlabService GitLabService) CheckBranchExists(branchName string) (bool, e
 }
 
 func (svc GitLabService) SetOutput(prNumber int, key string, value string) error {
-	//TODO implement me
+	// TODO implement me
 	return nil
 }
 

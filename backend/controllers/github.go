@@ -6,6 +6,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"os"
+	"reflect"
+	"runtime/debug"
+	"slices"
+	"strconv"
+	"strings"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
@@ -29,17 +40,6 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
-	"log"
-	"math/rand"
-	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
-	"reflect"
-	"runtime/debug"
-	"slices"
-	"strconv"
-	"strings"
 )
 
 type IssueCommentHook func(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error
@@ -111,7 +111,6 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 }
 
 func GithubAppSetup(c *gin.Context) {
-
 	type githubWebhook struct {
 		URL    string `json:"url"`
 		Active bool   `json:"active"`
@@ -236,7 +235,6 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 		"WebhookSecret": cfg.GetWebhookSecret(),
 		"URL":           cfg.GetHTMLURL(),
 	})
-
 }
 
 func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64) (*models.Repo, *models.Organisation, error) {
@@ -511,7 +509,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
-	var aiSummaryCommentId = ""
+	aiSummaryCommentId := ""
 	if config.Reporting.AiSummary {
 		aiSummaryComment, err := ghService.PublishComment(prNumber, "AI Summary will be posted here after completion")
 		if err != nil {
@@ -779,15 +777,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting digger config")
 	}
 
-	// terraform code generator
-	if os.Getenv("DIGGER_GENERATION_ENABLED") == "1" {
-		err = GenerateTerraformFromCode(payload, commentReporterManager, config, defaultBranch, ghService, repoOwner, repoName, commitSha, issueNumber, branch)
-		if err != nil {
-			log.Printf("terraform generation failed: %v", err)
-			return err
-		}
-	}
-
 	commentIdStr := strconv.FormatInt(userCommentId, 10)
 	err = ghService.CreateCommentReaction(commentIdStr, string(dg_github.GithubCommentEyesReaction))
 	if err != nil {
@@ -919,7 +908,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("comment reporter error: %v", err)
 	}
 
-	var aiSummaryCommentId = ""
+	aiSummaryCommentId := ""
 	if config.Reporting.AiSummary {
 		aiSummaryComment, err := ghService.PublishComment(issueNumber, "AI Summary will be posted here after completion")
 		if err != nil {
@@ -1002,158 +991,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	return nil
 }
 
-func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporterManager utils.CommentReporterManager, config *dg_configuration.DiggerConfig, defaultBranch string, ghService *dg_github.GithubService, repoOwner string, repoName string, commitSha *string, issueNumber int, branch *string) error {
-	if strings.HasPrefix(*payload.Comment.Body, "digger generate") {
-		projectName := ci.ParseProjectName(*payload.Comment.Body)
-		if projectName == "" {
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: generate requires argument -p <project_name>"))
-			log.Printf("missing project in command: %v", *payload.Comment.Body)
-			return fmt.Errorf("generate requires argument -p <project_name>")
-		}
-
-		project := config.GetProject(projectName)
-		if project == nil {
-			commentReporterManager.UpdateComment(fmt.Sprintf("could not find project %v in digger.yml", projectName))
-			log.Printf("could not find project %v in digger.yml", projectName)
-			return fmt.Errorf("could not find project %v in digger.yml", projectName)
-		}
-
-		commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Successfully loaded project"))
-
-		generationEndpoint := os.Getenv("DIGGER_GENERATION_ENDPOINT")
-		if generationEndpoint == "" {
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: server does not have generation endpoint configured, please verify"))
-			log.Printf("server does not have generation endpoint configured, please verify")
-			return fmt.Errorf("server does not have generation endpoint configured, please verify")
-		}
-		apiToken := os.Getenv("DIGGER_GENERATION_API_TOKEN")
-
-		// Get all code content from the repository at a specific commit
-		getCodeFromCommit := func(ghService *dg_github.GithubService, repoOwner, repoName string, commitSha *string, projectDir string) (string, error) {
-			const MaxPatchSize = 1024 * 1024 // 1MB limit
-
-			// Get the commit's changes compared to default branch
-			comparison, _, err := ghService.Client.Repositories.CompareCommits(
-				context.Background(),
-				repoOwner,
-				repoName,
-				defaultBranch,
-				*commitSha,
-				nil,
-			)
-			if err != nil {
-				return "", fmt.Errorf("error comparing commits: %v", err)
-			}
-
-			var appCode strings.Builder
-			for _, file := range comparison.Files {
-				if file.Patch == nil {
-					continue // Skip files without patches
-				}
-				log.Printf("Processing patch for file: %s", *file.Filename)
-				if *file.Additions > 0 {
-					lines := strings.Split(*file.Patch, "\n")
-					for _, line := range lines {
-						if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
-							appCode.WriteString(strings.TrimPrefix(line, "+"))
-							appCode.WriteString("\n")
-						}
-					}
-				}
-				appCode.WriteString("\n")
-			}
-
-			if appCode.Len() == 0 {
-				return "", fmt.Errorf("no code changes found in commit %s. Please ensure the PR contains added or modified code", *commitSha)
-			}
-
-			return appCode.String(), nil
-		}
-
-		appCode, err := getCodeFromCommit(ghService, repoOwner, repoName, commitSha, project.Dir)
-		if err != nil {
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to get code content: %v", err))
-			log.Printf("Error getting code content: %v", err)
-			return fmt.Errorf("error getting code content: %v", err)
-		}
-
-		commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Successfully loaded code from commit"))
-
-		log.Printf("the app code is: %v", appCode)
-
-		commentReporterManager.UpdateComment(fmt.Sprintf("Generating terraform..."))
-		terraformCode, err := utils.GenerateTerraformCode(appCode, generationEndpoint, apiToken)
-		if err != nil {
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not generate terraform code: %v", err))
-			log.Printf("could not generate terraform code: %v", err)
-			return fmt.Errorf("could not generate terraform code: %v", err)
-		}
-
-		commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Generated terraform"))
-
-		// comment terraform code to project dir
-		//project.Dir
-		log.Printf("terraform code is %v", terraformCode)
-
-		baseTree, _, err := ghService.Client.Git.GetTree(context.Background(), repoOwner, repoName, *commitSha, false)
-		if err != nil {
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to get base tree: %v", err))
-			log.Printf("Error getting base tree: %v", err)
-			return fmt.Errorf("error getting base tree: %v", err)
-		}
-
-		// Create a new tree with the new file
-		treeEntries := []*github.TreeEntry{
-			{
-				Path:    github.String(filepath.Join(project.Dir, fmt.Sprintf("generated_%v.tf", issueNumber))),
-				Mode:    github.String("100644"),
-				Type:    github.String("blob"),
-				Content: github.String(terraformCode),
-			},
-		}
-
-		newTree, _, err := ghService.Client.Git.CreateTree(context.Background(), repoOwner, repoName, *baseTree.SHA, treeEntries)
-		if err != nil {
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to create new tree: %v", err))
-			log.Printf("Error creating new tree: %v", err)
-			return fmt.Errorf("error creating new tree: %v", err)
-		}
-
-		// Create the commit
-		commitMsg := fmt.Sprintf("Add generated Terraform code for %v", projectName)
-		commit := &github.Commit{
-			Message: &commitMsg,
-			Tree:    newTree,
-			Parents: []*github.Commit{{SHA: commitSha}},
-		}
-
-		newCommit, _, err := ghService.Client.Git.CreateCommit(context.Background(), repoOwner, repoName, commit, nil)
-		if err != nil {
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to commit Terraform file: %v", err))
-			log.Printf("Error committing Terraform file: %v", err)
-			return fmt.Errorf("error committing Terraform file: %v", err)
-		}
-
-		// Update the reference to point to the new commit
-		ref := &github.Reference{
-			Ref: github.String(fmt.Sprintf("refs/heads/%s", *branch)),
-			Object: &github.GitObject{
-				SHA: newCommit.SHA,
-			},
-		}
-		_, _, err = ghService.Client.Git.UpdateRef(context.Background(), repoOwner, repoName, ref, false)
-		if err != nil {
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to update branch reference: %v", err))
-			log.Printf("Error updating branch reference: %v", err)
-			return fmt.Errorf("error updating branch reference: %v", err)
-		}
-
-		commentReporterManager.UpdateComment(":white_check_mark: Successfully generated and committed Terraform code")
-		return nil
-	}
-	return nil
-}
-
 func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService ci.PullRequestService, gh utils.GithubClientProvider) error {
 	_, err := models.DB.GetDiggerBatch(batchId)
 	if err != nil {
@@ -1161,7 +998,6 @@ func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, rep
 		return fmt.Errorf("failed to get digger batch, %v\n", err)
 	}
 	diggerJobs, err := models.DB.GetPendingParentDiggerJobs(batchId)
-
 	if err != nil {
 		log.Printf("failed to get pending digger jobs, %v\n", err)
 		return fmt.Errorf("failed to get pending digger jobs, %v\n", err)
@@ -1284,8 +1120,10 @@ jobs:
 		}
 
 		prTitle := "Configure Digger"
-		pullRequest := &github.NewPullRequest{Title: &prTitle,
-			Head: &branch, Base: &defaultBranch}
+		pullRequest := &github.NewPullRequest{
+			Title: &prTitle,
+			Head:  &branch, Base: &defaultBranch,
+		}
 		_, _, err = client.PullRequests.Create(ctx, repoOwner, repoName, pullRequest)
 		if err != nil {
 			return fmt.Errorf("failed to create a pull request for digger/configure, %w", err)
@@ -1296,7 +1134,7 @@ jobs:
 
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
-	//setupAction := c.Request.URL.Query()["setup_action"][0]
+	// setupAction := c.Request.URL.Query()["setup_action"][0]
 	code := c.Request.URL.Query()["code"][0]
 	appId := c.Request.URL.Query().Get("state")
 

@@ -1,10 +1,11 @@
 package execution
 
 import (
-	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExecuteTofuPlan(t *testing.T) {

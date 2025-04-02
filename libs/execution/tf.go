@@ -129,7 +129,6 @@ type StdWriter struct {
 }
 
 func (tf Terraform) formatTerraformWorkspaces(list string) string {
-
 	list = strings.TrimSpace(list)
 	char_replace := strings.NewReplacer("*", "", "\n", ",", " ", "")
 	list = char_replace.Replace(list)

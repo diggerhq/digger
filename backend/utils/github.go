@@ -55,12 +55,10 @@ func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, t
 	}
 
 	return nil
-
 }
 
 // just a wrapper around github client to be able to use mocks
-type DiggerGithubRealClientProvider struct {
-}
+type DiggerGithubRealClientProvider struct{}
 
 type DiggerGithubClientMockProvider struct {
 	MockedHTTPClient *net.Client
@@ -242,7 +240,6 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string,
 					return *workflowRun.ID, fmt.Sprintf("https://%v/%v/%v/actions/runs/%v", GetGithubHostname(), repoOwner, repoName, *workflowRun.ID), nil
 				}
 			}
-
 		}
 	}
 	return 0, "#", fmt.Errorf("workflow not found")

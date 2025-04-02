@@ -2,6 +2,10 @@ package services
 
 import (
 	"fmt"
+	"log"
+	"runtime/debug"
+	"time"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/models"
@@ -10,9 +14,6 @@ import (
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
-	"log"
-	"runtime/debug"
-	"time"
 )
 
 func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoFullName string, repoOwner string, repoName string, workflowFileName string, gh utils.GithubClientProvider) error {

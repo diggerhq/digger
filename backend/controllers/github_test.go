@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"encoding/json"
-	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
@@ -674,6 +675,7 @@ func init() {
 	log.SetOutput(os.Stdout)
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
+
 func TestGithubHandleIssueCommentEvent(t *testing.T) {
 	t.Skip("!!TODO: Fix this failing test and unskip it")
 	teardownSuite, _ := setupSuite(t)

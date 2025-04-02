@@ -1,9 +1,10 @@
 package segment
 
 import (
-	"github.com/segmentio/analytics-go/v3"
 	"log"
 	"os"
+
+	"github.com/segmentio/analytics-go/v3"
 )
 
 var client analytics.Client = nil

@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"net/http"
+	"testing"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
@@ -8,8 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"testing"
 )
 
 func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
@@ -97,5 +98,4 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 	err = AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
 	assert.True(t, isMergeCalled)
-
 }

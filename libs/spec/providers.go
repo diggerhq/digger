@@ -1,10 +1,17 @@
 package spec
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"cloud.google.com/go/storage"
+
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -24,11 +31,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	storage2 "github.com/diggerhq/digger/libs/storage"
 	"github.com/samber/lo"
-	"log"
-	"net/http"
-	"os"
-	"strings"
-	"time"
 )
 
 type JobSpecProvider struct{}

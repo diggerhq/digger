@@ -125,6 +125,7 @@ func (p *Project) MapToJsonStruct() interface{} {
 		IsInMainBranch:        p.IsInMainBranch,
 	}
 }
+
 func (r *Repo) MapToJsonStruct() interface{} {
 	OrganisationName := func() string {
 		if r.Organisation == nil {

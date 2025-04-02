@@ -3,6 +3,10 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -10,9 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"io"
-	"log"
-	"net/http"
 )
 
 type CreatePolicyInput struct {
@@ -161,7 +162,6 @@ func upsertPolicyForOrg(c *gin.Context, policyType string) {
 			Type:           policyType,
 			Policy:         string(policyData),
 		}).Error
-
 		if err != nil {
 			log.Printf("Error creating policy: %v", err)
 			c.String(http.StatusInternalServerError, "Error creating policy")
@@ -294,7 +294,6 @@ func IssueAccessTokenForOrg(c *gin.Context) {
 		OrganisationID: org.ID,
 		Type:           models.AccessPolicyType,
 	}).Error
-
 	if err != nil {
 		log.Printf("Error creating token: %v", err)
 		c.String(http.StatusInternalServerError, "Unexpected error")
@@ -305,7 +304,6 @@ func IssueAccessTokenForOrg(c *gin.Context) {
 }
 
 func loadDiggerConfig(configYaml *dg_configuration.DiggerConfigYaml) (*dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
-
 	err := dg_configuration.ValidateDiggerConfigYaml(configYaml, "loaded config")
 	if err != nil {
 		return nil, nil, fmt.Errorf("error validating config: %v", err)
@@ -317,7 +315,6 @@ func loadDiggerConfig(configYaml *dg_configuration.DiggerConfigYaml) (*dg_config
 	}
 
 	err = dg_configuration.ValidateDiggerConfig(config)
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("error validating config: %v", err)
 	}

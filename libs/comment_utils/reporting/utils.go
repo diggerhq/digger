@@ -2,10 +2,11 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 type SourceDetails struct {
@@ -15,7 +16,6 @@ type SourceDetails struct {
 }
 
 func PostInitialSourceComments(ghService ci.PullRequestService, prNumber int, impactedProjectsSourceMapping map[string]dg_configuration.ProjectToSourceMapping) ([]SourceDetails, error) {
-
 	locations := make(map[string][]string)
 	sourceDetails := make([]SourceDetails, 0)
 

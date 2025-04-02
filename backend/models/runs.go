@@ -1,10 +1,11 @@
 package models
 
 import (
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"gorm.io/gorm"
 	"log"
 	"time"
+
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+	"gorm.io/gorm"
 )
 
 type DiggerRunStatus string
@@ -65,7 +66,7 @@ type DiggerRunStage struct {
 }
 
 type SerializedRunStage struct {
-	//DiggerRunId           uint                                   `json:"digger_run_id"`
+	// DiggerRunId           uint                                   `json:"digger_run_id"`
 	DiggerJobId           string                                 `json:"digger_job_id"`
 	Status                orchestrator_scheduler.DiggerJobStatus `json:"status"`
 	ProjectName           string                                 `json:"project_name"`
@@ -124,7 +125,7 @@ func (r DiggerRunStage) MapToJsonStruct() (*SerializedRunStage, error) {
 	return &SerializedRunStage{
 		DiggerJobId: job.DiggerJobID,
 		Status:      job.Status,
-		//ProjectName:      r.Run.ProjectName,
+		// ProjectName:      r.Run.ProjectName,
 		WorkflowRunUrl:        job.WorkflowRunUrl,
 		ResourcesCreated:      job.DiggerJobSummary.ResourcesCreated,
 		ResourcesUpdated:      job.DiggerJobSummary.ResourcesUpdated,

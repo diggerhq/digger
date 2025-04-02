@@ -48,7 +48,7 @@ type JobJson struct {
 	SkipMergeCheck          bool              `json:"skip_merge_check"`
 	CommandRoleArn          string            `json:"command_role_arn"`
 	StateRoleArn            string            `json:"state_role_arn"`
-	CognitoOidcConfig       *cognitoConfig	  `json:"aws_cognito_oidc"` 
+	CognitoOidcConfig       *cognitoConfig    `json:"aws_cognito_oidc"`
 }
 
 func (j *JobJson) IsPlan() bool {

@@ -79,17 +79,14 @@ func (a *Auth) getAuthToken() (string, error) {
 }
 
 func (a *Auth) FetchTokenPermissions(tokenId string) ([]string, error) {
-
 	accessTokenUrl := a.Host + "/identity/resources/vendor-only/tenants/access-tokens/v1/" + tokenId
 
 	req, err := http.NewRequest("GET", accessTokenUrl, nil)
-
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching token permissions: %v", err.Error())
 	}
 
 	authToken, err := a.getAuthToken()
-
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching token permissions: %v", err.Error())
 	}
@@ -97,7 +94,6 @@ func (a *Auth) FetchTokenPermissions(tokenId string) ([]string, error) {
 	req.Header.Add("Authorization", "Bearer "+authToken)
 
 	resp, err := a.HttpClient.Do(req)
-
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching token permissions: %v", err.Error())
 	}

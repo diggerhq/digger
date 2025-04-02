@@ -17,11 +17,13 @@ func ParseProjectName(comment string) string {
 
 type DiggerCommand string
 
-const DiggerCommandNoop DiggerCommand = "noop"
-const DiggerCommandPlan DiggerCommand = "plan"
-const DiggerCommandApply DiggerCommand = "apply"
-const DiggerCommandLock DiggerCommand = "lock"
-const DiggerCommandUnlock DiggerCommand = "unlock"
+const (
+	DiggerCommandNoop   DiggerCommand = "noop"
+	DiggerCommandPlan   DiggerCommand = "plan"
+	DiggerCommandApply  DiggerCommand = "apply"
+	DiggerCommandLock   DiggerCommand = "lock"
+	DiggerCommandUnlock DiggerCommand = "unlock"
+)
 
 func GetCommandFromComment(comment string) (*DiggerCommand, error) {
 	supportedCommands := map[string]DiggerCommand{

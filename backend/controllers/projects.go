@@ -4,6 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
@@ -15,16 +22,9 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func ListProjects(c *gin.Context) {
-
 }
 
 func FindProjectsForRepo(c *gin.Context) {
@@ -60,7 +60,6 @@ func FindProjectsForRepo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
-
 }
 
 func FindProjectsForOrg(c *gin.Context) {
@@ -103,7 +102,6 @@ func FindProjectsForOrg(c *gin.Context) {
 		Order("repos.repo_full_name").
 		Order("name").
 		Find(&projects).Error
-
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
 		return
@@ -128,7 +126,6 @@ func FindProjectsForOrg(c *gin.Context) {
 }
 
 func ProjectDetails(c *gin.Context) {
-
 	currentOrg, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 	projectIdStr := c.Param("project_id")
 
@@ -206,9 +203,7 @@ func ReportProjectsForRepo(c *gin.Context) {
 	var repo models.Repo
 
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ?", repoName, orgId).First(&repo).Error
-
 	if err != nil {
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			repo := models.Repo{
 				Name:           repoName,
@@ -217,7 +212,6 @@ func ReportProjectsForRepo(c *gin.Context) {
 			}
 
 			err = models.DB.GormDB.Create(&repo).Error
-
 			if err != nil {
 				log.Printf("Error creating repo: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating repo"})
@@ -233,7 +227,6 @@ func ReportProjectsForRepo(c *gin.Context) {
 	var project models.Project
 
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ? AND repo_id = ?", request.Name, org.ID, repo.ID).First(&project).Error
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			project := models.Project{
@@ -246,7 +239,6 @@ func ReportProjectsForRepo(c *gin.Context) {
 			}
 
 			err = models.DB.GormDB.Create(&project).Error
-
 			if err != nil {
 				log.Printf("Error creating project: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating project"})
@@ -281,7 +273,6 @@ func RunHistoryForProject(c *gin.Context) {
 	var repo models.Repo
 
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ?", repoName, orgId).First(&repo).Error
-
 	if err != nil {
 		log.Printf("Error fetching repo: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching repo"})
@@ -291,7 +282,6 @@ func RunHistoryForProject(c *gin.Context) {
 	var project models.Project
 
 	err = models.DB.GormDB.Where("name = ? AND repo_id = ? AND organisation_id", projectName, repo.ID, org.ID).First(&project).Error
-
 	if err != nil {
 		log.Printf("Error fetching project: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching project"})
@@ -301,7 +291,6 @@ func RunHistoryForProject(c *gin.Context) {
 	var runHistory []models.ProjectRun
 
 	err = models.DB.GormDB.Where("project_id = ?", project.ID).Find(&runHistory).Error
-
 	if err != nil {
 		log.Printf("Error fetching run history: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching run history"})
@@ -339,7 +328,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	var request SetJobStatusRequest
 
 	err := c.BindJSON(&request)
-
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
@@ -347,7 +335,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	}
 
 	job, err := models.DB.GetDiggerJob(jobId)
-
 	if err != nil {
 		log.Printf("Error fetching job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching job"})
@@ -406,7 +393,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			}
 
 			jobLink, err := models.DB.GetDiggerJobLink(jobId)
-
 			if err != nil {
 				log.Printf("Error fetching job link: %v", err)
 				return
@@ -539,7 +525,6 @@ func CreateRunForProject(c *gin.Context) {
 	var repo models.Repo
 
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ?", repoName, orgId).First(&repo).Error
-
 	if err != nil {
 		log.Printf("Error fetching repo: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching repo"})
@@ -549,7 +534,6 @@ func CreateRunForProject(c *gin.Context) {
 	var project models.Project
 
 	err = models.DB.GormDB.Where("name = ? AND repo_id = ? AND organisation_id = ?", projectName, repo.ID, org.ID).First(&project).Error
-
 	if err != nil {
 		log.Printf("Error fetching project: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching project"})
@@ -559,7 +543,6 @@ func CreateRunForProject(c *gin.Context) {
 	var request CreateProjectRunRequest
 
 	err = c.BindJSON(&request)
-
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
@@ -577,7 +560,6 @@ func CreateRunForProject(c *gin.Context) {
 	}
 
 	err = models.DB.GormDB.Create(&run).Error
-
 	if err != nil {
 		log.Printf("Error creating run: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating run"})
@@ -697,7 +679,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 			return fmt.Errorf("could not get jobs for batch: %v", err)
 		}
 
-		var terraformOutputs = ""
+		terraformOutputs := ""
 		for _, job := range jobs {
 			var jobSpec orchestrator_scheduler.JobJson
 			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)

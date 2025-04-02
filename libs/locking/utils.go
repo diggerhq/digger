@@ -2,6 +2,7 @@ package locking
 
 import (
 	"fmt"
+
 	"github.com/diggerhq/digger/libs/scheduler"
 )
 

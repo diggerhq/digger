@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 type TenantCreatedEvent struct {
@@ -78,7 +79,6 @@ func AssociateTenantIdToDiggerOrg(c *gin.Context) {
 	}
 
 	if token.Valid {
-
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			if claims.Valid() != nil {
 				log.Printf("Token's claim is invalid")
@@ -107,7 +107,6 @@ func AssociateTenantIdToDiggerOrg(c *gin.Context) {
 			log.Printf("tenantId: %s", tenantId)
 
 			org, err := models.DB.GetOrganisation(tenantId)
-
 			if err != nil {
 				log.Printf("Failed to get organisation by tenantId: %v", err)
 				c.AbortWithStatus(http.StatusInternalServerError)

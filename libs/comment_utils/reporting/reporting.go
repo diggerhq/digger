@@ -2,11 +2,12 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/comment_utils/utils"
 )
 
 type CiReporter struct {
@@ -61,7 +62,7 @@ func (lazyReporter *CiReporterLazy) Flush() (string, string, error) {
 		return "", "", nil
 	}
 	var commentId, commentUrl string
-	for i, _ := range lazyReporter.formatters {
+	for i := range lazyReporter.formatters {
 		var err error
 		commentId, commentUrl, err = lazyReporter.CiReporter.ReportStrategy.Report(lazyReporter.CiReporter.CiService, lazyReporter.CiReporter.PrNumber, lazyReporter.reports[i], lazyReporter.formatters[i], lazyReporter.SupportsMarkdown())
 		if err != nil {
@@ -171,7 +172,6 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 	}
 
 	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
-
 	if err != nil {
 		return "", "", fmt.Errorf("error editing comment: %v", err)
 	}

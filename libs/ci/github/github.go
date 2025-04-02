@@ -3,13 +3,14 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/generic"
-	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/generic"
+	"github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/dominikbraun/graph"
@@ -202,14 +203,16 @@ func (svc GithubService) EditComment(prNumber int, id string, comment string) er
 
 type GithubCommentReaction string
 
-const GithubCommentPlusOneReaction GithubCommentReaction = "+1"
-const GithubCommentMinusOneReaction GithubCommentReaction = "-1"
-const GithubCommentLaughReaction GithubCommentReaction = "laugh"
-const GithubCommentConfusedReaction GithubCommentReaction = "confused"
-const GithubCommentHeartReaction GithubCommentReaction = "heart"
-const GithubCommentHoorayReaction GithubCommentReaction = "hooray"
-const GithubCommentRocketReaction GithubCommentReaction = "rocket"
-const GithubCommentEyesReaction GithubCommentReaction = "eyes"
+const (
+	GithubCommentPlusOneReaction  GithubCommentReaction = "+1"
+	GithubCommentMinusOneReaction GithubCommentReaction = "-1"
+	GithubCommentLaughReaction    GithubCommentReaction = "laugh"
+	GithubCommentConfusedReaction GithubCommentReaction = "confused"
+	GithubCommentHeartReaction    GithubCommentReaction = "heart"
+	GithubCommentHoorayReaction   GithubCommentReaction = "hooray"
+	GithubCommentRocketReaction   GithubCommentReaction = "rocket"
+	GithubCommentEyesReaction     GithubCommentReaction = "eyes"
+)
 
 func (svc GithubService) CreateCommentReaction(id string, reaction string) error {
 	commentId, err := strconv.ParseInt(id, 10, 64)
@@ -391,7 +394,7 @@ func (svc GithubService) SetOutput(prNumber int, key string, value string) error
 	if gout == "" {
 		return fmt.Errorf("GITHUB_ENV not set, could not set the output in digger step")
 	}
-	f, err := os.OpenFile(gout, os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(gout, os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("could not open file for writing during digger step")
 	}
@@ -600,7 +603,6 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 	case github.PullRequestEvent:
 		prNumber = *event.GetPullRequest().Number
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
 		}
@@ -609,7 +611,6 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 	case github.IssueCommentEvent:
 		prNumber = *event.GetIssue().Number
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
 		}
@@ -640,7 +641,6 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 	var prNumber int
 	prNumber = *payload.PullRequest.Number
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 	if err != nil {
 		return nil, nil, prNumber, fmt.Errorf("could not get changed files")
 	}

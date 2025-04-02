@@ -1,9 +1,10 @@
 package services
 
 import (
+	"log"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"log"
 )
 
 /// Messages are stored to the session and displayed only once

@@ -21,14 +21,11 @@ type DirWalker interface {
 	GetDirs(workingDir string, config DiggerConfigYaml) ([]string, error)
 }
 
-type FileSystemTopLevelTerraformDirWalker struct {
-}
+type FileSystemTopLevelTerraformDirWalker struct{}
 
-type FileSystemTerragruntDirWalker struct {
-}
+type FileSystemTerragruntDirWalker struct{}
 
-type FileSystemModuleDirWalker struct {
-}
+type FileSystemModuleDirWalker struct{}
 
 func ReadDiggerYmlFileContents(dir string) (string, error) {
 	var diggerYmlBytes []byte
@@ -90,7 +87,6 @@ func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string, c
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
-
 			if err != nil {
 				return err
 			}
@@ -118,7 +114,6 @@ func (walker *FileSystemModuleDirWalker) GetDirs(workingDir string, configYaml *
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
-
 			if err != nil {
 				return err
 			}
@@ -138,7 +133,6 @@ func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string, configYa
 	var dirs []string
 	err := filepath.Walk(workingDir,
 		func(path string, info os.FileInfo, err error) error {
-
 			if err != nil {
 				return err
 			}
@@ -265,9 +259,8 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			return err
 		}
 	} else if config.GenerateProjectsConfig != nil {
-		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
+		dirWalker := &FileSystemTopLevelTerraformDirWalker{}
 		dirs, err := dirWalker.GetDirs(terraformDir, config)
-
 		if err != nil {
 			fmt.Printf("Error while walking through directories: %v", err)
 		}
@@ -301,7 +294,6 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			// if blocks of include/exclude patterns defined
 			for _, b := range config.GenerateProjectsConfig.Blocks {
 				if b.Terragrunt == true {
-
 					if checkBlockInChangedFiles(*b.RootDir, changedFiles) {
 						log.Printf("generating projects for block: %v", b.BlockName)
 						workflow := "default"
@@ -443,6 +435,7 @@ func validatePulumiProject(project *Project) error {
 	}
 	return nil
 }
+
 func ValidateProjects(config *DiggerConfig) error {
 	projects := config.Projects
 	for _, project := range projects {
@@ -576,7 +569,6 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		// normalize paths
 		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
 		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
-
 		if err != nil {
 			return fmt.Errorf("could not normalize patterns: %v", err)
 		}
@@ -671,7 +663,6 @@ func (c *DiggerConfig) GetWorkflow(workflowName string) *Workflow {
 		return nil
 	}
 	return &workflow
-
 }
 
 type File struct {

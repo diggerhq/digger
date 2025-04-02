@@ -2,8 +2,9 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
 	"strconv"
+
+	"github.com/diggerhq/digger/libs/ci"
 )
 
 type MockCiService struct {
@@ -21,8 +22,8 @@ func (t MockCiService) GetApprovals(prNumber int) ([]string, error) {
 func (t MockCiService) GetChangedFiles(prNumber int) ([]string, error) {
 	return nil, nil
 }
-func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 
+func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	latestId := 0
 
 	for _, comments := range t.CommentsPerPr {

@@ -1,10 +1,11 @@
 package controllers
 
 import (
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/gin-gonic/gin"
 )
 
 func (d DiggerController) UpsertOrgInternal(c *gin.Context) {

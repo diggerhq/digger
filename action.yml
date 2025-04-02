@@ -1,4 +1,3 @@
----
 name: run-digger
 description: Manage terraform collaboration
 author: Digger
@@ -405,16 +404,16 @@ runs:
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
-          if [[ ${{ inputs.ee }} == "true" ]]; then
-            cd $GITHUB_ACTION_PATH/ee/cli
-          else
-            cd $GITHUB_ACTION_PATH/cli
-          fi
-          go build -o digger ./cmd/digger
-          chmod +x digger
-          PATH=$PATH:$(pwd)
-          cd $GITHUB_WORKSPACE
-          digger
+        if [[ ${{ inputs.ee }} == "true" ]]; then
+          cd $GITHUB_ACTION_PATH/ee/cli
+        else
+          cd $GITHUB_ACTION_PATH/cli
+        fi
+        go build -o digger ./cmd/digger
+        chmod +x digger
+        PATH=$PATH:$(pwd)
+        cd $GITHUB_WORKSPACE
+        digger
 
     - name: run digger
       if: ${{ startsWith(github.action_ref, 'v') }}

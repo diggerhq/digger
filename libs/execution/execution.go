@@ -2,12 +2,6 @@ package execution
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/storage"
-	"github.com/samber/lo"
 	"log"
 	"os"
 	"path"
@@ -15,6 +9,13 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/comment_utils/utils"
+	"github.com/diggerhq/digger/libs/iac_utils"
+	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/storage"
+	"github.com/samber/lo"
 
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -107,8 +108,10 @@ type DiggerExecutor struct {
 
 type DiggerOperationType string
 
-var DiggerOparationTypePlan DiggerOperationType = "plan"
-var DiggerOparationTypeApply DiggerOperationType = "apply"
+var (
+	DiggerOparationTypePlan  DiggerOperationType = "plan"
+	DiggerOparationTypeApply DiggerOperationType = "apply"
+)
 
 type DiggerExecutorResult struct {
 	OperationType   DiggerOperationType
@@ -160,7 +163,6 @@ func (d ProjectPathProvider) StoredPlanFilePath() string {
 	} else {
 		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.ProjectName + ".tfplan"
 	}
-
 }
 
 func (d ProjectPathProvider) LocalPlanFilePath() string {
@@ -445,7 +447,6 @@ func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 }
 
 func (d DiggerExecutor) Destroy() (bool, error) {
-
 	destroySteps := []configuration.Step{
 		{
 			Action: "init",
@@ -538,7 +539,6 @@ func (d DiggerExecutor) projectId() string {
 
 // this will log an exit code and error based on the executor of the executor drivers are by filename
 func logCommandFail(exitCode int, err error) {
-
 	_, filename, _, ok := runtime.Caller(1)
 	if ok {
 		executor := strings.TrimSuffix(path.Base(filename), path.Ext(filename))

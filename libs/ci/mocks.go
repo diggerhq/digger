@@ -15,6 +15,7 @@ func (t MockPullRequestManager) GetUserTeams(organisation string, user string) (
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
 	return t.ChangedFiles, nil
 }
+
 func (t MockPullRequestManager) PublishComment(prNumber int, comment string) (*Comment, error) {
 	return nil, nil
 }

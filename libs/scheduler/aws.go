@@ -34,20 +34,23 @@ type GithubTokenFetcher interface {
 	GetIdentityToken() ([]byte, error)
 }
 
-type AuthStrategy int 
+type AuthStrategy int
+
 const (
 	BackendConfig AuthStrategy = iota
 	Terragrunt
 	Cognito
 )
-	
+
 /**
  * This is a singleton patterns for external data client and allows mocking for testing
  */
-var defaultCognitoClient CognitoClient
-var defaultStsClient StsClient
-var defaultTokenFetcher GithubTokenFetcher
-var defaultLoadConfig = config.LoadDefaultConfig
+var (
+	defaultCognitoClient CognitoClient
+	defaultStsClient     StsClient
+	defaultTokenFetcher  GithubTokenFetcher
+	defaultLoadConfig    = config.LoadDefaultConfig
+)
 
 func getCognitoClient(cfg aws.Config) CognitoClient {
 	if defaultCognitoClient == nil {
@@ -65,7 +68,7 @@ func getTokenFeatcher() GithubTokenFetcher {
 }
 
 func getStsClient(cfg aws.Config) StsClient {
-	if(defaultStsClient == nil) {
+	if defaultStsClient == nil {
 		defaultStsClient = sts.NewFromConfig(cfg)
 	}
 	return defaultStsClient
@@ -73,7 +76,7 @@ func getStsClient(cfg aws.Config) StsClient {
 
 // Wrapper to allow for overrides if necessary
 func getAwsConfig(ctx context.Context, region string) (aws.Config, error) {
-	return defaultLoadConfig(ctx, config.WithRegion(region))		
+	return defaultLoadConfig(ctx, config.WithRegion(region))
 }
 
 func populateretrieveBackendConfigArgs(provider stscreds.WebIdentityRoleProvider) ([]string, error) {
@@ -86,7 +89,6 @@ func populateretrieveBackendConfigArgs(provider stscreds.WebIdentityRoleProvider
 	secretKey := fmt.Sprintf("-backend-config=secret_key=%v", creds.SecretAccessKey)
 	token := fmt.Sprintf("-backend-config=token=%v", creds.SessionToken)
 	return append(args, accessKey, secretKey, token), nil
-
 }
 
 func populateKeys(envs map[string]string, provider stscreds.WebIdentityRoleProvider) (map[string]string, error) {
@@ -101,53 +103,52 @@ func populateKeys(envs map[string]string, provider stscreds.WebIdentityRoleProvi
 }
 
 func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
-	var err error 
-	switch(job.GetAuthStrategy()) {
-		case Cognito:
-			log.Printf("Using authentication strategy: Cognito")
-			err = job.AuthCognito()		
-		case Terragrunt:
-			log.Printf("Using authentication strategy: Terragrunt")
-			err = job.AuthTerragrunt()
-		case BackendConfig:
-			log.Printf("Using authentication strategy: Default")
-			err = job.AuthBackendConfig()			
-		default:
-			err = fmt.Errorf("unkown: aws authentication strategy")
+	var err error
+	switch job.GetAuthStrategy() {
+	case Cognito:
+		log.Printf("Using authentication strategy: Cognito")
+		err = job.AuthCognito()
+	case Terragrunt:
+		log.Printf("Using authentication strategy: Terragrunt")
+		err = job.AuthTerragrunt()
+	case BackendConfig:
+		log.Printf("Using authentication strategy: Default")
+		err = job.AuthBackendConfig()
+	default:
+		err = fmt.Errorf("unkown: aws authentication strategy")
 	}
 
 	if err != nil {
 		return err
 	}
 
-	// If state environment variables are not set them to match command env vars 
+	// If state environment variables are not set them to match command env vars
 	if len(job.StateEnvVars) == 0 && len(job.CommandEnvVars) > 0 {
 		job.StateEnvVars = job.CommandEnvVars
-	} 
+	}
 
 	if len(job.StateEnvVars) > 0 && len(job.CommandEnvVars) == 0 {
 		job.CommandEnvVars = job.StateEnvVars
-	}  
+	}
 
 	return nil
 }
 
 // determine the authentication strategy based on the job details
-func(job *Job) GetAuthStrategy() AuthStrategy {
-	if(job.Terragrunt && job.CognitoOidcConfig == nil) {
+func (job *Job) GetAuthStrategy() AuthStrategy {
+	if job.Terragrunt && job.CognitoOidcConfig == nil {
 		return Terragrunt
 	}
-	if(job.CognitoOidcConfig != nil) {
+	if job.CognitoOidcConfig != nil {
 		return Cognito
 	}
 
-	// original dfefault behavior to use backend config and aws_role_to_assume config. 
+	// original dfefault behavior to use backend config and aws_role_to_assume config.
 	return BackendConfig
 }
 
 // This is the default pattern that digger uses to populate the AWS credentials for the job
-func(job *Job) AuthBackendConfig() error {
-
+func (job *Job) AuthBackendConfig() error {
 	if job.StateEnvProvider != nil {
 		log.Printf("Project-level AWS role detected, Assuming role for project: %v", job.ProjectName)
 		var err error
@@ -156,7 +157,7 @@ func(job *Job) AuthBackendConfig() error {
 			log.Printf("failed to get keys from role: %v", err)
 			return fmt.Errorf("failed to get (state) keys from role: %v", err)
 		}
-	
+
 		if job.PlanStage != nil {
 			// TODO: check that the first step is infact the terraform "init" step
 			job.PlanStage.Steps[0].ExtraArgs = append(job.PlanStage.Steps[0].ExtraArgs, backendConfigArgs...)
@@ -168,7 +169,7 @@ func(job *Job) AuthBackendConfig() error {
 		if err != nil {
 			log.Printf("failed to get keys from role: %v", err)
 			return fmt.Errorf("failed to get (state) keys from role: %v", err)
-		}	
+		}
 	}
 
 	if job.CommandEnvProvider != nil {
@@ -183,7 +184,7 @@ func(job *Job) AuthBackendConfig() error {
 	return nil
 }
 
-func(job *Job) AuthTerragrunt() error {
+func (job *Job) AuthTerragrunt() error {
 	var err error
 	if job.StateEnvProvider != nil {
 		job.StateEnvVars, err = populateKeys(job.StateEnvVars, *job.StateEnvProvider)
@@ -193,19 +194,18 @@ func(job *Job) AuthTerragrunt() error {
 		}
 	}
 
-	if job.CommandEnvProvider != nil {		
+	if job.CommandEnvProvider != nil {
 		job.CommandEnvVars, err = populateKeys(job.CommandEnvVars, *job.CommandEnvProvider)
 		if err != nil {
 			log.Printf("Failed to get keys from role (CommandEnvProvider: %v", err)
 			return fmt.Errorf("failed to get (command) keys from role: %v", err)
-		}		
-	}  
+		}
+	}
 
 	return nil
 }
 
-func(job *Job) AuthCognito() error {
-
+func (job *Job) AuthCognito() error {
 	log.Printf("Authenticating with Cognito for project: %v", job.ProjectName)
 
 	creds, err := GetCognitoToken(*job.CognitoOidcConfig, "token.actions.githubusercontent.com")
@@ -216,7 +216,7 @@ func(job *Job) AuthCognito() error {
 
 	// If a command role provider is set and role is set then we need to chain to get those credentials
 	// using the Cognito token othewise just return the Cognito token which follows the "enhanced" auth flow
-	if job.CommandEnvProvider != nil || job.StateEnvProvider != nil {		
+	if job.CommandEnvProvider != nil || job.StateEnvProvider != nil {
 
 		cfg, err := getAwsConfig(context.Background(), job.CognitoOidcConfig.AwsRegion)
 		if err != nil {
@@ -232,52 +232,52 @@ func(job *Job) AuthCognito() error {
 
 		stsClient := getStsClient(cfg)
 		defaultStsClient = nil
-		if job.StateRoleArn != "" {		
+		if job.StateRoleArn != "" {
 
 			creds, err := stsClient.AssumeRole(context.Background(), &sts.AssumeRoleInput{
-				RoleArn: aws.String(job.StateRoleArn),
+				RoleArn:         aws.String(job.StateRoleArn),
 				RoleSessionName: aws.String(job.ProjectName + "-state"),
 			})
 			if err != nil {
 				log.Printf("failed to assumeRole for stateRoleArn in Cognito auth strategy: %v", err)
 				return fmt.Errorf("failed to assume role for state %v", err)
-			}			
+			}
 
 			job.StateEnvVars = map[string]string{
-				"AWS_ACCESS_KEY_ID":  		*creds.Credentials.AccessKeyId,
-				"AWS_SECRET_ACCESS_KEY": 	*creds.Credentials.SecretAccessKey,
-				"AWS_SESSION_TOKEN":   		*creds.Credentials.SessionToken,
+				"AWS_ACCESS_KEY_ID":     *creds.Credentials.AccessKeyId,
+				"AWS_SECRET_ACCESS_KEY": *creds.Credentials.SecretAccessKey,
+				"AWS_SESSION_TOKEN":     *creds.Credentials.SessionToken,
 			}
 		}
 
 		if job.CommandRoleArn != "" {
 			creds, err := stsClient.AssumeRole(context.Background(), &sts.AssumeRoleInput{
-				RoleArn: aws.String(job.CommandRoleArn),
+				RoleArn:         aws.String(job.CommandRoleArn),
 				RoleSessionName: aws.String(job.ProjectName + "-command"),
-			}) 
+			})
 			if err != nil {
 				log.Printf("failed to assumeRole for commandRoleArn in Cognito auth strategy: %v", err)
 				return fmt.Errorf("failed to assume role for command %v", err)
 			}
 
 			job.CommandEnvVars = map[string]string{
-				"AWS_ACCESS_KEY_ID":  		*creds.Credentials.AccessKeyId,
-				"AWS_SECRET_ACCESS_KEY": 	*creds.Credentials.SecretAccessKey,
-				"AWS_SESSION_TOKEN":   		*creds.Credentials.SessionToken,
+				"AWS_ACCESS_KEY_ID":     *creds.Credentials.AccessKeyId,
+				"AWS_SECRET_ACCESS_KEY": *creds.Credentials.SecretAccessKey,
+				"AWS_SESSION_TOKEN":     *creds.Credentials.SessionToken,
 			}
 		}
 
 	} else {
 
-		// Pass back the Cognito token as credentials for running commands. 
+		// Pass back the Cognito token as credentials for running commands.
 		job.StateEnvVars = creds
-		job.CommandEnvVars = creds		
+		job.CommandEnvVars = creds
 	}
 
 	return nil
 }
 
-type GithubAwsTokenFetcher struct{
+type GithubAwsTokenFetcher struct {
 	audience string
 }
 
@@ -292,7 +292,7 @@ func (fetcher *GithubAwsTokenFetcher) GetIdentityToken() ([]byte, error) {
 	}
 
 	audienceDomain := fetcher.audience
-	if(audienceDomain == "") {
+	if audienceDomain == "" {
 		audienceDomain = "sts.amazonaws.com"
 	}
 
@@ -355,16 +355,15 @@ func GetStateAndCommandProviders(project digger_config.Project) (*stscreds.WebId
 
 /**
  * This gets a cognito token identity to be used for OIDC authentcation and claim mapping to Principal tags
- *  
+ *
  *  @param project config.AwsCognitoOidcConfig - the project configuration for the AWS Cognito OIDC
  *  @param idpName string - the idetity provider to use for the token i.e. token.actions.gihutusercontent.com
  *  @return map[string]string - a map of the AWS credentials to be used for the identity token from cognito
  */
 func GetCognitoToken(cognitoConfig digger_config.AwsCognitoOidcConfig, idpName string) (map[string]string, error) {
-
-	// Feature flag other idetntity providers at this point in time. 
+	// Feature flag other idetntity providers at this point in time.
 	if idpName != "token.actions.githubusercontent.com" {
-		return nil, errors.New("only github actions is supported")			
+		return nil, errors.New("only github actions is supported")
 	}
 
 	if cognitoConfig.CognitoPoolId == "" {
@@ -375,9 +374,9 @@ func GetCognitoToken(cognitoConfig digger_config.AwsCognitoOidcConfig, idpName s
 		return nil, errors.New("account information could not be determined in order to fetch Cognito token")
 	}
 
-	cfg, err := getAwsConfig(context.Background(), cognitoConfig.AwsRegion)	
+	cfg, err := getAwsConfig(context.Background(), cognitoConfig.AwsRegion)
 	if err != nil {
-		return nil,fmt.Errorf("unable to load AWS SDK config in GetCognitoToken(), %v", err)
+		return nil, fmt.Errorf("unable to load AWS SDK config in GetCognitoToken(), %v", err)
 	}
 
 	// We need the github access token to use as the user request an identity token from Cognito
@@ -389,7 +388,7 @@ func GetCognitoToken(cognitoConfig digger_config.AwsCognitoOidcConfig, idpName s
 	}
 
 	// Using the access token from GitHub and the Cognito pool ID, we can now request the identity token
-	client := getCognitoClient(cfg)	
+	client := getCognitoClient(cfg)
 	getIdinput := &cognitoidentity.GetIdInput{
 		IdentityPoolId: aws.String(cognitoConfig.CognitoPoolId),
 		Logins: map[string]string{
@@ -417,15 +416,14 @@ func GetCognitoToken(cognitoConfig digger_config.AwsCognitoOidcConfig, idpName s
 	}
 
 	/**
-	 * @TODO replace this with a struct type for these credentials, for now return 
+	 * @TODO replace this with a struct type for these credentials, for now return
 	 * a map similar to the one in populateKeys() method
 	 */
 	return map[string]string{
-		"AWS_ACCESS_KEY_ID":  		*getCredsOutput.Credentials.AccessKeyId,
-		"AWS_SECRET_ACCESS_KEY": 	*getCredsOutput.Credentials.SecretKey,
-		"AWS_SESSION_TOKEN":   		*getCredsOutput.Credentials.SessionToken,
+		"AWS_ACCESS_KEY_ID":     *getCredsOutput.Credentials.AccessKeyId,
+		"AWS_SECRET_ACCESS_KEY": *getCredsOutput.Credentials.SecretKey,
+		"AWS_SESSION_TOKEN":     *getCredsOutput.Credentials.SessionToken,
 	}, nil
-
 }
 
 // pool ids are in this format: <region>:<guid>

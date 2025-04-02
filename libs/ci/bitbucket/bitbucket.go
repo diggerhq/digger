@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 // Define the base URL for the Bitbucket API.
@@ -203,7 +204,6 @@ type Comment struct {
 }
 
 func (b BitbucketAPI) GetComments(prNumber int) ([]ci.Comment, error) {
-
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -232,7 +232,6 @@ func (b BitbucketAPI) GetComments(prNumber int) ([]ci.Comment, error) {
 	}
 
 	return comments, nil
-
 }
 
 func (svc BitbucketAPI) GetApprovals(prNumber int) ([]string, error) {
@@ -318,7 +317,6 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 	url := fmt.Sprintf("%s/repositories/%s/%s/commit/%d/statuses", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
-
 	if err != nil {
 		return "", err
 	}
@@ -332,7 +330,6 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 	var statuses CommitStatuses
 
 	err = json.NewDecoder(resp.Body).Decode(&statuses)
-
 	if err != nil {
 		return "", err
 	}
@@ -366,7 +363,7 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 		}
 	}
 
-	var allSuccess = true
+	allSuccess := true
 	for _, status := range latestStatusByKey {
 		if status.State != "SUCCESSFUL" {
 			allSuccess = false
@@ -378,7 +375,6 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 	}
 
 	return "pending", nil
-
 }
 
 func (b BitbucketAPI) MergePullRequest(prNumber int, mergeStrategy string) error {
@@ -423,7 +419,6 @@ func (b BitbucketAPI) IsMergeable(prNumber int) (bool, error) {
 }
 
 func (b BitbucketAPI) IsMerged(prNumber int) (bool, error) {
-
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -503,7 +498,7 @@ func (b BitbucketAPI) GetBranchName(prNumber int) (string, string, error) {
 }
 
 func (svc BitbucketAPI) SetOutput(prNumber int, key string, value string) error {
-	//TODO implement me
+	// TODO implement me
 	return nil
 }
 
@@ -637,12 +632,10 @@ func (b BitbucketAPI) TriggerPipeline(branch string, variables []interface{}) (s
 	}
 
 	return "", nil
-
 }
 
 func FindImpactedProjectsInBitbucket(diggerConfig *configuration.DiggerConfig, prNumber int, prService ci.PullRequestService) ([]configuration.Project, error) {
 	changedFiles, err := prService.GetChangedFiles(prNumber)
-
 	if err != nil {
 		fmt.Printf("Error getting changed files: %v", err)
 		return nil, err

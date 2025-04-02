@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 func ListReposApi(c *gin.Context) {
@@ -30,7 +31,6 @@ func ListReposApi(c *gin.Context) {
 		Where("repos.organisation_id = ?", org.ID).
 		Order("name").
 		Find(&repos).Error
-
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
 		return

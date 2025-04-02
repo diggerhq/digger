@@ -1,15 +1,16 @@
 package models
 
 import (
+	"log"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	"os"
-	"strings"
-	"testing"
 )
 
 func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {

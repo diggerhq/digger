@@ -1,14 +1,15 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/robfig/cron"
-	"log"
-	"os"
 )
 
 func initLogging() {
@@ -73,5 +74,4 @@ func main() {
 
 	for {
 	}
-
 }

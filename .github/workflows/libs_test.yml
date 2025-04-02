@@ -1,4 +1,3 @@
----
 name: Libs tests
 
 "on":
@@ -16,7 +15,7 @@ jobs:
         uses: opentofu/setup-opentofu@v1.0.5
         with:
           tofu_version: 1.8.5
-          
+
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
         with:

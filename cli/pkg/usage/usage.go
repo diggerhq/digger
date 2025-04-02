@@ -5,14 +5,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log"
 	"net/http"
 	"os"
+
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
-var telemetry = true
-var source = "unknown"
+var (
+	telemetry = true
+	source    = "unknown"
+)
 
 type UsageRecord struct {
 	UserId    interface{} `json:"userid"`

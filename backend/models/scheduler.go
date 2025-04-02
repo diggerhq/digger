@@ -3,11 +3,12 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"time"
+
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"log"
-	"time"
 )
 
 type DiggerJobParentLink struct {
@@ -18,9 +19,11 @@ type DiggerJobParentLink struct {
 
 type DiggerVCSType string
 
-const DiggerVCSGithub DiggerVCSType = "github"
-const DiggerVCSGitlab DiggerVCSType = "gitlab"
-const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
+const (
+	DiggerVCSGithub    DiggerVCSType = "github"
+	DiggerVCSGitlab    DiggerVCSType = "gitlab"
+	DiggerVCSBitbucket DiggerVCSType = "bitbucket"
+)
 
 type DiggerBatch struct {
 	ID                     uuid.UUID `gorm:"primary_key"`
@@ -115,6 +118,7 @@ func (j *DiggerJob) MapToJsonStruct() (orchestrator_scheduler.SerializedJob, err
 		ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,
 	}, nil
 }
+
 func (b *DiggerBatch) MapToJsonStruct() (orchestrator_scheduler.SerializedBatch, error) {
 	res := orchestrator_scheduler.SerializedBatch{
 		ID:           b.ID.String(),

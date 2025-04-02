@@ -1,9 +1,10 @@
 package iac_utils
 
 import (
+	"sort"
+
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/samber/lo"
-	"sort"
 )
 
 type IacSummary struct {

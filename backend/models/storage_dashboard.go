@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/diggerhq/digger/libs/scheduler"
 	"time"
+
+	"github.com/diggerhq/digger/libs/scheduler"
 )
 
 func (db *Database) GetRepoCount(orgID uint) (int64, error) {

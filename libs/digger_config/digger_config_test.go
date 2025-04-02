@@ -58,7 +58,6 @@ func TestDiggerConfigWhenCustomFileName(t *testing.T) {
 	assert.Equal(t, configPath, path.Join(tempDir, "digger-custom.yml"))
 
 	os.Unsetenv("DIGGER_FILENAME")
-
 }
 
 func TestDiggerConfigWhenOnlyYamlExists(t *testing.T) {
@@ -487,7 +486,6 @@ workflows:
 	assert.NotNil(t, workflow)
 	assert.NotNil(t, workflow.Plan)
 	assert.NotNil(t, workflow.Apply)
-
 }
 
 func TestDiggerConfigMissingProjectsWorkflow(t *testing.T) {
@@ -511,7 +509,6 @@ workflows:
 
 	_, _, _, err := LoadDiggerConfig(tempDir, true, nil)
 	assert.Equal(t, "failed to find workflow digger_config 'my_custom_workflow' for project 'my-first-app'", err.Error())
-
 }
 
 func TestDiggerConfigWithEmptyInitBlock(t *testing.T) {
@@ -1188,12 +1185,12 @@ projects:
 func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	changedFiles := []string{"modules/bucket/main.tf", "dev/main.tf"}
 	projects := []Project{
-		Project{
+		{
 			Name:            "dev",
 			Dir:             "dev",
 			IncludePatterns: []string{"modules/**"},
 		},
-		Project{
+		{
 			Name:            "prod",
 			Dir:             "prod",
 			IncludePatterns: []string{"modules/**"},
@@ -1214,7 +1211,6 @@ func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	assert.Equal(t, 1, len(projectSourceMapping["prod"].ImpactingLocations))
 	assert.Equal(t, expectedImpactingLocations["dev"].ImpactingLocations, projectSourceMapping["dev"].ImpactingLocations)
 	assert.Equal(t, expectedImpactingLocations["prod"].ImpactingLocations, projectSourceMapping["prod"].ImpactingLocations)
-
 }
 
 func TestCognitoTokenSetFromMinConfig(t *testing.T) {

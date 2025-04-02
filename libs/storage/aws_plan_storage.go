@@ -69,8 +69,8 @@ func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType
 	}
 
 	return planStorage, nil
-
 }
+
 func (psa *PlanStorageAWS) PlanExists(artifactName, storedPlanFilePath string) (bool, error) {
 	input := &s3.HeadObjectInput{
 		Bucket: aws.String(psa.Bucket),

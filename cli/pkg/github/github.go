@@ -3,6 +3,10 @@ package github
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
@@ -20,9 +24,6 @@ import (
 	"github.com/diggerhq/digger/libs/storage"
 	"github.com/google/go-github/v61/github"
 	"gopkg.in/yaml.v3"
-	"log"
-	"os"
-	"strings"
 )
 
 func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotificationProvider drift.DriftNotificationProvider) {
@@ -38,7 +39,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
 	orgName := os.Getenv("DIGGER_ORGANISATION")
-	var policyChecker, _ = policyCheckerProvider.Get(hostName, token, orgName)
+	policyChecker, _ := policyCheckerProvider.Get(hostName, token, orgName)
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
@@ -164,7 +165,6 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
-
 		for _, projectConfig := range diggerConfig.Projects {
 			if !projectConfig.DriftDetection {
 				continue
@@ -252,7 +252,6 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig, true)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
 			prBranchName, _, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
-
 			if err != nil {
 				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while retrieving default branch from Issue: %v", err), 6)
 			}

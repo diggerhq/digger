@@ -16,9 +16,10 @@ limitations under the License.
 package main
 
 import (
-	"github.com/diggerhq/digger/dgctl/cmd"
 	"log"
 	"os"
+
+	"github.com/diggerhq/digger/dgctl/cmd"
 )
 
 func init() {

@@ -2,9 +2,10 @@ package utils
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"log"
 )
 
 // CommentReporterManager thin wrapper around CommentReporter that makes it "Lazy" so we dont comment anything when it is initialized
@@ -56,7 +57,7 @@ func InitCommentReporter(prService ci.PullRequestService, prNumber int, commentM
 	if err != nil {
 		return nil, fmt.Errorf("count not initialize comment reporter: %v", err)
 	}
-	//commentId, err := strconv.ParseInt(fmt.Sprintf("%v", comment.Id), 10, 64)
+	// commentId, err := strconv.ParseInt(fmt.Sprintf("%v", comment.Id), 10, 64)
 	if err != nil {
 		log.Printf("could not convert to int64, %v", err)
 		return nil, fmt.Errorf("could not convert to int64, %v", err)
@@ -74,8 +75,8 @@ func UpdateCRComment(cr *CommentReporter, comment string) error {
 	prService := cr.PrService
 	err := prService.EditComment(prNumber, commentId, comment)
 	return err
-
 }
+
 func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 	prNumber := cr.PrNumber
 	prService := cr.PrService

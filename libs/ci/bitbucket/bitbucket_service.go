@@ -2,12 +2,13 @@ package bitbucket
 
 import (
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/caarlos0/env/v11"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"log"
-	"strings"
 )
 
 type BitbucketContext struct {

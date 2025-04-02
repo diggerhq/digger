@@ -73,6 +73,7 @@ func TestDynamoDbLock_Lock(t *testing.T) {
 		t.Fatalf("Expected true, got %v", locked)
 	}
 }
+
 func TestDynamoDbLock_GetLock(t *testing.T) {
 	// Create a mock DynamoDB client
 	client := mockDynamoDbClient{table: make(map[string]map[string]types.AttributeValue)}

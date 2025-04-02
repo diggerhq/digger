@@ -1,12 +1,12 @@
 package policy
 
 import (
-	"github.com/diggerhq/digger/libs/ci"
 	"testing"
+
+	"github.com/diggerhq/digger/libs/ci"
 )
 
-type OpaExamplePolicyProvider struct {
-}
+type OpaExamplePolicyProvider struct{}
 
 func (s *OpaExamplePolicyProvider) GetAccessPolicy(_ string, _ string) (string, error) {
 	return "package digger\n" +
@@ -45,8 +45,7 @@ func (s *OpaExamplePolicyProvider) GetOrganisation() string {
 	return "ORGANISATIONDIGGER"
 }
 
-type DiggerDefaultPolicyProvider struct {
-}
+type DiggerDefaultPolicyProvider struct{}
 
 func (s *DiggerDefaultPolicyProvider) GetAccessPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return DefaultAccessPolicy, nil
@@ -64,8 +63,7 @@ func (s *DiggerDefaultPolicyProvider) GetOrganisation() string {
 	return "ORGANISATIONDIGGER"
 }
 
-type DiggerExamplePolicyProvider struct {
-}
+type DiggerExamplePolicyProvider struct{}
 
 func (s *DiggerExamplePolicyProvider) GetAccessPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n" +
@@ -95,8 +93,7 @@ func (s *DiggerExamplePolicyProvider) GetOrganisation() string {
 	return "ORGANISATIONDIGGER"
 }
 
-type DiggerExamplePolicyProvider2 struct {
-}
+type DiggerExamplePolicyProvider2 struct{}
 
 func (s *DiggerExamplePolicyProvider2) GetAccessPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n" +
@@ -217,7 +214,7 @@ func TestDiggerAccessPolicyChecker_Check(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var p = &DiggerPolicyChecker{
+			p := &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
 			ciService := ci.MockPullRequestManager{Teams: []string{"engineering"}}
@@ -270,7 +267,7 @@ func TestDiggerPlanPolicyChecker_Check(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var p = &DiggerPolicyChecker{
+			p := &DiggerPolicyChecker{
 				PolicyProvider: tt.fields.PolicyProvider,
 			}
 			got, _, err := p.CheckPlanPolicy("", "", "", "", tt.planJsonOutput)

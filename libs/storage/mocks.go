@@ -1,7 +1,6 @@
 package storage
 
-type MockPlanStorage struct {
-}
+type MockPlanStorage struct{}
 
 func (t MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
 	return nil

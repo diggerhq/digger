@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"errors"
-	"github.com/samber/lo"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/samber/lo"
 
 	"github.com/diggerhq/digger/backend/utils"
 	"gorm.io/gorm"

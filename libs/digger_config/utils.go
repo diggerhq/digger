@@ -1,10 +1,11 @@
 package digger_config
 
 import (
-	"github.com/bmatcuk/doublestar/v4"
 	"log"
 	"path"
 	"path/filepath"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 func GetPatternsRelativeToRepo(projectPath string, patterns []string) ([]string, error) {
@@ -25,10 +26,10 @@ func NormalizeFileName(fileName string) string {
 
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
 	fileToMatch = NormalizeFileName(fileToMatch)
-	for i, _ := range includePatterns {
+	for i := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])
 	}
-	for i, _ := range excludePatterns {
+	for i := range excludePatterns {
 		excludePatterns[i] = NormalizeFileName(excludePatterns[i])
 	}
 

@@ -2,18 +2,19 @@ package integration
 
 import (
 	"context"
-	"github.com/diggerhq/digger/libs/ci/generic"
-	"github.com/diggerhq/digger/libs/execution"
-	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/locking/aws"
-	"github.com/diggerhq/digger/libs/storage"
 	"log"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/libs/comment_utils/summary"
+	"github.com/diggerhq/digger/libs/ci/generic"
+	"github.com/diggerhq/digger/libs/execution"
+	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/locking/aws"
+	"github.com/diggerhq/digger/libs/storage"
+
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
@@ -690,7 +691,6 @@ func TestUnLock(t *testing.T) {
 }
 
 func TestNonExistentGitHubEvent(t *testing.T) {
-
 	unknownEventContext := githubContextUnknownEventJson
 	_, err := models.GetGitHubContext(unknownEventContext)
 	println(err.Error())

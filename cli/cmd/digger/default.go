@@ -3,6 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"runtime/debug"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/cli/pkg/github"
@@ -13,15 +17,11 @@ import (
 	"github.com/diggerhq/digger/libs/policy"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
-	"log"
-	"os"
-	"runtime/debug"
 )
 
 var defaultCmd = &cobra.Command{
 	Use: "default",
 	Run: func(cmd *cobra.Command, args []string) {
-
 		specStr := os.Getenv("DIGGER_RUN_SPEC")
 		if specStr != "" {
 			var spec lib_spec.Spec
@@ -31,7 +31,7 @@ var defaultCmd = &cobra.Command{
 			}
 
 			var spec_err error
-			
+
 			spec_err = spec2.RunSpec(
 				spec,
 				lib_spec.VCSProviderBasic{},
@@ -51,7 +51,7 @@ var defaultCmd = &cobra.Command{
 			usage.ReportErrorAndExit(spec.VCS.Actor, "Successfully ran spec", 0)
 		}
 
-		var logLeader = "Unknown CI"
+		logLeader := "Unknown CI"
 		ci := digger.DetectCI()
 
 		switch ci {

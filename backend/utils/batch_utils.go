@@ -2,8 +2,9 @@ package utils
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
 	"log"
+
+	"github.com/diggerhq/digger/backend/models"
 )
 
 func PostCommentForBatch(batch *models.DiggerBatch, comment string, githubClientProvider GithubClientProvider) error {

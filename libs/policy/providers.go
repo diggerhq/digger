@@ -20,7 +20,8 @@ func (p PolicyCheckerProviderBasic) Get(hostname string, organisationName string
 				DiggerOrganisation: organisationName,
 				AuthToken:          authToken,
 				HttpClient:         http.DefaultClient,
-			}}
+			},
+		}
 	}
 	return policyChecker, nil
 }

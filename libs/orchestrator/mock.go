@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"fmt"
+
 	"github.com/diggerhq/digger/libs/ci"
 )
 

@@ -2,8 +2,12 @@ package atlantis
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
+	"sync"
 
 	"github.com/gruntwork-io/terragrunt/cli/commands/terraform"
 	"github.com/gruntwork-io/terragrunt/config"
@@ -14,11 +18,6 @@ import (
 	"github.com/hashicorp/go-getter"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/singleflight"
-
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
 )
 
 // Parse env vars into a map
@@ -687,7 +686,6 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 
 			return nil
 		})
-
 		if err != nil {
 			log.Fatal(err)
 		}

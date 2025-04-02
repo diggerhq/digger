@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/diggerhq/digger/backend/models"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
 	"github.com/google/uuid"
-	"log"
-	"os"
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
@@ -48,13 +49,11 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.Dig
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
 	}
 	graphWithImpactedProjectsOnly, err := ImpactedProjectsOnlyGraph(projectsGraph, projectMap)
-
 	if err != nil {
 		return nil, nil, err
 	}
 
 	predecessorMap, err := graphWithImpactedProjectsOnly.PredecessorMap()
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -101,7 +100,6 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.Dig
 		}
 	}
 	err = TraverseGraphVisitAllParentsFirst(graphWithImpactedProjectsOnly, visit)
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -178,7 +176,7 @@ func CollapsedGraph(impactedParent *string, currentNode string, adjMap map[strin
 			return err
 		}
 		// process all children nodes
-		for child, _ := range adjMap[currentNode] {
+		for child := range adjMap[currentNode] {
 			err := CollapsedGraph(&currentNode, child, adjMap, g, impactedProjects)
 			if err != nil {
 				return err
@@ -193,7 +191,7 @@ func CollapsedGraph(impactedParent *string, currentNode string, adjMap map[strin
 		}
 	} else {
 		// if current wasn't impacted, see children of current node and set currently known parent
-		for child, _ := range adjMap[currentNode] {
+		for child := range adjMap[currentNode] {
 			err := CollapsedGraph(impactedParent, child, adjMap, g, impactedProjects)
 			if err != nil {
 				return err

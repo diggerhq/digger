@@ -17,7 +17,7 @@ func ArchiveGitRepo(sourcePath string) (string, error) {
 		return "", fmt.Errorf("failed to create temp dir: %v", err)
 	}
 	// Create the temp directory
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
+	if err := os.MkdirAll(tempDir, 0o755); err != nil {
 		return "", fmt.Errorf("failed to create temp directory: %w", err)
 	}
 

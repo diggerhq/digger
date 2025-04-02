@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/dchest/uniuri"
 	"github.com/diggerhq/digger/backend/queries"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -12,9 +16,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"time"
 )
 
 func (db *Database) GetProjectsFromContext(c *gin.Context, orgIdKey string) ([]Project, bool) {
@@ -33,7 +34,6 @@ func (db *Database) GetProjectsFromContext(c *gin.Context, orgIdKey string) ([]P
 		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
 		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("projects.organisation_id = ?", loggedInOrganisationId).Find(&projects).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, false
@@ -58,7 +58,6 @@ func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]Repo
 	err := db.GormDB.Preload("Organisation").
 		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
 		Where("repos.organisation_id = ?", loggedInOrganisationId).Find(&repos).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, false
@@ -85,7 +84,6 @@ func (db *Database) GetPoliciesFromContext(c *gin.Context, orgIdKey string) ([]P
 		Joins("LEFT JOIN repos ON projects.repo_id = repos.id").
 		Joins("LEFT JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("projects.organisation_id = ?", loggedInOrganisationId).Find(&policies).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, false
@@ -103,7 +101,6 @@ func (db *Database) GetProjectRunsForOrg(orgId int) ([]ProjectRun, error) {
 		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
 		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("projects.organisation_id = ?", orgId).Order("created_at desc").Limit(100).Find(&runs).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, fmt.Errorf("unknown error occurred while fetching database, %v\n", err)
@@ -128,7 +125,6 @@ func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) (
 		return nil, false
 	}
 	return runs, true
-
 }
 
 func (db *Database) GetProjectByRunId(c *gin.Context, runId uint, orgIdKey string) (*ProjectRun, bool) {
@@ -147,7 +143,6 @@ func (db *Database) GetProjectByRunId(c *gin.Context, runId uint, orgIdKey strin
 		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("projects.organisation_id = ?", loggedInOrganisationId).
 		Where("project_runs.id = ?", runId).First(&projectRun).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, false
@@ -171,7 +166,6 @@ func (db *Database) GetProjectByProjectId(c *gin.Context, projectId uint, orgIdK
 		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("projects.organisation_id = ?", loggedInOrganisationId).
 		Where("projects.id = ?", projectId).First(&project).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, false
@@ -187,7 +181,6 @@ func (db *Database) GetProject(projectId uint) (*Project, error) {
 	err := db.GormDB.Preload("Organisation").Preload("Repo").
 		Where("id = ?", projectId).
 		First(&project).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, err
@@ -208,7 +201,6 @@ func (db *Database) GetProjectByName(orgId any, repo *Repo, name string) (*Proje
 		Where("projects.organisation_id = ?", orgId).
 		Where("repos.id = ?", repo.ID).
 		Where("projects.name = ?", name).First(&project).Error
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -230,7 +222,6 @@ func (db *Database) GetProjectByRepo(orgId any, repo *Repo) ([]Project, error) {
 		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("projects.organisation_id = ?", orgId).
 		Where("repos.id = ?", repo.ID).Find(&projects).Error
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -258,7 +249,6 @@ func (db *Database) GetPolicyByPolicyId(c *gin.Context, policyId uint, orgIdKey 
 		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("projects.organisation_id = ?", loggedInOrganisationId).
 		Where("policies.id = ?", policyId).First(&policy).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, false
@@ -280,7 +270,6 @@ func (db *Database) GetDefaultRepo(c *gin.Context, orgIdKey string) (*Repo, bool
 	err := db.GormDB.Preload("Organisation").
 		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
 		Where("organisations.id = ?", loggedInOrganisationId).First(&repo).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, false
@@ -297,7 +286,6 @@ func (db *Database) GetRepo(orgIdKey any, repoName string) (*Repo, error) {
 	err := db.GormDB.Preload("Organisation").
 		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
 		Where("organisations.id = ? AND repos.name=?", orgIdKey, repoName).First(&repo).Error
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("repo not found %v", repoName)
@@ -315,7 +303,6 @@ func (db *Database) GetRepoById(orgIdKey any, repoId any) (*Repo, error) {
 	err := db.GormDB.Preload("Organisation").
 		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
 		Where("organisations.id = ? AND repos.ID=?", orgIdKey, repoId).First(&repo).Error
-
 	if err != nil {
 		log.Printf("Failed to find digger repo for orgId: %v, and repoId: %v, error: %v\n", orgIdKey, repoId, err)
 		return nil, err
@@ -325,7 +312,6 @@ func (db *Database) GetRepoById(orgIdKey any, repoId any) (*Repo, error) {
 
 // GithubRepoAdded handles github drift that github repo has been added to the app installation
 func (db *Database) GithubRepoAdded(installationId int64, appId int64, login string, accountId int64, repoFullName string) (*GithubAppInstallation, error) {
-
 	// check if item exist already
 	item := &GithubAppInstallation{}
 	result := db.GormDB.Where("github_installation_id = ? AND repo=? AND github_app_id=?", installationId, repoFullName, appId).First(item)
@@ -682,7 +668,6 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 		batch.Status = scheduler.BatchJobSucceeded
 	}
 	return nil
-
 }
 
 func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string) (*DiggerJob, error) {
@@ -699,8 +684,10 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	}
 
 	workflowUrl := "#"
-	job := &DiggerJob{DiggerJobID: jobId, Status: scheduler.DiggerJobCreated,
-		BatchID: &batchIdStr, SerializedJobSpec: serializedJob, DiggerJobSummary: *summary, WorkflowRunUrl: &workflowUrl, WorkflowFile: workflowFile}
+	job := &DiggerJob{
+		DiggerJobID: jobId, Status: scheduler.DiggerJobCreated,
+		BatchID: &batchIdStr, SerializedJobSpec: serializedJob, DiggerJobSummary: *summary, WorkflowRunUrl: &workflowUrl, WorkflowFile: workflowFile,
+	}
 	result = db.GormDB.Save(job)
 	if result.Error != nil {
 		return nil, result.Error
@@ -715,7 +702,6 @@ func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([
 
 	err := db.GormDB.Preload("PlanStage").Preload("ApplyStage").
 		Where("project_name = ? AND repo_id=  ?", projectName, repoId).Order("created_at desc").Find(&runs).Error
-
 	if err != nil {
 		log.Printf("Unknown error occurred while fetching database, %v\n", err)
 		return nil, err
@@ -1157,7 +1143,6 @@ func (db *Database) GetToken(tenantId any) (*Token, error) {
 }
 
 func (db *Database) CreateDiggerJobToken(organisationId uint) (*JobToken, error) {
-
 	// create a digger job token
 	// prefixing token to make easier to retire this type of tokens later
 	token := "cli:" + uuid.New().String()
@@ -1196,7 +1181,6 @@ func (db *Database) DeleteJobTokenArtefacts(jobTokenId uint) error {
 	}
 	log.Printf("DeleteJobTokenArtefacts %v has been deleted successfully\n", jobTokenId)
 	return nil
-
 }
 
 func (db *Database) GetJobArtefact(jobTokenId uint) (*JobArtefact, error) {
@@ -1277,7 +1261,6 @@ func (db *Database) UpdateRepoDiggerConfig(orgId any, config configuration.Digge
 		}
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("error while updating projects from config: %v", err)
 	}
@@ -1351,7 +1334,6 @@ func (db *Database) GetRepoCache(orgId uint, repoFullName string) (*RepoCache, e
 
 	err := db.GormDB.
 		Where("org_id = ? AND repo_full_name = ?", orgId, repoFullName).First(&repoCache).Error
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("repo cache not found %v", err)

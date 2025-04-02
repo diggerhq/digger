@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"github.com/samber/lo"
 	"log"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 func contains(slice []string, item string) bool {
@@ -51,5 +52,4 @@ func IsInRepoAllowList(repoUrl string) bool {
 	exists := lo.Contains(allowedReposUrls, repoName)
 
 	return exists
-
 }

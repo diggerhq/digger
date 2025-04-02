@@ -2,14 +2,15 @@ package utils
 
 import (
 	"fmt"
-	orchestrator_bitbucket "github.com/diggerhq/digger/libs/ci/bitbucket"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/dominikbraun/graph"
-	"github.com/ktrysmt/go-bitbucket"
 	"log"
 	"net/http"
 	"os"
 	"path"
+
+	orchestrator_bitbucket "github.com/diggerhq/digger/libs/ci/bitbucket"
+	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/dominikbraun/graph"
+	"github.com/ktrysmt/go-bitbucket"
 )
 
 type BitbucketProvider interface {
@@ -24,7 +25,7 @@ func (b BitbucketClientProvider) NewClient(token string) (*bitbucket.Client, err
 }
 
 func GetBitbucketService(bb BitbucketProvider, token string, repoOwner string, repoName string, prNumber int) (*orchestrator_bitbucket.BitbucketAPI, error) {
-	//token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
+	// token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
 
 	//client, err := bb.NewClient(token)
 	//if err != nil {

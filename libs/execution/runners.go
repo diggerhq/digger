@@ -13,8 +13,7 @@ type CommandRun interface {
 	Run(workingDir string, shell string, commands []string, envs map[string]string) (string, string, error)
 }
 
-type CommandRunner struct {
-}
+type CommandRunner struct{}
 
 func (c CommandRunner) Run(workingDir string, shell string, commands []string, envs map[string]string) (string, string, error) {
 	var args []string
@@ -52,7 +51,6 @@ func (c CommandRunner) Run(workingDir string, shell string, commands []string, e
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
 	err = cmd.Run()
-
 	if err != nil {
 		return stdout.String(), stderr.String(), fmt.Errorf("error: %v", err)
 	}

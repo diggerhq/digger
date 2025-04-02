@@ -2,8 +2,9 @@ package github
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
 	"strconv"
+
+	"github.com/diggerhq/digger/libs/ci"
 )
 
 type MockCiService struct {
@@ -21,8 +22,8 @@ func (t MockCiService) GetApprovals(prNumber int) ([]string, error) {
 func (t MockCiService) GetChangedFiles(prNumber int) ([]string, error) {
 	return nil, nil
 }
-func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 
+func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	latestId := 0
 
 	for _, comments := range t.CommentsPerPr {
@@ -109,6 +110,6 @@ func (t MockCiService) GetBranchName(prNumber int) (string, string, error) {
 }
 
 func (svc MockCiService) SetOutput(prNumber int, key string, value string) error {
-	//TODO implement me
+	// TODO implement me
 	return nil
 }

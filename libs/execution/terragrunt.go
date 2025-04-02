@@ -15,7 +15,6 @@ type Terragrunt struct {
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
-
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("init", true, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)

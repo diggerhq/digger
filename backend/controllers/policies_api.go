@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"errors"
+	"log"
+	"net/http"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
 )
 
 func PolicyOrgGetApi(c *gin.Context) {
@@ -93,7 +94,6 @@ func PolicyOrgUpsertApi(c *gin.Context) {
 			Type:           policyType,
 			Policy:         policyData,
 		}).Error
-
 		if err != nil {
 			log.Printf("Error creating policy: %v", err)
 			c.String(http.StatusInternalServerError, "Error creating policy")
@@ -110,5 +110,4 @@ func PolicyOrgUpsertApi(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
-
 }

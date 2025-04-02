@@ -1,4 +1,3 @@
----
 name: Cli tests
 
 "on":
@@ -34,10 +33,8 @@ jobs:
         run: |
           go build -v ./cmd/digger
         working-directory: cli
-        
+
       - name: Test
         shell: bash
-        run: |
-          go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
-          go test -json ./... | gotestfmt 
+        run: "go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest\ngo test -json ./... | gotestfmt \n"
         working-directory: cli

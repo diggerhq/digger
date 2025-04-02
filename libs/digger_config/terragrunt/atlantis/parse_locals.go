@@ -5,6 +5,8 @@ package atlantis
 // parses the `locals` blocks and evaluates their contents.
 
 import (
+	"path/filepath"
+
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -12,8 +14,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/zclconf/go-cty/cty"
-
-	"path/filepath"
 )
 
 // ResolvedLocals are the parsed result of local values this module cares about

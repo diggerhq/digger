@@ -69,7 +69,6 @@ func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, artifactName s
 func (psg *PlanStorageGcp) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	err := obj.Delete(psg.Context)
-
 	if err != nil {
 		return fmt.Errorf("unable to delete file '%v' from bucket: %v", storedPlanFilePath, err)
 	}

@@ -48,6 +48,7 @@ func (m *emulateS3Client) HeadObject(ctx context.Context, params *s3.HeadObjectI
 	}
 	return nil, &types.NotFound{}
 }
+
 func (m *emulateS3Client) PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
 	buf, err := io.ReadAll(params.Body)
 	if err != nil {
@@ -66,6 +67,7 @@ func (m *emulateS3Client) GetObject(ctx context.Context, params *s3.GetObjectInp
 	}
 	return nil, &types.NotFound{}
 }
+
 func (m *emulateS3Client) DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error) {
 	delete(m.objects, *params.Key)
 	return &s3.DeleteObjectOutput{}, nil
@@ -92,7 +94,6 @@ func TestPlanStorageAWS_PlanExists(t *testing.T) {
 }
 
 func TestPlanStorageAWS_E2E(t *testing.T) {
-
 	client := &emulateS3Client{
 		objects: make(map[string][]byte),
 	}

@@ -11,12 +11,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/segment"
 	pprof_gin "github.com/gin-contrib/pprof"
-
-	"time"
 
 	"github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/middleware"
@@ -36,7 +35,7 @@ func setupProfiler(r *gin.Engine) {
 	pprof_gin.Register(r)
 
 	// Create profiles directory if it doesn't exist
-	if err := os.MkdirAll("/tmp/profiles", 0755); err != nil {
+	if err := os.MkdirAll("/tmp/profiles", 0o755); err != nil {
 		log.Fatalf("Failed to create profiles directory: %v", err)
 	}
 
@@ -111,7 +110,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		log.Printf("Sentry initialization failed: %v\n", err)
 	}
 
-	//database migrations
+	// database migrations
 	models.ConnectDatabase()
 
 	r := gin.Default()

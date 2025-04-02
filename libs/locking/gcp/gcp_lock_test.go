@@ -1,13 +1,14 @@
 package gcp
 
 import (
-	"cloud.google.com/go/storage"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
+
+	"cloud.google.com/go/storage"
+	"github.com/stretchr/testify/assert"
 )
 
 func randomString(length int) string {
@@ -117,7 +118,7 @@ func TestGoogleStorageLock_UnlockLockedWithDifferentId(t *testing.T) {
 	bucketName := "digger-lock-test"
 	fileName := "digger-lock-" + randomString(16)
 	transactionId := 100
-	//anotherTransactionId := 200
+	// anotherTransactionId := 200
 
 	bucket := client.Bucket(bucketName)
 	lock := GoogleStorageLock{client, bucket, ctx}

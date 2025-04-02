@@ -2,16 +2,16 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/gin-gonic/gin"
 )
 
 func HttpBasicWebAuth() gin.HandlerFunc {
-
 	return func(c *gin.Context) {
 		log.Printf("Restricting access")
 		username := os.Getenv("HTTP_BASIC_AUTH_USERNAME")
