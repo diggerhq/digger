@@ -1,9 +1,10 @@
 package segment
 
 import (
-	"github.com/segmentio/analytics-go/v3"
-	"log"
+	"log/slog"
 	"os"
+
+	"github.com/segmentio/analytics-go/v3"
 )
 
 var client analytics.Client = nil
@@ -11,7 +12,7 @@ var client analytics.Client = nil
 func GetClient() analytics.Client {
 	segmentApiKey := os.Getenv("SEGMENT_API_KEY")
 	if segmentApiKey == "" {
-		log.Printf("Not initializing segment because SEGMENT_API_KEY is missing")
+		slog.Debug("Not initializing segment because SEGMENT_API_KEY is missing")
 		return nil
 	}
 	if client == nil {
@@ -31,7 +32,7 @@ func IdentifyClient(userId string, userFullName string, username string, email s
 	if client == nil {
 		return
 	}
-	log.Printf("Debug: Identifying client for %v", userId)
+	slog.Debug("Identifying client", "userId", userId)
 	client.Enqueue(analytics.Identify{
 		UserId: userId,
 		Traits: analytics.NewTraits().
@@ -48,7 +49,7 @@ func Track(userId string, action string) {
 	if client == nil {
 		return
 	}
-	log.Printf("Debug: Tracking client for %v", userId)
+	slog.Debug("Tracking client action", "userId", userId, "action", action)
 	client.Enqueue(analytics.Track{
 		Event:      action,
 		UserId:     userId,

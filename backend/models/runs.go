@@ -1,10 +1,11 @@
 package models
 
 import (
+	"log/slog"
+	"time"
+
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"gorm.io/gorm"
-	"log"
-	"time"
 )
 
 type DiggerRunStatus string
@@ -79,13 +80,13 @@ type SerializedRunStage struct {
 func (r *DiggerRun) MapToJsonStruct() (interface{}, error) {
 	planStage, err := r.PlanStage.MapToJsonStruct()
 	if err != nil {
-		log.Printf("error serializing run: %v", err)
+		slog.Error("Error serializing run plan stage", "runId", r.ID, "error", err)
 		return nil, err
 	}
 
 	applyStage, err := r.ApplyStage.MapToJsonStruct()
 	if err != nil {
-		log.Printf("error serializing run: %v", err)
+		slog.Error("Error serializing run apply stage", "runId", r.ID, "error", err)
 		return nil, err
 	}
 
@@ -111,17 +112,18 @@ func (r *DiggerRun) MapToJsonStruct() (interface{}, error) {
 		ApprovalDate:          r.ApprovalDate.String(),
 	}
 
+	slog.Debug("Serialized run", "runId", r.ID, "status", r.Status, "type", r.RunType)
 	return x, nil
 }
 
 func (r DiggerRunStage) MapToJsonStruct() (*SerializedRunStage, error) {
 	job, err := DB.GetDiggerJobFromRunStage(r)
 	if err != nil {
-		log.Printf("Could not retrieve job from run")
+		slog.Error("Could not retrieve job from run stage", "runStageId", r.ID, "error", err)
 		return nil, err
 	}
 
-	return &SerializedRunStage{
+	serialized := &SerializedRunStage{
 		DiggerJobId: job.DiggerJobID,
 		Status:      job.Status,
 		//ProjectName:      r.Run.ProjectName,
@@ -130,5 +132,8 @@ func (r DiggerRunStage) MapToJsonStruct() (*SerializedRunStage, error) {
 		ResourcesUpdated:      job.DiggerJobSummary.ResourcesUpdated,
 		ResourcesDeleted:      job.DiggerJobSummary.ResourcesDeleted,
 		LastActivityTimeStamp: r.UpdatedAt.String(),
-	}, nil
+	}
+
+	slog.Debug("Serialized run stage", "runStageId", r.ID, "jobId", job.DiggerJobID, "status", job.Status)
+	return serialized, nil
 }

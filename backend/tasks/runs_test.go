@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
@@ -10,16 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"log"
-	"os"
-	"strings"
-	"testing"
 )
-
-func init() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-}
 
 type MockCiBackend struct {
 }
@@ -33,8 +28,6 @@ func (m MockCiBackend) GetWorkflowUrl(spec spec.Spec) (string, error) {
 }
 
 func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
-	log.Println("setup suite")
-
 	// database file name
 	dbName := "database_tasks_test.db"
 
@@ -42,14 +35,14 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	e := os.Remove(dbName)
 	if e != nil {
 		if !strings.Contains(e.Error(), "no such file or directory") {
-			log.Fatal(e)
+			panic(e)
 		}
 	}
 
 	// open and create a new database
 	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// migrate tables
@@ -57,7 +50,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.VCSConnection{}, &models.GithubAppInstallationLink{},
 		&models.GithubDiggerJobLink{}, &models.DiggerJob{}, &models.DiggerJobParentLink{}, &models.DiggerRun{}, &models.DiggerRunQueueItem{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	database := &models.Database{GormDB: gdb}
@@ -69,30 +62,29 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	orgName := "testOrg"
 	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create digger repo
 	repoName := "test repo"
 	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create test project
 	projectName := "test project"
 	_, err = database.CreateProject(projectName, org, repo, false, false)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	models.DB = database
 	// Return a function to teardown the test
 	return func(tb testing.TB) {
-		log.Println("teardown suite")
 		err = os.Remove(dbName)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}, database
 }

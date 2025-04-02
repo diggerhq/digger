@@ -2,14 +2,15 @@ package controllers
 
 import (
 	"errors"
+	"log/slog"
+	"net/http"
+	"strconv"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"strconv"
 )
 
 func GetJobsForRepoApi(c *gin.Context) {
@@ -18,7 +19,7 @@ func GetJobsForRepoApi(c *gin.Context) {
 	repoId := c.Param("repo_id")
 
 	if repoId == "" {
-		log.Printf("missing parameter: repo_full_name")
+		slog.Warn("Missing parameter", "parameter", "repo_full_name")
 		c.String(http.StatusBadRequest, "missing parameter: repo_full_name")
 		return
 	}
@@ -27,10 +28,10 @@ func GetJobsForRepoApi(c *gin.Context) {
 	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Printf("could not find organisation: %v err: %v", organisationId, err)
+			slog.Info("Organisation not found", "organisationId", organisationId, "error", err)
 			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
 		} else {
-			log.Printf("could not fetch organisation: %v err: %v", organisationId, err)
+			slog.Error("Could not fetch organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
 			c.String(http.StatusNotFound, "Could not fetch organisation: "+organisationId)
 		}
 		return
@@ -38,14 +39,14 @@ func GetJobsForRepoApi(c *gin.Context) {
 
 	repo, err := models.DB.GetRepoById(org.ID, repoId)
 	if err != nil {
-		log.Printf("could not fetch repo details %v", err)
+		slog.Error("Could not fetch repo details", "repoId", repoId, "orgId", org.ID, "error", err)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching jobs from database")
 		return
 	}
 
 	jobsRes, err := models.DB.GetJobsByRepoName(org.ID, repo.RepoFullName)
 	if err != nil {
-		log.Printf("could not fetch job details")
+		slog.Error("Could not fetch job details", "repoFullName", repo.RepoFullName, "orgId", org.ID, "error", err)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching jobs from database")
 		return
 	}
@@ -54,12 +55,18 @@ func GetJobsForRepoApi(c *gin.Context) {
 	for i, j := range jobsRes {
 		statusInt, err := strconv.Atoi(j.Status)
 		if err != nil {
-			log.Printf("could not convert status to string: job id: %v status: %v", j.ID, j.Status)
+			slog.Error("Could not convert status to string", "jobId", j.ID, "status", j.Status, "error", err)
 			continue
 		}
 		statusI := orchestrator_scheduler.DiggerJobStatus(statusInt)
 		jobsRes[i].Status = statusI.ToString()
 	}
+
+	slog.Info("Successfully fetched jobs for repo",
+		"repoId", repoId,
+		"repoFullName", repo.RepoFullName,
+		"orgId", org.ID,
+		"jobCount", len(jobsRes))
 
 	response := make(map[string]interface{})
 	response["repo"] = repo

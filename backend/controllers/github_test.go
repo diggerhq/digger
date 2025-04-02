@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
-	orchestrator "github.com/diggerhq/digger/libs/scheduler"
-	"log"
 	"os"
 	"strings"
 	"testing"
+
+	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
@@ -568,8 +568,6 @@ var installationCreatedEvent = `
 }`
 
 func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
-	log.Println("setup suite")
-
 	// database file name
 	dbName := "database_test.db"
 
@@ -577,14 +575,14 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	e := os.Remove(dbName)
 	if e != nil {
 		if !strings.Contains(e.Error(), "no such file or directory") {
-			log.Fatal(e)
+			panic(e)
 		}
 	}
 
 	// open and create a new database
 	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// migrate tables
@@ -592,7 +590,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.VCSConnection{}, &models.GithubAppInstallationLink{},
 		&models.GithubDiggerJobLink{}, &models.DiggerJob{}, &models.DiggerJobParentLink{}, &models.JobToken{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	database := &models.Database{GormDB: gdb}
@@ -604,34 +602,34 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	orgName := "testOrg"
 	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create digger repo
 	repoName := "test repo"
 	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create test project
 	projectName := "test project"
 	_, err = database.CreateProject(projectName, org, repo, false, false)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create installation for issueComment payload
 	var payload github.IssueCommentEvent
 	err = json.Unmarshal([]byte(issueCommentPayload), &payload)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	installationId := *payload.Installation.ID
 
 	_, err = database.CreateGithubInstallationLink(org, installationId)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	githubAppId := int64(1)
@@ -640,7 +638,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	repoFullName := "diggerhq/github-job-scheduler"
 	_, err = database.CreateGithubAppInstallation(installationId, githubAppId, login, accountId, repoFullName)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	diggerConfig := `projects:
@@ -656,24 +654,19 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	diggerRepoName := strings.Replace(repoFullName, "/", "-", 1)
 	_, err = database.CreateRepo(diggerRepoName, "", "", "", "", org, diggerConfig)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	models.DB = database
 	// Return a function to teardown the test
 	return func(tb testing.TB) {
-		log.Println("teardown suite")
 		err = os.Remove(dbName)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}, database
 }
 
-func init() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-}
 func TestGithubHandleIssueCommentEvent(t *testing.T) {
 	t.Skip("!!TODO: Fix this failing test and unskip it")
 	teardownSuite, _ := setupSuite(t)

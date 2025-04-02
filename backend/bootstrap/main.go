@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,7 +14,9 @@ import (
 
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/segment"
+	"github.com/diggerhq/digger/backend/utils"
 	pprof_gin "github.com/gin-contrib/pprof"
+	sloggin "github.com/samber/slog-gin"
 
 	"time"
 
@@ -37,7 +39,8 @@ func setupProfiler(r *gin.Engine) {
 
 	// Create profiles directory if it doesn't exist
 	if err := os.MkdirAll("/tmp/profiles", 0755); err != nil {
-		log.Fatalf("Failed to create profiles directory: %v", err)
+		slog.Error("Failed to create profiles directory", "error", err)
+		panic(err)
 	}
 
 	// Start periodic profiling goroutine
@@ -59,12 +62,12 @@ func periodicProfiling() {
 			memProfilePath := filepath.Join("/tmp/profiles", fmt.Sprintf("memory-%s.pprof", timestamp))
 			f, err := os.Create(memProfilePath)
 			if err != nil {
-				log.Printf("Failed to create memory profile: %v", err)
+				slog.Error("Failed to create memory profile", "error", err)
 				continue
 			}
 
 			if err := pprof.WriteHeapProfile(f); err != nil {
-				log.Printf("Failed to write memory profile: %v", err)
+				slog.Error("Failed to write memory profile", "error", err)
 			}
 			f.Close()
 
@@ -77,7 +80,7 @@ func periodicProfiling() {
 func cleanupOldProfiles(dir string, keep int) {
 	files, err := filepath.Glob(filepath.Join(dir, "memory-*.pprof"))
 	if err != nil {
-		log.Printf("Failed to list profile files: %v", err)
+		slog.Error("Failed to list profile files", "error", err)
 		return
 	}
 
@@ -88,7 +91,7 @@ func cleanupOldProfiles(dir string, keep int) {
 	// Sort files by name (which includes timestamp)
 	for i := 0; i < len(files)-keep; i++ {
 		if err := os.Remove(files[i]); err != nil {
-			log.Printf("Failed to remove old profile %s: %v", files[i], err)
+			slog.Error("Failed to remove old profile", "file", files[i], "error", err)
 		}
 	}
 }
@@ -107,14 +110,17 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		TracesSampleRate: 0.1,
 		Release:          "api@" + Version,
 		Debug:            true,
+		DebugWriter:      utils.NewSentrySlogWriter(slog.Default().WithGroup("sentry")),
 	}); err != nil {
-		log.Printf("Sentry initialization failed: %v\n", err)
+		slog.Error("Sentry initialization failed", "error", err)
 	}
 
 	//database migrations
 	models.ConnectDatabase()
 
 	r := gin.Default()
+
+	r.Use(sloggin.New(slog.Default().WithGroup("http")))
 
 	if _, exists := os.LookupEnv("DIGGER_PPROF_DEBUG_ENABLED"); exists {
 		setupProfiler(r)
@@ -241,7 +247,9 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 }
 
 func initLogging() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	log.Println("Initialized the logger successfully")
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
 }

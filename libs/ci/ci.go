@@ -15,7 +15,7 @@ type PullRequestService interface {
 	// SetStatus set status of specified pull/merge request, status could be: "pending", "failure", "success"
 	SetStatus(prNumber int, status string, statusContext string) error
 	GetCombinedPullRequestStatus(prNumber int) (string, error)
-	MergePullRequest(prNumber int) error
+	MergePullRequest(prNumber int, mergeStrategy string) error
 	// IsMergeable is still open and ready to be merged
 	IsMergeable(prNumber int) (bool, error)
 	// IsMerged merged and closed

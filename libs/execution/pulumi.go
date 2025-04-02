@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -64,8 +64,10 @@ func (pl Pulumi) Destroy(params []string, envs map[string]string) (string, strin
 }
 
 func (pl Pulumi) selectStack() error {
+	slog.Debug("Selecting Pulumi stack", "stack", pl.Stack)
 	_, _, _, err := pl.runPululmiCommand("stack", true, make(map[string]string, 0), "select", pl.Stack)
 	if err != nil {
+		slog.Error("Failed to select Pulumi stack", "stack", pl.Stack, "error", err)
 		return err
 	}
 	return nil
@@ -95,7 +97,13 @@ func (pl Pulumi) runPululmiCommand(command string, printOutputToStdout bool, env
 	}
 
 	cmd := exec.Command("pulumi", expandedArgs...)
-	log.Printf("Running command: pulumi %v", expandedArgs)
+	slog.Info("Running Pulumi command",
+		slog.Group("command",
+			"binary", "pulumi",
+			"args", expandedArgs,
+			"workingDir", pl.WorkingDir,
+		),
+	)
 	cmd.Dir = pl.WorkingDir
 
 	env := os.Environ()
@@ -110,8 +118,14 @@ func (pl Pulumi) runPululmiCommand(command string, printOutputToStdout bool, env
 
 	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
 	if err != nil && cmd.ProcessState.ExitCode() != 2 {
-		log.Println("pulumi command error:", err)
-		log.Printf("stdout %v | stderr %v", stdout.String(), stderr.String())
+		slog.Error("Pulumi command failed",
+			"command", command,
+			"args", expandedArgs,
+			"exitCode", cmd.ProcessState.ExitCode(),
+			"error", err,
+			"stdout", stdout.String(),
+			"stderr", stderr.String(),
+		)
 	}
 
 	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err

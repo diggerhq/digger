@@ -13,6 +13,7 @@ type DiggerConfigYaml struct {
 	PrLocks                    *bool                        `yaml:"pr_locks"`
 	Projects                   []*ProjectYaml               `yaml:"projects"`
 	AutoMerge                  *bool                        `yaml:"auto_merge"`
+	AutoMergeStrategy          *string                      `yaml:"auto_merge_strategy"`
 	CommentRenderMode          *string                      `yaml:"comment_render_mode"`
 	Workflows                  map[string]*WorkflowYaml     `yaml:"workflows"`
 	Telemetry                  *bool                        `yaml:"telemetry,omitempty"`

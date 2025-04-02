@@ -1,12 +1,13 @@
 package models
 
 import (
+	"log/slog"
+	"os"
+
+	slogGorm "github.com/orandin/slog-gorm"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	"log"
-	"os"
 )
 
 type Database struct {
@@ -19,12 +20,11 @@ var DEFAULT_ORG_NAME = "digger"
 var DB *Database
 
 func ConnectDatabase() {
-
 	database, err := gorm.Open(postgres.Open(os.Getenv("DATABASE_URL")), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: slogGorm.New(),
 	})
-
 	if err != nil {
+		slog.Error("Failed to connect to database", "error", err)
 		panic("Failed to connect to database!")
 	}
 
@@ -33,8 +33,10 @@ func ConnectDatabase() {
 	// data and fixtures added
 	orgNumberOne, err := DB.GetOrganisation(DEFAULT_ORG_NAME)
 	if orgNumberOne == nil {
-		log.Print("No default found, creating default organisation")
-		DB.CreateOrganisation("digger", "", DEFAULT_ORG_NAME)
+		slog.Info("No default organization found, creating default organisation", "name", DEFAULT_ORG_NAME)
+		_, err := DB.CreateOrganisation("digger", "", DEFAULT_ORG_NAME)
+		if err != nil {
+			slog.Error("Failed to create default organization", "error", err)
+		}
 	}
-
 }

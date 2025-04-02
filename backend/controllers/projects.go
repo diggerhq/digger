@@ -4,6 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"runtime/debug"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
@@ -15,12 +23,6 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func ListProjects(c *gin.Context) {
@@ -30,8 +32,8 @@ func ListProjects(c *gin.Context) {
 func FindProjectsForRepo(c *gin.Context) {
 	repo := c.Param("repo")
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
-
 	if !exists {
+		slog.Warn("Organisation ID not found in context", "repo", repo)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
@@ -43,9 +45,20 @@ func FindProjectsForRepo(c *gin.Context) {
 		Joins("LEFT JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("repos.name = ? AND projects.organisation_id = ?", repo, orgId).Find(&projects).Error
 	if err != nil {
+		slog.Error("Error fetching projects for repo",
+			"repo", repo,
+			"orgId", orgId,
+			"error", err,
+		)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
 		return
 	}
+
+	slog.Info("Found projects for repository",
+		"repo", repo,
+		"orgId", orgId,
+		"projectCount", len(projects),
+	)
 
 	response := make([]interface{}, 0)
 
@@ -55,12 +68,15 @@ func FindProjectsForRepo(c *gin.Context) {
 	}
 
 	if err != nil {
+		slog.Error("Error marshalling response",
+			"repo", repo,
+			"error", err,
+		)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while marshalling response")
 		return
 	}
 
 	c.JSON(http.StatusOK, response)
-
 }
 
 func FindProjectsForOrg(c *gin.Context) {
@@ -69,26 +85,47 @@ func FindProjectsForOrg(c *gin.Context) {
 
 	if requestedOrganisation == "" {
 		requestedOrganisation = fmt.Sprintf("%v", loggedInOrganisation)
+		slog.Debug("Using logged in organisation as requested organisation",
+			"orgId", requestedOrganisation,
+		)
 	}
 
 	if !exists {
+		slog.Warn("Organisation ID not found in context",
+			"requestedOrganisation", requestedOrganisation,
+		)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
+
+	slog.Debug("Finding projects for organisation",
+		"requestedOrganisation", requestedOrganisation,
+		"loggedInOrganisation", loggedInOrganisation,
+	)
 
 	var org models.Organisation
 	err := models.DB.GormDB.Where("id = ?", requestedOrganisation).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found",
+				"orgId", requestedOrganisation,
+			)
 			c.String(http.StatusNotFound, "Could not find organisation: "+requestedOrganisation)
 		} else {
+			slog.Error("Error fetching organisation",
+				"orgId", requestedOrganisation,
+				"error", err,
+			)
 			c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
 		}
 		return
 	}
 
 	if org.ID != loggedInOrganisation {
-		log.Printf("Organisation ID %v does not match logged in organisation ID %v", org.ID, loggedInOrganisation)
+		slog.Warn("Unauthorized access attempt to organisation's projects",
+			"requestedOrgId", org.ID,
+			"loggedInOrgId", loggedInOrganisation,
+		)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
@@ -105,9 +142,18 @@ func FindProjectsForOrg(c *gin.Context) {
 		Find(&projects).Error
 
 	if err != nil {
+		slog.Error("Error fetching projects for organisation",
+			"orgId", org.ID,
+			"error", err,
+		)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
 		return
 	}
+
+	slog.Info("Found projects for organisation",
+		"orgId", org.ID,
+		"projectCount", len(projects),
+	)
 
 	marshalledProjects := make([]interface{}, 0)
 
@@ -120,6 +166,10 @@ func FindProjectsForOrg(c *gin.Context) {
 	response["projects"] = marshalledProjects
 
 	if err != nil {
+		slog.Error("Error marshalling response",
+			"orgId", org.ID,
+			"error", err,
+		)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while marshalling response")
 		return
 	}
@@ -128,32 +178,51 @@ func FindProjectsForOrg(c *gin.Context) {
 }
 
 func ProjectDetails(c *gin.Context) {
-
 	currentOrg, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 	projectIdStr := c.Param("project_id")
 
 	if projectIdStr == "" {
+		slog.Warn("Project ID not specified in request")
 		c.String(http.StatusBadRequest, "ProjectId not specified")
 		return
 	}
 
 	projectId, err := strconv.Atoi(projectIdStr)
 	if err != nil {
+		slog.Warn("Invalid Project ID format",
+			"projectIdStr", projectIdStr,
+			"error", err,
+		)
 		c.String(http.StatusBadRequest, "Invalid ProjectId")
 		return
 	}
 
 	if !exists {
+		slog.Warn("Organisation ID not found in context",
+			"projectId", projectId,
+		)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
+
+	slog.Debug("Getting project details",
+		"projectId", projectId,
+		"orgId", currentOrg,
+	)
 
 	var org models.Organisation
 	err = models.DB.GormDB.Where("id = ?", currentOrg).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found",
+				"orgId", currentOrg,
+			)
 			c.String(http.StatusNotFound, fmt.Sprintf("Could not find organisation: %v", currentOrg))
 		} else {
+			slog.Error("Error fetching organisation",
+				"orgId", currentOrg,
+				"error", err,
+			)
 			c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
 		}
 		return
@@ -161,16 +230,29 @@ func ProjectDetails(c *gin.Context) {
 
 	project, err := models.DB.GetProject(uint(projectId))
 	if err != nil {
-		log.Printf("could not fetch project: %v", err)
+		slog.Error("Could not fetch project",
+			"projectId", projectId,
+			"error", err,
+		)
 		c.String(http.StatusInternalServerError, "Could not fetch project")
 		return
 	}
 
 	if project.OrganisationID != org.ID {
-		log.Printf("Forbidden access: not allowed to access projectID: %v logged in org: %v", project.OrganisationID, org.ID)
+		slog.Warn("Unauthorized access attempt to project",
+			"projectId", projectId,
+			"projectOrgId", project.OrganisationID,
+			"loggedInOrgId", org.ID,
+		)
 		c.String(http.StatusForbidden, "No access to this project")
 		return
 	}
+
+	slog.Info("Successfully retrieved project details",
+		"projectId", projectId,
+		"projectName", project.Name,
+		"repoName", project.Repo.Name,
+	)
 
 	c.JSON(http.StatusOK, project.MapToJsonStruct())
 }
@@ -184,7 +266,8 @@ func ReportProjectsForRepo(c *gin.Context) {
 	var request CreateProjectRequest
 	err := c.BindJSON(&request)
 	if err != nil {
-		log.Printf("Error binding JSON: %v", err)
+		slog.Error("Error binding JSON request", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -192,13 +275,23 @@ func ReportProjectsForRepo(c *gin.Context) {
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
 	if !exists {
+		slog.Warn("Organisation ID not found in context", "repoName", repoName)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
 
+	slog.Debug("Processing project creation request",
+		"repoName", repoName,
+		"orgId", orgId,
+		"projectName", request.Name,
+	)
+
 	org, err := models.DB.GetOrganisationById(orgId)
 	if err != nil {
-		log.Printf("Error fetching organisation: %v", err)
+		slog.Error("Error fetching organisation",
+			"orgId", orgId,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		return
 	}
@@ -208,8 +301,12 @@ func ReportProjectsForRepo(c *gin.Context) {
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ?", repoName, orgId).First(&repo).Error
 
 	if err != nil {
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Repository not found, creating new one",
+				"repoName", repoName,
+				"orgId", orgId,
+			)
+
 			repo := models.Repo{
 				Name:           repoName,
 				OrganisationID: org.ID,
@@ -219,12 +316,25 @@ func ReportProjectsForRepo(c *gin.Context) {
 			err = models.DB.GormDB.Create(&repo).Error
 
 			if err != nil {
-				log.Printf("Error creating repo: %v", err)
+				slog.Error("Error creating repository",
+					"repoName", repoName,
+					"orgId", orgId,
+					"error", err,
+				)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating repo"})
 				return
 			}
+
+			slog.Info("Successfully created repository",
+				"repoId", repo.ID,
+				"repoName", repoName,
+			)
 		} else {
-			log.Printf("Error fetching repo: %v", err)
+			slog.Error("Error fetching repository",
+				"repoName", repoName,
+				"orgId", orgId,
+				"error", err,
+			)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching repo"})
 			return
 		}
@@ -236,6 +346,12 @@ func ReportProjectsForRepo(c *gin.Context) {
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Project not found, creating new one",
+				"projectName", request.Name,
+				"repoName", repoName,
+				"orgId", orgId,
+			)
+
 			project := models.Project{
 				Name:              request.Name,
 				ConfigurationYaml: request.ConfigurationYaml,
@@ -248,16 +364,38 @@ func ReportProjectsForRepo(c *gin.Context) {
 			err = models.DB.GormDB.Create(&project).Error
 
 			if err != nil {
-				log.Printf("Error creating project: %v", err)
+				slog.Error("Error creating project",
+					"projectName", request.Name,
+					"repoName", repoName,
+					"error", err,
+				)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating project"})
 				return
 			}
+
+			slog.Info("Successfully created project",
+				"projectId", project.ID,
+				"projectName", project.Name,
+				"repoName", repoName,
+			)
+
 			c.JSON(http.StatusOK, project.MapToJsonStruct())
 		} else {
-			log.Printf("Error fetching project: %v", err)
+			slog.Error("Error fetching project",
+				"projectName", request.Name,
+				"repoName", repoName,
+				"error", err,
+			)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching project"})
 			return
 		}
+	} else {
+		slog.Info("Project already exists",
+			"projectId", project.ID,
+			"projectName", project.Name,
+			"repoName", repoName,
+		)
+		c.JSON(http.StatusOK, project.MapToJsonStruct())
 	}
 }
 
@@ -267,13 +405,26 @@ func RunHistoryForProject(c *gin.Context) {
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
 	if !exists {
+		slog.Warn("Organisation ID not found in context",
+			"repoName", repoName,
+			"projectName", projectName,
+		)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
 
+	slog.Debug("Fetching run history for project",
+		"repoName", repoName,
+		"projectName", projectName,
+		"orgId", orgId,
+	)
+
 	org, err := models.DB.GetOrganisationById(orgId)
 	if err != nil {
-		log.Printf("Error fetching organisation: %v", err)
+		slog.Error("Error fetching organisation",
+			"orgId", orgId,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		return
 	}
@@ -283,17 +434,25 @@ func RunHistoryForProject(c *gin.Context) {
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ?", repoName, orgId).First(&repo).Error
 
 	if err != nil {
-		log.Printf("Error fetching repo: %v", err)
+		slog.Error("Error fetching repository",
+			"repoName", repoName,
+			"orgId", orgId,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching repo"})
 		return
 	}
 
 	var project models.Project
 
-	err = models.DB.GormDB.Where("name = ? AND repo_id = ? AND organisation_id", projectName, repo.ID, org.ID).First(&project).Error
+	err = models.DB.GormDB.Where("name = ? AND repo_id = ? AND organisation_id = ?", projectName, repo.ID, org.ID).First(&project).Error
 
 	if err != nil {
-		log.Printf("Error fetching project: %v", err)
+		slog.Error("Error fetching project",
+			"projectName", projectName,
+			"repoName", repoName,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching project"})
 		return
 	}
@@ -303,10 +462,20 @@ func RunHistoryForProject(c *gin.Context) {
 	err = models.DB.GormDB.Where("project_id = ?", project.ID).Find(&runHistory).Error
 
 	if err != nil {
-		log.Printf("Error fetching run history: %v", err)
+		slog.Error("Error fetching run history",
+			"projectId", project.ID,
+			"projectName", projectName,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching run history"})
 		return
 	}
+
+	slog.Info("Successfully retrieved run history",
+		"projectName", projectName,
+		"repoName", repoName,
+		"runCount", len(runHistory),
+	)
 
 	response := make([]interface{}, 0)
 
@@ -328,41 +497,54 @@ type SetJobStatusRequest struct {
 
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
-
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
 	if !exists {
+		slog.Warn("Organisation ID not found in context", "jobId", jobId)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
 
-	var request SetJobStatusRequest
+	slog.Info("Setting job status", "jobId", jobId, "orgId", orgId)
 
+	var request SetJobStatusRequest
 	err := c.BindJSON(&request)
 
 	if err != nil {
-		log.Printf("Error binding JSON: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
+		slog.Error("Error binding JSON request", "jobId", jobId, "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error binding JSON"})
 		return
 	}
 
 	job, err := models.DB.GetDiggerJob(jobId)
-
 	if err != nil {
-		log.Printf("Error fetching job: %v", err)
+		slog.Error("Error fetching job", "jobId", jobId, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching job"})
 		return
 	}
+
+	slog.Info("Processing job status update",
+		"jobId", jobId,
+		"currentStatus", job.Status,
+		"newStatus", request.Status,
+		"batchId", job.BatchID,
+	)
 
 	switch request.Status {
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
-			log.Printf("Error updating job status: %v", err)
+			slog.Error("Error updating job status",
+				"jobId", jobId,
+				"status", request.Status,
+				"error", err,
+			)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
 			return
 		}
+
+		slog.Info("Job status updated to started", "jobId", jobId)
 
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
@@ -370,62 +552,138 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		if request.Footprint != nil {
 			job.PlanFootprint, err = json.Marshal(request.Footprint)
 			if err != nil {
-				log.Printf("Error marshalling plan footprint: %v", err)
+				slog.Error("Error marshalling plan footprint",
+					"jobId", jobId,
+					"error", err,
+				)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error marshalling plan footprint"})
+				return
 			}
+
+			slog.Debug("Added plan footprint to job",
+				"jobId", jobId,
+				"footprintSize", len(job.PlanFootprint),
+			)
 		}
+
 		job.PRCommentUrl = request.PrCommentUrl
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
-			log.Printf("Error updating job status: %v", err)
+			slog.Error("Error updating job",
+				"jobId", jobId,
+				"status", request.Status,
+				"error", err,
+			)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 			return
 		}
+
+		slog.Info("Job status updated to succeeded",
+			"jobId", jobId,
+			"batchId", job.BatchID,
+		)
+
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Printf("Recovered from panic while executing goroutine dispatching digger jobs: %v ", r)
+					stack := string(debug.Stack())
+					slog.Error("Recovered from panic in job completion handler",
+						"jobId", jobId,
+						"error", r,
+						slog.Group("stack",
+							slog.String("trace", stack),
+						),
+					)
 				}
 			}()
+
+			slog.Debug("Starting post-success job processing", "jobId", jobId)
+
 			ghClientProvider := d.GithubClientProvider
 			installationLink, err := models.DB.GetGithubInstallationLinkForOrg(orgId)
 			if err != nil {
-				log.Printf("Error fetching installation link: %v", err)
+				slog.Error("Error fetching installation link",
+					"orgId", orgId,
+					"jobId", jobId,
+					"error", err,
+				)
 				return
 			}
 
 			installations, err := models.DB.GetGithubAppInstallations(installationLink.GithubInstallationId)
 			if err != nil {
-				log.Printf("Error fetching installation: %v", err)
+				slog.Error("Error fetching installations",
+					"installationId", installationLink.GithubInstallationId,
+					"jobId", jobId,
+					"error", err,
+				)
 				return
 			}
 
 			if len(installations) == 0 {
-				log.Printf("No installations found for installation id %v", installationLink.GithubInstallationId)
+				slog.Warn("No installations found",
+					"installationId", installationLink.GithubInstallationId,
+					"jobId", jobId,
+				)
 				return
 			}
 
 			jobLink, err := models.DB.GetDiggerJobLink(jobId)
-
 			if err != nil {
-				log.Printf("Error fetching job link: %v", err)
+				slog.Error("Error fetching job link",
+					"jobId", jobId,
+					"error", err,
+				)
 				return
 			}
 
 			workflowFileName := "digger_workflow.yml"
 
 			if !strings.Contains(jobLink.RepoFullName, "/") {
-				log.Printf("Repo full name %v does not contain a slash", jobLink.RepoFullName)
+				slog.Error("Invalid repo full name format",
+					"repoFullName", jobLink.RepoFullName,
+					"jobId", jobId,
+				)
 				return
 			}
 
 			repoFullNameSplit := strings.Split(jobLink.RepoFullName, "/")
 			client, _, err := ghClientProvider.Get(installations[0].GithubAppId, installationLink.GithubInstallationId)
-			err = services.DiggerJobCompleted(client, &job.Batch.ID, job, jobLink.RepoFullName, repoFullNameSplit[0], repoFullNameSplit[1], workflowFileName, d.GithubClientProvider)
 			if err != nil {
-				log.Printf("Error triggering job: %v", err)
+				slog.Error("Error getting GitHub client",
+					"appId", installations[0].GithubAppId,
+					"installationId", installationLink.GithubInstallationId,
+					"jobId", jobId,
+					"error", err,
+				)
 				return
 			}
+
+			slog.Info("Handling job completion",
+				"jobId", jobId,
+				"repoFullName", jobLink.RepoFullName,
+				"batchId", job.BatchID,
+			)
+
+			err = services.DiggerJobCompleted(
+				client,
+				&job.Batch.ID,
+				job,
+				jobLink.RepoFullName,
+				repoFullNameSplit[0],
+				repoFullNameSplit[1],
+				workflowFileName,
+				d.GithubClientProvider,
+			)
+			if err != nil {
+				slog.Error("Error handling job completion",
+					"jobId", jobId,
+					"error", err,
+				)
+				return
+			}
+
+			slog.Debug("Successfully processed job completion", "jobId", jobId)
 		}()
 
 		// store digger job summary
@@ -438,30 +696,65 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		job.TerraformOutput = request.TerraformOutput
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
-			log.Printf("Error updating job status: %v", request.Status)
+			slog.Error("Error updating job status",
+				"jobId", jobId,
+				"status", request.Status,
+				"error", err,
+			)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 			return
 		}
 
+		slog.Info("Job status updated to failed",
+			"jobId", jobId,
+			"batchId", job.BatchID,
+		)
+
 	default:
-		log.Printf("Unexpected status %v", request.Status)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
+		slog.Warn("Unexpected job status received",
+			"jobId", jobId,
+			"status", request.Status,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unexpected job status"})
 		return
 	}
 
 	// attempt to update workflow run url
+	slog.Debug("Attempting to update workflow run URL", "jobId", jobId)
+
 	client, _, err := utils.GetGithubClient(d.GithubClientProvider, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
 	if err != nil {
-		log.Printf("Error Creating github client: %v", err)
+		slog.Warn("Error creating GitHub client for workflow URL update",
+			"jobId", jobId,
+			"repoFullName", job.Batch.RepoFullName,
+			"error", err,
+		)
 	} else {
-		_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(client, job.Batch.RepoOwner, job.Batch.RepoName, job.DiggerJobID)
+		_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(
+			client,
+			job.Batch.RepoOwner,
+			job.Batch.RepoName,
+			job.DiggerJobID,
+		)
 		if err != nil {
-			log.Printf("Error getting workflow ID from job: %v", err)
+			slog.Warn("Error getting workflow ID from job",
+				"jobId", jobId,
+				"error", err,
+			)
 		} else if workflowRunUrl != "#" && workflowRunUrl != "" {
 			job.WorkflowRunUrl = &workflowRunUrl
 			err = models.DB.UpdateDiggerJob(job)
 			if err != nil {
-				log.Printf("Error updating digger job: %v", err)
+				slog.Error("Error updating job with workflow URL",
+					"jobId", jobId,
+					"workflowUrl", workflowRunUrl,
+					"error", err,
+				)
+			} else {
+				slog.Debug("Updated job with workflow URL",
+					"jobId", jobId,
+					"workflowUrl", workflowRunUrl,
+				)
 			}
 		}
 	}
@@ -469,7 +762,11 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	job.StatusUpdatedAt = request.Timestamp
 	err = models.DB.GormDB.Save(&job).Error
 	if err != nil {
-		log.Printf("Error saving update job: %v", err)
+		slog.Error("Error saving job status timestamp",
+			"jobId", jobId,
+			"timestamp", request.Timestamp,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
 		return
 	}
@@ -478,35 +775,70 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	// check if all jobs have succeeded at this point
 	// if so, perform merge of PR (if configured to do so)
 	batch := job.Batch
+
+	slog.Info("Updating batch status after job update",
+		"batchId", batch.ID,
+		"jobId", jobId,
+	)
+
 	err = models.DB.UpdateBatchStatus(batch)
 	if err != nil {
-		log.Printf("Error updating batch status: %v", err)
+		slog.Error("Error updating batch status",
+			"batchId", batch.ID,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating batch status"})
 		return
 	}
 
-	err = CreateTerraformOutputsSummary(d.GithubClientProvider, batch)
-	if err != nil {
-		log.Printf("could not generate terraform plans summary: %v", err)
+	if batch.ReportTerraformOutputs {
+		slog.Info("Generating Terraform outputs summary", "batchId", batch.ID)
+		err = CreateTerraformOutputsSummary(d.GithubClientProvider, batch)
+		if err != nil {
+			slog.Warn("Could not generate Terraform outputs summary",
+				"batchId", batch.ID,
+				"error", err,
+			)
+		}
 	}
 
+	slog.Info("Checking if PR should be auto-merged", "batchId", batch.ID)
 	err = AutomergePRforBatchIfEnabled(d.GithubClientProvider, batch)
 	if err != nil {
-		log.Printf("Error merging PR with automerge option: %v", err)
+		slog.Warn("Error auto-merging PR",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+			"error", err,
+		)
+
 		err = utils.PostCommentForBatch(job.Batch, fmt.Sprintf(":yellow_circle: Warning could not automerge PR, please remember to merge it manually. Error: (%v)", err), d.GithubClientProvider)
 		if err != nil {
-			log.Printf("Error while posting comment about automerge: %v", err)
+			slog.Error("Error posting comment about automerge failure",
+				"batchId", batch.ID,
+				"error", err,
+			)
 		}
 	}
 
 	// return batch summary to client
 	res, err := batch.MapToJsonStruct()
 	if err != nil {
-		log.Printf("Error getting batch details: %v", err)
+		slog.Error("Error getting batch details",
+			"batchId", batch.ID,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
+		return
 	}
 
+	slog.Debug("Updating comments for batch", "batchId", batch.ID)
 	UpdateCommentsForBatchGroup(d.GithubClientProvider, batch, res.Jobs)
+
+	slog.Info("Successfully processed job status update",
+		"jobId", jobId,
+		"status", request.Status,
+		"batchId", batch.ID,
+	)
 
 	c.JSON(http.StatusOK, res)
 }
@@ -525,44 +857,68 @@ func CreateRunForProject(c *gin.Context) {
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
 	if !exists {
+		slog.Warn("Organisation ID not found in context",
+			"repoName", repoName,
+			"projectName", projectName,
+		)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
 		return
 	}
 
+	slog.Info("Creating run for project",
+		"repoName", repoName,
+		"projectName", projectName,
+		"orgId", orgId,
+	)
+
 	org, err := models.DB.GetOrganisationById(orgId)
 	if err != nil {
-		log.Printf("Error fetching organisation: %v", err)
+		slog.Error("Error fetching organisation",
+			"orgId", orgId,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		return
 	}
 
 	var repo models.Repo
-
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ?", repoName, orgId).First(&repo).Error
-
 	if err != nil {
-		log.Printf("Error fetching repo: %v", err)
+		slog.Error("Error fetching repository",
+			"repoName", repoName,
+			"orgId", orgId,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching repo"})
 		return
 	}
 
 	var project models.Project
-
 	err = models.DB.GormDB.Where("name = ? AND repo_id = ? AND organisation_id = ?", projectName, repo.ID, org.ID).First(&project).Error
-
 	if err != nil {
-		log.Printf("Error fetching project: %v", err)
+		slog.Error("Error fetching project",
+			"projectName", projectName,
+			"repoName", repoName,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching project"})
 		return
 	}
 
+	slog.Debug("Found project",
+		"projectId", project.ID,
+		"projectName", projectName,
+		"repoName", repoName,
+	)
+
 	var request CreateProjectRunRequest
-
 	err = c.BindJSON(&request)
-
 	if err != nil {
-		log.Printf("Error binding JSON: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
+		slog.Error("Error binding JSON request",
+			"projectName", projectName,
+			"error", err,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error binding JSON"})
 		return
 	}
 
@@ -576,35 +932,74 @@ func CreateRunForProject(c *gin.Context) {
 		Project:   &project,
 	}
 
-	err = models.DB.GormDB.Create(&run).Error
+	slog.Debug("Creating project run",
+		"projectId", project.ID,
+		"status", request.Status,
+		"command", request.Command,
+		"startedAt", request.StartedAt,
+		"endedAt", request.EndedAt,
+	)
 
+	err = models.DB.GormDB.Create(&run).Error
 	if err != nil {
-		log.Printf("Error creating run: %v", err)
+		slog.Error("Error creating run",
+			"projectName", projectName,
+			"projectId", project.ID,
+			"error", err,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating run"})
 		return
 	}
+
+	slog.Info("Successfully created run for project",
+		"runId", run.ID,
+		"projectName", projectName,
+		"projectId", project.ID,
+		"status", run.Status,
+	)
 
 	c.JSON(http.StatusOK, "")
 }
 
 func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.DiggerBatch, serializedJobs []orchestrator_scheduler.SerializedJob) error {
+	slog.Debug("Updating comments for batch group",
+		"batchId", batch.ID,
+		"prNumber", batch.PrNumber,
+		"jobCount", len(serializedJobs),
+	)
+
 	diggerYmlString := batch.DiggerConfig
 	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
 	if err != nil {
-		log.Printf("Error loading digger config from batch: %v", err)
+		slog.Error("Error loading digger config from batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
 	if diggerConfigYml.CommentRenderMode == nil ||
 		*diggerConfigYml.CommentRenderMode != digger_config.CommentRenderModeGroupByModule {
-		log.Printf("render mode is not group_by_module, skipping")
+		slog.Debug("Render mode is not group_by_module, skipping comment updates",
+			"batchId", batch.ID,
+			"renderMode", diggerConfigYml.CommentRenderMode,
+		)
 		return nil
 	}
 
 	if batch.BatchType != orchestrator_scheduler.DiggerCommandPlan && batch.BatchType != orchestrator_scheduler.DiggerCommandApply {
-		log.Printf("command is not plan or apply, skipping")
+		slog.Debug("Command is not plan or apply, skipping comment updates",
+			"batchId", batch.ID,
+			"batchType", batch.BatchType,
+		)
 		return nil
 	}
+
+	slog.Debug("Getting GitHub service for batch",
+		"batchId", batch.ID,
+		"installationId", batch.GithubInstallationId,
+		"repoFullName", batch.RepoFullName,
+	)
 
 	ghService, _, err := utils.GetGithubService(
 		gh,
@@ -613,13 +1008,29 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 		batch.RepoOwner,
 		batch.RepoName,
 	)
+	if err != nil {
+		slog.Error("Error getting GitHub service",
+			"batchId", batch.ID,
+			"repoFullName", batch.RepoFullName,
+			"error", err,
+		)
+		return fmt.Errorf("error getting GitHub service: %v", err)
+	}
 
 	var sourceDetails []reporting.SourceDetails
 	err = json.Unmarshal(batch.SourceDetails, &sourceDetails)
 	if err != nil {
-		log.Printf("failed to unmarshall sourceDetails: %v", err)
-		return fmt.Errorf("failed to unmarshall sourceDetails: %v", err)
+		slog.Error("Failed to unmarshal source details",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("failed to unmarshal sourceDetails: %v", err)
 	}
+
+	slog.Debug("Building project to terraform output map",
+		"batchId", batch.ID,
+		"jobCount", len(serializedJobs),
+	)
 
 	// project_name => terraform output
 	projectToTerraformOutput := make(map[string]string)
@@ -627,21 +1038,67 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 	for _, serialJob := range serializedJobs {
 		job, err := models.DB.GetDiggerJob(serialJob.DiggerJobId)
 		if err != nil {
-			return fmt.Errorf("Could not get digger job: %v", err)
+			slog.Error("Could not get digger job",
+				"jobId", serialJob.DiggerJobId,
+				"error", err,
+			)
+			return fmt.Errorf("could not get digger job: %v", err)
 		}
 		projectToTerraformOutput[serialJob.ProjectName] = job.TerraformOutput
+
+		slog.Debug("Added terraform output for project",
+			"projectName", serialJob.ProjectName,
+			"jobId", serialJob.DiggerJobId,
+			"outputLength", len(job.TerraformOutput),
+		)
 	}
 
+	slog.Info("Updating source-based comments",
+		"batchId", batch.ID,
+		"sourceDetailsCount", len(sourceDetails),
+		"prNumber", batch.PrNumber,
+	)
+
 	for _, detail := range sourceDetails {
+		slog.Debug("Updating comment for source location",
+			"sourceLocation", detail.SourceLocation,
+			"commentId", detail.CommentId,
+		)
+
 		reporter := reporting.SourceGroupingReporter{serializedJobs, batch.PrNumber, ghService}
-		reporter.UpdateComment(sourceDetails, detail.SourceLocation, projectToTerraformOutput)
+		err := reporter.UpdateComment(sourceDetails, detail.SourceLocation, projectToTerraformOutput)
+		if err != nil {
+			slog.Warn("Error updating comment for source location",
+				"sourceLocation", detail.SourceLocation,
+				"commentId", detail.CommentId,
+				"error", err,
+			)
+		}
 	}
+
+	slog.Info("Successfully updated comments for batch group",
+		"batchId", batch.ID,
+		"prNumber", batch.PrNumber,
+	)
+
 	return nil
 }
 
 func GetPrServiceFromBatch(batch *models.DiggerBatch, gh utils.GithubClientProvider) (ci.PullRequestService, error) {
+	slog.Debug("Getting PR service for batch",
+		"batchId", batch.ID,
+		"vcs", batch.VCS,
+		"prNumber", batch.PrNumber,
+	)
+
 	switch batch.VCS {
 	case "github":
+		slog.Debug("Using GitHub service for batch",
+			"batchId", batch.ID,
+			"installationId", batch.GithubInstallationId,
+			"repoFullName", batch.RepoFullName,
+		)
+
 		service, _, err := utils.GetGithubService(
 			gh,
 			batch.GithubInstallationId,
@@ -649,104 +1106,335 @@ func GetPrServiceFromBatch(batch *models.DiggerBatch, gh utils.GithubClientProvi
 			batch.RepoOwner,
 			batch.RepoName,
 		)
+
+		if err != nil {
+			slog.Error("Error getting GitHub service",
+				"batchId", batch.ID,
+				"repoFullName", batch.RepoFullName,
+				"error", err,
+			)
+		} else {
+			slog.Debug("Successfully got GitHub service",
+				"batchId", batch.ID,
+				"repoFullName", batch.RepoFullName,
+			)
+		}
+
 		return service, err
+
 	case "gitlab":
-		service, err := utils.GetGitlabService(utils.GitlabClientProvider{}, batch.GitlabProjectId, batch.RepoName, batch.RepoFullName, batch.PrNumber, "")
+		slog.Debug("Using GitLab service for batch",
+			"batchId", batch.ID,
+			"projectId", batch.GitlabProjectId,
+			"repoFullName", batch.RepoFullName,
+		)
+
+		service, err := utils.GetGitlabService(
+			utils.GitlabClientProvider{},
+			batch.GitlabProjectId,
+			batch.RepoName,
+			batch.RepoFullName,
+			batch.PrNumber,
+			"",
+		)
+
+		if err != nil {
+			slog.Error("Error getting GitLab service",
+				"batchId", batch.ID,
+				"projectId", batch.GitlabProjectId,
+				"error", err,
+			)
+		} else {
+			slog.Debug("Successfully got GitLab service",
+				"batchId", batch.ID,
+				"projectId", batch.GitlabProjectId,
+			)
+		}
+
 		return service, err
 	}
 
-	return nil, fmt.Errorf("could not retrieive a service for %v", batch.VCS)
+	slog.Error("Unsupported VCS type", "vcs", batch.VCS, "batchId", batch.ID)
+	return nil, fmt.Errorf("could not retrieve a service for %v", batch.VCS)
 }
 
 func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	slog.Info("Creating Terraform outputs summary",
+		"batchId", batch.ID,
+		"prNumber", batch.PrNumber,
+		"batchStatus", batch.Status,
+	)
+
 	diggerYmlString := batch.DiggerConfig
 	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
 	if err != nil {
-		log.Printf("Error loading digger config from batch: %v", err)
+		slog.Error("Error loading Digger config from batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
 	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	if err != nil {
+		slog.Error("Error converting Digger YAML to config",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error converting Digger YAML to config: %v", err)
+	}
 
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && config.Reporting.AiSummary == true {
+		slog.Info("Batch succeeded and AI summary enabled, generating summary",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+		)
+
 		prService, err := GetPrServiceFromBatch(batch, gh)
 		if err != nil {
-			log.Printf("Error getting github service: %v", err)
-			prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n could not communicate with github")
+			slog.Error("Error getting PR service",
+				"batchId", batch.ID,
+				"error", err,
+			)
+			updateErr := prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId,
+				":x: could not generate AI summary \n\n could not communicate with github")
+			if updateErr != nil {
+				slog.Error("Failed to update comment with error message",
+					"commentId", batch.AiSummaryCommentId,
+					"error", updateErr,
+				)
+			}
 			return fmt.Errorf("error getting github service: %v", err)
 		}
 
 		if batch.AiSummaryCommentId == "" {
-			log.Printf("could not post summary comment, initial comment not found")
-			prService.PublishComment(batch.PrNumber, ":x: could not generate AI summary \n\n could not communicate with github")
+			slog.Error("AI summary comment ID not found", "batchId", batch.ID)
+			_, err := prService.PublishComment(batch.PrNumber,
+				":x: could not generate AI summary \n\n could not communicate with github")
+			if err != nil {
+				slog.Error("Failed to publish error comment",
+					"prNumber", batch.PrNumber,
+					"error", err,
+				)
+			}
 			return fmt.Errorf("could not post summary comment, initial comment not found")
 		}
 
 		summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
 		if summaryEndpoint == "" {
-			log.Printf("could not generate AI summary, ai summary endpoint missing")
-			prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n comment ID is missing ")
+			slog.Error("AI summary endpoint not configured", "batchId", batch.ID)
+			updateErr := prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId,
+				":x: could not generate AI summary \n\n AI summary endpoint not configured")
+			if updateErr != nil {
+				slog.Error("Failed to update comment with error message",
+					"commentId", batch.AiSummaryCommentId,
+					"error", updateErr,
+				)
+			}
 			return fmt.Errorf("could not generate AI summary, ai summary endpoint missing")
 		}
 		apiToken := os.Getenv("DIGGER_AI_SUMMARY_API_TOKEN")
 
+		slog.Debug("Fetching jobs for batch", "batchId", batch.ID)
 		jobs, err := models.DB.GetDiggerJobsForBatch(batch.ID)
 		if err != nil {
-			log.Printf("could not get jobs for batch: %v", err)
-			prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n error fetching jobs ")
+			slog.Error("Could not get jobs for batch",
+				"batchId", batch.ID,
+				"error", err,
+			)
+			updateErr := prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId,
+				":x: could not generate AI summary \n\n error fetching jobs")
+			if updateErr != nil {
+				slog.Error("Failed to update comment with error message",
+					"commentId", batch.AiSummaryCommentId,
+					"error", updateErr,
+				)
+			}
 			return fmt.Errorf("could not get jobs for batch: %v", err)
 		}
+
+		slog.Info("Collecting Terraform outputs from jobs",
+			"batchId", batch.ID,
+			"jobCount", len(jobs),
+		)
 
 		var terraformOutputs = ""
 		for _, job := range jobs {
 			var jobSpec orchestrator_scheduler.JobJson
 			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
 			if err != nil {
-				log.Printf("could not summarise plans due to unmarshalling error: %v", err)
-				prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n error fetching job spec")
-				return fmt.Errorf("could not summarise plans due to unmarshalling error: %v", err)
+				slog.Error("Could not unmarshal job spec",
+					"jobId", job.DiggerJobID,
+					"error", err,
+				)
+				updateErr := prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId,
+					":x: could not generate AI summary \n\n error fetching job spec")
+				if updateErr != nil {
+					slog.Error("Failed to update comment with error message",
+						"commentId", batch.AiSummaryCommentId,
+						"error", updateErr,
+					)
+				}
+				return fmt.Errorf("could not summarize plans due to unmarshalling error: %v", err)
 			}
+
 			projectName := jobSpec.ProjectName
+			slog.Debug("Adding Terraform output for project",
+				"projectName", projectName,
+				"jobId", job.DiggerJobID,
+				"outputLength", len(job.TerraformOutput),
+			)
+
 			terraformOutputs += fmt.Sprintf("terraform output for %v \n\n", projectName) + job.TerraformOutput
 		}
+
+		slog.Info("Generating AI summary from Terraform outputs",
+			"batchId", batch.ID,
+			"outputsLength", len(terraformOutputs),
+		)
+
 		summary, err := utils.GetAiSummaryFromTerraformPlans(terraformOutputs, summaryEndpoint, apiToken)
 		if err != nil {
-			log.Printf("could not summarise terraform outputs: %v", err)
-			prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, ":x: could not generate AI summary \n\n error generating summary from plans")
-			return fmt.Errorf("could not summarise terraform outputs: %v", err)
+			slog.Error("Could not generate AI summary from Terraform outputs",
+				"batchId", batch.ID,
+				"error", err,
+			)
+			updateErr := prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId,
+				":x: could not generate AI summary \n\n error generating summary from plans")
+			if updateErr != nil {
+				slog.Error("Failed to update comment with error message",
+					"commentId", batch.AiSummaryCommentId,
+					"error", updateErr,
+				)
+			}
+			return fmt.Errorf("could not summarize terraform outputs: %v", err)
 		}
 
-		summary = "## AI summary for terraform outputs \n\n" + summary
-		prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, summary)
+		summaryMessage := "## AI summary for terraform outputs \n\n" + summary
+
+		slog.Info("Updating PR comment with AI summary",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+			"commentId", batch.AiSummaryCommentId,
+			"summaryLength", len(summary),
+		)
+
+		updateErr := prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId, summaryMessage)
+		if updateErr != nil {
+			slog.Error("Failed to update comment with AI summary",
+				"commentId", batch.AiSummaryCommentId,
+				"error", updateErr,
+			)
+			return fmt.Errorf("failed to update comment with AI summary: %v", updateErr)
+		}
+
+		slog.Info("Successfully updated PR comment with AI summary",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+		)
+	} else {
+		if batch.Status != orchestrator_scheduler.BatchJobSucceeded {
+			slog.Debug("Skipping AI summary - batch not successful",
+				"batchId", batch.ID,
+				"status", batch.Status,
+			)
+		} else if !config.Reporting.AiSummary {
+			slog.Debug("Skipping AI summary - not enabled in config", "batchId", batch.ID)
+		}
 	}
+
 	return nil
 }
 
 func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	slog.Info("Checking if PR should be auto-merged",
+		"batchId", batch.ID,
+		"prNumber", batch.PrNumber,
+		"batchStatus", batch.Status,
+		"batchType", batch.BatchType,
+	)
+
 	diggerYmlString := batch.DiggerConfig
 	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
 	if err != nil {
-		log.Printf("Error loading digger config from batch: %v", err)
+		slog.Error("Error loading Digger config from batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
-	var automerge bool
-	if diggerConfigYml.AutoMerge != nil {
-		automerge = *diggerConfigYml.AutoMerge
-	} else {
-		automerge = false
+	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	if err != nil {
+		slog.Error("Error converting Digger YAML to config",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error loading digger config from yaml: %v", err)
 	}
-	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && batch.BatchType == orchestrator_scheduler.DiggerCommandApply && automerge == true {
+
+	automerge := config.AutoMerge
+	automergeStrategy := config.AutoMergeStrategy
+
+	slog.Debug("Auto-merge settings",
+		"enabled", automerge,
+		"strategy", automergeStrategy,
+		"batchStatus", batch.Status,
+		"batchType", batch.BatchType,
+	)
+
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded &&
+		batch.BatchType == orchestrator_scheduler.DiggerCommandApply &&
+		automerge == true {
+
+		slog.Info("Conditions met for auto-merge, proceeding",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+		)
+
 		prService, err := GetPrServiceFromBatch(batch, gh)
 		if err != nil {
-			log.Printf("Error getting github service: %v", err)
+			slog.Error("Error getting PR service",
+				"batchId", batch.ID,
+				"error", err,
+			)
 			return fmt.Errorf("error getting github service: %v", err)
 		}
-		err = prService.MergePullRequest(batch.PrNumber)
+
+		slog.Info("Merging pull request",
+			"prNumber", batch.PrNumber,
+			"mergeStrategy", automergeStrategy,
+		)
+
+		err = prService.MergePullRequest(batch.PrNumber, string(automergeStrategy))
 		if err != nil {
-			log.Printf("Error merging pull request: %v", err)
+			slog.Error("Error merging pull request",
+				"prNumber", batch.PrNumber,
+				"mergeStrategy", automergeStrategy,
+				"error", err,
+			)
 			return fmt.Errorf("error merging pull request: %v", err)
 		}
+
+		slog.Info("Successfully merged pull request",
+			"prNumber", batch.PrNumber,
+			"batchId", batch.ID,
+		)
+	} else {
+		if batch.Status != orchestrator_scheduler.BatchJobSucceeded {
+			slog.Debug("Skipping auto-merge - batch not successful",
+				"batchId", batch.ID,
+				"status", batch.Status,
+			)
+		} else if batch.BatchType != orchestrator_scheduler.DiggerCommandApply {
+			slog.Debug("Skipping auto-merge - not an apply command",
+				"batchId", batch.ID,
+				"batchType", batch.BatchType,
+			)
+		} else if !automerge {
+			slog.Debug("Skipping auto-merge - not enabled in config", "batchId", batch.ID)
+		}
 	}
+
 	return nil
 }

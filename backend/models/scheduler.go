@@ -3,11 +3,12 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"time"
+
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"log"
-	"time"
 )
 
 type DiggerJobParentLink struct {
@@ -100,9 +101,11 @@ func (j *DiggerJob) MapToJsonStruct() (orchestrator_scheduler.SerializedJob, err
 	var job orchestrator_scheduler.JobJson
 	err := json.Unmarshal(j.SerializedJobSpec, &job)
 	if err != nil {
-		log.Printf("Failed to convert unmarshall Serialized job, %v", err)
+		slog.Error("Failed to unmarshal serialized job spec", "jobId", j.DiggerJobID, "error", err)
+		return orchestrator_scheduler.SerializedJob{}, err
 	}
-	return orchestrator_scheduler.SerializedJob{
+
+	serialized := orchestrator_scheduler.SerializedJob{
 		DiggerJobId:      j.DiggerJobID,
 		Status:           j.Status,
 		JobString:        j.SerializedJobSpec,
@@ -113,8 +116,16 @@ func (j *DiggerJob) MapToJsonStruct() (orchestrator_scheduler.SerializedJob, err
 		ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
 		ResourcesUpdated: j.DiggerJobSummary.ResourcesUpdated,
 		ResourcesDeleted: j.DiggerJobSummary.ResourcesDeleted,
-	}, nil
+	}
+
+	slog.Debug("Mapped job to JSON struct",
+		"jobId", j.DiggerJobID,
+		"status", j.Status,
+		"projectName", job.ProjectName)
+
+	return serialized, nil
 }
+
 func (b *DiggerBatch) MapToJsonStruct() (orchestrator_scheduler.SerializedBatch, error) {
 	res := orchestrator_scheduler.SerializedBatch{
 		ID:           b.ID.String(),
@@ -127,18 +138,35 @@ func (b *DiggerBatch) MapToJsonStruct() (orchestrator_scheduler.SerializedBatch,
 		BatchType:    b.BatchType,
 	}
 
+	slog.Debug("Mapping batch to JSON struct",
+		"batchId", b.ID.String(),
+		"repoFullName", b.RepoFullName,
+		"prNumber", b.PrNumber)
+
 	serializedJobs := make([]orchestrator_scheduler.SerializedJob, 0)
 	jobs, err := DB.GetDiggerJobsForBatch(b.ID)
 	if err != nil {
+		slog.Error("Could not get jobs for batch", "batchId", b.ID.String(), "error", err)
 		return res, fmt.Errorf("could not unmarshall digger batch: %v", err)
 	}
+
 	for _, job := range jobs {
 		jobJson, err := job.MapToJsonStruct()
 		if err != nil {
+			slog.Error("Error mapping job to struct",
+				"jobId", job.ID,
+				"diggerJobId", job.DiggerJobID,
+				"batchId", b.ID.String(),
+				"error", err)
 			return res, fmt.Errorf("error mapping job to struct (ID: %v); %v", job.ID, err)
 		}
 		serializedJobs = append(serializedJobs, jobJson)
 	}
+
 	res.Jobs = serializedJobs
+	slog.Debug("Successfully mapped batch to JSON struct",
+		"batchId", b.ID.String(),
+		"jobCount", len(serializedJobs))
+
 	return res, nil
 }
