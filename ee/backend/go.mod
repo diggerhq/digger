@@ -235,6 +235,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/samber/slog-gin v1.15.0 // indirect
 	github.com/segmentio/analytics-go/v3 v3.3.0 // indirect
 	github.com/segmentio/backo-go v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
