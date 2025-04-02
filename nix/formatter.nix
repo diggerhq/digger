@@ -26,6 +26,9 @@ let
 
       gofumpt.enable = true;
       goimports.enable = true;
+
+      sqlfluff.enable = true;
+      sqlfluff.dialect = "postgres";
     };
     settings.formatter = {
       deadnix.pipeline = "nix";
@@ -60,6 +63,9 @@ let
 
       goimports.pipeline = "go";
       goimports.priority = 2;
+
+      sqlfluff.pipeline = "sql";
+      sqlfluff.priority = 1;
     };
 
   };
