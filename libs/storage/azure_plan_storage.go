@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 )
 
 type PlanStorageAzure struct {
@@ -27,6 +29,13 @@ func (psa *PlanStorageAzure) PlanExists(artifactName string, storedPlanFilePath 
 	// Get the blob properties
 	resp, err := blobClient.GetProperties(psa.Context, nil)
 	if err != nil {
+		if azErr, ok := err.(*azcore.ResponseError); ok && string(azErr.ErrorCode) == string(bloberror.BlobNotFound) {
+			slog.Debug("Blob not found",
+				"container", psa.ContainerName,
+				"path", storedPlanFilePath,
+				"artifactName", artifactName)
+			return false, nil
+		}
 		slog.Error("Failed to get blob properties",
 			"container", psa.ContainerName,
 			"path", storedPlanFilePath,
