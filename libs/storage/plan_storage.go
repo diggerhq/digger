@@ -394,10 +394,15 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 		slog.Warn("GitLab plan storage not yet implemented")
 		//TODO implement me
 	case uploadDestination == "azure":
-		containerName := strings.ToLower(os.Getenv("AZURE_STORAGE_CONTAINER"))
+		containerName := strings.ToLower(os.Getenv("AZURE_STORAGE_CONTAINER_NAME"))
 		if containerName == "" {
-			slog.Error("AZURE_STORAGE_CONTAINER not defined for Azure plan storage")
-			return nil, fmt.Errorf("AZURE_STORAGE_CONTAINER is not defined")
+			slog.Error("AZURE_STORAGE_CONTAINER_NAME not defined for Azure plan storage")
+			return nil, fmt.Errorf("AZURE_STORAGE_CONTAINER_NAME is not defined")
+		}
+		sa_name := strings.ToLower(os.Getenv("AZURE_STORAGE_ACCOUNT_NAME"))
+		if sa_name == "" {
+			slog.Error("AZURE_STORAGE_ACCOUNT_NAME not defined for Azure plan storage")
+			return nil, fmt.Errorf("AZURE_STORAGE_ACCOUNT_NAME is not defined")
 		}
 		cred, err := azidentity.NewDefaultAzureCredential(nil)
 		if err != nil {
@@ -406,7 +411,7 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			return nil, fmt.Errorf("failed to create Azure credential: %v", err)
 		}
 		client, err := azblob.NewClient(
-			fmt.Sprintf("https://%s.blob.core.windows.net", os.Getenv("AZURE_STORAGE_ACCOUNT_NAME")),
+			fmt.Sprintf("https://%s.blob.core.windows.net", sa_name),
 			cred,
 			nil,
 		)
