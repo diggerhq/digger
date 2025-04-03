@@ -25,7 +25,7 @@ func (psa *PlanStorageAzure) PlanExists(artifactName string, storedPlanFilePath 
 	blobClient := psa.ServiceClient.ServiceClient().NewContainerClient(psa.ContainerName).NewBlobClient(storedPlanFilePath)
 
 	// Get the blob properties
-	resp, err := blobClient.GetProperties(context.TODO(), nil)
+	resp, err := blobClient.GetProperties(psa.Context, nil)
 	if err != nil {
 		slog.Error("Failed to get blob properties",
 			"container", psa.ContainerName,

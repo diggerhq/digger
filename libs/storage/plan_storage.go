@@ -399,8 +399,8 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			slog.Error("PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME not defined for Azure plan storage")
 			return nil, fmt.Errorf("PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME is not defined")
 		}
-		sa_name := strings.ToLower(os.Getenv("PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME"))
-		if sa_name == "" {
+		accountName := strings.ToLower(os.Getenv("PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME"))
+		if accountName == "" {
 			slog.Error("PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME not defined for Azure plan storage")
 			return nil, fmt.Errorf("PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME is not defined")
 		}
@@ -411,7 +411,7 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			return nil, fmt.Errorf("failed to create Azure credential: %v", err)
 		}
 		client, err := azblob.NewClient(
-			fmt.Sprintf("https://%s.blob.core.windows.net", sa_name),
+			fmt.Sprintf("https://%s.blob.core.windows.net", accountName),
 			cred,
 			nil,
 		)
