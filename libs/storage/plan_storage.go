@@ -394,15 +394,15 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 		slog.Warn("GitLab plan storage not yet implemented")
 		//TODO implement me
 	case uploadDestination == "azure":
-		containerName := strings.ToLower(os.Getenv("AZURE_STORAGE_CONTAINER_NAME"))
+		containerName := strings.ToLower(os.Getenv("PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME"))
 		if containerName == "" {
-			slog.Error("AZURE_STORAGE_CONTAINER_NAME not defined for Azure plan storage")
-			return nil, fmt.Errorf("AZURE_STORAGE_CONTAINER_NAME is not defined")
+			slog.Error("PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME not defined for Azure plan storage")
+			return nil, fmt.Errorf("PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME is not defined")
 		}
-		sa_name := strings.ToLower(os.Getenv("AZURE_STORAGE_ACCOUNT_NAME"))
+		sa_name := strings.ToLower(os.Getenv("PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME"))
 		if sa_name == "" {
-			slog.Error("AZURE_STORAGE_ACCOUNT_NAME not defined for Azure plan storage")
-			return nil, fmt.Errorf("AZURE_STORAGE_ACCOUNT_NAME is not defined")
+			slog.Error("PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME not defined for Azure plan storage")
+			return nil, fmt.Errorf("PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME is not defined")
 		}
 		cred, err := azidentity.NewDefaultAzureCredential(nil)
 		if err != nil {
