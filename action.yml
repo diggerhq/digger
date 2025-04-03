@@ -448,9 +448,9 @@ runs:
       shell: bash
       run: |
         if [[ ${{ inputs.ee }} == "true" ]]; then
-          curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }} -o digger
+          curl -sL https://github.com/wenzel-felix/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }} -o digger
         else
-          curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }} -o digger
+          curl -sL https://github.com/wenzel-felix/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }} -o digger
         fi
         chmod +x digger
         PATH=$PATH:$(pwd)
