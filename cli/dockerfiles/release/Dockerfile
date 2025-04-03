@@ -9,7 +9,7 @@ ARG ARCH=X64
 COPY --from=terraform_builder /bin/terraform /bin/terraform
 
 RUN apk add --no-cache curl
-RUN curl -sL https://github.com/wenzel-felix/digger/releases/download/${DIGGER_VERSION}/digger-${OS}-${ARCH}  -o digger
+RUN curl -sL https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-${OS}-${ARCH}  -o digger
 RUN chmod +x digger
 RUN mv digger /usr/local/bin/digger
 
