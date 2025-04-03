@@ -15,6 +15,8 @@ import (
 
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"github.com/google/go-github/v61/github"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 )
 
 type GithubPlanStorage struct {
@@ -391,6 +393,35 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 	case uploadDestination == "gitlab":
 		slog.Warn("GitLab plan storage not yet implemented")
 		//TODO implement me
+	case uploadDestination == "azure":
+		containerName := strings.ToLower(os.Getenv("AZURE_STORAGE_CONTAINER"))
+		if containerName == "" {
+			slog.Error("AZURE_STORAGE_CONTAINER not defined for Azure plan storage")
+			return nil, fmt.Errorf("AZURE_STORAGE_CONTAINER is not defined")
+		}
+		cred, err := azidentity.NewDefaultAzureCredential(nil)
+		if err != nil {
+			slog.Error("Failed to create Azure credential",
+				"error", err)
+			return nil, fmt.Errorf("failed to create Azure credential: %v", err)
+		}
+		client, err := azblob.NewClient(
+			fmt.Sprintf("https://%s.blob.core.windows.net", os.Getenv("AZURE_STORAGE_ACCOUNT_NAME")),
+			cred,
+			nil,
+		)
+		if err != nil {
+			slog.Error("Failed to create Azure blob client",
+				"error", err)
+			return nil, fmt.Errorf("failed to create Azure blob client: %v", err)
+		}
+		slog.Debug("Using Azure blob storage for plan storage",
+			"container", containerName)
+		planStorage = &PlanStorageAzure{
+			ServiceClient: client,
+			ContainerName: containerName,
+			Context:       context.Background(),
+		}
 	default:
 		slog.Warn("Unknown plan upload destination, using mock storage",
 			"destination", uploadDestination)
