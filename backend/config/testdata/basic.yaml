@@ -1,0 +1,15 @@
+server:
+  port: 4000
+  base_url: https://digger.example.com
+database:
+  type: sqlite
+  sqlite:
+    path: /tmp/digger.db
+ci:
+  provider: github
+  github:
+    webhook_secret: test-secret
+    hostname: github.enterprise.com
+    token: github-token
+auth:
+  jwt_secret: test-secret
