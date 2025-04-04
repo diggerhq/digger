@@ -1,6 +1,3 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -49,8 +46,4 @@ var validateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(validateCmd)
-
-	// Optionally define any flags that you want to use with the command here
-	// e.g.:
-	// validateCmd.Flags().StringP("config", "c", "", "Specify custom config file path")
 }
