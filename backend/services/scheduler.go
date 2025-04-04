@@ -58,7 +58,7 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 }
 
 func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob, gh utils.GithubClientProvider) error {
-	maxConcurrencyForBatch := config.DiggerConfig.GetInt("max_concurrency_per_batch")
+	maxConcurrencyForBatch := config.BackendConfig.Server.MaxConcurrencyPerBatch
 	if maxConcurrencyForBatch == 0 {
 		// concurrency limits not set
 		err := TriggerJob(gh, ciBackend, repoFullname, repoOwner, repoName, batchId, job)
