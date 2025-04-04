@@ -1,0 +1,9 @@
+binary := "./bin/st"
+
+# build cli binary
+build:
+    go build -o {{binary}} ./cmd/digger
+
+# clean build artifacts
+clean:
+    rm -f {{binary}}

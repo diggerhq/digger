@@ -1,0 +1,9 @@
+binary := "./bin/st-server"
+
+# build backend binary
+build:
+    go build -o {{binary}} ./main.go
+
+# clean build artifacts
+clean:
+    rm -f {{binary}}

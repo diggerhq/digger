@@ -11,3 +11,4 @@ cloud
 *.env.*
 .docker-compose-env
 controllers/database_test.db
+bin/

@@ -1,0 +1,9 @@
+binary := "./bin/stctl"
+
+# build stctl binary
+build:
+    go build -o {{binary}} ./cmd
+
+# clean build artifacts
+clean:
+    rm -f {{binary}}

@@ -15,6 +15,7 @@ import (
 
 	pprof_gin "github.com/gin-contrib/pprof"
 	"github.com/go-substrate/strate/backend/segment"
+	"github.com/go-substrate/strate/backend/version"
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -25,9 +26,6 @@ import (
 	"github.com/go-substrate/strate/backend/middleware"
 	"github.com/go-substrate/strate/backend/models"
 )
-
-// based on https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
-var Version = "dev"
 
 func setupProfiler(r *gin.Engine) {
 	// Enable pprof endpoints
@@ -102,7 +100,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		// of transactions for performance monitoring.
 		// We recommend adjusting this value in production,
 		TracesSampleRate: 0.1,
-		Release:          "api@" + Version,
+		Release:          "api@" + version.Version,
 		Debug:            true,
 	}); err != nil {
 		log.Printf("Sentry initialization failed: %v\n", err)
@@ -126,8 +124,8 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"version":    Version,
-			"commit_sha": Version,
+			"version":    version.Version,
+			"commit_sha": version.Meta,
 		})
 	})
 
