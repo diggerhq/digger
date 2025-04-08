@@ -77,10 +77,12 @@ drift_detect:
     - echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
     - apt update
     - apt-get install terraform
-    - mkdir -p digger && cd digger && curl -SSL -o digger https://public-binaries-1744125952229.s3.amazonaws.com/digger
+    - mkdir -p digger && cd digger && curl -SSL -o digger https://github.com/diggerhq/digger/releases/download/v0.6.95/digger-ee-cli-Linux-X64
     - chmod +x digger
     - PATH=$PATH:$(pwd)
     - cd ../
     - digger
 ```
+
+The above workflow will detect drift for the repository projects and post if any instances of drift occur to slack
 
