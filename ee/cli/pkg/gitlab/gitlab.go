@@ -7,7 +7,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	core_backend "github.com/diggerhq/digger/libs/backendapi"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
-	"github.com/diggerhq/digger/libs/ci/gitlab"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -19,9 +18,15 @@ import (
 )
 
 func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotificationProvider drift.DriftNotificationProvider) {
+	repoOwner := os.Getenv("CI_PROJECT_NAMESPACE")
+
+	defer func() {
+		if r := recover(); r != nil {
+			usage.ReportErrorAndExit(repoOwner, fmt.Sprintf("Panic occurred. %s", r), 1)
+		}
+	}()
 	println("Using GitLab.")
 
-	repoOwner := os.Getenv("CI_PROJECT_NAMESPACE")
 	repoName := os.Getenv("CI_PROJECT_NAME")
 	gitlabToken := os.Getenv("GITLAB_TOKEN")
 	actor := "gitlab_user"
@@ -44,11 +49,11 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		usage.ReportErrorAndExit(repoName, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
-	gitLabContext, err := gitlab.ParseGitLabContext()
-	if err != nil {
-		fmt.Printf("failed to parse GitLab context. %s\n", err.Error())
-		os.Exit(4)
-	}
+	//gitLabContext, err := gitlab.ParseGitLabContext()
+	//if err != nil {
+	//	fmt.Printf("failed to parse GitLab context. %s\n", err.Error())
+	//	os.Exit(4)
+	//}
 
 	// it's ok to not have merge request info if it has been merged
 	//if (gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0) && gitLabContext.EventType != "merge_request_merge" {
@@ -56,11 +61,7 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	//	os.Exit(0)
 	//}
 
-	gitlabService, err := gitlab.NewGitLabService(gitlabToken, gitLabContext, "")
-	if err != nil {
-		fmt.Printf("failed to initialise GitLab service, %v", err)
-		os.Exit(4)
-	}
+	prService := dg_github.MockCiService{}
 
 	runningMode := os.Getenv("INPUT_DIGGER_MODE")
 
@@ -108,12 +109,12 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				CommandRoleArn:     cmdArn,
 			}
 
-			notification, err := driftNotificationProvider.Get(gitlabService)
+			notification, err := driftNotificationProvider.Get(prService)
 			if err != nil {
 				usage.ReportErrorAndExit(repoFullName, fmt.Sprintf("could not get drift notification type: %v", err), 8)
 			}
 
-			err = digger.RunJob(job, repoFullName, actor, gitlabService, policyChecker, nil, backendApi, &notification, currentDir)
+			err = digger.RunJob(job, repoFullName, actor, prService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
 				usage.ReportErrorAndExit(repoOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}
@@ -125,9 +126,4 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 	usage.ReportErrorAndExit(repoOwner, "Digger finished successfully", 0)
 
-	defer func() {
-		if r := recover(); r != nil {
-			usage.ReportErrorAndExit(repoOwner, fmt.Sprintf("Panic occurred. %s", r), 1)
-		}
-	}()
 }
