@@ -95,7 +95,7 @@ inputs:
     required: false
     default: 'true'
   upload-plan-destination:
-    description: Destination to upload the plan to. gcp, github and aws are currently supported.
+    description: Destination to upload the plan to. azure, gcp, github and aws are currently supported.
     required: false
   upload-plan-destination-s3-bucket:
     description: Name of the destination bucket for AWS S3. Should be provided if destination == aws
@@ -111,7 +111,12 @@ inputs:
   upload-plan-destination-s3-encryption-kms-key-id:
     description: for encryption of type KMS you need to specify the KMS key ID to use
     required: false
-
+  upload-plan-destination-azure-container:
+    description: Name of the destination storage account container for Azure blob storage. Should be provided if destination == azure
+    required: false
+  upload-plan-destination-azure-storage-account:
+    description: Name of the destination storage account for Azure blob storage. Should be provided if destination == azure
+    required: false
   upload-plan-destination-gcp-bucket:
     description: Name of the destination bucket for a GCP bucket. Should be provided if destination == gcp
     required: false
@@ -383,6 +388,8 @@ runs:
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
         PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
+        PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME: ${{ inputs.upload-plan-destination-azure-container }}
+        PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.upload-plan-destination-azure-storage-account }}
         GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
         GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
@@ -424,6 +431,8 @@ runs:
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
         PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
+        PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME: ${{ inputs.upload-plan-destination-azure-container }}
+        PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.upload-plan-destination-azure-storage-account }}
         GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
         GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
