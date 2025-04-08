@@ -77,7 +77,7 @@ drift_detect:
     - echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
     - apt update
     - apt-get install terraform
-    - mkdir -p digger && cd digger && curl -SSL -o digger https://github.com/diggerhq/digger/releases/download/v0.6.95/digger-ee-cli-Linux-X64
+    - mkdir -p digger && cd digger && curl -SSL -o digger https://github.com/diggerhq/digger/releases/download/vLatest/digger-ee-cli-Linux-X64
     - chmod +x digger
     - PATH=$PATH:$(pwd)
     - cd ../
