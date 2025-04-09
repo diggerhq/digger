@@ -2,7 +2,7 @@ binary := "./bin/st-server"
 
 # build backend binary
 build:
-    go build -o {{binary}} ./main.go
+    go build -o {{binary}} ./cmd/st-server/main.go
 
 # clean build artifacts
 clean:
