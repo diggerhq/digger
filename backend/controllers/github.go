@@ -25,7 +25,6 @@ import (
 	"github.com/go-substrate/strate/backend/locking"
 	"github.com/go-substrate/strate/backend/middleware"
 	"github.com/go-substrate/strate/backend/models"
-	"github.com/go-substrate/strate/backend/segment"
 	"github.com/go-substrate/strate/backend/services"
 	"github.com/go-substrate/strate/backend/utils"
 	"github.com/go-substrate/strate/libs/ci"
@@ -554,8 +553,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
-	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
-
 	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
 			GithubClientProvider: gh,
@@ -955,8 +952,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			return fmt.Errorf("error updating digger batch")
 		}
 	}
-
-	segment.Track(strconv.Itoa(int(orgId)), "backend_trigger_job")
 
 	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{

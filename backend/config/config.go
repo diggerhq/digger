@@ -154,14 +154,7 @@ type FeatureConfig struct {
 
 // AnalyticsConfig contains analytics-related configuration
 type AnalyticsConfig struct {
-	Segment SegmentConfig `validate:"required"`
 	Sentry  SentryConfig  `validate:"required"`
-}
-
-// SegmentConfig contains Segment-specific configuration
-type SegmentConfig struct {
-	Enabled bool
-	ApiKey  string `validate:"required_if=Enabled true"`
 }
 
 // SentryConfig contains Sentry-specific configuration
@@ -351,10 +344,6 @@ func setDefaultValues(v *viper.Viper) {
 	v.SetDefault("features.limit_max_projects_to_files_changed", false)
 	v.SetDefault("features.internal_users_enabled", false)
 
-	// Analytics defaults - Segment
-	v.SetDefault("analytics.segment.enabled", false)
-	v.SetDefault("analytics.segment.api_key", "")
-
 	// Analytics defaults - Sentry
 	v.SetDefault("analytics.sentry.enabled", false)
 	v.SetDefault("analytics.sentry.dsn", "")
@@ -487,11 +476,6 @@ func buildConfigFromViper(v *viper.Viper, logConfig LogConfig) *Config {
 		},
 
 		Analytics: AnalyticsConfig{
-			Segment: SegmentConfig{
-				Enabled: v.GetBool("analytics.segment.enabled"),
-				ApiKey:  v.GetString("analytics.segment.api_key"),
-			},
-
 			Sentry: SentryConfig{
 				Enabled:          v.GetBool("analytics.sentry.enabled"),
 				DSN:              v.GetString("analytics.sentry.dsn"),

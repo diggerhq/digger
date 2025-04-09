@@ -5,12 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-substrate/strate/backend/models"
-	"github.com/go-substrate/strate/backend/segment"
 	"github.com/go-substrate/strate/backend/services"
 	"github.com/golang-jwt/jwt"
 )
@@ -40,9 +38,6 @@ func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) 
 		}
 
 		c.Set(ORGANISATION_ID_KEY, org.ID)
-
-		segment.GetClient()
-		segment.IdentifyClient(strconv.Itoa(int(org.ID)), org.Name, org.Name, org.Name, org.Name, strconv.Itoa(int(org.ID)), "")
 
 		log.Printf("set org id %v\n", org.ID)
 
