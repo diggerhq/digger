@@ -21,6 +21,9 @@ inputs:
   aws-role-to-assume:
     description: ARN of AWS IAM role to assume using OIDC
     required: false
+  aws-web-identity-token-file:
+    description: Location of the Web Identity Token File for assuming a role using OIDC
+    required: false
   aws-region:
     description: AWS region
     required: false
@@ -259,6 +262,7 @@ runs:
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         aws-region: ${{ inputs.aws-region }}
+        web-identity-token-file: ${{ inputs.aws-web-identity-token-file }}
       if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume != '' }}
 
     - name: Configure OIDC Azure credentials
