@@ -21,6 +21,9 @@ inputs:
   aws-role-to-assume:
     description: ARN of AWS IAM role to assume using OIDC
     required: false
+  aws-web-identity-token-file:
+    description: Location of the Web Identity Token File for assuming a role using OIDC
+    required: false
   aws-region:
     description: AWS region
     required: false
@@ -72,7 +75,7 @@ inputs:
   terragrunt-version:
     description: Terragrunt version
     required: false
-    default: v0.55.5
+    default: v0.73.7
   opentofu-version:
     description: OpenTofu version
     required: false
@@ -95,10 +98,27 @@ inputs:
     required: false
     default: 'true'
   upload-plan-destination:
-    description: Destination to upload the plan to. gcp, github and aws are currently supported.
+    description: Destination to upload the plan to. azure, gcp, github and aws are currently supported.
     required: false
   upload-plan-destination-s3-bucket:
     description: Name of the destination bucket for AWS S3. Should be provided if destination == aws
+    required: false
+  upload-plan-destination-s3-encryption-enabled:
+    description: If encryption is to be enabled for s3 bucket
+    required: false
+    default: "false"
+  upload-plan-destination-s3-encryption-type:
+    description: the type of encryption to use for the S3 bucket, either AES256 or KMS
+    required: false
+    default: "AES256"
+  upload-plan-destination-s3-encryption-kms-key-id:
+    description: for encryption of type KMS you need to specify the KMS key ID to use
+    required: false
+  upload-plan-destination-azure-container:
+    description: Name of the destination storage account container for Azure blob storage. Should be provided if destination == azure
+    required: false
+  upload-plan-destination-azure-storage-account:
+    description: Name of the destination storage account for Azure blob storage. Should be provided if destination == azure
     required: false
   upload-plan-destination-gcp-bucket:
     description: Name of the destination bucket for a GCP bucket. Should be provided if destination == gcp
@@ -167,6 +187,11 @@ inputs:
     description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
     default: 'false'
+  terraform-cache-dir:
+    description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
+    required: false
+    default: ''
+
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
     required: false
@@ -237,6 +262,7 @@ runs:
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         aws-region: ${{ inputs.aws-region }}
+        web-identity-token-file: ${{ inputs.aws-web-identity-token-file }}
       if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume != '' }}
 
     - name: Configure OIDC Azure credentials
@@ -247,11 +273,22 @@ runs:
         subscription-id: ${{ inputs.azure-subscription-id }}
       if: ${{ inputs.setup-azure == 'true' && inputs.azure-client-id != '' }}
 
+    # if terraform-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
+    - name: retrieve cache dir
+      shell: bash
+      run: |
+        CACHE_DIR=${{ inputs.terraform-cache-dir == '' &&
+          format('{0}/cache', github.workspace) ||
+          inputs.terraform-cache-dir }}
+        echo "TF_PLUGIN_CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
+        echo "TG_PROVIDER_CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
+        echo "TERRAGRUNT_PROVIDER_CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
+
     - uses: actions/cache/restore@v4
       id: restore_cache
       name: restore_cache
       with:
-        path: ${{ github.workspace }}/cache
+        path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache
         restore-keys: |
           digger-cache
@@ -346,11 +383,17 @@ runs:
         mkdir -p $GITHUB_WORKSPACE/cache
       shell: bash
 
+
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') }}
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
+        PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
+        PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
+        PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME: ${{ inputs.upload-plan-destination-azure-container }}
+        PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.upload-plan-destination-azure-storage-account }}
         GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
         GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
@@ -369,9 +412,8 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
-        TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
+        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
           if [[ ${{ inputs.ee }} == "true" ]]; then
@@ -390,6 +432,11 @@ runs:
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
+        PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
+        PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
+        PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME: ${{ inputs.upload-plan-destination-azure-container }}
+        PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.upload-plan-destination-azure-storage-account }}
         GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
         GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
         AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
@@ -407,9 +454,8 @@ runs:
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
-        TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/cache
+        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ github.workspace }}/cache
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
       shell: bash
@@ -428,9 +474,9 @@ runs:
       name: cache-save
       if: ${{ always() && inputs.cache-dependencies == 'true' && steps.restore_cache.outputs.cache-hit != 'true' }}
       with:
-        path: ${{ github.workspace }}/cache
+        path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache-${{ hashFiles('**/cache') }}
-        
+
 branding:
   icon: globe
   color: purple

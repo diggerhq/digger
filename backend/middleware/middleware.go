@@ -2,18 +2,19 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/services"
-	"github.com/gin-gonic/gin"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/services"
+	"github.com/gin-gonic/gin"
 )
 
 func GetWebMiddleware() gin.HandlerFunc {
 	if _, ok := os.LookupEnv("JWT_AUTH"); ok {
-		log.Printf("Using JWT middleware for web routes")
+		slog.Info("Using JWT middleware for web routes")
 		auth := services.Auth{
 			HttpClient: http.Client{},
 			Host:       os.Getenv("AUTH_HOST"),
@@ -22,20 +23,20 @@ func GetWebMiddleware() gin.HandlerFunc {
 		}
 		return JWTWebAuth(auth)
 	} else if _, ok := os.LookupEnv("HTTP_BASIC_AUTH"); ok {
-		log.Printf("Using http basic auth middleware for web routes")
+		slog.Info("Using http basic auth middleware for web routes")
 		return HttpBasicWebAuth()
 	} else if _, ok := os.LookupEnv("NOOP_AUTH"); ok {
-		log.Printf("Using noop auth for web routes")
+		slog.Info("Using noop auth for web routes")
 		return NoopWebAuth()
 	} else {
-		log.Fatalf("Please specify one of JWT_AUTH or HTTP_BASIC_AUTH")
-		return nil
+		slog.Error("No authentication method specified. Please specify one of JWT_AUTH or HTTP_BASIC_AUTH")
+		panic("No authentication method specified. Please specify one of JWT_AUTH or HTTP_BASIC_AUTH")
 	}
 }
 
 func GetApiMiddleware() gin.HandlerFunc {
 	if _, ok := os.LookupEnv("JWT_AUTH"); ok {
-		log.Printf("Using JWT middleware for API routes")
+		slog.Info("Using JWT middleware for API routes")
 		auth := services.Auth{
 			HttpClient: http.Client{},
 			Host:       os.Getenv("AUTH_HOST"),
@@ -44,38 +45,40 @@ func GetApiMiddleware() gin.HandlerFunc {
 		}
 		return JWTBearerTokenAuth(auth)
 	} else if _, ok := os.LookupEnv("HTTP_BASIC_AUTH"); ok {
-		log.Printf("Using http basic auth middleware for API routes")
+		slog.Info("Using http basic auth middleware for API routes")
 		return HttpBasicApiAuth()
 	} else if _, ok := os.LookupEnv("NOOP_AUTH"); ok {
+		slog.Info("Using noop auth for API routes")
 		return NoopApiAuth()
 	} else {
-		log.Fatalf("Please specify one of JWT_AUTH or HTTP_BASIC_AUTH")
-		return nil
+		slog.Error("No authentication method specified. Please specify one of JWT_AUTH or HTTP_BASIC_AUTH")
+		panic("No authentication method specified. Please specify one of JWT_AUTH or HTTP_BASIC_AUTH")
 	}
 }
 
 func CheckJobToken(c *gin.Context, token string) (*models.JobToken, error) {
 	jobToken, err := models.DB.GetJobToken(token)
 	if jobToken == nil {
+		slog.Warn("Invalid bearer token")
 		c.String(http.StatusForbidden, "Invalid bearer token")
 		c.Abort()
 		return nil, fmt.Errorf("invalid bearer token")
 	}
 
 	if time.Now().After(jobToken.Expiry) {
-		log.Printf("Token has already expired: %v", err)
+		slog.Warn("Token has already expired", "tokenValue", jobToken.Value, "expiry", jobToken.Expiry)
 		c.String(http.StatusForbidden, "Token has expired")
 		c.Abort()
 		return nil, fmt.Errorf("token has expired")
 	}
 
 	if err != nil {
-		log.Printf("Error while fetching token from database: %v", err)
+		slog.Error("Error while fetching token from database", "error", err)
 		c.String(http.StatusInternalServerError, "Error occurred while fetching database")
 		c.Abort()
 		return nil, fmt.Errorf("could not fetch cli token")
 	}
 
-	log.Printf("Token: %v access level: %v", jobToken.Value, jobToken.Type)
+	slog.Debug("Token verified", "tokenValue", jobToken.Value, "accessLevel", jobToken.Type, "expiry", jobToken.Expiry)
 	return jobToken, nil
 }

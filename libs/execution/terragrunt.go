@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,7 +15,6 @@ type Terragrunt struct {
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
-
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("init", true, envs, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -98,15 +97,24 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 	}
 
 	cmd := exec.Command("terragrunt", args...)
-	log.Printf("Running command: terragrunt %v", expandedArgs)
+	slog.Info("Running Terragrunt command",
+		slog.Group("command",
+			"binary", "terragrunt",
+			"args", expandedArgs,
+			"workingDir", terragrunt.WorkingDir,
+		),
+	)
 	cmd.Dir = terragrunt.WorkingDir
 
 	env := os.Environ()
 	env = append(env, "TF_CLI_ARGS=-no-color")
 	env = append(env, "TF_IN_AUTOMATION=true")
+	env = append(env, "TERRAGRUNT_FORWARD_TF_STDOUT=1")
 	env = append(env, "TERRAGRUNT_NO_COLOR=true")
 	env = append(env, "TERRAGRUNT_NON_INTERACTIVE=true")
-	env = append(env, "TERRAGRUNT_FORWARD_TF_STDOUT=1")
+	env = append(env, "TG_NO_COLOR=true")
+	env = append(env, "TG_NON_INTERACTIVE=true")
+	env = append(env, "TG_TF_FORWARD_STDOUT=true")
 
 	for k, v := range envs {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -117,5 +125,13 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 	cmd.Stderr = mwerr
 
 	err = cmd.Run()
+
+	if err != nil {
+		slog.Debug("Command execution details",
+			"exitCode", cmd.ProcessState.ExitCode(),
+			"error", err,
+		)
+	}
+
 	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err
 }

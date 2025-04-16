@@ -2,15 +2,16 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/gin-gonic/gin"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
+	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/gin-gonic/gin"
 )
 
 func (d DiggerController) UpdateRepoCache(c *gin.Context) {
@@ -24,7 +25,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	var request UpdateCacheRequest
 	err := c.BindJSON(&request)
 	if err != nil {
-		log.Printf("Error binding JSON: %v", err)
+		slog.Error("Error binding JSON", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
 		return
 	}
@@ -33,22 +34,21 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	installationId := request.InstallationId
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
-		log.Printf("could not installation link: %v", err)
-		c.String(500, fmt.Sprintf("coulnt not find installation link %v %v", repoFullName, installationId))
+		slog.Error("Could not get installation link", "error", err, "repoFullName", repoFullName, "installationId", installationId)
+		c.String(http.StatusInternalServerError, fmt.Sprintf("could not find installation link %v %v", repoFullName, installationId))
 		return
-
 	}
 	orgId := link.OrganisationId
 
-	log.Printf("the org id is %v", orgId)
+	slog.Info("Processing repo cache update", "orgId", orgId)
 
 	repoOwner, repoName, _ := strings.Cut(repoFullName, "/")
 	repoDiggerName := strings.ReplaceAll(repoFullName, "/", "-")
 
 	repo, err := models.DB.GetRepo(orgId, repoDiggerName)
 	if err != nil {
-		log.Printf("could not get repo: %v", err)
-		c.String(500, fmt.Sprintf("coulnt not get repository %v %v", repoFullName, orgId))
+		slog.Error("Could not get repo", "error", err, "repoFullName", repoFullName, "orgId", orgId)
+		c.String(http.StatusInternalServerError, fmt.Sprintf("could not get repository %v %v", repoFullName, orgId))
 		return
 	}
 
@@ -57,8 +57,8 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 
 	_, token, err := utils.GetGithubService(d.GithubClientProvider, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
-		log.Printf("could not get github service :%v", err)
-		c.String(500, fmt.Sprintf("could not get github service %v %v", repoFullName, orgId))
+		slog.Error("Could not get GitHub service", "error", err, "repoFullName", repoFullName, "orgId", orgId)
+		c.String(http.StatusInternalServerError, fmt.Sprintf("could not get github service %v %v", repoFullName, orgId))
 		return
 	}
 
@@ -67,28 +67,28 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 
 	// update the cache here, do it async for immediate response
 	go func() {
-		err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
+		err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 			diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 			diggerYmlStr = string(diggerYmlBytes)
 			config, _, _, err = dg_configuration.LoadDiggerConfig(dir, true, nil)
 			if err != nil {
-				log.Printf("Error loading digger config: %v", err)
+				slog.Error("Error loading digger config", "error", err)
 				return err
 			}
 			return nil
 		})
 
 		if err != nil {
-			log.Printf("could not load digger config :%v", err)
+			slog.Error("Could not load digger config", "error", err)
 			return
 		}
 		_, err = models.DB.UpsertRepoCache(orgId, repoFullName, diggerYmlStr, *config)
 		if err != nil {
-			log.Printf("could upadate repo cache :%v", err)
+			slog.Error("Could not update repo cache", "error", err)
 			return
-
 		}
+		slog.Info("Successfully updated repo cache", "repoFullName", repoFullName, "orgId", orgId)
 	}()
 
-	c.String(200, "successfully submitted cache for processing, check backend logs for progress")
+	c.String(http.StatusOK, "successfully submitted cache for processing, check backend logs for progress")
 }

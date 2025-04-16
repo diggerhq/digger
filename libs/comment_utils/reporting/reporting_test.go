@@ -59,7 +59,7 @@ func (t MockCiService) GetCombinedPullRequestStatus(prNumber int) (string, error
 	return "", nil
 }
 
-func (t MockCiService) MergePullRequest(prNumber int) error {
+func (t MockCiService) MergePullRequest(prNumber int, mergeStrategy string) error {
 	return nil
 }
 

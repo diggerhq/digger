@@ -3,6 +3,12 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"path"
+	"strings"
+	"time"
+
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
@@ -12,11 +18,6 @@ import (
 	"github.com/diggerhq/digger/libs/policy"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
-	"log"
-	"os"
-	"path"
-	"strings"
-	"time"
 
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/usage"
@@ -65,8 +66,11 @@ func DetectCI() CIName {
 }
 
 func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
-
 	defer reporter.Flush()
+
+	log.Printf("Info: [TF_PLUGIN_CACHE_DIR=%v] ", os.Getenv("TF_PLUGIN_CACHE_DIR"))
+	log.Printf("Info: [TG_PROVIDER_CACHE_DIR=%v] ", os.Getenv("TG_PROVIDER_CACHE_DIR"))
+	log.Printf("Info: [TERRAGRUNT_PROVIDER_CACHE_DIR=%v] ", os.Getenv("TERRAGRUNT_PROVIDER_CACHE_DIR"))
 
 	runStartedAt := time.Now()
 
@@ -124,13 +128,19 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 	}
 
 	if allAppliesSuccess == true && reportFinalStatusToBackend == true {
+		currentJob := jobs[0]
+
 		_, jobPrCommentUrl, err := reporter.Flush()
 		if err != nil {
 			log.Printf("error while sending job comments %v", err)
-			return false, false, fmt.Errorf("error while sending job comments %v", err)
+			cmt, cmt_err := prService.PublishComment(*currentJob.PullRequestNumber, fmt.Sprintf(":yellow_circle: Warning: failed to post report for project %v, received error: %v.\n\n you may review details in the job logs", currentJob.ProjectName, err))
+			if cmt_err != nil {
+				log.Printf("Error while posting error comment: %v", err)
+				return false, false, fmt.Errorf("failed to post reporter error comment, aborting. Error: %v", err)
+			}
+			jobPrCommentUrl = cmt.Url
 		}
 
-		currentJob := jobs[0]
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
@@ -781,7 +791,7 @@ func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *gra
 	return sortedCommands
 }
 
-func MergePullRequest(ciService ci.PullRequestService, prNumber int) {
+func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrategy config.AutomergeStrategy) {
 	time.Sleep(5 * time.Second)
 
 	// CheckAccessPolicy if it was manually merged
@@ -811,7 +821,7 @@ func MergePullRequest(ciService ci.PullRequestService, prNumber int) {
 			log.Fatalf("PR is not mergeable")
 		}
 
-		err = ciService.MergePullRequest(prNumber)
+		err = ciService.MergePullRequest(prNumber, string(mergeStrategy))
 		if err != nil {
 			log.Fatalf("failed to merge PR, %v", err)
 		}

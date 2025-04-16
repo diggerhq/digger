@@ -44,11 +44,13 @@ func main() {
 	eeController := controllers.DiggerEEController{
 		GithubClientProvider: githubProvider,
 		GitlabProvider:       utils.GitlabClientProvider{},
+		BitbucketProvider:    utils.BitbucketClientProvider{},
 		CiBackendProvider:    ci_backends2.EEBackendProvider{},
 	}
 
 	r.POST("/get-spec", eeController.GetSpec)
 	r.POST("/gitlab-webhook", eeController.GitlabWebHookHandler)
+	r.POST("/bitbucket-webhook", eeController.BitbucketWebhookHandler)
 
 	githubGroup := r.Group("/github")
 	githubGroup.Use(middleware.GetWebMiddleware())

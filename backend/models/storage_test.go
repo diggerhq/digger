@@ -1,7 +1,6 @@
 package models
 
 import (
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -14,8 +13,6 @@ import (
 )
 
 func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
-	log.Println("setup suite")
-
 	// database file name
 	dbName := "database_storage_test.db"
 
@@ -23,7 +20,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 	e := os.Remove(dbName)
 	if e != nil {
 		if !strings.Contains(e.Error(), "no such file or directory") {
-			log.Fatal(e)
+			panic(e)
 		}
 	}
 
@@ -32,15 +29,15 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// migrate tables
 	err = gdb.AutoMigrate(&Policy{}, &Organisation{}, &Repo{}, &Project{}, &Token{},
-		&User{}, &ProjectRun{}, &GithubAppInstallation{}, &GithubAppConnection{}, &GithubAppInstallationLink{},
+		&User{}, &ProjectRun{}, &GithubAppInstallation{}, &VCSConnection{}, &GithubAppInstallationLink{},
 		&GithubDiggerJobLink{}, &DiggerJob{}, &DiggerJobParentLink{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	database := &Database{GormDB: gdb}
@@ -52,23 +49,17 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 	orgName := "testOrg"
 	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	DB = database
 	// Return a function to teardown the test
 	return func(tb testing.TB) {
-		log.Println("teardown suite")
 		err = os.Remove(dbName)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}, database, org
-}
-
-func init() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func TestCreateGithubInstallationLink(t *testing.T) {
@@ -152,7 +143,7 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	resourcesUpdated := uint(2)
 	resourcesDeleted := uint(3)
 
-	batch, err := DB.CreateDiggerBatch(DiggerVCSGithub, 123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId, 0, "", false, true)
+	batch, err := DB.CreateDiggerBatch(DiggerVCSGithub, 123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId, 0, "", false, true, nil)
 	assert.NoError(t, err)
 
 	job, err := DB.CreateDiggerJob(batch.ID, []byte(jobSpec), "workflow_file.yml")

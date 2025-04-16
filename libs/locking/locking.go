@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/locking/aws"
 	"github.com/diggerhq/digger/libs/locking/azure"
 	"github.com/diggerhq/digger/libs/locking/gcp"
-	"log"
-	"os"
-	"strconv"
-	"strings"
 
 	"cloud.google.com/go/storage"
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
@@ -49,10 +50,9 @@ func (noOpLock NoOpLock) GetLock(resource string) (*int, error) {
 
 func (projectLock *PullRequestLock) Lock() (bool, error) {
 	lockId := projectLock.LockId()
-	log.Printf("Lock %s\n", lockId)
+	slog.Info("Attempting to acquire lock", "lockId", lockId)
 
 	noHangingLocks, err := projectLock.verifyNoHangingLocks()
-
 	if err != nil {
 		return false, err
 	}
@@ -62,11 +62,11 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 	}
 
 	existingLockTransactionId, err := projectLock.InternalLock.GetLock(lockId)
-
 	if err != nil {
-		log.Printf("failed to get lock: %v\n", err)
+		slog.Error("Failed to get lock", "lockId", lockId, "error", err)
 		return false, err
 	}
+
 	if existingLockTransactionId != nil {
 		if *existingLockTransactionId == projectLock.PrNumber {
 			return true, nil
@@ -78,6 +78,7 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 			return false, fmt.Errorf(comment)
 		}
 	}
+
 	lockAcquired, err := projectLock.InternalLock.Lock(projectLock.PrNumber, lockId)
 	if err != nil {
 		return false, err
@@ -88,8 +89,9 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 	if lockAcquired && !isNoOpLock {
 		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(projectLock.PrNumber)
 		reportingLockingSuccess(projectLock.Reporter, comment)
-		log.Println("project " + projectLock.projectId() + " locked successfully. PR # " + strconv.Itoa(projectLock.PrNumber))
-
+		slog.Info("Project locked successfully",
+			"projectId", projectLock.projectId(),
+			"prNumber", projectLock.PrNumber)
 	}
 	return lockAcquired, nil
 }
@@ -98,12 +100,12 @@ func reportingLockingSuccess(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
 		_, _, err := r.Report(comment, utils.AsCollapsibleComment("Locking successful", false))
 		if err != nil {
-			log.Println("failed to publish comment: " + err.Error())
+			slog.Error("Failed to publish comment", "error", err)
 		}
 	} else {
 		_, _, err := r.Report(comment, utils.AsComment("Locking successful"))
 		if err != nil {
-			log.Println("failed to publish comment: " + err.Error())
+			slog.Error("Failed to publish comment", "error", err)
 		}
 	}
 }
@@ -112,12 +114,12 @@ func reportLockingFailed(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
 		_, _, err := r.Report(comment, utils.AsCollapsibleComment("Locking failed", false))
 		if err != nil {
-			log.Println("failed to publish comment: " + err.Error())
+			slog.Error("Failed to publish comment", "error", err)
 		}
 	} else {
 		_, _, err := r.Report(comment, utils.AsComment("Locking failed"))
 		if err != nil {
-			log.Println("failed to publish comment: " + err.Error())
+			slog.Error("Failed to publish comment", "error", err)
 		}
 	}
 }
@@ -138,6 +140,9 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 				return false, fmt.Errorf("failed to check if PR holding a lock is closed: %w", err)
 			}
 			if isPrClosed {
+				slog.Info("Releasing lock held by closed PR",
+					"lockId", lockId,
+					"prNumber", *transactionId)
 				_, err := projectLock.InternalLock.Unlock(lockId)
 				if err != nil {
 					return false, fmt.Errorf("failed to unlock a lock acquired by closed PR %v: %w", transactionId, err)
@@ -156,7 +161,8 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 
 func (projectLock *PullRequestLock) Unlock() (bool, error) {
 	lockId := projectLock.LockId()
-	log.Printf("Unlock %s\n", lockId)
+	slog.Info("Attempting to release lock", "lockId", lockId)
+
 	lock, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
 		return false, err
@@ -173,7 +179,7 @@ func (projectLock *PullRequestLock) Unlock() (bool, error) {
 				comment := "Project unlocked (" + projectLock.projectId() + ")."
 				reportSuccessfulUnlocking(projectLock.Reporter, comment)
 
-				log.Println("Project unlocked")
+				slog.Info("Project unlocked successfully", "projectId", projectLock.projectId())
 				return true, nil
 			}
 		}
@@ -185,19 +191,20 @@ func reportSuccessfulUnlocking(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
 		_, _, err := r.Report(comment, utils.AsCollapsibleComment("Unlocking successful", false))
 		if err != nil {
-			log.Println("failed to publish comment: " + err.Error())
+			slog.Error("Failed to publish comment", "error", err)
 		}
 	} else {
 		_, _, err := r.Report(comment, utils.AsComment("Unlocking successful"))
 		if err != nil {
-			log.Println("failed to publish comment: " + err.Error())
+			slog.Error("Failed to publish comment", "error", err)
 		}
 	}
 }
 
 func (projectLock *PullRequestLock) ForceUnlock() error {
 	lockId := projectLock.LockId()
-	log.Printf("ForceUnlock %s\n", lockId)
+	slog.Info("Force unlocking", "lockId", lockId)
+
 	lock, err := projectLock.InternalLock.GetLock(lockId)
 	if err != nil {
 		return err
@@ -211,7 +218,7 @@ func (projectLock *PullRequestLock) ForceUnlock() error {
 		if lockReleased {
 			comment := "Project unlocked (" + projectLock.projectId() + ")."
 			reportSuccessfulUnlocking(projectLock.Reporter, comment)
-			log.Println("Project unlocked")
+			slog.Info("Project force unlocked successfully", "projectId", projectLock.projectId())
 		}
 		return nil
 	}
@@ -245,11 +252,12 @@ func GetLock() (Lock, error) {
 	disableLocking := strings.ToLower(os.Getenv("DISABLE_LOCKING")) == "true"
 
 	if disableLocking {
-		log.Println("Using NoOp lock provider.")
+		slog.Info("Using NoOp lock provider")
 		return &NoOpLock{}, nil
 	}
+
 	if lockProvider == "" || lockProvider == "aws" {
-		log.Println("Using AWS lock provider.")
+		slog.Info("Using AWS lock provider")
 
 		// https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/
 		// https://aws.github.io/aws-sdk-go-v2/docs/migrating/
@@ -267,7 +275,7 @@ func GetLock() (Lock, error) {
 				return nil, err
 			}
 		} else {
-			log.Printf("Using keyless aws digger_config\n")
+			slog.Info("Using keyless AWS configuration")
 			cfg, err = config.LoadDefaultConfig(context.Background(), config.WithRegion(awsRegion))
 			if err != nil {
 				return nil, err
@@ -279,18 +287,20 @@ func GetLock() (Lock, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to AWS account. %v", err)
 		}
-		log.Printf("Successfully connected to AWS account %s, user Id: %s\n", *result.Account, *result.UserId)
+		slog.Info("Successfully connected to AWS account",
+			"accountId", *result.Account,
+			"userId", *result.UserId)
 
 		dynamoDb := dynamodb.NewFromConfig(cfg)
 		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 		return &dynamoDbLock, nil
 	} else if lockProvider == "gcp" {
-		log.Println("Using GCP lock provider.")
+		slog.Info("Using GCP lock provider")
 		ctx, client := gcp.GetGoogleStorageClient()
 		defer func(client *storage.Client) {
 			err := client.Close()
 			if err != nil {
-				log.Fatalf("Failed to close Google Storage client: %v", err)
+				slog.Error("Failed to close Google Storage client", "error", err)
 			}
 		}(client)
 
@@ -302,6 +312,7 @@ func GetLock() (Lock, error) {
 		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}
 		return &lock, nil
 	} else if lockProvider == "azure" {
+		slog.Info("Using Azure lock provider")
 		return azure.NewStorageAccountLock()
 	}
 

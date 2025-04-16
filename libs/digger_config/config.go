@@ -3,6 +3,12 @@ package digger_config
 const CommentRenderModeBasic = "basic"
 const CommentRenderModeGroupByModule = "group_by_module"
 
+type AutomergeStrategy string
+
+const AutomergeStrategySquash AutomergeStrategy = "squash"
+const AutomergeStrategyMerge AutomergeStrategy = "merge"
+const AutomergeStrategyRebase AutomergeStrategy = "rebase"
+
 type DiggerConfig struct {
 	ApplyAfterMerge            bool
 	AllowDraftPRs              bool
@@ -11,6 +17,7 @@ type DiggerConfig struct {
 	PrLocks                    bool
 	Projects                   []Project
 	AutoMerge                  bool
+	AutoMergeStrategy          AutomergeStrategy
 	Telemetry                  bool
 	Workflows                  map[string]Workflow
 	MentionDriftedProjectsInPR bool

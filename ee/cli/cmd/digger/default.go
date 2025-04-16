@@ -10,6 +10,7 @@ import (
 	"github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
 	"github.com/diggerhq/digger/ee/cli/pkg/drift"
 	github2 "github.com/diggerhq/digger/ee/cli/pkg/github"
+	"github.com/diggerhq/digger/ee/cli/pkg/gitlab"
 	"github.com/diggerhq/digger/ee/cli/pkg/policy"
 	"github.com/diggerhq/digger/ee/cli/pkg/vcs"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
@@ -67,6 +68,9 @@ var defaultCmd = &cobra.Command{
 		case digger.GitHub:
 			logLeader = os.Getenv("GITHUB_ACTOR")
 			github.GitHubCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, comment_updater.CommentUpdaterProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
+		case digger.GitLab:
+			log.Printf("gitlab CI detected")
+			gitlab.GitLabCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, comment_updater.CommentUpdaterProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
 		case digger.None:
 			print("No CI detected.")
 			os.Exit(10)

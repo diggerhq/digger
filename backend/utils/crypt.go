@@ -6,8 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
 	"io"
+
+	"github.com/diggerhq/digger/backend/models"
 )
 
 // Encrypt encrypts a plaintext string using AES-256-GCM
@@ -76,22 +77,24 @@ func AESDecrypt(key []byte, encodedCiphertext string) (string, error) {
 }
 
 // represents a decrypted record
-type DecryptedGithubAppConnection struct {
-	GithubId         int64
-	ClientID         string
-	ClientSecret     string
-	WebhookSecret    string
-	PrivateKey       string
-	PrivateKeyBase64 string
-	Org              string
-	Name             string
-	GithubAppUrl     string
-	OrganisationID   uint
+type DecryptedVCSConnection struct {
+	GithubId               int64
+	ClientID               string
+	ClientSecret           string
+	WebhookSecret          string
+	PrivateKey             string
+	PrivateKeyBase64       string
+	Org                    string
+	Name                   string
+	GithubAppUrl           string
+	OrganisationID         uint
+	BitbucketAccessToken   string
+	BitbucketWebhookSecret string
 }
 
-func DecryptConnection(g *models.GithubAppConnection, key []byte) (*DecryptedGithubAppConnection, error) {
+func DecryptConnection(g *models.VCSConnection, key []byte) (*DecryptedVCSConnection, error) {
 	// Create decrypted version
-	decrypted := &DecryptedGithubAppConnection{
+	decrypted := &DecryptedVCSConnection{
 		GithubId:       g.GithubId,
 		ClientID:       g.ClientID,
 		Org:            g.Org,
@@ -134,6 +137,22 @@ func DecryptConnection(g *models.GithubAppConnection, key []byte) (*DecryptedGit
 			return nil, fmt.Errorf("failed to decrypt private key base64: %w", err)
 		}
 		decrypted.PrivateKeyBase64 = privateKeyBase64
+	}
+
+	if g.BitbucketAccessTokenEncrypted != "" {
+		bitbucketAccessToken, err := AESDecrypt(key, g.BitbucketAccessTokenEncrypted)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt private key base64: %w", err)
+		}
+		decrypted.BitbucketAccessToken = bitbucketAccessToken
+	}
+
+	if g.BitbucketWebhookSecretEncrypted != "" {
+		bitbucketWebhookSecret, err := AESDecrypt(key, g.BitbucketWebhookSecretEncrypted)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt private key base64: %w", err)
+		}
+		decrypted.BitbucketWebhookSecret = bitbucketWebhookSecret
 	}
 
 	return decrypted, nil

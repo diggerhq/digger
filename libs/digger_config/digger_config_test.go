@@ -2,13 +2,13 @@ package digger_config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/dominikbraun/graph"
 	"github.com/go-git/go-git/v5"
+	"github.com/pkg/errors"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -783,7 +783,7 @@ workflows:
 func createTempDir() string {
 	dir, err := os.MkdirTemp("", "tmp")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return dir
 }
@@ -792,25 +792,25 @@ func deleteTempDir(name string) {
 	err := os.RemoveAll(name)
 	if err != nil {
 		fmt.Printf("deleteTempDir error, %v", err.Error())
-		log.Fatal(err)
+		panic(err)
 	}
 }
 
 func createFile(filepath string, content string) func() {
 	f, err := os.Create(filepath)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	_, err = f.WriteString(content)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	return func() {
 		err := f.Close()
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}
 }
@@ -829,7 +829,7 @@ func createAndCloseFile(filepath string, content string) error {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			log.Printf("failed to close file %v\n", f.Name())
+			panic(errors.Errorf("failed to close file %v\n", f.Name()))
 		}
 	}(f)
 	return nil

@@ -4,19 +4,30 @@ import (
 	"gorm.io/gorm"
 )
 
-type GithubAppConnection struct {
+type VCSConnection struct {
 	gorm.Model
-	GithubId                  int64 // app id
-	ClientID                  string
-	ClientSecretEncrypted     string
-	WebhookSecretEncrypted    string
-	PrivateKeyEncrypted       string
-	PrivateKeyBase64Encrypted string
-	Org                       string
-	Name                      string
-	GithubAppUrl              string
-	OrganisationID            uint
-	Organisation              Organisation
+	GithubId                        int64 // app id
+	ClientID                        string
+	ClientSecretEncrypted           string
+	WebhookSecretEncrypted          string
+	PrivateKeyEncrypted             string
+	PrivateKeyBase64Encrypted       string
+	Org                             string
+	Name                            string
+	GithubAppUrl                    string
+	BitbucketAccessTokenEncrypted   string
+	BitbucketWebhookSecretEncrypted string
+	GitlabAccessTokenEncrypted      string
+	GitlabWebhookSecretEncrypted    string
+	VCSType                         DiggerVCSType `gorm:"default:bitbucket"`
+	OrganisationID                  uint
+	Organisation                    Organisation
+}
+
+// TODO: Create migration to rename this table to vcs_connections
+// for some reason atlas wants to destroy and recreate and I did not have time to look into it
+func (VCSConnection) TableName() string {
+	return "github_app_connections" // Keep the original table name
 }
 
 type GithubAppInstallStatus int

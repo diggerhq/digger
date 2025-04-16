@@ -50,3 +50,39 @@ jobs:
 Note the `DRIFT_DETECTION_SLACK_NOTIFICATION` env var that the workflow above is using. This should be set to a Slack Incoming Webhook URL.
 
 Follow the [official Slack guide](https://api.slack.com/messaging/webhooks) to get the Incoming Webhook URL; then add it as an Action secret named `DRIFT_DETECTION_SLACK_NOTIFICATION`
+
+## Gitlab
+
+For using drift detection with gitlab, a similar workflow can be used:
+
+```
+variables:
+  DIGGER_LICENSE_KEY: $DIGGER_LICENSE_KEY
+  INPUT_DIGGER_MODE: "drift-detection"
+  # DIGGER_GITLAB_BASE_URL: $GITLAB_SELFHOSTED_URL
+  NO_BACKEND: true
+  INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: $SLACK_WEBHOOK_URL
+  DISABLE_LOCKING: true
+
+stages:
+- drift_detect
+
+drift_detect:
+  stage: drift_detect
+  script:
+    - env
+    - apt-get update && apt-get install -y gnupg software-properties-common
+    - wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+    - gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint
+    - echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+    - apt update
+    - apt-get install terraform
+    - mkdir -p digger && cd digger && curl -SSL -o digger https://github.com/diggerhq/digger/releases/download/vLatest/digger-ee-cli-Linux-X64
+    - chmod +x digger
+    - PATH=$PATH:$(pwd)
+    - cd ../
+    - digger
+```
+
+The above workflow will detect drift for the repository projects and post if any instances of drift occur to slack
+

@@ -117,7 +117,8 @@
       "pages": [
         "ce/reference/digger.yml",
         "ce/reference/action-inputs",
-        "ce/reference/api"
+        "ce/reference/api",
+        "ce/reference/terraform.lock"
       ]
     },
     {

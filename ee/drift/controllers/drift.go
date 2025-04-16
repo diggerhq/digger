@@ -88,7 +88,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 	}
 	projects := []dg_configuration.Project{*theProject}
 
-	jobsForImpactedProjects, err := generic.CreateJobsForProjects(projects, command, "drift", repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch)
+	jobsForImpactedProjects, err := generic.CreateJobsForProjects(projects, command, "drift", repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch, false)
 	if err != nil {
 		log.Printf("error converting digger project %v to job", project.Name, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not find project %v in digger.yml", theProject)})
@@ -207,14 +207,14 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 		}
 
 		if matches {
-			log.Printf("Crontab matched for org: %v %v", orgSetting.OrgID, cron);
+			log.Printf("Crontab matched for org: %v %v", orgSetting.OrgID, cron)
 			err := sendProcessDriftForOrgRequest(orgSetting.OrgID)
 			if err != nil {
 				log.Printf("Failed to send request to process drift for org: %v", orgSetting.OrgID)
 				continue
 			}
 		} else {
-			log.Printf("Crontab ignored for org: %v %v", orgSetting.OrgID, cron);
+			log.Printf("Crontab ignored for org: %v %v", orgSetting.OrgID, cron)
 		}
 	}
 

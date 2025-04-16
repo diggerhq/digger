@@ -1,13 +1,14 @@
 package gcp
 
 import (
-	"cloud.google.com/go/storage"
-	"github.com/stretchr/testify/assert"
-	"log"
+	"log/slog"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
+
+	"cloud.google.com/go/storage"
+	"github.com/stretchr/testify/assert"
 )
 
 func randomString(length int) string {
@@ -34,12 +35,16 @@ func TestGoogleStorageLock_NewLock(t *testing.T) {
 	defer func(client *storage.Client) {
 		err := client.Close()
 		if err != nil {
-			log.Fatalf("Failed to close Google Storage client: %v", err)
+			slog.Error("Failed to close Google Storage client", "error", err)
+			// Keep the fatal behavior from the original
+			t.Fatalf("Failed to close Google Storage client: %v", err)
 		}
 	}(client)
 
 	bucketName := "digger-lock-test"
 	fileName := "digger-lock-" + randomString(16)
+
+	slog.Info("Testing new lock creation", "fileName", fileName, "bucketName", bucketName)
 
 	bucket := client.Bucket(bucketName)
 	lock := GoogleStorageLock{client, bucket, ctx}
@@ -55,12 +60,15 @@ func TestGoogleStorageLock_LockLocked(t *testing.T) {
 	defer func(client *storage.Client) {
 		err := client.Close()
 		if err != nil {
-			log.Fatalf("Failed to close Google Storage client: %v", err)
+			slog.Error("Failed to close Google Storage client", "error", err)
+			t.Fatalf("Failed to close Google Storage client: %v", err)
 		}
 	}(client)
 
 	bucketName := "digger-lock-test"
 	fileName := "digger-lock-" + randomString(16)
+
+	slog.Info("Testing locking already locked resource", "fileName", fileName, "bucketName", bucketName)
 
 	bucket := client.Bucket(bucketName)
 	lock := GoogleStorageLock{client, bucket, ctx}
@@ -80,13 +88,19 @@ func TestGoogleStorageLock_UnlockLocked(t *testing.T) {
 	defer func(client *storage.Client) {
 		err := client.Close()
 		if err != nil {
-			log.Fatalf("Failed to close Google Storage client: %v", err)
+			slog.Error("Failed to close Google Storage client", "error", err)
+			t.Fatalf("Failed to close Google Storage client: %v", err)
 		}
 	}(client)
 
 	bucketName := "digger-lock-test"
 	fileName := "digger-lock-" + randomString(16)
 	transactionId := 100
+
+	slog.Info("Testing unlocking locked resource",
+		"fileName", fileName,
+		"bucketName", bucketName,
+		"transactionId", transactionId)
 
 	bucket := client.Bucket(bucketName)
 	lock := GoogleStorageLock{client, bucket, ctx}
@@ -110,7 +124,8 @@ func TestGoogleStorageLock_UnlockLockedWithDifferentId(t *testing.T) {
 	defer func(client *storage.Client) {
 		err := client.Close()
 		if err != nil {
-			log.Fatalf("Failed to close Google Storage client: %v", err)
+			slog.Error("Failed to close Google Storage client", "error", err)
+			t.Fatalf("Failed to close Google Storage client: %v", err)
 		}
 	}(client)
 
@@ -118,6 +133,11 @@ func TestGoogleStorageLock_UnlockLockedWithDifferentId(t *testing.T) {
 	fileName := "digger-lock-" + randomString(16)
 	transactionId := 100
 	//anotherTransactionId := 200
+
+	slog.Info("Testing unlocking with different transaction ID",
+		"fileName", fileName,
+		"bucketName", bucketName,
+		"transactionId", transactionId)
 
 	bucket := client.Bucket(bucketName)
 	lock := GoogleStorageLock{client, bucket, ctx}
@@ -137,13 +157,19 @@ func TestGoogleStorageLock_GetExistingLock(t *testing.T) {
 	defer func(client *storage.Client) {
 		err := client.Close()
 		if err != nil {
-			log.Fatalf("Failed to close Google Storage client: %v", err)
+			slog.Error("Failed to close Google Storage client", "error", err)
+			t.Fatalf("Failed to close Google Storage client: %v", err)
 		}
 	}(client)
 
 	bucketName := "digger-lock-test"
 	fileName := "digger-lock-" + randomString(16)
 	transactionId := 100
+
+	slog.Info("Testing getting existing lock",
+		"fileName", fileName,
+		"bucketName", bucketName,
+		"transactionId", transactionId)
 
 	bucket := client.Bucket(bucketName)
 	lock := GoogleStorageLock{client, bucket, ctx}
@@ -163,12 +189,17 @@ func TestGoogleStorageLock_GetNotExistingLock(t *testing.T) {
 	defer func(client *storage.Client) {
 		err := client.Close()
 		if err != nil {
-			log.Fatalf("Failed to close Google Storage client: %v", err)
+			slog.Error("Failed to close Google Storage client", "error", err)
+			t.Fatalf("Failed to close Google Storage client: %v", err)
 		}
 	}(client)
 
 	bucketName := "digger-lock-test"
 	fileName := "digger-lock-" + randomString(16)
+
+	slog.Info("Testing getting non-existing lock",
+		"fileName", fileName,
+		"bucketName", bucketName)
 
 	bucket := client.Bucket(bucketName)
 	lock := GoogleStorageLock{client, bucket, ctx}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -17,11 +16,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func init() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-}
-
 type MockCiBackend struct {
 }
 
@@ -29,9 +23,11 @@ func (m MockCiBackend) TriggerWorkflow(spec spec.Spec, runName string, vcsToken 
 	return nil
 }
 
-func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
-	log.Println("setup suite")
+func (m MockCiBackend) GetWorkflowUrl(spec spec.Spec) (string, error) {
+	return "", nil
+}
 
+func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	// database file name
 	dbName := "database_tasks_test.db"
 
@@ -39,22 +35,22 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	e := os.Remove(dbName)
 	if e != nil {
 		if !strings.Contains(e.Error(), "no such file or directory") {
-			log.Fatal(e)
+			panic(e)
 		}
 	}
 
 	// open and create a new database
 	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// migrate tables
 	err = gdb.AutoMigrate(&models.Policy{}, &models.Organisation{}, &models.Repo{}, &models.Project{}, &models.Token{},
-		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.GithubAppConnection{}, &models.GithubAppInstallationLink{},
+		&models.User{}, &models.ProjectRun{}, &models.GithubAppInstallation{}, &models.VCSConnection{}, &models.GithubAppInstallationLink{},
 		&models.GithubDiggerJobLink{}, &models.DiggerJob{}, &models.DiggerJobParentLink{}, &models.DiggerRun{}, &models.DiggerRunQueueItem{})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	database := &models.Database{GormDB: gdb}
@@ -66,30 +62,29 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	orgName := "testOrg"
 	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create digger repo
 	repoName := "test repo"
 	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// create test project
 	projectName := "test project"
 	_, err = database.CreateProject(projectName, org, repo, false, false)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	models.DB = database
 	// Return a function to teardown the test
 	return func(tb testing.TB) {
-		log.Println("teardown suite")
 		err = os.Remove(dbName)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}, database
 }
@@ -144,7 +139,7 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 
 	for i, testParam := range testParameters {
 		ciService := github2.MockCiService{}
-		batch, _ := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, 123, "", "", "", 22, "", "", "", nil, 0, "", false, true)
+		batch, _ := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, 123, "", "", "", 22, "", "", "", nil, 0, "", false, true, nil)
 		project, _ := models.DB.CreateProject(fmt.Sprintf("test%v", i), nil, nil, false, false)
 		planStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())
 		applyStage, _ := models.DB.CreateDiggerRunStage(batch.ID.String())
