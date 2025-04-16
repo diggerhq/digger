@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/locking"
@@ -726,10 +727,9 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		0,
 		aiSummaryCommentId,
 		config.ReportTerraformOutputs,
-    coverAllImpactedProjects,
+        	coverAllImpactedProjects,
 		nil,
 	)
-
 	if err != nil {
 		slog.Error("Error converting jobs to Digger jobs",
 			"prNumber", prNumber,
@@ -1533,10 +1533,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		0,
 		aiSummaryCommentId,
 		config.ReportTerraformOutputs,
-    coverAllImpactedProjects,
+		coverAllImpactedProjects,
 		nil,
 	)
-
 	if err != nil {
 		slog.Error("Error converting jobs to Digger jobs",
 			"issueNumber", issueNumber,
