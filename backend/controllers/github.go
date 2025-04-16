@@ -727,7 +727,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		0,
 		aiSummaryCommentId,
 		config.ReportTerraformOutputs,
-        	coverAllImpactedProjects,
+		coverAllImpactedProjects,
 		nil,
 	)
 	if err != nil {
