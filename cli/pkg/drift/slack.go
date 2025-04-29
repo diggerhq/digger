@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -54,34 +54,30 @@ func (slack SlackNotification) Send(projectName string, plan string) error {
 
 		jsonData, err := json.Marshal(slackMessage)
 		if err != nil {
-			msg := fmt.Sprintf("failed to marshal slack message. %v", err)
-			log.Printf(msg)
-			return fmt.Errorf(msg)
+			slog.Error("failed to marshal slack message", "error", err)
+			return err
 		}
 
 		request, err := http.NewRequest("POST", slack.Url, bytes.NewBuffer(jsonData))
 		if err != nil {
-			msg := fmt.Sprintf("failed to create slack drift request. %v", err)
-			log.Printf(msg)
-			return fmt.Errorf(msg)
+			slog.Error("failed to create slack drift request", "error", err)
+			return err
 		}
 
 		request.Header.Set("Content-Type", "application/json")
 		resp, err := httpClient.Do(request)
 		if err != nil {
-			msg := fmt.Sprintf("failed to send slack drift request. %v", err)
-			log.Printf(msg)
-			return fmt.Errorf(msg)
+			slog.Error("failed to send slack drift request", "error", err)
+			return err
 		}
 		if resp.StatusCode != 200 {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				msg := fmt.Sprintf("failed to read response body. %v", err)
-				log.Printf(msg)
-				return fmt.Errorf(msg)
+				slog.Error("failed to read response body", "error", err)
+				return err
 			}
+			slog.Error("failed to send slack drift request", "status code", resp.Status, "body", body)
 			msg := fmt.Sprintf("failed to send slack drift request. %v. Message: %v", resp.Status, body)
-			log.Printf(msg)
 			return fmt.Errorf(msg)
 		}
 		resp.Body.Close()

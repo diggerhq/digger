@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/usage"
-	"log"
 	"os"
 )
 
@@ -29,12 +28,4 @@ func main() {
 		usage.ReportErrorAndExit("", fmt.Sprintf("Error occurred during command exec: %v", err), 8)
 	}
 
-}
-
-func init() {
-	log.SetOutput(os.Stdout)
-
-	if os.Getenv("DEBUG") == "true" {
-		log.SetFlags(log.Ltime | log.Lshortfile)
-	}
 }
