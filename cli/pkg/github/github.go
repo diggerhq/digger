@@ -120,6 +120,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
 		slog.Error("error while marshalling yaml", "error", err)
+		os.Exit(1)
 	}
 
 	// Convert to string
