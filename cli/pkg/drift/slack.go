@@ -73,7 +73,7 @@ func (slack SlackNotification) Send(projectName string, plan string) error {
 		if resp.StatusCode != 200 {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				slog.Error("\"failed to read response body", "error", err)
+				slog.Error("failed to read response body", "error", err)
 				return err
 			}
 			slog.Error("failed to send slack drift request", "status code", resp.Status, "body", body)

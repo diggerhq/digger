@@ -194,7 +194,7 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 }
 
 func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService ci.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService ci.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
-	slog.Error("Running command for project", "command", command, "project name", job.ProjectName, "project workflow", job.ProjectWorkflow)
+	slog.Info("Running command for project", "command", command, "project name", job.ProjectName, "project workflow", job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, []string{})
 
@@ -210,8 +210,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 	err = job.PopulateAwsCredentialsEnvVarsForJob()
 	if err != nil {
-		slog.Error("failed to fetch AWS keys, %v", err)
-		os.Exit(1)
+        slog.Error("failed to fetch AWS keys", "error", err)
+        os.Exit(1)
 	}
 
 	projectLock := &locking2.PullRequestLock{
