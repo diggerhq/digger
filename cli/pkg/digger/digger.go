@@ -210,8 +210,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 	err = job.PopulateAwsCredentialsEnvVarsForJob()
 	if err != nil {
-        slog.Error("failed to fetch AWS keys", "error", err)
-        os.Exit(1)
+		slog.Error("failed to fetch AWS keys", "error", err)
+		os.Exit(1)
 	}
 
 	projectLock := &locking2.PullRequestLock{
@@ -747,7 +747,7 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 
 	if !policyEnabled {
 		msg := "skipping this drift application since it is not enabled for this project"
-		slog.Error(msg)
+		slog.Info(msg)
 		return msg, nil
 	}
 	_, planPerformed, nonEmptyPlan, plan, _, err := diggerExecutor.Plan()
