@@ -58,7 +58,11 @@ func sendPayload(payload interface{}) error {
 		slog.Error("Error marshalling usage record", "error", err)
 		return err
 	}
-	req, _ := http.NewRequest("POST", "https://analytics.digger.dev", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", "https://analytics.digger.dev", bytes.NewBuffer(jsonData))
+	if err != nil {
+		slog.Error("Error creating request", "error", err)
+		return err
+	}
 
 	req.Header.Set("Content-Type", "application/json")
 
