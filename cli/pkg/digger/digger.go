@@ -210,8 +210,8 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 	err = job.PopulateAwsCredentialsEnvVarsForJob()
 	if err != nil {
-		slog.Error("failed to fetch AWS keys, %v", err)
-		os.Exit(1)
+        slog.Error("failed to fetch AWS keys", "error", err)
+        os.Exit(1)
 	}
 
 	projectLock := &locking2.PullRequestLock{
