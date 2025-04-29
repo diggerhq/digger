@@ -20,13 +20,29 @@ import (
 	"github.com/diggerhq/digger/libs/storage"
 	"github.com/google/go-github/v61/github"
 	"gopkg.in/yaml.v3"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 )
 
+func initLogger() {
+	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
+	var level slog.Leveler
+	if logLevel == "DEBUG" {
+		level = slog.LevelDebug
+	} else {
+		level = slog.LevelInfo
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	}))
+
+	slog.SetDefault(logger)
+}
+
 func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotificationProvider drift.DriftNotificationProvider) {
-	log.Printf("Using GitHub.\n")
+	initLogger()
+	slog.Info("Using GitHub (backendless)")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
 		usage.SendUsageRecord(githubActor, "log", "initialize")
@@ -47,7 +63,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 	diggerGitHubToken := os.Getenv("DIGGER_GITHUB_TOKEN")
 	if diggerGitHubToken != "" {
-		log.Println("GITHUB_TOKEN has been overridden with DIGGER_GITHUB_TOKEN")
+		slog.Info("GITHUB_TOKEN has been overridden with DIGGER_GITHUB_TOKEN")
 		ghToken = diggerGitHubToken
 	}
 
@@ -69,7 +85,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	if err != nil {
 		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 	}
-	log.Printf("GitHub context parsed successfully\n")
+	slog.Info("GitHub context parsed successfully")
 
 	ghEvent := parsedGhContext.Event
 
@@ -94,16 +110,16 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	if err != nil {
 		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
-	log.Printf("Digger digger_config read successfully\n")
+	slog.Info("Digger digger_config read successfully")
 
 	if diggerConfig.PrLocks == false {
-		log.Printf("info: Using noop lock as configured in digger.yml")
+		slog.Info("Using noop lock as configured in digger.yml")
 		lock = core_locking.NoOpLock{}
 	}
 
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		slog.Error("error while marshalling yaml", "error", err)
 	}
 
 	// Convert to string
@@ -113,7 +129,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	for _, p := range diggerConfig.Projects {
 		err = backendApi.ReportProject(repo, p.Name, yamlStr)
 		if err != nil {
-			log.Printf("Failed to report project %s. %s\n", p.Name, err)
+			slog.Error("Failed to report project", "projectName", p.Name, "error", err)
 		}
 	}
 
@@ -227,11 +243,11 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 			}
 		}
-		log.Printf("Following projects are impacted by pull request #%d\n", prNumber)
+		slog.Info("Following projects are impacted by pull request", "prNumber", prNumber)
 		for _, p := range impactedProjects {
-			log.Printf("- %s\n", p.Name)
+			slog.Info(fmt.Sprintf("- %s\n", p.Name))
 		}
-		log.Println("GitHub event processed successfully")
+		slog.Info("GitHub event processed successfully")
 
 		if dg_github.CheckIfHelpComment(ghEvent) {
 			reply := utils.GetCommands()
@@ -268,7 +284,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 		}
-		log.Println("GitHub event converted to commands successfully")
+		slog.Info("GitHub event converted to commands successfully")
 		logCommands(jobs)
 
 		err = githubPrService.SetOutput(prNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", prNumber))
@@ -303,7 +319,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
 			digger.MergePullRequest(&githubPrService, prNumber, diggerConfig.AutoMergeStrategy)
-			log.Println("PR merged successfully")
+			slog.Info("PR merged successfully")
 		}
 
 		if allAppliesSuccessful {
@@ -315,7 +331,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			}
 		}
 
-		log.Println("Commands executed successfully")
+		slog.Info("Commands executed successfully")
 	}
 
 	usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
@@ -330,5 +346,6 @@ func logCommands(projectCommands []scheduler.Job) {
 		}
 		logMessage += "\n"
 	}
-	log.Print(logMessage)
+	// TODO: improve the error message
+	slog.Info(logMessage)
 }

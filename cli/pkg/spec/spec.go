@@ -9,14 +9,14 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/samber/lo"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"time"
 )
 
 func reportError(spec spec.Spec, backendApi backend2.Api, message string, err error) {
-	log.Printf(message)
+	slog.Error(message)
 	_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "", "", nil)
 	if reportingError != nil {
 		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %v", err), 5)
@@ -39,7 +39,7 @@ func RunSpec(
 
 	backendApi, err := backedProvider.GetBackendApi(spec.Backend)
 	if err != nil {
-		log.Printf("could not get backend api: %v", err)
+		slog.Error("could not get backend api", "error", err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get backend api: %v", err), 1)
 	}
 
@@ -52,7 +52,7 @@ func RunSpec(
 
 	if spec.Job.Commit != "" {
 		// checking out to the commit ID
-		log.Printf("fetching commit ID %v", spec.Job.Commit)
+		slog.Info("fetching commit ID", "commitId", spec.Job.Commit)
 		fetchCmd := exec.Command("git", "fetch", "origin", spec.Job.Commit)
 		fetchCmd.Stdout = os.Stdout
 		fetchCmd.Stderr = os.Stderr
@@ -63,7 +63,7 @@ func RunSpec(
 			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while checking out to commit sha: %v", err), 1)
 		}
 
-		log.Printf("checking out to commit ID %v", spec.Job.Commit)
+		slog.Info("checking out to commit ID", "commitID", spec.Job.Commit)
 		cmd := exec.Command("git", "checkout", spec.Job.Commit)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

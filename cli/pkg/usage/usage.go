@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 )
@@ -55,7 +55,7 @@ func sendPayload(payload interface{}) error {
 	}
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		log.Printf("Error marshalling usage record: %v", err)
+		slog.Error("Error marshalling usage record", "error", err)
 		return err
 	}
 	req, _ := http.NewRequest("POST", "https://analytics.digger.dev", bytes.NewBuffer(jsonData))
@@ -64,9 +64,9 @@ func sendPayload(payload interface{}) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error sending telemetry: %v. If you are using digger in a firewalled environment, "+
+		slog.Warn("Error received while sending telemetry: If you are using digger in a firewalled environment, "+
 			"please consider whitelisting analytics.digger.dev. You can also disable this message by setting "+
-			"telemetry: false in digger.yml", err)
+			"telemetry: false in digger.yml", "error", err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -76,7 +76,7 @@ func sendPayload(payload interface{}) error {
 func init() {
 	currentDir, err := os.Getwd()
 	if err != nil {
-		log.Printf("Failed to get current dir. %s", err)
+		slog.Error("Failed to get current dir", "error", err)
 	}
 	notEmpty := func(key string) bool {
 		return os.Getenv(key) != ""
@@ -109,10 +109,10 @@ func init() {
 }
 
 func ReportErrorAndExit(repoOwner string, message string, exitCode int) {
-	log.Println(message)
+	slog.Error(message)
 	err := SendLogRecord(repoOwner, message)
 	if err != nil {
-		log.Printf("Failed to send log record. %s\n", err)
+		slog.Error("Failed to send log record.", "error", err)
 	}
 	os.Exit(exitCode)
 }
