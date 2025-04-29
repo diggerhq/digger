@@ -297,6 +297,7 @@ type GithubAwsTokenFetcher struct {
 }
 
 func (fetcher *GithubAwsTokenFetcher) SetAudience(audience string) {
+	slog.Debug("GithubAwsTokenFetcher setting audience", "audience", audience)
 	fetcher.audience = audience
 }
 
@@ -317,6 +318,9 @@ func (fetcher *GithubAwsTokenFetcher) GetIdentityToken() ([]byte, error) {
 	url := fmt.Sprintf("%v&audience=%v", tokenIdUrl, audience)
 
 	slog.Debug("Fetching GitHub identity token", "audience", audienceDomain)
+	slog.Debug("len(ACTIONS_ID_TOKEN_REQUEST_URL)", "length of ACTIONS_ID_TOKEN_REQUEST_URL", len(tokenIdUrl))
+	slog.Debug("len(ACTIONS_ID_TOKEN_REQUEST_TOKEN)", "length of ACTIONS_ID_TOKEN_REQUEST_TOKEN", len(bearerToken))
+	slog.Debug("audience (escaped", "audience", audience)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
