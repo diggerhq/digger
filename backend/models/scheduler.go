@@ -52,6 +52,7 @@ type DiggerJob struct {
 	Batch              *DiggerBatch
 	BatchID            *string `gorm:"index:idx_digger_job_id"`
 	PRCommentUrl       string
+	PRCommentId        *int64
 	DiggerJobSummary   DiggerJobSummary
 	DiggerJobSummaryID uint
 	SerializedJobSpec  []byte
@@ -170,3 +171,4 @@ func (b *DiggerBatch) MapToJsonStruct() (orchestrator_scheduler.SerializedBatch,
 
 	return res, nil
 }
+

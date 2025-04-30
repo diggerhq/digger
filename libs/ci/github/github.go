@@ -200,6 +200,15 @@ func (svc GithubService) EditComment(prNumber int, id string, comment string) er
 	return err
 }
 
+func (svc GithubService) DeleteComment(id string) error {
+	commentId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return fmt.Errorf("could not convert id %v to i64: %v", id, err)
+	}
+	_, err = svc.Client.Issues.DeleteComment(context.Background(), svc.Owner, svc.RepoName, commentId)
+	return err
+}
+
 type GithubCommentReaction string
 
 const GithubCommentPlusOneReaction GithubCommentReaction = "+1"

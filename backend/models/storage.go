@@ -1838,3 +1838,40 @@ func (db *Database) GetRepoCache(orgId uint, repoFullName string) (*RepoCache, e
 		"configSize", len(repoCache.DiggerConfig))
 	return &repoCache, nil
 }
+
+func (db *Database) GetDiggerJobsForPR(orgId uint, repoFullName string, prNumber int) ([]DiggerJob, error) {
+	// Step 1: Get all batches for the PR
+	batches := make([]DiggerBatch, 0)
+	result := db.GormDB.Where("repo_full_name = ? AND pr_number = ?", repoFullName, prNumber).Find(&batches)
+	if result.Error != nil {
+		slog.Error("error fetching batches for PR",
+			"prNumber", prNumber,
+			"repoFullName", repoFullName,
+			"orgId", orgId,
+			"error", result.Error)
+		return nil, result.Error
+	}
+	
+	// Step 2: Get all jobs for each batch
+	allJobs := make([]DiggerJob, 0)
+	for _, batch := range batches {
+		jobs, err := db.GetDiggerJobsForBatch(batch.ID)
+		if err != nil {
+			slog.Error("error fetching digger jobs for batch",
+				"batchId", batch.ID,
+				"prNumber", prNumber,
+				"error", err)
+			return nil, err
+		}
+		allJobs = append(allJobs, jobs...)
+	}
+	
+	slog.Info("fetched all digger jobs for PR",
+		"prNumber", prNumber,
+		"repoFullName", repoFullName,
+		"orgId", orgId,
+		"batchCount", len(batches),
+		"jobCount", len(allJobs))
+	
+	return allJobs, nil
+}
