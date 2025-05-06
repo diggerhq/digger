@@ -6,6 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"runtime/debug"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/locking"
@@ -20,13 +28,6 @@ import (
 	dg_locking "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
-	"io"
-	"log"
-	"net/http"
-	"os"
-	"runtime/debug"
-	"strconv"
-	"strings"
 )
 
 type BBWebhookPayload map[string]interface{}
@@ -294,7 +295,8 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		log.Printf("ParseInt err: %v", err)
 		return fmt.Errorf("parseint error: %v", err)
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false, vcsConnectionId)
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false, true, vcsConnectionId)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

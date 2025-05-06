@@ -513,7 +513,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error processing event")
 	}
 
-	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config, false)
+	jobsForImpactedProjects, coverAllImpactedProjects, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config, false)
 	if err != nil {
 		slog.Error("Error converting event to jobs",
 			"prNumber", prNumber,
@@ -727,6 +727,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		0,
 		aiSummaryCommentId,
 		config.ReportTerraformOutputs,
+		coverAllImpactedProjects,
 		nil,
 	)
 	if err != nil {
@@ -1350,7 +1351,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"requestedProject", requestedProject,
 	)
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
 	if err != nil {
 		slog.Error("Error converting event to jobs",
 			"issueNumber", issueNumber,
@@ -1532,6 +1533,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		0,
 		aiSummaryCommentId,
 		config.ReportTerraformOutputs,
+		coverAllImpactedProjects,
 		nil,
 	)
 	if err != nil {

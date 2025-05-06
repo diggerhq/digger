@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"net/http"
+	"testing"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
@@ -8,8 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"testing"
 )
 
 func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
@@ -68,11 +69,12 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 			"  - name: dev\n" +
 			"    dir: dev\n" +
 			"auto_merge: false",
-		GithubInstallationId: int64(41584295),
-		RepoFullName:         "diggerhq/github-job-scheduler",
-		RepoOwner:            "diggerhq",
-		RepoName:             "github-job-scheduler",
-		BatchType:            orchestrator_scheduler.DiggerCommandApply,
+		GithubInstallationId:     int64(41584295),
+		RepoFullName:             "diggerhq/github-job-scheduler",
+		RepoOwner:                "diggerhq",
+		RepoName:                 "github-job-scheduler",
+		BatchType:                orchestrator_scheduler.DiggerCommandApply,
+		CoverAllImpactedProjects: true,
 	}
 	err := AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
@@ -94,8 +96,19 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 		"    dir: dev\n" +
 		"auto_merge: true"
 	batch.BatchType = orchestrator_scheduler.DiggerCommandApply
+	batch.CoverAllImpactedProjects = false
+	err = AutomergePRforBatchIfEnabled(gh, &batch)
+	assert.NoError(t, err)
+	assert.False(t, isMergeCalled)
+
+	batch.DiggerConfig = "" +
+		"projects:\n" +
+		"  - name: dev\n" +
+		"    dir: dev\n" +
+		"auto_merge: true"
+	batch.BatchType = orchestrator_scheduler.DiggerCommandApply
+	batch.CoverAllImpactedProjects = true
 	err = AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
 	assert.True(t, isMergeCalled)
-
 }

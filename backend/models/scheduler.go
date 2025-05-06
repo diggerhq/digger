@@ -24,21 +24,22 @@ const DiggerVCSGitlab DiggerVCSType = "gitlab"
 const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
 
 type DiggerBatch struct {
-	ID                     uuid.UUID `gorm:"primary_key"`
-	VCS                    DiggerVCSType
-	PrNumber               int
-	CommentId              *int64
-	AiSummaryCommentId     string
-	Status                 orchestrator_scheduler.DiggerBatchStatus
-	BranchName             string
-	DiggerConfig           string
-	GithubInstallationId   int64
-	GitlabProjectId        int
-	RepoFullName           string
-	RepoOwner              string
-	RepoName               string
-	BatchType              orchestrator_scheduler.DiggerCommand
-	ReportTerraformOutputs bool
+	ID                       uuid.UUID `gorm:"primary_key"`
+	VCS                      DiggerVCSType
+	PrNumber                 int
+	CommentId                *int64
+	AiSummaryCommentId       string
+	Status                   orchestrator_scheduler.DiggerBatchStatus
+	BranchName               string
+	DiggerConfig             string
+	GithubInstallationId     int64
+	GitlabProjectId          int
+	RepoFullName             string
+	RepoOwner                string
+	RepoName                 string
+	BatchType                orchestrator_scheduler.DiggerCommand
+	ReportTerraformOutputs   bool
+	CoverAllImpactedProjects bool
 	// used for module source grouping comments
 	SourceDetails   []byte
 	VCSConnectionId *uint ``

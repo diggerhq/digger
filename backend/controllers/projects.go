@@ -1385,6 +1385,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded &&
 		batch.BatchType == orchestrator_scheduler.DiggerCommandApply &&
+		batch.CoverAllImpactedProjects == true &&
 		automerge == true {
 
 		slog.Info("Conditions met for auto-merge, proceeding",
