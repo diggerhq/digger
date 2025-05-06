@@ -2416,7 +2416,8 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// we get repos accessible to this installation
 	slog.Debug("Listing repositories for installation", "installationId", installationId64)
 
-	listRepos, _, err := client.Apps.ListRepos(context.Background(), nil)
+	opt := &github.ListOptions{Page: 1, PerPage: 100}
+	listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
 	if err != nil {
 		slog.Error("Failed to list existing repositories",
 			"installationId", installationId64,
