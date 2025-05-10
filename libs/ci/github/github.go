@@ -451,6 +451,8 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 	defaultBranch := *payload.Repo.DefaultBranch
 	prBranch := payload.PullRequest.Head.GetRef()
 
+	coversAllImpactedProjects := true
+
 	for _, project := range impactedProjects {
 		workflow, ok := workflows[project.Workflow]
 		if !ok {
@@ -614,7 +616,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 			})
 		}
 	}
-	return jobs, true, nil
+	return jobs, coversAllImpactedProjects, nil
 }
 
 func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerConfig, ciService ci.PullRequestService) ([]digger_config.Project, *digger_config.Project, int, error) {

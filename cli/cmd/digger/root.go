@@ -11,7 +11,7 @@ import (
 	locking2 "github.com/diggerhq/digger/libs/locking"
 	core_policy "github.com/diggerhq/digger/libs/policy"
 	"github.com/spf13/cobra"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -108,15 +108,15 @@ func PreRun(cmd *cobra.Command, args []string) {
 	if os.Getenv("NO_BACKEND") == "true" {
 		lock, err = locking2.GetLock()
 	} else {
-		log.Printf("Warning: not performing locking in cli since digger is invoked with orchestrator mode, any arguments to LOCKING_PROVIDER will be ignored")
+		slog.Warn("Not performing locking in cli since digger is invoked with orchestrator mode, any arguments to LOCKING_PROVIDER will be ignored")
 		lock = locking2.NoOpLock{}
 		err = nil
 	}
 	if err != nil {
-		log.Printf("Failed to create lock provider. %s\n", err)
+		slog.Error("Failed to create lock provider", "error", err)
 		os.Exit(2)
 	}
-	log.Println("Lock provider has been created successfully")
+	slog.Info("Lock provider has been created successfully")
 }
 
 var rootCmd = &cobra.Command{

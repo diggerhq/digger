@@ -513,7 +513,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error processing event")
 	}
 
-	jobsForImpactedProjects, _, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config, false)
+	jobsForImpactedProjects, coverAllImpactedProjects, err := dg_github.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config, false)
 	if err != nil {
 		slog.Error("Error converting event to jobs",
 			"prNumber", prNumber,
@@ -727,6 +727,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		0,
 		aiSummaryCommentId,
 		config.ReportTerraformOutputs,
+		coverAllImpactedProjects,
 		nil,
 	)
 	if err != nil {
@@ -1350,7 +1351,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"requestedProject", requestedProject,
 	)
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
 	if err != nil {
 		slog.Error("Error converting event to jobs",
 			"issueNumber", issueNumber,
@@ -1532,6 +1533,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		0,
 		aiSummaryCommentId,
 		config.ReportTerraformOutputs,
+		coverAllImpactedProjects,
 		nil,
 	)
 	if err != nil {
@@ -2414,7 +2416,8 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// we get repos accessible to this installation
 	slog.Debug("Listing repositories for installation", "installationId", installationId64)
 
-	listRepos, _, err := client.Apps.ListRepos(context.Background(), nil)
+	opt := &github.ListOptions{Page: 1, PerPage: 100}
+	listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
 	if err != nil {
 		slog.Error("Failed to list existing repositories",
 			"installationId", installationId64,

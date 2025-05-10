@@ -13,15 +13,31 @@ import (
 	"github.com/diggerhq/digger/libs/policy"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
-	"log"
+	"log/slog"
 	"os"
 	"runtime/debug"
 )
 
+func initLogger() {
+	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
+	var level slog.Leveler
+	if logLevel == "DEBUG" {
+		level = slog.LevelDebug
+	} else {
+		level = slog.LevelInfo
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	}))
+
+	slog.SetDefault(logger)
+
+}
+
 var defaultCmd = &cobra.Command{
 	Use: "default",
 	Run: func(cmd *cobra.Command, args []string) {
-
+		initLogger()
 		specStr := os.Getenv("DIGGER_RUN_SPEC")
 		if specStr != "" {
 			var spec lib_spec.Spec
@@ -31,7 +47,7 @@ var defaultCmd = &cobra.Command{
 			}
 
 			var spec_err error
-			
+
 			spec_err = spec2.RunSpec(
 				spec,
 				lib_spec.VCSProviderBasic{},
@@ -65,10 +81,10 @@ var defaultCmd = &cobra.Command{
 
 		defer func() {
 			if r := recover(); r != nil {
-				log.Println(fmt.Sprintf("stacktrace from panic: \n" + string(debug.Stack())))
+				slog.Error(fmt.Sprintf("stacktrace from panic: " + string(debug.Stack())))
 				err := usage.SendLogRecord(logLeader, fmt.Sprintf("Panic occurred. %s", r))
 				if err != nil {
-					log.Printf("Failed to send log record. %s\n", err)
+					slog.Error("Failed to send log record", "error", err)
 				}
 				os.Exit(1)
 			}
