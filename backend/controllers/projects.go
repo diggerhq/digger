@@ -834,6 +834,11 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 	}
 
+	err = DeleteOlderPRCommentsIfEnabled(d.GithubClientProvider, batch)
+	if err != nil {
+		slog.Error("failed to delete older comments", "repoFullName", batch.RepoFullName, "prNumber", batch.PrNumber, "batchID", batch.ID, "error", err)
+	}
+
 	// return batch summary to client
 	res, err := batch.MapToJsonStruct()
 	if err != nil {
