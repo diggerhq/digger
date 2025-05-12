@@ -24,6 +24,7 @@ const DiggerVCSGitlab DiggerVCSType = "gitlab"
 const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
 
 type DiggerBatch struct {
+	gorm.Model
 	ID                       uuid.UUID `gorm:"primary_key"`
 	VCS                      DiggerVCSType
 	PrNumber                 int
@@ -172,4 +173,3 @@ func (b *DiggerBatch) MapToJsonStruct() (orchestrator_scheduler.SerializedBatch,
 
 	return res, nil
 }
-

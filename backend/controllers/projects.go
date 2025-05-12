@@ -1518,14 +1518,42 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 		}
 
 		for _, prBatch := range prBatches {
-			jobs, err := models.DB.GetDiggerJobsForBatch(prBatch.ID)
-			if err != nil {
-
-			}
-			for _, prJob := range jobs {
-				prService.DeleteComment(strconv.FormatInt(*prJob.PRCommentId, 10))
+			if prBatch.BatchType == orchestrator_scheduler.DiggerCommandApply {
+				slog.Info("found previous apply job for PR therefore not deleting earlier comments")
+				return nil
 			}
 		}
+
+		allDeletesSuccessful := true
+		for _, prBatch := range prBatches {
+			if prBatch.ID == batch.ID {
+				// don't delete the current batch comments
+				continue
+			}
+			jobs, err := models.DB.GetDiggerJobsForBatch(prBatch.ID)
+			if err != nil {
+				slog.Error("could not get jobs for batch", "batchId", prBatch.ID, "error", err)
+				// won't return error here since can still continue deleting rest of batches
+				continue
+			}
+			for _, prJob := range jobs {
+				if prJob.PRCommentId == nil {
+					slog.Debug("PR comment not found for job, ignoring deletion", "JobID", prJob.ID)
+					continue
+				}
+				err = prService.DeleteComment(strconv.FormatInt(*prJob.PRCommentId, 10))
+				if err != nil {
+					slog.Error("Could not delete comment for job", "jobID", prJob.ID, "commentID", prJob.PRCommentId, "error", err)
+					allDeletesSuccessful = false
+				}
+			}
+		}
+
+		if !allDeletesSuccessful {
+			slog.Warn("some of the previous comments failed to delete")
+		}
+
+		return nil
 
 	} else {
 		if batch.BatchType != orchestrator_scheduler.DiggerCommandPlan {
