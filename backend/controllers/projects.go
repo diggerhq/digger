@@ -1546,6 +1546,9 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 					slog.Debug("PR comment not found for job, ignoring deletion", "JobID", prJob.ID)
 					continue
 				}
+				// TODO: this delete will fail with 404 for all previous batches that already have been deleted
+				// for now its okay but maybe better approach is only considering the most recent or have a marker on each batch
+				// on whether or not its comments were deleted yet
 				err = prService.DeleteComment(strconv.FormatInt(*prJob.PRCommentId, 10))
 				if err != nil {
 					slog.Error("Could not delete comment for job", "jobID", prJob.ID, "commentID", prJob.PRCommentId, "error", err)
