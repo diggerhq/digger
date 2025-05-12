@@ -209,6 +209,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.AutoMerge = false
 	}
 
+	if diggerYaml.DeletePriorComments != nil {
+		diggerConfig.DeletePriorComments = false
+	} else {
+		diggerConfig.DeletePriorComments = *diggerYaml.DeletePriorComments
+	}
+
 	if diggerYaml.AutoMergeStrategy != nil {
 		err := ValidateAutomergeStrategy(*diggerYaml.AutoMergeStrategy)
 		if err != nil {

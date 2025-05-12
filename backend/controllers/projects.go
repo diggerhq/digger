@@ -1453,3 +1453,90 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 
 	return nil
 }
+
+func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	slog.Info("Checking if PR should be auto-merged",
+		"batchId", batch.ID,
+		"prNumber", batch.PrNumber,
+		"batchStatus", batch.Status,
+		"batchType", batch.BatchType,
+	)
+
+	diggerYmlString := batch.DiggerConfig
+	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
+	if err != nil {
+		slog.Error("Error loading Digger config from batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error loading digger config from batch: %v", err)
+	}
+
+	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	if err != nil {
+		slog.Error("Error converting Digger YAML to config",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error loading digger config from yaml: %v", err)
+	}
+
+	deleteOlderComments := config.DeletePriorComments
+
+	slog.Debug("Delete prior comments settings",
+		"enabled", deleteOlderComments,
+		"batchStatus", batch.Status,
+		"batchType", batch.BatchType,
+	)
+
+	if (batch.Status == orchestrator_scheduler.BatchJobSucceeded || batch.Status == orchestrator_scheduler.BatchJobFailed) &&
+		batch.BatchType == orchestrator_scheduler.DiggerCommandPlan &&
+		batch.CoverAllImpactedProjects == true &&
+		deleteOlderComments == true {
+
+		slog.Info("Conditions met for auto-merge, proceeding",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+		)
+
+		prService, err := GetPrServiceFromBatch(batch, gh)
+		if err != nil {
+			slog.Error("Error getting PR service",
+				"batchId", batch.ID,
+				"error", err,
+			)
+			return fmt.Errorf("error getting github service: %v", err)
+		}
+
+		prBatches, err := models.DB.GetDiggerBatchesForPR(batch.RepoFullName, batch.PrNumber)
+		if err != nil {
+			slog.Error("Error getting PR service",
+				"batchId", batch.ID,
+				"error", err,
+			)
+			return fmt.Errorf("error getting github service: %v", err)
+		}
+
+		for _, prBatch := range prBatches {
+			jobs, err := models.DB.GetDiggerJobsForBatch(prBatch.ID)
+			if err != nil {
+
+			}
+			for _, prJob := range jobs {
+				prService.DeleteComment(strconv.FormatInt(*prJob.PRCommentId, 10))
+			}
+		}
+
+	} else {
+		if batch.BatchType != orchestrator_scheduler.DiggerCommandPlan {
+			slog.Debug("Skipping deletion of prior comments - not an plan command",
+				"batchId", batch.ID,
+				"batchType", batch.BatchType,
+			)
+		} else if !deleteOlderComments {
+			slog.Debug("Skipping deletion of prior comments - not enabled in config", "batchId", batch.ID)
+		}
+	}
+
+	return nil
+}
