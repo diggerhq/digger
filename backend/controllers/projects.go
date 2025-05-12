@@ -492,6 +492,7 @@ type SetJobStatusRequest struct {
 	JobSummary      *iac_utils.IacSummary       `json:"job_summary"`
 	Footprint       *iac_utils.IacPlanFootprint `json:"job_plan_footprint"`
 	PrCommentUrl    string                      `json:"pr_comment_url"`
+	PrCommentId     string                      `json:"pr_comment_id"`
 	TerraformOutput string                      `json:"terraform_output"`
 }
 
@@ -527,6 +528,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		"jobId", jobId,
 		"currentStatus", job.Status,
 		"newStatus", request.Status,
+		"prCommentId", request.PrCommentId,
 		"batchId", job.BatchID,
 	)
 
@@ -566,8 +568,20 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			)
 		}
 
+		var prCommentId *int64
+		num, err := strconv.ParseInt(request.PrCommentId, 10, 64)
+		if err != nil {
+			slog.Debug("could not parse commentID", "prCommentId", prCommentId, "error", err)
+			slog.Warn("setting prCommentId to nil since could not parse")
+			prCommentId = nil
+		} else {
+			prCommentId = &num
+		}
+
 		job.PRCommentUrl = request.PrCommentUrl
-		err := models.DB.UpdateDiggerJob(job)
+		job.PRCommentId = prCommentId
+
+		err = models.DB.UpdateDiggerJob(job)
 		if err != nil {
 			slog.Error("Error updating job",
 				"jobId", jobId,

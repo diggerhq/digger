@@ -31,7 +31,7 @@ func (n NoopApi) ReportProjectRun(namespace string, projectName string, startedA
 	return nil
 }
 
-func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, PrCommentId string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 
@@ -135,8 +135,8 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	return nil
 }
 
-func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
-	repoNameForBackendReporting := strings.ReplaceAll(repoFullName, "/", "-")
+func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, PrCommentId string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+	repoNameForBackendReporting := strings.ReplaceAll(repo, "/", "-")
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
 		slog.Error("not able to parse digger cloud url", "error", err)
@@ -167,6 +167,7 @@ func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName strin
 		"job_summary":        planSummaryJson,
 		"job_plan_footprint": planFootprint.ToJson(),
 		"pr_comment_url":     PrCommentUrl,
+		"pr_comment_id":      PrCommentId,
 		"terraform_output":   terraformOutput,
 	}
 
