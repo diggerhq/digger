@@ -1460,7 +1460,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 }
 
 func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
-	slog.Info("Checking if PR should be auto-merged",
+	slog.Info("Checking if PR should have prior comments deleted",
 		"batchId", batch.ID,
 		"prNumber", batch.PrNumber,
 		"batchStatus", batch.Status,
@@ -1499,7 +1499,7 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 		batch.CoverAllImpactedProjects == true &&
 		deleteOlderComments == true {
 
-		slog.Info("Conditions met for auto-merge, proceeding",
+		slog.Info("Conditions met for deleting prior comments, proceeding",
 			"batchId", batch.ID,
 			"prNumber", batch.PrNumber,
 		)
