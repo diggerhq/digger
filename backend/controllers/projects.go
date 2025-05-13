@@ -492,6 +492,7 @@ type SetJobStatusRequest struct {
 	JobSummary      *iac_utils.IacSummary       `json:"job_summary"`
 	Footprint       *iac_utils.IacPlanFootprint `json:"job_plan_footprint"`
 	PrCommentUrl    string                      `json:"pr_comment_url"`
+	PrCommentId     string                      `json:"pr_comment_id"`
 	TerraformOutput string                      `json:"terraform_output"`
 }
 
@@ -527,6 +528,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		"jobId", jobId,
 		"currentStatus", job.Status,
 		"newStatus", request.Status,
+		"prCommentId", request.PrCommentId,
 		"batchId", job.BatchID,
 	)
 
@@ -566,8 +568,20 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			)
 		}
 
+		var prCommentId *int64
+		num, err := strconv.ParseInt(request.PrCommentId, 10, 64)
+		if err != nil {
+			slog.Debug("could not parse commentID", "prCommentId", prCommentId, "error", err)
+			slog.Warn("setting prCommentId to nil since could not parse")
+			prCommentId = nil
+		} else {
+			prCommentId = &num
+		}
+
 		job.PRCommentUrl = request.PrCommentUrl
-		err := models.DB.UpdateDiggerJob(job)
+		job.PRCommentId = prCommentId
+
+		err = models.DB.UpdateDiggerJob(job)
 		if err != nil {
 			slog.Error("Error updating job",
 				"jobId", jobId,
@@ -818,6 +832,11 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 				"error", err,
 			)
 		}
+	}
+
+	err = DeleteOlderPRCommentsIfEnabled(d.GithubClientProvider, batch)
+	if err != nil {
+		slog.Error("failed to delete older comments", "repoFullName", batch.RepoFullName, "prNumber", batch.PrNumber, "batchID", batch.ID, "error", err)
 	}
 
 	// return batch summary to client
@@ -1434,6 +1453,124 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 			)
 		} else if !automerge {
 			slog.Debug("Skipping auto-merge - not enabled in config", "batchId", batch.ID)
+		}
+	}
+
+	return nil
+}
+
+func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	slog.Info("Checking if PR should have prior comments deleted",
+		"batchId", batch.ID,
+		"prNumber", batch.PrNumber,
+		"batchStatus", batch.Status,
+		"batchType", batch.BatchType,
+	)
+
+	diggerYmlString := batch.DiggerConfig
+	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
+	if err != nil {
+		slog.Error("Error loading Digger config from batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error loading digger config from batch: %v", err)
+	}
+
+	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	if err != nil {
+		slog.Error("Error converting Digger YAML to config",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error loading digger config from yaml: %v", err)
+	}
+
+	deleteOlderComments := config.DeletePriorComments
+
+	slog.Debug("Delete prior comments settings",
+		"enabled", deleteOlderComments,
+		"batchStatus", batch.Status,
+		"batchType", batch.BatchType,
+	)
+
+	if (batch.Status == orchestrator_scheduler.BatchJobSucceeded || batch.Status == orchestrator_scheduler.BatchJobFailed) &&
+		batch.BatchType == orchestrator_scheduler.DiggerCommandPlan &&
+		batch.CoverAllImpactedProjects == true &&
+		deleteOlderComments == true {
+
+		slog.Info("Conditions met for deleting prior comments, proceeding",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+		)
+
+		prService, err := GetPrServiceFromBatch(batch, gh)
+		if err != nil {
+			slog.Error("Error getting PR service",
+				"batchId", batch.ID,
+				"error", err,
+			)
+			return fmt.Errorf("error getting github service: %v", err)
+		}
+
+		prBatches, err := models.DB.GetDiggerBatchesForPR(batch.RepoFullName, batch.PrNumber)
+		if err != nil {
+			slog.Error("Error getting PR service",
+				"batchId", batch.ID,
+				"error", err,
+			)
+			return fmt.Errorf("error getting github service: %v", err)
+		}
+
+		for _, prBatch := range prBatches {
+			if prBatch.BatchType == orchestrator_scheduler.DiggerCommandApply {
+				slog.Info("found previous apply job for PR therefore not deleting earlier comments")
+				return nil
+			}
+		}
+
+		allDeletesSuccessful := true
+		for _, prBatch := range prBatches {
+			if prBatch.ID == batch.ID {
+				// don't delete the current batch comments
+				continue
+			}
+			jobs, err := models.DB.GetDiggerJobsForBatch(prBatch.ID)
+			if err != nil {
+				slog.Error("could not get jobs for batch", "batchId", prBatch.ID, "error", err)
+				// won't return error here since can still continue deleting rest of batches
+				continue
+			}
+			for _, prJob := range jobs {
+				if prJob.PRCommentId == nil {
+					slog.Debug("PR comment not found for job, ignoring deletion", "JobID", prJob.ID)
+					continue
+				}
+				// TODO: this delete will fail with 404 for all previous batches that already have been deleted
+				// for now its okay but maybe better approach is only considering the most recent or have a marker on each batch
+				// on whether or not its comments were deleted yet
+				err = prService.DeleteComment(strconv.FormatInt(*prJob.PRCommentId, 10))
+				if err != nil {
+					slog.Error("Could not delete comment for job", "jobID", prJob.ID, "commentID", prJob.PRCommentId, "error", err)
+					allDeletesSuccessful = false
+				}
+			}
+		}
+
+		if !allDeletesSuccessful {
+			slog.Warn("some of the previous comments failed to delete")
+		}
+
+		return nil
+
+	} else {
+		if batch.BatchType != orchestrator_scheduler.DiggerCommandPlan {
+			slog.Debug("Skipping deletion of prior comments - not an plan command",
+				"batchId", batch.ID,
+				"batchType", batch.BatchType,
+			)
+		} else if !deleteOlderComments {
+			slog.Debug("Skipping deletion of prior comments - not enabled in config", "batchId", batch.ID)
 		}
 	}
 

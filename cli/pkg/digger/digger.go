@@ -131,7 +131,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 	if allAppliesSuccess == true && reportFinalStatusToBackend == true {
 		currentJob := jobs[0]
 
-		_, jobPrCommentUrl, err := reporter.Flush()
+		jobPrCommentId, jobPrCommentUrl, err := reporter.Flush()
 		if err != nil {
 			slog.Error("error while sending job comments", "error", err)
 			cmt, cmt_err := prService.PublishComment(*currentJob.PullRequestNumber, fmt.Sprintf(":yellow_circle: Warning: failed to post report for project %v, received error: %v.\n\n you may review details in the job logs", currentJob.ProjectName, err))
@@ -153,7 +153,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		prNumber := *currentJob.PullRequestNumber
 
 		iacUtils := iac_utils.GetIacUtilsIacType(currentJob.IacType())
-		batchResult, err := backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, terraformOutput, iacUtils)
+		batchResult, err := backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, jobPrCommentId, terraformOutput, iacUtils)
 		if err != nil {
 			slog.Error("error reporting Job status", "error", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)

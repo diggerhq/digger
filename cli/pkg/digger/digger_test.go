@@ -155,6 +155,10 @@ func (m *MockPRManager) EditComment(prNumber int, id string, comment string) err
 	return nil
 }
 
+func (m *MockPRManager) DeleteComment(id string) error {
+	return nil
+}
+
 func (m *MockPRManager) CreateCommentReaction(id string, reaction string) error {
 	m.Commands = append(m.Commands, RunInfo{"EditComment", id + " " + reaction, time.Now()})
 	return nil

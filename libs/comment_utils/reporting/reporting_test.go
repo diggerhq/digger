@@ -99,6 +99,10 @@ func (t MockCiService) EditComment(prNumber int, id string, comment string) erro
 	return nil
 }
 
+func (svc MockCiService) DeleteComment(id string) error {
+	return nil
+}
+
 func (svc MockCiService) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil
