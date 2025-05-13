@@ -87,6 +87,10 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(pr
 	return nil
 }
 
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) DeleteComment(id string) error {
+	return nil
+}
+
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) CreateCommentReaction(id string, reaction string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "CreateCommentReaction")
 	return nil

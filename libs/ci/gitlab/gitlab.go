@@ -329,6 +329,10 @@ func (gitlabService GitLabService) EditComment(prNumber int, id string, comment 
 	return err
 }
 
+func (gitlabService GitLabService) DeleteComment(id string) error {
+	return nil
+}
+
 func (gitlabService GitLabService) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil

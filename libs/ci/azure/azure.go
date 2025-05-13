@@ -347,6 +347,10 @@ func (a *AzureReposService) EditComment(prNumber int, id string, comment string)
 	return err
 }
 
+func (a *AzureReposService) DeleteComment(id string) error {
+	return nil
+}
+
 func (a *AzureReposService) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil

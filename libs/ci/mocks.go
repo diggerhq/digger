@@ -71,6 +71,10 @@ func (t MockPullRequestManager) EditComment(prNumber int, id string, comment str
 	return nil
 }
 
+func (t MockPullRequestManager) DeleteComment(id string) error {
+	return nil
+}
+
 func (t MockPullRequestManager) CreateCommentReaction(id string, reaction string) error {
 	return nil
 }

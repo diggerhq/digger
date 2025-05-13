@@ -9,6 +9,7 @@ type PullRequestService interface {
 	PublishIssue(title string, body string, labels *[]string) (int64, error)
 	UpdateIssue(ID int64, title string, body string) (int64, error)
 	EditComment(prNumber int, id string, comment string) error
+	DeleteComment(id string) error
 	CreateCommentReaction(id string, reaction string) error
 	GetComments(prNumber int) ([]Comment, error)
 	GetApprovals(prNumber int) ([]string, error)

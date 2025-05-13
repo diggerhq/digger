@@ -183,7 +183,11 @@ func (b BitbucketAPI) EditComment(prNumber int, id string, comment string) error
 	return nil
 }
 
-func (a BitbucketAPI) CreateCommentReaction(id string, reaction string) error {
+func (b BitbucketAPI) DeleteComment(id string) error {
+	return nil
+}
+
+func (b BitbucketAPI) CreateCommentReaction(id string, reaction string) error {
 	// TODO implement me
 	return nil
 }
