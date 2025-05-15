@@ -42,7 +42,6 @@ func (g GithubActionCi) GetWorkflowUrl(spec spec.Spec) (string, error) {
 
 	_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(g.Client, spec.VCS.RepoOwner, spec.VCS.RepoName, spec.JobId)
 	if err != nil {
-		slog.Error("Error getting workflow ID from job", "error", err)
 		return "", err
 	} else {
 		return workflowRunUrl, nil
