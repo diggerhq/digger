@@ -28,6 +28,10 @@ inputs:
     description: AWS region
     required: false
     default: us-east-1
+  aws-role-duration-seconds:
+    description: AWS role duration in seconds. Acceptable values range from 15 minutes (900 seconds) to 12 hours (43200 seconds).
+    required: false
+    default: 3600
   setup-google-cloud:
     description: Setup google cloud
     required: false
@@ -255,6 +259,7 @@ runs:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         aws-region: ${{ inputs.aws-region }}
+        role-duration-seconds: ${{ inputs.aws-role-duration-seconds }}
       if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume == '' }}
 
     - name: Configure OIDC AWS credentials
@@ -263,6 +268,7 @@ runs:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         aws-region: ${{ inputs.aws-region }}
         web-identity-token-file: ${{ inputs.aws-web-identity-token-file }}
+        role-duration-seconds: ${{ inputs.aws-role-duration-seconds }}
       if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume != '' }}
 
     - name: Configure OIDC Azure credentials
