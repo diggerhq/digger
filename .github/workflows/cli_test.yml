@@ -38,6 +38,5 @@ jobs:
       - name: Test
         shell: bash
         run: |
-          go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
-          go test -json ./... | gotestfmt 
+          go test ./...
         working-directory: cli
