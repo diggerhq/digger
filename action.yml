@@ -29,7 +29,7 @@ inputs:
     required: false
     default: us-east-1
   aws-role-duration-seconds:
-    description: AWS role duration in seconds
+    description: AWS role duration in seconds. Acceptable values range from 15 minutes (900 seconds) to 12 hours (43200 seconds).
     required: false
     default: 3600
   setup-google-cloud:
