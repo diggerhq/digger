@@ -33,7 +33,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.os }}
           goarch: ${{ matrix.arch }}
-          goversion: 1.21.1
+          goversion: 1.24.0
           project_path: ./cli/cmd/digger
           binary_name: digger
           pre_command: export CGO_ENABLED=0
