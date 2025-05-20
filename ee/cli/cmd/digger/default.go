@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/fips140"
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
@@ -24,8 +25,8 @@ import (
 var defaultCmd = &cobra.Command{
 	Use: "default",
 	Run: func(cmd *cobra.Command, args []string) {
-
 		specStr := os.Getenv("DIGGER_RUN_SPEC")
+		log.Printf("Fips140 enabled in build: %v", fips140.Enabled())
 		if specStr != "" {
 			var spec lib_spec.Spec
 			err := json.Unmarshal([]byte(specStr), &spec)
