@@ -50,7 +50,7 @@ func (l LockingExecutorWrapper) Apply() (*iac_utils.IacSummary, bool, string, er
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
 		msg := fmt.Sprintf("digger apply, error locking project: %v", err)
-		return nil, false, msg, fmt.Errorf(msg)
+		return nil, false, msg, fmt.Errorf("%s", msg)
 	}
 	slog.Info("Lock result", "locked", locked)
 	if locked {
