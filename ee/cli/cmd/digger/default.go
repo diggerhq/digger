@@ -78,7 +78,7 @@ var defaultCmd = &cobra.Command{
 
 		defer func() {
 			if r := recover(); r != nil {
-				log.Println(fmt.Sprintf("stacktrace from panic: \n" + string(debug.Stack())))
+				log.Println("stacktrace from panic: \n" + string(debug.Stack()))
 				err := usage.SendLogRecord(logLeader, fmt.Sprintf("Panic occurred. %s", r))
 				if err != nil {
 					log.Printf("Failed to send log record. %s\n", err)

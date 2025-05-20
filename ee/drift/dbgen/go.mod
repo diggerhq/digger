@@ -1,6 +1,6 @@
 module dbgen
 
-go 1.22.0
+go 1.24.0
 
 require (
 	gorm.io/driver/postgres v1.5.9

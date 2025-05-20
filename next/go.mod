@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/next
 
-go 1.22.4
+go 1.24.0
 
 replace github.com/diggerhq/digger/backend => ../backend
 

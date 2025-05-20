@@ -31,7 +31,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.os }}
           goarch: ${{ matrix.arch }}
-          goversion: 1.21.1
+          goversion: 1.24.0
           project_path: ./backend
           binary_name: digger-api
           pre_command: export CGO_ENABLED=0
