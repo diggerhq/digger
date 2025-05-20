@@ -57,7 +57,8 @@
         "ee/opa",
         "ee/multi-github",
         "ee/gitlab",
-        "ee/buildkite"
+        "ee/buildkite",
+        "ee/fips-140"
       ]
     },
     {
