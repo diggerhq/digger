@@ -78,7 +78,7 @@ func (slack SlackNotification) Send(projectName string, plan string) error {
 			}
 			slog.Error("failed to send slack drift request", "status code", resp.Status, "body", body)
 			msg := fmt.Sprintf("failed to send slack drift request. %v. Message: %v", resp.Status, body)
-			return fmt.Errorf(msg)
+			return fmt.Errorf("%s", msg)
 		}
 		resp.Body.Close()
 	}

@@ -1,6 +1,6 @@
 module dbgen
 
-go 1.22.4
+go 1.24.0
 
 require (
 	github.com/Joker/jade v1.1.3

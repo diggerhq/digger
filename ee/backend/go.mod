@@ -4,7 +4,7 @@ replace github.com/diggerhq/digger/libs => ../../libs
 
 replace github.com/diggerhq/digger/backend => ../../backend
 
-go 1.22.4
+go 1.24.0
 
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
