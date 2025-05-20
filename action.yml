@@ -8,6 +8,10 @@ inputs:
     description: use ee cli?
     required: false
     default: 'false'
+  fips:
+    description: build with fips140 standard?
+    required: false
+    default: 'false'
   setup-aws:
     description: Setup AWS
     required: false
@@ -358,6 +362,10 @@ runs:
     - name: Copy Digger CLI go.sum for cache key
       run: |
         if [[ ${{ inputs.ee }} == "true" ]]; then
+          if [[ ${{ inputs.fips }} == "true" ]]; then
+            export GODEBUG=fips140=only
+            export GOFIPS140=v1.0.0
+          fi
           cp "$GITHUB_ACTION_PATH/ee/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
         else
           cp "$GITHUB_ACTION_PATH/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
@@ -467,7 +475,11 @@ runs:
       shell: bash
       run: |
         if [[ ${{ inputs.ee }} == "true" ]]; then
-          curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }} -o digger
+          if [[ ${{ inputs.fips }} == "true" ]]; then
+            curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips -o digger
+          else
+            curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }} -o digger
+          fi
         else
           curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }} -o digger
         fi
