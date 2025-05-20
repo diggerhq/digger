@@ -33,7 +33,6 @@ jobs:
           project_path: ./ee/cli/cmd/digger
           binary_name: digger
           pre_command: export CGO_ENABLED=0
-          ldflags: ${{ matrix.ldflags }}
           sha256sum: true
           md5sum: false
           asset_name: "digger-ee-cli-Linux-X64-fips"

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/fips140"
 	"embed"
 	"fmt"
 	"github.com/diggerhq/digger/backend/bootstrap"
@@ -31,6 +32,8 @@ func main() {
 		log.Printf("error checking license %v", err)
 		os.Exit(1)
 	}
+
+	log.Printf("fips140 enabled: %v", fips140.Enabled())
 	githubProvider := github.DiggerGithubEEClientProvider{}
 	diggerController := ce_controllers.DiggerController{
 		CiBackendProvider:                  ci_backends2.EEBackendProvider{},
