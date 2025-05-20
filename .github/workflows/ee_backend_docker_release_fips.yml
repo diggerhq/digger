@@ -8,7 +8,7 @@ name: EE Backend Publish docker image
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}_backend_ee
+  IMAGE_NAME: ${{ github.repository }}_backend_ee_fips
 
 jobs:
   build-and-push-image:
@@ -45,5 +45,7 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
           labels: ${{ steps.meta.outputs.labels }}
-
+          build-args: |
+            GODEBUG_VALUE=fips140=only
+            GOFIPS140_VALUE=v1.0.0            
             

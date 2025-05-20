@@ -8,6 +8,10 @@ inputs:
     description: use ee cli?
     required: false
     default: 'false'
+  fips:
+    description: build with fips140 standard?
+    required: false
+    default: 'false'
   setup-aws:
     description: Setup AWS
     required: false
@@ -427,6 +431,10 @@ runs:
           else
             cd $GITHUB_ACTION_PATH/cli
           fi
+          if [[ ${{ inputs.fips }} == "true" ]]; then
+            export GODEBUG=fips140=only
+            export GOFIPS140=v1.0.0
+          fi        
           go build -o digger ./cmd/digger
           chmod +x digger
           PATH=$PATH:$(pwd)
@@ -467,7 +475,11 @@ runs:
       shell: bash
       run: |
         if [[ ${{ inputs.ee }} == "true" ]]; then
-          curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }} -o digger
+          if [[ ${{ inputs.fips }} == "true" ]]; then
+            curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips -o digger
+          else
+            curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }} -o digger
+          fi
         else
           curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }} -o digger
         fi

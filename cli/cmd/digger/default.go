@@ -19,6 +19,7 @@ import (
 )
 
 func initLogger() {
+
 	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
 	var level slog.Leveler
 	if logLevel == "DEBUG" {
