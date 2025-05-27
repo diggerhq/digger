@@ -1522,12 +1522,18 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 			return fmt.Errorf("error getting github service: %v", err)
 		}
 
+		slog.Debug("Found previous PR batches",
+			"len(prBatches)", len(prBatches),
+		)
+
 		for _, prBatch := range prBatches {
 			if prBatch.BatchType == orchestrator_scheduler.DiggerCommandApply {
 				slog.Info("found previous apply job for PR therefore not deleting earlier comments")
 				return nil
 			}
 		}
+
+		slog.Debug("Deleting prior comments for batch", "batchId", batch.ID)
 
 		allDeletesSuccessful := true
 		for _, prBatch := range prBatches {
@@ -1557,6 +1563,7 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 			}
 		}
 
+		slog.Debug("Deletion of prior comments complete", "allDeletesSuccessful", allDeletesSuccessful)
 		if !allDeletesSuccessful {
 			slog.Warn("some of the previous comments failed to delete")
 		}
