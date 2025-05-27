@@ -254,6 +254,8 @@ func initLogging() {
 		level = slog.LevelDebug
 	} else if logLevel == "WARN" {
 		level = slog.LevelWarn
+	} else if logLevel == "ERROR" {
+		level = slog.LevelError
 	} else {
 		level = slog.LevelInfo
 	}
