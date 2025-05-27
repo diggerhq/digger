@@ -24,6 +24,8 @@ func initLogger() {
 	var level slog.Leveler
 	if logLevel == "DEBUG" {
 		level = slog.LevelDebug
+	} else if logLevel == "WARN" {
+		level = slog.LevelWarn
 	} else {
 		level = slog.LevelInfo
 	}

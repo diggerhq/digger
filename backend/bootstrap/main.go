@@ -247,8 +247,19 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 }
 
 func initLogging() {
+	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
+	var level slog.Leveler
+
+	if logLevel == "DEBUG" {
+		level = slog.LevelDebug
+	} else if logLevel == "WARN" {
+		level = slog.LevelWarn
+	} else {
+		level = slog.LevelInfo
+	}
+
 	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: level,
 	})
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
