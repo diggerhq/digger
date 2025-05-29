@@ -58,7 +58,8 @@
         "ee/multi-github",
         "ee/gitlab",
         "ee/buildkite",
-        "ee/fips-140"
+        "ee/fips-140",
+        "ee/ai-summaries"
       ]
     },
     {
