@@ -1561,6 +1561,21 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 					allDeletesSuccessful = false
 				}
 			}
+			// delete previous summary table
+			if prBatch.CommentId != nil {
+				err = prService.DeleteComment(strconv.FormatInt(*prBatch.CommentId, 10))
+				if err != nil {
+					slog.Warn("Could not delete summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.CommentId, "error", err)
+				}
+			}
+
+			// delete the summary comment
+			if prBatch.AiSummaryCommentId != "" {
+				err = prService.DeleteComment(prBatch.AiSummaryCommentId)
+				if err != nil {
+					slog.Warn("Could not delete AI summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.AiSummaryCommentId, "error", err)
+				}
+			}
 		}
 
 		slog.Debug("Deletion of prior comments complete", "allDeletesSuccessful", allDeletesSuccessful)
