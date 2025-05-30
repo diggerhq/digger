@@ -138,9 +138,17 @@ func (web *WebController) AddPolicyPage(c *gin.Context) {
 			c.HTML(http.StatusOK, "policy_add.tmpl", pageContext)
 		}
 
-		log.Printf("repo: %v\n", project.Repo)
+		log.Printf("repo: %v\n", project.RepoFullName)
 
-		policy := models.Policy{Project: project, Policy: policyText, Type: policyType, Organisation: project.Organisation, Repo: project.Repo}
+		repo, err := models.DB.GetRepoByFullName(middleware.ORGANISATION_ID_KEY, project.RepoFullName)
+		if err != nil {
+			log.Printf("Failed to fetch repo by name: %v, %v\n", project.RepoFullName, err)
+			message := "Failed to create a policy"
+			services.AddError(c, message)
+			pageContext := services.GetMessages(c)
+			c.HTML(http.StatusOK, "policy_add.tmpl", pageContext)
+		}
+		policy := models.Policy{Project: project, Policy: policyText, Type: policyType, Organisation: project.Organisation, Repo: repo}
 
 		err = models.DB.GormDB.Create(&policy).Error
 		if err != nil {
