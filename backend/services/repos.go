@@ -20,7 +20,7 @@ func LoadProjectsFromGithubRepo(gh utils2.GithubClientProvider, installationId s
 	}
 	link, err := models.DB.GetGithubAppInstallationLink(installationId64)
 	if err != nil {
-		slog.Error("Error getting GetGithubAppInstallationLink: %v", "installationId", installationId, "error", err)
+		slog.Error("getting GetGithubAppInstallationLink: %v", "installationId", installationId, "error", err)
 		return fmt.Errorf("error getting github app link")
 	}
 
@@ -28,24 +28,24 @@ func LoadProjectsFromGithubRepo(gh utils2.GithubClientProvider, installationId s
 	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
 	repo, err := models.DB.GetRepo(orgId, diggerRepoName)
 	if err != nil {
-		slog.Error("Error getting Repo", "repoName", diggerRepoName, "error", err)
+		slog.Error("getting Repo", "repoName", diggerRepoName, "error", err)
 		return fmt.Errorf("error getting github app link")
 	}
 	if repo == nil {
-		slog.Error("Repo not found", orgId, "repoName", diggerRepoName, "error", err)
+		slog.Error("Repo not found", "orgId", orgId, "repoName", diggerRepoName, "error", err)
 		return fmt.Errorf("repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
 	}
 
 	_, token, err := utils.GetGithubService(gh, installationId64, repoFullName, repoOwner, repoName)
 	if err != nil {
-		slog.Error("Error getting github service", "error", err)
+		slog.Error("getting github service", "error", err)
 		return fmt.Errorf("error getting github service")
 	}
 
 	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
-			slog.Error("ERROR load digger.yml: %v", "error", err)
+			slog.Error("failed to load digger.yml: %v", "error", err)
 			return fmt.Errorf("error loading digger.yml %v", err)
 		}
 		models.DB.RefreshProjectsFromRepo(strconv.Itoa(int(link.OrganisationId)), *config, repoFullName)

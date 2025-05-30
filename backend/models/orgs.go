@@ -73,10 +73,10 @@ const (
 
 type Project struct {
 	gorm.Model
-	Name              string `gorm:"uniqueIndex:idx_project"`
-	OrganisationID    uint   `gorm:"uniqueIndex:idx_project"`
+	Name              string `gorm:"uniqueIndex:idx_project_org"`
+	OrganisationID    uint   `gorm:"uniqueIndex:idx_project_org"`
 	Organisation      *Organisation
-	RepoFullName      string
+	RepoFullName      string `gorm:"uniqueIndex:idx_project_org"`
 	ConfigurationYaml string // TODO: probably needs to be deleted
 	Status            ProjectStatus
 	IsGenerated       bool
