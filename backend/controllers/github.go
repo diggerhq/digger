@@ -100,6 +100,13 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 				return
 			}
 		}
+	case *github.PushEvent:
+		slog.Info("Processing PushEvent",
+			"action", *event.Action,
+			"repo", *event.Repo.FullName,
+		)
+
+		go handlePushEvent(gh, event, appId64)
 
 	case *github.IssueCommentEvent:
 		slog.Info("Processing IssueCommentEvent",
@@ -380,6 +387,33 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent, appI
 	}
 
 	slog.Info("Successfully handled installation deleted event", "installationId", installationId)
+	return nil
+}
+
+func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, appId int64) error {
+	slog.Debug("Handling push event", "appId", appId, "payload", payload)
+	defer func() {
+		if r := recover(); r != nil {
+			stack := string(debug.Stack())
+			slog.Error("Recovered from panic in handlePushEvent", "error", r, slog.Group("stack", slog.String("trace", stack)))
+		}
+	}()
+
+	installationId := *payload.Installation.ID
+	repoName := *payload.Repo.Name
+	repoOwner := *payload.Repo.Owner.Login
+	repoFullName := *payload.Repo.FullName
+	cloneURL := *payload.Repo.CloneURL
+	ref := *payload.Ref
+	defaultBranch := *payload.Repo.DefaultBranch
+
+	if strings.HasSuffix(ref, defaultBranch) {
+		err := services.LoadProjectsFromGithubRepo(gh, strconv.FormatInt(installationId, 10), repoFullName, repoOwner, repoName, cloneURL, defaultBranch)
+		if err != nil {
+			slog.Error("Failed to load projects from GitHub repo", "error", err)
+		}
+	}
+
 	return nil
 }
 

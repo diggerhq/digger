@@ -57,6 +57,13 @@ func RunsForProject(c *gin.Context) {
 		return
 	}
 
+	repo, err := models.DB.GetRepoByFullName(org.ID, project.RepoFullName)
+	if err != nil {
+		slog.Error("Could not fetch repo", "projectId", projectId, "repoFullName", project.RepoFullName, "error", err)
+		c.String(http.StatusInternalServerError, "Could not fetch repo")
+		return
+	}
+
 	if project.OrganisationID != org.ID {
 		slog.Warn("Forbidden access: not allowed to access project",
 			"projectOrgId", project.OrganisationID,
@@ -66,9 +73,9 @@ func RunsForProject(c *gin.Context) {
 		return
 	}
 
-	runs, err := models.DB.ListDiggerRunsForProject(project.Name, project.Repo.ID)
+	runs, err := models.DB.ListDiggerRunsForProject(project.Name, repo.ID)
 	if err != nil {
-		slog.Error("Could not fetch runs", "projectId", projectId, "repoId", project.Repo.ID, "error", err)
+		slog.Error("Could not fetch runs", "projectId", projectId, "repoId", repo.ID, "error", err)
 		c.String(http.StatusInternalServerError, "Could not fetch runs")
 		return
 	}
@@ -87,7 +94,7 @@ func RunsForProject(c *gin.Context) {
 	slog.Info("Successfully fetched runs for project",
 		"projectId", projectId,
 		"projectName", project.Name,
-		"repoId", project.Repo.ID,
+		"repoId", repo.ID,
 		"runCount", len(runs))
 
 	response := make(map[string]interface{})
