@@ -14,7 +14,7 @@ func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec
 	managementRepo := os.Getenv("DIGGER_MANAGEMENT_REPO")
 	if managementRepo != "" {
 		log.Printf("info: using management repo policy provider")
-		token := os.Getenv("GITHUB_TOKEN")
+		token := os.Getenv("GITLAB_TOKEN")
 		if token == "" {
 			return nil, fmt.Errorf("failed to get managent repo policy provider: GITHUB_TOKEN not specified")
 		}
