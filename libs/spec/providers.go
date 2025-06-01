@@ -315,12 +315,12 @@ func (v VCSProviderBasic) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) 
 }
 
 type SpecPolicyProvider interface {
-	GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy2.Checker, error)
+	GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string, vcsType string) (policy2.Checker, error)
 }
 
 type BasicPolicyProvider struct{}
 
-func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string) (policy2.Checker, error) {
+func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string, vcsType string) (policy2.Checker, error) {
 	slog.Debug("Getting policy provider",
 		"policyType", policySpec.PolicyType,
 		"diggerHost", diggerHost,

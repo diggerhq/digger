@@ -105,7 +105,7 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
+	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken, spec.VCS.VcsType)
 	if err != nil {
 		message := fmt.Sprintf("could not get policy provider: %v", err)
 		reportError(spec, backendApi, message, err)
