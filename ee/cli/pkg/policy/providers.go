@@ -15,17 +15,21 @@ func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec
 	if managementRepo != "" {
 		log.Printf("info: using management repo policy provider")
 		var token = ""
+		var tokenName = ""
 		switch vcsType {
 		case "github":
 			token = os.Getenv("GITHUB_TOKEN")
+			tokenName = "GITHUB_TOKEN"
 		case "gitlab":
 			token = os.Getenv("GITLAB_TOKEN")
+			tokenName = "GITLAB_TOKEN"
 		default:
 			token = os.Getenv("GITHUB_TOKEN")
+			tokenName = "GITHUB_TOKEN"
 		}
 
 		if token == "" {
-			return nil, fmt.Errorf("failed to get managent repo policy provider: GITHUB_TOKEN not specified")
+			return nil, fmt.Errorf("failed to get managent repo policy provider: %v not specified", tokenName)
 		}
 		return policy.DiggerPolicyChecker{
 			PolicyProvider: DiggerRepoPolicyProvider{
