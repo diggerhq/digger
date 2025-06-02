@@ -121,7 +121,8 @@
         "ce/reference/digger.yml",
         "ce/reference/action-inputs",
         "ce/reference/api",
-        "ce/reference/terraform.lock"
+        "ce/reference/terraform.lock",
+        "ce/securing-digger/spec-signing"
       ]
     },
     {
