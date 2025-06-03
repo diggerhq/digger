@@ -322,6 +322,8 @@ func checkBlockInChangedFiles(dir string, changedFiles []string) bool {
 }
 
 func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, changedFiles []string) error {
+	os.Setenv("DIGGER_GENERATE_PROJECT", "true")
+	defer os.Unsetenv("DIGGER_GENERATE_PROJECT")
 	if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.TerragruntParsingConfig != nil {
 		slog.Warn("terragrunt generation using top level config is deprecated",
 			"recommendation", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
