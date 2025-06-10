@@ -95,7 +95,10 @@ func (web *WebController) PoliciesPage(c *gin.Context) {
 }
 
 func (web *WebController) AddPolicyPage(c *gin.Context) {
+	orgId := c.GetHeader(middleware.ORGANISATION_ID_KEY)
+
 	if c.Request.Method == "GET" {
+
 		message := ""
 		projects, done := models.DB.GetProjectsFromContext(c, middleware.ORGANISATION_ID_KEY)
 		if !done {
@@ -140,7 +143,7 @@ func (web *WebController) AddPolicyPage(c *gin.Context) {
 
 		log.Printf("repo: %v\n", project.RepoFullName)
 
-		repo, err := models.DB.GetRepoByFullName(middleware.ORGANISATION_ID_KEY, project.RepoFullName)
+		repo, err := models.DB.GetRepoByFullName(orgId, project.RepoFullName)
 		if err != nil {
 			log.Printf("Failed to fetch repo by name: %v, %v\n", project.RepoFullName, err)
 			message := "Failed to create a policy"
