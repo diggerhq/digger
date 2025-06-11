@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
@@ -445,6 +446,8 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	// pr is merged and the branch does not exist we handle that gracefully
 	if action == "closed" {
 		slog.Debug("Handling closed PR action", "prNumber", prNumber)
+		// we sleep for 1 second to give github time to delete the branch
+		time.Sleep(1 * time.Second)
 
 		branchName, _, err := ghService.GetBranchName(prNumber)
 		if err != nil {
