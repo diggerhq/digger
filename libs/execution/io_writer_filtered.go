@@ -21,11 +21,14 @@ func NewFilteringWriter(w io.Writer, pattern *regexp.Regexp) *FilteringWriter {
 func (fw *FilteringWriter) Write(p []byte) (n int, err error) {
 	// Filter the content
 
-	if fw.pattern != nil {
-		p = fw.pattern.ReplaceAll(p, []byte("<REDACTED>"))
+	if fw.pattern == nil {
+		return fw.writer.Write(p)
 	}
+
+	filtered := fw.pattern.ReplaceAll(p, []byte("<REDACTED>"))
+
 	// Write filtered content to underlying writer
-	_, err = fw.writer.Write(p)
+	_, err = fw.writer.Write(filtered)
 	// Return original length to maintain compatibility
 	return len(p), err
 }
