@@ -69,7 +69,8 @@ func ToConfigStage(configStage *configuration.Stage) *Stage {
 		steps = append(steps, ToConfigStep(step))
 	}
 	return &Stage{
-		Steps: steps,
+		Steps:       steps,
+		FilterRegex: configStage.FilterRegex,
 	}
 }
 
