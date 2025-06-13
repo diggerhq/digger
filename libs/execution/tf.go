@@ -98,8 +98,8 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 	var mwout, mwerr io.Writer
 	var stdout, stderr bytes.Buffer
 	if printOutputToStdout {
-		filteredStdout := NewFilteringWriter(os.Stdout, regexp.MustCompile("((?i)secret:\\s\")[^\"]*"))
-		filteredStderr := NewFilteringWriter(os.Stdout, regexp.MustCompile("((?i)secret:\\s\")[^\"]*"))
+		filteredStdout := NewFilteringWriter(os.Stdout, regexp.MustCompile("((?i)secret:\\s\"?)[^\"]*"))
+		filteredStderr := NewFilteringWriter(os.Stdout, regexp.MustCompile("((?i)secret:\\s\"?)[^\"]*"))
 		mwout = io.MultiWriter(filteredStdout, &stdout)
 		mwerr = io.MultiWriter(filteredStderr, &stderr)
 	} else {

@@ -22,7 +22,7 @@ func (fw *FilteringWriter) Write(p []byte) (n int, err error) {
 	// Filter the content
 
 	if fw.pattern != nil {
-		p = fw.pattern.ReplaceAll(p, []byte("[REDACTED]"))
+		p = fw.pattern.ReplaceAll(p, []byte("<REDACTED>"))
 	}
 	// Write filtered content to underlying writer
 	_, err = fw.writer.Write(p)
