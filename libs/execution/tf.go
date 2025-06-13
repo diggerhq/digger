@@ -97,6 +97,7 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 
 	var regEx *regexp.Regexp
 	if filterRegex != nil {
+		slog.Debug("using regex for filter", "regex", *filterRegex)
 		var err error
 		regEx, err = regexp.Compile(*filterRegex)
 		if err != nil {
@@ -106,6 +107,7 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 			return "", "", 0, fmt.Errorf("regex for filter is invalid: %v", err)
 		}
 	} else {
+		slog.Debug("no regex for filter")
 		regEx = nil
 	}
 
