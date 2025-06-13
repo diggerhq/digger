@@ -267,7 +267,11 @@ func (s *StepYaml) UnmarshalYAML(value *yaml.Node) error {
 		}
 		s.Value = v
 		if _, ok := stepMap["shell"]; ok {
-			s.Shell = stepMap["shell"].(string)
+			shell, ok := stepMap["shell"].(string)
+			if !ok {
+				return fmt.Errorf("step.run.shell must be a string, but got %T", stepMap["shell"])
+			}
+			s.Shell = shell
 		}
 		return nil
 	}

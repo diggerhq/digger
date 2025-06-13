@@ -357,6 +357,46 @@ workflows:
 	assert.Contains(t, err.Error(), "step.run must be a string")
 }
 
+func TestProjectWithMisconfiguredRunShellMisconfiguredThrowsError(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+  - name: "dev"
+    dir: "dev"
+  - name: "staging"
+    dir: "staging"
+  - name: "prod"
+    dir: "prod"
+workflows:
+  default:
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger unlock"]
+    plan:
+      steps:
+      - init:
+          extra_args: ["-backend-config=tf_backend.tfbackend" ]
+      - run: terragrunt plan -input=false -out=$PLANFILE
+        shell:
+          - incorrect
+          - "bash"
+    apply:
+      steps:
+      - init:
+          extra_args: ["-backend-config=tf_backend.tfbackend" ]
+      - apply:
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	_, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	assert.Error(t, err, "expected error to be raised")
+	assert.Contains(t, err.Error(), "step.run.shell must be a string")
+}
+
 func TestDiggerGenerateProjects(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
