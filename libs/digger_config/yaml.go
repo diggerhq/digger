@@ -2,6 +2,7 @@ package digger_config
 
 import (
 	"errors"
+	"fmt"
 
 	"gopkg.in/yaml.v3"
 )
@@ -260,7 +261,11 @@ func (s *StepYaml) UnmarshalYAML(value *yaml.Node) error {
 
 	if _, ok := stepMap["run"]; ok {
 		s.Action = "run"
-		s.Value = stepMap["run"].(string)
+		v, ok := stepMap["run"].(string)
+		if !ok {
+			return fmt.Errorf("step.run must be a string, but got %T", stepMap["run"])
+		}
+		s.Value = v
 		if _, ok := stepMap["shell"]; ok {
 			s.Shell = stepMap["shell"].(string)
 		}
