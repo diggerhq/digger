@@ -289,6 +289,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			if d.RunEnvVars == nil {
 				d.RunEnvVars = make(map[string]string)
 			}
+			slog.Debug("adding plan file path to environment", "DIGGER_PLANFILE", d.PlanPathProvider.LocalPlanFilePath())
 			d.RunEnvVars["DIGGER_PLANFILE"] = d.PlanPathProvider.LocalPlanFilePath()
 			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
