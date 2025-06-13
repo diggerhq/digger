@@ -142,7 +142,8 @@ func jsonToStage(stageJson StageJson) *Stage {
 		}
 	}
 	return &Stage{
-		Steps: steps,
+		Steps:       steps,
+		FilterRegex: stageJson.FilterRegex,
 	}
 }
 
