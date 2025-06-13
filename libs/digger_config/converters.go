@@ -120,7 +120,9 @@ func copyTerraformEnvConfig(terraformEnvConfig *TerraformEnvConfigYaml) *Terrafo
 }
 
 func copyStage(stage *StageYaml) *Stage {
-	result := Stage{}
+	result := Stage{
+		FilterRegex: stage.FilterRegex,
+	}
 	result.Steps = make([]Step, len(stage.Steps))
 
 	for i, s := range stage.Steps {

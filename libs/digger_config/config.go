@@ -87,14 +87,16 @@ type EnvVar struct {
 }
 
 type Step struct {
-	Action    string
-	Value     string
-	ExtraArgs []string
-	Shell     string
+	Action      string
+	Value       string
+	ExtraArgs   []string
+	Shell       string
+	FilterRegex string
 }
 
 type Stage struct {
-	Steps []Step
+	Steps       []Step
+	FilterRegex *string
 }
 
 func defaultWorkflow() *Workflow {

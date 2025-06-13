@@ -41,7 +41,7 @@ func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) 
 	return stdout, stderr, err
 }
 
-func (tf OpenTofu) Plan(params []string, envs map[string]string, planArtefactFilePath string) (bool, string, string, error) {
+func (tf OpenTofu) Plan(params []string, envs map[string]string, planArtefactFilePath string, s *string) (bool, string, string, error) {
 	if tf.Workspace != "default" {
 		err := tf.switchToWorkspace(envs)
 		if err != nil {

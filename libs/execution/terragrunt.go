@@ -49,7 +49,7 @@ func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (s
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planArtefactFilePath string) (bool, string, string, error) {
+func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planArtefactFilePath string, s *string) (bool, string, string, error) {
 	if planArtefactFilePath != "" {
 		params = append(params, []string{"-out", planArtefactFilePath}...)
 	}

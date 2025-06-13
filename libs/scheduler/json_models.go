@@ -14,7 +14,8 @@ type StepJson struct {
 }
 
 type StageJson struct {
-	Steps []StepJson `json:"steps"`
+	Steps       []StepJson `json:"steps"`
+	FilterRegex *string    `json:"filter_regex"`
 }
 
 type cognitoConfig = digger_config.AwsCognitoOidcConfig
@@ -48,7 +49,7 @@ type JobJson struct {
 	SkipMergeCheck          bool              `json:"skip_merge_check"`
 	CommandRoleArn          string            `json:"command_role_arn"`
 	StateRoleArn            string            `json:"state_role_arn"`
-	CognitoOidcConfig       *cognitoConfig	  `json:"aws_cognito_oidc"` 
+	CognitoOidcConfig       *cognitoConfig    `json:"aws_cognito_oidc"`
 }
 
 func (j *JobJson) IsPlan() bool {
@@ -159,7 +160,8 @@ func stageToJson(stage *Stage) StageJson {
 		}
 	}
 	return StageJson{
-		Steps: steps,
+		Steps:       steps,
+		FilterRegex: stage.FilterRegex,
 	}
 }
 
