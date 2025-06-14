@@ -32,10 +32,16 @@ func (fw *FilteringWriter) Write(p []byte) (n int, err error) {
 	}
 
 	if fw.writer != nil {
-		fw.writer.Write(filtered)
+		_, err = fw.writer.Write(filtered)
+		if err != nil {
+			return 0, err
+		}
 	}
 	if fw.buffer != nil {
-		fw.buffer.Write(filtered)
+		_, err = fw.buffer.Write(filtered)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	// Return original length to maintain compatibility
