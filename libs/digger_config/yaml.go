@@ -78,7 +78,8 @@ func (s *StageYaml) ToCoreStage() Stage {
 }
 
 type StageYaml struct {
-	Steps []StepYaml `yaml:"steps"`
+	FilterRegex *string    `yaml:"filter_regex,omitempty"`
+	Steps       []StepYaml `yaml:"steps"`
 }
 
 type StepYaml struct {

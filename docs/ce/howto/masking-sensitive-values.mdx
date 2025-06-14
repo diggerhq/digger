@@ -1,0 +1,27 @@
+---
+title: "Masking sensitive values"
+---
+
+You can use a regular expression to ensure that senstivie outputs are masked from plan outputs and comments by digger.
+This can be done at the workflow level as follows:
+
+```
+workflows:
+  default:
+    plan:
+      filter_regex: "((?i)filterme:\\s\"?)[^\"]*"
+      steps:
+        - init
+        - plan
+```
+
+Currently this is only supported at the plan step. The filter_regex is a regular expression and it will mask any occurence of
+that expression in the logs and the comment, replacing it with `<REDACTED>`. For example the following terraform:
+
+```
+output "filterme" {
+  value = "example_secret: filterme: topsecret"
+}
+```
+
+![](/images/configuration/masking-sensitive-values.png)

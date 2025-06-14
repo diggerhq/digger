@@ -234,7 +234,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			// TODO remove those only for pulumi project
 			planArgs = append(planArgs, step.ExtraArgs...)
 
-			_, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath())
+			_, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v", err)
 			}
