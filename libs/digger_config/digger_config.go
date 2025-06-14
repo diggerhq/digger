@@ -552,7 +552,6 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 			if workflow == nil {
 				continue
 			}
-			fmt.Printf("workflow %v", workflow)
 			if workflow.Plan != nil && workflow.Plan.FilterRegex != nil {
 				_, err := regexp.Compile(*workflow.Plan.FilterRegex)
 				if err != nil {
