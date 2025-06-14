@@ -2,6 +2,7 @@ package execution
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"regexp"
 )
@@ -32,12 +33,14 @@ func (fw *FilteringWriter) Write(p []byte) (n int, err error) {
 	}
 
 	if fw.writer != nil {
+		fmt.Printf("filtered: %v\n", filtered)
 		_, err = fw.writer.Write(filtered)
 		if err != nil {
 			return 0, err
 		}
 	}
 	if fw.buffer != nil {
+		fmt.Printf("filtered: %v\n", filtered)
 		_, err = fw.buffer.Write(filtered)
 		if err != nil {
 			return 0, err
