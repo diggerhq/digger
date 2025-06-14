@@ -549,6 +549,10 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 
 	if configYaml.Workflows != nil {
 		for _, workflow := range configYaml.Workflows {
+			if workflow == nil {
+				continue
+			}
+			fmt.Printf("workflow %v", workflow)
 			if workflow.Plan != nil && workflow.Plan.FilterRegex != nil {
 				_, err := regexp.Compile(*workflow.Plan.FilterRegex)
 				if err != nil {
