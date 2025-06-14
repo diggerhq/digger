@@ -1,6 +1,7 @@
 package execution
 
 import (
+	"bytes"
 	"io"
 	"regexp"
 )
@@ -8,12 +9,14 @@ import (
 // FilteringWriter wraps an io.Writer and filters sensitive content
 type FilteringWriter struct {
 	writer  io.Writer
+	buffer  *bytes.Buffer
 	pattern *regexp.Regexp
 }
 
-func NewFilteringWriter(w io.Writer, pattern *regexp.Regexp) *FilteringWriter {
+func NewFilteringWriter(w io.Writer, buf *bytes.Buffer, pattern *regexp.Regexp) *FilteringWriter {
 	return &FilteringWriter{
 		writer:  w,
+		buffer:  buf,
 		pattern: pattern,
 	}
 }
@@ -21,14 +24,20 @@ func NewFilteringWriter(w io.Writer, pattern *regexp.Regexp) *FilteringWriter {
 func (fw *FilteringWriter) Write(p []byte) (n int, err error) {
 	// Filter the content
 
+	var filtered []byte
 	if fw.pattern == nil {
-		return fw.writer.Write(p)
+		filtered = p
+	} else {
+		filtered = fw.pattern.ReplaceAll(p, []byte("<REDACTED>"))
 	}
 
-	filtered := fw.pattern.ReplaceAll(p, []byte("<REDACTED>"))
+	if fw.writer != nil {
+		fw.writer.Write(filtered)
+	}
+	if fw.buffer != nil {
+		fw.buffer.Write(filtered)
+	}
 
-	// Write filtered content to underlying writer
-	_, err = fw.writer.Write(filtered)
 	// Return original length to maintain compatibility
 	return len(p), err
 }

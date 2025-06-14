@@ -114,13 +114,11 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 	var mwout, mwerr io.Writer
 	var stdout, stderr bytes.Buffer
 	if printOutputToStdout {
-		filteredStdout := NewFilteringWriter(os.Stdout, regEx)
-		filteredStderr := NewFilteringWriter(os.Stdout, regEx)
-		mwout = io.MultiWriter(filteredStdout, &stdout)
-		mwerr = io.MultiWriter(filteredStderr, &stderr)
+		mwout = NewFilteringWriter(os.Stdout, &stdout, regEx)
+		mwerr = NewFilteringWriter(os.Stderr, &stderr, regEx)
 	} else {
-		mwout = io.Writer(&stdout)
-		mwerr = io.Writer(&stderr)
+		mwout = NewFilteringWriter(nil, &stdout, regEx)
+		mwerr = NewFilteringWriter(nil, &stderr, regEx)
 	}
 
 	cmd := exec.Command("terraform", expandedArgs...)
