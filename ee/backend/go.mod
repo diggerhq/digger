@@ -1,10 +1,9 @@
 module github.com/diggerhq/digger/ee/backend
 
+replace github.com/diggerhq/digger/backend => ../../backend
 replace github.com/diggerhq/digger/libs => ../../libs
 
-replace github.com/diggerhq/digger/backend => ../../backend
-
-go 1.24.0
+go 1.22
 
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0

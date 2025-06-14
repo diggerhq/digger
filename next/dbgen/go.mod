@@ -1,6 +1,6 @@
-module dbgen
+module github.com/diggerhq/digger/next/dbgen
 
-go 1.24.0
+go 1.22
 
 require (
 	github.com/Joker/jade v1.1.3
