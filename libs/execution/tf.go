@@ -95,20 +95,9 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 		}
 	}
 
-	var regEx *regexp.Regexp
-	if filterRegex != nil {
-		slog.Debug("using regex for filter", "regex", *filterRegex)
-		var err error
-		regEx, err = regexp.Compile(*filterRegex)
-		if err != nil {
-			slog.Error("invalid regex for filter",
-				"regex", *filterRegex,
-				"error", err)
-			return "", "", 0, fmt.Errorf("regex for filter is invalid: %v", err)
-		}
-	} else {
-		slog.Debug("no regex for filter")
-		regEx = nil
+	regEx, err := stringToRegex(filterRegex)
+	if err != nil {
+		return "", "", 0, err
 	}
 
 	var mwout, mwerr io.Writer
@@ -139,7 +128,7 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
 	if err != nil && cmd.ProcessState.ExitCode() != 2 {

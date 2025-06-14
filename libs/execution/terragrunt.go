@@ -15,7 +15,7 @@ type Terragrunt struct {
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
-	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("init", true, envs, params...)
+	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("init", true, envs, nil, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
 	}
@@ -30,7 +30,7 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("apply", true, envs, params...)
+	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("apply", true, envs, nil, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
 	}
@@ -41,7 +41,7 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
 	params = append(params, "--terragrunt-non-interactive")
-	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("destroy", true, envs, params...)
+	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("destroy", true, envs, nil, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
 	}
@@ -49,12 +49,12 @@ func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (s
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planArtefactFilePath string, s *string) (bool, string, string, error) {
+func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planArtefactFilePath string, filterRegex *string) (bool, string, string, error) {
 	if planArtefactFilePath != "" {
 		params = append(params, []string{"-out", planArtefactFilePath}...)
 	}
 	params = append(params, "-lock-timeout=3m")
-	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("plan", true, envs, params...)
+	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("plan", true, envs, filterRegex, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
 	}
@@ -64,7 +64,7 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planA
 
 func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
 	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
-	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("show", false, envs, params...)
+	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("show", false, envs, nil, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
 	}
@@ -72,7 +72,7 @@ func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planA
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, arg ...string) (stdOut string, stdErr string, exitCode int, err error) {
+func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, filterRegex *string, arg ...string) (stdOut string, stdErr string, exitCode int, err error) {
 	args := []string{command}
 	args = append(args, arg...)
 
@@ -85,15 +85,20 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 		}
 	}
 
+	regEx, err := stringToRegex(filterRegex)
+	if err != nil {
+		return "", "", 0, err
+	}
+
 	// Set up common output buffers
 	var mwout, mwerr io.Writer
 	var stdout, stderr bytes.Buffer
 	if printOutputToStdout {
-		mwout = io.MultiWriter(os.Stdout, &stdout)
-		mwerr = io.MultiWriter(os.Stderr, &stderr)
+		mwout = NewFilteringWriter(os.Stdout, &stdout, regEx)
+		mwerr = NewFilteringWriter(os.Stderr, &stderr, regEx)
 	} else {
-		mwout = io.Writer(&stdout)
-		mwerr = io.Writer(&stderr)
+		mwout = NewFilteringWriter(nil, &stdout, regEx)
+		mwerr = NewFilteringWriter(nil, &stderr, regEx)
 	}
 
 	cmd := exec.Command("terragrunt", args...)
