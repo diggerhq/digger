@@ -63,7 +63,7 @@ func (m *MockTerraformExecutor) Show(params []string, envs map[string]string, pl
 	return nonEmptyTerraformPlanJson, "", nil
 }
 
-func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
+func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string, planJsonFilePath string, s *string) (bool, string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Plan", strings.Join(params, " "), time.Now()})
 	return true, "", "", nil
 }

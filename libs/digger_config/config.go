@@ -94,7 +94,8 @@ type Step struct {
 }
 
 type Stage struct {
-	Steps []Step
+	Steps       []Step
+	FilterRegex *string
 }
 
 func defaultWorkflow() *Workflow {

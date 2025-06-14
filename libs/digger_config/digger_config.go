@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/samber/lo"
@@ -546,6 +547,31 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 		}
 	}
 
+	if configYaml.Workflows != nil {
+		for _, workflow := range configYaml.Workflows {
+			if workflow == nil {
+				continue
+			}
+			if workflow.Plan != nil && workflow.Plan.FilterRegex != nil {
+				_, err := regexp.Compile(*workflow.Plan.FilterRegex)
+				if err != nil {
+					slog.Error("invalid regex for plan filter",
+						"regex", *workflow.Plan.FilterRegex,
+						"error", err)
+					return fmt.Errorf("regex for plan filter is invalid: %v", err)
+				}
+			}
+			if workflow.Apply != nil && workflow.Apply.FilterRegex != nil {
+				_, err := regexp.Compile(*workflow.Apply.FilterRegex)
+				if err != nil {
+					slog.Error("invalid regex for apply filter",
+						"regex", *workflow.Apply.FilterRegex,
+						"error", err)
+					return fmt.Errorf("regex for apply filter is invalid: %v", err)
+				}
+			}
+		}
+	}
 	if configYaml.GenerateProjectsConfig != nil {
 		if configYaml.GenerateProjectsConfig.Include != "" &&
 			configYaml.GenerateProjectsConfig.Exclude != "" &&

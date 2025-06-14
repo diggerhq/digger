@@ -31,9 +31,9 @@ type Job struct {
 	StateEnvVars       map[string]string
 	CommandEnvVars     map[string]string
 	StateEnvProvider   *stscreds.WebIdentityRoleProvider
-	StateRoleArn	   string
+	StateRoleArn       string
 	CommandEnvProvider *stscreds.WebIdentityRoleProvider
-	CommandRoleArn	   string
+	CommandRoleArn     string
 	CognitoOidcConfig  *configuration.AwsCognitoOidcConfig
 	SkipMergeCheck     bool
 }
@@ -46,7 +46,8 @@ type Step struct {
 }
 
 type Stage struct {
-	Steps []Step
+	FilterRegex *string
+	Steps       []Step
 }
 
 func ToConfigStep(configState configuration.Step) Step {
@@ -68,7 +69,8 @@ func ToConfigStage(configStage *configuration.Stage) *Stage {
 		steps = append(steps, ToConfigStep(step))
 	}
 	return &Stage{
-		Steps: steps,
+		Steps:       steps,
+		FilterRegex: configStage.FilterRegex,
 	}
 }
 

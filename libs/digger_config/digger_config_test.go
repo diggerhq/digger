@@ -513,10 +513,12 @@ projects:
   workflow: my_custom_workflow
 workflows:
   my_custom_workflow:
-    steps:
-      - run: echo "run"
-      - init: terraform init
-      - plan: terraform plan
+    plan:
+      filter_regex: "myregex"
+      steps:
+        - run: echo "run"
+        - init: 
+        - plan:
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
@@ -527,6 +529,8 @@ workflows:
 	assert.Equal(t, "my_custom_workflow", dg.Projects[0].Workflow)
 	_, ok := dg.Workflows["my_custom_workflow"]
 	assert.True(t, ok)
+	r := dg.Workflows["my_custom_workflow"].Plan.FilterRegex
+	assert.Equal(t, "myregex", *r)
 }
 
 func TestDiggerConfigCustomWorkflowMissingParams(t *testing.T) {
