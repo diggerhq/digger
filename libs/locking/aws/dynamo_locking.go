@@ -95,8 +95,7 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists(ctx context.Context) er
 		return nil
 	}
 	if !isTableNotFoundExceptionError(err) {
-		slog.Error("Error describing DynamoDB table", "tableName", TABLE_NAME, "error", err)
-		return err
+		slog.Info("Error describing DynamoDB table, proceeding to create", "tableName", TABLE_NAME, "error", err)
 	}
 
 	slog.Info("Creating DynamoDB table", "tableName", TABLE_NAME)
