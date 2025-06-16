@@ -51,5 +51,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp.json
           GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: gcp-plan-artefacts
-          AWS_S3_BUCKET: digger-tests-bucket
+          AWS_S3_BUCKET: digger-tests-bucket-e2e
           AWS_REGION: us-east-1
