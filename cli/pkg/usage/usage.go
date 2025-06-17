@@ -113,7 +113,11 @@ func init() {
 }
 
 func ReportErrorAndExit(repoOwner string, message string, exitCode int) {
-	slog.Error(message)
+	if exitCode == 0 {
+		slog.Info(message)
+	} else {
+		slog.Error(message)
+	}
 	err := SendLogRecord(repoOwner, message)
 	if err != nil {
 		slog.Error("Failed to send log record.", "error", err)
