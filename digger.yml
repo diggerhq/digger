@@ -3,9 +3,9 @@ auto_merge_strategy: "merge"
 
 projects:
   - name: dev
-    dir: ./
+    dir: /
   - name: staging
-    dir: ./
+    dir: /
   - name: includeme
     dir: includeme
 workflows:
