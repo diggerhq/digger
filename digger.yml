@@ -6,7 +6,8 @@ projects:
     dir: .
   - name: staging
     dir: .
-
+  - name: includeme
+    dir: includeme
 workflows:
   default:
     plan:
