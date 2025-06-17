@@ -29,7 +29,7 @@ require (
 	github.com/gruntwork-io/terragrunt v0.54.11
 	github.com/hashicorp/go-getter v1.7.8
 	github.com/hashicorp/hcl/v2 v2.20.1
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20250203082807-efaa306e97b4
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20250515145901-f4c50e64fd6d
 	github.com/hashicorp/terraform-json v0.22.1
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/open-policy-agent/opa v0.66.0
