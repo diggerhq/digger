@@ -3,11 +3,14 @@ auto_merge_strategy: "merge"
 
 projects:
   - name: dev
-    dir: /
+    dir: dev/
   - name: staging
-    dir: /
+    dir: staging/
   - name: includeme
     dir: includeme
+  - name: excludeme
+    dir: includeme/excludeme
+
 workflows:
   default:
     plan:
