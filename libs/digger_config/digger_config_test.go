@@ -1267,6 +1267,23 @@ projects:
 	assert.Equal(t, false, dg.AllowDraftPRs)
 }
 
+func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T) {
+	changedFiles := []string{"prod/main.tf", "dev/test/main.tf"}
+	projects := []Project{
+		Project{
+			Name: "dev",
+			Dir:  ".",
+		},
+	}
+	c := DiggerConfig{
+		Projects: projects,
+	}
+	//expectedImpactingLocations := map[string]ProjectToSourceMapping{}
+
+	impactedProjects, _ := c.GetModifiedProjects(changedFiles)
+	assert.Equal(t, 0, len(impactedProjects))
+}
+
 func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	changedFiles := []string{"modules/bucket/main.tf", "dev/main.tf"}
 	projects := []Project{
