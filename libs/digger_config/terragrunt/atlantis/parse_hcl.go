@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 	"path/filepath"
 )
 
@@ -47,6 +49,19 @@ func updateBareIncludeBlock(file *hcl.File, filename string) ([]byte, bool, erro
 		}
 	}
 	return hclFile.Bytes(), codeWasUpdated, nil
+}
+
+func createNoopFuncImplementation(
+	trackInclude *config.TrackInclude,
+	terragruntOptions *options.TerragruntOptions,
+) function.Function {
+	return function.New(&function.Spec{
+		VarParam: &function.Parameter{Type: cty.String},
+		Type:     function.StaticReturnType(cty.String),
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			return cty.MapVal(map[string]cty.Value{}), nil
+		},
+	})
 }
 
 // decodeHcl uses the HCL2 parser to decode the parsed HCL into the struct specified by out.
@@ -93,6 +108,8 @@ func decodeHcl(
 		return err
 	}
 
+	// override sops decrypt function to avoid decryption errors when parsing on backend
+	evalContext.Functions[config.FuncNameSopsDecryptFile] = createNoopFuncImplementation(extensions.TrackInclude, terragruntOptions)
 	decodeDiagnostics := gohcl.DecodeBody(file.Body, evalContext, out)
 	if decodeDiagnostics != nil && decodeDiagnostics.HasErrors() {
 		return decodeDiagnostics
