@@ -36,11 +36,11 @@ type DynamoDBClient interface {
 	GetItem(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error)
 }
 
-func isTableNotFoundExceptionError(err error) bool {
+func isResourceNotFoundException(err error) bool {
 	var apiError smithy.APIError
 	if errors.As(err, &apiError) {
 		switch apiError.(type) {
-		case *types.TableNotFoundException:
+		case *types.ResourceNotFoundException:
 			return true
 		}
 	}
@@ -55,7 +55,7 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated(ctx context.Context) err
 	cnt := 0
 
 	if err != nil {
-		if !isTableNotFoundExceptionError(err) {
+		if !isResourceNotFoundException(err) {
 			return err
 		}
 	}
@@ -69,23 +69,23 @@ func (dynamoDbLock *DynamoDbLock) waitUntilTableCreated(ctx context.Context) err
 		time.Sleep(TableCreationInterval)
 		status, err = dynamoDbLock.DynamoDb.DescribeTable(ctx, input)
 		if err != nil {
-			if !isTableNotFoundExceptionError(err) {
+			if !isResourceNotFoundException(err) {
 				return err
 			}
 		}
 		cnt++
 		if cnt > TableCreationRetryCount {
-			slog.Error("DynamoDB table creation timed out",
+			msg := "DynamoDB table creation timed out"
+			slog.Error(msg,
 				"tableName", TABLE_NAME,
 				"retryCount", cnt)
-			os.Exit(1)
+			return errors.New(msg)
 		}
 	}
 
 	return nil
 }
 
-// TODO: refactor func to return actual error and fail on callers
 func (dynamoDbLock *DynamoDbLock) createTableIfNotExists(ctx context.Context) error {
 	_, err := dynamoDbLock.DynamoDb.DescribeTable(ctx, &dynamodb.DescribeTableInput{
 		TableName: aws.String(TABLE_NAME),
@@ -94,7 +94,7 @@ func (dynamoDbLock *DynamoDbLock) createTableIfNotExists(ctx context.Context) er
 		slog.Debug("DynamoDB table already exists", "tableName", TABLE_NAME)
 		return nil
 	}
-	if !isTableNotFoundExceptionError(err) {
+	if !isResourceNotFoundException(err) {
 		slog.Info("Error describing DynamoDB table, proceeding to create", "tableName", TABLE_NAME, "error", err)
 	}
 
@@ -148,7 +148,12 @@ func (dynamoDbLock *DynamoDbLock) Lock(transactionId int, resource string) (bool
 		"resource", resource,
 		"transactionId", transactionId)
 
-	dynamoDbLock.createTableIfNotExists(ctx)
+	err := dynamoDbLock.createTableIfNotExists(ctx)
+	if err != nil {
+		slog.Error("Error creating DynamoDB table", "error", err)
+		return false, err
+	}
+
 	// TODO: remove timeout completely
 	now := time.Now().Format(time.RFC3339)
 	newTimeout := time.Now().Add(TableLockTimeout).Format(time.RFC3339)
@@ -211,7 +216,12 @@ func (dynamoDbLock *DynamoDbLock) Unlock(resource string) (bool, error) {
 
 	slog.Debug("Attempting to release lock", "resource", resource)
 
-	dynamoDbLock.createTableIfNotExists(ctx)
+	err := dynamoDbLock.createTableIfNotExists(ctx)
+	if err != nil {
+		slog.Error("Error creating DynamoDB table", "error", err)
+		return false, err
+	}
+
 	input := &dynamodb.DeleteItemInput{
 		TableName: aws.String(TABLE_NAME),
 		Key: map[string]types.AttributeValue{
@@ -220,7 +230,7 @@ func (dynamoDbLock *DynamoDbLock) Unlock(resource string) (bool, error) {
 		},
 	}
 
-	_, err := dynamoDbLock.DynamoDb.DeleteItem(ctx, input)
+	_, err = dynamoDbLock.DynamoDb.DeleteItem(ctx, input)
 	if err != nil {
 		slog.Error("Failed to delete DynamoDB item for lock", "resource", resource, "error", err)
 		return false, err
@@ -235,7 +245,12 @@ func (dynamoDbLock *DynamoDbLock) GetLock(lockId string) (*int, error) {
 
 	slog.Debug("Getting lock information", "lockId", lockId)
 
-	dynamoDbLock.createTableIfNotExists(ctx)
+	err := dynamoDbLock.createTableIfNotExists(ctx)
+	if err != nil {
+		slog.Error("Error creating DynamoDB table", "error", err)
+		return nil, err
+	}
+
 	input := &dynamodb.GetItemInput{
 		TableName: aws.String(TABLE_NAME),
 		Key: map[string]types.AttributeValue{
