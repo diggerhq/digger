@@ -742,7 +742,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		"defaultWorkflow", parsingConfig.DefaultWorkflow,
 		"filterPath", parsingConfig.FilterPath)
 
-	atlantisConfig, _, err := atlantis.Parse(
+	atlantisConfig, projectDependsOnMap, err := atlantis.Parse(
 		root,
 		parsingConfig.ProjectHclFiles,
 		projectExternalChilds,
@@ -802,7 +802,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			"projectDir", projectDir,
 			"workspace", atlantisProject.Workspace)
 
-		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
+		diggerProject := &ProjectYaml{
 			Name:                 atlantisProject.Name,
 			Dir:                  projectDir,
 			Workspace:            atlantisProject.Workspace,
@@ -813,7 +813,13 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			Generated:            true,
 			AwsRoleToAssume:      parsingConfig.AwsRoleToAssume,
 			AwsCognitoOidcConfig: parsingConfig.AwsCognitoOidcConfig,
-		})
+		}
+
+		if parsingConfig.DependsOnOrdering != nil && *parsingConfig.DependsOnOrdering {
+			diggerProject.DependencyProjects = projectDependsOnMap[atlantisProject.Name]
+		}
+
+		configYaml.Projects = append(configYaml.Projects, diggerProject)
 	}
 
 	slog.Info("completed hydrating config with terragrunt projects",
