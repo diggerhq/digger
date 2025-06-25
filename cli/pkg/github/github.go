@@ -19,6 +19,7 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"github.com/google/go-github/v61/github"
+	"github.com/samber/lo"
 	"gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
@@ -181,10 +182,20 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
-
+		blockFiltersStr := os.Getenv("INPUT_DIGGER_BLOCK_FILTERS")
+		blockFilters := strings.Split(blockFiltersStr, ",")
 		for _, projectConfig := range diggerConfig.Projects {
 			if !projectConfig.DriftDetection {
 				continue
+			}
+			if len(blockFilters) > 0 {
+				projectInBlock := false
+				if lo.Contains(blockFilters, projectConfig.BlockName) {
+					projectInBlock = true
+				}
+				if !projectInBlock {
+					continue
+				}
 			}
 			workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
