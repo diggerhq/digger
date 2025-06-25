@@ -35,6 +35,7 @@ type DependencyConfigurationYaml struct {
 }
 
 type ProjectYaml struct {
+	BlockName            string                      `yaml:"block_name"`
 	Name                 string                      `yaml:"name"`
 	Dir                  string                      `yaml:"dir"`
 	Workspace            string                      `yaml:"workspace"`
