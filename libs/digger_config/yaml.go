@@ -176,6 +176,7 @@ type TerragruntParsingConfig struct {
 	WorkflowFile                   string                      `yaml:"workflow_file"`
 	AwsRoleToAssume                *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 	AwsCognitoOidcConfig           *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
+	DependsOnOrdering              *bool                       `yaml:"dependsOnOrdering,omitempty"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
