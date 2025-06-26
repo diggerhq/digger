@@ -35,6 +35,7 @@ type DependencyConfigurationYaml struct {
 }
 
 type ProjectYaml struct {
+	BlockName            string                      `yaml:"block_name"`
 	Name                 string                      `yaml:"name"`
 	Dir                  string                      `yaml:"dir"`
 	Workspace            string                      `yaml:"workspace"`
@@ -108,8 +109,9 @@ type BlockYaml struct {
 	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
 
 	// these flags are only for terragrunt
-	Terragrunt bool    `yaml:"terragrunt"`
-	RootDir    *string `yaml:"root_dir"`
+	Terragrunt              bool                     `yaml:"terragrunt"`
+	RootDir                 *string                  `yaml:"root_dir"`
+	TerragruntParsingConfig *TerragruntParsingConfig `yaml:"terragrunt_parsing,omitempty"`
 
 	// these flags are only for opentofu
 	OpenTofu bool `yaml:"opentofu"`

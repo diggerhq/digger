@@ -42,6 +42,7 @@ type AssumeRoleForProject struct {
 }
 
 type Project struct {
+	BlockName            string // the block name if this is a generated project
 	Name                 string
 	Dir                  string
 	Workspace            string

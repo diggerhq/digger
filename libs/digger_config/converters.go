@@ -69,7 +69,9 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			workspace = p.Workspace
 		}
 
-		item := Project{p.Name,
+		item := Project{
+			p.BlockName,
+			p.Name,
 			p.Dir,
 			workspace,
 			p.Terragrunt,

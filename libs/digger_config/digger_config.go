@@ -329,7 +329,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 		slog.Warn("terragrunt generation using top level config is deprecated",
 			"recommendation", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 
-		err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir)
+		err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir, "")
 		if err != nil {
 			slog.Error("failed to hydrate config with terragrunt", "error", err)
 			return err
@@ -338,7 +338,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 		slog.Warn("terragrunt generation using top level config is deprecated",
 			"recommendation", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 
-		err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir)
+		err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir, "")
 		if err != nil {
 			slog.Error("failed to hydrate config with terragrunt", "error", err)
 			return err
@@ -408,16 +408,19 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 							workflow = b.Workflow
 						}
 
-						tgParsingConfig := TerragruntParsingConfig{
-							CreateProjectName:    true,
-							DefaultWorkflow:      workflow,
-							WorkflowFile:         b.WorkflowFile,
-							FilterPath:           path.Join(terraformDir, *b.RootDir),
-							AwsRoleToAssume:      b.AwsRoleToAssume,
-							AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
+						// load the parsing config and override the block values
+						tgParsingConfig := b.TerragruntParsingConfig
+						if tgParsingConfig == nil {
+							tgParsingConfig = &TerragruntParsingConfig{}
 						}
+						tgParsingConfig.CreateProjectName = true
+						tgParsingConfig.DefaultWorkflow = workflow
+						tgParsingConfig.WorkflowFile = b.WorkflowFile
+						tgParsingConfig.FilterPath = path.Join(terraformDir, *b.RootDir)
+						tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
+						tgParsingConfig.AwsCognitoOidcConfig = b.AwsCognitoOidcConfig
 
-						err := hydrateDiggerConfigYamlWithTerragrunt(config, tgParsingConfig, terraformDir)
+						err := hydrateDiggerConfigYamlWithTerragrunt(config, *tgParsingConfig, terraformDir, b.BlockName)
 						if err != nil {
 							slog.Error("failed to hydrate config with terragrunt",
 								"error", err,
@@ -696,7 +699,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 	return nil
 }
 
-func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string) error {
+func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string, blockName string) error {
 	slog.Info("hydrating config with terragrunt projects",
 		"workingDir", workingDir,
 		"filterPath", parsingConfig.FilterPath)
@@ -803,6 +806,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			"workspace", atlantisProject.Workspace)
 
 		diggerProject := &ProjectYaml{
+			BlockName:            blockName,
 			Name:                 atlantisProject.Name,
 			Dir:                  projectDir,
 			Workspace:            atlantisProject.Workspace,
