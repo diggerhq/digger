@@ -188,11 +188,12 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			if !projectConfig.DriftDetection {
 				continue
 			}
-			if len(blockFilters) > 0 {
+			if blockFiltersStr != "" {
 				projectInBlock := false
 				if lo.Contains(blockFilters, projectConfig.BlockName) {
 					projectInBlock = true
 				}
+				slog.Debug("Project in block", "projectName", projectConfig.Name, "blockName", projectConfig.BlockName, "projectInBlock", projectInBlock, "blockFilters", blockFilters)
 				if !projectInBlock {
 					continue
 				}
