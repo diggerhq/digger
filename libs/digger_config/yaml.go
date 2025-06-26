@@ -35,6 +35,7 @@ type DependencyConfigurationYaml struct {
 }
 
 type ProjectYaml struct {
+	BlockName            string                      `yaml:"block_name"`
 	Name                 string                      `yaml:"name"`
 	Dir                  string                      `yaml:"dir"`
 	Workspace            string                      `yaml:"workspace"`
@@ -175,6 +176,7 @@ type TerragruntParsingConfig struct {
 	WorkflowFile                   string                      `yaml:"workflow_file"`
 	AwsRoleToAssume                *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 	AwsCognitoOidcConfig           *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
+	DependsOnOrdering              *bool                       `yaml:"dependsOnOrdering,omitempty"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {

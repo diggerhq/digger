@@ -329,7 +329,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 		slog.Warn("terragrunt generation using top level config is deprecated",
 			"recommendation", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 
-		err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir)
+		err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir, "")
 		if err != nil {
 			slog.Error("failed to hydrate config with terragrunt", "error", err)
 			return err
@@ -338,7 +338,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 		slog.Warn("terragrunt generation using top level config is deprecated",
 			"recommendation", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 
-		err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir)
+		err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir, "")
 		if err != nil {
 			slog.Error("failed to hydrate config with terragrunt", "error", err)
 			return err
@@ -699,7 +699,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 	return nil
 }
 
-func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string) error {
+func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string, blockName string) error {
 	slog.Info("hydrating config with terragrunt projects",
 		"workingDir", workingDir,
 		"filterPath", parsingConfig.FilterPath)
@@ -745,7 +745,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		"defaultWorkflow", parsingConfig.DefaultWorkflow,
 		"filterPath", parsingConfig.FilterPath)
 
-	atlantisConfig, _, err := atlantis.Parse(
+	atlantisConfig, projectDependsOnMap, err := atlantis.Parse(
 		root,
 		parsingConfig.ProjectHclFiles,
 		projectExternalChilds,
@@ -805,7 +805,8 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			"projectDir", projectDir,
 			"workspace", atlantisProject.Workspace)
 
-		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
+		diggerProject := &ProjectYaml{
+			BlockName:            blockName,
 			Name:                 atlantisProject.Name,
 			Dir:                  projectDir,
 			Workspace:            atlantisProject.Workspace,
@@ -816,7 +817,13 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			Generated:            true,
 			AwsRoleToAssume:      parsingConfig.AwsRoleToAssume,
 			AwsCognitoOidcConfig: parsingConfig.AwsCognitoOidcConfig,
-		})
+		}
+
+		if parsingConfig.DependsOnOrdering != nil && *parsingConfig.DependsOnOrdering {
+			diggerProject.DependencyProjects = projectDependsOnMap[atlantisProject.Name]
+		}
+
+		configYaml.Projects = append(configYaml.Projects, diggerProject)
 	}
 
 	slog.Info("completed hydrating config with terragrunt projects",
