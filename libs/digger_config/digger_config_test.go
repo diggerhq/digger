@@ -13,6 +13,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var hclFile = `terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+
+inputs = {
+  foo = "bar"
+}
+`
+
 func setUp() (string, func()) {
 	tempDir := createTempDir()
 	return tempDir, func() {
@@ -980,6 +989,42 @@ workflows:
 	assert.Equal(t, 3, len(dg.Projects))
 }
 
+func TestDiggerGenerateProjectsTerragruntBlocks(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: test1
+      terragrunt: true
+      root_dir: dev
+      workspace: devdev
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+	dirsToCreate := []string{"dev/test1", "dev/test2", "dev/project", "testtt", "prod/one"}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
+		defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), hclFile)()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+	assert.Equal(t, "dev_project", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test1", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[2].Name)
+	assert.Equal(t, "test1", dg.Projects[0].BlockName)
+	assert.Equal(t, "test1", dg.Projects[1].BlockName)
+	assert.Equal(t, "test1", dg.Projects[2].BlockName)
+
+	assert.Equal(t, 3, len(dg.Projects))
+}
+
 func TestDiggerGenerateProjectsWithOpenTofu(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
@@ -1118,14 +1163,7 @@ generate_projects:
     defaultWorkflow: default
 
 `
-	hclFile := `terraform {
-  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
-}
 
-inputs = {
-  foo = "bar"
-}
-`
 	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
 	defer createFile(path.Join(tempDir, "terragrunt.hcl"), hclFile)()
 
