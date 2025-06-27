@@ -1,0 +1,296 @@
+# Digger - Open Source Terraform CI/CD Orchestrator
+
+## What is Digger?
+
+Digger is an open-source CI/CD orchestrator specifically designed for Terraform and OpenTofu Infrastructure as Code (IaC). Unlike traditional application CI/CD, Terraform requires special handling due to its stateful nature. Digger solves this by running Terraform natively within your existing CI infrastructure (GitHub Actions, GitLab CI, etc.) rather than requiring a separate dedicated CI system.
+
+## Core Architecture
+
+Digger consists of two main components:
+
+1. **CLI Tool**: Runs inside your CI pipeline and executes Terraform commands with the right arguments
+2. **Orchestrator Backend**: A minimal backend service (can be self-hosted) that coordinates CI jobs in response to events like PR comments and manages PR-level locks
+
+## Key Features
+
+### GitOps Workflow
+- **PR Comments**: Run `terraform plan` and `terraform apply` via PR comments (e.g., "digger plan", "digger apply")
+- **Plan Preview**: Automatically runs `terraform plan` on PR creation/updates and posts formatted output as PR comments
+- **Apply on Merge**: Can be configured to automatically apply changes when PRs are merged to main branch
+- **PR-Level Locks**: Prevents race conditions across multiple PRs (in addition to Terraform's native state locks)
+
+### Security & Compliance
+- **Runs in Your CI**: Cloud credentials never leave your CI environment
+- **RBAC via OPA**: Role-based access control using Open Policy Agent
+- **Policy as Code**: Support for Checkov, OPA/Conftest for security and compliance checks
+- **State Management**: Stores locks and plan cache in your cloud account (DynamoDB+S3 on AWS, equivalents for GCP/Azure)
+
+### Multi-Environment Support
+- **Multiple Projects**: Manage multiple Terraform projects/environments in one repository
+- **Terragrunt Support**: Native support for Terragrunt configurations
+- **Dynamic Project Generation**: Can automatically discover and generate projects from directory structure
+- **Workspaces**: Support for Terraform workspaces
+- **Multiple Terraform Versions**: Can use different Terraform versions per project
+
+### Advanced Features
+- **Drift Detection**: Scheduled runs to detect infrastructure drift with Slack/GitHub Issues/Jira notifications
+- **Parallel Execution**: Non-dependent projects run in parallel for faster execution
+- **Include/Exclude Patterns**: Define which files trigger runs for each project
+- **Custom Commands**: Run arbitrary commands before/after Terraform operations
+- **Plan Persistence**: Store plan outputs in cloud storage (S3, GCS, Azure Storage)
+
+## Configuration
+
+Digger is configured via a `digger.yml` file in your repository root:
+
+```yaml
+# Basic configuration
+projects:
+  - name: dev
+    dir: environments/dev
+    workspace: development
+  - name: prod
+    dir: environments/prod
+    workflow: production
+
+# Workflows define how to handle different stages
+workflows:
+  production:
+    plan:
+      steps:
+        - init
+        - run: "checkov -d ."  # Custom security check
+        - plan
+    apply:
+      steps:
+        - init
+        - apply
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger apply"]
+```
+
+## How It Works
+
+1. **Developer creates/updates a PR** with Terraform changes
+2. **GitHub Actions workflow triggers** (or other CI system)
+3. **Digger CLI analyzes changes** and determines which projects are affected
+4. **For each affected project**, Digger:
+   - Acquires a PR-level lock (stored in DynamoDB/GCS/Azure)
+   - Runs `terraform plan`
+   - Posts the plan output as a PR comment
+5. **Developer reviews** the plan and comments "digger apply" if approved
+6. **Digger runs apply** and updates the PR with results
+7. **On PR merge**, locks are released
+
+## Supported CI Systems
+
+- **GitHub Actions** (primary support)
+- **GitLab CI**
+- **Azure DevOps**
+- **Bitbucket Pipelines**
+- **Jenkins**
+- **TeamCity** (in development)
+- **CircleCI** (in development)
+
+## Cloud Provider Support
+
+### AWS
+- OIDC authentication support
+- DynamoDB for locking
+- S3 for plan storage
+- Multiple account support with role assumption
+
+### Google Cloud
+- Workload Identity Federation
+- GCS for locks and plan storage
+- Service account impersonation
+
+### Azure
+- OIDC authentication
+- Azure Storage for locks and plans
+- Service principal support
+
+## Comparison with Alternatives
+
+### vs Terraform Cloud
+- **Open source and self-hostable**
+- **No vendor lock-in**
+- **Runs in your CI** (secrets stay in your infrastructure)
+- **Unlimited runs** on all tiers
+- **PR automation** (apply before merge)
+
+### vs Atlantis
+- **No server to maintain** (unless self-hosting orchestrator)
+- **Scalable compute** (uses your CI's compute)
+- **Better security** (jobs isolated in CI)
+- **Built-in RBAC and policies**
+- **Web UI available** (in Digger Cloud)
+- **Drift detection**
+
+### vs Manual CI/CD
+- **State-aware** (handles Terraform state complexities)
+- **Automatic locking** (prevents concurrent modifications)
+- **GitOps workflow** (plan/apply from PRs)
+- **Built-in best practices**
+
+## Directory Structure
+
+```
+your-repo/
+├── digger.yml                    # Main configuration file
+├── .github/
+│   └── workflows/
+│       └── digger_workflow.yml   # GitHub Actions workflow
+├── environments/
+│   ├── dev/
+│   │   ├── main.tf
+│   │   └── terraform.tfvars
+│   └── prod/
+│       ├── main.tf
+│       └── terraform.tfvars
+└── modules/
+    └── shared/
+        └── *.tf
+```
+
+## Common Use Cases
+
+### 1. Multi-Environment Setup
+```yaml
+projects:
+  - name: dev
+    dir: ./dev
+    workspace: development
+  - name: staging
+    dir: ./staging
+    workspace: staging
+  - name: prod
+    dir: ./prod
+    workspace: production
+    workflow: production  # Special workflow with extra checks
+```
+
+### 2. Monorepo with Shared Modules
+```yaml
+projects:
+  - name: app1-dev
+    dir: ./apps/app1/dev
+    include_patterns: ["./modules/**"]
+  - name: app2-dev
+    dir: ./apps/app2/dev
+    include_patterns: ["./modules/**"]
+```
+
+### 3. Terragrunt Projects
+```yaml
+projects:
+  - name: all-aws-infrastructure
+    dir: ./terragrunt
+    terragrunt: true
+```
+
+### 4. Dynamic Project Generation
+```yaml
+generate_projects:
+  include: "projects/**"
+  exclude: "projects/test/**"
+```
+
+## Command Reference
+
+### PR Comments
+- `digger plan` - Run terraform plan
+- `digger apply` - Run terraform apply
+- `digger plan -p <project>` - Plan specific project
+- `digger apply -p <project>` - Apply specific project
+- `digger unlock` - Release locks
+
+### CLI Commands
+- `digger init` - Initialize Digger in a repository
+- `digger validate` - Validate digger.yml configuration
+- `digger run-spec <spec>` - Run a specific job specification
+
+## Integration Examples
+
+### GitHub Actions
+```yaml
+name: Digger Workflow
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, closed ]
+  issue_comment:
+    types: [ created ]
+  workflow_dispatch:
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: diggerhq/digger@v0.4.0
+        with:
+          setup-aws: true
+          aws-region: us-east-1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+```
+
+### Policy Enforcement with OPA
+```yaml
+workflows:
+  production:
+    plan:
+      steps:
+        - init
+        - run: "opa test policies/"
+        - plan
+```
+
+### Cost Estimation with Infracost
+```yaml
+workflows:
+  default:
+    plan:
+      steps:
+        - init
+        - run: "infracost breakdown --path ."
+        - plan
+```
+
+## Troubleshooting
+
+### Common Issues
+1. **Lock conflicts**: Use `digger unlock` to release stuck locks
+2. **State issues**: Ensure remote backend is properly configured
+3. **Permission errors**: Check CI service account has necessary cloud permissions
+4. **Plan not showing**: Verify GitHub token has PR write permissions
+
+### Debug Mode
+Set environment variable `DIGGER_DEBUG=true` for verbose logging
+
+## Best Practices
+
+1. **Always use remote state** (S3, GCS, Azure Storage)
+2. **Configure PR-level locks** to prevent race conditions
+3. **Use separate workflows** for production environments
+4. **Enable policies** for compliance and security
+5. **Set up drift detection** for critical infrastructure
+6. **Use include_patterns** for shared modules
+7. **Configure apply requirements** for production changes
+
+## Community and Support
+
+- **GitHub**: https://github.com/diggerhq/digger
+- **Documentation**: https://docs.digger.dev
+- **Slack Community**: https://slack.digger.dev
+- **Blog**: https://blog.digger.dev
+
+## License
+
+Digger is open source under the Apache 2.0 license. The orchestrator backend can be self-hosted or used as a cloud service.
