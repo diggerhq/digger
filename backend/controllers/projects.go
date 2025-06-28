@@ -524,12 +524,14 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
+	batchId := *job.BatchID
+
 	slog.Info("Processing job status update",
 		"jobId", jobId,
 		"currentStatus", job.Status,
 		"newStatus", request.Status,
 		"prCommentId", request.PrCommentId,
-		"batchId", job.BatchID,
+		"batchId", batchId,
 	)
 
 	switch request.Status {
@@ -594,7 +596,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		slog.Info("Job status updated to succeeded",
 			"jobId", jobId,
-			"batchId", job.BatchID,
+			"batchId", batchId,
 		)
 
 		go func() {
@@ -676,7 +678,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			slog.Info("Handling job completion",
 				"jobId", jobId,
 				"repoFullName", jobLink.RepoFullName,
-				"batchId", job.BatchID,
+				"batchId", batchId,
 			)
 
 			err = services.DiggerJobCompleted(
@@ -721,7 +723,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		slog.Info("Job status updated to failed",
 			"jobId", jobId,
-			"batchId", job.BatchID,
+			"batchId", batchId,
 		)
 
 	default:
@@ -1304,7 +1306,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 				"outputLength", len(job.TerraformOutput),
 			)
 
-			terraformOutputs += fmt.Sprintf("terraform output for %v \n\n", projectName) + job.TerraformOutput
+			terraformOutputs += fmt.Sprintf("<PLAN_START>terraform output for %v <PLAN_END>\n\n", projectName) + job.TerraformOutput
 		}
 
 		slog.Info("Generating AI summary from Terraform outputs",
@@ -1557,20 +1559,22 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 				// on whether or not its comments were deleted yet
 				err = prService.DeleteComment(strconv.FormatInt(*prJob.PRCommentId, 10))
 				if err != nil {
-					slog.Error("Could not delete comment for job", "jobID", prJob.ID, "commentID", prJob.PRCommentId, "error", err)
+					slog.Error("Could not delete comment for job", "jobID", prJob.ID, "commentID", *prJob.PRCommentId, "error", err)
 					allDeletesSuccessful = false
 				}
 			}
 			// delete previous summary table
 			if prBatch.CommentId != nil {
+				slog.Debug("Deleting summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.CommentId)
 				err = prService.DeleteComment(strconv.FormatInt(*prBatch.CommentId, 10))
 				if err != nil {
-					slog.Warn("Could not delete summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.CommentId, "error", err)
+					slog.Warn("Could not delete summary comment for batch", "batchId", prBatch.ID, "commentID", *prBatch.CommentId, "error", err)
 				}
 			}
 
 			// delete the summary comment
 			if prBatch.AiSummaryCommentId != "" {
+				slog.Debug("Deleting AI summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.AiSummaryCommentId)
 				err = prService.DeleteComment(prBatch.AiSummaryCommentId)
 				if err != nil {
 					slog.Warn("Could not delete AI summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.AiSummaryCommentId, "error", err)
