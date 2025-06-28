@@ -524,12 +524,14 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
+	batchId := *job.BatchID
+
 	slog.Info("Processing job status update",
 		"jobId", jobId,
 		"currentStatus", job.Status,
 		"newStatus", request.Status,
 		"prCommentId", request.PrCommentId,
-		"batchId", job.BatchID,
+		"batchId", batchId,
 	)
 
 	switch request.Status {
@@ -594,7 +596,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		slog.Info("Job status updated to succeeded",
 			"jobId", jobId,
-			"batchId", *job.BatchID,
+			"batchId", batchId,
 		)
 
 		go func() {
@@ -676,7 +678,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			slog.Info("Handling job completion",
 				"jobId", jobId,
 				"repoFullName", jobLink.RepoFullName,
-				"batchId", job.BatchID,
+				"batchId", batchId,
 			)
 
 			err = services.DiggerJobCompleted(
@@ -721,7 +723,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		slog.Info("Job status updated to failed",
 			"jobId", jobId,
-			"batchId", job.BatchID,
+			"batchId", batchId,
 		)
 
 	default:
