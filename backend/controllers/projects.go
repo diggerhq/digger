@@ -594,7 +594,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		slog.Info("Job status updated to succeeded",
 			"jobId", jobId,
-			"batchId", job.BatchID,
+			"batchId", *job.BatchID,
 		)
 
 		go func() {
@@ -1557,20 +1557,22 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 				// on whether or not its comments were deleted yet
 				err = prService.DeleteComment(strconv.FormatInt(*prJob.PRCommentId, 10))
 				if err != nil {
-					slog.Error("Could not delete comment for job", "jobID", prJob.ID, "commentID", prJob.PRCommentId, "error", err)
+					slog.Error("Could not delete comment for job", "jobID", prJob.ID, "commentID", *prJob.PRCommentId, "error", err)
 					allDeletesSuccessful = false
 				}
 			}
 			// delete previous summary table
 			if prBatch.CommentId != nil {
+				slog.Debug("Deleting summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.CommentId)
 				err = prService.DeleteComment(strconv.FormatInt(*prBatch.CommentId, 10))
 				if err != nil {
-					slog.Warn("Could not delete summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.CommentId, "error", err)
+					slog.Warn("Could not delete summary comment for batch", "batchId", prBatch.ID, "commentID", *prBatch.CommentId, "error", err)
 				}
 			}
 
 			// delete the summary comment
 			if prBatch.AiSummaryCommentId != "" {
+				slog.Debug("Deleting AI summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.AiSummaryCommentId)
 				err = prService.DeleteComment(prBatch.AiSummaryCommentId)
 				if err != nil {
 					slog.Warn("Could not delete AI summary comment for batch", "batchId", prBatch.ID, "commentID", prBatch.AiSummaryCommentId, "error", err)
