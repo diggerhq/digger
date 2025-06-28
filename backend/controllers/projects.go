@@ -1306,7 +1306,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 				"outputLength", len(job.TerraformOutput),
 			)
 
-			terraformOutputs += fmt.Sprintf("terraform output for %v \n\n", projectName) + job.TerraformOutput
+			terraformOutputs += fmt.Sprintf("<PLAN_START>terraform output for %v <PLAN_END>\n\n", projectName) + job.TerraformOutput
 		}
 
 		slog.Info("Generating AI summary from Terraform outputs",
