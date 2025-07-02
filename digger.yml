@@ -6,7 +6,8 @@ projects:
     dir: dev/
   - name: prod
     dir: prod/
-  
+
+
 workflows:
   default:
     plan:
