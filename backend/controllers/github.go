@@ -102,7 +102,6 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		}
 	case *github.PushEvent:
 		slog.Info("Processing PushEvent",
-			"action", *event.Action,
 			"repo", *event.Repo.FullName,
 		)
 
@@ -395,7 +394,8 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, a
 	defer func() {
 		if r := recover(); r != nil {
 			stack := string(debug.Stack())
-			slog.Error("Recovered from panic in handlePushEvent", "error", r, slog.Group("stack", slog.String("trace", stack)))
+			slog.Error("Recovered from panic in handlePushEvent", "error", r)
+			fmt.Printf("Stack trace:\n%s\n", stack)
 		}
 	}()
 
@@ -421,7 +421,8 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	defer func() {
 		if r := recover(); r != nil {
 			stack := string(debug.Stack())
-			slog.Error("Recovered from panic in handlePullRequestEvent", "error", r, slog.Group("stack", slog.String("trace", stack)))
+			slog.Error("Recovered from panic in handlePullRequestEvent", "error", r, slog.Group("stack"))
+			fmt.Printf("Stack trace:\n%s\n", stack)
 		}
 	}()
 
@@ -1182,7 +1183,8 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	defer func() {
 		if r := recover(); r != nil {
 			stack := string(debug.Stack())
-			slog.Error("Recovered from panic in handleIssueCommentEvent", "error", r, slog.Group("stack", slog.String("trace", stack)))
+			slog.Error("Recovered from panic in handleIssueCommentEvent", "error", r, slog.Group("stack"))
+			fmt.Printf("Stack trace:\n%s\n", stack)
 		}
 	}()
 
