@@ -14,4 +14,3 @@ workflows:
         - init
         - plan
         - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
-
