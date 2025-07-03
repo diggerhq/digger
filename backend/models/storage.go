@@ -215,34 +215,33 @@ func (db *Database) GetProject(projectId uint) (*Project, error) {
 
 // GetProjectByName return project for specified org and repo
 // if record doesn't exist return nil
-func (db *Database) GetProjectByName(orgId any, repo *Repo, name string) (*Project, error) {
+func (db *Database) GetProjectByName(orgId any, repoFullName string, name string) (*Project, error) {
 	slog.Info("getting project by name",
 		slog.Group("project",
 			"orgId", orgId,
-			"repoId", repo.ID,
+			"repoFullName", repoFullName,
 			"name", name))
 
 	var project Project
 
-	err := db.GormDB.Preload("Organisation").Preload("Repo").
-		Joins("INNER JOIN repos ON projects.repo_id = repos.id").
+	err := db.GormDB.Preload("Organisation").
 		Joins("INNER JOIN organisations ON projects.organisation_id = organisations.id").
 		Where("projects.organisation_id = ?", orgId).
-		Where("repos.id = ?", repo.ID).
+		Where("repo_full_name = ?", repoFullName).
 		Where("projects.name = ?", name).First(&project).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			slog.Debug("project not found",
 				"orgId", orgId,
-				"repoId", repo.ID,
+				"repoFullName", repoFullName,
 				"name", name)
 			return nil, nil
 		}
 		slog.Error("error fetching project from database",
 			"error", err,
 			"orgId", orgId,
-			"repoId", repo.ID,
+			"repoFullname", repoFullName,
 			"name", name)
 		return nil, err
 	}
@@ -375,6 +374,38 @@ func (db *Database) GetRepo(orgIdKey any, repoName string) (*Repo, error) {
 		"repoId", repo.ID,
 		"orgId", orgIdKey,
 		"repoName", repoName)
+	return &repo, nil
+}
+
+func (db *Database) GetRepoByFullName(orgIdKey any, repoFullName string) (*Repo, error) {
+	slog.Info("getting repo by name",
+		"orgId", orgIdKey,
+		"repoName", repoFullName)
+
+	var repo Repo
+
+	err := db.GormDB.Preload("Organisation").
+		Joins("INNER JOIN organisations ON repos.organisation_id = organisations.id").
+		Where("organisations.id = ? AND repos.repo_full_name=?", orgIdKey, repoFullName).First(&repo).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Debug("repo not found",
+				"orgId", orgIdKey,
+				"repoFullName", repoFullName)
+			return nil, fmt.Errorf("repo not found %v", repoFullName)
+		}
+		slog.Error("failed to find digger repo",
+			"error", err,
+			"orgId", orgIdKey,
+			"repoFullName", repoFullName)
+		return nil, err
+	}
+
+	slog.Debug("found repo",
+		"repoId", repo.ID,
+		"orgId", orgIdKey,
+		"repoName", repoFullName)
 	return &repo, nil
 }
 
@@ -834,7 +865,7 @@ func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([
 	var runs []DiggerRun
 
 	err := db.GormDB.Preload("PlanStage").Preload("ApplyStage").
-		Where("project_name = ? AND repo_id=  ?", projectName, repoId).Order("created_at desc").Find(&runs).Error
+		Where("project_name = ? AND repo_id = ?", projectName, repoId).Order("created_at desc").Find(&runs).Error
 
 	if err != nil {
 		slog.Error("error fetching digger runs for project",
@@ -1371,11 +1402,11 @@ func (db *Database) CreateOrganisation(name string, externalSource string, tenan
 	return org, nil
 }
 
-func (db *Database) CreateProject(name string, org *Organisation, repo *Repo, isGenerated bool, isInMainBranch bool) (*Project, error) {
+func (db *Database) CreateProject(name string, org *Organisation, repoFullName string, isGenerated bool, isInMainBranch bool) (*Project, error) {
 	project := &Project{
 		Name:           name,
 		Organisation:   org,
-		Repo:           repo,
+		RepoFullName:   repoFullName,
 		Status:         ProjectActive,
 		IsGenerated:    isGenerated,
 		IsInMainBranch: isInMainBranch,
@@ -1385,7 +1416,7 @@ func (db *Database) CreateProject(name string, org *Organisation, repo *Repo, is
 		slog.Error("failed to create project",
 			"name", name,
 			"orgId", org.ID,
-			"repoId", repo.ID,
+			"repoFullName", repoFullName,
 			"error", result.Error)
 		return nil, result.Error
 	}
@@ -1394,7 +1425,7 @@ func (db *Database) CreateProject(name string, org *Organisation, repo *Repo, is
 			"id", project.ID,
 			"name", name,
 			"orgId", org.ID,
-			"repoId", repo.ID,
+			"repoFullName", repoFullName,
 			"isGenerated", isGenerated,
 			"isInMainBranch", isInMainBranch))
 	return project, nil
@@ -1600,105 +1631,34 @@ func validateDiggerConfigYaml(configYaml string) (*configuration.DiggerConfig, e
 	return diggerConfig, nil
 }
 
-func (db *Database) UpdateRepoDiggerConfig(orgId any, config configuration.DiggerConfigYaml, repo *Repo, isMainBranch bool) error {
-	slog.Info("updating repo digger config",
-		"repoId", repo.ID,
-		"repoName", repo.Name,
-		"orgId", orgId,
-		"isMainBranch", isMainBranch)
+func (db *Database) RefreshProjectsFromRepo(orgId string, config configuration.DiggerConfigYaml, repoFullName string) error {
+	slog.Debug("UpdateRepoDiggerConfig, repo", "repoFullName", repoFullName)
 
 	org, err := db.GetOrganisationById(orgId)
 	if err != nil {
-		slog.Error("failed to get organisation",
-			"orgId", orgId,
-			"error", err)
-		return err
+		return fmt.Errorf("error retrieving org by name: %v", err)
 	}
 
 	err = db.GormDB.Transaction(func(tx *gorm.DB) error {
-		if isMainBranch {
-			// we reset all projects already in main branch to create new projects
-			repoProjects, err := db.GetProjectByRepo(orgId, repo)
-			if err != nil {
-				slog.Error("could not get repo projects",
-					"repoId", repo.ID,
-					"orgId", orgId,
-					"error", err)
-				return fmt.Errorf("could not get repo projects: %v", err)
-			}
-
-			slog.Info("resetting main branch flag for existing projects",
-				"projectCount", len(repoProjects),
-				"repoId", repo.ID)
-
-			for _, rp := range repoProjects {
-				rp.IsInMainBranch = false
-				err = db.UpdateProject(&rp)
-				if err != nil {
-					slog.Error("could not update existing main branch project",
-						"projectId", rp.ID,
-						"error", err)
-					return fmt.Errorf("could not update existing main branch projects: %v", err)
-				}
-			}
-		}
-
-		slog.Info("processing projects from config",
-			"projectCount", len(config.Projects),
-			"repoId", repo.ID)
-
 		for _, dc := range config.Projects {
 			projectName := dc.Name
-			p, err := db.GetProjectByName(orgId, repo, projectName)
+			p, err := db.GetProjectByName(orgId, repoFullName, projectName)
 			if err != nil {
-				slog.Error("error retrieving project by name",
-					"projectName", projectName,
-					"repoId", repo.ID,
-					"error", err)
 				return fmt.Errorf("error retrieving project by name: %v", err)
 			}
-
 			if p == nil {
-				slog.Info("creating new project",
-					"projectName", projectName,
-					"repoId", repo.ID,
-					"isGenerated", dc.Generated,
-					"isMainBranch", isMainBranch)
-
-				_, err := db.CreateProject(projectName, org, repo, dc.Generated, isMainBranch)
+				_, err := db.CreateProject(projectName, org, repoFullName, false, true)
 				if err != nil {
-					slog.Error("could not create project",
-						"projectName", projectName,
-						"error", err)
 					return fmt.Errorf("could not create project: %v", err)
 				}
-			} else {
-				slog.Info("updating existing project",
-					"projectId", p.ID,
-					"projectName", projectName,
-					"isGenerated", dc.Generated,
-					"isMainBranch", isMainBranch)
-
-				if isMainBranch == true {
-					p.IsInMainBranch = isMainBranch
-				}
-				p.IsGenerated = dc.Generated
-				db.UpdateProject(p)
 			}
 		}
 		return nil
 	})
 
 	if err != nil {
-		slog.Error("error while updating projects from config",
-			"repoId", repo.ID,
-			"error", err)
 		return fmt.Errorf("error while updating projects from config: %v", err)
 	}
-
-	slog.Info("successfully updated repo digger config",
-		"repoId", repo.ID,
-		"projectCount", len(config.Projects))
 	return nil
 }
 

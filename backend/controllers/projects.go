@@ -251,7 +251,7 @@ func ProjectDetails(c *gin.Context) {
 	slog.Info("Successfully retrieved project details",
 		"projectId", projectId,
 		"projectName", project.Name,
-		"repoName", project.Repo.Name,
+		"repoFullName", project.RepoFullName,
 	)
 
 	c.JSON(http.StatusOK, project.MapToJsonStruct())
@@ -355,9 +355,8 @@ func ReportProjectsForRepo(c *gin.Context) {
 			project := models.Project{
 				Name:              request.Name,
 				ConfigurationYaml: request.ConfigurationYaml,
-				RepoID:            repo.ID,
 				OrganisationID:    org.ID,
-				Repo:              &repo,
+				RepoFullName:      repo.RepoFullName,
 				Organisation:      org,
 			}
 
