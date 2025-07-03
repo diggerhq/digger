@@ -614,7 +614,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 
 	// create test project
 	projectName := "test project"
-	_, err = database.CreateProject(projectName, org, repo, false, false)
+	_, err = database.CreateProject(projectName, org, repo.RepoFullName, false, false)
 	if err != nil {
 		panic(err)
 	}

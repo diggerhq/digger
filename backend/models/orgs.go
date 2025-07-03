@@ -55,8 +55,6 @@ func (p *ProjectRun) MapToJsonStruct() interface{} {
 		Id:            p.ID,
 		ProjectID:     p.ProjectID,
 		ProjectName:   p.Project.Name,
-		RepoUrl:       p.Project.Repo.RepoUrl,
-		RepoFullName:  p.Project.Repo.RepoFullName,
 		StartedAt:     time.UnixMilli(p.StartedAt),
 		EndedAt:       time.UnixMilli(p.EndedAt),
 		Status:        p.Status,
@@ -75,11 +73,10 @@ const (
 
 type Project struct {
 	gorm.Model
-	Name              string `gorm:"uniqueIndex:idx_project"`
-	OrganisationID    uint   `gorm:"uniqueIndex:idx_project"`
+	Name              string `gorm:"uniqueIndex:idx_project_org"`
+	OrganisationID    uint   `gorm:"uniqueIndex:idx_project_org"`
 	Organisation      *Organisation
-	RepoID            uint `gorm:"uniqueIndex:idx_project"`
-	Repo              *Repo
+	RepoFullName      string `gorm:"uniqueIndex:idx_project_org"`
 	ConfigurationYaml string // TODO: probably needs to be deleted
 	Status            ProjectStatus
 	IsGenerated       bool
@@ -112,12 +109,8 @@ func (p *Project) MapToJsonStruct() interface{} {
 		Id:                    p.ID,
 		Name:                  p.Name,
 		OrganisationID:        p.OrganisationID,
-		RepoID:                p.RepoID,
 		OrganisationName:      p.Organisation.Name,
-		RepoFullName:          p.Repo.RepoFullName,
-		RepoName:              p.Repo.RepoName,
-		RepoOrg:               p.Repo.RepoOrganisation,
-		RepoUrl:               p.Repo.RepoUrl,
+		RepoFullName:          p.RepoFullName,
 		LastActivityTimestamp: p.UpdatedAt.String(),
 		LastActivityAuthor:    "unknown",
 		LastActivityStatus:    string(status),

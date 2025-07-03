@@ -249,7 +249,7 @@ func upsertPolicyForRepoAndProject(c *gin.Context, policyType string) {
 	if projectResult.RowsAffected == 0 {
 		projectModel = models.Project{
 			OrganisationID: orgID.(uint),
-			RepoID:         repoModel.ID,
+			RepoFullName:   repoModel.RepoFullName,
 			Name:           projectName,
 		}
 		err := models.DB.GormDB.Create(&projectModel).Error
