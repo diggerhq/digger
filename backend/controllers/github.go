@@ -413,14 +413,14 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, a
 	if loadProjectsOnPush == "true" {
 
 		if strings.HasSuffix(ref, defaultBranch) {
-			slog.Info("Loading projects from GitHub repo (push event)", "loadProjectsOnPush", loadProjectsOnPush, "ref", ref, "defaultBranch", defaultBranch)
+			slog.Debug("Loading projects from GitHub repo (push event)", "loadProjectsOnPush", loadProjectsOnPush, "ref", ref, "defaultBranch", defaultBranch)
 			err := services.LoadProjectsFromGithubRepo(gh, strconv.FormatInt(installationId, 10), repoFullName, repoOwner, repoName, cloneURL, defaultBranch)
 			if err != nil {
 				slog.Error("Failed to load projects from GitHub repo", "error", err)
 			}
 		}
 	} else {
-		slog.Info("Skipping loading projects from GitHub repo", "loadProjectsOnPush", loadProjectsOnPush)
+		slog.Debug("Skipping loading projects from GitHub repo", "loadProjectsOnPush", loadProjectsOnPush)
 	}
 
 	return nil
