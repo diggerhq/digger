@@ -20,9 +20,9 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github/v61 v61.0.0
 	github.com/google/uuid v1.6.0
+	github.com/imdatngo/slog-gorm/v2 v2.0.0
 	github.com/ktrysmt/go-bitbucket v0.9.81
 	github.com/migueleliasweb/go-github-mock v0.0.23
-	github.com/orandin/slog-gorm v1.4.0
 	github.com/robfig/cron v1.2.0
 	github.com/samber/lo v1.39.0
 	github.com/samber/slog-gin v1.15.0

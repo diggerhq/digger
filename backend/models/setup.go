@@ -1,13 +1,13 @@
 package models
 
 import (
-	"log/slog"
-	"os"
-
-	slogGorm "github.com/orandin/slog-gorm"
+	sloggorm "github.com/imdatngo/slog-gorm/v2"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"log/slog"
+	"os"
+	"time"
 )
 
 type Database struct {
@@ -20,8 +20,19 @@ var DEFAULT_ORG_NAME = "digger"
 var DB *Database
 
 func ConnectDatabase() {
+	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	cfg := sloggorm.NewConfig(slogger.Handler()).
+		WithGroupKey("db").
+		WithSlowThreshold(time.Second).
+		WithIgnoreRecordNotFoundError(true)
+
+	if os.Getenv("DIGGER_LOG_LEVEL") == "DEBUG" {
+		cfg.WithTraceAll(true)
+	}
+	glogger := sloggorm.NewWithConfig(cfg)
 	database, err := gorm.Open(postgres.Open(os.Getenv("DATABASE_URL")), &gorm.Config{
-		Logger: slogGorm.New(),
+		Logger: glogger,
 	})
 	if err != nil {
 		slog.Error("Failed to connect to database", "error", err)

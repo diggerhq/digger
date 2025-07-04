@@ -25,8 +25,50 @@ import (
 	"gorm.io/gorm"
 )
 
-func ListProjects(c *gin.Context) {
+func ListProjectsApi(c *gin.Context) {
+	// assume all exists as validated in middleware
+	organisationId := c.GetString(middleware.ORGANISATION_ID_KEY)
+	organisationSource := c.GetString(middleware.ORGANISATION_SOURCE_KEY)
 
+	var org models.Organisation
+	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found", "organisationId", organisationId, "source", organisationSource)
+			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
+		} else {
+			slog.Error("Error fetching organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
+			c.String(http.StatusInternalServerError, "Error fetching organisation")
+		}
+		return
+	}
+
+	var projects []models.Project
+
+	err = models.DB.GormDB.Preload("Organisation").
+		Where("projects.organisation_id = ?", org.ID).
+		Order("name").
+		Find(&projects).Error
+
+	if err != nil {
+		slog.Error("Error fetching projects", "organisationId", organisationId, "orgId", org.ID, "error", err)
+		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
+		return
+	}
+
+	marshalledRepos := make([]interface{}, 0)
+
+	for _, p := range projects {
+		marshalled := p.MapToJsonStruct()
+		marshalledRepos = append(marshalledRepos, marshalled)
+	}
+
+	slog.Info("Successfully fetched projects", "organisationId", organisationId, "orgId", org.ID, "projectCount", len(projects))
+
+	response := make(map[string]interface{})
+	response["result"] = marshalledRepos
+
+	c.JSON(http.StatusOK, response)
 }
 
 func FindProjectsForRepo(c *gin.Context) {
@@ -353,11 +395,10 @@ func ReportProjectsForRepo(c *gin.Context) {
 			)
 
 			project := models.Project{
-				Name:              request.Name,
-				ConfigurationYaml: request.ConfigurationYaml,
-				OrganisationID:    org.ID,
-				RepoFullName:      repo.RepoFullName,
-				Organisation:      org,
+				Name:           request.Name,
+				OrganisationID: org.ID,
+				RepoFullName:   repo.RepoFullName,
+				Organisation:   org,
 			}
 
 			err = models.DB.GormDB.Create(&project).Error

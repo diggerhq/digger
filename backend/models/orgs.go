@@ -73,14 +73,14 @@ const (
 
 type Project struct {
 	gorm.Model
-	Name              string `gorm:"uniqueIndex:idx_project_org"`
-	OrganisationID    uint   `gorm:"uniqueIndex:idx_project_org"`
-	Organisation      *Organisation
-	RepoFullName      string `gorm:"uniqueIndex:idx_project_org"`
-	ConfigurationYaml string // TODO: probably needs to be deleted
-	Status            ProjectStatus
-	IsGenerated       bool
-	IsInMainBranch    bool
+	Name           string `gorm:"uniqueIndex:idx_project_org"`
+	Directory      string
+	OrganisationID uint `gorm:"uniqueIndex:idx_project_org"`
+	Organisation   *Organisation
+	RepoFullName   string `gorm:"uniqueIndex:idx_project_org"`
+	Status         ProjectStatus
+	IsGenerated    bool
+	IsInMainBranch bool
 }
 
 func (p *Project) MapToJsonStruct() interface{} {
@@ -97,9 +97,6 @@ func (p *Project) MapToJsonStruct() interface{} {
 		OrganisationName      string `json:"organisation_name"`
 		RepoID                uint   `json:"repo_id"`
 		RepoFullName          string `json:"repo_full_name"`
-		RepoName              string `json:"repo_name"`
-		RepoOrg               string `json:"repo_org"`
-		RepoUrl               string `json:"repo_url"`
 		IsInMainBranch        bool   `json:"is_in_main_branch"`
 		IsGenerated           bool   `json:"is_generated"`
 		LastActivityTimestamp string `json:"last_activity_timestamp"`
@@ -108,6 +105,7 @@ func (p *Project) MapToJsonStruct() interface{} {
 	}{
 		Id:                    p.ID,
 		Name:                  p.Name,
+		Directory:             p.Directory,
 		OrganisationID:        p.OrganisationID,
 		OrganisationName:      p.Organisation.Name,
 		RepoFullName:          p.RepoFullName,
