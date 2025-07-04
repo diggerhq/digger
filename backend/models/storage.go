@@ -378,7 +378,7 @@ func (db *Database) GetRepo(orgIdKey any, repoName string) (*Repo, error) {
 }
 
 func (db *Database) GetRepoByFullName(orgIdKey any, repoFullName string) (*Repo, error) {
-	slog.Info("getting repo by name",
+	slog.Info("getting repo by full name",
 		"orgId", orgIdKey,
 		"repoName", repoFullName)
 
@@ -1402,9 +1402,10 @@ func (db *Database) CreateOrganisation(name string, externalSource string, tenan
 	return org, nil
 }
 
-func (db *Database) CreateProject(name string, org *Organisation, repoFullName string, isGenerated bool, isInMainBranch bool) (*Project, error) {
+func (db *Database) CreateProject(name string, directory string, org *Organisation, repoFullName string, isGenerated bool, isInMainBranch bool) (*Project, error) {
 	project := &Project{
 		Name:           name,
+		Directory:      directory,
 		Organisation:   org,
 		RepoFullName:   repoFullName,
 		Status:         ProjectActive,
@@ -1642,15 +1643,19 @@ func (db *Database) RefreshProjectsFromRepo(orgId string, config configuration.D
 	err = db.GormDB.Transaction(func(tx *gorm.DB) error {
 		for _, dc := range config.Projects {
 			projectName := dc.Name
+			projectDirectory := dc.Dir
 			p, err := db.GetProjectByName(orgId, repoFullName, projectName)
 			if err != nil {
 				return fmt.Errorf("error retrieving project by name: %v", err)
 			}
 			if p == nil {
-				_, err := db.CreateProject(projectName, org, repoFullName, false, true)
+				_, err := db.CreateProject(projectName, projectDirectory, org, repoFullName, false, true)
 				if err != nil {
 					return fmt.Errorf("could not create project: %v", err)
 				}
+			} else {
+				p.Directory = projectDirectory
+				db.GormDB.Save(p)
 			}
 		}
 		return nil
