@@ -169,7 +169,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		}
 
 		slog.Info("Found project configuration", "projectName", projectConfig.Name, "projectDir", projectConfig.Dir)
-		workflow := diggerConfig.Workflows[projectConfig.Workflow]
+		workflow, ok := diggerConfig.Workflows[projectConfig.Workflow]
+		if !ok {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Workflow '%s' not found for project '%s'", projectConfig.Workflow, projectConfig.Name), 1)
+		}
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 

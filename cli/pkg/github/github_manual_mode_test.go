@@ -1,11 +1,31 @@
 package github
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/stretchr/testify/assert"
 )
+
+// Helper function to search for a project in the configuration
+func findProjectInConfig(projects []digger_config.Project, projectName string) (digger_config.Project, bool) {
+	for _, config := range projects {
+		if config.Name == projectName {
+			return config, true
+		}
+	}
+	return digger_config.Project{}, false
+}
+
+// Helper function to get available project names
+func getAvailableProjectNames(projects []digger_config.Project) []string {
+	var availableProjects []string
+	for _, p := range projects {
+		availableProjects = append(availableProjects, p.Name)
+	}
+	return availableProjects
+}
 
 func TestManualModeProjectValidation(t *testing.T) {
 	// Create a test digger config with some projects
@@ -60,21 +80,13 @@ func TestManualModeProjectValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Simulate the fixed project selection logic
-			var projectConfig digger_config.Project
-			var projectFound bool
-
-			for _, config := range diggerConfig.Projects {
-				if config.Name == tt.requestedProject {
-					projectConfig = config
-					projectFound = true
-					break
-				}
-			}
+			// Use helper function for project search
+			projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, tt.requestedProject)
 
 			if tt.shouldFind {
 				assert.True(t, projectFound, "Expected to find project %s", tt.requestedProject)
 				assert.Equal(t, tt.expectedProject, projectConfig.Name, "Expected project name to match")
+				assert.Equal(t, "./"+tt.expectedProject, projectConfig.Dir, "Expected project directory to match")
 			} else {
 				assert.False(t, projectFound, "Expected NOT to find project %s", tt.requestedProject)
 				// In the old buggy code, projectConfig would contain the last project from the loop
@@ -133,23 +145,10 @@ func TestAvailableProjectsLogging(t *testing.T) {
 	}
 
 	requestedProject := "missing-project"
-	var projectFound bool
-	var availableProjects []string
 
-	// Simulate the project search
-	for _, config := range diggerConfig.Projects {
-		if config.Name == requestedProject {
-			projectFound = true
-			break
-		}
-	}
-
-	if !projectFound {
-		// Collect available projects for error message
-		for _, p := range diggerConfig.Projects {
-			availableProjects = append(availableProjects, p.Name)
-		}
-	}
+	// Use helper functions
+	_, projectFound := findProjectInConfig(diggerConfig.Projects, requestedProject)
+	availableProjects := getAvailableProjectNames(diggerConfig.Projects)
 
 	assert.False(t, projectFound)
 	assert.Equal(t, []string{"web-app", "api-service", "database"}, availableProjects)
@@ -166,27 +165,48 @@ func TestProjectNotFoundErrorMessage(t *testing.T) {
 	}
 
 	requestedProject := "invalid-project"
-	var projectFound bool
-	var availableProjects []string
 
-	for _, config := range diggerConfig.Projects {
-		if config.Name == requestedProject {
-			projectFound = true
-			break
-		}
-	}
+	// Use helper functions
+	_, projectFound := findProjectInConfig(diggerConfig.Projects, requestedProject)
+	availableProjects := getAvailableProjectNames(diggerConfig.Projects)
+
+	assert.False(t, projectFound)
 
 	if !projectFound {
-		for _, p := range diggerConfig.Projects {
-			availableProjects = append(availableProjects, p.Name)
-		}
-
 		// This would normally call usage.ReportErrorAndExit
 		expectedErrorMsg := "Project 'invalid-project' not found in digger configuration. Available projects: [project-1 project-2]"
 
-		// Verify the error message format
-		actualErrorMsg := "Project '" + requestedProject + "' not found in digger configuration. Available projects: " +
-			"[project-1 project-2]"
+		// Verify the error message format using fmt.Sprintf for better maintainability
+		actualErrorMsg := fmt.Sprintf("Project '%s' not found in digger configuration. Available projects: %v", requestedProject, availableProjects)
 		assert.Equal(t, expectedErrorMsg, actualErrorMsg)
+		assert.Equal(t, []string{"project-1", "project-2"}, availableProjects)
 	}
+}
+
+func TestWorkflowValidation(t *testing.T) {
+	// Test that we properly validate workflow existence
+	diggerConfig := &digger_config.DiggerConfig{
+		Projects: []digger_config.Project{
+			{
+				Name:     "test-project",
+				Workflow: "custom-workflow",
+			},
+		},
+		Workflows: map[string]digger_config.Workflow{
+			"default": {
+				Plan:  &digger_config.Stage{Steps: []digger_config.Step{{Action: "init"}}},
+				Apply: &digger_config.Stage{Steps: []digger_config.Step{{Action: "apply"}}},
+			},
+		},
+	}
+
+	// Test valid workflow
+	project := diggerConfig.Projects[0]
+	_, workflowExists := diggerConfig.Workflows[project.Workflow]
+	assert.False(t, workflowExists, "custom-workflow should not exist")
+
+	// Test workflow that exists
+	project.Workflow = "default"
+	_, workflowExists = diggerConfig.Workflows[project.Workflow]
+	assert.True(t, workflowExists, "default workflow should exist")
 }
