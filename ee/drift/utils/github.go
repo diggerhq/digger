@@ -13,6 +13,7 @@ import (
 	"github.com/dominikbraun/graph"
 	"github.com/google/go-github/v61/github"
 	"log"
+	"log/slog"
 	net "net/http"
 	"os"
 	"path"
@@ -20,6 +21,9 @@ import (
 )
 
 func GetGithubClient(gh utils.GithubClientProvider, installationId int64, repoFullName string) (*github.Client, *string, error) {
+	slog.Debug("Getting GitHub client",
+		"installationId", installationId,
+		"repoFullName", repoFullName)
 	repo, err := dbmodels.DB.GetRepoByInstllationIdAndRepoFullName(strconv.FormatInt(installationId, 10), repoFullName)
 	if err != nil {
 		log.Printf("Error getting repo: %v", err)
@@ -31,6 +35,7 @@ func GetGithubClient(gh utils.GithubClientProvider, installationId int64, repoFu
 }
 
 func GetGithubService(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
+	slog.Debug("getting github client", "installationId", installationId, "repoFullName", repoFullName)
 	ghClient, token, err := GetGithubClient(gh, installationId, repoFullName)
 	if err != nil {
 		log.Printf("Error creating github app client: %v", err)

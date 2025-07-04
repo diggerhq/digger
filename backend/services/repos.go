@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
 	utils3 "github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/ee/drift/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	utils2 "github.com/diggerhq/digger/next/utils"
 	"log/slog"
 	"strconv"
 	"strings"
 )
 
-func LoadProjectsFromGithubRepo(gh utils2.GithubClientProvider, installationId string, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) error {
+func LoadProjectsFromGithubRepo(gh utils3.GithubClientProvider, installationId string, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) error {
 	installationId64, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {
 		slog.Error("failed to convert installation id %v to int64", "insallationId", installationId)
@@ -36,7 +34,8 @@ func LoadProjectsFromGithubRepo(gh utils2.GithubClientProvider, installationId s
 		return fmt.Errorf("repo not found: Org: %v | repo: %v", orgId, diggerRepoName)
 	}
 
-	_, token, err := utils.GetGithubService(gh, installationId64, repoFullName, repoOwner, repoName)
+	slog.Debug("getting github service", "installationId", installationId, "repoFullName", repoFullName, "repoOwner", repoOwner, "repoName", repoName)
+	_, token, err := utils3.GetGithubService(gh, installationId64, repoFullName, repoOwner, repoName)
 	if err != nil {
 		slog.Error("getting github service", "error", err)
 		return fmt.Errorf("error getting github service")
