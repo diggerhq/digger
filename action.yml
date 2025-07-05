@@ -106,7 +106,7 @@ inputs:
     required: false
     default: 'true'
   upload-plan-destination:
-    description: Destination to upload the plan to. azure, gcp, github and aws are currently supported.
+    description: Destination to upload the plan to. Azure, GCP, GitHub and aws are currently supported.
     required: false
   upload-plan-destination-s3-bucket:
     description: Name of the destination bucket for AWS S3. Should be provided if destination == aws

@@ -43,10 +43,10 @@ generate_projects:
 
 # Assume role with cognito identity
 
-The github action JWT token includes alot of useful fields such as `ref`, `sha`, `runner_environment` etc. however it is
+The GitHub action JWT token includes alot of useful fields such as `ref`, `sha`, `runner_environment` etc. however it is
 challenging to write an AWS trust policy to match for these fields since only `aud` and `sub` fields are supported. Using cognito
 identity it is possible to remap the fields into principal tags which allows them to be matched in the trust policy. More information
-about this is in this article: https://catnekaise.github.io/github-actions-abac-aws/cognito-identity/.
+about this is in this article: https://catnekaise.GitHub.io/GitHub-actions-abac-aws/cognito-identity/.
 
 If you wish to perform this mapping in digger you can specify an additional aws_cognito_oidc configuration as follows:
 

@@ -7,7 +7,7 @@ Digger has 2 main components: the CLI that runs within your CI and an orchestrat
 This guide describes self-hosting the orchestrator backend as a binary aka "roll your own". Self-hosting may come handy when using the cloud-based version of it is not an option (for example due to compliance requirements). More guides (docker, EC2, etc) are coming soon.
 
 <Note>
-This guide is about self-hosting Digger Community Edition which is free and open source (Apache 2.0 license) ([repo on GitHub](https://github.com/diggerhq/digger)). You do not need a license or an account on Digger Cloud to self-host Digger CE. If you require enterprise-grade features like Github Enterprise Server support, SSO / SAML, multi-team / multi-org - [Talk to us](https://calendly.com/diggerdev/digger-open-source-terraform-cloud-alternativ-clone)
+This guide is about self-hosting Digger Community Edition which is free and open source (Apache 2.0 license) ([repo on GitHub](https://github.com/diggerhq/digger)). You do not need a license or an account on Digger Cloud to self-host Digger CE. If you require enterprise-grade features like GitHub Enterprise Server support, SSO / SAML, multi-team / multi-org - [Talk to us](https://calendly.com/diggerdev/digger-open-source-terraform-cloud-alternativ-clone)
 </Note>
 
 # Prerequisites
@@ -54,7 +54,7 @@ services:
 # Set initial environment variables
 
 ```
-GITHUB_ORG=your_github_org
+GITHUB_ORG=your_GitHub_org
 HOSTNAME=your_public_digger_hostname
 BEARER_AUTH_TOKEN=$(openssl rand -base64 12)
 DATABASE_URL=postgres://postgres:root@postgres:5432/postgres?sslmode=disable
@@ -73,9 +73,9 @@ You should now see initial database migrations and tables being created. Go to y
 
 # Create GitHub app
 
-Go to your_digger_hostname:3000/github/setup and click the Setup button. Follow the instructions on GitHub to install the app to the repositories in your organisation.
+Go to your_digger_hostname:3000/GitHub/setup and click the Setup button. Follow the instructions on GitHub to install the app to the repositories in your organisation.
 
-After the setup is done, GitHub should redirect you to the summary page at your_digger_hostname:3000/github/exchange-code
+After the setup is done, GitHub should redirect you to the summary page at your_digger_hostname:3000/GitHub/exchange-code
 
 Copy the values into the following environment variables and restart the service.
 
@@ -91,7 +91,7 @@ GITHUB_WEBHOOK_SECRET=
 
 On the exchange-code page (see above) click the installation link at the top and select the repositories.
 
-From here on it's the same steps as in the [Quickstart](/ce/getting-started/github-actions-+-aws):
+From here on it's the same steps as in the [Quickstart](/ce/getting-started/GitHub-actions-+-aws):
 - Create digger.yml
 - Create workflow file
 - Create secrets

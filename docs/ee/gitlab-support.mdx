@@ -1,16 +1,15 @@
 ---
-title: "Gitlab CI and Pipelines"
+title: "GitLab CI and Pipelines"
 ---
 
-You can use digger with gitlab as your VCS and gitlab pipelines as a CI backend. Currently this is an EE feature only.
+You can use digger with GitLab as your VCS and GitLab pipelines as a CI backend. Currently this is an EE feature only.
 
 
 ### Prerequisites:
 
 - Having a valid digger EE license key. If you don't have a license key please [contact us](https://calendly.com/diggerdev/diggerdemo) to request an EE trial
-- A gitlab account.
-- a personal github access token. This can be created from user preferences > access tokens
-
+- A GitLab account.
+- A personal GitLab access token. This can be created from User Preferences > Access Tokens
 ### Install the digger EE orchestrator:
 
 You need to install the digger EE orchestrator. The installation steps are the same as the steps in [self hosting docker](/self-host/deploy-docker)
@@ -18,17 +17,17 @@ with some differences:
 
 - For the docker image you will need to use the ee image: https://github.com/diggerhq/digger/pkgs/container/digger_backend
 - You will need to include the license key environment variable to the backend and the cli: `DIGGER_LICENSE_KEY=xxxyyy`
-- You can ignore all the steps regarding setting up Github app and all GITHUB_** environment variables
-- For gitlab CI configuration you need to specify the following environment variables:
+- You can ignore all the steps regarding setting up GitHub app and all GITHUB_** environment variables
+- For GitLab CI configuration you need to specify the following environment variables:
 
 ```
 DIGGER_CI_BACKEND=gitlab_pipelines
 DIGGER_GITLAB_WEBHOOK_SECRET=abc123
-DIGGER_GITLAB_ACCESS_TOKEN=glpat-xxxxyyyyyzzzzz # (this is your gitlab access token from prerequisite step)
+DIGGER_GITLAB_ACCESS_TOKEN=glpat-xxxxyyyyyzzzzz # (this is your GitLab access token from prerequisite step)
 ```
 
 Other than that if you follow the steps in the self hosting guide you should end up with the orchestrator up and running
-along with a github app successfully installed. The repo you wish to try with digger should be installed onto the orchestrator.
+along with a GitHub app successfully installed. The repo you wish to try with digger should be installed onto the orchestrator.
 
 
 ### Prepare your repo with a digger.yml
@@ -42,16 +41,16 @@ projects:
     dir: dev/
 ```
 
-### Setting up gitlab webhooks
+### Setting up GitLab webhooks
 
 In the repo where you are interested to integrate with digger you need to set up a webhook pointing to your digger hostname.
 Go to Settings > Webhooks and add digger host name. Set the secret token as "abc123" (same as `DIGGER_GITLAB_WEBHOOK_SECRET`) above.
 make sure that "Comments" and "Merge request events" are selected for Trigger events. Finally you can save.
 
 
-### Create digger pipeline in your gitlab repo
+### Create digger pipeline in your GitLab repo
 
-To create a gitlab pipeline you can use a .gitlab-ci.yml file in the root of your file. In this you need to
+To create a GitLab pipeline you can use a .gitlab-ci.yml file in the root of your file. In this you need to
 create a script which downloads digger binary and invokes it, the purpose here is to have this pipeline triggered
 by digger externally. Here is an example of such file:
 
@@ -86,7 +85,7 @@ digger_action:
     # - git clone https://github.com/diggerhq/digger.git
     # - cd digger/cli
     # - pwd
-    # - git checkout feat/gitlab-support2
+    # - git checkout feat/GitLab-support2
     # - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o digger ./cmd/digger
     # - PATH=$PATH:$(pwd)
     # - cd ../../
@@ -102,15 +101,15 @@ all you need to set up and try digger!
 
 In order to test your setup try to create a pull request in your repo. After you Comment "digger plan" You should see in the backend logs
 that a webhook event was received and an initial comment should be triggered in your pull request. Your
-gitlab should also trigger and also perform a plan. If successful the job will comment back the plan as follows:
+GitLab should also trigger and also perform a plan. If successful the job will comment back the plan as follows:
 
-![](/images/gitlab/gitlab-plan.png)
+![](/images/GitLab/GitLab-plan.png)
 
-![](/images/gitlab/gitlab-apply.png)
+![](/images/GitLab/GitLab-apply.png)
 
 ## Repo allowlist
 
-You can set `DIGGER_REPO_ALLOW_LIST` env variable on the server to define a whitelist of repositories allowed to trigger Digger workflows in Gitlab. This is needed because unlike GitHub, there's no concept of "apps" in Gitlab to allow granular control of per-repo access.
+You can set `DIGGER_REPO_ALLOW_LIST` env variable on the server to define a whitelist of repositories allowed to trigger Digger workflows in GitLab. This is needed because unlike GitHub, there's no concept of "apps" in GitLab to allow granular control of per-repo access.
 
 ```
 DIGGER_REPO_ALLOW_LIST=gitlab.com/diggerdev/digger-demo,gitlab.com/diggerdev/alsoallowed

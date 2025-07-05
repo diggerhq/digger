@@ -12,13 +12,13 @@ Setting up the backend is the same as in CE so you can follow the relevant guide
 - Helm chart guide: https://docs.digger.dev/self-host/deploy-helm
 - Docker image guide: https://docs.digger.dev/self-host/deploy-docker
 
-By the end of this you should have your orchestrator up and running internally, you will also have setup the internal github app for your org internally.
+By the end of this you should have your orchestrator up and running internally, you will also have setup the internal GitHub app for your org internally.
 
 # Step 2: Setting up the POC Repo
 
 After you have the orchestrator up and running you will need a repo to test digger on. For using it with terragrunt you can rely on this example as a starting point:  https://github.com/diggerhq/demo-terragrunt-parallel-ee feel free to fork it or clone and re-push it as an internal repo, or you can just copy the same structure, with digger.yml in the root of the repo as well as a workflow file `digger_workflow.yml`
 
-Once you have the repo ready you need to install it to the image. So make sure to install the github app in your organisation, adding the POC repository to it.
+Once you have the repo ready you need to install it to the image. So make sure to install the GitHub app in your organisation, adding the POC repository to it.
 
 In order to proceed with an example plan you will also need to set a secret called `DIGGER_LICENSE_KEY` and the value of the license key that has been provided above.
 

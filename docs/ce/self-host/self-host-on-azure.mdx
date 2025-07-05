@@ -2,15 +2,15 @@
 title: "Self Host on Azure"
 ---
 
-This guide will show you how to set up digger orchestrator on azure and setup your github workflow to trigger workflow on azure\! This guide assumes that you are using github actions for CI. Lets get started
+This guide will show you how to set up digger orchestrator on azure and setup your GitHub workflow to trigger workflow on azure\! This guide assumes that you are using GitHub actions for CI. Lets get started
 
 # Installing the orchestrator
 
-The easiest way to install the orchestrator is via helmchart in kubernetes. The deployed service needs to be able to listen to webhooks from github for using github actions
+The easiest way to install the orchestrator is via helmchart in kubernetes. The deployed service needs to be able to listen to webhooks from GitHub for using GitHub actions
 
 ## Install the helm chart
 
-Install the `digger-backend` helm chart from [**https://diggerhq.github.io/helm-charts/**](https://diggerhq.github.io/helm-charts/**), leaving empty all the data related to the GitHub App. You can also use the postgres database defined within the helmchart or define your own. Here’s a good starter set for my-values.yml:
+Install the `digger-backend` helm chart from [**https://diggerhq.GitHub.io/helm-charts/**](https://diggerhq.GitHub.io/helm-charts/**), leaving empty all the data related to the GitHub App. You can also use the postgres database defined within the helmchart or define your own. Here’s a good starter set for my-values.yml:
 
 ```
 digger:
@@ -32,13 +32,20 @@ digger:
     httpBasicAuthPassword: "abc123"
     bearerAuthToken: "salkfjadslkfj" # You should generate
     hostname: "<https://mo-digger-test.ngrok.app>"
-    githubOrg: "diggerhq" # replace with org for digger
-    githubAppID: ""
-    githubAppClientID: ""
-    githubAppClientSecret: ""
-    githubAppKeyFile: "" #base64 encoded file
-    githubWebhookSecret: ""
+    secret:
+      useExistingSecret: false
+      existingSecretName: ""
 
+      httpBasicAuthUsername: "admin"
+      httpBasicAuthPassword: "abc123"
+      bearerAuthToken: "salkfjadslkfj"
+      hostname: "<https://mo-digger-test.ngrok.app>"
+      githubOrg: "diggerhq"       # replace with org for digger
+      githubAppID: ""
+      githubAppClientID: ""
+      githubAppClientSecret: ""
+      githubAppKeyFile: ""        # base64 encoded file
+      githubWebhookSecret: ""
 postgres:
   enabled: true
   secret:
@@ -48,7 +55,7 @@ postgres:
 you can save this file in a file like `mydigger.yml` and run the following helm commands to install it in your k8s cluster:
 
 ```
-$ helm repo add digger <https://diggerhq.github.io/helm-charts/>
+$ helm repo add digger <https://diggerhq.GitHub.io/helm-charts/>
 $ helm repo update
 $ helm install mydigger digger/digger-backend -f mydigger.yml
 ```
@@ -59,24 +66,24 @@ If all goes well you will see this fancy welcome screen when you visit the endpo
 
 ![Screenshot2025 05 26at19 00 55 Pn](/docs/images/Screenshot2025-05-26at19.00.55.png)
 
-Now you can visit /github/setup endpoint and you will be greeted with this setup wizard for creation of a digger github app with the right settings
+Now you can visit /GitHub/setup endpoint and you will be greeted with this setup wizard for creation of a digger GitHub app with the right settings
 
 ![Screenshot2025 05 26at19 00 33 Pn](/docs/images/Screenshot2025-05-26at19.00.33.png)
 
 ![Screenshot2025 05 26at19 00 38 Pn](/docs/images/Screenshot2025-05-26at19.00.38.png)
 
-After successful installation you will see all the github credentials in the redirect including ID, webhook secret, private key and so on
+After successful installation you will see all the GitHub credentials in the redirect including ID, webhook secret, private key and so on
 
 ![Screenshot2025 05 26at19 14 34 Pn](/docs/images/Screenshot2025-05-26at19.14.34.png)
 
 Now we need to update the values from mydigger.yml above for these secrets:
 
 ```
-    githubAppID: "add"
-    githubAppClientID: "add"
-    githubAppClientSecret: "add"
-    githubAppKeyFile: "add" 
-    githubWebhookSecret: "add"
+    GitHubAppID: "add"
+    GitHubAppClientID: "add"
+    GitHubAppClientSecret: "add"
+    GitHubAppKeyFile: "add" 
+    GitHubWebhookSecret: "add"
 ```
 
 Next is to update the helmchart:
@@ -85,7 +92,7 @@ Next is to update the helmchart:
 $ helm upgrade mydigger digger/digger-backend -f digger.yml
 ```
 
-Now we can install the newly created github app into the org and if all goes well we should see a succesful installation (pick the test repo where you have terraform in)\!
+Now we can install the newly created GitHub app into the org and if all goes well we should see a succesful installation (pick the test repo where you have terraform in)\!
 
 ![Screenshot2025 05 26at19 58 03 Pn](/docs/images/Screenshot2025-05-26at19.58.03.png)
 
@@ -133,9 +140,9 @@ For GitHub Actions with OIDC (which is likely what you're setting up), you'll al
      - `AZURE_TENANT_ID`
      - `AZURE_SUBSCRIPTION_ID`
 
-## Configure Github workflow:
+## Configure GitHub workflow:
 
-create this github workflow in your repository under `.github/workflow/digger_workflow.yml`
+create this GitHub workflow in your repository under `.GitHub/workflow/digger_workflow.yml`
 
 ```
 name: Digger Workflow
