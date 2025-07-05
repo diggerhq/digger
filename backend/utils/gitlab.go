@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"os"
 	"path"
@@ -113,7 +114,7 @@ func GetDiggerConfigForBranchGitlab(gh GitlabProvider, projectId int, repoFullNa
 		"changedFilesCount", len(changedFiles),
 	)
 
-	err = CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "", func(dir string) error {
+	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "", func(dir string) error {
 		diggerYmlPath := path.Join(dir, "digger.yml")
 		diggerYmlBytes, err := os.ReadFile(diggerYmlPath)
 		if err != nil {

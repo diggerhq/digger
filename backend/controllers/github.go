@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -915,7 +916,7 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	var diggerYmlStr string
 	var dependencyGraph graph.Graph[string, dg_configuration.Project]
 
-	err = utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
+	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 		slog.Debug("Reading Digger config from cloned repository", "directory", dir)
 
 		diggerYmlStr, err = dg_configuration.ReadDiggerYmlFileContents(dir)

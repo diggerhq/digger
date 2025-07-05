@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"net/http"
 	"os"
@@ -94,7 +95,7 @@ func GetDiggerConfigForBitbucketBranch(bb BitbucketProvider, token string, repoF
 		"changedFilesCount", len(changedFiles),
 	)
 
-	err = CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "x-token-auth", func(dir string) error {
+	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "x-token-auth", func(dir string) error {
 		diggerYmlPath := path.Join(dir, "digger.yml")
 		diggerYmlBytes, err := os.ReadFile(diggerYmlPath)
 		if err != nil {

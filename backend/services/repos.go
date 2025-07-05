@@ -5,6 +5,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	utils3 "github.com/diggerhq/digger/backend/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -41,7 +42,7 @@ func LoadProjectsFromGithubRepo(gh utils3.GithubClientProvider, installationId s
 		return fmt.Errorf("error getting github service")
 	}
 
-	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
+	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
 			slog.Error("failed to load digger.yml: %v", "error", err)
