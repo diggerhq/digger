@@ -1642,6 +1642,7 @@ func (db *Database) RefreshProjectsFromRepo(orgId string, config configuration.D
 
 	err = db.GormDB.Transaction(func(tx *gorm.DB) error {
 		for _, dc := range config.Projects {
+			slog.Debug("refreshing for project", "name", dc.Name, "dir", dc.Dir)
 			projectName := dc.Name
 			projectDirectory := dc.Dir
 			p, err := db.GetProjectByName(orgId, repoFullName, projectName)

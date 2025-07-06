@@ -25,4 +25,4 @@ COPY --from=builder /go/src/github.com/diggerhq/digger/projects_refresh_exe /app
 RUN chmod +x projects_refresh_exe
 
 # Run the binary
-ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
+ENTRYPOINT ["./projects_refresh_exe"]

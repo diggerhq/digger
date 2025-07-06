@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -67,7 +68,7 @@ func TriggerProjectsRefreshService(cloneUrl string, branch string, githubToken s
 	}
 
 	// Create HTTP request
-	apiURL := fmt.Sprintf("https://api.machines.dev/v1/apps/%s/machines", os.Getenv("JOB_APP"))
+	apiURL := fmt.Sprintf("https://api.machines.dev/v1/apps/%s/machines", os.Getenv("DIGGER_PROJECTS_SVC_APP_NAME"))
 	req2, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payload))
 	if err != nil {
 		slog.Error("Error creating request", "error", err)
@@ -87,6 +88,12 @@ func TriggerProjectsRefreshService(cloneUrl string, branch string, githubToken s
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		body, err2 := io.ReadAll(resp.Body)
+		slog.Error("Error triggering projects refresh service", "statusCode", resp.StatusCode, "body", body, "readyErr", err2)
+		return nil, fmt.Errorf("error triggering projects refresh service")
+	}
+
 	// Parse response
 	var machineResp MachineResponse
 	if err := json.NewDecoder(resp.Body).Decode(&machineResp); err != nil {
@@ -94,6 +101,7 @@ func TriggerProjectsRefreshService(cloneUrl string, branch string, githubToken s
 		return nil, err
 	}
 
-	slog.Debug("triggered projects refresh service", "machineId", machineResp.ID)
+	slog.Debug("triggered projects refresh service", "machineId", machineResp.ID, "statusCode", resp.StatusCode)
+
 	return &MachineResponse{ID: machineResp.ID}, nil
 }

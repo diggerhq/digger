@@ -9,12 +9,33 @@ import (
 	"os"
 )
 
+func init() {
+	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
+	var level slog.Leveler
+
+	if logLevel == "DEBUG" {
+		level = slog.LevelDebug
+	} else if logLevel == "WARN" {
+		level = slog.LevelWarn
+	} else if logLevel == "ERROR" {
+		level = slog.LevelError
+	} else {
+		level = slog.LevelInfo
+	}
+
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	})
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+}
+
 func main() {
 	cloneUrl := os.Getenv("DIGGER_GITHUB_REPO_CLONE_URL")
 	branch := os.Getenv("DIGGER_GITHUB_REPO_CLONE_BRANCH")
 	token := os.Getenv("DIGGER_GITHUB_TOKEN")
-	orgId := os.Getenv("DIGGER_ORG_ID")
 	repoFullName := os.Getenv("DIGGER_REPO_FULL_NAME")
+	orgId := os.Getenv("DIGGER_ORG_ID")
 
 	if cloneUrl == "" && branch == "" && token == "" && orgId == "" && repoFullName == "" {
 		slog.Info("smoketests mode, skipping this run")
@@ -23,13 +44,20 @@ func main() {
 
 	models.ConnectDatabase()
 
+	slog.Info("refreshing projects from repo", "repoFullName", repoFullName)
 	err := utils3.CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "", func(dir string) error {
 		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
 			slog.Error("failed to load digger.yml: %v", "error", err)
 			return fmt.Errorf("error loading digger.yml %v", err)
 		}
-		models.DB.RefreshProjectsFromRepo(orgId, *config, repoFullName)
+		slog.Debug("RefreshProjectsFromRepo", "repoFullName", repoFullName)
+		err = models.DB.RefreshProjectsFromRepo(orgId, *config, repoFullName)
+		slog.Debug("finished RefreshProjectsFromRepo", "repoFullName", repoFullName, "error", err)
+		if err != nil {
+			slog.Error("failed to refresh projects from repo: %v", "error", err)
+			return fmt.Errorf("error refreshing projects from repo %v", err)
+		}
 		return nil
 	})
 	if err != nil {
