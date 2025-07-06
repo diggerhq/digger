@@ -4,7 +4,7 @@ auto_merge_strategy: "merge"
 projects:
   - name: dev
     dir: dev/
-  - name: prod
+  - name: prod2
     dir: prod/
 
 
