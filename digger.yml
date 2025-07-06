@@ -9,7 +9,6 @@ projects:
   - name: prod4
     dir: prod/
 
-
 workflows:
   default:
     plan:
