@@ -6,7 +6,7 @@ projects:
     dir: dev/
   - name: prod
     dir: prod/
-  - name: prod3
+  - name: prod4
     dir: prod/
 
 
