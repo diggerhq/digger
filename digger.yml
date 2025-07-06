@@ -6,6 +6,8 @@ projects:
     dir: dev/
   - name: prod
     dir: prod/
+  - name: prod5
+    dir: prod/
 
 workflows:
   default:
