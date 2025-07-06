@@ -4,9 +4,8 @@ auto_merge_strategy: "merge"
 projects:
   - name: dev
     dir: dev/
-  - name: prod2
+  - name: prod
     dir: prod/
-
 
 workflows:
   default:
