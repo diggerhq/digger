@@ -9,7 +9,7 @@ jobs:
   deploy:
     name: Deploy pro app
     runs-on: ubuntu-latest
-    concurrency: projects-refresh    # optional: ensure only one action runs at a time
+    concurrency: pro-deploy    # optional: ensure only one action runs at a time
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
