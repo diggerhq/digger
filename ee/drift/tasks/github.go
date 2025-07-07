@@ -2,10 +2,10 @@ package tasks
 
 import (
 	"fmt"
-	utils3 "github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	utils3 "github.com/diggerhq/digger/libs/git_utils"
 	utils2 "github.com/diggerhq/digger/next/utils"
 	"log"
 	"strconv"
