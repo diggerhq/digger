@@ -6,7 +6,7 @@ projects:
     dir: dev/
   - name: prod
     dir: prod/
-  - name: prod5
+  - name: prod2
     dir: prod/
 
 workflows:
