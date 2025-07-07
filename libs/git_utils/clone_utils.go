@@ -12,19 +12,23 @@ import (
 	"time"
 )
 
-func createTempDir() string {
+func createTempDir() (string, error) {
 	tempDir, err := os.MkdirTemp("", "repo")
 	if err != nil {
 		slog.Error("Failed to create temporary directory", "error", err)
-		panic(err)
+		return "", err
 	}
-	return tempDir
+	return tempDir, nil
 }
 
 type action func(string) error
 
 func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, token string, tokenUsername string, action action) error {
-	dir := createTempDir()
+	dir, err := createTempDir()
+	if err != nil {
+		slog.Error("Failed to create temporary directory", "error", err)
+		return err
+	}
 
 	slog.Debug("Cloning git repository",
 		"repoUrl", repoUrl,
@@ -34,7 +38,7 @@ func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, t
 	)
 
 	git := NewGitShellWithTokenAuth(dir, token, tokenUsername)
-	err := git.Clone(repoUrl, branch)
+	err = git.Clone(repoUrl, branch)
 	if err != nil {
 		slog.Error("Failed to clone repository",
 			"repoUrl", repoUrl,
