@@ -18,66 +18,6 @@ import (
 	"github.com/google/go-github/v61/github"
 )
 
-func createTempDir() string {
-	tempDir, err := os.MkdirTemp("", "repo")
-	if err != nil {
-		slog.Error("Failed to create temporary directory", "error", err)
-		panic(err)
-	}
-	return tempDir
-}
-
-type action func(string) error
-
-func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, token string, tokenUsername string, action action) error {
-	dir := createTempDir()
-
-	slog.Debug("Cloning git repository",
-		"repoUrl", repoUrl,
-		"branch", branch,
-		"commitHash", commitHash,
-		"directory", dir,
-	)
-
-	git := NewGitShellWithTokenAuth(dir, token, tokenUsername)
-	err := git.Clone(repoUrl, branch)
-	if err != nil {
-		slog.Error("Failed to clone repository",
-			"repoUrl", repoUrl,
-			"branch", branch,
-			"error", err,
-		)
-		return err
-	}
-
-	if commitHash != "" {
-		err := git.Checkout(commitHash)
-		if err != nil {
-			slog.Error("Failed to checkout commit",
-				"commitHash", commitHash,
-				"error", err,
-			)
-			return err
-		}
-	}
-
-	defer func() {
-		slog.Debug("Removing cloned directory", "directory", dir)
-		ferr := os.RemoveAll(dir)
-		if ferr != nil {
-			slog.Warn("Failed to remove directory", "directory", dir, "error", ferr)
-		}
-	}()
-
-	err = action(dir)
-	if err != nil {
-		slog.Error("Error performing action on repository", "directory", dir, "error", err)
-		return err
-	}
-
-	return nil
-}
-
 // just a wrapper around github client to be able to use mocks
 type DiggerGithubRealClientProvider struct {
 }

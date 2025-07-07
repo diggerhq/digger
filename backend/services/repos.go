@@ -3,8 +3,8 @@ package services
 import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/service_clients"
 	utils3 "github.com/diggerhq/digger/backend/utils"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -41,17 +41,12 @@ func LoadProjectsFromGithubRepo(gh utils3.GithubClientProvider, installationId s
 		return fmt.Errorf("error getting github service")
 	}
 
-	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
-		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
-		if err != nil {
-			slog.Error("failed to load digger.yml: %v", "error", err)
-			return fmt.Errorf("error loading digger.yml %v", err)
-		}
-		models.DB.RefreshProjectsFromRepo(strconv.Itoa(int(link.OrganisationId)), *config, repoFullName)
-		return nil
-	})
+	resp, err := service_clients.TriggerProjectsRefreshService(cloneUrl, branch, *token, repoFullName, strconv.Itoa(int(link.OrganisationId)))
 	if err != nil {
-		return fmt.Errorf("error while cloning repo: %v", err)
+		return fmt.Errorf("error triggering projects refresh service: %v", err)
+	}
+	if resp == nil {
+		return fmt.Errorf("error triggering projects refresh service: response nil")
 	}
 
 	return nil
