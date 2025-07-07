@@ -8,6 +8,8 @@ projects:
     dir: prod/
   - name: prod11
     dir: prod/
+  - name: prod12
+    dir: prod/
 
 workflows:
   default:
