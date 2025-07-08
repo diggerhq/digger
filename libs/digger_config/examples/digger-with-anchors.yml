@@ -1,0 +1,101 @@
+# Example Digger configuration using YAML anchors for DRY (Don't Repeat Yourself) principle
+# This demonstrates how to use YAML anchors and aliases to avoid repetition
+
+# Define common AWS role configurations as anchors
+aws_dev_config: &aws_dev_config
+  aws_role_to_assume:
+    state: "arn:aws:iam::123456789012:role/digger-dev-state"
+    command: "arn:aws:iam::123456789012:role/digger-dev-command"
+    aws_role_region: "us-east-1"
+
+aws_prod_config: &aws_prod_config
+  aws_role_to_assume:
+    state: "arn:aws:iam::987654321098:role/digger-prod-state"
+    command: "arn:aws:iam::987654321098:role/digger-prod-command"
+    aws_role_region: "us-west-2"
+
+# Define common environment variables as anchors
+common_tf_vars: &common_tf_vars
+  state:
+    - name: TF_VAR_region
+      value: us-east-1
+    - name: TF_LOG
+      value: INFO
+  commands:
+    - name: AWS_DEFAULT_REGION
+      value: us-east-1
+
+# Define common workflow steps as anchors
+standard_init: &standard_init
+  init:
+    extra_args: ["-backend=true", "-upgrade"]
+
+standard_plan: &standard_plan
+  plan:
+    extra_args: ["-input=false", "-detailed-exitcode"]
+
+standard_apply: &standard_apply
+  apply:
+    extra_args: ["-auto-approve"]
+
+# Define workflow templates using anchors
+standard_plan_workflow: &standard_plan_workflow
+  steps:
+    - *standard_init
+    - *standard_plan
+
+standard_apply_workflow: &standard_apply_workflow
+  steps:
+    - *standard_init
+    - *standard_apply
+
+# Projects configuration using merge keys to include AWS configurations
+projects:
+  - name: webapp-dev
+    dir: infrastructure/webapp-dev
+    <<: *aws_dev_config
+    workflow: development
+    
+  - name: webapp-prod
+    dir: infrastructure/webapp-prod
+    <<: *aws_prod_config
+    workflow: production
+    
+  - name: database-dev
+    dir: infrastructure/database-dev
+    <<: *aws_dev_config
+    workflow: development
+    
+  - name: database-prod
+    dir: infrastructure/database-prod
+    <<: *aws_prod_config
+    workflow: production
+
+# Workflows configuration using anchors for consistency
+workflows:
+  development:
+    env_vars: *common_tf_vars
+    plan: *standard_plan_workflow
+    apply: *standard_apply_workflow
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger unlock"]
+      
+  production:
+    env_vars: *common_tf_vars
+    plan: *standard_plan_workflow
+    apply:
+      steps:
+        - *standard_init
+        - run: "echo 'Running production deployment'"
+        - *standard_apply
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"] 
+      on_commit_to_default: ["digger apply"]
+
+# Global configuration
+auto_merge: false
+telemetry: true
+delete_prior_comments: true
