@@ -2,15 +2,20 @@ package atlantis
 
 import (
 	"context"
-	"log/slog"
-	"regexp"
-	"sort"
-
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"github.com/gruntwork-io/terragrunt/cli/commands/terraform"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	"io"
+	"log/slog"
+	"regexp"
+	"sort"
 
 	"github.com/hashicorp/go-getter"
 	"golang.org/x/sync/singleflight"
@@ -706,6 +711,38 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 	return uniqueHclFileAbsPaths
 }
 
+func writeCache(key string, value string) {
+	ctx := context.Background()
+	opt, _ := redis.ParseURL(os.Getenv("DIGGER_REDIS_CACHE"))
+	client := redis.NewClient(opt)
+	client.Set(ctx, key, value, 0)
+}
+
+func readCache(key string) (string, bool) {
+	ctx := context.Background()
+	opt, _ := redis.ParseURL(os.Getenv("DIGGER_REDIS_CACHE"))
+	client := redis.NewClient(opt)
+	v := client.Get(ctx, key)
+	if v == nil {
+		return "", false
+	}
+	return (*v).Val(), true
+}
+
+func hashFileContents(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
 func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPath string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool, executionOrderGroups bool, triggerProjectsFromDirOnly bool) (*AtlantisConfig, map[string][]string, error) {
 	// Ensure the gitRoot has a trailing slash and is an absolute path
 	absoluteGitRoot, err := filepath.Abs(gitRoot)
@@ -772,7 +809,45 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 				errGroup.Go(func() error {
 					defer sem.Release(1)
-					project, projDeps, err := createProject(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, defaultWorkflow, defaultApplyRequirements, autoPlan, defaultTerraformVersion, createProjectName, createWorkspace, terragruntPath, triggerProjectsFromDirOnly)
+					terragruntPathRelative := strings.ReplaceAll(terragruntPath, workingDir, "")
+					terragruntPathHash, err := hashFileContents(terragruntPath)
+					if err != nil {
+						return fmt.Errorf("error hashing terragrunt file: %v", err)
+					}
+					remoteTerragruntHash, exists := readCache(fmt.Sprintf("repo:hash:%v", terragruntPathRelative))
+
+					var project *AtlantisProject
+					var projDeps []string
+					slog.Debug("checking cache", "terragruntPath", terragruntPath, "terragruntPathRelative", terragruntPathRelative, "terragruntPathHash", terragruntPathHash, "remoteTerragruntHash", remoteTerragruntHash)
+					if exists && terragruntPathHash == remoteTerragruntHash {
+						slog.Debug("loading from cache", "terragruntPath", terragruntPath, "terragruntPathRelative", terragruntPathRelative, "terragruntPathHash", terragruntPathHash, "remoteTerragruntHash", remoteTerragruntHash)
+						projectStr, _ := readCache(fmt.Sprintf("repo:project:%v", terragruntPathHash))
+						projDepsStr, _ := readCache(fmt.Sprintf("repo:deps:%v", terragruntPathHash))
+						err = json.Unmarshal([]byte(projectStr), &project)
+						if err != nil {
+							return fmt.Errorf("error unmarshalling project: %v", err)
+						}
+						err = json.Unmarshal([]byte(projDepsStr), &projDeps)
+						if err != nil {
+							return fmt.Errorf("error unmarshalling project dependencies: %v", err)
+						}
+					} else {
+						slog.Debug("cache miss", "terragruntPath", terragruntPath, "terragruntPathRelative", terragruntPathRelative, "terragruntPathHash", terragruntPathHash, "remoteTerragruntHash", remoteTerragruntHash)
+						project, projDeps, err = createProject(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, defaultWorkflow, defaultApplyRequirements, autoPlan, defaultTerraformVersion, createProjectName, createWorkspace, terragruntPath, triggerProjectsFromDirOnly)
+						projectMarshalled, err := json.Marshal(project)
+						if err != nil {
+							return fmt.Errorf("error marshalling project: %v", err)
+						}
+
+						projDepsMarshalled, err := json.Marshal(projDeps)
+						if err != nil {
+							return fmt.Errorf("error marshalling project dependencies: %v", err)
+						}
+						writeCache(fmt.Sprintf("repo:hash:%v", terragruntPathRelative), terragruntPathHash)
+						writeCache(fmt.Sprintf("repo:project:%v", terragruntPathHash), string(projectMarshalled))
+						writeCache(fmt.Sprintf("repo:deps:%v", terragruntPathHash), string(projDepsMarshalled))
+					}
+
 					if err != nil {
 						return err
 					}
