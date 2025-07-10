@@ -59,7 +59,8 @@
         "ee/gitlab",
         "ee/buildkite",
         "ee/fips-140",
-        "ee/ai-summaries"
+        "ee/ai-summaries",
+        "ee/remote-jobs"
       ]
     },
     {
