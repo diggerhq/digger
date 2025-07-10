@@ -71,16 +71,26 @@ const (
 	ProjectInactive ProjectStatus = 2
 )
 
+type DriftStatus string
+
+var DriftStatusNewDrift = "new drift"
+var DriftStatusNoDrift = "no drift"
+var DriftStatusAcknowledgeDrift = "acknowledged drift"
+
 type Project struct {
 	gorm.Model
-	Name           string `gorm:"uniqueIndex:idx_project_org"`
-	Directory      string
-	OrganisationID uint `gorm:"uniqueIndex:idx_project_org"`
-	Organisation   *Organisation
-	RepoFullName   string `gorm:"uniqueIndex:idx_project_org"`
-	Status         ProjectStatus
-	IsGenerated    bool
-	IsInMainBranch bool
+	Name               string `gorm:"uniqueIndex:idx_project_org"`
+	Directory          string
+	OrganisationID     uint `gorm:"uniqueIndex:idx_project_org"`
+	Organisation       *Organisation
+	RepoFullName       string `gorm:"uniqueIndex:idx_project_org"`
+	DriftEnabled       bool
+	DriftStatus        DriftStatus
+	LatestDriftCheck   time.Time
+	DriftTerraformPlan string
+	Status             ProjectStatus
+	IsGenerated        bool
+	IsInMainBranch     bool
 }
 
 func (p *Project) MapToJsonStruct() interface{} {
