@@ -806,11 +806,11 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 						}
 
 						if !updateProject {
-							slog.Info("Created project", "path", terragruntPath)
+							slog.Debug("Created project", "path", terragruntPath)
 							atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 						}
 					} else {
-						slog.Info("Created project", "path", terragruntPath)
+						slog.Debug("Created project", "path", terragruntPath)
 						atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
 					}
 
@@ -843,7 +843,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 				lock.Lock()
 				defer lock.Unlock()
 
-				slog.Info("Created project",
+				slog.Debug("Created project",
 					"type", projectHcl,
 					"workingDir", workingDir)
 				atlantisConfig.Projects = append(atlantisConfig.Projects, *project)
