@@ -1,0 +1,20 @@
+---
+title: "Running Remote Jobs"
+---
+
+With dgctl command line you can run jobs in a remote CI environment and have the logs streamed to your terminal.
+These tasks follow the same RBAC rules specified in your [opa policies](/ee/opa). For example this command:
+
+```
+dgctl exec --project <project_name> --command "digger plan"
+```
+
+Will perform a remote plan for the project. The changes don't need to be pushed to the remote repo for this to function since
+the local directory will be zipped and uploaded to the remote CI environment to perform the plan.
+
+
+![](/images/ee/remote-runs-1.png)
+
+![](/images/ee/remote-runs-2.png)
+
+![](/images/ee/remote-runs-3.png)
