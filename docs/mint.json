@@ -88,6 +88,7 @@
         "ce/howto/custom-commands",
         "ce/howto/destroy-manual",
         "ce/howto/draft-prs",
+        "ce/howto/codeowners",
         "ce/howto/disable-auto-checkout",
         "ce/howto/disable-telemetry",
         "ce/howto/generate-projects",
