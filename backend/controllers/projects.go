@@ -116,7 +116,7 @@ func UpdateProjectApi(c *gin.Context) {
 	err = models.DB.GormDB.Save(&project).Error
 	if err != nil {
 		slog.Error("Error updating project", "organisationId", organisationId, "orgId", org.ID, "error", err)
-		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
+		c.String(http.StatusInternalServerError, "Unknown error occurred while updating database")
 		return
 	}
 

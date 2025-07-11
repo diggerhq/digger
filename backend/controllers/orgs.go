@@ -22,7 +22,6 @@ type TenantCreatedEvent struct {
 }
 
 func GetOrgSettingsApi(c *gin.Context) {
-	// TODO
 	organisationId := c.GetString(middleware.ORGANISATION_ID_KEY)
 	organisationSource := c.GetString(middleware.ORGANISATION_SOURCE_KEY)
 
@@ -47,7 +46,6 @@ func GetOrgSettingsApi(c *gin.Context) {
 }
 
 func UpdateOrgSettingsApi(c *gin.Context) {
-	// TODO
 	organisationId := c.GetString(middleware.ORGANISATION_ID_KEY)
 	organisationSource := c.GetString(middleware.ORGANISATION_SOURCE_KEY)
 
