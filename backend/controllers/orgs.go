@@ -1,7 +1,11 @@
 package controllers
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/backend/middleware"
+	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,6 +21,72 @@ type TenantCreatedEvent struct {
 	Name     string `json:"name,omitempty"`
 }
 
+func GetOrgSettingsApi(c *gin.Context) {
+	// TODO
+	organisationId := c.GetString(middleware.ORGANISATION_ID_KEY)
+	organisationSource := c.GetString(middleware.ORGANISATION_SOURCE_KEY)
+
+	var org models.Organisation
+	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found", "organisationId", organisationId, "source", organisationSource)
+			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
+		} else {
+			slog.Error("Error fetching organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
+			c.String(http.StatusInternalServerError, "Error fetching organisation")
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"drift_enabled":     org.DriftEnabled,
+		"drift_cron_tab":    org.DriftCronTab,
+		"drift_webhook_url": org.DriftWebhookUrl,
+	})
+}
+
+func UpdateOrgSettingsApi(c *gin.Context) {
+	// TODO
+	organisationId := c.GetString(middleware.ORGANISATION_ID_KEY)
+	organisationSource := c.GetString(middleware.ORGANISATION_SOURCE_KEY)
+
+	var org models.Organisation
+	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found", "organisationId", organisationId, "source", organisationSource)
+			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
+		} else {
+			slog.Error("Error fetching organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
+			c.String(http.StatusInternalServerError, "Error fetching organisation")
+		}
+		return
+	}
+	var reqBody struct {
+		DriftEnabled    bool   `json:"drift_enabled"`
+		DriftCronTab    string `json:"drift_cron_tab"`
+		DriftWebhookUrl string `json:"drift_webhook_url"`
+	}
+	err = json.NewDecoder(c.Request.Body).Decode(&reqBody)
+	if err != nil {
+		slog.Error("Error decoding request body", "error", err)
+		c.String(http.StatusBadRequest, "Error decoding request body")
+		return
+	}
+
+	org.DriftEnabled = reqBody.DriftEnabled
+	org.DriftCronTab = reqBody.DriftCronTab
+	org.DriftWebhookUrl = reqBody.DriftWebhookUrl
+	err = models.DB.GormDB.Save(&org).Error
+	if err != nil {
+		slog.Error("Error saving organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
+		c.String(http.StatusInternalServerError, "Error saving organisation")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
+}
 func CreateFronteggOrgFromWebhook(c *gin.Context) {
 	var json TenantCreatedEvent
 

@@ -225,12 +225,17 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		apiGroup := r.Group("/api")
 		apiGroup.Use(middleware.InternalApiAuth(), middleware.HeadersApiAuth())
 
+		orgsApiGroup := apiGroup.Group("/orgs")
+		orgsApiGroup.GET("/settings/", controllers.GetOrgSettingsApi)
+		orgsApiGroup.PUT("/settings/", controllers.UpdateOrgSettingsApi)
+
 		reposApiGroup := apiGroup.Group("/repos")
 		reposApiGroup.GET("/", controllers.ListReposApi)
 		reposApiGroup.GET("/:repo_id/jobs", controllers.GetJobsForRepoApi)
 
 		projectsApiGroup := apiGroup.Group("/projects")
 		projectsApiGroup.GET("/", controllers.ListProjectsApi)
+		projectsApiGroup.PUT("/:project_id/", controllers.UpdateProjectApi)
 
 		githubApiGroup := apiGroup.Group("/github")
 		githubApiGroup.POST("/link", controllers.LinkGithubInstallationToOrgApi)

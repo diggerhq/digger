@@ -8,9 +8,12 @@ import (
 
 type Organisation struct {
 	gorm.Model
-	Name           string `gorm:"Index:idx_organisation"`
-	ExternalSource string `gorm:"uniqueIndex:idx_external_source"`
-	ExternalId     string `gorm:"uniqueIndex:idx_external_source"`
+	Name            string `gorm:"Index:idx_organisation"`
+	ExternalSource  string `gorm:"uniqueIndex:idx_external_source"`
+	ExternalId      string `gorm:"uniqueIndex:idx_external_source"`
+	DriftEnabled    bool   `gorm:"default:false"`
+	DriftWebhookUrl string
+	DriftCronTab    string `gorm:"default:'0 0 * * *'"`
 }
 
 type Repo struct {
@@ -83,9 +86,9 @@ type Project struct {
 	Directory          string
 	OrganisationID     uint `gorm:"uniqueIndex:idx_project_org"`
 	Organisation       *Organisation
-	RepoFullName       string `gorm:"uniqueIndex:idx_project_org"`
-	DriftEnabled       bool
-	DriftStatus        DriftStatus
+	RepoFullName       string      `gorm:"uniqueIndex:idx_project_org"`
+	DriftEnabled       bool        `gorm:"default:false"`
+	DriftStatus        DriftStatus `gorm:"default:'no drift'"`
 	LatestDriftCheck   time.Time
 	DriftTerraformPlan string
 	Status             ProjectStatus
@@ -109,6 +112,10 @@ func (p *Project) MapToJsonStruct() interface{} {
 		RepoFullName          string `json:"repo_full_name"`
 		IsInMainBranch        bool   `json:"is_in_main_branch"`
 		IsGenerated           bool   `json:"is_generated"`
+		DriftEnabled          bool   `json:"drift_enabled"`
+		DriftStatus           string `json:"drift_status"`
+		LatestDriftCheck      string `json:"latest_drift_check"`
+		DriftTerraformPlan    string `json:"drift_terraform_plan"`
 		LastActivityTimestamp string `json:"last_activity_timestamp"`
 		LastActivityAuthor    string `json:"last_activity_author"`
 		LastActivityStatus    string `json:"last_activity_status"`
@@ -119,6 +126,10 @@ func (p *Project) MapToJsonStruct() interface{} {
 		OrganisationID:        p.OrganisationID,
 		OrganisationName:      p.Organisation.Name,
 		RepoFullName:          p.RepoFullName,
+		DriftEnabled:          p.DriftEnabled,
+		DriftStatus:           string(p.DriftStatus),
+		LatestDriftCheck:      p.LatestDriftCheck.String(),
+		DriftTerraformPlan:    p.DriftTerraformPlan,
 		LastActivityTimestamp: p.UpdatedAt.String(),
 		LastActivityAuthor:    "unknown",
 		LastActivityStatus:    string(status),
