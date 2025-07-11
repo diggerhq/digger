@@ -85,26 +85,6 @@ func UpdateOrgSettingsApi(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{})
 }
-func CreateFronteggOrgFromWebhook(c *gin.Context) {
-	var json TenantCreatedEvent
-
-	if err := c.ShouldBindJSON(&json); err != nil {
-		slog.Error("Failed to bind JSON", "error", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	source := c.GetHeader("x-tenant-source")
-
-	org, err := models.DB.CreateOrganisation(json.Name, source, json.TenantId)
-	if err != nil {
-		slog.Error("Failed to create organisation", "tenantId", json.TenantId, "name", json.Name, "source", source, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create organisation"})
-		return
-	}
-
-	slog.Info("Successfully created organisation from webhook", "tenantId", json.TenantId, "name", json.Name, "orgId", org.ID)
-	c.JSON(http.StatusOK, gin.H{"success": true})
-}
 
 func AssociateTenantIdToDiggerOrg(c *gin.Context) {
 	authHeader := c.Request.Header.Get("Authorization")
