@@ -1,0 +1,22 @@
+---
+title: "Codeowners integration"
+---
+
+With Github's CODEOWNERS integration, you can configure pull requests to be reviewed by specific team members, depending on the files changed.
+
+Since digger automatically queries github's API for mergability status of the pull request before apply, no additional changes are needed to make
+digger integration with CODEOWNERS. Here is an example CODEOWNERS file:
+
+```
+prod @ZIJ # ensure ZIJ is reviewer for any prod changes
+```
+
+And to enforce it at the PR level we need to add a branch protection rule to the default branch, ensuring to check CODEOWNERS reviewers
+settings > branches > "Require review from Code Owners"
+
+![](/images/howto/codeowners.png)
+
+Once this is in place any PR will not be mergable unless the CODEOWNERS reviewers approve it. As a consequence, digger will block any apply for such a PR:
+
+![](/images/howto/codeowners-2.png)
+
