@@ -6,6 +6,14 @@ import (
 	"gorm.io/gorm"
 )
 
+type BillingPlan string
+
+const (
+	BillingPlanFree    BillingPlan = "free"
+	BillingPlanPro     BillingPlan = "pro"
+	BillingPlanPremium BillingPlan = "unlimited" // custom plan with unlimited resources
+)
+
 type Organisation struct {
 	gorm.Model
 	Name            string `gorm:"Index:idx_organisation"`
