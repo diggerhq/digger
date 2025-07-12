@@ -6,14 +6,26 @@ import (
 	"gorm.io/gorm"
 )
 
+type BillingPlan string
+
+const (
+	BillingPlanFree    BillingPlan = "free"
+	BillingPlanPro     BillingPlan = "pro"
+	BillingPlanPremium BillingPlan = "unlimited" // custom plan with unlimited resources
+)
+
+const MaxFreePlanProjectsPerOrg uint = 3
+
 type Organisation struct {
 	gorm.Model
-	Name            string `gorm:"Index:idx_organisation"`
-	ExternalSource  string `gorm:"uniqueIndex:idx_external_source"`
-	ExternalId      string `gorm:"uniqueIndex:idx_external_source"`
-	DriftEnabled    bool   `gorm:"default:false"`
-	DriftWebhookUrl string
-	DriftCronTab    string `gorm:"default:'0 0 * * *'"`
+	Name                        string `gorm:"Index:idx_organisation"`
+	ExternalSource              string `gorm:"uniqueIndex:idx_external_source"`
+	ExternalId                  string `gorm:"uniqueIndex:idx_external_source"`
+	DriftEnabled                bool   `gorm:"default:false"`
+	DriftWebhookUrl             string
+	DriftCronTab                string      `gorm:"default:'0 0 * * *'"`
+	BillingPlan                 BillingPlan `gorm:"default:'free'"`
+	BillingStripeSubscriptionId string
 }
 
 type Repo struct {

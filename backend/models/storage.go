@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"time"
 
@@ -42,6 +43,19 @@ func (db *Database) GetProjectsFromContext(c *gin.Context, orgIdKey string) ([]P
 
 	slog.Info("fetched projects from context", "count", len(projects))
 	return projects, true
+}
+
+func (db *Database) GetProjectsRemainingInFreePLan(orgId uint) (uint, uint, uint, error) {
+
+	var countOfMonitoredProjects int64
+	err := db.GormDB.Model(&Project{}).Where("organisation_id = ? AND drift_enabled = ?", orgId, true).Count(&countOfMonitoredProjects).Error
+	if err != nil {
+		slog.Error("Error fetching project count", "error", err)
+		return 0, 0, 0, err
+	}
+	remainingFreeProjects := uint(math.Max(0, float64(MaxFreePlanProjectsPerOrg)-float64(countOfMonitoredProjects)))
+	billableProjectsCount := uint(math.Max(0, float64(countOfMonitoredProjects)-float64(MaxFreePlanProjectsPerOrg)))
+	return uint(countOfMonitoredProjects), remainingFreeProjects, billableProjectsCount, nil
 }
 
 func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]Repo, bool) {

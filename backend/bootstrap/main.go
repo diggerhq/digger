@@ -229,6 +229,9 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		orgsApiGroup.GET("/settings/", controllers.GetOrgSettingsApi)
 		orgsApiGroup.PUT("/settings/", controllers.UpdateOrgSettingsApi)
 
+		billingApiGroup := apiGroup.Group("/billing")
+		billingApiGroup.GET("/", controllers.BillingStatusApi)
+		
 		reposApiGroup := apiGroup.Group("/repos")
 		reposApiGroup.GET("/", controllers.ListReposApi)
 		reposApiGroup.GET("/:repo_id/jobs", controllers.GetJobsForRepoApi)
