@@ -42,6 +42,7 @@ func GetOrgSettingsApi(c *gin.Context) {
 		"drift_enabled":     org.DriftEnabled,
 		"drift_cron_tab":    org.DriftCronTab,
 		"drift_webhook_url": org.DriftWebhookUrl,
+		"billing_plan":      org.BillingPlan,
 	})
 }
 
@@ -62,9 +63,11 @@ func UpdateOrgSettingsApi(c *gin.Context) {
 		return
 	}
 	var reqBody struct {
-		DriftEnabled    bool   `json:"drift_enabled"`
-		DriftCronTab    string `json:"drift_cron_tab"`
-		DriftWebhookUrl string `json:"drift_webhook_url"`
+		DriftEnabled                *bool   `json:"drift_enabled,omitempty"`
+		DriftCronTab                *string `json:"drift_cron_tab,omitempty"`
+		DriftWebhookUrl             *string `json:"drift_webhook_url,omitempty"`
+		BillingPlan                 *string `json:"billing_plan,omitempty"`
+		BillingStripeSubscriptionId *string `json:"billing_stripe_subscription_id,omitempty"`
 	}
 	err = json.NewDecoder(c.Request.Body).Decode(&reqBody)
 	if err != nil {
@@ -73,9 +76,26 @@ func UpdateOrgSettingsApi(c *gin.Context) {
 		return
 	}
 
-	org.DriftEnabled = reqBody.DriftEnabled
-	org.DriftCronTab = reqBody.DriftCronTab
-	org.DriftWebhookUrl = reqBody.DriftWebhookUrl
+	if reqBody.DriftEnabled != nil {
+		org.DriftEnabled = *reqBody.DriftEnabled
+	}
+
+	if reqBody.DriftCronTab != nil {
+		org.DriftCronTab = *reqBody.DriftCronTab
+	}
+
+	if reqBody.DriftWebhookUrl != nil {
+		org.DriftWebhookUrl = *reqBody.DriftWebhookUrl
+	}
+
+	if reqBody.BillingPlan != nil {
+		org.BillingPlan = models.BillingPlan(*reqBody.BillingPlan)
+	}
+
+	if reqBody.BillingStripeSubscriptionId != nil {
+		org.BillingStripeSubscriptionId = *reqBody.BillingStripeSubscriptionId
+	}
+
 	err = models.DB.GormDB.Save(&org).Error
 	if err != nil {
 		slog.Error("Error saving organisation", "organisationId", organisationId, "source", organisationSource, "error", err)

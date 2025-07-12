@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-func BillingSettingsApi(c *gin.Context) {
+func BillingStatusApi(c *gin.Context) {
 	organisationId := c.GetString(middleware.ORGANISATION_ID_KEY)
 	organisationSource := c.GetString(middleware.ORGANISATION_SOURCE_KEY)
 
@@ -27,9 +27,19 @@ func BillingSettingsApi(c *gin.Context) {
 		return
 	}
 
+	monitoredProjectsCount, remainingFreeProjects, billableProjectsCount, err := models.DB.GetProjectsRemainingInFreePLan(org.ID)
+	if err != nil {
+		slog.Error("Error fetching remaining free projects", "error", err)
+		c.String(http.StatusInternalServerError, "Error fetching remaining free projects")
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"drift_enabled":     org.DriftEnabled,
-		"drift_cron_tab":    org.DriftCronTab,
-		"drift_webhook_url": org.DriftWebhookUrl,
+		"billing_plan":                  org.BillingPlan,
+		"billing_strip_subscription_id": org.BillingStripeSubscriptionId,
+		"remaining_free_projects":       remainingFreeProjects,
+		"monitored_projects_count":      monitoredProjectsCount,
+		"billable_projects_count":       billableProjectsCount,
+		"monitored_projects_limit":      models.MaxFreePlanProjectsPerOrg,
 	})
 }
