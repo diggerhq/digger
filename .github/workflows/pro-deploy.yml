@@ -1,6 +1,6 @@
 # See https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
 
-name: Deploy projects-refresh-service
+name: Deploy digger pro
 on:
   push:
     branches:
