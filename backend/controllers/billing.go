@@ -35,11 +35,11 @@ func BillingStatusApi(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"billing_plan":                  org.BillingPlan,
-		"billing_strip_subscription_id": org.BillingStripeSubscriptionId,
-		"remaining_free_projects":       remainingFreeProjects,
-		"monitored_projects_count":      monitoredProjectsCount,
-		"billable_projects_count":       billableProjectsCount,
-		"monitored_projects_limit":      models.MaxFreePlanProjectsPerOrg,
+		"billing_plan":                   org.BillingPlan,
+		"billing_stripe_subscription_id": org.BillingStripeSubscriptionId,
+		"remaining_free_projects":        remainingFreeProjects,
+		"monitored_projects_count":       monitoredProjectsCount,
+		"billable_projects_count":        billableProjectsCount,
+		"monitored_projects_limit":       models.MaxFreePlanProjectsPerOrg,
 	})
 }
