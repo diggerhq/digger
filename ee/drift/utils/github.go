@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
+	"github.com/diggerhq/digger/backend/models/dbmodels"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	utils2 "github.com/diggerhq/digger/libs/git_utils"

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/models/dbmodels"
 	"log"
 	"net/http"
 	"net/url"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	services2 "github.com/diggerhq/digger/ee/drift/services"
 	"github.com/diggerhq/digger/ee/drift/utils"
 	"github.com/diggerhq/digger/libs/ci/generic"
@@ -170,7 +170,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 
 	}
 
-	_, err = dbmodels.DB.CreateCiJobFromSpec(spec, *runName, project.ID)
+	_, err = dbmodels.DB.CreateCiJobFromSpec(spec, *runName, project.Name)
 	if err != nil {
 		log.Printf("error creating the job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error creating job entry")})

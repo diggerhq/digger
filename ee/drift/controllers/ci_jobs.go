@@ -1,11 +1,12 @@
 package controllers
 
 import (
+	"github.com/diggerhq/digger/backend/models"
+	dbmodels2 "github.com/diggerhq/digger/backend/models/dbmodels"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/model"
 	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 
 	log.Printf("settings status for job: %v, new status: %v, tfout: %v, job summary: %v", jobId, request.Status, request.TerraformOutput, request.JobSummary)
 
-	job, err := dbmodels.DB.GetDiggerCiJob(jobId)
+	job, err := dbmodels2.DB.GetDiggerCiJob(jobId)
 	if err != nil {
 		log.Printf("could not get digger ci job, err: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting digger job"})
@@ -49,28 +50,28 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	}
 
 	switch request.Status {
-	case string(dbmodels.DiggerJobStarted):
-		job.Status = string(dbmodels.DiggerJobStarted)
-		err := dbmodels.DB.UpdateDiggerJob(job)
+	case string(models.DiggerJobStarted):
+		job.Status = string(models.DiggerJobStarted)
+		err := dbmodels2.DB.UpdateDiggerJob(job)
 		if err != nil {
 			log.Printf("Error updating job status: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
 			return
 		}
-	case string(dbmodels.DiggerJobSucceeded):
-		job.Status = string(dbmodels.DiggerJobSucceeded)
+	case string(models.DiggerJobSucceeded):
+		job.Status = string(models.DiggerJobSucceeded)
 		job.TerraformOutput = request.TerraformOutput
 		job.ResourcesCreated = int32(request.JobSummary.ResourcesCreated)
 		job.ResourcesUpdated = int32(request.JobSummary.ResourcesUpdated)
 		job.ResourcesDeleted = int32(request.JobSummary.ResourcesDeleted)
-		err := dbmodels.DB.UpdateDiggerJob(job)
+		err := dbmodels2.DB.UpdateDiggerJob(job)
 		if err != nil {
 			log.Printf("Error updating job status: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
 			return
 		}
 
-		project, err := dbmodels.DB.GetProjectById(job.ProjectID)
+		project, err := dbmodels2.DB.GetProjectById(job.ProjectID)
 		if err != nil {
 			log.Printf("Error retrieving project: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving project"})
@@ -82,10 +83,10 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 			log.Printf("error while checking drifted project")
 		}
 
-	case string(dbmodels.DiggerJobFailed):
-		job.Status = string(dbmodels.DiggerJobFailed)
+	case string(models.DiggerJobFailed):
+		job.Status = string(models.DiggerJobFailed)
 		job.TerraformOutput = request.TerraformOutput
-		err := dbmodels.DB.UpdateDiggerJob(job)
+		err := dbmodels2.DB.UpdateDiggerJob(job)
 		if err != nil {
 			log.Printf("Error updating job status: %v", request.Status)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
@@ -99,7 +100,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	}
 
 	job.UpdatedAt = request.Timestamp
-	err = dbmodels.DB.GormDB.Save(job).Error
+	err = dbmodels2.DB.GormDB.Save(job).Error
 	if err != nil {
 		log.Printf("Error saving update job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
@@ -113,15 +114,15 @@ func ProjectDriftStateMachineApply(project model.Project, tfplan string, resourc
 	isEmptyPlan := resourcesCreated == 0 && resourcesUpdated == 0 && resourcesDeleted == 0
 	wasEmptyPlan := project.ToCreate == 0 && project.ToUpdate == 0 && project.ToDelete == 0
 	if isEmptyPlan {
-		project.DriftStatus = dbmodels.DriftStatusNoDrift
+		project.DriftStatus = models.DriftStatusNoDrift
 	}
 	if !isEmptyPlan && wasEmptyPlan {
-		project.DriftStatus = dbmodels.DriftStatusNewDrift
+		project.DriftStatus = models.DriftStatusNewDrift
 	}
 	if !isEmptyPlan && !wasEmptyPlan {
 		if project.DriftTerraformPlan != tfplan {
-			if project.DriftStatus == dbmodels.DriftStatusAcknowledgeDrift {
-				project.DriftStatus = dbmodels.DriftStatusNewDrift
+			if project.DriftStatus == models.DriftStatusAcknowledgeDrift {
+				project.DriftStatus = models.DriftStatusNewDrift
 			}
 		}
 	}
@@ -130,7 +131,7 @@ func ProjectDriftStateMachineApply(project model.Project, tfplan string, resourc
 	project.ToCreate = resourcesCreated
 	project.ToUpdate = resourcesUpdated
 	project.ToDelete = resourcesDeleted
-	result := dbmodels.DB.GormDB.Save(&project)
+	result := dbmodels2.DB.GormDB.Save(&project)
 	if result.Error != nil {
 		return result.Error
 	}

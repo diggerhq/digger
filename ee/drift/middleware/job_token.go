@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
+	"github.com/diggerhq/digger/backend/models/dbmodels"
 	model2 "github.com/diggerhq/digger/ee/drift/model"
 	"github.com/gin-gonic/gin"
 	"log"

@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/models"
+	dbmodels2 "github.com/diggerhq/digger/backend/models/dbmodels"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
 
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/model"
 	utils2 "github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
@@ -94,8 +95,8 @@ func (mc MainController) SendTestSlackNotificationForOrg(c *gin.Context) {
 	}
 	orgId := request.OrgId
 
-	os := dbmodels.DB.Query.OrgSetting
-	orgSettings, err := dbmodels.DB.Query.OrgSetting.Where(os.OrgID.Eq(orgId)).First()
+	os := dbmodels2.DB.Query.OrgSetting
+	orgSettings, err := dbmodels2.DB.Query.OrgSetting.Where(os.OrgID.Eq(orgId)).First()
 	if err != nil {
 		log.Printf("Error reading org: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error reading org"})
@@ -116,7 +117,7 @@ func (mc MainController) SendTestSlackNotificationForOrg(c *gin.Context) {
 
 func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) {
 	switch project.DriftStatus {
-	case dbmodels.DriftStatusNoDrift:
+	case models.DriftStatusNoDrift:
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
@@ -126,7 +127,7 @@ func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) 
 			nil,
 		)
 		return sectionBlock, nil
-	case dbmodels.DriftStatusAcknowledgeDrift:
+	case models.DriftStatusAcknowledgeDrift:
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
@@ -136,7 +137,7 @@ func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) 
 			nil,
 		)
 		return sectionBlock, nil
-	case dbmodels.DriftStatusNewDrift:
+	case models.DriftStatusNewDrift:
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
@@ -165,12 +166,12 @@ func (mc MainController) SendRealSlackNotificationForOrg(c *gin.Context) {
 	}
 	orgId := request.OrgId
 
-	os := dbmodels.DB.Query.OrgSetting
-	orgSettings, err := dbmodels.DB.Query.OrgSetting.Where(os.OrgID.Eq(orgId)).First()
+	os := dbmodels2.DB.Query.OrgSetting
+	orgSettings, err := dbmodels2.DB.Query.OrgSetting.Where(os.OrgID.Eq(orgId)).First()
 
 	slackNotificationUrl := orgSettings.SlackNotificationURL
 
-	projects, err := dbmodels.DB.LoadProjectsForOrg(orgId)
+	projects, err := dbmodels2.DB.LoadProjectsForOrg(orgId)
 	if err != nil {
 		log.Printf("could not load projects for org %v err: %v", orgId, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not load projects for org " + orgId})
@@ -228,7 +229,7 @@ func (mc MainController) SendRealSlackNotificationForOrg(c *gin.Context) {
 func (mc MainController) ProcessAllNotifications(c *gin.Context) {
 	diggerHostname := os.Getenv("DIGGER_HOSTNAME")
 	webhookSecret := os.Getenv("DIGGER_WEBHOOK_SECRET")
-	orgSettings, err := dbmodels.DB.Query.OrgSetting.Find()
+	orgSettings, err := dbmodels2.DB.Query.OrgSetting.Find()
 	if err != nil {
 		log.Printf("could not select all orgs: %v", err)
 	}

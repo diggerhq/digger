@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/models"
+	dbmodels2 "github.com/diggerhq/digger/backend/models/dbmodels"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/middleware"
 	"github.com/diggerhq/digger/ee/drift/model"
 	"github.com/diggerhq/digger/ee/drift/tasks"
@@ -116,7 +117,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 		c.String(http.StatusBadRequest, "missing orgID in request")
 		return
 	}
-	org, err := dbmodels.DB.GetOrganisationById(orgId)
+	org, err := dbmodels2.DB.GetOrganisationById(orgId)
 	if err != nil {
 		log.Printf("Error fetching organisation: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
@@ -124,7 +125,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 	}
 
 	// create a github installation link (org ID matched to installation ID)
-	_, err = dbmodels.DB.CreateGithubInstallationLink(org.ID, installationId)
+	_, err = dbmodels2.DB.CreateGithubInstallationLink(org.ID, installationId)
 	if err != nil {
 		log.Printf("Error saving GithubInstallationLink to database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
@@ -150,7 +151,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 
 	// reset all existing repos (soft delete)
 	var ExistingRepos []model.Repo
-	err = dbmodels.DB.GormDB.Delete(ExistingRepos, "organisation_id=?", orgId).Error
+	err = dbmodels2.DB.GormDB.Delete(ExistingRepos, "organisation_id=?", orgId).Error
 	if err != nil {
 		log.Printf("could not delete repos: %v", err)
 		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
@@ -166,7 +167,7 @@ func (mc MainController) GithubAppCallbackPage(c *gin.Context) {
 		repoName := *repo.Name
 		repoUrl := fmt.Sprintf("https://github.com/%v", repoFullName)
 
-		_, _, err = dbmodels.CreateOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId, *installation.AppID, *installation.Account.ID, *installation.Account.Login, defaultBranch, cloneUrl)
+		_, _, err = models.CreateOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId, *installation.AppID, *installation.Account.ID, *installation.Account.Login, defaultBranch, cloneUrl)
 		if err != nil {
 			log.Printf("createOrGetDiggerRepoForGithubRepo error: %v", err)
 			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)

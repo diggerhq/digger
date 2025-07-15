@@ -423,6 +423,19 @@ func (db *Database) GetRepoByFullName(orgIdKey any, repoFullName string) (*Repo,
 	return &repo, nil
 }
 
+// GetGithubAppInstallationByIdAndRepo repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
+func (db *Database) GetRepoByInstllationIdAndRepoFullName(installationId string, repoFullName string) (*Repo, error) {
+	repo := Repo{}
+	result := db.GormDB.Where("github_installation_id = ?  AND repo_full_name=?", installationId, repoFullName).Find(&repo)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+
+	return &repo, nil
+}
+
 // GetRepoById returns digger repo by organisationId and repo name (diggerhq-digger)
 func (db *Database) GetRepoById(orgIdKey any, repoId any) (*Repo, error) {
 	var repo Repo

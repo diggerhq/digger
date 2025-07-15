@@ -1,15 +1,13 @@
-package dbmodels
+package models
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/ee/drift/model"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"log"
-	"time"
 )
 
 type DiggerJobStatus string
@@ -23,9 +21,9 @@ const (
 	DiggerJobQueuedForRun DiggerJobStatus = "queued"
 )
 
-func (db *Database) GetDiggerCiJob(diggerJobId string) (*model.DiggerCiJob, error) {
+func (db *Database) GetDiggerCiJob(diggerJobId string) (*DiggerJob, error) {
 	log.Printf("GetDiggerCiJob, diggerJobId: %v", diggerJobId)
-	var ciJob model.DiggerCiJob
+	var ciJob DiggerJob
 
 	err := db.GormDB.Where("digger_job_id = ?", diggerJobId).First(&ciJob).Error
 
@@ -40,16 +38,7 @@ func (db *Database) GetDiggerCiJob(diggerJobId string) (*model.DiggerCiJob, erro
 	return &ciJob, nil
 }
 
-func (db *Database) UpdateDiggerJob(job *model.DiggerCiJob) error {
-	result := db.GormDB.Save(job)
-	if result.Error != nil {
-		return result.Error
-	}
-	log.Printf("DiggerJob %v, (id: %v) has been updated successfully\n", job.DiggerJobID, job.ID)
-	return nil
-}
-
-func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName string, projectId string) (*model.DiggerCiJob, error) {
+func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName string, projectName string) (*DiggerJob, error) {
 
 	marshalledJobSpec, err := json.Marshal(spec.Job)
 	if err != nil {
@@ -100,30 +89,28 @@ func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName string, projectI
 		return nil, err
 	}
 
-	job := &model.DiggerCiJob{
-		ID:                 uuid.NewString(),
-		DiggerJobID:        spec.JobId,
-		Spectype:           string(spec.SpecType),
-		Commentid:          spec.CommentId,
-		Runname:            runName,
-		Jobspec:            marshalledJobSpec,
-		Reporterspec:       marshalledReporterSpec,
-		Commentupdaterspec: marshalledCommentUpdaterSpec,
-		Lockspec:           marshalledLockSpec,
-		Backendspec:        marshalledBackendSpec,
-		Vcsspec:            marshalledVcsSpec,
-		Policyspec:         marshalledPolicySpec,
-		Variablesspec:      marshalledVariablesSpec,
-		CreatedAt:          time.Time{},
-		UpdatedAt:          time.Time{},
-		DeletedAt:          gorm.DeletedAt{},
-		WorkflowFile:       spec.VCS.WorkflowFile,
-		WorkflowURL:        "",
-		Status:             string(DiggerJobCreated),
-		ResourcesCreated:   0,
-		ResourcesUpdated:   0,
-		ResourcesDeleted:   0,
-		ProjectID:          projectId,
+	workflowRunUrl := ""
+
+	job := &DiggerJob{
+		DiggerJobID:                  spec.JobId,
+		RunName:                      runName,
+		SerializedJobSpec:            marshalledJobSpec,
+		SerializedReporterSpec:       marshalledReporterSpec,
+		SerializedCommentUpdaterSpec: marshalledCommentUpdaterSpec,
+		SerializedLockSpec:           marshalledLockSpec,
+		SerializedBackendSpec:        marshalledBackendSpec,
+		SerializedVcsSpec:            marshalledVcsSpec,
+		SerializedPolicySpec:         marshalledPolicySpec,
+		SerializedVariablesSpec:      marshalledVariablesSpec,
+		WorkflowFile:                 spec.VCS.WorkflowFile,
+		WorkflowRunUrl:               &workflowRunUrl,
+		Status:                       orchestrator_scheduler.DiggerJobCreated,
+		DiggerJobSummary: DiggerJobSummary{
+			ResourcesCreated: 0,
+			ResourcesUpdated: 0,
+			ResourcesDeleted: 0,
+		},
+		ProjectName: projectName,
 	}
 
 	err = db.GormDB.Create(job).Error
