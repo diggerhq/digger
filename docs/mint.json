@@ -15,7 +15,7 @@
     }
   },
   "topbarCtaButton": {
-    "type": "github",
+    "type": "GitHub",
     "url": "https://github.com/diggerhq/digger"
   },
   "anchors": [

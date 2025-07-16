@@ -15,7 +15,7 @@ gcloud iam workload-identity-pools create github-wif-pool --location="global" --
 
 ## 2\. Create a Workload Identity Provider
 
-A Workload Identity Provider links an external identity like Github with your Google Cloud account. This lets IAM use tokens from external providers to authorize access to Google Cloud resources.
+A Workload Identity Provider links an external identity like GitHub with your Google Cloud account. This lets IAM use tokens from external providers to authorize access to Google Cloud resources.
 
 ```
 gcloud iam workload-identity-pools providers create-oidc githubwif \
@@ -27,7 +27,7 @@ gcloud iam workload-identity-pools providers create-oidc githubwif \
 
 ## 3\. Create a Service Account and bind policies
 
-A service account with relevant permissions will be impersonated by WIF. This allows Github action to impersonate the service account and get a token.
+A service account with relevant permissions will be impersonated by WIF. This allows GitHub action to impersonate the service account and get a token.
 
 ```
 gcloud iam service-accounts create test-wif \
@@ -43,7 +43,7 @@ gcloud iam service-accounts add-iam-policy-binding test-wif@.iam.gserviceaccount
 --member="principalSet://iam.googleapis.com/projects//locations/global/workloadIdentityPools/github-wif-pool/attribute.repository/PradeepSingh1988/gcp-wif"
 ```
 
-## 4\. Add secrets to Github
+## 4\. Add secrets to GitHub
 
 Create 2 secrets in your Action Secrets with the following names:
 
