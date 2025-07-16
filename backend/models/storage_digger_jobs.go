@@ -10,17 +10,6 @@ import (
 	"log"
 )
 
-type DiggerJobStatus string
-
-const (
-	DiggerJobCreated      DiggerJobStatus = "created"
-	DiggerJobTriggered    DiggerJobStatus = "triggered"
-	DiggerJobFailed       DiggerJobStatus = "failed"
-	DiggerJobStarted      DiggerJobStatus = "started"
-	DiggerJobSucceeded    DiggerJobStatus = "succeeded"
-	DiggerJobQueuedForRun DiggerJobStatus = "queued"
-)
-
 func (db *Database) GetDiggerCiJob(diggerJobId string) (*DiggerJob, error) {
 	log.Printf("GetDiggerCiJob, diggerJobId: %v", diggerJobId)
 	var ciJob DiggerJob

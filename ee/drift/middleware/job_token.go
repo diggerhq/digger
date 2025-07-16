@@ -2,8 +2,7 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models/dbmodels"
-	model2 "github.com/diggerhq/digger/ee/drift/model"
+	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -11,8 +10,8 @@ import (
 	"time"
 )
 
-func CheckJobToken(c *gin.Context, token string) (*model2.DiggerCiJobToken, error) {
-	jobToken, err := dbmodels.DB.GetJobToken(token)
+func CheckJobToken(c *gin.Context, token string) (*models.JobToken, error) {
+	jobToken, err := models.DB.GetJobToken(token)
 	if jobToken == nil {
 		c.String(http.StatusForbidden, "Invalid bearer token")
 		c.Abort()
@@ -57,7 +56,7 @@ func JobTokenAuth() gin.HandlerFunc {
 				c.Abort()
 				return
 			} else {
-				c.Set(jobToken.OrganisationID, jobToken.OrganisationID)
+				c.Set(ORGANISATION_ID_KEY, jobToken.OrganisationID)
 				c.Set(ACCESS_LEVEL_KEY, jobToken.Type)
 			}
 		} else {
