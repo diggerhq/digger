@@ -10,8 +10,8 @@ You can use mergeability requirements together with Status Checks to achieve the
 Digger will not apply if the pull request is not in a “mergeable” state as specified by GitHub api. This means that if you have a separate status check and you have this check as “required” by branch protection rules then an attempt of digger apply will not go ahead.
 
 Note: there is a [known issue](https://github.com/diggerhq/digger/issues/1180) that would
- cause the "mergability" check to conflict if you set the digger/apply check as required on GitHub. We are working on a fix and in the meantime you have an option to turn off the mergability check if you want to have this digger/apply check as required. You can turn it off in the workflow configuration
-  by setting the `skip_merge_check` flag as follows (we have to set the other configurations since they are currently required):
+cause the "mergeability" check to conflict if you set the digger/apply check as required on GitHub. We are working on a fix and, meanwhile, you can turn off the mergeability check.
+You can turn it off in the workflow configuration  by setting the `skip_merge_check` flag as follows (we have to set the other configurations since they are currently required):
 
 ```
 projects:
