@@ -17,14 +17,13 @@ import (
 	net "net/http"
 	"os"
 	"path"
-	"strconv"
 )
 
 func GetGithubClient(gh utils.GithubClientProvider, installationId int64, repoFullName string) (*github.Client, *string, error) {
 	slog.Debug("Getting GitHub client",
 		"installationId", installationId,
 		"repoFullName", repoFullName)
-	repo, err := models.DB.GetRepoByInstallationIdAndRepoFullName(strconv.FormatInt(installationId, 10), repoFullName)
+	repo, err := models.DB.GetRepoByInstallationIdAndRepoFullName(installationId, repoFullName)
 	if err != nil {
 		log.Printf("Error getting repo: %v", err)
 		return nil, nil, fmt.Errorf("Error getting repo: %v", err)
