@@ -334,13 +334,12 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 		models.DB.GormDB.Save(&existingRepo)
 		return &existingRepo, org, nil
 	}
-	installationIdStr := strconv.FormatInt(installationId, 10)
 
 	slog.Info("Creating new Digger repo", "diggerRepoName", diggerRepoName, "orgId", orgId)
 	repo, err := models.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
 generate_projects:
  include: "."
-`, installationIdStr, appId, defaultBranch, cloneUrl)
+`, installationId, appId, defaultBranch, cloneUrl)
 	if err != nil {
 		slog.Error("Error creating Digger repo", "diggerRepoName", diggerRepoName, "error", err)
 		return nil, nil, err

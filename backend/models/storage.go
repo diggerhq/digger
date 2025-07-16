@@ -433,6 +433,9 @@ func (db *Database) GetRepoByInstallationIdAndRepoFullName(installationId string
 		}
 	}
 
+	if repo.ID == 0 {
+		return nil, nil
+	}
 	return &repo, nil
 }
 
@@ -1474,7 +1477,7 @@ func (db *Database) UpdateProject(project *Project) error {
 	return nil
 }
 
-func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *Organisation, diggerConfig string, installationId string, githubAppId int64, defaultBranch string, cloneUrl string) (*Repo, error) {
+func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *Organisation, diggerConfig string, installationId int64, githubAppId int64, defaultBranch string, cloneUrl string) (*Repo, error) {
 	var repo Repo
 	// check if repo exist already, do nothing in this case
 	result := db.GormDB.Where("name = ? AND organisation_id=?", name, org.ID).Find(&repo)
@@ -1497,17 +1500,17 @@ func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisatio
 	}
 
 	repo = Repo{
-		Name:                 name,
-		Organisation:         org,
-		DiggerConfig:         diggerConfig,
-		RepoFullName:         repoFullName,
-		RepoOrganisation:     repoOrganisation,
-		RepoName:             repoName,
-		RepoUrl:              repoUrl,
-		GithubInstallationId: installationId,
-		GithubAppId:          githubAppId,
-		DefaultBranch:        defaultBranch,
-		CloneUrl:             cloneUrl,
+		Name:                    name,
+		Organisation:            org,
+		DiggerConfig:            diggerConfig,
+		RepoFullName:            repoFullName,
+		RepoOrganisation:        repoOrganisation,
+		RepoName:                repoName,
+		RepoUrl:                 repoUrl,
+		GithubAppInstallationId: installationId,
+		GithubAppId:             githubAppId,
+		DefaultBranch:           defaultBranch,
+		CloneUrl:                cloneUrl,
 	}
 	result = db.GormDB.Save(&repo)
 	if result.Error != nil {

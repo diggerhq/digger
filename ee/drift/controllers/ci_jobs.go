@@ -113,7 +113,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 
 func ProjectDriftStateMachineApply(project models.Project, tfplan string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) error {
 	isEmptyPlan := resourcesCreated == 0 && resourcesUpdated == 0 && resourcesDeleted == 0
-	wasEmptyPlan := project.DriftToCreate == 0 && project.DriftToCreate == 0 && project.DriftToCreate == 0
+	wasEmptyPlan := project.DriftToCreate == 0 && project.DriftToUpdate == 0 && project.DriftToDelete == 0
 	if isEmptyPlan {
 		project.DriftStatus = models.DriftStatusNoDrift
 	}
