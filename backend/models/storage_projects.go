@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func (db *Database) LoadProjectsForOrg(orgId string) ([]*Project, error) {
+func (db *Database) LoadProjectsForOrg(orgId uint) ([]*Project, error) {
 	orgProjects := make([]*Project, 0)
 	var repos []*Repo
 	err := db.GormDB.Where("organisation_id = ?", orgId).Find(&repos).Error

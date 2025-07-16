@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models/dbmodels"
+	"github.com/diggerhq/digger/backend/models"
 	"log"
 	"net/http"
 	"net/url"
@@ -25,7 +25,7 @@ import (
 )
 
 type TriggerDriftRunRequest struct {
-	ProjectId string `json:"project_id"`
+	ProjectId uint `json:"project_id"`
 }
 
 func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
@@ -38,18 +38,16 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 	}
 	projectId := request.ProjectId
 
-	p := dbmodels.DB.Query.Project
-	project, err := dbmodels.DB.Query.Project.Where(p.ID.Eq(projectId)).First()
+	project, err := models.DB.GetProject(projectId)
 	if err != nil {
 		log.Printf("could not find project %v: %v", projectId, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "could not find project"})
 		return
 	}
 
-	r := dbmodels.DB.Query.Repo
-	repo, err := dbmodels.DB.Query.Repo.Where(r.ID.Eq(project.RepoID)).First()
+	repo, err := models.DB.GetRepoByFullName(project.OrganisationID, project.RepoFullName)
 	if err != nil {
-		log.Printf("could not find repo: %v for project %v: %v", project.RepoID, project.ID, err)
+		log.Printf("could not find repo: %v for project %v: %v", project.RepoFullName, project.ID, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "could not find repo"})
 		return
 	}
@@ -59,10 +57,10 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 	repoFullName := repo.RepoFullName
 	repoOwner := repo.RepoOrganisation
 	repoName := repo.RepoName
-	githubAppId := repo.GithubAppID
-	installationid := repo.GithubInstallationID
+	githubAppId := repo.GithubAppId
+	installationid := repo.GithubInstallationId
 	installationid64, err := strconv.ParseInt(installationid, 10, 64)
-	cloneUrl := repo.CloneURL
+	cloneUrl := repo.CloneUrl
 	branch := repo.DefaultBranch
 	command := "digger plan"
 	workflowFile := "digger_workflow.yml"
@@ -95,7 +93,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		return
 	}
 
-	jobToken, err := dbmodels.DB.CreateDiggerJobToken(orgId)
+	jobToken, err := models.DB.CreateDiggerJobToken(orgId)
 	if err != nil {
 		log.Printf("Error creating job token: %v %v", project.Name, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error creating job token")})
@@ -170,7 +168,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 
 	}
 
-	_, err = dbmodels.DB.CreateCiJobFromSpec(spec, *runName, project.Name)
+	_, err = models.DB.CreateCiJobFromSpec(spec, *runName, project.Name)
 	if err != nil {
 		log.Printf("error creating the job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error creating job entry")})
@@ -187,7 +185,8 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 }
 
 func (mc MainController) ProcessAllDrift(c *gin.Context) {
-	orgSettings, err := dbmodels.DB.Query.OrgSetting.Find()
+	var orgs []*models.Organisation
+	err := models.DB.GormDB.Find(&orgs).Error
 	if err != nil {
 		log.Printf("could not select all orgs: %v", err)
 	}
@@ -198,30 +197,30 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 		return
 	}
 
-	for _, orgSetting := range orgSettings {
-		cron := orgSetting.Schedule
+	for _, org := range orgs {
+		cron := org.DriftCronTab
 		matches, err := utils2.MatchesCrontab(cron, time.Now())
 		if err != nil {
-			log.Printf("could not check matching crontab for org: %v %v", orgSetting.OrgID, err)
+			log.Printf("could not check matching crontab for org: %v %v", org.ID, err)
 			continue
 		}
 
 		if matches {
-			log.Printf("Crontab matched for org: %v %v", orgSetting.OrgID, cron)
-			err := sendProcessDriftForOrgRequest(orgSetting.OrgID)
+			log.Printf("Crontab matched for org: %v %v", org.ID, cron)
+			err := sendProcessDriftForOrgRequest(org.ID)
 			if err != nil {
-				log.Printf("Failed to send request to process drift for org: %v", orgSetting.OrgID)
+				log.Printf("Failed to send request to process drift for org: %v", org.ID)
 				continue
 			}
 		} else {
-			log.Printf("Crontab ignored for org: %v %v", orgSetting.OrgID, cron)
+			log.Printf("Crontab ignored for org: %v %v", org.ID, cron)
 		}
 	}
 
 	c.String(200, "success")
 }
 
-func sendProcessDriftForOrgRequest(orgId string) error {
+func sendProcessDriftForOrgRequest(orgId uint) error {
 	diggerHostname := os.Getenv("DIGGER_HOSTNAME")
 	webhookSecret := os.Getenv("DIGGER_WEBHOOK_SECRET")
 	payload := DriftForOrgRequest{orgId}
@@ -258,7 +257,7 @@ func sendProcessDriftForOrgRequest(orgId string) error {
 }
 
 type DriftForOrgRequest struct {
-	OrgId string `json:"org_id"`
+	OrgId uint `json:"org_id"`
 }
 
 func (mc MainController) ProcessDriftForOrg(c *gin.Context) {
@@ -283,7 +282,7 @@ func (mc MainController) ProcessDriftForOrg(c *gin.Context) {
 
 	log.Printf("Processing drift for org: %v", orgId)
 
-	projects, err := dbmodels.DB.LoadProjectsForOrg(orgId)
+	projects, err := models.DB.LoadProjectsForOrg(orgId)
 	if err != nil {
 		fmt.Println("Process Drift: failed to load projects for org:", err)
 		return

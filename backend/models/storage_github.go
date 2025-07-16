@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId string, githubAppId int64, accountId int64, login string, defaultBranch string, cloneUrl string) (*Repo, *Organisation, error) {
+func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId string, githubAppId int64, defaultBranch string, cloneUrl string) (*Repo, *Organisation, error) {
 	link, err := DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		log.Printf("Error fetching installation link: %v", err)
@@ -42,7 +42,7 @@ func CreateOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 		return &existingRepo, org, nil
 	}
 
-	repo, err := DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, "")
+	repo, err := DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, "", "", 0, "", "")
 	//repo, err := DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, "", installationId, githubAppId, accountId, login, defaultBranch, cloneUrl)
 	if err != nil {
 		log.Printf("Error creating digger repo: %v", err)

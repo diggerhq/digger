@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/diggerhq/digger/backend/models/dbmodels"
+	"github.com/diggerhq/digger/backend/models"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	utils2 "github.com/diggerhq/digger/libs/git_utils"
@@ -24,13 +24,13 @@ func GetGithubClient(gh utils.GithubClientProvider, installationId int64, repoFu
 	slog.Debug("Getting GitHub client",
 		"installationId", installationId,
 		"repoFullName", repoFullName)
-	repo, err := dbmodels.DB.GetRepoByInstllationIdAndRepoFullName(strconv.FormatInt(installationId, 10), repoFullName)
+	repo, err := models.DB.GetRepoByInstllationIdAndRepoFullName(strconv.FormatInt(installationId, 10), repoFullName)
 	if err != nil {
 		log.Printf("Error getting repo: %v", err)
 		return nil, nil, fmt.Errorf("Error getting repo: %v", err)
 	}
 
-	ghClient, token, err := gh.Get(repo.GithubAppID, installationId)
+	ghClient, token, err := gh.Get(repo.GithubAppId, installationId)
 	return ghClient, token, err
 }
 

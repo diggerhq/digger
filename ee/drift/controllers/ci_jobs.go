@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"github.com/diggerhq/digger/backend/models"
-	dbmodels2 "github.com/diggerhq/digger/backend/models/dbmodels"
+	"github.com/diggerhq/digger/ee/drift/middleware"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/diggerhq/digger/ee/drift/model"
 	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/gin-gonic/gin"
 )
@@ -23,12 +24,13 @@ type SetJobStatusRequest struct {
 
 func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
-	//orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
-	//if !exists {
-	//	c.String(http.StatusForbidden, "Not allowed to access this resource")
-	//	return
-	//}
+	if !exists {
+		slog.Warn("Organisation ID not found in context", "jobId", jobId)
+		c.String(http.StatusForbidden, "Not allowed to access this resource")
+		return
+	}
 
 	var request SetJobStatusRequest
 
@@ -42,7 +44,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 
 	log.Printf("settings status for job: %v, new status: %v, tfout: %v, job summary: %v", jobId, request.Status, request.TerraformOutput, request.JobSummary)
 
-	job, err := dbmodels2.DB.GetDiggerCiJob(jobId)
+	job, err := models.DB.GetDiggerCiJob(jobId)
 	if err != nil {
 		log.Printf("could not get digger ci job, err: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting digger job"})
@@ -50,43 +52,42 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	}
 
 	switch request.Status {
-	case string(models.DiggerJobStarted):
-		job.Status = string(models.DiggerJobStarted)
-		err := dbmodels2.DB.UpdateDiggerJob(job)
+	case string(orchestrator_scheduler.DiggerJobStarted):
+		job.Status = orchestrator_scheduler.DiggerJobStarted
+		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
 			log.Printf("Error updating job status: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
 			return
 		}
-	case string(models.DiggerJobSucceeded):
-		job.Status = string(models.DiggerJobSucceeded)
+	case string(orchestrator_scheduler.DiggerJobSucceeded):
+		job.Status = orchestrator_scheduler.DiggerJobSucceeded
 		job.TerraformOutput = request.TerraformOutput
-		job.ResourcesCreated = int32(request.JobSummary.ResourcesCreated)
-		job.ResourcesUpdated = int32(request.JobSummary.ResourcesUpdated)
-		job.ResourcesDeleted = int32(request.JobSummary.ResourcesDeleted)
-		err := dbmodels2.DB.UpdateDiggerJob(job)
+		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
 			log.Printf("Error updating job status: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
 			return
 		}
 
-		project, err := dbmodels2.DB.GetProjectById(job.ProjectID)
+		models.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
+		project, err := models.DB.GetProjectByName(orgId, job.Batch.RepoFullName, job.ProjectName)
 		if err != nil {
 			log.Printf("Error retrieving project: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving project"})
 			return
 
 		}
-		err = ProjectDriftStateMachineApply(*project, job.TerraformOutput, job.ResourcesCreated, job.ResourcesUpdated, job.ResourcesDeleted)
+		summary := job.DiggerJobSummary
+		err = ProjectDriftStateMachineApply(*project, job.TerraformOutput, summary.ResourcesCreated, summary.ResourcesUpdated, summary.ResourcesDeleted)
 		if err != nil {
 			log.Printf("error while checking drifted project")
 		}
 
-	case string(models.DiggerJobFailed):
-		job.Status = string(models.DiggerJobFailed)
+	case string(orchestrator_scheduler.DiggerJobFailed):
+		job.Status = orchestrator_scheduler.DiggerJobFailed
 		job.TerraformOutput = request.TerraformOutput
-		err := dbmodels2.DB.UpdateDiggerJob(job)
+		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
 			log.Printf("Error updating job status: %v", request.Status)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
@@ -100,7 +101,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	}
 
 	job.UpdatedAt = request.Timestamp
-	err = dbmodels2.DB.GormDB.Save(job).Error
+	err = models.DB.GormDB.Save(job).Error
 	if err != nil {
 		log.Printf("Error saving update job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving job"})
@@ -110,9 +111,9 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-func ProjectDriftStateMachineApply(project model.Project, tfplan string, resourcesCreated int32, resourcesUpdated int32, resourcesDeleted int32) error {
+func ProjectDriftStateMachineApply(project models.Project, tfplan string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) error {
 	isEmptyPlan := resourcesCreated == 0 && resourcesUpdated == 0 && resourcesDeleted == 0
-	wasEmptyPlan := project.ToCreate == 0 && project.ToUpdate == 0 && project.ToDelete == 0
+	wasEmptyPlan := project.DriftToCreate == 0 && project.DriftToCreate == 0 && project.DriftToCreate == 0
 	if isEmptyPlan {
 		project.DriftStatus = models.DriftStatusNoDrift
 	}
@@ -128,10 +129,10 @@ func ProjectDriftStateMachineApply(project model.Project, tfplan string, resourc
 	}
 
 	project.DriftTerraformPlan = tfplan
-	project.ToCreate = resourcesCreated
-	project.ToUpdate = resourcesUpdated
-	project.ToDelete = resourcesDeleted
-	result := dbmodels2.DB.GormDB.Save(&project)
+	project.DriftToCreate = resourcesCreated
+	project.DriftToUpdate = resourcesUpdated
+	project.DriftToDelete = resourcesDeleted
+	result := models.DB.GormDB.Save(&project)
 	if result.Error != nil {
 		return result.Error
 	}

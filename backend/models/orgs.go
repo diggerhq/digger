@@ -25,20 +25,25 @@ type Organisation struct {
 	DriftWebhookUrl             string
 	DriftCronTab                string      `gorm:"default:'0 0 * * *'"`
 	BillingPlan                 BillingPlan `gorm:"default:'free'"`
+	SlackNotificationUrl        string
 	BillingStripeSubscriptionId string
 }
 
 type Repo struct {
 	gorm.Model
-	Name             string `gorm:"uniqueIndex:idx_org_repo"`
-	RepoFullName     string
-	RepoOrganisation string
-	RepoName         string
-	RepoUrl          string
-	VCS              DiggerVCSType `gorm:"default:'github'"`
-	OrganisationID   uint          `gorm:"uniqueIndex:idx_org_repo"`
-	Organisation     *Organisation
-	DiggerConfig     string
+	Name                 string `gorm:"uniqueIndex:idx_org_repo"`
+	RepoFullName         string
+	RepoOrganisation     string
+	RepoName             string
+	RepoUrl              string
+	VCS                  DiggerVCSType `gorm:"default:'github'"`
+	OrganisationID       uint          `gorm:"uniqueIndex:idx_org_repo"`
+	Organisation         *Organisation
+	DiggerConfig         string
+	GithubInstallationId string
+	GithubAppId          int64
+	DefaultBranch        string
+	CloneUrl             string
 }
 
 type ProjectRun struct {
@@ -103,6 +108,9 @@ type Project struct {
 	DriftStatus        DriftStatus `gorm:"default:'no drift'"`
 	LatestDriftCheck   time.Time
 	DriftTerraformPlan string
+	DriftToCreate      uint
+	DriftToUpdate      uint
+	DriftToDelete      uint
 	Status             ProjectStatus
 	IsGenerated        bool
 	IsInMainBranch     bool
