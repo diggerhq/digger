@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
@@ -58,8 +57,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 	repoOwner := repo.RepoOrganisation
 	repoName := repo.RepoName
 	githubAppId := repo.GithubAppId
-	installationid := repo.GithubInstallationId
-	installationid64, err := strconv.ParseInt(installationid, 10, 64)
+	installationid := repo.GithubAppInstallationId
 	cloneUrl := repo.CloneUrl
 	branch := repo.DefaultBranch
 	command := "digger plan"
@@ -71,7 +69,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		return
 	}
 
-	_, _, config, _, err := utils.GetDiggerConfigForBranch(mc.GithubClientProvider, installationid64, repoFullName, repoOwner, repoName, cloneUrl, branch)
+	_, _, config, _, err := utils.GetDiggerConfigForBranch(mc.GithubClientProvider, installationid, repoFullName, repoOwner, repoName, cloneUrl, branch)
 	if err != nil {
 		log.Printf("Error loading digger config: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error loading digger config"})
@@ -144,7 +142,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		return
 	}
 
-	vcsToken, err := services2.GetVCSToken("github", repoFullName, repoOwner, repoName, installationid64, mc.GithubClientProvider)
+	vcsToken, err := services2.GetVCSToken("github", repoFullName, repoOwner, repoName, installationid, mc.GithubClientProvider)
 	if err != nil {
 		log.Printf("Error creating vcs token: %v %v", project.Name, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error creating vcs token")})
@@ -154,7 +152,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 	ciBackend, err := mc.CiBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
 			GithubClientProvider: mc.GithubClientProvider,
-			GithubInstallationId: installationid64,
+			GithubInstallationId: installationid,
 			GithubAppId:          githubAppId,
 			RepoName:             repoName,
 			RepoOwner:            repoOwner,
