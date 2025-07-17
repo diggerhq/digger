@@ -8,16 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Helper function to search for a project in the configuration
-func findProjectInConfig(projects []digger_config.Project, projectName string) (digger_config.Project, bool) {
-	for _, config := range projects {
-		if config.Name == projectName {
-			return config, true
-		}
-	}
-	return digger_config.Project{}, false
-}
-
 // Helper function to get available project names
 func getAvailableProjectNames(projects []digger_config.Project) []string {
 	var availableProjects []string

@@ -146,15 +146,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
-		var projectConfig digger_config.Project
-		var projectFound bool
-		for _, config := range diggerConfig.Projects {
-			if config.Name == project {
-				projectConfig = config
-				projectFound = true
-				break
-			}
-		}
+		projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, project)
 
 		if !projectFound {
 			// Log available projects to help with debugging
@@ -369,6 +361,16 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	}
 
 	usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
+}
+
+// Helper function to search for a project in the configuration
+func findProjectInConfig(projects []digger_config.Project, projectName string) (digger_config.Project, bool) {
+	for _, config := range projects {
+		if config.Name == projectName {
+			return config, true
+		}
+	}
+	return digger_config.Project{}, false
 }
 
 func logCommands(projectCommands []scheduler.Job) {
