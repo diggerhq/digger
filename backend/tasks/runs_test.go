@@ -67,7 +67,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 
 	// create digger repo
 	repoName := "test repo"
-	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "")
+	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "", 0, 0, "", "")
 	if err != nil {
 		panic(err)
 	}

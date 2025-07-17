@@ -49,16 +49,25 @@ type DiggerBatch struct {
 
 type DiggerJob struct {
 	gorm.Model
-	DiggerJobID        string `gorm:"size:50,index:idx_digger_job_id"`
-	Status             orchestrator_scheduler.DiggerJobStatus
-	Batch              *DiggerBatch
-	BatchID            *string `gorm:"index:idx_digger_job_id"`
-	PRCommentUrl       string
-	PRCommentId        *int64
-	DiggerJobSummary   DiggerJobSummary
-	DiggerJobSummaryID uint
-	SerializedJobSpec  []byte
-	TerraformOutput    string
+	DiggerJobID                  string `gorm:"size:50,index:idx_digger_job_id"`
+	Status                       orchestrator_scheduler.DiggerJobStatus
+	RunName                      string
+	ProjectName                  string
+	Batch                        *DiggerBatch
+	BatchID                      *string `gorm:"index:idx_digger_job_id"`
+	PRCommentUrl                 string
+	PRCommentId                  *int64
+	DiggerJobSummary             DiggerJobSummary
+	DiggerJobSummaryID           uint
+	SerializedJobSpec            []byte
+	SerializedReporterSpec       []byte
+	SerializedCommentUpdaterSpec []byte
+	SerializedLockSpec           []byte
+	SerializedBackendSpec        []byte
+	SerializedVcsSpec            []byte
+	SerializedPolicySpec         []byte
+	SerializedVariablesSpec      []byte
+	TerraformOutput              string
 	// represents a footprint of terraform plan json for similarity checks
 	PlanFootprint   []byte
 	WorkflowFile    string

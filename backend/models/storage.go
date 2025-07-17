@@ -213,7 +213,7 @@ func (db *Database) GetProject(projectId uint) (*Project, error) {
 
 	var project Project
 
-	err := db.GormDB.Preload("Organisation").Preload("Repo").
+	err := db.GormDB.Preload("Organisation").
 		Where("id = ?", projectId).
 		First(&project).Error
 
@@ -420,6 +420,22 @@ func (db *Database) GetRepoByFullName(orgIdKey any, repoFullName string) (*Repo,
 		"repoId", repo.ID,
 		"orgId", orgIdKey,
 		"repoName", repoFullName)
+	return &repo, nil
+}
+
+// GetGithubAppInstallationByIdAndRepo repoFullName should be in the following format: org/repo_name, for example "diggerhq/github-job-scheduler"
+func (db *Database) GetRepoByInstallationIdAndRepoFullName(installationId int64, repoFullName string) (*Repo, error) {
+	repo := Repo{}
+	result := db.GormDB.Where("github_app_installation_id = ? AND repo_full_name = ?", installationId, repoFullName).Find(&repo)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+
+	if repo.ID == 0 {
+		return nil, nil
+	}
 	return &repo, nil
 }
 
@@ -1461,7 +1477,7 @@ func (db *Database) UpdateProject(project *Project) error {
 	return nil
 }
 
-func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *Organisation, diggerConfig string) (*Repo, error) {
+func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisation string, repoName string, repoUrl string, org *Organisation, diggerConfig string, installationId int64, githubAppId int64, defaultBranch string, cloneUrl string) (*Repo, error) {
 	var repo Repo
 	// check if repo exist already, do nothing in this case
 	result := db.GormDB.Where("name = ? AND organisation_id=?", name, org.ID).Find(&repo)
@@ -1484,13 +1500,17 @@ func (db *Database) CreateRepo(name string, repoFullName string, repoOrganisatio
 	}
 
 	repo = Repo{
-		Name:             name,
-		Organisation:     org,
-		DiggerConfig:     diggerConfig,
-		RepoFullName:     repoFullName,
-		RepoOrganisation: repoOrganisation,
-		RepoName:         repoName,
-		RepoUrl:          repoUrl,
+		Name:                    name,
+		Organisation:            org,
+		DiggerConfig:            diggerConfig,
+		RepoFullName:            repoFullName,
+		RepoOrganisation:        repoOrganisation,
+		RepoName:                repoName,
+		RepoUrl:                 repoUrl,
+		GithubAppInstallationId: installationId,
+		GithubAppId:             githubAppId,
+		DefaultBranch:           defaultBranch,
+		CloneUrl:                cloneUrl,
 	}
 	result = db.GormDB.Save(&repo)
 	if result.Error != nil {

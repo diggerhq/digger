@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
+	"github.com/diggerhq/digger/backend/models/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	utils3 "github.com/diggerhq/digger/libs/git_utils"
