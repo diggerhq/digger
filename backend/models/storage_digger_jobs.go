@@ -14,7 +14,7 @@ func (db *Database) GetDiggerCiJob(diggerJobId string) (*DiggerJob, error) {
 	log.Printf("GetDiggerCiJob, diggerJobId: %v", diggerJobId)
 	var ciJob DiggerJob
 
-	err := db.GormDB.Where("digger_job_id = ?", diggerJobId).First(&ciJob).Error
+	err := db.GormDB.Preload("Batch").Where("digger_job_id = ?", diggerJobId).First(&ciJob).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -27,7 +27,7 @@ func (db *Database) GetDiggerCiJob(diggerJobId string) (*DiggerJob, error) {
 	return &ciJob, nil
 }
 
-func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName string, projectName string) (*DiggerJob, error) {
+func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName string, projectName string, batchId string) (*DiggerJob, error) {
 
 	marshalledJobSpec, err := json.Marshal(spec.Job)
 	if err != nil {
@@ -79,8 +79,19 @@ func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName string, projectN
 	}
 
 	workflowRunUrl := ""
+	summary := DiggerJobSummary{
+		ResourcesCreated: 0,
+		ResourcesUpdated: 0,
+		ResourcesDeleted: 0,
+	}
+	err = db.GormDB.Create(&summary).Error
+	if err != nil {
+		log.Printf("failed to create job summary: %v", err)
+		return nil, err
+	}
 
 	job := &DiggerJob{
+		BatchID:                      &batchId,
 		DiggerJobID:                  spec.JobId,
 		RunName:                      runName,
 		SerializedJobSpec:            marshalledJobSpec,
@@ -94,12 +105,8 @@ func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName string, projectN
 		WorkflowFile:                 spec.VCS.WorkflowFile,
 		WorkflowRunUrl:               &workflowRunUrl,
 		Status:                       orchestrator_scheduler.DiggerJobCreated,
-		DiggerJobSummary: DiggerJobSummary{
-			ResourcesCreated: 0,
-			ResourcesUpdated: 0,
-			ResourcesDeleted: 0,
-		},
-		ProjectName: projectName,
+		DiggerJobSummary:             summary,
+		ProjectName:                  projectName,
 	}
 
 	err = db.GormDB.Create(job).Error

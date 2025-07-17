@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
+	utils2 "github.com/diggerhq/digger/backend/utils"
 	"log"
 	"log/slog"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/drift/controllers"
 	"github.com/diggerhq/digger/ee/drift/middleware"
-	next_utils "github.com/diggerhq/digger/next/utils"
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
@@ -19,9 +19,24 @@ import (
 )
 
 func init() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	log.Println("Initialized the logger successfully")
+	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
+	var level slog.Leveler
+
+	if logLevel == "DEBUG" {
+		level = slog.LevelDebug
+	} else if logLevel == "WARN" {
+		level = slog.LevelWarn
+	} else if logLevel == "ERROR" {
+		level = slog.LevelError
+	} else {
+		level = slog.LevelInfo
+	}
+
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	})
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
 }
 
 var Version = "dev"
@@ -58,7 +73,7 @@ func main() {
 	}
 
 	controller := controllers.MainController{
-		GithubClientProvider: next_utils.DiggerGithubRealClientProvider{},
+		GithubClientProvider: utils2.DiggerGithubRealClientProvider{},
 		CiBackendProvider:    ci_backends.DefaultBackendProvider{},
 	}
 

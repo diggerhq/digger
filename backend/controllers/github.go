@@ -331,6 +331,10 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 	if r.RowsAffected > 0 {
 		slog.Info("Digger repo already exists, restoring if deleted", "diggerRepoName", diggerRepoName, "repoId", existingRepo.ID)
 		existingRepo.DeletedAt = gorm.DeletedAt{}
+		existingRepo.GithubAppId = appId
+		existingRepo.GithubAppInstallationId = installationId
+		existingRepo.CloneUrl = cloneUrl
+		existingRepo.DefaultBranch = defaultBranch
 		models.DB.GormDB.Save(&existingRepo)
 		return &existingRepo, org, nil
 	}
@@ -2551,7 +2555,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		cloneUrl := *repo.CloneURL
 		defaultBranch := *repo.DefaultBranch
 
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64, *installation.AppID, cloneUrl, defaultBranch)
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64, *installation.AppID, defaultBranch, cloneUrl)
 		if err != nil {
 			slog.Error("Error creating or getting Digger repo",
 				"repoFullName", repoFullName,

@@ -25,7 +25,6 @@ type Organisation struct {
 	DriftWebhookUrl             string
 	DriftCronTab                string      `gorm:"default:'0 0 * * *'"`
 	BillingPlan                 BillingPlan `gorm:"default:'free'"`
-	SlackNotificationUrl        string
 	BillingStripeSubscriptionId string
 }
 

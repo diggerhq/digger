@@ -160,7 +160,7 @@ func (mc MainController) SendRealSlackNotificationForOrg(c *gin.Context) {
 		return
 	}
 
-	slackNotificationUrl := org.SlackNotificationUrl
+	slackNotificationUrl := org.DriftWebhookUrl
 
 	projects, err := models.DB.LoadProjectsForOrg(orgId)
 	if err != nil {

@@ -15,7 +15,7 @@ func (db *Database) LoadProjectsForOrg(orgId uint) ([]*Project, error) {
 	}
 	for _, repo := range repos {
 		var projects []*Project
-		err := db.GormDB.Preload("Organisation").Preload("Repo").Where("repo_id = ?", repo.ID).Find(&projects).Error
+		err := db.GormDB.Preload("Organisation").Where("repo_full_name = ?", repo.RepoFullName).Find(&projects).Error
 		if err != nil {
 			log.Printf("could not query projects for repo: %v", repo.ID)
 			return nil, fmt.Errorf("could not query projects for repo: %v", repo.ID)

@@ -98,7 +98,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		return
 	}
 
-	backendHostName := os.Getenv("DIGGER_HOSTNAME")
+	backendHostName := os.Getenv("DIGGER_DRIFT_REPORTER_HOSTNAME")
 	jobSpec := scheduler.JobToJson(jobsForImpactedProjects[0], "plan", "digger", branch, "", jobToken.Value, backendHostName, *theProject)
 
 	spec := spec.Spec{
@@ -166,7 +166,14 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 
 	}
 
-	_, err = models.DB.CreateCiJobFromSpec(spec, *runName, project.Name)
+	batch, err := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, installationid, repoOwner, repoName, repoFullName, 0, "", branch, scheduler.DiggerCommandPlan, nil, 0, "", true, false, nil)
+	if err != nil {
+		log.Printf("error creating the batch: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error creating batch entry")})
+		return
+	}
+
+	_, err = models.DB.CreateCiJobFromSpec(spec, *runName, project.Name, batch.ID.String())
 	if err != nil {
 		log.Printf("error creating the job: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error creating job entry")})
@@ -211,7 +218,7 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 				continue
 			}
 		} else {
-			log.Printf("Crontab ignored for org: %v %v", org.ID, cron)
+			log.Printf("Crontab ignored for org: %v crontab: %v", org.ID, cron)
 		}
 	}
 

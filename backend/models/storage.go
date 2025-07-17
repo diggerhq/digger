@@ -213,7 +213,7 @@ func (db *Database) GetProject(projectId uint) (*Project, error) {
 
 	var project Project
 
-	err := db.GormDB.Preload("Organisation").Preload("Repo").
+	err := db.GormDB.Preload("Organisation").
 		Where("id = ?", projectId).
 		First(&project).Error
 

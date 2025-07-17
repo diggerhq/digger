@@ -45,6 +45,17 @@ const (
 	DiggerJobQueuedForRun DiggerJobStatus = 6
 )
 
+type DiggerJobStatusString string
+
+const (
+	DiggerJobCreatedString      DiggerJobStatusString = "created"
+	DiggerJobTriggeredString    DiggerJobStatusString = "triggered"
+	DiggerJobFailedString       DiggerJobStatusString = "failed"
+	DiggerJobStartedString      DiggerJobStatusString = "started"
+	DiggerJobSucceededString    DiggerJobStatusString = "succeeded"
+	DiggerJobQueuedForRunString DiggerJobStatusString = "queued_for_run"
+)
+
 func (d *DiggerJobStatus) ToString() string {
 	switch *d {
 	case DiggerJobSucceeded:

@@ -42,7 +42,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
-	log.Printf("settings status for job: %v, new status: %v, tfout: %v, job summary: %v", jobId, request.Status, request.TerraformOutput, request.JobSummary)
+	log.Printf("settings status for job: %v, new status: %v, job summary: %v", jobId, request.Status, request.TerraformOutput, request.JobSummary)
 
 	job, err := models.DB.GetDiggerCiJob(jobId)
 	if err != nil {
@@ -52,7 +52,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	}
 
 	switch request.Status {
-	case string(orchestrator_scheduler.DiggerJobStarted):
+	case string(orchestrator_scheduler.DiggerJobStartedString):
 		job.Status = orchestrator_scheduler.DiggerJobStarted
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
@@ -60,7 +60,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
 			return
 		}
-	case string(orchestrator_scheduler.DiggerJobSucceeded):
+	case string(orchestrator_scheduler.DiggerJobSucceededString):
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
 		job.TerraformOutput = request.TerraformOutput
 		err := models.DB.UpdateDiggerJob(job)
@@ -70,7 +70,12 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 			return
 		}
 
-		models.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
+		job, err = models.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
+		if err != nil {
+			log.Printf("Error updating job summary: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job summary"})
+			return
+		}
 		project, err := models.DB.GetProjectByName(orgId, job.Batch.RepoFullName, job.ProjectName)
 		if err != nil {
 			log.Printf("Error retrieving project: %v", err)
@@ -84,7 +89,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 			log.Printf("error while checking drifted project")
 		}
 
-	case string(orchestrator_scheduler.DiggerJobFailed):
+	case string(orchestrator_scheduler.DiggerJobFailedString):
 		job.Status = orchestrator_scheduler.DiggerJobFailed
 		job.TerraformOutput = request.TerraformOutput
 		err := models.DB.UpdateDiggerJob(job)

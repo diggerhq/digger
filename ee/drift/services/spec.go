@@ -16,7 +16,7 @@ func GetRunNameFromJob(spec spec.Spec) (*string, error) {
 	//requestedBy := jobSpec.RequestedBy
 	//prNumber := *jobSpec.PullRequestNumber
 
-	runName := fmt.Sprintf("[%v] %v %v (driftapp)", jobIdShort, diggerCommand, projectName)
+	runName := fmt.Sprintf("[%v] %v %v (drift)", jobIdShort, diggerCommand, projectName)
 	return &runName, nil
 }
 
