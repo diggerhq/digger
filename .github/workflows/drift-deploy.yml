@@ -7,9 +7,9 @@ on:
       - develop
 jobs:
   deploy:
-    name: Deploy pro app
+    name: Deploy drift backend
     runs-on: ubuntu-latest
-    concurrency: pro-deploy    # optional: ensure only one action runs at a time
+    concurrency: drift-deploy    # optional: ensure only one action runs at a time
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
