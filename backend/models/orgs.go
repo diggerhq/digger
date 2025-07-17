@@ -30,15 +30,19 @@ type Organisation struct {
 
 type Repo struct {
 	gorm.Model
-	Name             string `gorm:"uniqueIndex:idx_org_repo"`
-	RepoFullName     string
-	RepoOrganisation string
-	RepoName         string
-	RepoUrl          string
-	VCS              DiggerVCSType `gorm:"default:'github'"`
-	OrganisationID   uint          `gorm:"uniqueIndex:idx_org_repo"`
-	Organisation     *Organisation
-	DiggerConfig     string
+	Name                    string `gorm:"uniqueIndex:idx_org_repo"`
+	RepoFullName            string
+	RepoOrganisation        string
+	RepoName                string
+	RepoUrl                 string
+	VCS                     DiggerVCSType `gorm:"default:'github'"`
+	OrganisationID          uint          `gorm:"uniqueIndex:idx_org_repo"`
+	Organisation            *Organisation
+	DiggerConfig            string
+	GithubAppInstallationId int64
+	GithubAppId             int64
+	DefaultBranch           string
+	CloneUrl                string
 }
 
 type ProjectRun struct {
@@ -103,6 +107,9 @@ type Project struct {
 	DriftStatus        DriftStatus `gorm:"default:'no drift'"`
 	LatestDriftCheck   time.Time
 	DriftTerraformPlan string
+	DriftToCreate      uint
+	DriftToUpdate      uint
+	DriftToDelete      uint
 	Status             ProjectStatus
 	IsGenerated        bool
 	IsInMainBranch     bool

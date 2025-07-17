@@ -48,7 +48,7 @@ func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
 	}
 
 	repoName := "test repo"
-	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "")
+	repo, err := database.CreateRepo(repoName, "", "", "", "", org, "", 0, 0, "", "")
 	if err != nil {
 		panic(err)
 	}

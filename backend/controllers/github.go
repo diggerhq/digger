@@ -289,7 +289,7 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 	})
 }
 
-func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64) (*models.Repo, *models.Organisation, error) {
+func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64, appId int64, defaultBranch string, cloneUrl string) (*models.Repo, *models.Organisation, error) {
 	slog.Info("Creating or getting Digger repo for GitHub repo",
 		slog.Group("githubRepo",
 			slog.String("fullName", ghRepoFullName),
@@ -331,6 +331,10 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 	if r.RowsAffected > 0 {
 		slog.Info("Digger repo already exists, restoring if deleted", "diggerRepoName", diggerRepoName, "repoId", existingRepo.ID)
 		existingRepo.DeletedAt = gorm.DeletedAt{}
+		existingRepo.GithubAppId = appId
+		existingRepo.GithubAppInstallationId = installationId
+		existingRepo.CloneUrl = cloneUrl
+		existingRepo.DefaultBranch = defaultBranch
 		models.DB.GormDB.Save(&existingRepo)
 		return &existingRepo, org, nil
 	}
@@ -339,7 +343,7 @@ func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisatio
 	repo, err := models.DB.CreateRepo(diggerRepoName, ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl, org, `
 generate_projects:
  include: "."
-`)
+`, installationId, appId, defaultBranch, cloneUrl)
 	if err != nil {
 		slog.Error("Error creating Digger repo", "diggerRepoName", diggerRepoName, "error", err)
 		return nil, nil, err
@@ -2548,7 +2552,10 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 			return
 		}
 
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64)
+		cloneUrl := *repo.CloneURL
+		defaultBranch := *repo.DefaultBranch
+
+		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64, *installation.AppID, defaultBranch, cloneUrl)
 		if err != nil {
 			slog.Error("Error creating or getting Digger repo",
 				"repoFullName", repoFullName,
