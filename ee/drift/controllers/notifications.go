@@ -29,7 +29,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": "<https://driftapp.digger.dev|Dev environment>"},
+					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Dev environment>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":large_yellow_circle: Drift detected"},
 				},
 			},
@@ -37,7 +37,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": "<https://driftapp.digger.dev|Staging environment>"},
+					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Staging environment>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":white_circle: Acknowledged drift"},
 				},
 			},
@@ -45,7 +45,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": "<https://driftapp.digger.dev|Prod environment>"},
+					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Prod environment>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":large_green_circle: No drift"},
 				},
 			},
@@ -108,7 +108,7 @@ func sectionBlockForProject(project models.Project) (*slack.SectionBlock, error)
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":large_green_circle: No Drift", false, false),
 			},
 			nil,
