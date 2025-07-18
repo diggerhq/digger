@@ -71,6 +71,41 @@ func ListProjectsApi(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func ProjectsDetailsApi(c *gin.Context) {
+	// assume all exists as validated in middleware
+	organisationId := c.GetString(middleware.ORGANISATION_ID_KEY)
+	organisationSource := c.GetString(middleware.ORGANISATION_SOURCE_KEY)
+	projectId := c.Param("project_id")
+
+	var org models.Organisation
+	err := models.DB.GormDB.Where("external_id = ? AND external_source = ?", organisationId, organisationSource).First(&org).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Organisation not found", "organisationId", organisationId, "source", organisationSource)
+			c.String(http.StatusNotFound, "Could not find organisation: "+organisationId)
+		} else {
+			slog.Error("Error fetching organisation", "organisationId", organisationId, "source", organisationSource, "error", err)
+			c.String(http.StatusInternalServerError, "Error fetching organisation")
+		}
+		return
+	}
+
+	var project models.Project
+	err = models.DB.GormDB.Preload("Organisation").Where("projects.organisation_id = ? AND projects.id = ?", org.ID, projectId).First(&project).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Info("Project not found", "organisationId", organisationId, "orgId", org.ID)
+			c.String(http.StatusNotFound, "Could not find project")
+		} else {
+			slog.Error("Error fetching project", "organisationId", organisationId, "orgId", org.ID, "error", err)
+			c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, project.MapToJsonStruct())
+}
+
 func UpdateProjectApi(c *gin.Context) {
 	// assume all exists as validated in middleware
 	organisationId := c.GetString(middleware.ORGANISATION_ID_KEY)
