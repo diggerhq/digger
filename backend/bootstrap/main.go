@@ -231,13 +231,14 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 		billingApiGroup := apiGroup.Group("/billing")
 		billingApiGroup.GET("/", controllers.BillingStatusApi)
-		
+
 		reposApiGroup := apiGroup.Group("/repos")
 		reposApiGroup.GET("/", controllers.ListReposApi)
 		reposApiGroup.GET("/:repo_id/jobs", controllers.GetJobsForRepoApi)
 
 		projectsApiGroup := apiGroup.Group("/projects")
 		projectsApiGroup.GET("/", controllers.ListProjectsApi)
+		projectsApiGroup.GET("/:project_id/", controllers.ProjectsDetailsApi)
 		projectsApiGroup.PUT("/:project_id/", controllers.UpdateProjectApi)
 
 		githubApiGroup := apiGroup.Group("/github")

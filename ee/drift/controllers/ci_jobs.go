@@ -137,6 +137,7 @@ func ProjectDriftStateMachineApply(project models.Project, tfplan string, resour
 	project.DriftToCreate = resourcesCreated
 	project.DriftToUpdate = resourcesUpdated
 	project.DriftToDelete = resourcesDeleted
+	project.LatestDriftCheck = time.Now()
 	result := models.DB.GormDB.Save(&project)
 	if result.Error != nil {
 		return result.Error
