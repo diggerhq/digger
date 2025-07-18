@@ -116,28 +116,28 @@ type Project struct {
 }
 
 func (p *Project) MapToJsonStruct() interface{} {
-	lastRun, _ := DB.GetLastDiggerRunForProject(p.Name)
-	status := RunSucceeded
-	if lastRun != nil {
-		status = lastRun.Status
-	}
+	//lastRun, _ := DB.GetLastDiggerRunForProject(p.Name)
+	//status := RunSucceeded
+	//if lastRun != nil {
+	//	status = lastRun.Status
+	//}
 	return struct {
-		Id                    uint   `json:"id"`
-		Name                  string `json:"name"`
-		Directory             string `json:"directory"`
-		OrganisationID        uint   `json:"organisation_id"`
-		OrganisationName      string `json:"organisation_name"`
-		RepoID                uint   `json:"repo_id"`
-		RepoFullName          string `json:"repo_full_name"`
-		IsInMainBranch        bool   `json:"is_in_main_branch"`
-		IsGenerated           bool   `json:"is_generated"`
-		DriftEnabled          bool   `json:"drift_enabled"`
-		DriftStatus           string `json:"drift_status"`
-		LatestDriftCheck      string `json:"latest_drift_check"`
-		DriftTerraformPlan    string `json:"drift_terraform_plan"`
-		LastActivityTimestamp string `json:"last_activity_timestamp"`
-		LastActivityAuthor    string `json:"last_activity_author"`
-		LastActivityStatus    string `json:"last_activity_status"`
+		Id                    uint      `json:"id"`
+		Name                  string    `json:"name"`
+		Directory             string    `json:"directory"`
+		OrganisationID        uint      `json:"organisation_id"`
+		OrganisationName      string    `json:"organisation_name"`
+		RepoID                uint      `json:"repo_id"`
+		RepoFullName          string    `json:"repo_full_name"`
+		IsInMainBranch        bool      `json:"is_in_main_branch"`
+		IsGenerated           bool      `json:"is_generated"`
+		DriftEnabled          bool      `json:"drift_enabled"`
+		DriftStatus           string    `json:"drift_status"`
+		LatestDriftCheck      time.Time `json:"latest_drift_check"`
+		DriftTerraformPlan    string    `json:"drift_terraform_plan"`
+		LastActivityTimestamp string    `json:"last_activity_timestamp"`
+		LastActivityAuthor    string    `json:"last_activity_author"`
+		LastActivityStatus    string    `json:"last_activity_status"`
 	}{
 		Id:                    p.ID,
 		Name:                  p.Name,
@@ -147,13 +147,13 @@ func (p *Project) MapToJsonStruct() interface{} {
 		RepoFullName:          p.RepoFullName,
 		DriftEnabled:          p.DriftEnabled,
 		DriftStatus:           string(p.DriftStatus),
-		LatestDriftCheck:      p.LatestDriftCheck.String(),
+		LatestDriftCheck:      p.LatestDriftCheck,
 		DriftTerraformPlan:    p.DriftTerraformPlan,
 		LastActivityTimestamp: p.UpdatedAt.String(),
 		LastActivityAuthor:    "unknown",
-		LastActivityStatus:    string(status),
-		IsGenerated:           p.IsGenerated,
-		IsInMainBranch:        p.IsInMainBranch,
+		//LastActivityStatus:    string(status),
+		IsGenerated:    p.IsGenerated,
+		IsInMainBranch: p.IsInMainBranch,
 	}
 }
 func (r *Repo) MapToJsonStruct() interface{} {
