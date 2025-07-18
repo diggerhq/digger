@@ -118,7 +118,7 @@ func sectionBlockForProject(project models.Project) (*slack.SectionBlock, error)
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":white_circle: Acknowledged Drift", false, false),
 			},
 			nil,
@@ -128,7 +128,7 @@ func sectionBlockForProject(project models.Project) (*slack.SectionBlock, error)
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":large_yellow_circle: Drift detected", false, false),
 			},
 			nil,
