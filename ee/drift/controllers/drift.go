@@ -204,6 +204,7 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 
 	for _, org := range orgs {
 		if org.DriftEnabled == false {
+			log.Printf("Skipping org: %v because DriftEnabled=false", org.ID)
 			continue
 		}
 		cron := org.DriftCronTab
