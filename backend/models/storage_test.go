@@ -149,7 +149,7 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	job, err := DB.CreateDiggerJob(batch.ID, []byte(jobSpec), "workflow_file.yml")
 	assert.NoError(t, err)
 
-	job, err = DB.UpdateDiggerJobSummary(job.DiggerJobID, resourcesCreated, resourcesUpdated, resourcesDeleted)
+	_, err = DB.UpdateDiggerJobSummary(job.DiggerJobID, resourcesCreated, resourcesUpdated, resourcesDeleted)
 	assert.NoError(t, err)
 
 	jobssss, err := DB.GetDiggerJobsForBatch(batch.ID)

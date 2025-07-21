@@ -29,6 +29,5 @@ func InternalApiAuth() gin.HandlerFunc {
 		}
 
 		c.Next()
-		return
 	}
 }

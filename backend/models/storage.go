@@ -541,7 +541,7 @@ func (db *Database) GetGithubAppInstallationByIdAndRepo(installationId int64, re
 	}
 
 	// If not found, the values will be default values, which means ID will be 0
-	if installation.Model.ID == 0 {
+	if installation.ID == 0 {
 		return nil, fmt.Errorf("GithubAppInstallation with id=%v doesn't exist", installationId)
 	}
 	return &installation, nil
@@ -569,7 +569,7 @@ func (db *Database) GetGithubAppInstallationLink(installationId int64) (*GithubA
 	}
 
 	// If not found, the values will be default values, which means ID will be 0
-	if link.Model.ID == 0 {
+	if link.ID == 0 {
 		return nil, nil
 	}
 	return &link, nil
@@ -853,7 +853,7 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 			allJobsSucceeded = false
 		}
 	}
-	if allJobsSucceeded == true {
+	if allJobsSucceeded {
 		batch.Status = scheduler.BatchJobSucceeded
 		slog.Info("all jobs succeeded, marking batch as succeeded",
 			"batchId", batchId,
@@ -863,7 +863,7 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 }
 
 func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string) (*DiggerJob, error) {
-	if serializedJob == nil || len(serializedJob) == 0 {
+	if len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
 	jobId := uniuri.New()
@@ -1130,8 +1130,7 @@ func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated 
 		return nil, fmt.Errorf("Could not get digger job")
 	}
 
-	var jobSummary *DiggerJobSummary
-	jobSummary = &diggerJob.DiggerJobSummary
+	var jobSummary = &diggerJob.DiggerJobSummary
 	jobSummary.ResourcesCreated = resourcesCreated
 	jobSummary.ResourcesUpdated = resourcesUpdated
 	jobSummary.ResourcesDeleted = resourcesDeleted
@@ -1172,8 +1171,7 @@ func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
 func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
-	var where *gorm.DB
-	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
+	var where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
 
 	result := where.Preload("Batch").Preload("DiggerJobSummary").Find(&jobs)
 	if result.Error != nil {
@@ -1231,8 +1229,7 @@ func (db *Database) GetJobsByRepoName(orgId uint, repoFullName string) ([]querie
 func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []scheduler.DiggerJobStatus) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
-	var where *gorm.DB
-	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status IN ?", status)
+	var where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status IN ?", status)
 
 	result := where.Preload("Batch").Preload("DiggerJobSummary").Find(&jobs)
 	if result.Error != nil {
@@ -1255,8 +1252,7 @@ func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []
 func (db *Database) GetDiggerJobsWithStatus(status scheduler.DiggerJobStatus) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
-	var where *gorm.DB
-	where = db.GormDB.Where("status = ?", status)
+	var where = db.GormDB.Where("status = ?", status)
 
 	result := where.Preload("Batch").Find(&jobs)
 	if result.Error != nil {
@@ -1777,7 +1773,7 @@ func (db *Database) UpsertRepoCache(orgId uint, repoFullName string, diggerYmlSt
 
 		repoCache.DiggerConfig = configMarshalled
 		repoCache.DiggerYmlStr = diggerYmlStr
-		result = db.GormDB.Save(&repoCache)
+		_ = db.GormDB.Save(&repoCache)
 	} else {
 		// create record here
 		slog.Info("creating new repo cache",

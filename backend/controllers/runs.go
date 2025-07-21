@@ -223,7 +223,7 @@ func ApproveRun(c *gin.Context) {
 		return
 	}
 
-	if run.IsApproved == false {
+	if !run.IsApproved {
 		run.ApprovalAuthor = "a_user"
 		run.IsApproved = true
 		run.ApprovalDate = time.Now()
