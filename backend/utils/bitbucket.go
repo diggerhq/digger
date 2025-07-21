@@ -36,7 +36,7 @@ func GetBitbucketService(bb BitbucketProvider, token, repoOwner, repoName string
 
 	// token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
 
-	//client, err := bb.NewClient(token)
+	// client, err := bb.NewClient(token)
 	//if err != nil {
 	//	return nil, fmt.Errorf("could not get bitbucket client: %v", err)
 	//}

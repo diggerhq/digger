@@ -118,7 +118,7 @@ type Project struct {
 }
 
 func (p *Project) MapToJsonStruct() interface{} {
-	//lastRun, _ := DB.GetLastDiggerRunForProject(p.Name)
+	// lastRun, _ := DB.GetLastDiggerRunForProject(p.Name)
 	//status := RunSucceeded
 	//if lastRun != nil {
 	//	status = lastRun.Status

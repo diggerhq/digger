@@ -7,7 +7,6 @@ import (
 
 	sloggorm "github.com/imdatngo/slog-gorm/v2"
 	"gorm.io/driver/postgres"
-	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -43,7 +42,7 @@ func ConnectDatabase() {
 	DB = &Database{GormDB: database}
 
 	// data and fixtures added
-	orgNumberOne, err := DB.GetOrganisation(DEFAULT_ORG_NAME)
+	orgNumberOne, _ := DB.GetOrganisation(DEFAULT_ORG_NAME)
 	if orgNumberOne == nil {
 		slog.Info("No default organization found, creating default organisation", "name", DEFAULT_ORG_NAME)
 		_, err := DB.CreateOrganisation("digger", "", DEFAULT_ORG_NAME)

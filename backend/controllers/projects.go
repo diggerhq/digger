@@ -1205,7 +1205,7 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 			"commentId", detail.CommentId,
 		)
 
-		reporter := reporting.SourceGroupingReporter{serializedJobs, batch.PrNumber, ghService}
+		reporter := reporting.SourceGroupingReporter{Jobs: serializedJobs, PrNumber: batch.PrNumber, PrService: ghService}
 		err := reporter.UpdateComment(sourceDetails, detail.SourceLocation, projectToTerraformOutput)
 		if err != nil {
 			slog.Warn("Error updating comment for source location",

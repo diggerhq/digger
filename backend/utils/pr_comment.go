@@ -148,12 +148,12 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 
 	message := ""
 	if len(jobs) == 0 {
-		message = message + ":construction_worker: No projects impacted"
+		message += ":construction_worker: No projects impacted"
 	} else {
-		message = message + "| Project | Status |\n"
-		message = message + "|---------|--------|\n"
+		message += "| Project | Status |\n"
+		message += "|---------|--------|\n"
 		for _, job := range jobs {
-			message = message + fmt.Sprintf(""+
+			message += fmt.Sprintf(""+
 				"|:clock11: **%v**|pending...|\n", job.ProjectName)
 		}
 	}
@@ -204,7 +204,7 @@ func ReportNoProjectsImpacted(cr *CommentReporter, jobs []scheduler.Job) error {
 	message := "" +
 		":construction_worker: The following projects are impacted\n\n"
 	for _, job := range jobs {
-		message = message + fmt.Sprintf(""+
+		message += fmt.Sprintf(""+
 			"<!-- PROJECTHOLDER %v -->\n"+
 			":clock11: **%v**: pending...\n"+
 			"<!-- PROJECTHOLDEREND %v -->\n"+
