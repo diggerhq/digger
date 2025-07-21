@@ -31,6 +31,8 @@ linters:
   default: none
   enable:
     - staticcheck
+    - govet
+    - gocritic
 
   # See: https://golangci-lint.run/usage/false-positives/
   exclusion:
