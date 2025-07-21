@@ -6,20 +6,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
 )
 
-type MockCiBackend struct {
-}
+type MockCiBackend struct{}
 
-func (m MockCiBackend) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
+func (m MockCiBackend) TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error {
 	return nil
 }
 
@@ -153,5 +153,4 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 		diggerRunRefreshed, _ := models.DB.GetDiggerRun(diggerRun.ID)
 		assert.Equal(t, testParam.NextExpectedStatus, diggerRunRefreshed.Status)
 	}
-
 }

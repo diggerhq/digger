@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
+
+	"github.com/diggerhq/digger/backend/models"
 )
 
 func HttpBasicWebAuth() gin.HandlerFunc {
-
 	return func(c *gin.Context) {
 		slog.Info("Restricting access with HTTP Basic Auth")
 		username := os.Getenv("HTTP_BASIC_AUTH_USERNAME")

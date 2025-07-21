@@ -3,13 +3,14 @@ package main
 import (
 	"log/slog"
 
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/github"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/github"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 )
 
 func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.PullRequestService, gh utils.GithubClientProvider) {
@@ -83,7 +84,7 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.Pull
 		slog.Info("checking plan status", runContext)
 
 		// Check the status of the batch
-		batchStatus := orchestrator_scheduler.BatchJobSucceeded //dr.PlanStage.Batch.Status
+		batchStatus := orchestrator_scheduler.BatchJobSucceeded // dr.PlanStage.Batch.Status
 		approvalRequired := true
 
 		// if failed then go straight to failed

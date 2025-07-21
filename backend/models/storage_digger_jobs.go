@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"gorm.io/gorm"
-	"log"
 )
 
 func (db *Database) GetDiggerCiJob(diggerJobId string) (*DiggerJob, error) {
@@ -15,7 +16,6 @@ func (db *Database) GetDiggerCiJob(diggerJobId string) (*DiggerJob, error) {
 	var ciJob DiggerJob
 
 	err := db.GormDB.Preload("Batch").Where("digger_job_id = ?", diggerJobId).First(&ciJob).Error
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("ci job not found")
@@ -27,8 +27,7 @@ func (db *Database) GetDiggerCiJob(diggerJobId string) (*DiggerJob, error) {
 	return &ciJob, nil
 }
 
-func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName string, projectName string, batchId string) (*DiggerJob, error) {
-
+func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName, projectName, batchId string) (*DiggerJob, error) {
 	marshalledJobSpec, err := json.Marshal(spec.Job)
 	if err != nil {
 		log.Printf("failed to marshal job: %v", err)

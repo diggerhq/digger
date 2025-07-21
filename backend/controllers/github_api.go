@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/models"
 )
 
 func LinkGithubInstallationToOrgApi(c *gin.Context) {
@@ -49,7 +50,6 @@ func LinkGithubInstallationToOrgApi(c *gin.Context) {
 	}
 
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
-
 	if err != nil {
 		slog.Error("Could not get installation link", "installationId", installationId, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "Could not get installation link"})

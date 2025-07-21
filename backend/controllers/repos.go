@@ -5,10 +5,11 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/models"
 )
 
 func ListReposApi(c *gin.Context) {
@@ -36,7 +37,6 @@ func ListReposApi(c *gin.Context) {
 		Where("repos.organisation_id = ?", org.ID).
 		Order("name").
 		Find(&repos).Error
-
 	if err != nil {
 		slog.Error("Error fetching repos", "organisationId", organisationId, "orgId", org.ID, "error", err)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")

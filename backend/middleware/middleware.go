@@ -7,9 +7,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
-	"github.com/gin-gonic/gin"
 )
 
 func GetWebMiddleware() gin.HandlerFunc {

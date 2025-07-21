@@ -39,8 +39,7 @@ type QueuedResponse struct {
 	Queued string `json:"queued"`
 }
 
-func TriggerProjectsRefreshService(cloneUrl string, branch string, githubToken string, repoFullName string, orgId string) (*MachineResponse, error) {
-
+func TriggerProjectsRefreshService(cloneUrl, branch, githubToken, repoFullName, orgId string) (*MachineResponse, error) {
 	slog.Debug("awaiting machine fetch")
 
 	// Prepare machine configuration

@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func GenerateTerraformCode(appCode string, generationEndpoint string, apiToken string) (string, error) {
+func GenerateTerraformCode(appCode, generationEndpoint, apiToken string) (string, error) {
 	slog.Debug("Generating Terraform code",
 		"endpoint", generationEndpoint,
 		"codeLength", len(appCode),
@@ -89,7 +89,7 @@ func GenerateTerraformCode(appCode string, generationEndpoint string, apiToken s
 	return response.Result, nil
 }
 
-func GetAiSummaryFromTerraformPlans(plans string, summaryEndpoint string, apiToken string) (string, error) {
+func GetAiSummaryFromTerraformPlans(plans, summaryEndpoint, apiToken string) (string, error) {
 	slog.Debug("Generating AI summary for Terraform plans",
 		"endpoint", summaryEndpoint,
 		"plansLength", len(plans),

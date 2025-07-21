@@ -1,11 +1,13 @@
 package middleware
 
 import (
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/diggerhq/digger/backend/models"
 )
 
 func NoopWebAuth() gin.HandlerFunc {

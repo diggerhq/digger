@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"fmt"
+
 	"github.com/diggerhq/digger/backend/bootstrap"
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/config"

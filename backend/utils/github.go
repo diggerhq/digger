@@ -11,16 +11,16 @@ import (
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/ci"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
+
+	"github.com/diggerhq/digger/backend/models"
 )
 
 // just a wrapper around github client to be able to use mocks
-type DiggerGithubRealClientProvider struct {
-}
+type DiggerGithubRealClientProvider struct{}
 
 type DiggerGithubClientMockProvider struct {
 	MockedHTTPClient *net.Client
@@ -28,7 +28,7 @@ type DiggerGithubClientMockProvider struct {
 
 type GithubClientProvider interface {
 	NewClient(netClient *net.Client) (*github.Client, error)
-	Get(githubAppId int64, installationId int64) (*github.Client, *string, error)
+	Get(githubAppId, installationId int64) (*github.Client, *string, error)
 	FetchCredentials(githubAppId string) (string, string, string, string, error)
 }
 
@@ -37,7 +37,7 @@ func (gh DiggerGithubRealClientProvider) NewClient(netClient *net.Client) (*gith
 	return ghClient, nil
 }
 
-func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
+func (gh DiggerGithubRealClientProvider) Get(githubAppId, installationId int64) (*github.Client, *string, error) {
 	slog.Debug("Getting GitHub client",
 		"githubAppId", githubAppId,
 		"installationId", installationId,
@@ -110,7 +110,7 @@ func (gh DiggerGithubClientMockProvider) NewClient(netClient *net.Client) (*gith
 	return ghClient, nil
 }
 
-func (gh DiggerGithubClientMockProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
+func (gh DiggerGithubClientMockProvider) Get(githubAppId, installationId int64) (*github.Client, *string, error) {
 	ghClient, _ := gh.NewClient(gh.MockedHTTPClient)
 	token := "token"
 	return ghClient, &token, nil
@@ -135,12 +135,12 @@ func GetGithubClient(gh GithubClientProvider, installationId int64, repoFullName
 	return ghClient, token, err
 }
 
-func GetGithubClientFromAppId(gh GithubClientProvider, installationId int64, githubAppId int64, repoFullName string) (*github.Client, *string, error) {
+func GetGithubClientFromAppId(gh GithubClientProvider, installationId, githubAppId int64, repoFullName string) (*github.Client, *string, error) {
 	ghClient, token, err := gh.Get(githubAppId, installationId)
 	return ghClient, token, err
 }
 
-func GetGithubService(gh GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
+func GetGithubService(gh GithubClientProvider, installationId int64, repoFullName, repoOwner, repoName string) (*github2.GithubService, *string, error) {
 	ghClient, token, err := GetGithubClient(gh, installationId, repoFullName)
 	if err != nil {
 		slog.Error("Failed to create GitHub client",
@@ -245,7 +245,7 @@ func GetGithubHostname() string {
 	return githubHostname
 }
 
-func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
+func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner, repoName, diggerJobID string) (int64, string, error) {
 	slog.Debug("Looking for workflow for job",
 		"diggerJobId", diggerJobID,
 		slog.Group("repository",

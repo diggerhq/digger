@@ -2,15 +2,16 @@ package services
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/service_clients"
-	utils3 "github.com/diggerhq/digger/backend/utils"
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/service_clients"
+	utils3 "github.com/diggerhq/digger/backend/utils"
 )
 
-func LoadProjectsFromGithubRepo(gh utils3.GithubClientProvider, installationId string, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) error {
+func LoadProjectsFromGithubRepo(gh utils3.GithubClientProvider, installationId, repoFullName, repoOwner, repoName, cloneUrl, branch string) error {
 	installationId64, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {
 		slog.Error("failed to convert installation id %v to int64", "insallationId", installationId)

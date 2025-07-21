@@ -3,11 +3,13 @@ package controllers
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
+
+	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/models"
 )
 
 func GetActivity(c *gin.Context) {

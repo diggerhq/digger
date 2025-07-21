@@ -1,12 +1,13 @@
 package ci_backends
 
 import (
-	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/spec"
+
+	"github.com/diggerhq/digger/backend/utils"
 )
 
 type CiBackend interface {
-	TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error
+	TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error
 	GetWorkflowUrl(spec spec.Spec) (string, error)
 }
 

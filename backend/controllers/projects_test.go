@@ -4,13 +4,14 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
 )
 
 func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {

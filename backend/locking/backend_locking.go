@@ -3,8 +3,10 @@ package locking
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
+
 	"gorm.io/gorm"
+
+	"github.com/diggerhq/digger/backend/models"
 )
 
 type BackendDBLock struct {

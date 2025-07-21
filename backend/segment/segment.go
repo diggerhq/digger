@@ -28,7 +28,7 @@ func CloseClient() {
 	client.Close()
 }
 
-func IdentifyClient(userId string, userFullName string, username string, email string, organisationName string, organisationId string, userPlan string) {
+func IdentifyClient(userId, userFullName, username, email, organisationName, organisationId, userPlan string) {
 	if client == nil {
 		return
 	}
@@ -45,7 +45,7 @@ func IdentifyClient(userId string, userFullName string, username string, email s
 	})
 }
 
-func Track(userId string, action string) {
+func Track(userId, action string) {
 	if client == nil {
 		return
 	}

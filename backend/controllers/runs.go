@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/models"
 )
 
 func RunsForProject(c *gin.Context) {

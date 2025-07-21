@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -20,19 +19,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/backend/ci_backends"
-	config2 "github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/locking"
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/segment"
-	"github.com/diggerhq/digger/backend/services"
-	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/diggerhq/digger/libs/git_utils"
 	dg_locking "github.com/diggerhq/digger/libs/locking"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
@@ -42,6 +34,15 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
+
+	"github.com/diggerhq/digger/backend/ci_backends"
+	config2 "github.com/diggerhq/digger/backend/config"
+	"github.com/diggerhq/digger/backend/locking"
+	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/segment"
+	"github.com/diggerhq/digger/backend/services"
+	"github.com/diggerhq/digger/backend/utils"
 )
 
 type IssueCommentHook func(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error
@@ -289,7 +290,7 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 	})
 }
 
-func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64, appId int64, defaultBranch string, cloneUrl string) (*models.Repo, *models.Organisation, error) {
+func createOrGetDiggerRepoForGithubRepo(ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl string, installationId, appId int64, defaultBranch, cloneUrl string) (*models.Repo, *models.Organisation, error) {
 	slog.Info("Creating or getting Digger repo for GitHub repo",
 		slog.Group("githubRepo",
 			slog.String("fullName", ghRepoFullName),
@@ -416,7 +417,6 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, a
 	loadProjectsOnPush := os.Getenv("DIGGER_LOAD_PROJECTS_ON_PUSH")
 
 	if loadProjectsOnPush == "true" {
-
 		if strings.HasSuffix(ref, defaultBranch) {
 			slog.Debug("Loading projects from GitHub repo (push event)", "loadProjectsOnPush", loadProjectsOnPush, "ref", ref, "defaultBranch", defaultBranch)
 			err := services.LoadProjectsFromGithubRepo(gh, strconv.FormatInt(installationId, 10), repoFullName, repoOwner, repoName, cloneURL, defaultBranch)
@@ -737,7 +737,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
-	var aiSummaryCommentId = ""
+	aiSummaryCommentId := ""
 	if config.Reporting.AiSummary {
 		slog.Info("Creating AI summary comment", "prNumber", prNumber)
 		aiSummaryComment, err := ghService.PublishComment(prNumber, "AI Summary will be posted here after completion")
@@ -894,7 +894,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	return nil
 }
 
-func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, changedFiles []string) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName, repoOwner, repoName, cloneUrl, branch string, changedFiles []string) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	slog.Info("Getting Digger config for branch",
 		slog.Group("repository",
 			slog.String("fullName", repoFullName),
@@ -944,7 +944,6 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 		}
 		return nil
 	})
-
 	if err != nil {
 		slog.Error("Error cloning and loading config",
 			"repoFullName", repoFullName,
@@ -969,7 +968,7 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 }
 
 // TODO: Refactor this func to receive ghService as input
-func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []string, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, []string, error) {
+func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []string, installationId int64, repoFullName, repoOwner, repoName, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, []string, error) {
 	slog.Info("Getting Digger config for PR",
 		slog.Group("repository",
 			slog.String("fullName", repoFullName),
@@ -1130,7 +1129,7 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_confi
 	return repoCache.DiggerYmlStr, &config, &projectsGraph, nil
 }
 
-func GetRepoByInstllationId(installationId int64, repoOwner string, repoName string) (*models.Repo, error) {
+func GetRepoByInstllationId(installationId int64, repoOwner, repoName string) (*models.Repo, error) {
 	slog.Debug("Getting repo by installation ID",
 		"installationId", installationId,
 		"repoOwner", repoOwner,
@@ -1544,7 +1543,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("comment reporter error: %v", err)
 	}
 
-	var aiSummaryCommentId = ""
+	aiSummaryCommentId := ""
 	if config.Reporting.AiSummary {
 		slog.Info("Creating AI summary comment", "issueNumber", issueNumber)
 		aiSummaryComment, err := ghService.PublishComment(issueNumber, "AI Summary will be posted here after completion")
@@ -1725,7 +1724,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	return nil
 }
 
-func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporterManager utils.CommentReporterManager, config *dg_configuration.DiggerConfig, defaultBranch string, ghService *dg_github.GithubService, repoOwner string, repoName string, commitSha *string, issueNumber int, branch *string) error {
+func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporterManager utils.CommentReporterManager, config *dg_configuration.DiggerConfig, defaultBranch string, ghService *dg_github.GithubService, repoOwner, repoName string, commitSha *string, issueNumber int, branch *string) error {
 	if !strings.HasPrefix(*payload.Comment.Body, "digger generate") {
 		return nil
 	}
@@ -2009,7 +2008,7 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 	return nil
 }
 
-func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, repoOwner string, repoName string, batchId *uuid.UUID, prNumber int, prService ci.PullRequestService, gh utils.GithubClientProvider) error {
+func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName, repoOwner, repoName string, batchId *uuid.UUID, prNumber int, prService ci.PullRequestService, gh utils.GithubClientProvider) error {
 	slog.Info("Triggering Digger jobs for batch",
 		"batchId", batchId,
 		slog.Group("repository",
@@ -2323,7 +2322,7 @@ jobs:
 
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
-	//setupAction := c.Request.URL.Query()["setup_action"][0]
+	// setupAction := c.Request.URL.Query()["setup_action"][0]
 	code := c.Request.URL.Query()["code"][0]
 	appId := c.Request.URL.Query().Get("state")
 
@@ -2663,7 +2662,7 @@ func (d DiggerController) GithubReposPage(c *gin.Context) {
 
 // why this validation is needed: https://roadie.io/blog/avoid-leaking-github-org-data/
 // validation based on https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app , step 3
-func validateGithubCallback(githubClientProvider utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, *github.Installation, error) {
+func validateGithubCallback(githubClientProvider utils.GithubClientProvider, clientId, clientSecret, code string, installationId int64) (bool, *github.Installation, error) {
 	slog.Debug("Validating GitHub callback",
 		"clientId", clientId,
 		"installationId", installationId,

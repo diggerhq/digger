@@ -4,12 +4,13 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/robfig/cron"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/robfig/cron"
 )
 
 func initLogging() {

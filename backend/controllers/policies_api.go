@@ -5,10 +5,11 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/diggerhq/digger/backend/middleware"
-	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/models"
 )
 
 func PolicyOrgGetApi(c *gin.Context) {
@@ -98,7 +99,6 @@ func PolicyOrgUpsertApi(c *gin.Context) {
 			Type:           policyType,
 			Policy:         policyData,
 		}).Error
-
 		if err != nil {
 			slog.Error("Error creating policy", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error creating policy")

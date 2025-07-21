@@ -19,9 +19,11 @@ type DiggerJobParentLink struct {
 
 type DiggerVCSType string
 
-const DiggerVCSGithub DiggerVCSType = "github"
-const DiggerVCSGitlab DiggerVCSType = "gitlab"
-const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
+const (
+	DiggerVCSGithub    DiggerVCSType = "github"
+	DiggerVCSGitlab    DiggerVCSType = "gitlab"
+	DiggerVCSBitbucket DiggerVCSType = "bitbucket"
+)
 
 type DiggerBatch struct {
 	gorm.Model

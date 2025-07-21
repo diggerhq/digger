@@ -2,17 +2,18 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 
+	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/diggerhq/digger/libs/git_utils"
+	"github.com/gin-gonic/gin"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
-	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/gin-gonic/gin"
 )
 
 func (d DiggerController) UpdateRepoCache(c *gin.Context) {
@@ -78,7 +79,6 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 			}
 			return nil
 		})
-
 		if err != nil {
 			slog.Error("Could not load digger config", "error", err)
 			return

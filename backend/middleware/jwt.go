@@ -8,11 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 )
 
 func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) error {
@@ -175,7 +176,6 @@ func SecretCodeAuth() gin.HandlerFunc {
 			}
 			return []byte(os.Getenv("WEBHOOK_SECRET")), nil
 		})
-
 		if err != nil {
 			slog.Error("Error parsing webhook secret", "error", err)
 			c.String(http.StatusForbidden, "Invalid x-webhook-secret header provided")
@@ -262,7 +262,6 @@ func JWTBearerTokenAuth(auth services.Auth) gin.HandlerFunc {
 				}
 				return publicKey, nil
 			})
-
 			if err != nil {
 				slog.Error("Error while parsing token", "error", err)
 				c.String(http.StatusForbidden, "Authorization header is invalid")
@@ -323,8 +322,10 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-const ORGANISATION_ID_KEY = "organisation_ID"
-const ORGANISATION_SOURCE_KEY = "organisation_Source"
-const USER_ID_KEY = "user_ID"
-const ACCESS_LEVEL_KEY = "access_level"
-const JOB_TOKEN_KEY = "job_token"
+const (
+	ORGANISATION_ID_KEY     = "organisation_ID"
+	ORGANISATION_SOURCE_KEY = "organisation_Source"
+	USER_ID_KEY             = "user_ID"
+	ACCESS_LEVEL_KEY        = "access_level"
+	JOB_TOKEN_KEY           = "job_token"
+)

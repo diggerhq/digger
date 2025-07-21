@@ -6,14 +6,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
-
-	"github.com/diggerhq/digger/backend/utils"
 	"gorm.io/gorm"
 
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/gin-gonic/gin"
+	"github.com/diggerhq/digger/backend/utils"
 )
 
 func ListVCSConnectionsApi(c *gin.Context) {
