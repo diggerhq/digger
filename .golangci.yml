@@ -1,0 +1,20 @@
+# See for configurations: https://golangci-lint.run/usage/configuration/
+version: 2
+
+# See: https://golangci-lint.run/usage/linters/
+linters:
+  default: none
+  enable:
+    - staticcheck
+
+  # See: https://golangci-lint.run/usage/false-positives/
+  exclusion:
+    paths:
+    rules:
+
+  settings:
+    godot:
+      period: false
+
+    misspell:
+      locale: US
