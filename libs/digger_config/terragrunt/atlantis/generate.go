@@ -128,8 +128,10 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 
 		// parse the module path to find what it includes, as well as its potential to be a parent
 		// return nils to indicate we should skip this project
+		slog.Info("Parsing module", "path", path)
 		isParent, includes, err := parseModule(path, terragruntOptions)
 		if err != nil {
+			slog.Error("Error parsing module", "path", path, "error", err)
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
@@ -138,6 +140,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			return nil, nil
 		}
 
+		slog.Info("Found includes", "includes", includes)
 		dependencies := []string{}
 		if len(includes) > 0 {
 			for _, includeDep := range includes {
@@ -146,24 +149,28 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			}
 		}
 
-		// Parse the HCL file
+		//Parse the HCL file
 		decodeTypes := []config.PartialDecodeSectionType{
 			config.DependencyBlock,
 			config.DependenciesBlock,
 			config.TerraformBlock,
 		}
-		parsedConfig, err := config.PartialParseConfigFile(path, terragruntOptions, nil, decodeTypes)
+		parsedConfig, err := PartialParseConfigFile(path, terragruntOptions, nil, decodeTypes)
 		if err != nil {
+			slog.Error("Partial parse config error", "path", path, "error", err)
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
+		//parsedConfig := &config.TerragruntConfig{}
 
 		// Parse out locals
 		locals, err := parseLocals(path, terragruntOptions, nil)
 		if err != nil {
+			slog.Error("Error parsing locals", "path", path, "error", err)
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
+		//locals := ResolvedLocals{}
 
 		// Get deps from locals
 		if locals.ExtraAtlantisDependencies != nil {
@@ -384,8 +391,10 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 
 	dependencies, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
 	if err != nil {
+		slog.Error("error getting dependencies", "error", err)
 		return nil, potentialProjectDependencies, err
 	}
+	//dependencies := make([]string, 0)
 
 	// dependencies being nil is a sign from `getDependencies` that this project should be skipped
 	if dependencies == nil {
@@ -396,6 +405,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	if err != nil {
 		return nil, potentialProjectDependencies, err
 	}
+	//locals := ResolvedLocals{}
 
 	// If `atlantis_skip` is true on the module, then do not produce a project for it
 	if locals.Skip != nil && *locals.Skip {

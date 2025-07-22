@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
+	"log/slog"
 	"path/filepath"
 )
 
@@ -49,8 +52,47 @@ func updateBareIncludeBlock(file *hcl.File, filename string) ([]byte, bool, erro
 	return hclFile.Bytes(), codeWasUpdated, nil
 }
 
+func ctySliceToStringSlice(args []cty.Value) ([]string, error) {
+	var out []string
+	for _, arg := range args {
+		if arg.Type() != cty.String {
+			return nil, errors.WithStackTrace(config.InvalidParameterType{Expected: "string", Actual: arg.Type().FriendlyName()})
+		}
+		out = append(out, arg.AsString())
+	}
+	return out, nil
+}
+
+func wrapStringSliceToStringAsFuncImpl(
+	toWrap func(params []string, trackInclude *config.TrackInclude, terragruntOptions *options.TerragruntOptions) (string, error),
+	trackInclude *config.TrackInclude,
+	terragruntOptions *options.TerragruntOptions,
+) function.Function {
+	return function.New(&function.Spec{
+		VarParam: &function.Parameter{Type: cty.String},
+		Type:     function.StaticReturnType(cty.String),
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			slog.Info("wrapStringSliceToStringAsFuncImpl called")
+			params, err := ctySliceToStringSlice(args)
+			if err != nil {
+				return cty.StringVal(""), err
+			}
+			out, err := toWrap(params, trackInclude, terragruntOptions)
+			if err != nil {
+				return cty.StringVal(""), err
+			}
+			return cty.StringVal(out), nil
+		},
+	})
+}
+
+func NoopSopsDecryptFile(params []string, trackInclude *config.TrackInclude, terragruntOptions *options.TerragruntOptions) (string, error) {
+	slog.Info("NoopSopsDecryptFile called")
+	return "{}", nil
+}
+
 // decodeHcl uses the HCL2 parser to decode the parsed HCL into the struct specified by out.
-//
+// h
 // Note that we take a two pass approach to support parsing include blocks without a label. Ideally we can parse include
 // blocks with and without labels in a single pass, but the HCL parser is fairly restrictive when it comes to parsing
 // blocks with labels, requiring the exact number of expected labels in the parsing step.  To handle this restriction,
@@ -88,13 +130,18 @@ func decodeHcl(
 			}
 		}
 	}
-	evalContext, err := extensions.CreateTerragruntEvalContext(filename, terragruntOptions)
+	slog.Info("decodeHcl: creating terragrunt eval context", "filename", filename)
+	evalContext, err := CreateTerragruntEvalContext(extensions, filename, terragruntOptions)
 	if err != nil {
-		return err
+		slog.Error("failed to create terragrunt eval context", "error", err)
+		//return err
 	}
+	evalContext.Functions[config.FuncNameSopsDecryptFile] = wrapStringSliceToStringAsFuncImpl(NoopSopsDecryptFile, extensions.TrackInclude, terragruntOptions)
+	slog.Info("decodeHcl: created terragrunt eval context", "filename", filename)
 
 	decodeDiagnostics := gohcl.DecodeBody(file.Body, evalContext, out)
 	if decodeDiagnostics != nil && decodeDiagnostics.HasErrors() {
+		slog.Error("failed to decode hcl", "error", decodeDiagnostics.Error())
 		return decodeDiagnostics
 	}
 
@@ -130,18 +177,21 @@ func parseModule(path string, terragruntOptions *options.TerragruntOptions) (isP
 		return false, nil, err
 	}
 
+	slog.Info("parseModule: parsing hcl file", "path", path)
 	parser := hclparse.NewParser()
 	file, err := parseHcl(parser, configString, path)
 	if err != nil {
 		return false, nil, err
 	}
+	slog.Info("parseModule: hcl file parsed", "path", path)
 
 	// Decode just the `include` and `import` blocks, and verify that it's allowed here
 	extensions := config.EvalContextExtensions{}
-	terragruntIncludeList, err := decodeAsTerragruntInclude(file, path, terragruntOptions, extensions)
-	if err != nil {
-		return false, nil, err
-	}
+	//terragruntIncludeList, err := decodeAsTerragruntInclude(file, path, terragruntOptions, extensions)
+	//if err != nil {
+	//	return false, nil, err
+	//}
+	terragruntIncludeList := make([]config.IncludeConfig, 0)
 
 	// If the file has any `include` blocks it is not a parent
 	if len(terragruntIncludeList) > 0 {
