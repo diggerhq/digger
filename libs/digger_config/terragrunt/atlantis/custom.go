@@ -481,8 +481,6 @@ func DecodeBaseBlocks(
 		return nil, err
 	}
 
-	//evalContext.Functions[config.FuncNameSopsDecryptFile] = wrapStringSliceToStringAsFuncImpl(NoopSopsDecryptFile, contextExtensions.TrackInclude, terragruntOptions)
-
 	// Decode just the `include` and `import` blocks, and verify that it's allowed here
 	terragruntIncludeList, err := decodeAsTerragruntInclude2(
 		hclFile,

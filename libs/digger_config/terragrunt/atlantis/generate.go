@@ -161,7 +161,6 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
-		//parsedConfig := &config.TerragruntConfig{}
 
 		// Parse out locals
 		locals, err := parseLocals(path, terragruntOptions, nil)
@@ -394,7 +393,6 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		slog.Error("error getting dependencies", "error", err)
 		return nil, potentialProjectDependencies, err
 	}
-	//dependencies := make([]string, 0)
 
 	// dependencies being nil is a sign from `getDependencies` that this project should be skipped
 	if dependencies == nil {
@@ -405,7 +403,6 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	if err != nil {
 		return nil, potentialProjectDependencies, err
 	}
-	//locals := ResolvedLocals{}
 
 	// If `atlantis_skip` is true on the module, then do not produce a project for it
 	if locals.Skip != nil && *locals.Skip {
