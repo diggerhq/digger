@@ -494,7 +494,6 @@ func DecodeBaseBlocks(
 
 	contextExtensions.TrackInclude, err = getTrackInclude(terragruntIncludeList, includeFromChild, terragruntOptions)
 	if err != nil {
-		slog.Error("getTrackInclude", "err", err)
 		return nil, err
 	}
 

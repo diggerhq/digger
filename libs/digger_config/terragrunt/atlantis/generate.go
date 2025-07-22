@@ -155,7 +155,6 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 		}
 		parsedConfig, err := PartialParseConfigFile(path, terragruntOptions, nil, decodeTypes)
 		if err != nil {
-			slog.Error("Partial parse config error", "path", path, "error", err)
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}

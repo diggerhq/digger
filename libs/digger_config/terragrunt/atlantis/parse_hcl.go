@@ -91,9 +91,8 @@ func decodeHcl(
 	evalContext, err := CreateTerragruntEvalContext(extensions, filename, terragruntOptions)
 	if err != nil {
 		slog.Error("failed to create terragrunt eval context", "error", err)
-		//return err
+		return err
 	}
-	evalContext.Functions[config.FuncNameSopsDecryptFile] = wrapStringSliceToStringAsFuncImpl(NoopSopsDecryptFile, extensions.TrackInclude, terragruntOptions)
 
 	decodeDiagnostics := gohcl.DecodeBody(file.Body, evalContext, out)
 	if decodeDiagnostics != nil && decodeDiagnostics.HasErrors() {
