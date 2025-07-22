@@ -71,7 +71,7 @@ func decodeHcl(
 		}
 	}()
 
-	// Check if we need to update the file to label any bare include blocks.
+	// Check if we need to update the file to l	abel any bare include blocks.
 	// Check if we need to update the file to label any bare include blocks.
 	// Excluding json because of https://github.com/transcend-io/terragrunt-atlantis-config/issues/244.
 	if filepath.Ext(filename) != ".json" {

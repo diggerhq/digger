@@ -42,6 +42,6 @@ func wrapStringSliceToStringAsFuncImpl(
 }
 
 func NoopSopsDecryptFile(params []string, trackInclude *config.TrackInclude, terragruntOptions *options.TerragruntOptions) (string, error) {
-	terragruntOptions.Logger.Infof("SOPS decryption function has been replaced with a no-op version. This is to ensure that generation of projects is successful.")
+	terragruntOptions.Logger.Debugf("SOPS decryption function has been replaced with a no-op version. This is to ensure that generation of projects is successful.")
 	return "{}", nil
 }
