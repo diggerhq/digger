@@ -297,7 +297,7 @@ func PartialParseConfigString(
 		switch decode {
 		case config.DependenciesBlock:
 			decoded := terragruntDependencies{}
-			err := decodeHcl2(file, filename, &decoded, evalContext)
+			err := decodeHcl(file, filename, &decoded, evalContext)
 			if err != nil {
 				return nil, err
 			}
@@ -311,7 +311,7 @@ func PartialParseConfigString(
 
 		case config.TerraformBlock:
 			decoded := terragruntTerraform{}
-			err := decodeHcl2(file, filename, &decoded, evalContext)
+			err := decodeHcl(file, filename, &decoded, evalContext)
 			if err != nil {
 				return nil, err
 			}
@@ -319,7 +319,7 @@ func PartialParseConfigString(
 
 		case config.TerraformSource:
 			decoded := terragruntTerraformSource{}
-			err := decodeHcl2(file, filename, &decoded, evalContext)
+			err := decodeHcl(file, filename, &decoded, evalContext)
 			if err != nil {
 				return nil, err
 			}
@@ -329,7 +329,7 @@ func PartialParseConfigString(
 
 		case config.DependencyBlock:
 			decoded := terragruntDependency{}
-			err := decodeHcl2(file, filename, &decoded, evalContext)
+			err := decodeHcl(file, filename, &decoded, evalContext)
 			if err != nil {
 				return nil, err
 			}
@@ -346,7 +346,7 @@ func PartialParseConfigString(
 
 		case config.TerragruntFlags:
 			decoded := terragruntFlags{}
-			err := decodeHcl2(file, filename, &decoded, evalContext)
+			err := decodeHcl(file, filename, &decoded, evalContext)
 			if err != nil {
 				return nil, err
 			}
@@ -362,7 +362,7 @@ func PartialParseConfigString(
 
 		case config.TerragruntVersionConstraints:
 			decoded := terragruntVersionConstraints{}
-			err := decodeHcl2(file, filename, &decoded, evalContext)
+			err := decodeHcl(file, filename, &decoded, evalContext)
 			if err != nil {
 				return nil, err
 			}
@@ -378,7 +378,7 @@ func PartialParseConfigString(
 
 		case config.RemoteStateBlock:
 			decoded := terragruntRemoteState{}
-			err := decodeHcl2(file, filename, &decoded, evalContext)
+			err := decodeHcl(file, filename, &decoded, evalContext)
 			if err != nil {
 				return nil, err
 			}

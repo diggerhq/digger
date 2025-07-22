@@ -7,7 +7,6 @@ import (
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/gruntwork-io/terragrunt/util"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
@@ -405,61 +404,17 @@ func getTrackInclude(
 	return &trackInc, nil
 }
 
-// decodeHcl uses the HCL2 parser to decode the parsed HCL into the struct specified by out.
-//
-// Note that we take a two pass approach to support parsing include blocks without a label. Ideally we can parse include
-// blocks with and without labels in a single pass, but the HCL parser is fairly restrictive when it comes to parsing
-// blocks with labels, requiring the exact number of expected labels in the parsing step.  To handle this restriction,
-// we first see if there are any include blocks without any labels, and if there is, we modify it in the file object to
-// inject the label as "".
-func decodeHcl2(
-	file *hcl.File,
-	filename string,
-	out interface{},
-	evalContext *hcl.EvalContext,
-) (err error) {
-	// The HCL2 parser and especially cty conversions will panic in many types of errors, so we have to recover from
-	// those panics here and convert them to normal errors
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			err = errors.WithStackTrace(config.PanicWhileParsingConfig{RecoveredValue: recovered, ConfigFile: filename})
-		}
-	}()
-
-	// Check if we need to update the file to label any bare include blocks.
-	updatedBytes, isUpdated, err := updateBareIncludeBlock(file, filename)
-	if err != nil {
-		return err
-	}
-	if isUpdated {
-		// Code was updated, so we need to reparse the new updated contents. This is necessarily because the blocks
-		// returned by hclparse does not support editing, and so we have to go through hclwrite, which leads to a
-		// different AST representation.
-		file, err = parseHcl(hclparse.NewParser(), string(updatedBytes), filename)
-		if err != nil {
-			return err
-		}
-	}
-
-	decodeDiagnostics := gohcl.DecodeBody(file.Body, evalContext, out)
-	if decodeDiagnostics != nil && decodeDiagnostics.HasErrors() {
-		return decodeDiagnostics
-	}
-
-	return nil
-}
-
 // This decodes only the `include` blocks of a terragrunt config, so its value can be used while decoding the rest of
 // the config.
 // For consistency, `include` in the call to `decodeHcl` is always assumed to be nil. Either it really is nil (parsing
 // the child config), or it shouldn't be used anyway (the parent config shouldn't have an include block).
-func decodeAsTerragruntInclude2(
+func decodeAsTerragruntInclude(
 	file *hcl.File,
 	filename string,
 	evalContext *hcl.EvalContext,
 ) ([]config.IncludeConfig, error) {
 	tgInc := terragruntIncludeMultiple{}
-	if err := decodeHcl2(file, filename, &tgInc, evalContext); err != nil {
+	if err := decodeHcl(file, filename, &tgInc, evalContext); err != nil {
 		return nil, err
 	}
 
@@ -482,7 +437,7 @@ func DecodeBaseBlocks(
 	}
 
 	// Decode just the `include` and `import` blocks, and verify that it's allowed here
-	terragruntIncludeList, err := decodeAsTerragruntInclude2(
+	terragruntIncludeList, err := decodeAsTerragruntInclude(
 		hclFile,
 		filename,
 		evalContext,
