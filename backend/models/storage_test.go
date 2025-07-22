@@ -152,8 +152,8 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	_, err = DB.UpdateDiggerJobSummary(job.DiggerJobID, resourcesCreated, resourcesUpdated, resourcesDeleted)
 	assert.NoError(t, err)
 
-	jobssss, err := DB.GetDiggerJobsForBatch(batch.ID)
-	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesCreated, resourcesCreated)
-	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesUpdated, resourcesUpdated)
-	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesDeleted, resourcesDeleted)
+	jobs, err := DB.GetDiggerJobsForBatch(batch.ID)
+	assert.Equal(t, jobs[0].DiggerJobSummary.ResourcesCreated, resourcesCreated)
+	assert.Equal(t, jobs[0].DiggerJobSummary.ResourcesUpdated, resourcesUpdated)
+	assert.Equal(t, jobs[0].DiggerJobSummary.ResourcesDeleted, resourcesDeleted)
 }

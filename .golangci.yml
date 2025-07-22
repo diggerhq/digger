@@ -36,13 +36,10 @@ linters:
     - whitespace
 
   # See: https://golangci-lint.run/usage/false-positives/
-  exclusion:
-    paths:
-    rules:
+  # exclusion:
+  #   paths:
+  #   rules:
 
   settings:
-    godot:
-      period: false
-
     misspell:
       locale: US

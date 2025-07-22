@@ -20,14 +20,16 @@ type GithubActionCi struct {
 func (g GithubActionCi) TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error {
 	slog.Info("TriggerGithubWorkflow", "repoOwner", spec.VCS.RepoOwner, "repoName", spec.VCS.RepoName, "commentId", spec.CommentId)
 	client := g.Client
-	specBytes, _ := json.Marshal(spec)
-
+	specBytes, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal spec: %w", err)
+	}
 	inputs := orchestrator_scheduler.WorkflowInput{
 		Spec:    string(specBytes),
 		RunName: runName,
 	}
 
-	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), spec.VCS.RepoOwner, spec.VCS.RepoName, spec.VCS.WorkflowFile, github.CreateWorkflowDispatchEventRequest{
+	_, err = client.Actions.CreateWorkflowDispatchEventByFileName(context.Background(), spec.VCS.RepoOwner, spec.VCS.RepoName, spec.VCS.WorkflowFile, github.CreateWorkflowDispatchEventRequest{
 		Ref:    spec.Job.Branch,
 		Inputs: inputs.ToMap(),
 	})

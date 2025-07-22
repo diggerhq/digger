@@ -204,11 +204,11 @@ func ReportNoProjectsImpacted(cr *CommentReporter, jobs []scheduler.Job) error {
 	message := "" +
 		":construction_worker: The following projects are impacted\n\n"
 	for _, job := range jobs {
-		message += fmt.Sprintf(""+
+		message += fmt.Sprintf(
 			"<!-- PROJECTHOLDER %v -->\n"+
-			":clock11: **%v**: pending...\n"+
-			"<!-- PROJECTHOLDEREND %v -->\n"+
-			"", job.ProjectName, job.ProjectName, job.ProjectName)
+				":clock11: **%v**: pending...\n"+
+				"<!-- PROJECTHOLDEREND %v -->\n"+
+				"", job.ProjectName, job.ProjectName, job.ProjectName)
 
 		slog.Debug("Added project placeholder to message", "projectName", job.ProjectName)
 	}
