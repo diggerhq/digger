@@ -130,7 +130,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 		// return nils to indicate we should skip this project
 		isParent, includes, err := parseModule(path, terragruntOptions)
 		if err != nil {
-			slog.Error("Error parsing module", "path", path, "error", err)
+			slog.Debug("failed to parse module", "path", path, "error", err)
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}

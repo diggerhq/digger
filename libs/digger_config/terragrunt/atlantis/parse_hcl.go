@@ -97,7 +97,7 @@ func decodeHcl(
 
 	decodeDiagnostics := gohcl.DecodeBody(file.Body, evalContext, out)
 	if decodeDiagnostics != nil && decodeDiagnostics.HasErrors() {
-		slog.Error("failed to decode hcl", "error", decodeDiagnostics.Error())
+		slog.Debug("failed to decode hcl", "error", decodeDiagnostics.Error())
 		return decodeDiagnostics
 	}
 
