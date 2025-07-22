@@ -128,7 +128,6 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 
 		// parse the module path to find what it includes, as well as its potential to be a parent
 		// return nils to indicate we should skip this project
-		slog.Info("Parsing module", "path", path)
 		isParent, includes, err := parseModule(path, terragruntOptions)
 		if err != nil {
 			slog.Error("Error parsing module", "path", path, "error", err)
@@ -140,7 +139,6 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			return nil, nil
 		}
 
-		slog.Info("Found includes", "includes", includes)
 		dependencies := []string{}
 		if len(includes) > 0 {
 			for _, includeDep := range includes {
@@ -149,7 +147,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			}
 		}
 
-		//Parse the HCL file
+		// Parse the HCL file
 		decodeTypes := []config.PartialDecodeSectionType{
 			config.DependencyBlock,
 			config.DependenciesBlock,

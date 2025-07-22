@@ -114,14 +114,12 @@ func parseLocals(path string, terragruntOptions *options.TerragruntOptions, incl
 		return ResolvedLocals{}, err
 	}
 
-	slog.Info("parseLocals: decoding base blocks", "path", path)
 	// Decode just the Base blocks. See the function docs for DecodeBaseBlocks for more info on what base blocks are.
 	extensions, err := DecodeBaseBlocks(terragruntOptions, parser, file, path, includeFromChild, nil)
 	if err != nil {
 		slog.Error("DecodeBaseBlocks: error decoding base blocks", "path", path, "error", err)
 		return ResolvedLocals{}, err
 	}
-	slog.Info("parseLocals: decoded base blocks", "path", path)
 	localsAsCty := extensions.Locals
 	trackInclude := extensions.TrackInclude
 

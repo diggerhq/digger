@@ -6,7 +6,6 @@ import (
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
-	"log/slog"
 )
 
 func ctySliceToStringSlice(args []cty.Value) ([]string, error) {
@@ -29,7 +28,6 @@ func wrapStringSliceToStringAsFuncImpl(
 		VarParam: &function.Parameter{Type: cty.String},
 		Type:     function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			slog.Info("wrapStringSliceToStringAsFuncImpl called")
 			params, err := ctySliceToStringSlice(args)
 			if err != nil {
 				return cty.StringVal(""), err
@@ -44,6 +42,5 @@ func wrapStringSliceToStringAsFuncImpl(
 }
 
 func NoopSopsDecryptFile(params []string, trackInclude *config.TrackInclude, terragruntOptions *options.TerragruntOptions) (string, error) {
-	slog.Info("NoopSopsDecryptFile called")
 	return "{}", nil
 }
