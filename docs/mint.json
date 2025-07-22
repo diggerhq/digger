@@ -44,7 +44,8 @@
     {
       "group": "Getting Started",
       "pages": [
-        "ce/getting-started/with-terraform"
+        "ce/getting-started/with-terraform",
+        "ce/getting-started/with-opentofu"
       ]
     },
     {

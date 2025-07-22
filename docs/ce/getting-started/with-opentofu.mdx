@@ -1,12 +1,12 @@
 ---
-title: "With Terraform"
+title: "With OpenTofu"
 ---
 
-In this tutorial, you will set up Digger to automate terraform pull requests using Github Actions
+In this tutorial, you will set up Digger to automate OpenTofu pull requests using Github Actions
 
 # Prerequisites
 
-- A GitHub repository with valid terraform code
+- A GitHub repository with valid OpenTofu code
 - Your cloud provider credentials:
   - For AWS: [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
   - For GCP: [Hashicorp's GCP tutorial](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
@@ -46,7 +46,7 @@ In GitHub repository settings, go to Secrets and Variables - Actions. Create the
 
 # Step 4: Create digger.yml
 
-This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
+This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your OpenTofu code is in the `prod` directory:
 
 ```
 projects:
@@ -92,8 +92,8 @@ Place it at `.github/workflows/digger_workflow.yml` (name is important!)
             with:
               digger-spec: ${{ inputs.spec }}
               setup-aws: true
-              setup-terraform: true
-              terraform-version: 1.5.5
+              setup-opentofu: true
+              opentofu-version: 1.10.3
               aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
               aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             env:
@@ -145,8 +145,8 @@ Place it at `.github/workflows/digger_workflow.yml` (name is important!)
             with:
               digger-spec: ${{ inputs.spec }}
               setup-aws: false
-              setup-terraform: true
-              terraform-version: 1.5.5
+              setup-opentofu: true
+              opentofu-version: 1.10.3
             env:
               GITHUB_CONTEXT: ${{ toJson(github) }}
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -162,9 +162,9 @@ Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 
 # Step 6: Create a PR to verify that it works
 
-Terraform will run an existing plan against your code.
+OpenTofu will run an existing plan against your code.
 
-Make any change to your terraform code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of Terraform Plan added as a comment to your PR.
+Make any change to your OpenTofu code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of OpenTofu Plan added as a comment to your PR.
 
 Then you can add a comment like `digger apply` and shortly after apply output will be added as comment too.
 
