@@ -44,8 +44,7 @@
     {
       "group": "Getting Started",
       "pages": [
-        "ce/getting-started/github-actions-+-aws",
-        "ce/getting-started/github-actions-and-gcp"
+        "ce/getting-started/with-terraform"
       ]
     },
     {
