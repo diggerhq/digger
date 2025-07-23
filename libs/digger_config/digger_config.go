@@ -381,7 +381,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 				}
 			}
 		}
-		if config.GenerateProjectsConfig.Blocks != nil && len(config.GenerateProjectsConfig.Blocks) > 0 {
+		if len(config.GenerateProjectsConfig.Blocks) > 0 {
 			slog.Info("processing project generation blocks",
 				"blockCount", len(config.GenerateProjectsConfig.Blocks))
 

@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -41,14 +41,14 @@ func (z *Zipper) GetFileFromZip(zipFile, filename string) (string, error) {
 
 			// Create a temporary file within our temp-images directory that follows
 			// a particular naming pattern
-			tempFile, err := ioutil.TempFile("", "digger-*.tfplan")
+			tempFile, err := os.CreateTemp("", "digger-*.tfplan")
 			if err != nil {
 				return "", err
 			}
 			defer tempFile.Close()
 
 			// Read all of the contents of our archive into a byte array.
-			contents, err := ioutil.ReadAll(buf)
+			contents, err := io.ReadAll(buf)
 			if err != nil {
 				return "", err
 			}

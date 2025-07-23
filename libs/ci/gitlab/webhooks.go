@@ -13,7 +13,7 @@ import (
 
 func ProcessGitlabPullRequestEvent(payload *gitlab.MergeEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, int, error) {
 	var impactedProjects []digger_config.Project
-	var prNumber int = payload.ObjectAttributes.IID
+	prNumber := payload.ObjectAttributes.IID
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 	if err != nil {
 		return nil, nil, prNumber, fmt.Errorf("could not get changed files")

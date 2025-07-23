@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 )
@@ -22,7 +21,7 @@ func (c CommandRunner) Run(workingDir, shell string, commands []string, envs map
 		args = []string{"-eo", "pipefail"}
 	}
 
-	scriptFile, err := ioutil.TempFile("", "run-script")
+	scriptFile, err := os.CreateTemp("", "run-script")
 	if err != nil {
 		return "", "", fmt.Errorf("error creating script file: %v", err)
 	}

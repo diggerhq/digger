@@ -694,7 +694,7 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 
 func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, int, error) {
 	var impactedProjects []digger_config.Project
-	var prNumber int = *payload.PullRequest.Number
+	prNumber := *payload.PullRequest.Number
 
 	slog.Info("processing GitHub pull request event",
 		"prNumber", prNumber,

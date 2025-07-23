@@ -153,7 +153,7 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 		}
 	}
 
-	isSupportMarkdown := !(vcs == "bitbucket")
+	isSupportMarkdown := vcs != "bitbucket"
 
 	switch reporterSpec.ReporterType {
 	case "noop":

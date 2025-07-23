@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -124,7 +124,7 @@ func (b BitbucketAPI) PublishComment(prNumber int, comment string) (*ci.Comment,
 		return nil, fmt.Errorf("failed to publish comment. Status code: %d", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response:", err)
 		return nil, fmt.Errorf("error reading response: %v", err)
@@ -624,7 +624,7 @@ func (b BitbucketAPI) TriggerPipeline(branch string, variables []interface{}) (s
 		return "", fmt.Errorf("failed to trigger pipeline: %d", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response:", err)
 		return "", fmt.Errorf("error reading response: %v", err)
