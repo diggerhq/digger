@@ -1323,7 +1323,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 		return fmt.Errorf("error converting Digger YAML to config: %v", err)
 	}
 
-	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && config.Reporting.AiSummary == true {
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded && config.Reporting.AiSummary {
 		slog.Info("Batch succeeded and AI summary enabled, generating summary",
 			"batchId", batch.ID,
 			"prNumber", batch.PrNumber,
@@ -1524,8 +1524,8 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded &&
 		batch.BatchType == orchestrator_scheduler.DiggerCommandApply &&
-		batch.CoverAllImpactedProjects == true &&
-		automerge == true {
+		batch.CoverAllImpactedProjects &&
+		automerge {
 
 		slog.Info("Conditions met for auto-merge, proceeding",
 			"batchId", batch.ID,
@@ -1616,8 +1616,8 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 
 	if (batch.Status == orchestrator_scheduler.BatchJobSucceeded || batch.Status == orchestrator_scheduler.BatchJobFailed) &&
 		batch.BatchType == orchestrator_scheduler.DiggerCommandPlan &&
-		batch.CoverAllImpactedProjects == true &&
-		deleteOlderComments == true {
+		batch.CoverAllImpactedProjects &&
+		deleteOlderComments {
 
 		slog.Info("Conditions met for deleting prior comments, proceeding",
 			"batchId", batch.ID,

@@ -1746,7 +1746,7 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 			"issueNumber", issueNumber,
 			"comment", *payload.Comment.Body,
 		)
-		commentReporterManager.UpdateComment(fmt.Sprintf(":x: generate requires argument -p <project_name>"))
+		commentReporterManager.UpdateComment(":x: generate requires argument -p <project_name>")
 		return fmt.Errorf("generate requires argument -p <project_name>")
 	}
 
@@ -1771,7 +1771,7 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 		"issueNumber", issueNumber,
 	)
 
-	commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Successfully loaded project"))
+	commentReporterManager.UpdateComment(":white_check_mark: Successfully loaded project")
 
 	generationEndpoint := os.Getenv("DIGGER_GENERATION_ENDPOINT")
 	if generationEndpoint == "" {
@@ -1779,7 +1779,7 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 			"issueNumber", issueNumber,
 			"projectName", projectName,
 		)
-		commentReporterManager.UpdateComment(fmt.Sprintf(":x: server does not have generation endpoint configured, please verify"))
+		commentReporterManager.UpdateComment(":x: server does not have generation endpoint configured, please verify")
 		return fmt.Errorf("server does not have generation endpoint configured, please verify")
 	}
 	apiToken := os.Getenv("DIGGER_GENERATION_API_TOKEN")
@@ -1874,7 +1874,7 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 		"codeLength", len(appCode),
 	)
 
-	commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Successfully loaded code from commit"))
+	commentReporterManager.UpdateComment(":white_check_mark: Successfully loaded code from commit")
 
 	slog.Info("Generating Terraform code",
 		"projectName", projectName,
@@ -1883,7 +1883,7 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 		"codeLength", len(appCode),
 	)
 
-	commentReporterManager.UpdateComment(fmt.Sprintf("Generating terraform..."))
+	commentReporterManager.UpdateComment("Generating terraform...")
 	terraformCode, err := utils.GenerateTerraformCode(appCode, generationEndpoint, apiToken)
 	if err != nil {
 		slog.Error("Failed to generate Terraform code",
@@ -1901,7 +1901,7 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 		"codeLength", len(terraformCode),
 	)
 
-	commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Generated terraform"))
+	commentReporterManager.UpdateComment(":white_check_mark: Generated terraform")
 
 	// Committing the generated Terraform code to the repository
 	slog.Info("Preparing to commit generated Terraform code",
@@ -2102,7 +2102,7 @@ func CreateDiggerWorkflowWithPullRequest(org *models.Organisation, client *githu
 	)
 
 	ctx := context.Background()
-	if strings.Index(githubRepo, "/") == -1 {
+	if !strings.Contains(githubRepo, "/") {
 		slog.Error("GitHub repo is in wrong format",
 			"githubRepo", githubRepo,
 		)

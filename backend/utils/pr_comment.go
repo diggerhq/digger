@@ -150,8 +150,8 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 	if len(jobs) == 0 {
 		message = message + ":construction_worker: No projects impacted"
 	} else {
-		message = message + fmt.Sprintf("| Project | Status |\n")
-		message = message + fmt.Sprintf("|---------|--------|\n")
+		message = message + "| Project | Status |\n"
+		message = message + "|---------|--------|\n"
 		for _, job := range jobs {
 			message = message + fmt.Sprintf(""+
 				"|:clock11: **%v**|pending...|\n", job.ProjectName)
