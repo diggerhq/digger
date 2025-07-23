@@ -12,7 +12,6 @@ import (
 	"github.com/diggerhq/digger/libs/storage"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
-	"github.com/diggerhq/digger/cli/pkg/github/models"
 	ghmodels "github.com/diggerhq/digger/cli/pkg/github/models"
 	dggithub "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -874,7 +873,7 @@ var githubInvalidContextJson = `{
 `
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
-	actionContext, err := models.GetGitHubContext(githubContextNewPullRequestJson)
+	actionContext, err := ghmodels.GetGitHubContext(githubContextNewPullRequestJson)
 	context := actionContext.ToEventPackage()
 
 	assert.NoError(t, err)
@@ -952,7 +951,7 @@ func TestInvalidGitHubContext(t *testing.T) {
 }
 
 func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
-	actionContext, err := models.GetGitHubContext(githubContextNewPullRequestJson)
+	actionContext, err := ghmodels.GetGitHubContext(githubContextNewPullRequestJson)
 	context := actionContext.ToEventPackage()
 	assert.NoError(t, err)
 	ghEvent := context.Event
