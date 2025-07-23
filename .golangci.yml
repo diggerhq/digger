@@ -28,3 +28,7 @@ linters:
     - govet
     - gocritic
     - whitespace
+    - mirror
+    - unconvert
+    - usestdlibvars
+    - misspell
