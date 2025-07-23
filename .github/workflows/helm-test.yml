@@ -1,0 +1,29 @@
+name: Test Helm Charts
+
+on:
+  pull_request:
+    paths:
+      - 'helm-charts/**'
+      - '.github/workflows/helm-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install helm-unittest
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest.git
+
+      - name: Lint chart
+        run: |
+          helm lint helm-charts/digger-backend
+
+      - name: Run unit tests
+        run: |
+          helm unittest helm-charts/digger-backend

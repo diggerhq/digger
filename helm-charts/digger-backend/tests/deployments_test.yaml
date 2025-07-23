@@ -1,0 +1,41 @@
+# digger/tests/deployment_test.yaml
+suite: Test the backend deployment
+templates:
+  - templates/backend-deployment.yaml
+tests:
+  - it: should include customEnv environment variable if specified
+    set:
+      digger.customEnv:
+          - name: TEST_ENV
+            value: test-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TEST_ENV
+            value: test-value
+
+  - it: should not include resources if not specified
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].resources
+
+  - it: should include resources if specified
+    set:
+      digger.resources:
+        requests:
+            cpu: "100m"
+            memory: "140Mi"
+        limits:
+            cpu: "500m"
+            memory: "200Mi"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources
+          value:
+            requests:
+              cpu: "100m"
+              memory: "140Mi"
+            limits:
+              cpu: "500m"
+              memory: "200Mi"
