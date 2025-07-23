@@ -440,7 +440,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		backend_utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
-		fmt.Errorf("error setting status for PR: %v", err)
+		return fmt.Errorf("error setting status for PR: %v", err)
 	}
 
 	impactedProjectsMap := make(map[string]dg_configuration.Project)
