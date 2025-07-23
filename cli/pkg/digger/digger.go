@@ -125,7 +125,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		}
 	}
 
-	if allAppliesSuccess == true && reportFinalStatusToBackend == true {
+	if allAppliesSuccess && reportFinalStatusToBackend {
 		currentJob := jobs[0]
 
 		jobPrCommentId, jobPrCommentUrl, err := reporter.Flush()
@@ -322,7 +322,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					if err != nil {
 						slog.Error("Failed to report plan.", "error", err)
 					}
-					msg := fmt.Sprintf("Plan is not allowed")
+					msg := "Plan is not allowed"
 					slog.Error(msg)
 					return nil, msg, fmt.Errorf("%s", msg)
 				} else {
@@ -667,7 +667,7 @@ func RunJob(
 				return fmt.Errorf("%s", msg)
 			}
 			if !planIsAllowed {
-				msg := fmt.Sprintf("Plan is not allowed")
+				msg := "Plan is not allowed"
 				slog.Error(msg)
 				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
 				if err != nil {

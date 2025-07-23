@@ -393,24 +393,12 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {
 	var commands []RunInfo
-	for _, command := range terraformExecutor.Commands {
-		commands = append(commands, command)
-	}
-	for _, command := range commandRunner.Commands {
-		commands = append(commands, command)
-	}
-	for _, command := range prManager.Commands {
-		commands = append(commands, command)
-	}
-	for _, command := range lock.Commands {
-		commands = append(commands, command)
-	}
-	for _, command := range planStorage.Commands {
-		commands = append(commands, command)
-	}
-	for _, command := range planPathProvider.Commands {
-		commands = append(commands, command)
-	}
+	commands = append(commands, terraformExecutor.Commands...)
+	commands = append(commands, commandRunner.Commands...)
+	commands = append(commands, prManager.Commands...)
+	commands = append(commands, lock.Commands...)
+	commands = append(commands, planStorage.Commands...)
+	commands = append(commands, planPathProvider.Commands...)
 
 	sort.Slice(commands, func(i, j int) bool {
 		return commands[i].Timestamp.Before(commands[j].Timestamp)

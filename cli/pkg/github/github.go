@@ -114,7 +114,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	}
 	slog.Info("Digger digger_config read successfully")
 
-	if diggerConfig.PrLocks == false {
+	if !diggerConfig.PrLocks {
 		slog.Info("Using noop lock as configured in digger.yml")
 		lock = core_locking.NoOpLock{}
 	}
@@ -351,7 +351,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 }
 
 func logCommands(projectCommands []scheduler.Job) {
-	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
+	logMessage := "Following commands are going to be executed:\n"
 	for _, pc := range projectCommands {
 		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)
 		for _, c := range pc.Commands {

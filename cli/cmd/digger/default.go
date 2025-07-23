@@ -22,11 +22,12 @@ import (
 func initLogger() {
 	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
 	var level slog.Leveler
-	if logLevel == "DEBUG" {
+	switch logLevel {
+	case "DEBUG":
 		level = slog.LevelDebug
-	} else if logLevel == "WARN" {
+	case "WARN":
 		level = slog.LevelWarn
-	} else {
+	default:
 		level = slog.LevelInfo
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -48,9 +49,7 @@ var defaultCmd = &cobra.Command{
 				usage.ReportErrorAndExit("", fmt.Sprintf("could not load spec json: %v", err), 1)
 			}
 
-			var spec_err error
-
-			spec_err = spec2.RunSpec(
+			var spec_err error = spec2.RunSpec(
 				spec,
 				lib_spec.VCSProviderBasic{},
 				lib_spec.JobSpecProvider{},

@@ -1016,8 +1016,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	ghEvent.Comment.Body = &comment
 
 	project := configuration.Project{Name: "test project", Workflow: "default"}
-	var impactedProjects []configuration.Project
-	impactedProjects = make([]configuration.Project, 1)
+	var impactedProjects []configuration.Project = make([]configuration.Project, 1)
 	impactedProjects[0] = project
 	requestedProject := project
 	workflows := make(map[string]configuration.Workflow, 1)

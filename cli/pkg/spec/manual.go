@@ -137,7 +137,7 @@ func RunSpecManualCommand(
 	slog.Info("<========= DIGGER RUNNING IN MANUAL MODE =========>")
 	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, noopBackendApi, spec.JobId, false, false, commentId, currentDir)
 	slog.Info("<========= DIGGER COMPLETED =========>")
-	if err != nil || allAppliesSuccess == false {
+	if err != nil || !allAppliesSuccess {
 		usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Terraform execution failed", 1)
 	}
 
