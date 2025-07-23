@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This subdirectory contains the official Helm charts for Digger, an open-source CI/CD tool for Terraform. Currently maintains one chart: `digger-backend`.
 
+**Important**: This is part of the main digger monorepo. Helm charts are developed here but published to OCI registry for distribution.
+
 ## Common Development Commands
 
 ```bash
@@ -44,32 +46,45 @@ helm upgrade digger-backend ./digger-backend/
 - `backend-ingress.yaml` - Ingress configuration (enabled by default)
 
 ### CI/CD Workflows
-- **Pull Request Testing**: Automatically runs `helm unittest` on PR changes
-- **Release Process**: On merge to main, runs linting, testing, and publishes to GitHub Pages
+- **Pull Request Testing** (`.github/workflows/helm-test.yml`): Runs `helm unittest` and linting on PR changes to helm-charts/
+- **Release Process** (`.github/workflows/helm-release.yml`): On merge to main, publishes to GitHub Container Registry at `oci://ghcr.io/diggerhq/helm-charts/digger-backend`
+- **Installation**: Users install directly from OCI registry, not GitHub Pages
 
 ### Important Configuration Patterns
 
 1. **Secret Management**: The chart supports both direct values and references to existing secrets:
    ```yaml
    # Direct values
-   secrets:
-     githubAppID: "12345"
+   digger:
+     secret:
+       githubAppID: "12345"  # Note: uppercase ID
+       githubAppKeyFile: "<base64-encoded>"  # Not githubAppPrivateKey
    
    # Or reference existing secret
-   existingSecret: "my-existing-secret"
+   digger:
+     secret:
+       useExistingSecret: true
+       existingSecretName: "my-existing-secret"
    ```
+   
+   **Critical**: Configuration uses `secret` (singular), not `secrets`. Field names are case-sensitive (e.g., `githubAppID` not `githubAppId`)
 
-2. **Database Configuration**: Can use external PostgreSQL or deploy test instance:
+2. **Database Configuration**: PostgreSQL configuration is under `digger.postgres`:
    ```yaml
    # External database
-   postgres:
-     enabled: false
-   secrets:
-     databaseURL: "postgresql://..."
+   digger:
+     postgres:
+       user: "digger"
+       database: "digger"
+       host: "postgresql.example.com"
+       password: "secure-password"
+       sslmode: "require"
    
-   # Test database
+   # Test database (separate top-level key)
    postgres:
      enabled: true
+     secret:
+       postgresPassword: "test-password"
    ```
 
 3. **Resource Configuration**: Supports standard Kubernetes resource patterns (limits, requests, nodeSelector, tolerations, affinity)
@@ -78,3 +93,23 @@ helm upgrade digger-backend ./digger-backend/
 - Unit tests in `digger-backend/tests/` verify template rendering
 - Tests use helm-unittest framework with snapshot testing
 - CI automatically runs tests on PRs and before releases
+
+## Monorepo Integration Notes
+
+1. **Directory Structure**: Helm charts live in `/helm-charts/` subdirectory of main digger repo, with charts directly under it (not nested in `/charts/`)
+
+2. **Publishing Strategy**: 
+   - Charts are developed in the main repo but published to GitHub Container Registry (OCI)
+   - Users install from `oci://ghcr.io/diggerhq/helm-charts/digger-backend`
+   - No longer using separate helm-charts repository or GitHub Pages
+
+3. **Version Management**:
+   - Chart version is in `Chart.yaml` (e.g., `version: 0.1.12`)
+   - App version should match the digger backend version (e.g., `appVersion: "v0.6.106"`)
+   - Default image tag in `values.yaml` should typically match appVersion
+
+4. **Common Issues to Watch For**:
+   - Configuration key names are case-sensitive (`githubAppID` not `githubAppId`)
+   - Use `secret` (singular) not `secrets` in configuration
+   - GitHub App private key field is `githubAppKeyFile` (base64 encoded), not `githubAppPrivateKey`
+   - PostgreSQL config is under `digger.postgres`, not in a `databaseURL` field
