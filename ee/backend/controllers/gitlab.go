@@ -154,7 +154,6 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 			utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not check if branch exists, error: %v", err))
 			log.Printf("Could not check if branch exists, error: %v", err)
 			return fmt.Errorf("Could not check if branch exists: %v", err)
-
 		}
 		if !branchExists {
 			log.Printf("automatic branch deletion is configured, ignoring pr closed event")
@@ -490,7 +489,6 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 
 	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule &&
 		(*diggerCommand == scheduler.DiggerCommandPlan || *diggerCommand == scheduler.DiggerCommandApply) {
-
 		sourceDetails, err := comment_updater.PostInitialSourceComments(glService, issueNumber, impactedProjectsSourceMapping)
 		if err != nil {
 			log.Printf("PostInitialSourceComments error: %v", err)

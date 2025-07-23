@@ -248,7 +248,6 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			}
 		}
 	} else {
-
 		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 		if err != nil {
 			if errors.Is(err, dg_github.UnhandledMergeGroupEventError) {

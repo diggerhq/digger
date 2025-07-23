@@ -79,7 +79,6 @@ func RunSpecManualCommand(
 	if err != nil {
 		slog.Error("ExtractZip err", "error", err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("artefact zip extraction err: %v", err), 1)
-
 	}
 
 	// remove the zipPath

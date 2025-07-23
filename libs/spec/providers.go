@@ -118,7 +118,6 @@ func (l LockProvider) GetLock(lockSpec LockSpec) (locking.Lock, error) {
 		case "azure":
 			slog.Info("Using Azure lock provider")
 			return azure.NewStorageAccountLock()
-
 		}
 	}
 	slog.Error("Could not determine lock provider",

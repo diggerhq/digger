@@ -68,7 +68,6 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 		log.Printf("Error creating github service: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error creating github service"})
 		return
-
 	}
 
 	batchId, _, err := services.CreateJobAndBatchForProjectFromBranch(d.GithubClientProvider, projectId, "digger plan", dbmodels.DiggerBatchDriftEvent, scheduler.DiggerCommandPlan)

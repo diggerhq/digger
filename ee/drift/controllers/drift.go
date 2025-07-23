@@ -164,7 +164,6 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		log.Printf("Error creating CI backend: %v %v", project.Name, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error creating CI backend")})
 		return
-
 	}
 
 	batch, err := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, installationid, repoOwner, repoName, repoFullName, 0, "", branch, scheduler.DiggerCommandPlan, nil, 0, "", true, false, nil)

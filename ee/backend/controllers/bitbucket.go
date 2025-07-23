@@ -305,7 +305,6 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 
 	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule &&
 		(*diggerCommand == scheduler.DiggerCommandPlan || *diggerCommand == scheduler.DiggerCommandApply) {
-
 		sourceDetails, err := comment_updater.PostInitialSourceComments(bbService, issueNumber, impactedProjectsSourceMapping)
 		if err != nil {
 			log.Printf("PostInitialSourceComments error: %v", err)

@@ -148,7 +148,6 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 		if err != nil {
 			log.Printf("Error creating jobspec: %v %v", projectName, err)
 			return fmt.Errorf("error creating jobspec")
-
 		}
 
 		applyJobToken, err := dbmodels.DB.CreateDiggerJobToken(orgId)
@@ -210,7 +209,6 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 		}
 
 		dbmodels.DB.CreateDiggerRunQueueItem(diggerRun.ID, project.ID)
-
 	}
 
 	return nil

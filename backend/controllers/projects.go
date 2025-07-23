@@ -1526,7 +1526,6 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		batch.BatchType == orchestrator_scheduler.DiggerCommandApply &&
 		batch.CoverAllImpactedProjects &&
 		automerge {
-
 		slog.Info("Conditions met for auto-merge, proceeding",
 			"batchId", batch.ID,
 			"prNumber", batch.PrNumber,
@@ -1618,7 +1617,6 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 		batch.BatchType == orchestrator_scheduler.DiggerCommandPlan &&
 		batch.CoverAllImpactedProjects &&
 		deleteOlderComments {
-
 		slog.Info("Conditions met for deleting prior comments, proceeding",
 			"batchId", batch.ID,
 			"prNumber", batch.PrNumber,
@@ -1706,7 +1704,6 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 		}
 
 		return nil
-
 	} else {
 		if batch.BatchType != orchestrator_scheduler.DiggerCommandPlan {
 			slog.Debug("Skipping deletion of prior comments - not an plan command",

@@ -71,7 +71,6 @@ func (r *RunConfig) GetServices() (*ci.PullRequestService, *ci.OrgService, *repo
 		orgService = orchestrator_github.MockCiService{}
 	default:
 		return nil, nil, nil, fmt.Errorf("unknown reporter: %v", r.Reporter)
-
 	}
 
 	return &prService, &orgService, &reporter, nil

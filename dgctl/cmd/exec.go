@@ -153,7 +153,6 @@ func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner, repoNa
 				}
 			}
 		}
-
 	}
 	return nil, nil, nil, fmt.Errorf("workflow not found")
 }

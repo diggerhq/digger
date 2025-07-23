@@ -195,7 +195,6 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 		showArgs := make([]string, 0)
 		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars, *storedPlanPath)
 		return terraformPlanOutput, nil
-
 	} else {
 		return "", fmt.Errorf("stored plan does not exist")
 	}
@@ -257,7 +256,6 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			}
 
 			if d.PlanStorage != nil {
-
 				fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
 				if err != nil {
 					fmt.Println("Error reading file:", err)

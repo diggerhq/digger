@@ -176,7 +176,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error getting batch details: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting batch details"})
-
 	}
 
 	c.JSON(http.StatusOK, res)

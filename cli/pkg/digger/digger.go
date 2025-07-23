@@ -166,7 +166,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			slog.Error("error updating aggregate status check", "error", err)
 			return false, false, err
 		}
-
 	}
 
 	atLeastOneApply := len(appliesPerProject) > 0
@@ -266,7 +265,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	executor := diggerExecutor.Executor.(execution.DiggerExecutor)
 
 	switch command {
-
 	case "digger plan":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "plan")
 		if err != nil {
@@ -381,7 +379,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 			return nil, comment, fmt.Errorf("%s", comment)
 		} else {
-
 			// checking policies (plan, access)
 			var planPolicyViolations []string
 
@@ -572,7 +569,6 @@ func RunJob(
 	slog.Info("Running commands for project", "commands", job.Commands, "project name", job.ProjectName)
 
 	for _, command := range job.Commands {
-
 		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, nil, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, nil, requestedBy, []string{})
 		if err != nil {
 			return fmt.Errorf("error checking policy: %v", err)
@@ -721,7 +717,6 @@ func RunJob(
 				slog.Error("Error reporting Run.", "error", err)
 			}
 		}
-
 	}
 	return nil
 }

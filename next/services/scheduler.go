@@ -150,7 +150,6 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 	if err != nil {
 		log.Printf("error retrieving digger.yml workflows: %v ", err)
 		return nil, nil, fmt.Errorf("error retrieving digger.yml workflows:  %v", err)
-
 	}
 	config := &dg_configuration.DiggerConfig{
 		ApplyAfterMerge:   true,

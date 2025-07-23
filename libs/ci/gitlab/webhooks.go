@@ -157,7 +157,6 @@ func ConvertGithubPullRequestEventToJobs(payload *gitlab.MergeEvent, impactedPro
 				SkipMergeCheck:     skipMerge,
 			})
 		}
-
 	}
 	return jobs, true, nil
 }

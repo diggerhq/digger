@@ -27,3 +27,4 @@ linters:
     - staticcheck
     - govet
     - gocritic
+    - whitespace

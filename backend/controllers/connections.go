@@ -123,7 +123,6 @@ func CreateVCSConnectionApi(c *gin.Context) {
 		slog.Error("Could not create VCS connection", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create VCS connection"})
 		return
-
 	}
 
 	slog.Info("Created VCS connection", "connectionId", connection.ID, "organisationId", org.ID)

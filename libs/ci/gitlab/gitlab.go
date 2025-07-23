@@ -484,7 +484,6 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 			var StateEnvProvider *stscreds.WebIdentityRoleProvider
 			var CommandEnvProvider *stscreds.WebIdentityRoleProvider
 			if project.AwsRoleToAssume != nil {
-
 				if project.AwsRoleToAssume.Command != "" {
 					StateEnvProvider = scheduler.GetProviderFromRole(project.AwsRoleToAssume.State, project.AwsRoleToAssume.AwsRoleRegion)
 				} else {

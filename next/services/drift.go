@@ -25,7 +25,6 @@ func SaveUpdatedDriftStatus(batch model.DiggerBatch, job model.DiggerJob, terraf
 	if err != nil {
 		log.Printf("error whilst retrieving job repo %v", err)
 		return fmt.Errorf("error whilst retrieving job repo %v", err)
-
 	}
 
 	project, err := dbmodels.DB.GetProjectByName(orgId, repo, jobSpec.ProjectName)

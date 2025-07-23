@@ -1603,7 +1603,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	if config.CommentRenderMode == dg_configuration.CommentRenderModeGroupByModule &&
 		(*diggerCommand == orchestrator_scheduler.DiggerCommandPlan || *diggerCommand == orchestrator_scheduler.DiggerCommandApply) {
-
 		slog.Info("Using GroupByModule render mode for comments", "issueNumber", issueNumber)
 
 		sourceDetails, err := comment_updater.PostInitialSourceComments(ghService, issueNumber, impactedProjectsSourceMapping)

@@ -56,7 +56,6 @@ func (db *Database) CreateCiJobFromSpec(spec spec.Spec, runName, projectName, ba
 	if err != nil {
 		log.Printf("failed to marshal backend spec: %v", err)
 		return nil, err
-
 	}
 
 	marshalledVcsSpec, err := json.Marshal(spec.VCS)

@@ -81,7 +81,6 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 			log.Printf("Error retrieving project: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving project"})
 			return
-
 		}
 		summary := job.DiggerJobSummary
 		err = ProjectDriftStateMachineApply(*project, job.TerraformOutput, summary.ResourcesCreated, summary.ResourcesUpdated, summary.ResourcesDeleted)

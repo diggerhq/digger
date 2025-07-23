@@ -162,7 +162,6 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 			log.Printf("error setting status: %v", err)
 			return fmt.Errorf("error setting pr status: %v", err)
 		}
-
 	} else {
 		err := prService.SetStatus(prNumber, "success", "digger/plan")
 		if err != nil {

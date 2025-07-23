@@ -652,7 +652,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		log.Printf("Error retrieving github client: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		return
-
 	}
 
 	// we get repos accessible to this installation
