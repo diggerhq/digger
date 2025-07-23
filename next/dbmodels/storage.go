@@ -67,7 +67,7 @@ func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]mode
 	return repos, true
 }
 
-//func (db *Database) GetPoliciesFromContext(c *gin.Context, orgIdKey string) ([]Policy, bool) {
+// func (db *Database) GetPoliciesFromContext(c *gin.Context, orgIdKey string) ([]Policy, bool) {
 //	loggedInOrganisationId, exists := c.Get(orgIdKey)
 //
 //	log.Printf("getPoliciesFromContext, org id: %v\n", loggedInOrganisationId)
@@ -94,7 +94,7 @@ func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]mode
 //	return policies, true
 //}
 
-//func (db *Database) GetProjectRunsForOrg(orgId int) ([]ProjectRun, error) {
+// func (db *Database) GetProjectRunsForOrg(orgId int) ([]ProjectRun, error) {
 //	var runs []ProjectRun
 //
 //	err := db.GormDB.Preload("Project").Preload("Project.Organisation").Preload("Project.Repo").
@@ -112,7 +112,7 @@ func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]mode
 //	return runs, nil
 //}
 
-//func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) ([]ProjectRun, bool) {
+// func (db *Database) GetProjectRunsFromContext(c *gin.Context, orgIdKey string) ([]ProjectRun, bool) {
 //	loggedInOrganisationId, exists := c.Get(orgIdKey)
 //
 //	log.Printf("getProjectRunsFromContext, org id: %v\n", loggedInOrganisationId)
@@ -130,7 +130,7 @@ func (db *Database) GetReposFromContext(c *gin.Context, orgIdKey string) ([]mode
 //
 //}
 
-//func (db *Database) GetProjectByRunId(c *gin.Context, runId uint, orgIdKey string) (*ProjectRun, bool) {
+// func (db *Database) GetProjectByRunId(c *gin.Context, runId uint, orgIdKey string) (*ProjectRun, bool) {
 //	loggedInOrganisationId, exists := c.Get(orgIdKey)
 //	if !exists {
 //		c.String(http.StatusForbidden, "Not allowed to access this resource")
@@ -243,7 +243,7 @@ func (db *Database) GetProjectVariables(projectId string) ([]model.EnvVar, error
 	return variables, nil
 }
 
-//func (db *Database) GetPolicyByPolicyId(c *gin.Context, policyId uint, orgIdKey string) (*Policy, bool) {
+// func (db *Database) GetPolicyByPolicyId(c *gin.Context, policyId uint, orgIdKey string) (*Policy, bool) {
 //	loggedInOrganisationId, exists := c.Get(orgIdKey)
 //	if !exists {
 //		c.String(http.StatusForbidden, "Not allowed to access this resource")
@@ -563,7 +563,7 @@ func (db *Database) MakeGithubAppInstallationLinkInactive(link *model.GithubAppI
 	return link, nil
 }
 
-//func (db *Database) CreateDiggerJobLink(diggerJobId string, repoFullName string) (*GithubDiggerJobLink, error) {
+// func (db *Database) CreateDiggerJobLink(diggerJobId string, repoFullName string) (*GithubDiggerJobLink, error) {
 //	link := GithubDiggerJobLink{Status: DiggerJobLinkCreated, DiggerJobId: diggerJobId, RepoFullName: repoFullName}
 //	result := db.GormDB.Save(&link)
 //	if result.Error != nil {
@@ -574,7 +574,7 @@ func (db *Database) MakeGithubAppInstallationLinkInactive(link *model.GithubAppI
 //	return &link, nil
 //}
 
-//func (db *Database) GetDiggerJobLink(diggerJobId string) (*GithubDiggerJobLink, error) {
+// func (db *Database) GetDiggerJobLink(diggerJobId string) (*GithubDiggerJobLink, error) {
 //	link := GithubDiggerJobLink{}
 //	result := db.GormDB.Where("digger_job_id = ?", diggerJobId).Find(&link)
 //	if result.Error != nil {
@@ -587,7 +587,7 @@ func (db *Database) MakeGithubAppInstallationLinkInactive(link *model.GithubAppI
 //	return &link, nil
 //}
 
-//func (db *Database) UpdateDiggerJobLink(diggerJobId string, repoFullName string, githubJobId int64) (*GithubDiggerJobLink, error) {
+// func (db *Database) UpdateDiggerJobLink(diggerJobId string, repoFullName string, githubJobId int64) (*GithubDiggerJobLink, error) {
 //	jobLink := GithubDiggerJobLink{}
 //	// check if there is already a link to another org, and throw an error in this case
 //	result := db.GormDB.Where("digger_job_id = ? AND repo_full_name=? ", diggerJobId, repoFullName).Find(&jobLink)
@@ -640,7 +640,7 @@ func (db *Database) GetDiggerBatch(batchId string) (*model.DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(orgid string, vcsType DiggerVCSType, githubInstallationId int64, repoOwner, repoName, repoFullname string, PRNumber int, diggerConfig, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, batchEventType BatchEventType) (*model.DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(orgid string, vcsType DiggerVCSType, githubInstallationId int64, repoOwner, repoName, repoFullname string, prNumber int, diggerConfig, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, batchEventType BatchEventType) (*model.DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &model.DiggerBatch{
 		ID:                   uid.String(),
@@ -650,7 +650,7 @@ func (db *Database) CreateDiggerBatch(orgid string, vcsType DiggerVCSType, githu
 		RepoOwner:            repoOwner,
 		RepoName:             repoName,
 		RepoFullName:         repoFullname,
-		PrNumber:             int64(PRNumber),
+		PrNumber:             int64(prNumber),
 		CommentID:            *commentId,
 		Status:               int16(scheduler.BatchJobCreated),
 		BranchName:           branchName,
@@ -746,10 +746,10 @@ func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([
 	return runs, nil
 }
 
-func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId, DiggerConfig string, GithubInstallationId, RepoId int64, projectId, ProjectName string, RunType RunType, planStageId, applyStageId string, triggeredByUserId *string) (*model.DiggerRun, error) {
+func (db *Database) CreateDiggerRun(triggertype string, PrNumber int, Status DiggerRunStatus, CommitId, DiggerConfig string, GithubInstallationId, RepoId int64, projectId, ProjectName string, RunType RunType, planStageId, applyStageId string, triggeredByUserId *string) (*model.DiggerRun, error) {
 	dr := &model.DiggerRun{
 		ID:                   uuid.NewString(),
-		Triggertype:          Triggertype,
+		Triggertype:          triggertype,
 		PrNumber:             int64(PrNumber),
 		Status:               string(Status),
 		CommitID:             CommitId,
@@ -1073,7 +1073,7 @@ func (db *Database) GetOrganisation(tenantId any) (*model.Organization, error) {
 	return org, nil
 }
 
-//func (db *Database) CreateOrganisation(name string, externalSource string, tenantId string) (*model.Organization, error) {
+// func (db *Database) CreateOrganisation(name string, externalSource string, tenantId string) (*model.Organization, error) {
 //	org := &model.Organization{Name: name, ExternalSource: externalSource, ExternalId: tenantId}
 //	result := db.GormDB.Save(org)
 //	if result.Error != nil {
@@ -1142,7 +1142,7 @@ func (db *Database) CreateRepo(name, repoFullName, repoOrganisation, repoName, r
 	return &repo, nil
 }
 
-//func (db *Database) GetToken(tenantId any) (*Token, error) {
+// func (db *Database) GetToken(tenantId any) (*Token, error) {
 //	token := &Token{}
 //	result := db.GormDB.Take(token, "value = ?", tenantId)
 //	if result.Error != nil {

@@ -15,7 +15,7 @@ import (
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/services"
 
-	//"github.com/diggerhq/digger/next/middleware"
+	// "github.com/diggerhq/digger/next/middleware"
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 	// orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
-	//if !exists {
+	// if !exists {
 	//	c.String(http.StatusForbidden, "Not allowed to access this resource")
 	//	return
 	//}
@@ -165,7 +165,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
-	//err = AutomergePRforBatchIfEnabled(d.GithubClientProvider, batch)
+	// err = AutomergePRforBatchIfEnabled(d.GithubClientProvider, batch)
 	//if err != nil {
 	//	log.Printf("Error merging PR with automerge option: %v", err)
 	//	c.JSON(http.StatusInternalServerError, gin.H{"error": "Error merging PR with automerge option"})
