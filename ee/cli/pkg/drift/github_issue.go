@@ -40,5 +40,4 @@ func (ghi GithubIssueNotification) Send(projectName, plan string) error {
 		}
 		return err
 	}
-	return nil
 }
