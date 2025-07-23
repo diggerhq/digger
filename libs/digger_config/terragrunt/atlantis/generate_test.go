@@ -28,7 +28,7 @@ func resetForRun() error {
 
 func runTest(t *testing.T, goldenFile string, testPath string, createProjectName bool, workflowName string, withWorkspace bool, parallel bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool) {
 	resetForRun()
-	atlantisConfig, projectDependsOnMap, err := Parse(
+	atlantisConfig, _, err := Parse(
 		testPath,
 		nil,
 		true,
