@@ -61,7 +61,7 @@ func CreateVCSConnectionApi(c *gin.Context) {
 	}
 
 	type CreateVCSConnectionRequest struct {
-		VCS                    string `json:"type" binding:"required"`
+		VCS                    string `binding:"required"              json:"type"`
 		Name                   string `json:"connection_name"`
 		BitbucketAccessToken   string `json:"bitbucket_access_token"`
 		BitbucketWebhookSecret string `json:"bitbucket_webhook_secret"`
