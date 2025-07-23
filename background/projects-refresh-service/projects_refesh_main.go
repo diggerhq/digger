@@ -14,13 +14,14 @@ func init() {
 	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
 	var level slog.Leveler
 
-	if logLevel == "DEBUG" {
+	switch logLevel {
+	case "DEBUG":
 		level = slog.LevelDebug
-	} else if logLevel == "WARN" {
+	case "WARN":
 		level = slog.LevelWarn
-	} else if logLevel == "ERROR" {
+	case "ERROR":
 		level = slog.LevelError
-	} else {
+	default:
 		level = slog.LevelInfo
 	}
 
