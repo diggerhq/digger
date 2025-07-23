@@ -19,3 +19,9 @@ formatters:
       # Choose whether to use the extra rules.
       # Default: false
       extra-rules: true
+
+# See: https://golangci-lint.run/usage/linters/
+linters:
+  default: none
+  enable:
+    - staticcheck
