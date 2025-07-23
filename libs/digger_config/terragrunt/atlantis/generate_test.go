@@ -58,9 +58,6 @@ func runTest(t *testing.T, goldenFile string, testPath string, createProjectName
 
 	var contents []byte
 	yaml.Unmarshal(contents, &atlantisConfig)
-	slog.Info("contents", "contents", contents)
-	slog.Info("atlantisConfig", "atlantisConfig", atlantisConfig)
-	slog.Info("projectDependsOnMap", "projectDependsOnMap", projectDependsOnMap)
 
 	goldenContentsBytes, err := os.ReadFile(goldenFile)
 	if err != nil {
