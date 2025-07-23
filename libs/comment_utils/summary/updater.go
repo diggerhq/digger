@@ -25,7 +25,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 
 	firstJobSpec := jobSpecs[0]
 	jobType := firstJobSpec.JobType
-	jobTypeTitle := cases.Title(language.AmericanEnglish).String(string(jobType))
+	jobTypeTitle := cases.Title(language.AmericanEnglish).String(jobType)
 
 	slog.Info("updating comment with job results",
 		"prNumber", prNumber,

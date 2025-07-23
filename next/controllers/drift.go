@@ -134,7 +134,7 @@ func (d DiggerController) TriggerCronForMatchingProjects(c *gin.Context) {
 			}
 
 			// Create a new request
-			req, err := http.NewRequest("POST", driftUrl, bytes.NewBuffer(jsonPayload))
+			req, err := http.NewRequest(http.MethodPost, driftUrl, bytes.NewBuffer(jsonPayload))
 			if err != nil {
 				fmt.Println("Process Drift: Error creating request:", err)
 				return

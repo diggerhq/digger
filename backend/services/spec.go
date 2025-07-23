@@ -91,7 +91,7 @@ func GetVCSTokenFromJob(job models.DiggerJob, gh utils.GithubClientProvider) (*s
 
 func GetRunNameFromJob(job models.DiggerJob) (*string, error) {
 	var jobSpec scheduler.JobJson
-	err := json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
+	err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
 	if err != nil {
 		slog.Error("Could not unmarshal job spec", "jobId", job.DiggerJobID, "error", err)
 		return nil, fmt.Errorf("could not marshal json string: %v", err)
@@ -144,7 +144,7 @@ func getVariablesSpecFromEnvMap(envVars map[string]string) []spec.VariableSpec {
 
 func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 	var jobSpec scheduler.JobJson
-	err := json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
+	err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
 	if err != nil {
 		slog.Error("Could not unmarshal job spec", "jobId", job.DiggerJobID, "error", err)
 		return nil, fmt.Errorf("could not marshal json string: %v", err)

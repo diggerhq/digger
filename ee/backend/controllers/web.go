@@ -98,7 +98,7 @@ func (web *WebController) AddPolicyPage(c *gin.Context) {
 	orgId := c.GetHeader(middleware.ORGANISATION_ID_KEY)
 
 	switch c.Request.Method {
-	case "GET":
+	case http.MethodGet:
 
 		message := ""
 		projects, done := models.DB.GetProjectsFromContext(c, middleware.ORGANISATION_ID_KEY)
@@ -116,7 +116,7 @@ func (web *WebController) AddPolicyPage(c *gin.Context) {
 		c.HTML(http.StatusOK, "policy_add.tmpl", gin.H{
 			"Message": message, "Projects": projects, "PolicyTypes": policyTypes,
 		})
-	case "POST":
+	case http.MethodPost:
 		policyText := c.PostForm("policytext")
 		if policyText == "" {
 			message := "Policy can't be empty"

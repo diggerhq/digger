@@ -68,7 +68,7 @@ func TriggerProjectsRefreshService(cloneUrl, branch, githubToken, repoFullName, 
 
 	// Create HTTP request
 	apiURL := fmt.Sprintf("https://api.machines.dev/v1/apps/%s/machines", os.Getenv("DIGGER_PROJECTS_SVC_APP_NAME"))
-	req2, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payload))
+	req2, err := http.NewRequest(http.MethodPost, apiURL, bytes.NewBuffer(payload))
 	if err != nil {
 		slog.Error("Error creating request", "error", err)
 		return nil, err
@@ -87,7 +87,7 @@ func TriggerProjectsRefreshService(cloneUrl, branch, githubToken, repoFullName, 
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		body, err2 := io.ReadAll(resp.Body)
 		slog.Error("Error triggering projects refresh service", "statusCode", resp.StatusCode, "body", body, "readyErr", err2)
 		return nil, fmt.Errorf("error triggering projects refresh service")

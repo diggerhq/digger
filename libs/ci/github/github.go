@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -438,7 +439,7 @@ func (svc GithubService) GetHeadCommitFromBranch(branch string) (string, string,
 func (svc GithubService) CheckBranchExists(branchName string) (bool, error) {
 	_, resp, err := svc.Client.Repositories.GetBranch(context.Background(), svc.Owner, svc.RepoName, branchName, 3)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return false, nil
 		}
 		return false, err

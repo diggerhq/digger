@@ -67,7 +67,7 @@ func (d DiggerApi) ReportProject(namespace, projectName, configurationYaml strin
 		return fmt.Errorf("not able to marshal request: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("error while creating request: %v", err)
 	}
@@ -110,7 +110,7 @@ func (d DiggerApi) ReportProjectRun(namespace, projectName string, startedAt, en
 		return fmt.Errorf("not able to marshal request: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("error while creating request: %v", err)
 	}
@@ -172,7 +172,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo, projectName, jobId, status strin
 		return nil, fmt.Errorf("not able to marshal request: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("error while creating request: %v", err)
 	}
@@ -241,7 +241,7 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	multipartWriter.Close()
 
 	// Create a new HTTP request
-	req, err := http.NewRequest("PUT", uploadUrl, &requestBody)
+	req, err := http.NewRequest(http.MethodPut, uploadUrl, &requestBody)
 	if err != nil {
 		slog.Error("error creating request", "error", err)
 		return nil, nil, fmt.Errorf("error creating request: %v", err)
@@ -293,7 +293,7 @@ func (d DiggerApi) DownloadJobArtefact(downloadTo string) (*string, error) {
 	}
 
 	// Create a new HTTP request
-	req, err := http.NewRequest("GET", downloadUrl, nil)
+	req, err := http.NewRequest(http.MethodGet, downloadUrl, nil)
 	if err != nil {
 		slog.Error("error creating request", "error", err)
 		return nil, fmt.Errorf("error creating request: %v", err)

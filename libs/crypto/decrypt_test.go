@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"strings"
 	"testing"
 )
 
@@ -125,7 +126,7 @@ func TestDecryptWithPrivateKeyInvalidInput(t *testing.T) {
 			_, err := DecryptValueUsingPrivateKey(tc.encryptedData, tc.privateKeyPEM)
 			if err == nil {
 				t.Errorf("Expected an error, but got none")
-			} else if !bytes.Contains([]byte(err.Error()), []byte(tc.expectedErrMsg)) {
+			} else if !strings.Contains(err.Error(), tc.expectedErrMsg) {
 				t.Errorf("Expected error message containing '%s', but got: %v", tc.expectedErrMsg, err)
 			}
 		})

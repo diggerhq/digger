@@ -3,6 +3,7 @@ package gitlab
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -367,7 +368,7 @@ func (gitlabService GitLabService) CheckBranchExists(branchName string) (bool, e
 
 	_, resp, err := gitlabService.Client.Branches.GetBranch(projectId, branchName)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return false, nil
 		}
 		slog.Error("error checking if branch exists", "error", err, "branchName", branchName)

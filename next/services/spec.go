@@ -49,7 +49,7 @@ func GetVCSTokenFromJob(job model.DiggerJob, gh utils.GithubClientProvider) (*st
 
 func RefreshVariableSpecForJob(job *model.DiggerJob) error {
 	var jobSpec scheduler.JobJson
-	err := json.Unmarshal([]byte(job.JobSpec), &jobSpec)
+	err := json.Unmarshal(job.JobSpec, &jobSpec)
 	if err != nil {
 		log.Printf("could not unmarshal job string: %v", err)
 		return fmt.Errorf("could not marshal json string: %v", err)
@@ -126,7 +126,7 @@ func RefreshVariableSpecForJob(job *model.DiggerJob) error {
 
 func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 	var jobSpec scheduler.JobJson
-	err := json.Unmarshal([]byte(job.JobSpec), &jobSpec)
+	err := json.Unmarshal(job.JobSpec, &jobSpec)
 	if err != nil {
 		log.Printf("could not unmarshal job string: %v", err)
 		return nil, fmt.Errorf("could not marshal json string: %v", err)

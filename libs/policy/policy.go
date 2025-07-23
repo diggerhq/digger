@@ -52,7 +52,7 @@ func getAccessPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.
 
 	slog.Debug("Fetching org access policy", "organisation", organisation, "url", u.String())
 
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -82,7 +82,7 @@ func getPlanPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Re
 
 	slog.Debug("Fetching org plan policy", "organisation", organisation, "url", u.String())
 
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -112,7 +112,7 @@ func getDriftPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.R
 
 	slog.Debug("Fetching org drift policy", "organisation", organisation, "url", u.String())
 
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -145,7 +145,7 @@ func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace, project
 		"projectName", projectName,
 		"url", u.String())
 
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -177,7 +177,7 @@ func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace, projectNa
 		"projectName", projectName,
 		"url", u.String())
 
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -215,13 +215,13 @@ func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation, repo, projectNam
 	}
 
 	// project policy found
-	if resp.StatusCode == 200 && content != "" {
+	if resp.StatusCode == http.StatusOK && content != "" {
 		slog.Debug("Found project access policy", "namespace", namespace, "projectName", projectName)
 		return content, nil
 	}
 
 	// check if project policy was empty or not found (retrieve org policy if so)
-	if (resp.StatusCode == 200 && content == "") || resp.StatusCode == 404 {
+	if (resp.StatusCode == http.StatusOK && content == "") || resp.StatusCode == http.StatusNotFound {
 		slog.Debug("Project access policy not found, falling back to org policy",
 			"organisation", organisation)
 
@@ -233,10 +233,10 @@ func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation, repo, projectNam
 			return "", fmt.Errorf("error while fetching access policy for organisation: %v", err)
 		}
 		switch resp.StatusCode {
-		case 200:
+		case http.StatusOK:
 			slog.Debug("Found organisation access policy", "organisation", organisation)
 			return content, nil
-		case 404:
+		case http.StatusNotFound:
 			slog.Debug("Organisation access policy not found, using default", "organisation", organisation)
 			return DefaultAccessPolicy, nil
 		default:
@@ -271,13 +271,13 @@ func (p DiggerHttpPolicyProvider) GetPlanPolicy(organisation, repo, projectName,
 	}
 
 	// project policy found
-	if resp.StatusCode == 200 && content != "" {
+	if resp.StatusCode == http.StatusOK && content != "" {
 		slog.Debug("Found project plan policy", "namespace", namespace, "projectName", projectName)
 		return content, nil
 	}
 
 	// check if project policy was empty or not found (retrieve org policy if so)
-	if (resp.StatusCode == 200 && content == "") || resp.StatusCode == 404 {
+	if (resp.StatusCode == http.StatusOK && content == "") || resp.StatusCode == http.StatusNotFound {
 		slog.Debug("Project plan policy not found, falling back to org policy",
 			"organisation", organisation)
 
@@ -289,10 +289,10 @@ func (p DiggerHttpPolicyProvider) GetPlanPolicy(organisation, repo, projectName,
 			return "", err
 		}
 		switch resp.StatusCode {
-		case 200:
+		case http.StatusOK:
 			slog.Debug("Found organisation plan policy", "organisation", organisation)
 			return content, nil
-		case 404:
+		case http.StatusNotFound:
 			slog.Debug("Organisation plan policy not found", "organisation", organisation)
 			return "", nil
 		default:
@@ -320,10 +320,10 @@ func (p DiggerHttpPolicyProvider) GetDriftPolicy() (string, error) {
 		return "", err
 	}
 	switch resp.StatusCode {
-	case 200:
+	case http.StatusOK:
 		slog.Debug("Found drift policy", "organisation", p.DiggerOrganisation)
 		return content, nil
-	case 404:
+	case http.StatusNotFound:
 		slog.Debug("Drift policy not found", "organisation", p.DiggerOrganisation)
 		return "", nil
 	default:

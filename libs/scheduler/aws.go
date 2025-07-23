@@ -324,7 +324,7 @@ func (fetcher *GithubAwsTokenFetcher) GetIdentityToken() ([]byte, error) {
 	slog.Debug("len(ACTIONS_ID_TOKEN_REQUEST_TOKEN)", "length of ACTIONS_ID_TOKEN_REQUEST_TOKEN", len(bearerToken))
 	slog.Debug("audience (escaped", "audience", audience)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		slog.Error("Failed to create request for GitHub identity token", "error", err)
 		return nil, err

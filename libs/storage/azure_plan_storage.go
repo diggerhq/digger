@@ -29,7 +29,7 @@ func (psa *PlanStorageAzure) PlanExists(artifactName, storedPlanFilePath string)
 	// Get the blob properties
 	resp, err := blobClient.GetProperties(psa.Context, nil)
 	if err != nil {
-		if azErr, ok := err.(*azcore.ResponseError); ok && string(azErr.ErrorCode) == string(bloberror.BlobNotFound) {
+		if azErr, ok := err.(*azcore.ResponseError); ok && azErr.ErrorCode == string(bloberror.BlobNotFound) {
 			slog.Debug("Blob not found",
 				"container", psa.ContainerName,
 				"path", storedPlanFilePath,

@@ -27,7 +27,7 @@ func (p VariablesProvider) GetVariables(variables []VariableSpec) (map[string]st
 			if err != nil {
 				return nil, fmt.Errorf("could not decrypt value using private key: %v", err)
 			}
-			res[v.Name] = string(value)
+			res[v.Name] = value
 		} else if v.IsInterpolated {
 			// if it is an interpolated value we get it form env variable of the variable
 			res[v.Name] = os.Getenv(v.Value)

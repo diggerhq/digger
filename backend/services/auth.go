@@ -53,7 +53,7 @@ func (a *Auth) getAuthToken() (string, error) {
 		return "", err
 	}
 
-	req, err := http.NewRequest("POST", authUrl, bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest(http.MethodPost, authUrl, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return "", err
 	}
@@ -81,7 +81,7 @@ func (a *Auth) getAuthToken() (string, error) {
 func (a *Auth) FetchTokenPermissions(tokenId string) ([]string, error) {
 	accessTokenUrl := a.Host + "/identity/resources/vendor-only/tenants/access-tokens/v1/" + tokenId
 
-	req, err := http.NewRequest("GET", accessTokenUrl, nil)
+	req, err := http.NewRequest(http.MethodGet, accessTokenUrl, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching token permissions: %v", err.Error())
 	}

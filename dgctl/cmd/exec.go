@@ -104,7 +104,7 @@ func GetSpec(diggerUrl, authToken, command, actor, projectMarshalled, diggerConf
 		log.Fatalf("Not able to marshal request: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("error while creating request: %v", err)
 	}

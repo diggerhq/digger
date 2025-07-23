@@ -30,7 +30,7 @@ func (l LicenseKeyChecker) Check() error {
 	}
 
 	// Create a new POST request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		slog.Error("Error creating request for license validation", "error", err)
 		return fmt.Errorf("error creating request for license validation: %v", err)
