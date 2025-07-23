@@ -82,5 +82,4 @@ func LinkGithubInstallationToOrgApi(c *gin.Context) {
 	slog.Info("Successfully created Github installation link", "installationId", installationId, "orgId", org.ID)
 	// Return status 200
 	c.JSON(http.StatusOK, gin.H{"status": "Successfully created Github installation link"})
-	return
 }

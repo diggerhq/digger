@@ -848,7 +848,7 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 }
 
 func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string) (*DiggerJob, error) {
-	if serializedJob == nil || len(serializedJob) == 0 {
+	if len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
 	jobId := uniuri.New()

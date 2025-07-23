@@ -84,6 +84,5 @@ func HttpBasicApiAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		return
 	}
 }

@@ -7,7 +7,6 @@ import (
 
 	sloggorm "github.com/imdatngo/slog-gorm/v2"
 	"gorm.io/driver/postgres"
-	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
