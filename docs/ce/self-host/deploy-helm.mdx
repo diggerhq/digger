@@ -11,20 +11,13 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
 - A GitHub organization where you'll install the GitHub App
 
 <Steps>
-  <Step title="Install Digger Helm chart">
-    Install the `digger-backend` helm chart from GitHub Container Registry:
-    
-    ```bash
-    helm install digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
-      --namespace digger \
-      --create-namespace \
-      --values values.yaml
-    ```
-  </Step>
-
   <Step title="Create Helm values">
     Create a `values.yaml` file. This will be used to configure settings for the Digger Helm chart.
     To explore all configurable properties, check the [values.yaml](https://github.com/diggerhq/digger/blob/develop/helm-charts/digger-backend/values.yaml) file in the repository.
+    
+    <Info>
+      You can also install without a values.yaml file initially and configure later, but using a values file is recommended for better control.
+    </Info>
   </Step>
 
   <Step title="Select Digger version">
@@ -117,14 +110,34 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
   </Step>
 
   <Step title="Initial deployment">
-    Deploy Digger with the initial configuration:
+    Deploy Digger with the initial configuration. Choose one of the following approaches:
     
-    ```bash
-    helm install digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
-      --namespace digger \
-      --create-namespace \
-      --values values.yaml
-    ```
+    <Tabs>
+      <Tab title="With values.yaml (Recommended)">
+        If you've created a `values.yaml` file with your configuration:
+        
+        ```bash
+        helm install digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
+          --namespace digger \
+          --create-namespace \
+          --values values.yaml
+        ```
+      </Tab>
+      
+      <Tab title="Without values.yaml (Quick start)">
+        If you want to install with default values first and configure later:
+        
+        ```bash
+        helm install digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
+          --namespace digger \
+          --create-namespace
+        ```
+        
+        <Warning>
+          This will use default values. You'll need to configure secrets and other settings before Digger will work properly.
+        </Warning>
+      </Tab>
+    </Tabs>
     
     Wait for all pods to reach a running state:
     
