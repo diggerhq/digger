@@ -113,6 +113,7 @@ func TestIgnoringParentTerragrunt(t *testing.T) {
 }
 
 // TODO: figure out why this test is succeeding locally but failing in CI
+// it might be a race condition of resetting the variables but I haven't yet figured it out
 func TestNotIgnoringParentTerragrunt(t *testing.T) {
 	t.Skip()
 	runTest(t, "golden/withParent.yaml", "test_examples/with_parent", false, "", false, true, false, false, false)
