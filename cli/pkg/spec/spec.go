@@ -33,7 +33,7 @@ func RunSpec(
 	reporterProvider spec.ReporterProvider,
 	backedProvider spec.BackendApiProvider,
 	policyProvider spec.SpecPolicyProvider,
-	PlanStorageProvider spec.PlanStorageProvider,
+	planStorageProvider spec.PlanStorageProvider,
 	variablesProvider spec.VariablesProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
@@ -118,7 +118,7 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
+	planStorage, err := planStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
 	if err != nil {
 		message := fmt.Sprintf("could not get planStorage: %v", err)
 		reportError(spec, backendApi, message, err)

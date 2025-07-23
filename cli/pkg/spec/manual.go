@@ -26,7 +26,7 @@ func RunSpecManualCommand(
 	reporterProvider spec.ReporterProvider,
 	backedProvider spec.BackendApiProvider,
 	policyProvider spec.SpecPolicyProvider,
-	PlanStorageProvider spec.PlanStorageProvider,
+	planStorageProvider spec.PlanStorageProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
 	job, err := jobProvider.GetJob(spec.Job)
@@ -39,19 +39,19 @@ func RunSpecManualCommand(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
 	}
 
-	//prService, err := vcsProvider.GetPrService(spec.VCS)
+	// prService, err := vcsProvider.GetPrService(spec.VCS)
 	//if err != nil {
 	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get prservice: %v", err), 1)
 	//}
 
 	var prService ci.PullRequestService = ci.MockPullRequestManager{}
-	//orgService, err := vcsProvider.GetOrgService(spec.VCS)
+	// orgService, err := vcsProvider.GetOrgService(spec.VCS)
 	//if err != nil {
 	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get orgservice: %v", err), 1)
 	//}
 	var orgService ci.OrgService = ci.MockPullRequestManager{}
 
-	//reporter, err := reporterProvider.GetReporter(spec.Reporter, prService, *spec.Job.PullRequestNumber)
+	// reporter, err := reporterProvider.GetReporter(spec.Reporter, prService, *spec.Job.PullRequestNumber)
 	//if err != nil {
 	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get reporter: %v", err), 1)
 	//}
@@ -106,7 +106,7 @@ func RunSpecManualCommand(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
 	}
 
-	//planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
+	// planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
 	//if err != nil {
 	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get plan storage: %v", err), 8)
 	//}
@@ -114,7 +114,7 @@ func RunSpecManualCommand(
 
 	jobs := []scheduler.Job{job}
 
-	//fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
+	// fullRepoName := fmt.Sprintf("%v-%v", spec.VCS.RepoOwner, spec.VCS.RepoName)
 	//_, err = backendApi.ReportProjectJobStatus(fullRepoName, spec.Job.ProjectName, spec.JobId, "started", time.Now(), nil, "", "")
 	//if err != nil {
 	//	usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to report jobSpec status to backend. Exiting. %v", err), 4)

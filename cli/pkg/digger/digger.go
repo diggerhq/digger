@@ -190,10 +190,10 @@ func reportPolicyError(projectName, command, requestedBy string, reporter report
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService ci.OrgService, SCMOrganisation, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService ci.PullRequestService, projectNamespace, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService ci.OrgService, scmOrganisation, scmRepository string, prNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService ci.PullRequestService, projectNamespace, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
 	slog.Info("Running command for project", "command", command, "project name", job.ProjectName, "project workflow", job.ProjectWorkflow)
 
-	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, []string{})
+	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, scmOrganisation, scmRepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, []string{})
 	if err != nil {
 		return nil, "error checking policy", fmt.Errorf("error checking policy: %v", err)
 	}
@@ -241,7 +241,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		ProjectPath:      projectPath,
 		ProjectNamespace: projectNamespace,
 		ProjectName:      job.ProjectName,
-		PRNumber:         PRNumber,
+		PRNumber:         prNumber,
 	}
 
 	diggerExecutor := execution.LockingExecutorWrapper{
@@ -292,7 +292,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		} else if planPerformed {
 			if isNonEmptyPlan {
 				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
-				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, planJsonOutput)
+				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(scmRepository, scmOrganisation, job.ProjectName, job.ProjectDir, planJsonOutput)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to validate plan. %v", err)
 					slog.Error("Failed to validate plan.", "error", err)
@@ -317,7 +317,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					for _, message := range messages {
 						preformattedMessaged = append(preformattedMessaged, fmt.Sprintf("    %v", message))
 					}
-					planReportMessage = planReportMessage + strings.Join(preformattedMessaged, "<br>")
+					planReportMessage += strings.Join(preformattedMessaged, "<br>")
 					_, _, err = reporter.Report(planReportMessage, planPolicyFormatter)
 					if err != nil {
 						slog.Error("Failed to report plan.", "error", err)
@@ -393,7 +393,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					return nil, msg, fmt.Errorf("%s", msg)
 				}
 
-				_, violations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, terraformPlanJsonStr)
+				_, violations, err := policyChecker.CheckPlanPolicy(scmRepository, scmOrganisation, job.ProjectName, job.ProjectDir, terraformPlanJsonStr)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to check plan policy. %v", err)
 					slog.Error("Failed to check plan policy.", "error", err)
@@ -405,7 +405,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				planPolicyViolations = []string{}
 			}
 
-			allowedToApply, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, planPolicyViolations)
+			allowedToApply, err := policyChecker.CheckAccessPolicy(orgService, &prService, scmOrganisation, scmRepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, planPolicyViolations)
 			if err != nil {
 				msg := fmt.Sprintf("Failed to run plan policy check before apply. %v", err)
 				slog.Error("Failed to run plan policy check before apply", "error", err)
@@ -726,12 +726,12 @@ func RunJob(
 	return nil
 }
 
-func runDriftDetection(policyChecker policy.Checker, SCMOrganisation, SCMrepository, projectName, requestedBy, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
+func runDriftDetection(policyChecker policy.Checker, scmOrganisation, scmRepository, projectName, requestedBy, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
 	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
 	if err != nil {
 		slog.Error("Failed to send usage report.", "error", err)
 	}
-	policyEnabled, err := policyChecker.CheckDriftPolicy(SCMOrganisation, SCMrepository, projectName)
+	policyEnabled, err := policyChecker.CheckDriftPolicy(scmOrganisation, scmRepository, projectName)
 	if err != nil {
 		msg := fmt.Sprintf("failed to check drift policy. %v", err)
 		slog.Error(msg)

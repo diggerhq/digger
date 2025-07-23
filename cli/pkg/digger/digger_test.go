@@ -106,7 +106,7 @@ func (m *MockPRManager) PublishIssue(title, body string, labels *[]string) (int6
 	return 0, nil
 }
 
-func (m *MockPRManager) UpdateIssue(ID int64, title, body string) (int64, error) {
+func (m *MockPRManager) UpdateIssue(id int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
