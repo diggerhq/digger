@@ -94,7 +94,6 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 		"status":     "successful",
 		"project_id": projectId,
 	})
-	return
 }
 
 func (d DiggerController) TriggerCronForMatchingProjects(c *gin.Context) {

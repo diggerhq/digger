@@ -706,7 +706,7 @@ func (db *Database) UpdateBatchStatus(batch *model.DiggerBatch) error {
 }
 
 func (db *Database) CreateDiggerJob(batchId string, serializedJob []byte, workflowFile string) (*model.DiggerJob, error) {
-	if serializedJob == nil || len(serializedJob) == 0 {
+	if len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
 	jobId := uniuri.New()

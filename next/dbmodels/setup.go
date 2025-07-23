@@ -7,7 +7,6 @@ import (
 	"github.com/diggerhq/digger/next/models_generated"
 	slogGorm "github.com/orandin/slog-gorm"
 	"gorm.io/driver/postgres"
-	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 

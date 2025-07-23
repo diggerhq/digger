@@ -66,6 +66,5 @@ func JobTokenAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		return
 	}
 }

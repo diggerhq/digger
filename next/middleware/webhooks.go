@@ -30,6 +30,5 @@ func WebhookAuth() gin.HandlerFunc {
 		}
 
 		c.Next()
-		return
 	}
 }
