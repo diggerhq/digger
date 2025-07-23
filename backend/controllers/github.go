@@ -248,9 +248,9 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 	slog.Info("Exchanging code for GitHub app credentials", "code", code)
 
 	// TODO: to make tls verification configurable for debug purposes
-	//var transport *http.Transport = nil
-	//_, exists := os.LookupEnv("DIGGER_GITHUB_SKIP_TLS")
-	//if exists {
+	// var transport *http.Transport = nil
+	// _, exists := os.LookupEnv("DIGGER_GITHUB_SKIP_TLS")
+	// if exists {
 	//	transport = &http.Transport{
 	//		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	//	}
@@ -2725,7 +2725,7 @@ func validateGithubCallback(githubClientProvider utils.GithubClientProvider, cli
 		&oauth2.Token{AccessToken: t.AccessToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
-	//tc := &http.Client{
+	// tc := &http.Client{
 	//	Transport: &oauth2.Transport{
 	//		Base:   httpClient.Transport,
 	//		Source: oauth2.ReuseTokenSource(nil, ts),

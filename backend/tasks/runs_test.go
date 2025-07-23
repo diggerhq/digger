@@ -112,7 +112,7 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 		//	BatchStatus:        orchestrator_scheduler.BatchJobFailed,
 		//	InitialStatus:      models.RunPlanning,
 		//	NextExpectedStatus: models.RunFailed,
-		//},
+		// },
 		{
 			BatchStatus:        orchestrator_scheduler.BatchJobSucceeded,
 			InitialStatus:      models.RunPlanning,
@@ -128,7 +128,7 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 		//	BatchStatus:        orchestrator_scheduler.BatchJobFailed,
 		//	InitialStatus:      models.RunApplying,
 		//	NextExpectedStatus: models.RunFailed,
-		//},
+		// },
 		{
 			BatchStatus:        orchestrator_scheduler.BatchJobSucceeded,
 			InitialStatus:      models.RunApplying,

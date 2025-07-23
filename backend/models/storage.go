@@ -560,17 +560,17 @@ func (db *Database) GetGithubAppInstallationLink(installationId int64) (*GithubA
 	return &link, nil
 }
 
-func (db *Database) CreateVCSConnection(name string, vcsType DiggerVCSType, githubId int64, ClientID, ClientSecretEncrypted, WebhookSecretEncrypted, PrivateKeyEncrypted, PrivateKeyBase64Encrypted, Org, url, bitbucketAccessTokenEnc, bitbucketWebhookSecretEnc, gitlabWebhookSecret, gitlabAccessToken string, orgId uint) (*VCSConnection, error) {
+func (db *Database) CreateVCSConnection(name string, vcsType DiggerVCSType, githubId int64, clientID, clientSecretEncrypted, webhookSecretEncrypted, privateKeyEncrypted, privateKeyBase64Encrypted, org, url, bitbucketAccessTokenEnc, bitbucketWebhookSecretEnc, gitlabWebhookSecret, gitlabAccessToken string, orgId uint) (*VCSConnection, error) {
 	app := VCSConnection{
 		Name:                            name,
 		VCSType:                         vcsType,
 		GithubId:                        githubId,
-		ClientID:                        ClientID,
-		ClientSecretEncrypted:           ClientSecretEncrypted,
-		WebhookSecretEncrypted:          WebhookSecretEncrypted,
-		PrivateKeyEncrypted:             PrivateKeyEncrypted,
-		PrivateKeyBase64Encrypted:       PrivateKeyBase64Encrypted,
-		Org:                             Org,
+		ClientID:                        clientID,
+		ClientSecretEncrypted:           clientSecretEncrypted,
+		WebhookSecretEncrypted:          webhookSecretEncrypted,
+		PrivateKeyEncrypted:             privateKeyEncrypted,
+		PrivateKeyBase64Encrypted:       privateKeyBase64Encrypted,
+		Org:                             org,
 		GithubAppUrl:                    url,
 		BitbucketWebhookSecretEncrypted: bitbucketWebhookSecretEnc,
 		BitbucketAccessTokenEncrypted:   bitbucketAccessTokenEnc,
@@ -773,17 +773,17 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner, repoName, repoFullname string, PRNumber int, diggerConfig, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs, coverAllImpactedProjects bool, VCSConnectionId *uint) (*DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner, repoName, repoFullname string, prNumber int, diggerConfig, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs, coverAllImpactedProjects bool, vcsConnectionId *uint) (*DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &DiggerBatch{
 		ID:                       uid,
 		VCS:                      vcsType,
-		VCSConnectionId:          VCSConnectionId,
+		VCSConnectionId:          vcsConnectionId,
 		GithubInstallationId:     githubInstallationId,
 		RepoOwner:                repoOwner,
 		RepoName:                 repoName,
 		RepoFullName:             repoFullname,
-		PrNumber:                 PRNumber,
+		PrNumber:                 prNumber,
 		CommentId:                commentId,
 		Status:                   scheduler.BatchJobCreated,
 		BranchName:               branchName,
@@ -802,7 +802,7 @@ func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationI
 	slog.Info("digger batch created successfully",
 		"batchId", batch.ID,
 		"repoFullName", repoFullname,
-		"prNumber", PRNumber)
+		"prNumber", prNumber)
 	return batch, nil
 }
 
@@ -898,17 +898,17 @@ func (db *Database) ListDiggerRunsForProject(projectName string, repoId uint) ([
 	return runs, nil
 }
 
-func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status DiggerRunStatus, CommitId, DiggerConfig string, GithubInstallationId int64, RepoId uint, ProjectName string, RunType RunType, planStageId, applyStageId *uint) (*DiggerRun, error) {
+func (db *Database) CreateDiggerRun(triggertype string, prNumber int, status DiggerRunStatus, commitId, diggerConfig string, githubInstallationId int64, repoId uint, projectName string, runType RunType, planStageId, applyStageId *uint) (*DiggerRun, error) {
 	dr := &DiggerRun{
-		Triggertype:          Triggertype,
-		PrNumber:             &PrNumber,
-		Status:               Status,
-		CommitId:             CommitId,
-		DiggerConfig:         DiggerConfig,
-		GithubInstallationId: GithubInstallationId,
-		RepoId:               RepoId,
-		ProjectName:          ProjectName,
-		RunType:              RunType,
+		Triggertype:          triggertype,
+		PrNumber:             &prNumber,
+		Status:               status,
+		CommitId:             commitId,
+		DiggerConfig:         diggerConfig,
+		GithubInstallationId: githubInstallationId,
+		RepoId:               repoId,
+		ProjectName:          projectName,
+		RunType:              runType,
 		PlanStageId:          planStageId,
 		ApplyStageId:         applyStageId,
 		IsApproved:           false,
@@ -918,15 +918,15 @@ func (db *Database) CreateDiggerRun(Triggertype string, PrNumber int, Status Dig
 		slog.Error("failed to create digger run",
 			"runId", dr.ID,
 			"error", result.Error,
-			"projectName", ProjectName,
-			"repoId", RepoId)
+			"projectName", projectName,
+			"repoId", repoId)
 		return nil, result.Error
 	}
 	slog.Info("digger run created successfully",
 		"runId", dr.ID,
-		"projectName", ProjectName,
-		"prNumber", PrNumber,
-		"runType", RunType)
+		"projectName", projectName,
+		"prNumber", prNumber,
+		"runType", runType)
 	return dr, nil
 }
 
@@ -1116,7 +1116,7 @@ func (db *Database) UpdateDiggerJobSummary(diggerJobId string, resourcesCreated,
 		return nil, fmt.Errorf("Could not get digger job")
 	}
 
-	var jobSummary *DiggerJobSummary = &diggerJob.DiggerJobSummary
+	jobSummary := &diggerJob.DiggerJobSummary
 	jobSummary.ResourcesCreated = resourcesCreated
 	jobSummary.ResourcesUpdated = resourcesUpdated
 	jobSummary.ResourcesDeleted = resourcesDeleted
@@ -1157,7 +1157,7 @@ func (db *Database) UpdateDiggerJob(job *DiggerJob) error {
 func (db *Database) GetDiggerJobsForBatch(batchId uuid.UUID) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
-	var where *gorm.DB = db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
+	where := db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
 
 	result := where.Preload("Batch").Preload("DiggerJobSummary").Find(&jobs)
 	if result.Error != nil {
@@ -1215,7 +1215,7 @@ func (db *Database) GetJobsByRepoName(orgId uint, repoFullName string) ([]querie
 func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []scheduler.DiggerJobStatus) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
-	var where *gorm.DB = db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status IN ?", status)
+	where := db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status IN ?", status)
 
 	result := where.Preload("Batch").Preload("DiggerJobSummary").Find(&jobs)
 	if result.Error != nil {
@@ -1238,7 +1238,7 @@ func (db *Database) GetDiggerJobsForBatchWithStatus(batchId uuid.UUID, status []
 func (db *Database) GetDiggerJobsWithStatus(status scheduler.DiggerJobStatus) ([]DiggerJob, error) {
 	jobs := make([]DiggerJob, 0)
 
-	var where *gorm.DB = db.GormDB.Where("status = ?", status)
+	where := db.GormDB.Where("status = ?", status)
 
 	result := where.Preload("Batch").Find(&jobs)
 	if result.Error != nil {

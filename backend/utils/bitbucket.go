@@ -37,11 +37,11 @@ func GetBitbucketService(bb BitbucketProvider, token, repoOwner, repoName string
 
 	// token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
 
-	//client, err := bb.NewClient(token)
-	//if err != nil {
+	// client, err := bb.NewClient(token)
+	// if err != nil {
 	//	return nil, fmt.Errorf("could not get bitbucket client: %v", err)
 	//}
-	//context := orchestrator_bitbucket.BitbucketContext{
+	// context := orchestrator_bitbucket.BitbucketContext{
 	//	RepositoryName:     repoName,
 	//	RepositoryFullName: repoFullName,
 	//	PullRequestID:      &prNumber,
