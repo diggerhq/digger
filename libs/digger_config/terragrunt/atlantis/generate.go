@@ -21,7 +21,7 @@ import (
 	"sync"
 )
 
-// Parse env vars into a map
+// getEnvs: Parse env vars into a map
 func getEnvs() map[string]string {
 	envs := os.Environ()
 	m := make(map[string]string)
@@ -134,6 +134,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
+
 		if isParent && ignoreParentTerragrunt {
 			getDependenciesCache.set(path, getDependenciesOutput{nil, nil})
 			return nil, nil
@@ -387,7 +388,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 
 	dependencies, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
 	if err != nil {
-		slog.Error("error getting dependencies", "error", err)
+		slog.Debug("error getting dependencies", "error", err)
 		return nil, potentialProjectDependencies, err
 	}
 
