@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "digger-backend.fullname" . }}-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "digger-backend.name" . }}-web
+  template:
+    metadata:
+      labels:
+        app: {{ include "digger-backend.name" . }}-web
+    spec:
+      {{- if $.Values.digger.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.digger.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.digger.tolerations }}
+        tolerations:
+        {{- toYaml $.Values.digger.tolerations | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: web
+        image: "{{ .Values.digger.image.repository }}:{{ .Values.digger.image.tag }}"
+        ports:
+        - containerPort: 3000
+        livenessProbe:
+          {{ .Values.digger.livenessProbe | toYaml | indent 10 | trim }}
+        startupProbe:
+          {{ .Values.digger.startupProbe | toYaml | indent 10 | trim }}
+        envFrom:
+        - secretRef:
+        {{- if not .Values.digger.secret.useExistingSecret }}
+            name: {{ include "digger-backend.fullname" . }}-secret
+        {{- else }}
+            name: {{ .Values.digger.secret.existingSecretName }}
+        {{- end }}
+        {{- with .Values.digger.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        env:
+        - name: POSTGRES_PASSWORD
+        {{- if  and .Values.postgres.enabled .Values.postgres.secret.useExistingSecret }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgres.secret.existingSecretName }}
+              key: postgres-password
+        {{- else if .Values.digger.postgres.existingSecretName }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.digger.postgres.existingSecretName }}
+              key: {{ .Values.digger.postgres.existingSecretKey }}
+        {{- else }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "digger-backend.fullname" . }}-postgres-secret
+              key: postgres-password
+        {{- end }}
+        - name: HTTP_BASIC_AUTH
+          value: "1"
+        - name: DATABASE_URL
+        {{- if .Values.postgres.enabled }}
+          value: "postgres://postgres:$(POSTGRES_PASSWORD)@{{ include "digger-backend.fullname" . }}-postgres:5432/postgres?sslmode={{ .Values.postgres.sslmode }}"
+        {{- else }}
+          {{- $pg := .Values.digger.postgres }}
+          value: "postgres://{{ $pg.user }}:$(POSTGRES_PASSWORD)@{{ $pg.host }}:{{ $pg.port }}/{{ $pg.database }}?sslmode={{ $pg.sslmode }}"
+        {{- end }}
+        - name: ALLOW_DIRTY
+          value: "{{ .Values.digger.postgres.allow_dirty }}"
+        - name: DIGGER_LOG_LEVEL
+          value: {{ .Values.digger.logLevel | quote }}
+        {{- with .Values.digger.customEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}

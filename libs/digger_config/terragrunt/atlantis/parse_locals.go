@@ -7,6 +7,8 @@ package atlantis
 import (
 	"path/filepath"
 
+	"log/slog"
+
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -41,7 +43,8 @@ type ResolvedLocals struct {
 }
 
 // parseHcl uses the HCL2 parser to parse the given string into an HCL file body.
-func parseHcl(parser *hclparse.Parser, hcl, filename string) (file *hcl.File, err error) {
+func parseHcl(parser *hclparse.Parser, hcl string, filename string) (file *hcl.File, err error) {
+
 	// The HCL2 parser and especially cty conversions will panic in many types of errors, so we have to recover from
 	// those panics here and convert them to normal errors
 	defer func() {
@@ -105,7 +108,7 @@ func parseLocals(path string, terragruntOptions *options.TerragruntOptions, incl
 		return ResolvedLocals{}, err
 	}
 
-	// Parse the HCL string into an AST body
+	//Parse the HCL string into an AST body
 	parser := hclparse.NewParser()
 	file, err := parseHcl(parser, configString, path)
 	if err != nil {
@@ -113,8 +116,9 @@ func parseLocals(path string, terragruntOptions *options.TerragruntOptions, incl
 	}
 
 	// Decode just the Base blocks. See the function docs for DecodeBaseBlocks for more info on what base blocks are.
-	extensions, err := config.DecodeBaseBlocks(terragruntOptions, parser, file, path, includeFromChild, nil)
+	extensions, err := DecodeBaseBlocks(terragruntOptions, parser, file, path, includeFromChild, nil)
 	if err != nil {
+		slog.Error("DecodeBaseBlocks: error decoding base blocks", "path", path, "error", err)
 		return ResolvedLocals{}, err
 	}
 	localsAsCty := extensions.Locals

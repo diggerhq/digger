@@ -20,7 +20,7 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// Parse env vars into a map
+// getEnvs: Parse env vars into a map
 func getEnvs() map[string]string {
 	envs := os.Environ()
 	m := make(map[string]string)
@@ -129,9 +129,11 @@ func getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks bool, gitRoo
 		// return nils to indicate we should skip this project
 		isParent, includes, err := parseModule(path, terragruntOptions)
 		if err != nil {
+			slog.Debug("failed to parse module", "path", path, "error", err)
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
+
 		if isParent && ignoreParentTerragrunt {
 			getDependenciesCache.set(path, getDependenciesOutput{nil, nil})
 			return nil, nil
@@ -151,7 +153,7 @@ func getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks bool, gitRoo
 			config.DependenciesBlock,
 			config.TerraformBlock,
 		}
-		parsedConfig, err := config.PartialParseConfigFile(path, terragruntOptions, nil, decodeTypes)
+		parsedConfig, err := PartialParseConfigFile(path, terragruntOptions, nil, decodeTypes)
 		if err != nil {
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
@@ -160,9 +162,11 @@ func getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks bool, gitRoo
 		// Parse out locals
 		locals, err := parseLocals(path, terragruntOptions, nil)
 		if err != nil {
+			slog.Error("Error parsing locals", "path", path, "error", err)
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
+		//locals := ResolvedLocals{}
 
 		// Get deps from locals
 		if locals.ExtraAtlantisDependencies != nil {
@@ -383,6 +387,7 @@ func createProject(ignoreParentTerragrunt, ignoreDependencyBlocks bool, gitRoot 
 
 	dependencies, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
 	if err != nil {
+		slog.Debug("error getting dependencies", "error", err)
 		return nil, potentialProjectDependencies, err
 	}
 
