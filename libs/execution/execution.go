@@ -108,8 +108,10 @@ type DiggerExecutor struct {
 
 type DiggerOperationType string
 
-var DiggerOparationTypePlan DiggerOperationType = "plan"
-var DiggerOparationTypeApply DiggerOperationType = "apply"
+var (
+	DiggerOparationTypePlan  DiggerOperationType = "plan"
+	DiggerOparationTypeApply DiggerOperationType = "apply"
+)
 
 type DiggerExecutorResult struct {
 	OperationType   DiggerOperationType
@@ -161,7 +163,6 @@ func (d ProjectPathProvider) StoredPlanFilePath() string {
 	} else {
 		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.ProjectName + ".tfplan"
 	}
-
 }
 
 func (d ProjectPathProvider) LocalPlanFilePath() string {
@@ -399,7 +400,7 @@ func reportApplyError(r reporting.Reporter, err error) {
 	}
 }
 
-func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOutput string) {
+func reportTerraformApplyOutput(r reporting.Reporter, projectId, applyOutput string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
 		formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply output", false)
@@ -456,7 +457,6 @@ func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 }
 
 func (d DiggerExecutor) Destroy() (bool, error) {
-
 	destroySteps := []configuration.Step{
 		{
 			Action: "init",
@@ -483,7 +483,7 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 	return true, nil
 }
 
-func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr *string) string {
+func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout, stderr string, regexStr *string) string {
 	var errorStr string
 
 	// removes output of terraform -version command that terraform-exec executes on every run
@@ -534,11 +534,11 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 	return stdout[startPos:endPos]
 }
 
-func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
+func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout, stderr string) string {
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, nil)
 }
 
-func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
+func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout, stderr string) string {
 	regex := `───────────.+`
 	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, &regex)
 }

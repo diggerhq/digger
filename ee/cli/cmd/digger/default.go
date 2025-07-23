@@ -4,6 +4,10 @@ import (
 	"crypto/fips140"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"runtime/debug"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github"
 	spec2 "github.com/diggerhq/digger/cli/pkg/spec"
@@ -17,9 +21,6 @@ import (
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
-	"log"
-	"os"
-	"runtime/debug"
 )
 
 var defaultCmd = &cobra.Command{
@@ -62,7 +63,7 @@ var defaultCmd = &cobra.Command{
 			usage.ReportErrorAndExit(spec.VCS.Actor, "Successfully ran spec", 0)
 		}
 
-		var logLeader = "Unknown CI"
+		logLeader := "Unknown CI"
 		ci := digger.DetectCI()
 
 		switch ci {

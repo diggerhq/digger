@@ -40,7 +40,7 @@ func SplitCodeBlocks(message string) []string {
 	return res
 }
 
-func (slack SlackNotification) Send(projectName string, plan string) error {
+func (slack SlackNotification) Send(projectName, plan string) error {
 	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
 	httpClient := &http.Client{}
 	type SlackMessage struct {

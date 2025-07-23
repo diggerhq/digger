@@ -45,7 +45,6 @@ func (ci CIName) String() string {
 }
 
 func DetectCI() CIName {
-
 	notEmpty := func(key string) bool {
 		return os.Getenv(key) != ""
 	}
@@ -63,10 +62,9 @@ func DetectCI() CIName {
 		return Azure
 	}
 	return None
-
 }
 
-func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend, reportTerraformOutput bool, prCommentId, workingDir string) (bool, bool, error) {
 	defer reporter.Flush()
 
 	slog.Debug("Variable info", "TF_PLUGIN_CACHE_DIR", os.Getenv("TF_PLUGIN_CACHE_DIR"))
@@ -85,7 +83,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 
 		for _, command := range job.Commands {
 			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, job.RequestedBy, []string{})
-
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
 			}
@@ -177,7 +174,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 	return allAppliesSuccess, atLeastOneApply, nil
 }
 
-func reportPolicyError(projectName string, command string, requestedBy string, reporter reporting.Reporter) string {
+func reportPolicyError(projectName, command, requestedBy string, reporter reporting.Reporter) string {
 	msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
 	if reporter.SupportsMarkdown() {
 		_, _, err := reporter.Report(msg, coreutils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command), false))
@@ -193,11 +190,10 @@ func reportPolicyError(projectName string, command string, requestedBy string, r
 	return msg
 }
 
-func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService ci.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService ci.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
+func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService ci.OrgService, SCMOrganisation, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService ci.PullRequestService, projectNamespace, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
 	slog.Info("Running command for project", "command", command, "project name", job.ProjectName, "project workflow", job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, []string{})
-
 	if err != nil {
 		return nil, "error checking policy", fmt.Errorf("error checking policy: %v", err)
 	}
@@ -323,7 +319,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 					planReportMessage = planReportMessage + strings.Join(preformattedMessaged, "<br>")
 					_, _, err = reporter.Report(planReportMessage, planPolicyFormatter)
-
 					if err != nil {
 						slog.Error("Failed to report plan.", "error", err)
 					}
@@ -426,7 +421,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 			applySummary, applyPerformed, output, err := diggerExecutor.Apply()
 			if err != nil {
-				//TODO reuse executor error handling
+				// TODO reuse executor error handling
 				slog.Error("Failed to Run digger apply command.", "error", err)
 				err := prService.SetStatus(*job.PullRequestNumber, "failure", job.ProjectName+"/apply")
 				if err != nil {
@@ -458,7 +453,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			slog.Error("Failed to send usage report.", "error", err)
 		}
 		_, err = diggerExecutor.Destroy()
-
 		if err != nil {
 			slog.Error("Failed to Run digger destroy command.", "error", err)
 			msg := fmt.Sprintf("failed to run digger destroy command: %v", err)
@@ -520,7 +514,7 @@ func reportApplyMergeabilityError(reporter reporting.Reporter) string {
 	return comment
 }
 
-func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, plan string) {
+func reportTerraformPlanOutput(reporter reporting.Reporter, projectId, plan string) {
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
@@ -580,7 +574,6 @@ func RunJob(
 	for _, command := range job.Commands {
 
 		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, nil, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, nil, requestedBy, []string{})
-
 		if err != nil {
 			return fmt.Errorf("error checking policy: %v", err)
 		}
@@ -733,7 +726,7 @@ func RunJob(
 	return nil
 }
 
-func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
+func runDriftDetection(policyChecker policy.Checker, SCMOrganisation, SCMrepository, projectName, requestedBy, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
 	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
 	if err != nil {
 		slog.Error("Failed to send usage report.", "error", err)
@@ -776,7 +769,7 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 
 func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *graph.Graph[string, config.Project]) []orchestrator.Job {
 	var sortedCommands []orchestrator.Job
-	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s string, s2 string) bool {
+	sortedGraph, err := graph.StableTopologicalSort(*dependencyGraph, func(s, s2 string) bool {
 		return s < s2
 	})
 	if err != nil {
@@ -805,7 +798,6 @@ func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrate
 
 	if !isMerged {
 		combinedStatus, err := ciService.GetCombinedPullRequestStatus(prNumber)
-
 		if err != nil {
 			log.Fatalf("failed to get combined status, %v", err)
 		}
@@ -815,7 +807,6 @@ func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrate
 		}
 
 		prIsMergeable, err := ciService.IsMergeable(prNumber)
-
 		if err != nil {
 			log.Fatalf("failed to check if PR is mergeable, %v", err)
 		}

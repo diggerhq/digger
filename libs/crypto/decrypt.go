@@ -10,7 +10,7 @@ import (
 	"fmt"
 )
 
-func DecryptValueUsingPrivateKey(encryptedDataBase64 string, privateKeyPEM string) (string, error) {
+func DecryptValueUsingPrivateKey(encryptedDataBase64, privateKeyPEM string) (string, error) {
 	// Decode the Base64-encoded encrypted data
 	encryptedData, err := base64.StdEncoding.DecodeString(encryptedDataBase64)
 	if err != nil {

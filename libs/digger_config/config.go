@@ -1,13 +1,17 @@
 package digger_config
 
-const CommentRenderModeBasic = "basic"
-const CommentRenderModeGroupByModule = "group_by_module"
+const (
+	CommentRenderModeBasic         = "basic"
+	CommentRenderModeGroupByModule = "group_by_module"
+)
 
 type AutomergeStrategy string
 
-const AutomergeStrategySquash AutomergeStrategy = "squash"
-const AutomergeStrategyMerge AutomergeStrategy = "merge"
-const AutomergeStrategyRebase AutomergeStrategy = "rebase"
+const (
+	AutomergeStrategySquash AutomergeStrategy = "squash"
+	AutomergeStrategyMerge  AutomergeStrategy = "merge"
+	AutomergeStrategyRebase AutomergeStrategy = "rebase"
+)
 
 type DiggerConfig struct {
 	ApplyAfterMerge            bool

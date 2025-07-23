@@ -72,7 +72,7 @@ func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planA
 	return stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, filterRegex *string, arg ...string) (stdOut string, stdErr string, exitCode int, err error) {
+func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToStdout bool, envs map[string]string, filterRegex *string, arg ...string) (stdOut, stdErr string, exitCode int, err error) {
 	args := []string{command}
 	args = append(args, arg...)
 
@@ -130,7 +130,6 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 	cmd.Stderr = mwerr
 
 	err = cmd.Run()
-
 	if err != nil {
 		slog.Debug("Command execution details",
 			"exitCode", cmd.ProcessState.ExitCode(),

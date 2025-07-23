@@ -4,6 +4,10 @@ import (
 	"crypto/fips140"
 	"embed"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/diggerhq/digger/backend/bootstrap"
 	"github.com/diggerhq/digger/backend/config"
 	ce_controllers "github.com/diggerhq/digger/backend/controllers"
@@ -15,9 +19,6 @@ import (
 	"github.com/diggerhq/digger/ee/backend/providers/github"
 	"github.com/diggerhq/digger/libs/license"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"os"
 )
 
 // based on https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
@@ -100,7 +101,6 @@ func main() {
 			c.HTML(http.StatusOK, "healthy.tmpl", gin.H{})
 			return
 		})
-
 	}
 
 	jobArtefactsGroup := r.Group("/job_artefacts")

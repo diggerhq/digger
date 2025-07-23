@@ -3,6 +3,10 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -11,9 +15,6 @@ import (
 	"github.com/diggerhq/digger/next/services"
 	nextutils "github.com/diggerhq/digger/next/utils"
 	"github.com/google/go-github/v61/github"
-	"log"
-	"os"
-	"strings"
 )
 
 func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *github.PushEvent) error {
@@ -59,7 +60,7 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 	p := dbmodels.DB.Query.Project
 	projects, err := dbmodels.DB.Query.Project.Where(p.RepoID.Eq(repo.ID)).Find()
 
-	var dgprojects = []dg_configuration.Project{}
+	dgprojects := []dg_configuration.Project{}
 	for _, proj := range projects {
 		projectBranch := proj.Branch
 		if targetBranch == projectBranch {
@@ -127,7 +128,7 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 		impactedProjectsJobMap[j.ProjectName] = j
 	}
 
-	for i, _ := range planJobs {
+	for i := range planJobs {
 		planJob := planJobs[i]
 		applyJob := applyJobs[i]
 		projectName := planJob.ProjectName

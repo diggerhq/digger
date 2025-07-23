@@ -13,10 +13,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"github.com/google/go-github/v61/github"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 )
 
 type GithubPlanStorage struct {
@@ -27,7 +27,7 @@ type GithubPlanStorage struct {
 	ZipManager        Zipper
 }
 
-func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName string, storedPlanFilePath string) error {
+func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName, storedPlanFilePath string) error {
 	slog.Debug("Storing plan file in GitHub artifacts",
 		"owner", gps.Owner,
 		"repo", gps.RepoName,
@@ -147,7 +147,7 @@ func doRequest(method, url string, headers map[string]string, body []byte) (*htt
 	return resp, nil
 }
 
-func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
+func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath, artifactName, storedPlanFilePath string) (*string, error) {
 	slog.Debug("Retrieving plan from GitHub artifacts",
 		"owner", gps.Owner,
 		"repo", gps.RepoName,
@@ -155,7 +155,6 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, artifactNam
 		"localPath", localPlanFilePath)
 
 	plansFilename, err := gps.DownloadLatestPlans(artifactName)
-
 	if err != nil {
 		slog.Error("Failed to download plan from GitHub artifacts",
 			"error", err,
@@ -172,7 +171,6 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, artifactNam
 	}
 
 	plansFilename, err = gps.ZipManager.GetFileFromZip(plansFilename, localPlanFilePath)
-
 	if err != nil {
 		slog.Error("Failed to extract plan from zip",
 			"error", err,
@@ -189,7 +187,7 @@ func (gps *GithubPlanStorage) RetrievePlan(localPlanFilePath string, artifactNam
 	return &plansFilename, nil
 }
 
-func (gps *GithubPlanStorage) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
+func (gps *GithubPlanStorage) PlanExists(artifactName, storedPlanFilePath string) (bool, error) {
 	slog.Debug("Checking if plan exists in GitHub artifacts",
 		"owner", gps.Owner,
 		"repo", gps.RepoName,
@@ -199,7 +197,6 @@ func (gps *GithubPlanStorage) PlanExists(artifactName string, storedPlanFilePath
 	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
 		PerPage: 100,
 	})
-
 	if err != nil {
 		slog.Error("Failed to list GitHub artifacts",
 			"error", err,
@@ -228,7 +225,7 @@ func (gps *GithubPlanStorage) PlanExists(artifactName string, storedPlanFilePath
 	return true, nil
 }
 
-func (gps *GithubPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
+func (gps *GithubPlanStorage) DeleteStoredPlan(artifactName, storedPlanFilePath string) error {
 	// GitHub artifacts can't be deleted via API, they expire automatically
 	slog.Debug("GitHub artifacts cannot be deleted, they expire automatically",
 		"artifactName", artifactName,
@@ -245,7 +242,6 @@ func (gps *GithubPlanStorage) DownloadLatestPlans(storedPlanFilePath string) (st
 	artifacts, _, err := gps.Client.Actions.ListArtifacts(context.Background(), gps.Owner, gps.RepoName, &github.ListOptions{
 		PerPage: 100,
 	})
-
 	if err != nil {
 		slog.Error("Failed to list GitHub artifacts",
 			"error", err,
@@ -263,7 +259,6 @@ func (gps *GithubPlanStorage) DownloadLatestPlans(storedPlanFilePath string) (st
 	}
 
 	downloadUrl, _, err := gps.Client.Actions.DownloadArtifact(context.Background(), gps.Owner, gps.RepoName, *latestPlans.ID, 0)
-
 	if err != nil {
 		slog.Error("Failed to get download URL for artifact",
 			"error", err,
@@ -276,7 +271,6 @@ func (gps *GithubPlanStorage) DownloadLatestPlans(storedPlanFilePath string) (st
 		"url", downloadUrl.String(),
 		"outputFile", filename)
 	err = downloadArtifactIntoFile(downloadUrl, filename)
-
 	if err != nil {
 		slog.Error("Failed to download artifact to file",
 			"error", err,
@@ -335,7 +329,7 @@ func getLatestArtifactWithName(artifacts []*github.Artifact, name string) *githu
 }
 
 // TODO: refactor this function to make it fully parametarised and no reliance on env variables
-func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string, prNumber *int) (PlanStorage, error) {
+func NewPlanStorage(ghToken, ghRepoOwner, ghRepositoryName string, prNumber *int) (PlanStorage, error) {
 	var planStorage PlanStorage
 
 	uploadDestination := strings.ToLower(os.Getenv("PLAN_UPLOAD_DESTINATION"))
@@ -392,7 +386,7 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 		}
 	case uploadDestination == "gitlab":
 		slog.Warn("GitLab plan storage not yet implemented")
-		//TODO implement me
+		// TODO implement me
 	case uploadDestination == "azure":
 		containerName := strings.ToLower(os.Getenv("PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME"))
 		if containerName == "" {

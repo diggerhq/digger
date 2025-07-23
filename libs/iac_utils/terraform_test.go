@@ -25,7 +25,6 @@ func TestGetPlanSummaryOnlyOutputsChanged(t *testing.T) {
 	isEmpty, _, err := TerraformUtils{}.GetSummaryFromPlanJson(onlyOutputsChangedJson)
 	assert.Nil(t, err)
 	assert.False(t, isEmpty)
-
 }
 
 func TestPlanOutputInvalidJsonFailsGracefully(t *testing.T) {
@@ -57,7 +56,6 @@ func TestPlanFootprintSimilarity(t *testing.T) {
 	footPrints = []IacPlanFootprint{*footprint1, *footprint2}
 	isSimilar, _ = TerraformUtils{}.SimilarityCheck(footPrints)
 	assert.False(t, isSimilar)
-
 }
 
 func TestGetTfSummarizePlan(t *testing.T) {

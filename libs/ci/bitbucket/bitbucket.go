@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 // Define the base URL for the Bitbucket API.
@@ -148,15 +149,15 @@ func (svc BitbucketAPI) ListIssues() ([]*ci.Issue, error) {
 	return nil, fmt.Errorf("implement me")
 }
 
-func (svc BitbucketAPI) PublishIssue(title string, body string, labels *[]string) (int64, error) {
+func (svc BitbucketAPI) PublishIssue(title, body string, labels *[]string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (svc BitbucketAPI) UpdateIssue(ID int64, title string, body string) (int64, error) {
+func (svc BitbucketAPI) UpdateIssue(ID int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (b BitbucketAPI) EditComment(prNumber int, id string, comment string) error {
+func (b BitbucketAPI) EditComment(prNumber int, id, comment string) error {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments/%s", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber, id)
 
 	commentBody := map[string]interface{}{
@@ -187,7 +188,7 @@ func (b BitbucketAPI) DeleteComment(id string) error {
 	return nil
 }
 
-func (b BitbucketAPI) CreateCommentReaction(id string, reaction string) error {
+func (b BitbucketAPI) CreateCommentReaction(id, reaction string) error {
 	// TODO implement me
 	return nil
 }
@@ -207,7 +208,6 @@ type Comment struct {
 }
 
 func (b BitbucketAPI) GetComments(prNumber int) ([]ci.Comment, error) {
-
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -236,7 +236,6 @@ func (b BitbucketAPI) GetComments(prNumber int) ([]ci.Comment, error) {
 	}
 
 	return comments, nil
-
 }
 
 func (svc BitbucketAPI) GetApprovals(prNumber int) ([]string, error) {
@@ -254,7 +253,7 @@ type PullRequest struct {
 	}
 }
 
-func (b BitbucketAPI) SetStatus(prNumber int, status string, statusContext string) error {
+func (b BitbucketAPI) SetStatus(prNumber int, status, statusContext string) error {
 	prUrl := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", prUrl, nil)
@@ -322,7 +321,6 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 	url := fmt.Sprintf("%s/repositories/%s/%s/commit/%d/statuses", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
-
 	if err != nil {
 		return "", err
 	}
@@ -336,7 +334,6 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 	var statuses CommitStatuses
 
 	err = json.NewDecoder(resp.Body).Decode(&statuses)
-
 	if err != nil {
 		return "", err
 	}
@@ -370,7 +367,7 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 		}
 	}
 
-	var allSuccess = true
+	allSuccess := true
 	for _, status := range latestStatusByKey {
 		if status.State != "SUCCESSFUL" {
 			allSuccess = false
@@ -382,7 +379,6 @@ func (b BitbucketAPI) GetCombinedPullRequestStatus(prNumber int) (string, error)
 	}
 
 	return "pending", nil
-
 }
 
 func (b BitbucketAPI) MergePullRequest(prNumber int, mergeStrategy string) error {
@@ -427,7 +423,6 @@ func (b BitbucketAPI) IsMergeable(prNumber int) (bool, error) {
 }
 
 func (b BitbucketAPI) IsMerged(prNumber int) (bool, error) {
-
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
 	resp, err := b.sendRequest("GET", url, nil)
@@ -506,14 +501,14 @@ func (b BitbucketAPI) GetBranchName(prNumber int) (string, string, error) {
 	return pullRequest.Source.Branch.Name, "", nil
 }
 
-func (svc BitbucketAPI) SetOutput(prNumber int, key string, value string) error {
-	//TODO implement me
+func (svc BitbucketAPI) SetOutput(prNumber int, key, value string) error {
+	// TODO implement me
 	return nil
 }
 
 // Implement the OrgService interface.
 
-func (b BitbucketAPI) GetUserTeams(organisation string, user string) ([]string, error) {
+func (b BitbucketAPI) GetUserTeams(organisation, user string) ([]string, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -641,12 +636,10 @@ func (b BitbucketAPI) TriggerPipeline(branch string, variables []interface{}) (s
 	}
 
 	return "", nil
-
 }
 
 func FindImpactedProjectsInBitbucket(diggerConfig *configuration.DiggerConfig, prNumber int, prService ci.PullRequestService) ([]configuration.Project, error) {
 	changedFiles, err := prService.GetChangedFiles(prNumber)
-
 	if err != nil {
 		fmt.Printf("Error getting changed files: %v", err)
 		return nil, err

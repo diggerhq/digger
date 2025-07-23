@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExtractRepoName(t *testing.T) {
@@ -29,5 +30,4 @@ func TestRepoAllowList(t *testing.T) {
 	url = "http://gitlab.com/diggerdev/digger-demo.git"
 	allowed = IsInRepoAllowList(url)
 	assert.True(t, allowed)
-
 }

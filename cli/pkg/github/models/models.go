@@ -35,6 +35,7 @@ func (g *GithubAction) ToEventPackage() models.EventPackage {
 		Repository: g.Repository,
 	}
 }
+
 func (g *GithubAction) UnmarshalJSON(data []byte) error {
 	type Alias GithubAction
 	aux := struct {

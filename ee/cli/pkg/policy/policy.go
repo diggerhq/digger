@@ -1,13 +1,14 @@
 package policy
 
 import (
-	"github.com/diggerhq/digger/libs/git_utils"
-	"github.com/samber/lo"
 	"os"
 	"path"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/git_utils"
+	"github.com/samber/lo"
 )
 
 const DefaultAccessPolicy = `
@@ -40,7 +41,7 @@ func getContents(filePath string) (string, error) {
 // /dev/vpc/subnets/access.rego
 // /dev/vpc/access.rego
 // /dev/access.rego
-func GetPrefixesForPath(path string, fileName string) []string {
+func GetPrefixesForPath(path, fileName string) []string {
 	var prefixes []string
 	parts := strings.Split(filepath.Clean(path), string(filepath.Separator))
 	for i := range parts {
@@ -60,7 +61,7 @@ func GetPrefixesForPath(path string, fileName string) []string {
 	return prefixes
 }
 
-func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName string, projectDir string, fileName string) (string, error) {
+func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo, projectName, projectDir, fileName string) (string, error) {
 	var contents string
 	err := git_utils.CloneGitRepoAndDoAction(p.ManagementRepoUrl, "main", "", p.GitToken, "", func(basePath string) error {
 		// we start with the project directory path prefixes as the highest priority
@@ -96,7 +97,7 @@ func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName
 }
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
-func (p DiggerRepoPolicyProvider) GetAccessPolicy(organisation string, repo string, projectName string, projectDir string) (string, error) {
+func (p DiggerRepoPolicyProvider) GetAccessPolicy(organisation, repo, projectName, projectDir string) (string, error) {
 	policy, err := p.getPolicyFileContents(repo, projectName, projectDir, "access.rego")
 	if err != nil {
 		return policy, err
@@ -107,7 +108,7 @@ func (p DiggerRepoPolicyProvider) GetAccessPolicy(organisation string, repo stri
 	return policy, err
 }
 
-func (p DiggerRepoPolicyProvider) GetPlanPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
+func (p DiggerRepoPolicyProvider) GetPlanPolicy(organisation, repository, projectname, projectDir string) (string, error) {
 	policy, err := p.getPolicyFileContents(repository, projectname, projectDir, "plan.rego")
 	if err != nil {
 		return policy, err
@@ -117,7 +118,6 @@ func (p DiggerRepoPolicyProvider) GetPlanPolicy(organisation string, repository 
 
 func (p DiggerRepoPolicyProvider) GetDriftPolicy() (string, error) {
 	return "", nil
-
 }
 
 func (p DiggerRepoPolicyProvider) GetOrganisation() string {

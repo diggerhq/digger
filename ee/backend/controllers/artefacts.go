@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"io"
-	"log"
-	"net/http"
 )
 
 func SetJobArtefact(c *gin.Context) {
@@ -70,7 +71,6 @@ func SetJobArtefact(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "id": artefactRecord.ID})
-
 }
 
 func DownloadJobArtefact(c *gin.Context) {

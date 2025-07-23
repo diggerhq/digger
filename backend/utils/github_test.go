@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/diggerhq/digger/libs/git_utils"
 	"os"
 	"testing"
+
+	"github.com/diggerhq/digger/libs/git_utils"
 
 	"github.com/stretchr/testify/assert"
 )

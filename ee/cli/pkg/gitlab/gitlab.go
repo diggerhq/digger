@@ -2,6 +2,9 @@ package gitlab
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/cli/pkg/usage"
@@ -13,8 +16,6 @@ import (
 	core_locking "github.com/diggerhq/digger/libs/locking"
 	core_policy "github.com/diggerhq/digger/libs/policy"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"log"
-	"os"
 )
 
 func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotificationProvider drift.DriftNotificationProvider) {
@@ -42,7 +43,7 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	log.Printf("Digger digger_config read successfully\n")
 
 	// default policy checker for backwards compatibility, will be overridden in orchestrator flow
-	var policyChecker = core_policy.NoOpPolicyChecker{}
+	policyChecker := core_policy.NoOpPolicyChecker{}
 
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -66,7 +67,6 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	runningMode := os.Getenv("INPUT_DIGGER_MODE")
 
 	if runningMode == "drift-detection" {
-
 		for _, projectConfig := range diggerConfig.Projects {
 			if !projectConfig.DriftDetection {
 				continue
@@ -125,5 +125,4 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	println("Commands executed successfully")
 
 	usage.ReportErrorAndExit(repoOwner, "Digger finished successfully", 0)
-
 }

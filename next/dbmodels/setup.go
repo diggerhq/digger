@@ -1,13 +1,14 @@
 package dbmodels
 
 import (
+	"log/slog"
+	"os"
+
 	"github.com/diggerhq/digger/next/models_generated"
 	slogGorm "github.com/orandin/slog-gorm"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log/slog"
-	"os"
 )
 
 type Database struct {
@@ -30,7 +31,6 @@ func ConnectDatabase() {
 	database, err := gorm.Open(postgres.Open(os.Getenv("DIGGER_DATABASE_URL")), &gorm.Config{
 		Logger: gormLogger,
 	})
-
 	if err != nil {
 		panic("Failed to connect to database!")
 	}
@@ -40,5 +40,4 @@ func ConnectDatabase() {
 		Query:  query,
 		GormDB: database,
 	}
-
 }

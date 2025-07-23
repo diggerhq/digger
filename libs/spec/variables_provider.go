@@ -2,9 +2,10 @@ package spec
 
 import (
 	"fmt"
+	"os"
+
 	digger_crypto "github.com/diggerhq/digger/libs/crypto"
 	"github.com/samber/lo"
-	"os"
 )
 
 type VariablesProvider struct{}

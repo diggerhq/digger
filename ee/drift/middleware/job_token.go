@@ -2,12 +2,13 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/gin-gonic/gin"
 )
 
 func CheckJobToken(c *gin.Context, token string) (*models.JobToken, error) {

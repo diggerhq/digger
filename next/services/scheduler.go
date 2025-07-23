@@ -3,6 +3,10 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"strconv"
+
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
@@ -11,12 +15,9 @@ import (
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/dominikbraun/graph"
-	"log"
-	"os"
-	"strconv"
 )
 
-func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId string, job *model.DiggerJob, gh utils.GithubClientProvider) error {
+func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname, repoOwner, repoName, batchId string, job *model.DiggerJob, gh utils.GithubClientProvider) error {
 	maxConcurrencyForBatch, err := strconv.Atoi(os.Getenv("MAX_DIGGER_CONCURRENCY_PER_BATCH"))
 	if err != nil {
 		log.Printf("WARN: could not get max concurrency for batch, setting it to 0: %v", err)
@@ -57,7 +58,7 @@ func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner
 	return nil
 }
 
-func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId string, job *model.DiggerJob) error {
+func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, repoFullname, repoOwner, repoName, batchId string, job *model.DiggerJob) error {
 	log.Printf("TriggerJob jobId: %v", job.DiggerJobID)
 
 	if job.JobSpec == nil {
@@ -113,7 +114,7 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 	return nil
 }
 
-func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projectId string, command string, event dbmodels.BatchEventType, batchType orchestrator_scheduler.DiggerCommand) (*string, *string, error) {
+func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projectId, command string, event dbmodels.BatchEventType, batchType orchestrator_scheduler.DiggerCommand) (*string, *string, error) {
 	p := dbmodels.DB.Query.Project
 	project, err := dbmodels.DB.Query.Project.Where(p.ID.Eq(projectId)).First()
 	if err != nil {
@@ -143,7 +144,7 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 	installationId := appInstallation.GithubInstallationID
 	log.Printf("installation id is: %v", installationId)
 
-	var dgprojects = []dg_configuration.Project{dbmodels.ToDiggerProject(project)}
+	dgprojects := []dg_configuration.Project{dbmodels.ToDiggerProject(project)}
 	projectsGraph, err := dg_configuration.CreateProjectDependencyGraph(dgprojects)
 	workflows, err := GetWorkflowsForRepoAndBranch(gh, repo.ID, branch, "")
 	if err != nil {
@@ -200,10 +201,9 @@ func CreateJobAndBatchForProjectFromBranch(gh utils.GithubClientProvider, projec
 	}
 
 	return batchId, &commitSha, nil
-
 }
 
-func ConvertJobsToDiggerJobs(jobType orchestrator_scheduler.DiggerCommand, vcsType dbmodels.DiggerVCSType, organisationId string, jobsMap map[string]orchestrator_scheduler.Job, projectMap map[string]dg_configuration.Project, projectsGraph graph.Graph[string, dg_configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId int64, diggerConfigStr string, gitlabProjectId int, batchEventType dbmodels.BatchEventType) (*string, []*model.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobType orchestrator_scheduler.DiggerCommand, vcsType dbmodels.DiggerVCSType, organisationId string, jobsMap map[string]orchestrator_scheduler.Job, projectMap map[string]dg_configuration.Project, projectsGraph graph.Graph[string, dg_configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner, repoName, repoFullName, commitSha string, commentId int64, diggerConfigStr string, gitlabProjectId int, batchEventType dbmodels.BatchEventType) (*string, []*model.DiggerJob, error) {
 	result := make([]*model.DiggerJob, 0)
 	organisation, err := dbmodels.DB.GetOrganisationById(organisationId)
 	if err != nil {
@@ -236,7 +236,7 @@ func ConvertJobsToDiggerJobs(jobType orchestrator_scheduler.DiggerCommand, vcsTy
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
 	}
-	for pname, _ := range marshalledJobsMap {
+	for pname := range marshalledJobsMap {
 		_, err := dbmodels.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[pname], projectMap[pname].WorkflowFile)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to create job: %v %v", pname, err)

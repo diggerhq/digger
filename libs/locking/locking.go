@@ -33,8 +33,7 @@ type PullRequestLock struct {
 	PrNumber         int
 }
 
-type NoOpLock struct {
-}
+type NoOpLock struct{}
 
 func (noOpLock NoOpLock) Lock(transactionId int, resource string) (bool, error) {
 	return true, nil
@@ -128,7 +127,6 @@ func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
 	// TODO: Also include CI type (github, gitlab etc. into this lockID in order to avoid collision across VCS)
 	lockId := projectLock.LockId()
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
-
 	if err != nil {
 		return false, err
 	}

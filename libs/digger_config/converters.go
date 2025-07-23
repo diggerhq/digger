@@ -183,7 +183,6 @@ func copyReporterConfig(r *ReportingConfigYaml) ReporterConfig {
 	return ReporterConfig{
 		AiSummary: r.AiSummary,
 	}
-
 }
 
 func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, graph.Graph[string, Project], error) {
@@ -363,7 +362,6 @@ func CreateProjectDependencyGraph(projects []Project) (graph.Graph[string, Proje
 					return nil, fmt.Errorf("project '%s' does not exist", dependency)
 				}
 				err := g.AddVertex(dependencyProject)
-
 				if err != nil {
 					return nil, err
 				}

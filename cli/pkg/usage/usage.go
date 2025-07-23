@@ -5,14 +5,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log/slog"
 	"net/http"
 	"os"
+
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
-var telemetry = true
-var source = "unknown"
+var (
+	telemetry = true
+	source    = "unknown"
+)
 
 type UsageRecord struct {
 	UserId    interface{} `json:"userid"`
@@ -21,7 +24,7 @@ type UsageRecord struct {
 	Token     string      `json:"token"`
 }
 
-func SendUsageRecord(repoOwner string, eventName string, action string) error {
+func SendUsageRecord(repoOwner, eventName, action string) error {
 	h := sha256.New()
 	h.Write([]byte(repoOwner))
 	sha := h.Sum(nil)
@@ -35,7 +38,7 @@ func SendUsageRecord(repoOwner string, eventName string, action string) error {
 	return sendPayload(payload)
 }
 
-func SendLogRecord(repoOwner string, message string) error {
+func SendLogRecord(repoOwner, message string) error {
 	h := sha256.New()
 	h.Write([]byte(repoOwner))
 	sha := h.Sum(nil)
@@ -112,7 +115,7 @@ func init() {
 	}
 }
 
-func ReportErrorAndExit(repoOwner string, message string, exitCode int) {
+func ReportErrorAndExit(repoOwner, message string, exitCode int) {
 	if exitCode == 0 {
 		slog.Info(message)
 	} else {

@@ -45,10 +45,12 @@ const (
 /**
  * This is a singleton patterns for external data client and allows mocking for testing
  */
-var defaultCognitoClient CognitoClient
-var defaultStsClient StsClient
-var defaultTokenFetcher GithubTokenFetcher
-var defaultLoadConfig = config.LoadDefaultConfig
+var (
+	defaultCognitoClient CognitoClient
+	defaultStsClient     StsClient
+	defaultTokenFetcher  GithubTokenFetcher
+	defaultLoadConfig    = config.LoadDefaultConfig
+)
 
 func getCognitoClient(cfg aws.Config) CognitoClient {
 	if defaultCognitoClient == nil {
@@ -348,7 +350,7 @@ func (fetcher *GithubAwsTokenFetcher) GetIdentityToken() ([]byte, error) {
 	return []byte(parsed.Value), nil
 }
 
-func GetProviderFromRole(role string, region string) *stscreds.WebIdentityRoleProvider {
+func GetProviderFromRole(role, region string) *stscreds.WebIdentityRoleProvider {
 	if role == "" {
 		return nil
 	}

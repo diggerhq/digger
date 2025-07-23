@@ -315,12 +315,12 @@ func (v VCSProviderBasic) GetOrgService(vcsSpec VcsSpec) (ci.OrgService, error) 
 }
 
 type SpecPolicyProvider interface {
-	GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string, vcsType string) (policy2.Checker, error)
+	GetPolicyProvider(policySpec PolicySpec, diggerHost, diggerOrg, token, vcsType string) (policy2.Checker, error)
 }
 
 type BasicPolicyProvider struct{}
 
-func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost string, diggerOrg string, token string, vcsType string) (policy2.Checker, error) {
+func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost, diggerOrg, token, vcsType string) (policy2.Checker, error) {
 	slog.Debug("Getting policy provider",
 		"policyType", policySpec.PolicyType,
 		"diggerHost", diggerHost,
@@ -345,7 +345,7 @@ func (p BasicPolicyProvider) GetPolicyProvider(policySpec PolicySpec, diggerHost
 
 type PlanStorageProvider struct{}
 
-func (p PlanStorageProvider) GetPlanStorage(repoOwner string, repositoryName string, prNumber int) (storage2.PlanStorage, error) {
+func (p PlanStorageProvider) GetPlanStorage(repoOwner, repositoryName string, prNumber int) (storage2.PlanStorage, error) {
 	slog.Debug("Getting plan storage",
 		"repoOwner", repoOwner,
 		"repositoryName", repositoryName,

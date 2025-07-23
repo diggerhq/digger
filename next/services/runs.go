@@ -2,6 +2,9 @@ package services
 
 import (
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/github"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
@@ -9,8 +12,6 @@ import (
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
 	nextutils "github.com/diggerhq/digger/next/utils"
-	"log"
-	"time"
 )
 
 func RunQueuesStateMachine(queueItem *model.DiggerRunQueueItem, service ci.PullRequestService, gh nextutils.GithubClientProvider) error {

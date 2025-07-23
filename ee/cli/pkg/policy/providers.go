@@ -2,20 +2,21 @@ package policy
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/policy"
-	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"log"
 	"os"
+
+	"github.com/diggerhq/digger/libs/policy"
+	lib_spec "github.com/diggerhq/digger/libs/spec"
 )
 
 type AdvancedPolicyProvider struct{}
 
-func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec, diggerHost string, diggerOrg string, token string, vcsType string) (policy.Checker, error) {
+func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec, diggerHost, diggerOrg, token, vcsType string) (policy.Checker, error) {
 	managementRepo := os.Getenv("DIGGER_MANAGEMENT_REPO")
 	if managementRepo != "" {
 		log.Printf("info: using management repo policy provider")
-		var token = ""
-		var tokenName = ""
+		token := ""
+		tokenName := ""
 		switch vcsType {
 		case "github":
 			token = os.Getenv("GITHUB_TOKEN")
@@ -45,7 +46,7 @@ func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec
 
 type PolicyCheckerProviderAdvanced struct{}
 
-func (p PolicyCheckerProviderAdvanced) Get(hostname string, organisationName string, authToken string) (policy.Checker, error) {
+func (p PolicyCheckerProviderAdvanced) Get(hostname, organisationName, authToken string) (policy.Checker, error) {
 	managementRepo := os.Getenv("DIGGER_MANAGEMENT_REPO")
 	if managementRepo != "" {
 		token := os.Getenv("GITHUB_TOKEN")

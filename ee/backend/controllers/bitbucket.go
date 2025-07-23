@@ -100,9 +100,9 @@ func (ee DiggerEEController) BitbucketWebhookHandler(c *gin.Context) {
 		return
 	}
 
-	var pullRequestCommentCreated = BitbucketCommentCreatedEvent{}
-	var repoPush = BitbucketPushEvent{}
-	var pullRequestCreated = BitbucketPullRequestCreatedEvent{}
+	pullRequestCommentCreated := BitbucketCommentCreatedEvent{}
+	repoPush := BitbucketPushEvent{}
+	pullRequestCreated := BitbucketPullRequestCreatedEvent{}
 
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -162,10 +162,10 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	commentBody := payload.Comment.Content.Raw
 	branch := payload.PullRequest.Source.Branch.Name
 	// TODO: figure why git fetch fails in bb pipeline
-	commitSha := "" //payload.PullRequest.Source.Commit.Hash
+	commitSha := "" // payload.PullRequest.Source.Commit.Hash
 	defaultBranch := payload.PullRequest.Source.Branch.Name
 	actor := payload.Actor.Nickname
-	//discussionId := payload.Comment.ID
+	// discussionId := payload.Comment.ID
 
 	if !strings.HasPrefix(commentBody, "digger") {
 		log.Printf("comment is not a Digger command, ignoring")

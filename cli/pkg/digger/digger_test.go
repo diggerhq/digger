@@ -30,7 +30,7 @@ type MockCommandRunner struct {
 	Commands []RunInfo
 }
 
-func (m *MockCommandRunner) Run(workDir string, shell string, commands []string, envs map[string]string) (string, string, error) {
+func (m *MockCommandRunner) Run(workDir, shell string, commands []string, envs map[string]string) (string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Run", workDir + " " + shell + " " + strings.Join(commands, " "), time.Now()})
 	return "", "", nil
 }
@@ -72,7 +72,7 @@ type MockPRManager struct {
 	Commands []RunInfo
 }
 
-func (m *MockPRManager) GetUserTeams(organisation string, user string) ([]string, error) {
+func (m *MockPRManager) GetUserTeams(organisation, user string) ([]string, error) {
 	return []string{}, nil
 }
 
@@ -101,16 +101,16 @@ func (m *MockPRManager) ListIssues() ([]*ci.Issue, error) {
 	return nil, nil
 }
 
-func (m *MockPRManager) PublishIssue(title string, body string, labels *[]string) (int64, error) {
+func (m *MockPRManager) PublishIssue(title, body string, labels *[]string) (int64, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", body, time.Now()})
 	return 0, nil
 }
 
-func (m *MockPRManager) UpdateIssue(ID int64, title string, body string) (int64, error) {
+func (m *MockPRManager) UpdateIssue(ID int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (m *MockPRManager) SetStatus(prNumber int, status string, statusContext string) error {
+func (m *MockPRManager) SetStatus(prNumber int, status, statusContext string) error {
 	m.Commands = append(m.Commands, RunInfo{"SetStatus", strconv.Itoa(prNumber) + " " + status + " " + statusContext, time.Now()})
 	return nil
 }
@@ -150,7 +150,7 @@ func (m *MockPRManager) GetComments(prNumber int) ([]ci.Comment, error) {
 	return []ci.Comment{}, nil
 }
 
-func (m *MockPRManager) EditComment(prNumber int, id string, comment string) error {
+func (m *MockPRManager) EditComment(prNumber int, id, comment string) error {
 	m.Commands = append(m.Commands, RunInfo{"EditComment", id + " " + comment, time.Now()})
 	return nil
 }
@@ -159,7 +159,7 @@ func (m *MockPRManager) DeleteComment(id string) error {
 	return nil
 }
 
-func (m *MockPRManager) CreateCommentReaction(id string, reaction string) error {
+func (m *MockPRManager) CreateCommentReaction(id, reaction string) error {
 	m.Commands = append(m.Commands, RunInfo{"EditComment", id + " " + reaction, time.Now()})
 	return nil
 }
@@ -169,10 +169,9 @@ func (m *MockPRManager) GetBranchName(prNumber int) (string, string, error) {
 	return "", "", nil
 }
 
-func (m *MockPRManager) SetOutput(prNumber int, key string, value string) error {
+func (m *MockPRManager) SetOutput(prNumber int, key, value string) error {
 	m.Commands = append(m.Commands, RunInfo{"SetOutput", strconv.Itoa(prNumber), time.Now()})
 	return nil
-
 }
 
 type MockProjectLock struct {
@@ -203,7 +202,7 @@ type MockZipper struct {
 	Commands []RunInfo
 }
 
-func (m *MockZipper) GetFileFromZip(zipFile string, filename string) (string, error) {
+func (m *MockZipper) GetFileFromZip(zipFile, filename string) (string, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetFileFromZip", zipFile + " " + filename, time.Now()})
 	return "plan", nil
 }
@@ -212,22 +211,22 @@ type MockPlanStorage struct {
 	Commands []RunInfo
 }
 
-func (m *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+func (m *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName, fileName string) error {
 	m.Commands = append(m.Commands, RunInfo{"StorePlanFile", artifactName, time.Now()})
 	return nil
 }
 
-func (m *MockPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
+func (m *MockPlanStorage) RetrievePlan(localPlanFilePath, artifactName, storedPlanFilePath string) (*string, error) {
 	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", localPlanFilePath, time.Now()})
 	return nil, nil
 }
 
-func (m *MockPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
+func (m *MockPlanStorage) DeleteStoredPlan(artifactName, storedPlanFilePath string) error {
 	m.Commands = append(m.Commands, RunInfo{"DeleteStoredPlan", storedPlanFilePath, time.Now()})
 	return nil
 }
 
-func (m *MockPlanStorage) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
+func (m *MockPlanStorage) PlanExists(artifactName, storedPlanFilePath string) (bool, error) {
 	m.Commands = append(m.Commands, RunInfo{"PlanExists", storedPlanFilePath, time.Now()})
 	return false, nil
 }
@@ -252,7 +251,6 @@ func (m MockPlanPathProvider) LocalPlanFilePath() string {
 }
 
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
-
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
@@ -302,7 +300,6 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 }
 
 func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
-
 	commandRunner := &MockCommandRunner{}
 	terraformExecutor := &MockTerraformExecutor{}
 	prManager := &MockPRManager{}
@@ -384,7 +381,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 		IacUtils:          iac_utils.TerraformUtils{},
 	}
 
-	os.WriteFile(planPathProvider.LocalPlanFilePath(), []byte{123}, 0644)
+	os.WriteFile(planPathProvider.LocalPlanFilePath(), []byte{123}, 0o644)
 	defer os.Remove(planPathProvider.LocalPlanFilePath())
 
 	executor.Plan()
@@ -478,11 +475,10 @@ func TestSortedCommandByDependency(t *testing.T) {
 	assert.Equal(t, "project4", sortedCommands[1].ProjectName)
 	assert.Equal(t, "project2", sortedCommands[2].ProjectName)
 	assert.Equal(t, "project1", sortedCommands[3].ProjectName)
-
 }
 
 func TestParseWorkspace(t *testing.T) {
-	var commentTests = []struct {
+	commentTests := []struct {
 		in  string
 		out string
 		err bool
@@ -508,5 +504,4 @@ func TestParseWorkspace(t *testing.T) {
 			}
 		}
 	}
-
 }

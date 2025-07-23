@@ -2,15 +2,16 @@ package github
 
 import (
 	"fmt"
-	dg_github "github.com/diggerhq/digger/libs/ci/github"
-	"github.com/google/go-github/v61/github"
 	"log"
 	"os"
+
+	dg_github "github.com/diggerhq/digger/libs/ci/github"
+	"github.com/google/go-github/v61/github"
 )
 
 type GithubServiceProviderAdvanced struct{}
 
-func (_ GithubServiceProviderAdvanced) NewService(ghToken string, repoName string, owner string) (dg_github.GithubService, error) {
+func (_ GithubServiceProviderAdvanced) NewService(ghToken, repoName, owner string) (dg_github.GithubService, error) {
 	client := github.NewClient(nil)
 	if ghToken != "" {
 		client = client.WithAuthToken(ghToken)

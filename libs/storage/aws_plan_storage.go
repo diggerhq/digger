@@ -40,7 +40,7 @@ type PlanStorageAWS struct {
 	KMSEncryptionId   string
 }
 
-func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType string, KMSEncryptionId string) (*PlanStorageAWS, error) {
+func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType, KMSEncryptionId string) (*PlanStorageAWS, error) {
 	if bucketName == "" {
 		slog.Error("AWS S3 bucket name not provided")
 		return nil, fmt.Errorf("AWS_S3_BUCKET is not defined")

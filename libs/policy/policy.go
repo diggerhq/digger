@@ -28,18 +28,17 @@ type DiggerHttpPolicyProvider struct {
 	HttpClient         *http.Client
 }
 
-type NoOpPolicyChecker struct {
-}
+type NoOpPolicyChecker struct{}
 
-func (p NoOpPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
+func (p NoOpPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation, SCMrepository, projectName, projectDir, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 	return true, nil
 }
 
-func (p NoOpPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectname string, projectDir string, planOutput string) (bool, []string, error) {
+func (p NoOpPolicyChecker) CheckPlanPolicy(SCMrepository, SCMOrganisation, projectname, projectDir, planOutput string) (bool, []string, error) {
 	return true, nil, nil
 }
 
-func (p NoOpPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectname string) (bool, error) {
+func (p NoOpPolicyChecker) CheckDriftPolicy(SCMOrganisation, SCMrepository, projectname string) (bool, error) {
 	return true, nil
 }
 
@@ -133,7 +132,7 @@ func getDriftPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.R
 	return string(body), resp, nil
 }
 
-func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
+func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace, projectName string) (string, *http.Response, error) {
 	// fetch RBAC policies for project from Digger API
 	u, err := url.Parse(p.DiggerHost)
 	if err != nil {
@@ -148,7 +147,6 @@ func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, 
 		"url", u.String())
 
 	req, err := http.NewRequest("GET", u.String(), nil)
-
 	if err != nil {
 		return "", nil, err
 	}
@@ -167,7 +165,7 @@ func getAccessPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, 
 	return string(body), resp, nil
 }
 
-func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, projectName string) (string, *http.Response, error) {
+func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace, projectName string) (string, *http.Response, error) {
 	u, err := url.Parse(p.DiggerHost)
 	if err != nil {
 		slog.Error("Failed to parse digger cloud URL", "url", p.DiggerHost, "error", err)
@@ -181,7 +179,6 @@ func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, pr
 		"url", u.String())
 
 	req, err := http.NewRequest("GET", u.String(), nil)
-
 	if err != nil {
 		return "", nil, err
 	}
@@ -201,7 +198,7 @@ func getPlanPolicyForNamespace(p *DiggerHttpPolicyProvider, namespace string, pr
 }
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy
-func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo string, projectName string, projectDir string) (string, error) {
+func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation, repo, projectName, projectDir string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 
 	slog.Debug("Getting access policy",
@@ -256,7 +253,7 @@ func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation string, repo stri
 	}
 }
 
-func (p DiggerHttpPolicyProvider) GetPlanPolicy(organisation string, repo string, projectName string, projectDir string) (string, error) {
+func (p DiggerHttpPolicyProvider) GetPlanPolicy(organisation, repo, projectName, projectDir string) (string, error) {
 	namespace := fmt.Sprintf("%v-%v", organisation, repo)
 
 	slog.Debug("Getting plan policy",
@@ -344,7 +341,7 @@ type DiggerPolicyChecker struct {
 }
 
 // TODO refactor to use AccessPolicyContext - too many arguments
-func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
+func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation, SCMrepository, projectName, projectDir, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 	slog.Debug("Checking access policy",
 		"organisation", SCMOrganisation,
 		"repository", SCMrepository,
@@ -353,7 +350,6 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prServic
 		"requestedBy", requestedBy)
 
 	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName, projectDir)
-
 	if err != nil {
 		slog.Error("Error fetching policy", "error", err)
 		return false, err
@@ -370,7 +366,7 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prServic
 	}
 
 	// list of pull request approvals (if applicable)
-	var approvals = make([]string, 0)
+	approvals := make([]string, 0)
 	if prService != nil && prNumber != nil {
 		approvals, err = (*prService).GetApprovals(*prNumber)
 		if err != nil {
@@ -404,7 +400,6 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prServic
 		rego.Query("data.digger.allow"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
-
 	if err != nil {
 		slog.Error("Failed to prepare policy evaluation", "error", err)
 		return false, err
@@ -440,7 +435,7 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prServic
 	return true, nil
 }
 
-func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisation string, projectname string, projectDir string, planOutput string) (bool, []string, error) {
+func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository, SCMOrganisation, projectname, projectDir, planOutput string) (bool, []string, error) {
 	slog.Debug("Checking plan policy",
 		"organisation", SCMOrganisation,
 		"repository", SCMrepository,
@@ -475,7 +470,6 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisati
 		rego.Query("data.digger.deny"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
-
 	if err != nil {
 		slog.Error("Failed to prepare plan policy evaluation", "error", err)
 		return false, nil, err
@@ -521,14 +515,14 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository string, SCMOrganisati
 	return true, []string{}, nil
 }
 
-func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepository string, projectName string) (bool, error) {
+func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation, SCMrepository, projectName string) (bool, error) {
 	slog.Debug("Checking drift policy",
 		"organisation", SCMOrganisation,
 		"repository", SCMrepository,
 		"project", projectName)
 
 	// TODO: Get rid of organisation if its not needed
-	//organisation := p.PolicyProvider.GetOrganisation()
+	// organisation := p.PolicyProvider.GetOrganisation()
 	policy, err := p.PolicyProvider.GetDriftPolicy()
 	if err != nil {
 		slog.Error("Error fetching drift policy", "error", err)
@@ -554,7 +548,6 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 		rego.Query("data.digger.enable"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
-
 	if err != nil {
 		slog.Error("Failed to prepare drift policy evaluation", "error", err)
 		return false, err
@@ -588,7 +581,7 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	return true, nil
 }
 
-func NewPolicyChecker(hostname string, organisationName string, authToken string) Checker {
+func NewPolicyChecker(hostname, organisationName, authToken string) Checker {
 	var policyChecker Checker
 	if os.Getenv("NO_BACKEND") == "true" {
 		slog.Warn("Running in 'backendless' mode. Features that require backend will not be available.")
@@ -604,7 +597,8 @@ func NewPolicyChecker(hostname string, organisationName string, authToken string
 				DiggerOrganisation: organisationName,
 				AuthToken:          authToken,
 				HttpClient:         http.DefaultClient,
-			}}
+			},
+		}
 	}
 	return policyChecker
 }

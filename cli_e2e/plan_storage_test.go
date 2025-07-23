@@ -2,12 +2,13 @@ package cli_e2e
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/locking/gcp"
-	storage2 "github.com/diggerhq/digger/libs/storage"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/diggerhq/digger/libs/locking/gcp"
+	storage2 "github.com/diggerhq/digger/libs/storage"
 
 	"github.com/stretchr/testify/assert"
 )

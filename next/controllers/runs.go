@@ -2,14 +2,15 @@ package controllers
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/services"
 	next_utils "github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
 )
 
 func processSingleQueueItem(gh next_utils.GithubClientProvider, queueItem model.DiggerRunQueueItem) error {
@@ -68,7 +69,6 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 	var request TriggerRunAssumingUserRequest
 
 	err := c.BindJSON(&request)
-
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload received"})
@@ -85,7 +85,7 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 		return
 	}
 
-	//branch := project.Branch
+	// branch := project.Branch
 	projectName := project.Name
 
 	r := dbmodels.DB.Query.Repo
@@ -98,9 +98,9 @@ func (d DiggerController) TriggerRunForProjectAssumingUser(c *gin.Context) {
 
 	orgId := repo.OrganizationID
 	repoId := repo.ID
-	//repoFullName := repo.RepoFullName
-	//repoOwner := repo.RepoOrganisation
-	//repoName := repo.RepoName
+	// repoFullName := repo.RepoFullName
+	// repoOwner := repo.RepoOrganisation
+	// repoName := repo.RepoName
 
 	appInstallation, err := dbmodels.DB.GetGithubAppInstallationByOrgAndRepo(orgId, repo.RepoFullName, dbmodels.GithubAppInstallActive)
 	if err != nil {

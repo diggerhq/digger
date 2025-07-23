@@ -92,9 +92,11 @@ const (
 
 type DriftStatus string
 
-const DriftStatusNewDrift DriftStatus = "new drift"
-const DriftStatusNoDrift DriftStatus = "no drift"
-const DriftStatusAcknowledgeDrift DriftStatus = "acknowledged drift"
+const (
+	DriftStatusNewDrift         DriftStatus = "new drift"
+	DriftStatusNoDrift          DriftStatus = "no drift"
+	DriftStatusAcknowledgeDrift DriftStatus = "acknowledged drift"
+)
 
 type Project struct {
 	gorm.Model
@@ -151,11 +153,12 @@ func (p *Project) MapToJsonStruct() interface{} {
 		DriftTerraformPlan:    p.DriftTerraformPlan,
 		LastActivityTimestamp: p.UpdatedAt.String(),
 		LastActivityAuthor:    "unknown",
-		//LastActivityStatus:    string(status),
+		// LastActivityStatus:    string(status),
 		IsGenerated:    p.IsGenerated,
 		IsInMainBranch: p.IsInMainBranch,
 	}
 }
+
 func (r *Repo) MapToJsonStruct() interface{} {
 	OrganisationName := func() string {
 		if r.Organisation == nil {

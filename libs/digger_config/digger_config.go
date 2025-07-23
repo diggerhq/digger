@@ -22,14 +22,11 @@ type DirWalker interface {
 	GetDirs(workingDir string, config DiggerConfigYaml) ([]string, error)
 }
 
-type FileSystemTopLevelTerraformDirWalker struct {
-}
+type FileSystemTopLevelTerraformDirWalker struct{}
 
-type FileSystemTerragruntDirWalker struct {
-}
+type FileSystemTerragruntDirWalker struct{}
 
-type FileSystemModuleDirWalker struct {
-}
+type FileSystemModuleDirWalker struct{}
 
 func ReadDiggerYmlFileContents(dir string) (string, error) {
 	var diggerYmlBytes []byte
@@ -77,7 +74,7 @@ func CheckOrCreateDiggerFile(dir string) error {
 	return nil
 }
 
-func GetFilesWithExtension(workingDir string, ext string) ([]string, error) {
+func GetFilesWithExtension(workingDir, ext string) ([]string, error) {
 	var files []string
 	listOfFiles, err := os.ReadDir(workingDir)
 	if err != nil {
@@ -243,7 +240,7 @@ func LoadDiggerConfig(workingDir string, generateProjects bool, changedFiles []s
 	return config, configYaml, projectDependencyGraph, nil
 }
 
-func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
+func LoadDiggerConfigFromString(yamlString, terraformDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
 	slog.Info("loading digger configuration from string", "terraformDir", terraformDir)
 
 	config := &DiggerConfig{}
@@ -344,11 +341,10 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			return err
 		}
 	} else if config.GenerateProjectsConfig != nil {
-		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
+		dirWalker := &FileSystemTopLevelTerraformDirWalker{}
 
 		slog.Info("finding terraform directories for project generation", "terraformDir", terraformDir)
 		dirs, err := dirWalker.GetDirs(terraformDir, config)
-
 		if err != nil {
 			slog.Error("error walking through directories", "error", err, "terraformDir", terraformDir)
 			return fmt.Errorf("error while walking through directories: %v", err)
@@ -699,7 +695,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 	return nil
 }
 
-func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string, blockName string) error {
+func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir, blockName string) error {
 	slog.Info("hydrating config with terragrunt projects",
 		"workingDir", workingDir,
 		"filterPath", parsingConfig.FilterPath)
@@ -792,7 +788,6 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		// normalize paths
 		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
 		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
-
 		if err != nil {
 			slog.Error("could not normalize patterns",
 				"error", err,

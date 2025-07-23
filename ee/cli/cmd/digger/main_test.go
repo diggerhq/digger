@@ -1,25 +1,25 @@
 package main
 
 import (
+	"log"
+	"testing"
+
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/policy"
 	"github.com/diggerhq/digger/libs/storage"
-	"log"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
 	ghmodels "github.com/diggerhq/digger/cli/pkg/github/models"
 	dggithub "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	"github.com/diggerhq/digger/libs/comment_utils/summary"
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 
 	"github.com/google/go-github/v61/github"
-
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -874,7 +874,6 @@ var githubInvalidContextJson = `{
 `
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
-
 	actionContext, err := models.GetGitHubContext(githubContextNewPullRequestJson)
 	context := actionContext.ToEventPackage()
 
@@ -997,7 +996,7 @@ func TestGitHubNewPullRequestInMultiEnvProjectContext(t *testing.T) {
 
 	// PullRequestManager Mock
 	prManager := ci.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
-	//lock := locking.MockLock{}
+	// lock := locking.MockLock{}
 	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, &prManager)
 	assert.NoError(t, err)
 	event := context.Event.(github.PullRequestEvent)
@@ -1029,7 +1028,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	var impactedProjects []configuration.Project
 	impactedProjects = make([]configuration.Project, 1)
 	impactedProjects[0] = project
-	var requestedProject = project
+	requestedProject := project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
 	jobs, _, err := generic.ConvertIssueCommentEventToJobs(*repo.FullName, *user.Login, *issue.Number, "digger plan", impactedProjects, &requestedProject, workflows, "prbranch", "main")

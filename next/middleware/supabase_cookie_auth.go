@@ -3,13 +3,14 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/supa"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"os"
 )
 
 func SupabaseCookieAuth() gin.HandlerFunc {

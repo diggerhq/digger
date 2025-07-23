@@ -2,9 +2,10 @@ package execution
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"regexp"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewFilteringWriter(t *testing.T) {
@@ -24,5 +25,4 @@ func TestNewFilteringWriter(t *testing.T) {
 
 	writer.Write([]byte("output"))
 	assert.Equal(t, "<REDACTED>output", buf.String())
-
 }

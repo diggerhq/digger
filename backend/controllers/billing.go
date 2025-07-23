@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"errors"
+	"log/slog"
+	"net/http"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log/slog"
-	"net/http"
 )
 
 func BillingStatusApi(c *gin.Context) {

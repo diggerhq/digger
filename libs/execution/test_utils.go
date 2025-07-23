@@ -21,7 +21,6 @@ func CreateInvalidTerraformTestFile(dir string) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-
 		}
 	}(f)
 
@@ -40,7 +39,6 @@ func CreateValidTerraformTestFile(dir string) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-
 		}
 	}(f)
 
@@ -59,7 +57,6 @@ func CreateMultiEnvDiggerYmlFile(dir string) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-
 		}
 	}(f)
 
@@ -90,7 +87,6 @@ func CreateSingleEnvDiggerYmlFile(dir string) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-
 		}
 	}(f)
 
@@ -126,7 +122,7 @@ workflows:
 	}
 }
 
-func CreateCustomDiggerYmlFile(dir string, diggerYaml string) {
+func CreateCustomDiggerYmlFile(dir, diggerYaml string) {
 	f, err := os.Create(dir + "/digger.yml")
 	if err != nil {
 		panic(err)
@@ -135,7 +131,6 @@ func CreateCustomDiggerYmlFile(dir string, diggerYaml string) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-
 		}
 	}(f)
 

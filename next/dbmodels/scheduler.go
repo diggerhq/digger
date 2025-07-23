@@ -3,24 +3,29 @@ package dbmodels
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/model"
-	"log"
 )
 
 type DiggerVCSType string
 
-const DiggerVCSGithub DiggerVCSType = "github"
-const DiggerVCSGitlab DiggerVCSType = "gitlab"
+const (
+	DiggerVCSGithub DiggerVCSType = "github"
+	DiggerVCSGitlab DiggerVCSType = "gitlab"
+)
 
 type DiggerJobLinkStatus int8
 
 type BatchEventType string
 
-const DiggerBatchMergeEvent = "merge_event"
-const DiggerBatchPullRequestEvent = "pull_request_event"
-const DiggerBatchDriftEvent = "drift_event"
-const DiggerBatchManualTriggerEvent = "manual_trigger"
+const (
+	DiggerBatchMergeEvent         = "merge_event"
+	DiggerBatchPullRequestEvent   = "pull_request_event"
+	DiggerBatchDriftEvent         = "drift_event"
+	DiggerBatchManualTriggerEvent = "manual_trigger"
+)
 
 const (
 	DiggerJobLinkCreated   DiggerJobLinkStatus = 1

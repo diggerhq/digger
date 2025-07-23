@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"net/http"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/git_utils"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
@@ -78,7 +79,6 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 			}
 			return nil
 		})
-
 		if err != nil {
 			slog.Error("Could not load digger config", "error", err)
 			return

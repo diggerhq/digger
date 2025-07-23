@@ -11,14 +11,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/utils"
 	pprof_gin "github.com/gin-contrib/pprof"
 	sloggin "github.com/samber/slog-gin"
-
-	"time"
 
 	"github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/middleware"
@@ -38,7 +37,7 @@ func setupProfiler(r *gin.Engine) {
 	pprof_gin.Register(r)
 
 	// Create profiles directory if it doesn't exist
-	if err := os.MkdirAll("/tmp/profiles", 0755); err != nil {
+	if err := os.MkdirAll("/tmp/profiles", 0o755); err != nil {
 		slog.Error("Failed to create profiles directory", "error", err)
 		panic(err)
 	}
@@ -115,7 +114,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		slog.Error("Sentry initialization failed", "error", err)
 	}
 
-	//database migrations
+	// database migrations
 	models.ConnectDatabase()
 
 	r := gin.Default()

@@ -2,8 +2,9 @@ package utils
 
 import (
 	"fmt"
-	"github.com/robfig/cron/v3"
 	"time"
+
+	"github.com/robfig/cron/v3"
 )
 
 func MatchesCrontab(cronString string, timestamp time.Time) (bool, error) {

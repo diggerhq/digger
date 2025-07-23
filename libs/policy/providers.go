@@ -8,7 +8,7 @@ import (
 
 type PolicyCheckerProviderBasic struct{}
 
-func (p PolicyCheckerProviderBasic) Get(hostname string, organisationName string, authToken string) (Checker, error) {
+func (p PolicyCheckerProviderBasic) Get(hostname, organisationName, authToken string) (Checker, error) {
 	var policyChecker Checker
 	if os.Getenv("NO_BACKEND") == "true" {
 		slog.Warn("Running in 'backendless' mode. No policies will be supported.")
@@ -24,7 +24,8 @@ func (p PolicyCheckerProviderBasic) Get(hostname string, organisationName string
 				DiggerOrganisation: organisationName,
 				AuthToken:          authToken,
 				HttpClient:         http.DefaultClient,
-			}}
+			},
+		}
 	}
 	return policyChecker, nil
 }

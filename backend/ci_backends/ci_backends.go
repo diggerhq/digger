@@ -6,7 +6,7 @@ import (
 )
 
 type CiBackend interface {
-	TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error
+	TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error
 	GetWorkflowUrl(spec spec.Spec) (string, error)
 }
 

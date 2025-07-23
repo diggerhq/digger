@@ -3,8 +3,12 @@ package atlantis
 import (
 	"context"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
+	"sync"
 
 	"github.com/gruntwork-io/terragrunt/cli/commands/terraform"
 	"github.com/gruntwork-io/terragrunt/config"
@@ -14,11 +18,6 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"golang.org/x/sync/singleflight"
-
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
 )
 
 // Parse env vars into a map
@@ -36,7 +35,7 @@ func getEnvs() map[string]string {
 
 // Terragrunt imports can be relative or absolute
 // This makes relative paths absolute
-func makePathAbsolute(gitRoot string, path string, parentPath string) string {
+func makePathAbsolute(gitRoot, path, parentPath string) string {
 	if strings.HasPrefix(path, filepath.ToSlash(gitRoot)) {
 		return path
 	}
@@ -118,7 +117,7 @@ func sliceUnion(a, b []string) []string {
 }
 
 // Parses the terragrunt digger_config at `path` to find all modules it depends on
-func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, path string, terragruntOptions *options.TerragruntOptions) ([]string, error) {
+func getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, path string, terragruntOptions *options.TerragruntOptions) ([]string, error) {
 	res, err, _ := requestGroup.Do(path, func() (interface{}, error) {
 		// Check if this path has already been computed
 		cachedResult, ok := getDependenciesCache.get(path)
@@ -312,7 +311,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 	}
 }
 
-func createBaseProject(dir string, workflow string, terraformVersion string, applyRequirements *[]string, autoPlan bool, dependencies []string, createProjectName bool, createWorkspace bool) *AtlantisProject {
+func createBaseProject(dir, workflow, terraformVersion string, applyRequirements *[]string, autoPlan bool, dependencies []string, createProjectName, createWorkspace bool) *AtlantisProject {
 	project := &AtlantisProject{
 		Dir:               filepath.ToSlash(dir),
 		Workflow:          workflow,
@@ -338,7 +337,7 @@ func createBaseProject(dir string, workflow string, terraformVersion string, app
 }
 
 // Creates an AtlantisProject for a directory
-func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, sourcePath string, triggerProjectsFromDirOnly bool) (*AtlantisProject, []string, error) {
+func createProject(ignoreParentTerragrunt, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName, createWorkspace bool, sourcePath string, triggerProjectsFromDirOnly bool) (*AtlantisProject, []string, error) {
 	options, err := options.NewTerragruntOptionsWithConfigPath(sourcePath)
 
 	var potentialProjectDependencies []string
@@ -477,7 +476,7 @@ func projectNameFromDir(projectDir string) string {
 	return projectName
 }
 
-func createHclProject(defaultWorkflow string, defaultApplyRequirements []string, autoplan bool, useProjectMarkers bool, defaultTerraformVersion string, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, createProjectName bool, createWorkspace bool, sourcePaths []string, workingDir string, projectHcl string) (*AtlantisProject, error) {
+func createHclProject(defaultWorkflow string, defaultApplyRequirements []string, autoplan, useProjectMarkers bool, defaultTerraformVersion string, ignoreParentTerragrunt, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies, createProjectName, createWorkspace bool, sourcePaths []string, workingDir, projectHcl string) (*AtlantisProject, error) {
 	var projectHclDependencies []string
 	var childDependencies []string
 	workflow := defaultWorkflow
@@ -688,7 +687,6 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 
 			return nil
 		})
-
 		if err != nil {
 			slog.Error("failed to walk directory tree", "error", err, "gitRoot", gitRoot)
 			panic(err)
@@ -706,7 +704,7 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 	return uniqueHclFileAbsPaths
 }
 
-func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPath string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool, executionOrderGroups bool, triggerProjectsFromDirOnly bool) (*AtlantisConfig, map[string][]string, error) {
+func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds, autoMerge, parallel bool, filterPath string, createHclProjectChilds, ignoreParentTerragrunt, ignoreDependencyBlocks, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName, createWorkspace, preserveProjects, useProjectMarkers, executionOrderGroups, triggerProjectsFromDirOnly bool) (*AtlantisConfig, map[string][]string, error) {
 	// Ensure the gitRoot has a trailing slash and is an absolute path
 	absoluteGitRoot, err := filepath.Abs(gitRoot)
 	if err != nil {

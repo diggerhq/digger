@@ -49,7 +49,6 @@ func LinkGithubInstallationToOrgApi(c *gin.Context) {
 	}
 
 	link, err := models.DB.GetGithubAppInstallationLink(installationId)
-
 	if err != nil {
 		slog.Error("Could not get installation link", "installationId", installationId, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "Could not get installation link"})

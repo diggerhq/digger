@@ -1,9 +1,10 @@
 package iac_utils
 
 import (
+	"sort"
+
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/samber/lo"
-	"sort"
 )
 
 type IacSummary struct {
@@ -44,7 +45,7 @@ func (footprint IacPlanFootprint) hash() string {
 	copy(addresses, footprint.Addresses)
 	sort.Strings(addresses)
 	// concatenate all the addresses after sorting to form the hash
-	return lo.Reduce(addresses, func(a string, b string, i int) string {
+	return lo.Reduce(addresses, func(a, b string, i int) string {
 		return a + b
 	}, "")
 }
@@ -53,7 +54,7 @@ type IacUtils interface {
 	GetSummaryFromPlanJson(planJson string) (bool, *IacSummary, error)
 	GetSummaryFromApplyOutput(applyOutput string) (IacSummary, error)
 	GetPlanFootprint(planJson string) (*IacPlanFootprint, error)
-	PerformPlanSimilarityCheck(footprint1 IacPlanFootprint, footprint2 IacPlanFootprint) (bool, error)
+	PerformPlanSimilarityCheck(footprint1, footprint2 IacPlanFootprint) (bool, error)
 	SimilarityCheck(footprints []IacPlanFootprint) (bool, error)
 	GetSummarizePlan(planJson string) (string, error)
 }

@@ -2,9 +2,10 @@ package digger
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"log"
 )
 
 func UpdateAggregateStatus(batch *scheduler.SerializedBatch, prService ci.PullRequestService) error {

@@ -132,7 +132,7 @@ func TestGoogleStorageLock_UnlockLockedWithDifferentId(t *testing.T) {
 	bucketName := "digger-lock-test"
 	fileName := "digger-lock-" + randomString(16)
 	transactionId := 100
-	//anotherTransactionId := 200
+	// anotherTransactionId := 200
 
 	slog.Info("Testing unlocking with different transaction ID",
 		"fileName", fileName,

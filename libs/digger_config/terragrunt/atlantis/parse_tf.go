@@ -2,9 +2,10 @@ package atlantis
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/gruntwork-io/terragrunt/util"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
-	"strings"
 )
 
 var localModuleSourcePrefixes = []string{
@@ -21,7 +22,7 @@ func parseTerraformLocalModuleSource(path string) ([]string, error) {
 		return nil, errors.New(diags.Error())
 	}
 
-	var sourceMap = map[string]bool{}
+	sourceMap := map[string]bool{}
 	for _, mc := range module.ModuleCalls {
 		if isLocalTerraformModuleSource(mc.Source) {
 			modulePath := util.JoinPath(path, mc.Source)
@@ -44,7 +45,7 @@ func parseTerraformLocalModuleSource(path string) ([]string, error) {
 		}
 	}
 
-	var sources = []string{}
+	sources := []string{}
 	for source := range sourceMap {
 		sources = append(sources, source)
 	}

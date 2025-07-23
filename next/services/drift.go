@@ -3,11 +3,12 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"strings"
+
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
-	"log"
-	"strings"
 )
 
 func SaveUpdatedDriftStatus(batch model.DiggerBatch, job model.DiggerJob, terraformOutput string) error {

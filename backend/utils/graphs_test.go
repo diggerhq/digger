@@ -1,8 +1,9 @@
 package utils
 
 import (
-	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"testing"
+
+	configuration "github.com/diggerhq/digger/libs/digger_config"
 )
 
 func TestImpactedProjectsOnlyGraph(t *testing.T) {
@@ -17,19 +18,16 @@ func TestImpactedProjectsOnlyGraph(t *testing.T) {
 	impactedProjects := map[string]configuration.Project{"p1": p1, "p2": p2, "p3": p3}
 
 	dg, err := configuration.CreateProjectDependencyGraph(projects)
-
 	if err != nil {
 		t.Errorf("Error creating dependency graph: %v", err)
 	}
 
 	newGraph, err := ImpactedProjectsOnlyGraph(dg, impactedProjects)
-
 	if err != nil {
 		t.Errorf("Error creating impacted projects only graph: %v", err)
 	}
 
 	adjMap, err := newGraph.AdjacencyMap()
-
 	if err != nil {
 		t.Errorf("Error getting adjacency map: %v", err)
 	}
@@ -63,19 +61,16 @@ func TestImpactedProjectsOnlyGraph2(t *testing.T) {
 	impactedProjects := map[string]configuration.Project{"p1": p1, "p2": p2, "p3": p3, "p5": p5}
 
 	dg, err := configuration.CreateProjectDependencyGraph(projects)
-
 	if err != nil {
 		t.Errorf("Error creating dependency graph: %v", err)
 	}
 
 	newGraph, err := ImpactedProjectsOnlyGraph(dg, impactedProjects)
-
 	if err != nil {
 		t.Errorf("Error creating impacted projects only graph: %v", err)
 	}
 
 	adjMap, err := newGraph.AdjacencyMap()
-
 	if err != nil {
 		t.Errorf("Error getting adjacency map: %v", err)
 	}
@@ -113,19 +108,16 @@ func TestImpactedProjectsOnlyGraph3(t *testing.T) {
 	impactedProjects := map[string]configuration.Project{"p1": p1, "p3": p3, "p6": p6}
 
 	dg, err := configuration.CreateProjectDependencyGraph(projects)
-
 	if err != nil {
 		t.Errorf("Error creating dependency graph: %v", err)
 	}
 
 	newGraph, err := ImpactedProjectsOnlyGraph(dg, impactedProjects)
-
 	if err != nil {
 		t.Errorf("Error creating impacted projects only graph: %v", err)
 	}
 
 	adjMap, err := newGraph.AdjacencyMap()
-
 	if err != nil {
 		t.Errorf("Error getting adjacency map: %v", err)
 	}
@@ -159,7 +151,6 @@ func TestTraverseGraphVisitAllParentsFirst(t *testing.T) {
 	projects := []configuration.Project{p1, p2, p3, p4, p5, p6, p7, p8}
 
 	dg, err := configuration.CreateProjectDependencyGraph(projects)
-
 	if err != nil {
 		t.Errorf("Error creating dependency graph: %v", err)
 	}
@@ -173,7 +164,6 @@ func TestTraverseGraphVisitAllParentsFirst(t *testing.T) {
 	}
 
 	err = TraverseGraphVisitAllParentsFirst(dg, visit)
-
 	if err != nil {
 		t.Errorf("Error traversing graph: %v", err)
 	}

@@ -2,11 +2,12 @@ package vcs
 
 import (
 	"fmt"
+	"os"
+
 	github2 "github.com/diggerhq/digger/ee/cli/pkg/github"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/gitlab"
 	"github.com/diggerhq/digger/libs/spec"
-	"os"
 )
 
 type VCSProviderAdvanced struct{}

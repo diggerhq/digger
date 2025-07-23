@@ -16,7 +16,7 @@ type GithubActionCi struct {
 	Client *github.Client
 }
 
-func (g GithubActionCi) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
+func (g GithubActionCi) TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error {
 	slog.Info("TriggerGithubWorkflow", "repoOwner", spec.VCS.RepoOwner, "repoName", spec.VCS.RepoName, "commentId", spec.CommentId)
 	client := g.Client
 	specBytes, err := json.Marshal(spec)

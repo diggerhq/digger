@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"fmt"
+
 	"github.com/diggerhq/digger/libs/ci"
 )
 
@@ -9,7 +10,7 @@ type MockGithubPullrequestManager struct {
 	commands []string
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetUserTeams(organisation string, user string) ([]string, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetUserTeams(organisation, user string) ([]string, error) {
 	return []string{}, nil
 }
 
@@ -28,16 +29,16 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) ListIssues() (
 	return nil, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishIssue(title string, body string, labels *[]string) (int64, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishIssue(title, body string, labels *[]string) (int64, error) {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "PublishIssue")
 	return 0, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) UpdateIssue(ID int64, title string, body string) (int64, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) UpdateIssue(ID int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) SetStatus(prNumber int, status string, statusContext string) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) SetStatus(prNumber int, status, statusContext string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "SetStatus")
 	return nil
 }
@@ -82,7 +83,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetApprovals(p
 	return []string{}, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(prNumber int, id string, comment string) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(prNumber int, id, comment string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "EditComment")
 	return nil
 }
@@ -91,7 +92,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) DeleteComment(
 	return nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) CreateCommentReaction(id string, reaction string) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) CreateCommentReaction(id, reaction string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "CreateCommentReaction")
 	return nil
 }
@@ -101,7 +102,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetBranchName(
 	return "", "", nil
 }
 
-func (mockGithubPullrequestManager MockGithubPullrequestManager) SetOutput(prNumber int, key string, value string) error {
+func (mockGithubPullrequestManager MockGithubPullrequestManager) SetOutput(prNumber int, key, value string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "SetOutput")
 	return nil
 }

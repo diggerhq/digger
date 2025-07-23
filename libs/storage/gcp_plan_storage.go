@@ -17,7 +17,7 @@ type PlanStorageGcp struct {
 	Context context.Context
 }
 
-func (psg *PlanStorageGcp) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
+func (psg *PlanStorageGcp) PlanExists(artifactName, storedPlanFilePath string) (bool, error) {
 	slog.Debug("Checking if plan exists in GCP storage",
 		"bucket", psg.Bucket.BucketName(),
 		"path", storedPlanFilePath,
@@ -47,7 +47,7 @@ func (psg *PlanStorageGcp) PlanExists(artifactName string, storedPlanFilePath st
 	return true, nil
 }
 
-func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName, fileName string) error {
 	slog.Debug("Storing plan file in GCP storage",
 		"bucket", psg.Bucket.BucketName(),
 		"path", fileName,
@@ -73,7 +73,7 @@ func (psg *PlanStorageGcp) StorePlanFile(fileContents []byte, artifactName strin
 	return nil
 }
 
-func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
+func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath, artifactName, storedPlanFilePath string) (*string, error) {
 	slog.Debug("Retrieving plan from GCP storage",
 		"bucket", psg.Bucket.BucketName(),
 		"path", storedPlanFilePath,
@@ -122,7 +122,7 @@ func (psg *PlanStorageGcp) RetrievePlan(localPlanFilePath string, artifactName s
 	return &fileName, nil
 }
 
-func (psg *PlanStorageGcp) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
+func (psg *PlanStorageGcp) DeleteStoredPlan(artifactName, storedPlanFilePath string) error {
 	slog.Debug("Deleting stored plan from GCP storage",
 		"bucket", psg.Bucket.BucketName(),
 		"path", storedPlanFilePath,
@@ -130,7 +130,6 @@ func (psg *PlanStorageGcp) DeleteStoredPlan(artifactName string, storedPlanFileP
 
 	obj := psg.Bucket.Object(storedPlanFilePath)
 	err := obj.Delete(psg.Context)
-
 	if err != nil {
 		slog.Error("Unable to delete file from GCP bucket",
 			"bucket", psg.Bucket.BucketName(),

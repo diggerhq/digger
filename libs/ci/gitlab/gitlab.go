@@ -114,7 +114,6 @@ func ProcessGitLabEvent(gitlabContext *GitLabContext, diggerConfig *digger_confi
 		"mergeRequestId", *mergeRequestId)
 
 	changedFiles, err := service.GetChangedFiles(*mergeRequestId)
-
 	if err != nil {
 		slog.Error("could not get changed files", "error", err, "mergeRequestId", *mergeRequestId)
 		return nil, nil, fmt.Errorf("could not get changed files")
@@ -163,7 +162,6 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 		"mergeRequestId", mergeRequestId)
 
 	mergeRequestChanges, _, err := gitlabService.Client.MergeRequests.ListMergeRequestDiffs(*gitlabService.Context.ProjectId, mergeRequestId, opt)
-
 	if err != nil {
 		slog.Error("error getting GitLab merge request diffs", "error", err, "mergeRequestId", mergeRequestId)
 		return nil, fmt.Errorf("error getting gitlab's merge request: %v", err)
@@ -179,7 +177,7 @@ func (gitlabService GitLabService) GetChangedFiles(mergeRequestId int) ([]string
 	return fileNames, nil
 }
 
-func (gitlabService GitLabService) GetUserTeams(organisation string, user string) ([]string, error) {
+func (gitlabService GitLabService) GetUserTeams(organisation, user string) ([]string, error) {
 	return make([]string, 0), nil
 }
 
@@ -218,19 +216,19 @@ func (svc GitLabService) ListIssues() ([]*ci.Issue, error) {
 	return nil, fmt.Errorf("implement me")
 }
 
-func (svc GitLabService) PublishIssue(title string, body string, labels *[]string) (int64, error) {
+func (svc GitLabService) PublishIssue(title, body string, labels *[]string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (svc GitLabService) UpdateIssue(ID int64, title string, body string) (int64, error) {
+func (svc GitLabService) UpdateIssue(ID int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
 // SetStatus GitLab implementation is using https://docs.gitlab.com/15.11/ee/api/status_checks.html (external status checks)
 // https://docs.gitlab.com/ee/user/project/merge_requests/status_checks.html#add-a-status-check-service
 // only supported by 'Ultimate' plan
-func (gitlabService GitLabService) SetStatus(mergeRequestID int, status string, statusContext string) error {
-	//TODO implement me
+func (gitlabService GitLabService) SetStatus(mergeRequestID int, status, statusContext string) error {
+	// TODO implement me
 	slog.Debug("setting status (not implemented)",
 		"mergeRequestID", mergeRequestID,
 		"status", status,
@@ -239,7 +237,7 @@ func (gitlabService GitLabService) SetStatus(mergeRequestID int, status string, 
 }
 
 func (gitlabService GitLabService) GetCombinedPullRequestStatus(mergeRequestID int) (string, error) {
-	//TODO implement me
+	// TODO implement me
 	return "success", nil
 }
 
@@ -303,7 +301,7 @@ func (gitlabService GitLabService) IsMerged(mergeRequestIID int) (bool, error) {
 	return false, nil
 }
 
-func (gitlabService GitLabService) EditComment(prNumber int, id string, comment string) error {
+func (gitlabService GitLabService) EditComment(prNumber int, id, comment string) error {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
 	mergeRequestIID := *gitlabService.Context.MergeRequestIId
@@ -333,13 +331,13 @@ func (gitlabService GitLabService) DeleteComment(id string) error {
 	return nil
 }
 
-func (gitlabService GitLabService) CreateCommentReaction(id string, reaction string) error {
+func (gitlabService GitLabService) CreateCommentReaction(id, reaction string) error {
 	// TODO implement me
 	return nil
 }
 
 func (gitlabService GitLabService) GetComments(prNumber int) ([]ci.Comment, error) {
-	//TODO implement me
+	// TODO implement me
 	return nil, nil
 }
 
@@ -350,7 +348,7 @@ func (gitlabService GitLabService) GetApprovals(prNumber int) ([]string, error) 
 }
 
 func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, error) {
-	//TODO implement me
+	// TODO implement me
 	projectId := *gitlabService.Context.ProjectId
 	slog.Debug("getting branch name", "prNumber", prNumber, "projectId", projectId)
 
@@ -378,8 +376,8 @@ func (gitlabService GitLabService) CheckBranchExists(branchName string) (bool, e
 	return true, nil
 }
 
-func (svc GitLabService) SetOutput(prNumber int, key string, value string) error {
-	//TODO implement me
+func (svc GitLabService) SetOutput(prNumber int, key, value string) error {
+	// TODO implement me
 	return nil
 }
 

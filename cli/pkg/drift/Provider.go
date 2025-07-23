@@ -2,9 +2,10 @@ package drift
 
 import (
 	"fmt"
+	"os"
+
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/libs/ci"
-	"os"
 )
 
 type DriftNotificationProvider interface {

@@ -67,7 +67,6 @@ func TestDiggerConfigWhenCustomFileName(t *testing.T) {
 	assert.Equal(t, configPath, path.Join(tempDir, "digger-custom.yml"))
 
 	os.Unsetenv("DIGGER_FILENAME")
-
 }
 
 func TestDiggerConfigWhenOnlyYamlExists(t *testing.T) {
@@ -578,7 +577,6 @@ workflows:
 	assert.NotNil(t, workflow)
 	assert.NotNil(t, workflow.Plan)
 	assert.NotNil(t, workflow.Apply)
-
 }
 
 func TestDiggerConfigMissingProjectsWorkflow(t *testing.T) {
@@ -602,7 +600,6 @@ workflows:
 
 	_, _, _, err := LoadDiggerConfig(tempDir, true, nil)
 	assert.Equal(t, "failed to find workflow digger_config 'my_custom_workflow' for project 'my-first-app'", err.Error())
-
 }
 
 func TestDiggerConfigWithEmptyInitBlock(t *testing.T) {
@@ -664,7 +661,7 @@ func TestDiggerConfigDependencyGraph(t *testing.T) {
 
 	assert.NoError(t, err, "expected error to be nil")
 
-	orderedProjects, _ := graph.StableTopologicalSort(g, func(s string, s2 string) bool {
+	orderedProjects, _ := graph.StableTopologicalSort(g, func(s, s2 string) bool {
 		return s < s2
 	})
 
@@ -744,7 +741,7 @@ func TestDiggerConfigDependencyGraph2(t *testing.T) {
 
 	assert.NoError(t, err, "expected error to be nil")
 
-	orderedProjects, _ := graph.StableTopologicalSort(g, func(s string, s2 string) bool {
+	orderedProjects, _ := graph.StableTopologicalSort(g, func(s, s2 string) bool {
 		return s > s2
 	})
 
@@ -887,7 +884,7 @@ func deleteTempDir(name string) {
 	}
 }
 
-func createFile(filepath string, content string) func() {
+func createFile(filepath, content string) func() {
 	f, err := os.Create(filepath)
 	if err != nil {
 		panic(err)
@@ -906,7 +903,7 @@ func createFile(filepath string, content string) func() {
 	}
 }
 
-func createAndCloseFile(filepath string, content string) error {
+func createAndCloseFile(filepath, content string) error {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return err
@@ -1308,7 +1305,7 @@ projects:
 func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T) {
 	changedFiles := []string{"prod/main.tf", "dev/test/main.tf"}
 	projects := []Project{
-		Project{
+		{
 			Name: "dev",
 			Dir:  ".",
 		},
@@ -1316,7 +1313,7 @@ func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T)
 	c := DiggerConfig{
 		Projects: projects,
 	}
-	//expectedImpactingLocations := map[string]ProjectToSourceMapping{}
+	// expectedImpactingLocations := map[string]ProjectToSourceMapping{}
 
 	impactedProjects, _ := c.GetModifiedProjects(changedFiles)
 	assert.Equal(t, 0, len(impactedProjects))
@@ -1325,12 +1322,12 @@ func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T)
 func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	changedFiles := []string{"modules/bucket/main.tf", "dev/main.tf"}
 	projects := []Project{
-		Project{
+		{
 			Name:            "dev",
 			Dir:             "dev",
 			IncludePatterns: []string{"modules/**"},
 		},
-		Project{
+		{
 			Name:            "prod",
 			Dir:             "prod",
 			IncludePatterns: []string{"modules/**"},
@@ -1351,7 +1348,6 @@ func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	assert.Equal(t, 1, len(projectSourceMapping["prod"].ImpactingLocations))
 	assert.Equal(t, expectedImpactingLocations["dev"].ImpactingLocations, projectSourceMapping["dev"].ImpactingLocations)
 	assert.Equal(t, expectedImpactingLocations["prod"].ImpactingLocations, projectSourceMapping["prod"].ImpactingLocations)
-
 }
 
 func TestCognitoTokenSetFromMinConfig(t *testing.T) {

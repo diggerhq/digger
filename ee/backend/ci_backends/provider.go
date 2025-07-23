@@ -2,11 +2,12 @@ package ci_backends
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/buildkite/go-buildkite/v3/buildkite"
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/utils"
-	"log"
-	"os"
 )
 
 type EEBackendProvider struct{}

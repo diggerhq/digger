@@ -3,6 +3,7 @@ package ci_backends
 import (
 	"encoding/json"
 	"fmt"
+
 	orchestrator_bitbucket "github.com/diggerhq/digger/libs/ci/bitbucket"
 	"github.com/diggerhq/digger/libs/spec"
 )
@@ -14,7 +15,7 @@ type BitbucketPipelineCI struct {
 	Branch    string
 }
 
-func (bbp BitbucketPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
+func (bbp BitbucketPipelineCI) TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error {
 	specBytes, err := json.Marshal(spec)
 	if err != nil {
 		return fmt.Errorf("could not serialize spec: %v", err)

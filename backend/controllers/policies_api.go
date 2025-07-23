@@ -98,7 +98,6 @@ func PolicyOrgUpsertApi(c *gin.Context) {
 			Type:           policyType,
 			Policy:         policyData,
 		}).Error
-
 		if err != nil {
 			slog.Error("Error creating policy", "organisationId", organisationId, "orgId", org.ID, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error creating policy")

@@ -4,8 +4,8 @@ type GetSpecPayload struct {
 	Command      string `json:"command"`
 	RepoFullName string `json:"repo_full_name"`
 	Actor        string `json:"actor"`
-	//DefaultBranch string `json:"default_branch"`
-	//PrBranch      string `json:"pr_branch"`
+	// DefaultBranch string `json:"default_branch"`
+	// PrBranch      string `json:"pr_branch"`
 	DiggerConfig string `json:"digger_config"`
 	Project      string `json:"project"`
 }

@@ -2,14 +2,15 @@ package generic
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
-	"strings"
 )
 
-func GetRunEnvVars(defaultBranch string, prBranch string, projectName string, projectDir string) map[string]string {
+func GetRunEnvVars(defaultBranch, prBranch, projectName, projectDir string) map[string]string {
 	return map[string]string{
 		"DEFAULT_BRANCH": defaultBranch,
 		"PR_BRANCH":      prBranch,
@@ -21,7 +22,6 @@ func GetRunEnvVars(defaultBranch string, prBranch string, projectName string, pr
 func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, *digger_config.Project, int, error) {
 	var impactedProjects []digger_config.Project
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 	if err != nil {
 		return nil, nil, nil, 0, fmt.Errorf("could not get changed files")
 	}
@@ -97,7 +97,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 	return impactedProjectsWithDependantProjects, nil
 }
 
-func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prNumber int, commentBody string, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string, defaultBranch string) ([]scheduler.Job, bool, error) {
+func ConvertIssueCommentEventToJobs(repoFullName, requestedBy string, prNumber int, commentBody string, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName, defaultBranch string) ([]scheduler.Job, bool, error) {
 	jobs := make([]scheduler.Job, 0)
 	prBranch := prBranchName
 
@@ -135,10 +135,9 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 	}
 
 	return jobs, coversAllImpactedProjects, nil
-
 }
 
-func CreateJobsForProjects(projects []digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string, performEnvVarsInterpolations bool) ([]scheduler.Job, error) {
+func CreateJobsForProjects(projects []digger_config.Project, command, event, repoFullName, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch, prBranch string, performEnvVarsInterpolations bool) ([]scheduler.Job, error) {
 	jobs := make([]scheduler.Job, 0)
 
 	for _, project := range projects {

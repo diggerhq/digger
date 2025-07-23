@@ -105,7 +105,7 @@ func (reporter StdOutReporter) Suppress() error {
 }
 
 type ReportStrategy interface {
-	Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (commentId string, commentUrl string, error error)
+	Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (commentId, commentUrl string, error error)
 }
 
 type CommentPerRunStrategy struct {
@@ -174,7 +174,6 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 	}
 
 	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
-
 	if err != nil {
 		slog.Error("error editing comment", "error", err, "commentId", commentIdForThisRun, "prNumber", PrNumber)
 		return "", "", fmt.Errorf("error editing comment: %v", err)

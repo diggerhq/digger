@@ -3,6 +3,11 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/dchest/uniuri"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/ci/generic"
@@ -10,10 +15,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"os"
-	"strings"
 )
 
 func (d DiggerEEController) GetSpec(c *gin.Context) {
@@ -32,9 +33,9 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 
 	actor := payload.Actor
 	commitSha := ""
-	//defaultBranch := payload.DefaultBranch
-	//prBranch := payload.PrBranch
-	issueNumber := 000
+	// defaultBranch := payload.DefaultBranch
+	// prBranch := payload.PrBranch
+	issueNumber := 0o00
 
 	config := digger_config.DiggerConfig{}
 	err := json.Unmarshal([]byte(payload.DiggerConfig), &config)
@@ -62,7 +63,7 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 	}
 	job := jobs[0]
 
-	//temp  to get orgID TODO: fetch from db
+	// temp  to get orgID TODO: fetch from db
 	org, err := models.DB.GetOrganisation(models.DEFAULT_ORG_NAME)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Failed to get default organisation")
@@ -82,7 +83,7 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 	spec := spec.Spec{
 		SpecType: spec.SpecTypeManualJob,
 		JobId:    uniuri.New(),
-		//CommentId: "",
+		// CommentId: "",
 		Job: jobSpec,
 		Reporter: spec.ReporterSpec{
 			ReportingStrategy: "comments_per_run",
@@ -116,5 +117,4 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 	log.Printf("specBytes: %v", spec)
 	c.String(200, string(specBytes))
 	return
-
 }

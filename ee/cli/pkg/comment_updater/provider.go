@@ -2,12 +2,12 @@ package comment_updater
 
 import (
 	"fmt"
+
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 )
 
-type CommentUpdaterProviderAdvanced struct {
-}
+type CommentUpdaterProviderAdvanced struct{}
 
 func (c CommentUpdaterProviderAdvanced) Get(renderMode string) (comment_updater.CommentUpdater, error) {
 	if renderMode == digger_config.CommentRenderModeBasic {

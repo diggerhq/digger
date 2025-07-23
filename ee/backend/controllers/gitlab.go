@@ -39,7 +39,7 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	log.Printf("GitlabWebhook")
 
-	//temp  to get orgID TODO: fetch from db
+	// temp  to get orgID TODO: fetch from db
 	organisation, err := models.DB.GetOrganisation(models.DEFAULT_ORG_NAME)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Failed to get default organisation")
@@ -103,7 +103,7 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 }
 
 func GetGitlabRepoUrl(event interface{}) string {
-	var repoUrl = ""
+	repoUrl := ""
 	switch event := event.(type) {
 	case *gitlab.MergeCommentEvent:
 		repoUrl = event.Project.GitHTTPURL
@@ -127,10 +127,10 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 	branch := payload.ObjectAttributes.SourceBranch
 	commitSha := payload.ObjectAttributes.LastCommit.ID
 	action := payload.ObjectAttributes.Action
-	//defaultBranch := payload.Repository.DefaultBranch
-	//actor := payload.User.Username
-	//discussionId := ""
-	//action := payload.ObjectAttributes.Action
+	// defaultBranch := payload.Repository.DefaultBranch
+	// actor := payload.User.Username
+	// discussionId := ""
+	// action := payload.ObjectAttributes.Action
 
 	// temp hack: we initialize glService to publish an initial comment and then use that as a discussionId onwards (
 	glService, glerr := utils.GetGitlabService(gitlabProvider, projectId, repoName, repoFullName, prNumber, "")
@@ -308,10 +308,10 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 			GitlabCIMergeRequestIID:  payload.ObjectAttributes.IID,
 			GitlabciprojectId:        payload.Project.ID,
 			GitlabciprojectNamespace: payload.Project.Namespace,
-			//GitlabciprojectNamespaceId: 0,
+			// GitlabciprojectNamespaceId: 0,
 			GitlabmergeRequestEventName: payload.EventType,
-			//GitlabCIPipelineID: ,
-			//GitlabCIPipelineIID: "",
+			// GitlabCIPipelineID: ,
+			// GitlabCIPipelineIID: "",
 			GitlabCIProjectName: payload.Project.Name,
 			GitlabDiscussionId:  discussionId,
 		},
@@ -530,10 +530,10 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 			GitlabCIMergeRequestIID:  payload.MergeRequest.IID,
 			GitlabciprojectId:        payload.ProjectID,
 			GitlabciprojectNamespace: payload.Project.Namespace,
-			//GitlabciprojectNamespaceId:  payload.Project.Namespace,
+			// GitlabciprojectNamespaceId:  payload.Project.Namespace,
 			GitlabmergeRequestEventName: payload.EventType,
-			//GitlabCIPipelineID: ,
-			//GitlabCIPipelineIID: "",
+			// GitlabCIPipelineID: ,
+			// GitlabCIPipelineIID: "",
 			GitlabCIProjectName: payload.Project.Name,
 			GitlabDiscussionId:  discussionId,
 		},

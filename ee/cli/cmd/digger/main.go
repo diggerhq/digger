@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/cli/pkg/usage"
-	"github.com/diggerhq/digger/libs/license"
 	"log"
 	"os"
+
+	"github.com/diggerhq/digger/cli/pkg/usage"
+	"github.com/diggerhq/digger/libs/license"
 )
 
 /*
@@ -34,7 +35,6 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		usage.ReportErrorAndExit("", fmt.Sprintf("Error occurred during command exec: %v", err), 8)
 	}
-
 }
 
 func init() {

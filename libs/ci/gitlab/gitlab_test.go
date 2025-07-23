@@ -1,8 +1,9 @@
 package gitlab
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseGitLabContext(t *testing.T) {

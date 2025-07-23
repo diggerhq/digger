@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/diggerhq/digger/backend/models"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
 	services2 "github.com/diggerhq/digger/ee/drift/services"
@@ -186,7 +187,6 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Trigger workflow error")})
 		return
 	}
-
 }
 
 func (mc MainController) ProcessAllDrift(c *gin.Context) {
@@ -335,7 +335,6 @@ func (mc MainController) ProcessDriftForOrg(c *gin.Context) {
 				log.Printf("got unexpected drift status for project: %v - status: %v", projectId, statusCode)
 			}
 		}
-
 	}
 	c.String(200, "success")
 }

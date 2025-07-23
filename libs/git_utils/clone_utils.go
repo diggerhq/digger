@@ -23,7 +23,7 @@ func createTempDir() (string, error) {
 
 type action func(string) error
 
-func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, token string, tokenUsername string, action action) error {
+func CloneGitRepoAndDoAction(repoUrl, branch, commitHash, token, tokenUsername string, action action) error {
 	dir, err := createTempDir()
 	if err != nil {
 		slog.Error("Failed to create temporary directory", "error", err)
@@ -107,7 +107,7 @@ func NewGitShell(workDir string, auth *GitAuth) *GitShell {
 	}
 }
 
-func NewGitShellWithTokenAuth(workDir string, token string, tokenUsername string) *GitShell {
+func NewGitShellWithTokenAuth(workDir, token, tokenUsername string) *GitShell {
 	auth := GitAuth{
 		Username:      "x-access-token",
 		Password:      "",

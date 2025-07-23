@@ -7,7 +7,7 @@ import (
 	"github.com/diggerhq/digger/libs/digger_config"
 )
 
-func ConvertProjectsToJobs(actor string, repoNamespace string, command string, prNumber int, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]Job, bool, error) {
+func ConvertProjectsToJobs(actor, repoNamespace, command string, prNumber int, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow) ([]Job, bool, error) {
 	jobs := make([]Job, 0)
 
 	slog.Info("Converting projects to jobs",

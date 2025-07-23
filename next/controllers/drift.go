@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"time"
+
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/next/ci_backends"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/services"
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"net/url"
-	"os"
-	"time"
 )
 
 type TriggerDriftRequest struct {
@@ -25,7 +26,6 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 	var request TriggerDriftRequest
 
 	err := c.BindJSON(&request)
-
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload received"})
@@ -95,7 +95,6 @@ func (d DiggerController) TriggerDriftDetectionForProject(c *gin.Context) {
 		"project_id": projectId,
 	})
 	return
-
 }
 
 func (d DiggerController) TriggerCronForMatchingProjects(c *gin.Context) {

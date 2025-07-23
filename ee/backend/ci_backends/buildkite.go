@@ -2,6 +2,7 @@ package ci_backends
 
 import (
 	"encoding/json"
+
 	"github.com/buildkite/go-buildkite/v3/buildkite"
 	"github.com/diggerhq/digger/libs/spec"
 )
@@ -12,8 +13,7 @@ type BuildkiteCi struct {
 	Pipeline string
 }
 
-func (b BuildkiteCi) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
-
+func (b BuildkiteCi) TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error {
 	specBytes, err := json.Marshal(spec)
 	client := b.Client
 	_, _, err = client.Builds.Create(b.Org, b.Pipeline, &buildkite.CreateBuild{
@@ -29,7 +29,6 @@ func (b BuildkiteCi) TriggerWorkflow(spec spec.Spec, runName string, vcsToken st
 	})
 
 	return err
-
 }
 
 func (b BuildkiteCi) GetWorkflowUrl(spec spec.Spec) (string, error) {

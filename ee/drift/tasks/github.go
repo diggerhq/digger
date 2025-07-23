@@ -2,17 +2,18 @@ package tasks
 
 import (
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/models/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	utils3 "github.com/diggerhq/digger/libs/git_utils"
 	utils2 "github.com/diggerhq/digger/next/utils"
-	"log"
-	"strconv"
-	"strings"
 )
 
-func LoadProjectsFromGithubRepo(gh utils2.GithubClientProvider, installationId string, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) error {
+func LoadProjectsFromGithubRepo(gh utils2.GithubClientProvider, installationId, repoFullName, repoOwner, repoName, cloneUrl, branch string) error {
 	link, err := dbmodels.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
 		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)

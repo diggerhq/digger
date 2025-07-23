@@ -3,6 +3,10 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -14,9 +18,6 @@ import (
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"time"
 )
 
 type SetJobStatusRequest struct {
@@ -31,7 +32,7 @@ type SetJobStatusRequest struct {
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 
-	//orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+	// orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
 	//if !exists {
 	//	c.String(http.StatusForbidden, "Not allowed to access this resource")
@@ -41,7 +42,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	var request SetJobStatusRequest
 
 	err := c.BindJSON(&request)
-
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
@@ -156,7 +156,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	// get batch ID
 	// check if all jobs have succeeded at this point
 	// if so, perform merge of PR (if configured to do so)
-	//batch := job.Batch
+	// batch := job.Batch
 	err = dbmodels.DB.UpdateBatchStatus(batch)
 	if err != nil {
 		log.Printf("Error updating batch status: %v", err)

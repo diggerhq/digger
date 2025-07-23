@@ -2,6 +2,7 @@ package gitlab
 
 import (
 	"fmt"
+
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -15,7 +16,6 @@ func ProcessGitlabPullRequestEvent(payload *gitlab.MergeEvent, diggerConfig *dig
 	var prNumber int
 	prNumber = payload.ObjectAttributes.IID
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 	if err != nil {
 		return nil, nil, prNumber, fmt.Errorf("could not get changed files")
 	}

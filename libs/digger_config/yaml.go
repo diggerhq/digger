@@ -167,7 +167,7 @@ type TerragruntParsingConfig struct {
 	PreserveProjects           bool     `yaml:"preserveProjects"`
 	CascadeDependencies        *bool    `yaml:"cascadeDependencies,omitempty"`
 	DefaultApplyRequirements   []string `yaml:"defaultApplyRequirements"`
-	//NumExecutors                   int64	`yaml:"numExecutors"`
+	// NumExecutors                   int64	`yaml:"numExecutors"`
 	ProjectHclFiles                []string                    `yaml:"projectHclFiles"`
 	CreateHclProjectChilds         bool                        `yaml:"createHclProjectChilds"`
 	CreateHclProjectExternalChilds *bool                       `yaml:"createHclProjectExternalChilds,omitempty"`
@@ -253,7 +253,6 @@ func validateWorkflowConfigurationYaml(config *WorkflowConfigurationYaml) error 
 }
 
 func (s *StepYaml) UnmarshalYAML(value *yaml.Node) error {
-
 	if value.Kind == yaml.ScalarNode {
 		return value.Decode(&s.Action)
 	}

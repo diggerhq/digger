@@ -3,11 +3,12 @@ package storage
 import (
 	"archive/zip"
 	"bytes"
-	configuration "github.com/diggerhq/digger/libs/digger_config"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	configuration "github.com/diggerhq/digger/libs/digger_config"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetFileFromZip(t *testing.T) {
@@ -28,7 +29,7 @@ func TestGetFileFromZip(t *testing.T) {
 	}
 
 	zipFileName := "test.zip"
-	err = ioutil.WriteFile(zipFileName, buf.Bytes(), 0644)
+	err = ioutil.WriteFile(zipFileName, buf.Bytes(), 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +63,7 @@ func TestGetFileFromZipNoFileExists(t *testing.T) {
 	}
 
 	zipFileName := "test.zip"
-	err = ioutil.WriteFile(zipFileName, buf.Bytes(), 0644)
+	err = ioutil.WriteFile(zipFileName, buf.Bytes(), 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +84,7 @@ func TestNormalizeFileName(t *testing.T) {
 	type NormTest struct {
 		input, expectedOutput string // input and expected normalized output
 	}
-	var normTests = []NormTest{
+	normTests := []NormTest{
 		{"my/directory", "/my/directory"},
 		{"./my/directory", "/my/directory"},
 	}
@@ -100,7 +101,7 @@ func TestMatchIncludeExcludePatternsToFile(t *testing.T) {
 		excludePatterns []string
 		expectedResult  bool
 	}
-	var normTests = []MatchTest{
+	normTests := []MatchTest{
 		{"dev/main.tf", []string{"dev/**"}, []string{}, true},
 		{"dev/main.tf", []string{"./dev/**"}, []string{}, true},
 		{"dev/main.tf", []string{"dev/**"}, []string{"dev/"}, true},

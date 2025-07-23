@@ -5,15 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/ee/drift/middleware"
-	"github.com/gin-gonic/gin"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/ee/drift/middleware"
+	"github.com/gin-gonic/gin"
 )
 
 func GithubAppConnections(c *gin.Context) {
@@ -148,7 +149,6 @@ func (d DiggerEEController) GithubAppConnectionsConfirm(c *gin.Context) {
 	PemBase64 := base64.StdEncoding.EncodeToString([]byte(PEM))
 
 	encrypt := func(val string) (string, error) {
-
 		secret := os.Getenv("DIGGER_ENCRYPTION_SECRET")
 		if secret == "" {
 			log.Printf("ERROR: no encryption secret specified, please specify DIGGER_ENCRYPTION_SECRET as 32 bytes base64 string")

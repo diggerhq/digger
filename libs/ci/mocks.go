@@ -8,13 +8,14 @@ type MockPullRequestManager struct {
 	Approvals    []string
 }
 
-func (t MockPullRequestManager) GetUserTeams(organisation string, user string) ([]string, error) {
+func (t MockPullRequestManager) GetUserTeams(organisation, user string) ([]string, error) {
 	return t.Teams, nil
 }
 
 func (t MockPullRequestManager) GetChangedFiles(prNumber int) ([]string, error) {
 	return t.ChangedFiles, nil
 }
+
 func (t MockPullRequestManager) PublishComment(prNumber int, comment string) (*Comment, error) {
 	return nil, nil
 }
@@ -23,15 +24,15 @@ func (t MockPullRequestManager) ListIssues() ([]*Issue, error) {
 	return nil, nil
 }
 
-func (t MockPullRequestManager) PublishIssue(title string, body string, labels *[]string) (int64, error) {
+func (t MockPullRequestManager) PublishIssue(title, body string, labels *[]string) (int64, error) {
 	return 0, nil
 }
 
-func (t MockPullRequestManager) UpdateIssue(ID int64, title string, body string) (int64, error) {
+func (t MockPullRequestManager) UpdateIssue(ID int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (t MockPullRequestManager) SetStatus(prNumber int, status string, statusContext string) error {
+func (t MockPullRequestManager) SetStatus(prNumber int, status, statusContext string) error {
 	return nil
 }
 
@@ -67,7 +68,7 @@ func (t MockPullRequestManager) GetComments(prNumber int) ([]Comment, error) {
 	return []Comment{}, nil
 }
 
-func (t MockPullRequestManager) EditComment(prNumber int, id string, comment string) error {
+func (t MockPullRequestManager) EditComment(prNumber int, id, comment string) error {
 	return nil
 }
 
@@ -75,7 +76,7 @@ func (t MockPullRequestManager) DeleteComment(id string) error {
 	return nil
 }
 
-func (t MockPullRequestManager) CreateCommentReaction(id string, reaction string) error {
+func (t MockPullRequestManager) CreateCommentReaction(id, reaction string) error {
 	return nil
 }
 
@@ -83,6 +84,6 @@ func (t MockPullRequestManager) GetBranchName(prNumber int) (string, string, err
 	return "", "", nil
 }
 
-func (t MockPullRequestManager) SetOutput(prNumber int, key string, value string) error {
+func (t MockPullRequestManager) SetOutput(prNumber int, key, value string) error {
 	return nil
 }

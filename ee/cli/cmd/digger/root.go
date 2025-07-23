@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
@@ -11,10 +16,6 @@ import (
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/policy"
 	"github.com/spf13/cobra"
-	"log"
-	"net/http"
-	"os"
-	"time"
 )
 
 type RunConfig struct {
@@ -76,12 +77,13 @@ func (r *RunConfig) GetServices() (*ci.PullRequestService, *ci.OrgService, *repo
 	return &prService, &orgService, &reporter, nil
 }
 
-var BackendApi backendapi.Api
-var ReportStrategy reporting.ReportStrategy
-var lock locking.Lock
+var (
+	BackendApi     backendapi.Api
+	ReportStrategy reporting.ReportStrategy
+	lock           locking.Lock
+)
 
 func PreRun(cmd *cobra.Command, args []string) {
-
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
 	BackendApi = NewBackendApi(hostName, token)
@@ -113,7 +115,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 	log.Println("Lock provider has been created successfully")
 }
 
-func NewBackendApi(hostName string, authToken string) backendapi.Api {
+func NewBackendApi(hostName, authToken string) backendapi.Api {
 	var backendApi backendapi.Api
 	if os.Getenv("NO_BACKEND") == "true" {
 		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
@@ -128,7 +130,7 @@ func NewBackendApi(hostName string, authToken string) backendapi.Api {
 	return backendApi
 }
 
-func NewPolicyChecker(hostname string, organisationName string, authToken string) policy.Checker {
+func NewPolicyChecker(hostname, organisationName, authToken string) policy.Checker {
 	var policyChecker policy.Checker
 	if os.Getenv("NO_BACKEND") == "true" {
 		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
@@ -140,7 +142,8 @@ func NewPolicyChecker(hostname string, organisationName string, authToken string
 				DiggerOrganisation: organisationName,
 				AuthToken:          authToken,
 				HttpClient:         http.DefaultClient,
-			}}
+			},
+		}
 	}
 	return policyChecker
 }

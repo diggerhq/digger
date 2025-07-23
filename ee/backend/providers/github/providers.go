@@ -4,17 +4,17 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
+	net "net/http"
+	"os"
+
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/google/go-github/v61/github"
-	"log"
-	net "net/http"
-	"os"
 )
 
-type DiggerGithubEEClientProvider struct {
-}
+type DiggerGithubEEClientProvider struct{}
 
 func (gh DiggerGithubEEClientProvider) NewClient(netClient *net.Client) (*github.Client, error) {
 	ghClient := github.NewClient(netClient)
@@ -38,7 +38,7 @@ func getGithubEnterpriseUrls(githubHostname string) (string, string) {
 	return githubEnterpriseBaseUrl, githubEnterpriseUploadUrl
 }
 
-func (gh DiggerGithubEEClientProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
+func (gh DiggerGithubEEClientProvider) Get(githubAppId, installationId int64) (*github.Client, *string, error) {
 	githubAppPrivateKey := ""
 	githubAppPrivateKeyB64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
 

@@ -3,9 +3,10 @@ package ci_backends
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/xanzy/go-gitlab"
-	"strconv"
 )
 
 type GitlabPipelineCI struct {
@@ -23,7 +24,7 @@ type GitlabPipelineCI struct {
 	GitlabDiscussionId          string
 }
 
-func (gl GitlabPipelineCI) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
+func (gl GitlabPipelineCI) TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error {
 	specBytes, err := json.Marshal(spec)
 	if err != nil {
 		return fmt.Errorf("could not serialize spec: %v", err)

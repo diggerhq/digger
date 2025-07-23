@@ -8,8 +8,7 @@ import (
 	"path/filepath"
 )
 
-func ExtractZip(zipFilePath string, outDir string) error {
-
+func ExtractZip(zipFilePath, outDir string) error {
 	// Open the zip file
 	zipReader, err := zip.OpenReader(zipFilePath)
 	if err != nil {

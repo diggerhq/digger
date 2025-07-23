@@ -16,10 +16,9 @@ import (
 	"gorm.io/gorm"
 )
 
-type MockCiBackend struct {
-}
+type MockCiBackend struct{}
 
-func (m MockCiBackend) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
+func (m MockCiBackend) TriggerWorkflow(spec spec.Spec, runName, vcsToken string) error {
 	return nil
 }
 
@@ -153,5 +152,4 @@ func TestThatRunQueueItemMovesFromQueuedToPlanningAfterPickup(t *testing.T) {
 		diggerRunRefreshed, _ := models.DB.GetDiggerRun(diggerRun.ID)
 		assert.Equal(t, testParam.NextExpectedStatus, diggerRunRefreshed.Status)
 	}
-
 }

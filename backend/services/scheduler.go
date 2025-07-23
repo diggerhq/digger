@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoFullName string, repoOwner string, repoName string, workflowFileName string, gh utils.GithubClientProvider) error {
+func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoFullName, repoOwner, repoName, workflowFileName string, gh utils.GithubClientProvider) error {
 	slog.Info("Job completed", "parentJobId", parentJob.DiggerJobID)
 
 	jobLinksForParent, err := models.DB.GetDiggerJobParentLinksByParentId(&parentJob.DiggerJobID)
@@ -69,7 +69,7 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 	return nil
 }
 
-func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob, gh utils.GithubClientProvider) error {
+func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname, repoOwner, repoName string, batchId *uuid.UUID, job *models.DiggerJob, gh utils.GithubClientProvider) error {
 	maxConcurrencyForBatch := config.DiggerConfig.GetInt("max_concurrency_per_batch")
 
 	if maxConcurrencyForBatch == 0 {
@@ -118,7 +118,7 @@ func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner
 	return nil
 }
 
-func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
+func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, repoFullname, repoOwner, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
 	slog.Info("Triggering job",
 		"jobId", job.DiggerJobID,
 		slog.Group("repository",

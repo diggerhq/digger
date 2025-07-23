@@ -6,6 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"reflect"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/segment"
 	backend_utils "github.com/diggerhq/digger/backend/utils"
@@ -25,15 +35,6 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
-	"log"
-	"math/rand"
-	"net/http"
-	"net/url"
-	"os"
-	"path"
-	"reflect"
-	"strconv"
-	"strings"
 )
 
 type DiggerController struct {
@@ -105,7 +106,6 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 }
 
 func GithubAppSetup(c *gin.Context) {
-
 	type githubWebhook struct {
 		URL    string `json:"url"`
 		Active bool   `json:"active"`
@@ -243,10 +243,9 @@ func (d DiggerController) GithubSetupExchangeCode(c *gin.Context) {
 		"WebhookSecret": cfg.GetWebhookSecret(),
 		"URL":           cfg.GetHTMLURL(),
 	})
-
 }
 
-func createOrGetDiggerRepoForGithubRepo(ghRepoFullName string, ghRepoOrganisation string, ghRepoName string, ghRepoUrl string, installationId int64) (*model.Repo, *model.Organization, error) {
+func createOrGetDiggerRepoForGithubRepo(ghRepoFullName, ghRepoOrganisation, ghRepoName, ghRepoUrl string, installationId int64) (*model.Repo, *model.Organization, error) {
 	link, err := dbmodels.DB.GetGithubInstallationLinkForInstallationId(installationId)
 	if err != nil {
 		log.Printf("Error fetching installation link: %v", err)
@@ -322,7 +321,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
 	repoFullName := *payload.Repo.FullName
-	//cloneURL := *payload.Repo.CloneURL
+	// cloneURL := *payload.Repo.CloneURL
 	prNumber := *payload.PullRequest.Number
 	isDraft := payload.PullRequest.GetDraft()
 	commitSha := payload.PullRequest.Head.GetSHA()
@@ -491,14 +490,13 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	return nil
 }
 
-func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, repoOwner string, repoName string, batchId string, prNumber int, prService ci.PullRequestService, gh next_utils.GithubClientProvider) error {
+func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName, repoOwner, repoName, batchId string, prNumber int, prService ci.PullRequestService, gh next_utils.GithubClientProvider) error {
 	_, err := dbmodels.DB.GetDiggerBatch(batchId)
 	if err != nil {
 		log.Printf("failed to get digger batch, %v\n", err)
 		return fmt.Errorf("failed to get digger batch, %v\n", err)
 	}
 	diggerJobs, err := dbmodels.DB.GetPendingParentDiggerJobs(batchId)
-
 	if err != nil {
 		log.Printf("failed to get pending digger jobs, %v\n", err)
 		return fmt.Errorf("failed to get pending digger jobs, %v\n", err)
@@ -523,7 +521,7 @@ func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, rep
 	return nil
 }
 
-func getDiggerConfigForBranch(gh next_utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func getDiggerConfigForBranch(gh next_utils.GithubClientProvider, installationId int64, repoFullName, repoOwner, repoName, cloneUrl, branch string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	ghService, token, err := next_utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
@@ -559,7 +557,7 @@ func getDiggerConfigForBranch(gh next_utils.GithubClientProvider, installationId
 }
 
 // TODO: Refactor this func to receive ghService as input
-func getDiggerConfigForPR(gh next_utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, error) {
+func getDiggerConfigForPR(gh next_utils.GithubClientProvider, installationId int64, repoFullName, repoOwner, repoName, cloneUrl string, prNumber int) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], *string, *string, error) {
 	ghService, _, err := next_utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
@@ -583,7 +581,7 @@ func getDiggerConfigForPR(gh next_utils.GithubClientProvider, installationId int
 	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, nil
 }
 
-func GetRepoByInstllationId(installationId int64, repoOwner string, repoName string) (*model.Repo, error) {
+func GetRepoByInstllationId(installationId int64, repoOwner, repoName string) (*model.Repo, error) {
 	link, err := dbmodels.DB.GetGithubAppInstallationLink(installationId)
 	if err != nil {
 		log.Printf("Error getting GetGithubAppInstallationLink: %v", err)
@@ -613,7 +611,7 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
-	//setupAction := c.Request.URL.Query()["setup_action"][0]
+	// setupAction := c.Request.URL.Query()["setup_action"][0]
 	code := c.Request.URL.Query()["code"][0]
 	clientId := os.Getenv("GITHUB_APP_CLIENT_ID")
 	clientSecret := os.Getenv("GITHUB_APP_CLIENT_SECRET")
@@ -756,7 +754,7 @@ func (d DiggerController) GithubReposPage(c *gin.Context) {
 
 // why this validation is needed: https://roadie.io/blog/avoid-leaking-github-org-data/
 // validation based on https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app , step 3
-func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider, clientId string, clientSecret string, code string, installationId int64) (bool, *github.Installation, error) {
+func validateGithubCallback(githubClientProvider next_utils.GithubClientProvider, clientId, clientSecret, code string, installationId int64) (bool, *github.Installation, error) {
 	ctx := context.Background()
 	type OAuthAccessResponse struct {
 		AccessToken string `json:"access_token"`

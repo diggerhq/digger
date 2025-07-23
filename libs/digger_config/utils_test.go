@@ -1,8 +1,9 @@
 package digger_config
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMatchIncludeExcludePatternsToFile(t *testing.T) {
@@ -25,7 +26,6 @@ func TestMatchIncludeExcludePatternsToFile(t *testing.T) {
 	var ep []string
 	result = MatchIncludeExcludePatternsToFile("/projects/dev/test1", ip, ep)
 	assert.Equal(t, false, result)
-
 }
 
 func TestGetPatternsRelativeToRepo(t *testing.T) {
@@ -43,5 +43,4 @@ func TestGetPatternsRelativeToRepo(t *testing.T) {
 	includePatterns = []string{"*.hcl"}
 	res, _ = GetPatternsRelativeToRepo(projectDir, includePatterns)
 	assert.Equal(t, "myProject/terraform/environments/devel/*.hcl", res[0])
-
 }

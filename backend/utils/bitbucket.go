@@ -2,11 +2,12 @@ package utils
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"net/http"
 	"os"
 	"path"
+
+	"github.com/diggerhq/digger/libs/git_utils"
 
 	orchestrator_bitbucket "github.com/diggerhq/digger/libs/ci/bitbucket"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -25,7 +26,7 @@ func (b BitbucketClientProvider) NewClient(token string) (*bitbucket.Client, err
 	return client, nil
 }
 
-func GetBitbucketService(bb BitbucketProvider, token string, repoOwner string, repoName string, prNumber int) (*orchestrator_bitbucket.BitbucketAPI, error) {
+func GetBitbucketService(bb BitbucketProvider, token, repoOwner, repoName string, prNumber int) (*orchestrator_bitbucket.BitbucketAPI, error) {
 	slog.Debug("Creating Bitbucket service",
 		slog.Group("repository",
 			slog.String("owner", repoOwner),
@@ -34,7 +35,7 @@ func GetBitbucketService(bb BitbucketProvider, token string, repoOwner string, r
 		"prNumber", prNumber,
 	)
 
-	//token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
+	// token := os.Getenv("DIGGER_BITBUCKET_ACCESS_TOKEN")
 
 	//client, err := bb.NewClient(token)
 	//if err != nil {
@@ -54,7 +55,7 @@ func GetBitbucketService(bb BitbucketProvider, token string, repoOwner string, r
 	return &service, nil
 }
 
-func GetDiggerConfigForBitbucketBranch(bb BitbucketProvider, token string, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func GetDiggerConfigForBitbucketBranch(bb BitbucketProvider, token, repoFullName, repoOwner, repoName, cloneUrl, branch string, prNumber int) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	slog.Info("Getting Digger config for Bitbucket branch",
 		slog.Group("repository",
 			slog.String("fullName", repoFullName),
@@ -118,7 +119,6 @@ func GetDiggerConfigForBitbucketBranch(bb BitbucketProvider, token string, repoF
 		}
 		return nil
 	})
-
 	if err != nil {
 		slog.Error("Error cloning and loading config",
 			"repoFullName", repoFullName,

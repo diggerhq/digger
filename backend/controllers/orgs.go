@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/backend/middleware"
-	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/diggerhq/digger/backend/middleware"
+	"gorm.io/gorm"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
@@ -180,7 +181,6 @@ func AssociateTenantIdToDiggerOrg(c *gin.Context) {
 			slog.Debug("Processing JWT claims", "name", nameStr, "tenantId", tenantIdStr)
 
 			org, err := models.DB.GetOrganisation(tenantId)
-
 			if err != nil {
 				slog.Error("Failed to get organisation by tenantId", "tenantId", tenantIdStr, "error", err)
 				c.AbortWithStatus(http.StatusInternalServerError)

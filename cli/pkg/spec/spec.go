@@ -2,6 +2,11 @@ package spec
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+	"os/exec"
+	"time"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
@@ -9,10 +14,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/samber/lo"
-	"log/slog"
-	"os"
-	"os/exec"
-	"time"
 )
 
 func reportError(spec spec.Spec, backendApi backend2.Api, message string, err error) {
@@ -36,7 +37,6 @@ func RunSpec(
 	variablesProvider spec.VariablesProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
-
 	backendApi, err := backedProvider.GetBackendApi(spec.Backend)
 	if err != nil {
 		slog.Error("could not get backend api", "error", err)

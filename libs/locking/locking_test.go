@@ -1,9 +1,10 @@
 package locking
 
 import (
+	"testing"
+
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/orchestrator"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )

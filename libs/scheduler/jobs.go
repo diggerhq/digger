@@ -9,8 +9,10 @@ import (
 
 type IacType string
 
-var IacTypeTerraform IacType = "terraform"
-var IacTypePulumi IacType = "pulumi"
+var (
+	IacTypeTerraform IacType = "terraform"
+	IacTypePulumi    IacType = "pulumi"
+)
 
 type Job struct {
 	ProjectName        string
@@ -57,7 +59,6 @@ func ToConfigStep(configState configuration.Step) Step {
 		ExtraArgs: configState.ExtraArgs,
 		Shell:     configState.Shell,
 	}
-
 }
 
 func ToConfigStage(configStage *configuration.Stage) *Stage {

@@ -3,16 +3,17 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/model"
 	"github.com/diggerhq/digger/next/utils"
-	"log"
-	"os"
-	"strconv"
-	"strings"
 )
 
 func GetVCSTokenFromJob(job model.DiggerJob, gh utils.GithubClientProvider) (*string, error) {

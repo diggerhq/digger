@@ -1,13 +1,14 @@
 package controllers
 
 import (
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/ee/drift/middleware"
-	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/ee/drift/middleware"
+	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/gin-gonic/gin"
@@ -35,7 +36,6 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	var request SetJobStatusRequest
 
 	err := c.BindJSON(&request)
-
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
@@ -116,7 +116,7 @@ func (mc MainController) SetJobStatusForProject(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-func ProjectDriftStateMachineApply(project models.Project, tfplan string, resourcesCreated uint, resourcesUpdated uint, resourcesDeleted uint) error {
+func ProjectDriftStateMachineApply(project models.Project, tfplan string, resourcesCreated, resourcesUpdated, resourcesDeleted uint) error {
 	isEmptyPlan := resourcesCreated == 0 && resourcesUpdated == 0 && resourcesDeleted == 0
 	wasEmptyPlan := project.DriftToCreate == 0 && project.DriftToUpdate == 0 && project.DriftToDelete == 0
 	if isEmptyPlan {

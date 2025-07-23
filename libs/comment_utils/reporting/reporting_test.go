@@ -2,15 +2,16 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
 	"strconv"
+
+	"github.com/diggerhq/digger/libs/ci"
 )
 
 type MockCiService struct {
 	CommentsPerPr map[int][]*ci.Comment
 }
 
-func (t MockCiService) GetUserTeams(organisation string, user string) ([]string, error) {
+func (t MockCiService) GetUserTeams(organisation, user string) ([]string, error) {
 	return nil, nil
 }
 
@@ -21,8 +22,8 @@ func (t MockCiService) GetApprovals(prNumber int) ([]string, error) {
 func (t MockCiService) GetChangedFiles(prNumber int) ([]string, error) {
 	return nil, nil
 }
-func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 
+func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	latestId := 0
 
 	for _, comments := range t.CommentsPerPr {
@@ -43,15 +44,15 @@ func (t MockCiService) ListIssues() ([]*ci.Issue, error) {
 	return nil, fmt.Errorf("implement me")
 }
 
-func (t MockCiService) PublishIssue(title string, body string, labels *[]string) (int64, error) {
+func (t MockCiService) PublishIssue(title, body string, labels *[]string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (svc MockCiService) UpdateIssue(ID int64, title string, body string) (int64, error) {
+func (svc MockCiService) UpdateIssue(ID int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 
-func (t MockCiService) SetStatus(prNumber int, status string, statusContext string) error {
+func (t MockCiService) SetStatus(prNumber int, status, statusContext string) error {
 	return nil
 }
 
@@ -87,7 +88,7 @@ func (t MockCiService) GetComments(prNumber int) ([]ci.Comment, error) {
 	return comments, nil
 }
 
-func (t MockCiService) EditComment(prNumber int, id string, comment string) error {
+func (t MockCiService) EditComment(prNumber int, id, comment string) error {
 	for _, comments := range t.CommentsPerPr {
 		for _, c := range comments {
 			if c.Id == id {
@@ -103,7 +104,7 @@ func (svc MockCiService) DeleteComment(id string) error {
 	return nil
 }
 
-func (svc MockCiService) CreateCommentReaction(id string, reaction string) error {
+func (svc MockCiService) CreateCommentReaction(id, reaction string) error {
 	// TODO implement me
 	return nil
 }
@@ -112,6 +113,6 @@ func (svc MockCiService) GetBranchName(prNumber int) (string, string, error) {
 	return "", "", nil
 }
 
-func (svc MockCiService) SetOutput(prNumber int, key string, value string) error {
+func (svc MockCiService) SetOutput(prNumber int, key, value string) error {
 	return nil
 }

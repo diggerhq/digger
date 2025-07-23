@@ -49,7 +49,6 @@ func ListProjectsApi(c *gin.Context) {
 		Where("projects.organisation_id = ?", org.ID).
 		Order("name").
 		Find(&projects).Error
-
 	if err != nil {
 		slog.Error("Error fetching projects", "organisationId", organisationId, "orgId", org.ID, "error", err)
 		c.String(http.StatusInternalServerError, "Unknown error occurred while fetching database")
@@ -269,7 +268,6 @@ func FindProjectsForOrg(c *gin.Context) {
 		Order("repos.repo_full_name").
 		Order("name").
 		Find(&projects).Error
-
 	if err != nil {
 		slog.Error("Error fetching projects for organisation",
 			"orgId", org.ID,
@@ -428,7 +426,6 @@ func ReportProjectsForRepo(c *gin.Context) {
 	var repo models.Repo
 
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ?", repoName, orgId).First(&repo).Error
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			slog.Info("Repository not found, creating new one",
@@ -443,7 +440,6 @@ func ReportProjectsForRepo(c *gin.Context) {
 			}
 
 			err = models.DB.GormDB.Create(&repo).Error
-
 			if err != nil {
 				slog.Error("Error creating repository",
 					"repoName", repoName,
@@ -489,7 +485,6 @@ func ReportProjectsForRepo(c *gin.Context) {
 			}
 
 			err = models.DB.GormDB.Create(&project).Error
-
 			if err != nil {
 				slog.Error("Error creating project",
 					"projectName", request.Name,
@@ -559,7 +554,6 @@ func RunHistoryForProject(c *gin.Context) {
 	var repo models.Repo
 
 	err = models.DB.GormDB.Where("name = ? AND organisation_id = ?", repoName, orgId).First(&repo).Error
-
 	if err != nil {
 		slog.Error("Error fetching repository",
 			"repoName", repoName,
@@ -573,7 +567,6 @@ func RunHistoryForProject(c *gin.Context) {
 	var project models.Project
 
 	err = models.DB.GormDB.Where("name = ? AND repo_id = ? AND organisation_id = ?", projectName, repo.ID, org.ID).First(&project).Error
-
 	if err != nil {
 		slog.Error("Error fetching project",
 			"projectName", projectName,
@@ -587,7 +580,6 @@ func RunHistoryForProject(c *gin.Context) {
 	var runHistory []models.ProjectRun
 
 	err = models.DB.GormDB.Where("project_id = ?", project.ID).Find(&runHistory).Error
-
 	if err != nil {
 		slog.Error("Error fetching run history",
 			"projectId", project.ID,
@@ -637,7 +629,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 	var request SetJobStatusRequest
 	err := c.BindJSON(&request)
-
 	if err != nil {
 		slog.Error("Error binding JSON request", "jobId", jobId, "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error binding JSON"})
@@ -1406,7 +1397,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 			"jobCount", len(jobs),
 		)
 
-		var terraformOutputs = ""
+		terraformOutputs := ""
 		for _, job := range jobs {
 			var jobSpec orchestrator_scheduler.JobJson
 			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)

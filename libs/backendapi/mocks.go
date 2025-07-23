@@ -1,23 +1,23 @@
 package backendapi
 
 import (
+	"time"
+
 	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"time"
 )
 
-type MockBackendApi struct {
-}
+type MockBackendApi struct{}
 
-func (t MockBackendApi) ReportProject(namespace string, projectName string, configuration string) error {
+func (t MockBackendApi) ReportProject(namespace, projectName, configuration string) error {
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectRun(repo string, projectName string, startedAt time.Time, endedAt time.Time, status string, command string, output string) error {
+func (t MockBackendApi) ReportProjectRun(repo, projectName string, startedAt, endedAt time.Time, status, command, output string) error {
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, PrCommentId string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+func (t MockBackendApi) ReportProjectJobStatus(repo, projectName, jobId, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson, PrCommentUrl, PrCommentId, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 

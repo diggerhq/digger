@@ -176,7 +176,6 @@ func upsertPolicyForOrg(c *gin.Context, policyType string) {
 			Type:           policyType,
 			Policy:         string(policyData),
 		}).Error
-
 		if err != nil {
 			slog.Error("Error creating policy", "organisation", organisation, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error creating policy")
@@ -317,7 +316,6 @@ func IssueAccessTokenForOrg(c *gin.Context) {
 		OrganisationID: org.ID,
 		Type:           models.AccessPolicyType,
 	}).Error
-
 	if err != nil {
 		slog.Error("Error creating token", "orgId", org.ID, "error", err)
 		c.String(http.StatusInternalServerError, "Unexpected error")
@@ -329,7 +327,6 @@ func IssueAccessTokenForOrg(c *gin.Context) {
 }
 
 func loadDiggerConfig(configYaml *dg_configuration.DiggerConfigYaml) (*dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
-
 	err := dg_configuration.ValidateDiggerConfigYaml(configYaml, "loaded config")
 	if err != nil {
 		slog.Error("Error validating config", "error", err)
@@ -343,7 +340,6 @@ func loadDiggerConfig(configYaml *dg_configuration.DiggerConfigYaml) (*dg_config
 	}
 
 	err = dg_configuration.ValidateDiggerConfig(config)
-
 	if err != nil {
 		slog.Error("Error validating converted config", "error", err)
 		return nil, nil, fmt.Errorf("error validating config: %v", err)

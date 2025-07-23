@@ -15,9 +15,7 @@ const (
 	TABLE_NAME = "DIGGERLOCK"
 )
 
-var (
-	SERVICE_URL_FORMAT = "https://%s.table.core.windows.net"
-)
+var SERVICE_URL_FORMAT = "https://%s.table.core.windows.net"
 
 type StorageAccount struct {
 	tableClient *aztables.Client

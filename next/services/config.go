@@ -2,14 +2,15 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	utils3 "github.com/diggerhq/digger/libs/git_utils"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/utils"
-	"log"
 )
 
-func GetWorkflowsForRepoAndBranch(gh utils.GithubClientProvider, repoId int64, branch string, commitHash string) (map[string]dg_configuration.Workflow, error) {
+func GetWorkflowsForRepoAndBranch(gh utils.GithubClientProvider, repoId int64, branch, commitHash string) (map[string]dg_configuration.Workflow, error) {
 	r := dbmodels.DB.Query.Repo
 	repo, err := dbmodels.DB.Query.Repo.Where(r.ID.Eq(repoId)).First()
 	if err != nil {
@@ -53,7 +54,6 @@ func GetWorkflowsForRepoAndBranch(gh utils.GithubClientProvider, repoId int64, b
 		}
 		return nil
 	})
-
 	if err != nil {
 		log.Printf("could not load digger config :%v", err)
 		return nil, fmt.Errorf("could not load digger config :%v", err)

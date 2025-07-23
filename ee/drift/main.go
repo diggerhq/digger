@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	utils2 "github.com/diggerhq/digger/backend/utils"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/diggerhq/digger/backend/models"
+	utils2 "github.com/diggerhq/digger/backend/utils"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/drift/controllers"
@@ -42,7 +43,6 @@ func init() {
 var Version = "dev"
 
 func main() {
-
 	sentryDsn := os.Getenv("SENTRY_DSN")
 	if sentryDsn != "" {
 		if err := sentry.Init(sentry.ClientOptions{
@@ -84,8 +84,8 @@ func main() {
 			"commit_sha": Version,
 		})
 	})
-	//authorized := r.Group("/")
-	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
+	// authorized := r.Group("/")
+	// authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 
 	r.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", middleware.JobTokenAuth(), controller.SetJobStatusForProject)
 
@@ -102,5 +102,4 @@ func main() {
 		port = "3000"
 	}
 	r.Run(fmt.Sprintf(":%v", port))
-
 }

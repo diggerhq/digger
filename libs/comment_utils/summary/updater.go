@@ -14,8 +14,7 @@ type CommentUpdater interface {
 	UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error
 }
 
-type BasicCommentUpdater struct {
-}
+type BasicCommentUpdater struct{}
 
 func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
 	jobSpecs, err := scheduler.GetJobSpecs(jobs)
@@ -41,13 +40,13 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	for i, job := range jobs {
 		jobSpec := jobSpecs[i]
 		prCommentUrl := job.PRCommentUrl
-		
+
 		// Safe handling of WorkflowRunUrl pointer
 		workflowUrl := "#"
 		if job.WorkflowRunUrl != nil {
 			workflowUrl = *job.WorkflowRunUrl
 		}
-		
+
 		message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>%v</a> | %v | %v | %v|\n",
 			job.Status.ToEmoji(),
 			jobSpec.ProjectName,
@@ -89,8 +88,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	return nil
 }
 
-type NoopCommentUpdater struct {
-}
+type NoopCommentUpdater struct{}
 
 func (b NoopCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
 	slog.Debug("noop comment updater called, no action taken",

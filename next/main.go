@@ -3,6 +3,12 @@ package main
 import (
 	"embed"
 	"fmt"
+	"io/fs"
+	"log"
+	"log/slog"
+	"net/http"
+	"os"
+
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/next/ci_backends"
 	controllers "github.com/diggerhq/digger/next/controllers"
@@ -13,11 +19,6 @@ import (
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	sloggin "github.com/samber/slog-gin"
-	"io/fs"
-	"log"
-	"log/slog"
-	"net/http"
-	"os"
 )
 
 //go:embed templates
@@ -32,7 +33,6 @@ func init() {
 var Version = "dev"
 
 func main() {
-
 	sentryDsn := os.Getenv("SENTRY_DSN")
 	if sentryDsn != "" {
 		if err := sentry.Init(sentry.ClientOptions{
@@ -96,11 +96,10 @@ func main() {
 	r.POST("/_internal/trigger_drift", middleware.WebhookAuth(), diggerController.TriggerDriftDetectionForProject)
 	r.POST("/_internal/runs", middleware.WebhookAuth(), diggerController.TriggerRunForProjectAssumingUser)
 
-	//authorized := r.Group("/")
-	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
+	// authorized := r.Group("/")
+	// authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 
 	r.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", middleware.JobTokenAuth(), diggerController.SetJobStatusForProject)
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
-
 }

@@ -2,9 +2,10 @@ package drift
 
 import (
 	"fmt"
+	"log"
+
 	orchestrator "github.com/diggerhq/digger/libs/ci"
 	"github.com/samber/lo"
-	"log"
 )
 
 type GithubIssueNotification struct {
@@ -12,7 +13,7 @@ type GithubIssueNotification struct {
 	RelatedPrNumber *int64
 }
 
-func (ghi GithubIssueNotification) Send(projectName string, plan string) error {
+func (ghi GithubIssueNotification) Send(projectName, plan string) error {
 	log.Printf("Info: Sending drift notification regarding project: %v", projectName)
 	title := fmt.Sprintf("Drift detected in project: %v", projectName)
 	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)

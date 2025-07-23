@@ -83,7 +83,7 @@ func RunQueuesStateMachine(queueItem *models.DiggerRunQueueItem, service ci.Pull
 		slog.Info("checking plan status", runContext)
 
 		// Check the status of the batch
-		batchStatus := orchestrator_scheduler.BatchJobSucceeded //dr.PlanStage.Batch.Status
+		batchStatus := orchestrator_scheduler.BatchJobSucceeded // dr.PlanStage.Batch.Status
 		approvalRequired := true
 
 		// if failed then go straight to failed

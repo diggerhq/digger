@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+
 	"github.com/diggerhq/digger/backend/models"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	utils3 "github.com/diggerhq/digger/libs/git_utils"
-	"log/slog"
-	"os"
 )
 
 func init() {
@@ -64,5 +65,4 @@ func main() {
 		slog.Error("error while cloning repo: %v", err)
 		os.Exit(1)
 	}
-
 }

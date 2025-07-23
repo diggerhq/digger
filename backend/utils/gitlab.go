@@ -2,10 +2,11 @@ package utils
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"os"
 	"path"
+
+	"github.com/diggerhq/digger/libs/git_utils"
 
 	orchestrator_gitlab "github.com/diggerhq/digger/libs/ci/gitlab"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -32,7 +33,7 @@ func (g GitlabClientProvider) NewClient(token string) (*gitlab.Client, error) {
 	}
 }
 
-func GetGitlabService(gh GitlabProvider, projectId int, repoName string, repoFullName string, prNumber int, discussionId string) (*orchestrator_gitlab.GitLabService, error) {
+func GetGitlabService(gh GitlabProvider, projectId int, repoName, repoFullName string, prNumber int, discussionId string) (*orchestrator_gitlab.GitLabService, error) {
 	slog.Debug("Getting GitLab service",
 		slog.Group("repository",
 			slog.String("name", repoName),
@@ -68,7 +69,7 @@ func GetGitlabService(gh GitlabProvider, projectId int, repoName string, repoFul
 	return &service, nil
 }
 
-func GetDiggerConfigForBranchGitlab(gh GitlabProvider, projectId int, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, prNumber int, discussionId string) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func GetDiggerConfigForBranchGitlab(gh GitlabProvider, projectId int, repoFullName, repoOwner, repoName, cloneUrl, branch string, prNumber int, discussionId string) (string, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	slog.Info("Getting Digger config for GitLab branch",
 		slog.Group("repository",
 			slog.String("fullName", repoFullName),
@@ -142,7 +143,6 @@ func GetDiggerConfigForBranchGitlab(gh GitlabProvider, projectId int, repoFullNa
 		}
 		return nil
 	})
-
 	if err != nil {
 		slog.Error("Failed to clone and load config",
 			"projectId", projectId,

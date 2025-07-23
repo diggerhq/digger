@@ -97,7 +97,7 @@ func (e *EnvProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	slog.Debug("Retrieving AWS credentials from environment")
 
 	e.retrieved = false
-	//assign id from env vars
+	// assign id from env vars
 	idEnvVars := []string{"DIGGER_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY"}
 	id, err := assignEnv(idEnvVars)
 	if err != nil {
@@ -106,7 +106,7 @@ func (e *EnvProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 		return aws.Credentials{}, ErrAccessKeyIDNotFound
 	}
 
-	//assign secret from env vars
+	// assign secret from env vars
 	secretEnvVars := []string{"DIGGER_AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY", "AWS_SECRET_KEY"}
 	secret, err := assignEnv(secretEnvVars)
 	if err != nil {

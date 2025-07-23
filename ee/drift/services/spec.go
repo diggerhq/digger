@@ -2,10 +2,11 @@ package services
 
 import (
 	"fmt"
+	"os"
+
 	utils2 "github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/ee/drift/utils"
 	"github.com/diggerhq/digger/libs/spec"
-	"os"
 )
 
 func GetRunNameFromJob(spec spec.Spec) (*string, error) {
@@ -13,14 +14,14 @@ func GetRunNameFromJob(spec spec.Spec) (*string, error) {
 	diggerCommand := fmt.Sprintf("digger %v", jobSpec.JobType)
 	jobIdShort := spec.JobId[:8]
 	projectName := jobSpec.ProjectName
-	//requestedBy := jobSpec.RequestedBy
-	//prNumber := *jobSpec.PullRequestNumber
+	// requestedBy := jobSpec.RequestedBy
+	// prNumber := *jobSpec.PullRequestNumber
 
 	runName := fmt.Sprintf("[%v] %v %v (drift)", jobIdShort, diggerCommand, projectName)
 	return &runName, nil
 }
 
-func GetVCSToken(vcsType string, repoFullName string, repoOwner string, repoName string, installationId int64, gh utils2.GithubClientProvider) (*string, error) {
+func GetVCSToken(vcsType, repoFullName, repoOwner, repoName string, installationId int64, gh utils2.GithubClientProvider) (*string, error) {
 	var token string
 	switch vcsType {
 	case "github":

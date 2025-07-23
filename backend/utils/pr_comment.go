@@ -96,7 +96,7 @@ func InitCommentReporter(prService ci.PullRequestService, prNumber int, commentM
 		return nil, fmt.Errorf("count not initialize comment reporter: %v", err)
 	}
 
-	//commentId, err := strconv.ParseInt(fmt.Sprintf("%v", comment.Id), 10, 64)
+	// commentId, err := strconv.ParseInt(fmt.Sprintf("%v", comment.Id), 10, 64)
 	if err != nil {
 		slog.Error("Could not convert comment ID to int64", "commentId", comment.Id, "error", err)
 		return nil, fmt.Errorf("could not convert to int64, %v", err)

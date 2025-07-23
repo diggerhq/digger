@@ -19,12 +19,12 @@ import (
 )
 
 type GithubServiceProvider interface {
-	NewService(ghToken string, repoName string, owner string) (GithubService, error)
+	NewService(ghToken, repoName, owner string) (GithubService, error)
 }
 
 type GithubServiceProviderBasic struct{}
 
-func (_ GithubServiceProviderBasic) NewService(ghToken string, repoName string, owner string) (GithubService, error) {
+func (_ GithubServiceProviderBasic) NewService(ghToken, repoName, owner string) (GithubService, error) {
 	client := github.NewClient(nil)
 	if ghToken != "" {
 		client = client.WithAuthToken(ghToken)
@@ -43,7 +43,7 @@ type GithubService struct {
 	Owner    string
 }
 
-func (svc GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
+func (svc GithubService) GetUserTeams(organisation, user string) ([]string, error) {
 	teamsResponse, _, err := svc.Client.Teams.ListTeams(context.Background(), organisation, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list github teams: %v", err)
@@ -86,7 +86,7 @@ func (svc GithubService) GetChangedFiles(prNumber int) ([]string, error) {
 	return fileNames, nil
 }
 
-func (svc GithubService) GetChangedFilesForCommit(owner string, repo string, commitID string) ([]string, error) {
+func (svc GithubService) GetChangedFilesForCommit(owner, repo, commitID string) ([]string, error) {
 	var fileNames []string
 	opts := github.ListOptions{PerPage: 100}
 
@@ -139,7 +139,7 @@ func (svc GithubService) ListIssues() ([]*ci.Issue, error) {
 	return allIssues, nil
 }
 
-func (svc GithubService) PublishIssue(title string, body string, labels *[]string) (int64, error) {
+func (svc GithubService) PublishIssue(title, body string, labels *[]string) (int64, error) {
 	githubissue, _, err := svc.Client.Issues.Create(context.Background(), svc.Owner, svc.RepoName, &github.IssueRequest{Title: &title, Body: &body, Labels: labels})
 	if err != nil {
 		return 0, fmt.Errorf("could not publish issue: %v", err)
@@ -147,7 +147,7 @@ func (svc GithubService) PublishIssue(title string, body string, labels *[]strin
 	return *githubissue.ID, err
 }
 
-func (svc GithubService) UpdateIssue(ID int64, title string, body string) (int64, error) {
+func (svc GithubService) UpdateIssue(ID int64, title, body string) (int64, error) {
 	githubissue, _, err := svc.Client.Issues.Edit(context.Background(), svc.Owner, svc.RepoName, int(ID), &github.IssueRequest{Title: &title, Body: &body})
 	if err != nil {
 		return 0, fmt.Errorf("could not edit issue: %v", err)
@@ -191,7 +191,7 @@ func (svc GithubService) GetApprovals(prNumber int) ([]string, error) {
 	return approvals, err
 }
 
-func (svc GithubService) EditComment(prNumber int, id string, comment string) error {
+func (svc GithubService) EditComment(prNumber int, id, comment string) error {
 	commentId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return fmt.Errorf("could not convert id %v to i64: %v", id, err)
@@ -211,16 +211,18 @@ func (svc GithubService) DeleteComment(id string) error {
 
 type GithubCommentReaction string
 
-const GithubCommentPlusOneReaction GithubCommentReaction = "+1"
-const GithubCommentMinusOneReaction GithubCommentReaction = "-1"
-const GithubCommentLaughReaction GithubCommentReaction = "laugh"
-const GithubCommentConfusedReaction GithubCommentReaction = "confused"
-const GithubCommentHeartReaction GithubCommentReaction = "heart"
-const GithubCommentHoorayReaction GithubCommentReaction = "hooray"
-const GithubCommentRocketReaction GithubCommentReaction = "rocket"
-const GithubCommentEyesReaction GithubCommentReaction = "eyes"
+const (
+	GithubCommentPlusOneReaction  GithubCommentReaction = "+1"
+	GithubCommentMinusOneReaction GithubCommentReaction = "-1"
+	GithubCommentLaughReaction    GithubCommentReaction = "laugh"
+	GithubCommentConfusedReaction GithubCommentReaction = "confused"
+	GithubCommentHeartReaction    GithubCommentReaction = "heart"
+	GithubCommentHoorayReaction   GithubCommentReaction = "hooray"
+	GithubCommentRocketReaction   GithubCommentReaction = "rocket"
+	GithubCommentEyesReaction     GithubCommentReaction = "eyes"
+)
 
-func (svc GithubService) CreateCommentReaction(id string, reaction string) error {
+func (svc GithubService) CreateCommentReaction(id, reaction string) error {
 	commentId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return fmt.Errorf("could not convert id %v to i64: %v", id, err)
@@ -243,7 +245,7 @@ func (svc GithubService) IsPullRequest(PrNumber int) (bool, error) {
 	return issue.IsPullRequest(), nil
 }
 
-func (svc GithubService) SetStatus(prNumber int, status string, statusContext string) error {
+func (svc GithubService) SetStatus(prNumber int, status, statusContext string) error {
 	// we have to check if prNumber is an issue or not
 	isPullRequest, err := svc.IsPullRequest(prNumber)
 	if err != nil {
@@ -392,12 +394,12 @@ func (svc GithubService) IsClosed(prNumber int) (bool, error) {
 	return pr.GetState() == "closed", nil
 }
 
-func (svc GithubService) SetOutput(prNumber int, key string, value string) error {
+func (svc GithubService) SetOutput(prNumber int, key, value string) error {
 	gout := os.Getenv("GITHUB_ENV")
 	if gout == "" {
 		return fmt.Errorf("GITHUB_ENV not set, could not set the output in digger step")
 	}
-	f, err := os.OpenFile(gout, os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(gout, os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("could not open file for writing during digger step")
 	}
@@ -631,7 +633,6 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			"action", *event.Action)
 
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
@@ -649,7 +650,6 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			"comment", *event.Comment.Body)
 
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
@@ -702,7 +702,6 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 		"action", *payload.Action)
 
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 	if err != nil {
 		slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 		return nil, nil, prNumber, fmt.Errorf("could not get changed files")

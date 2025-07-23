@@ -5,16 +5,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/dineshba/tf-summarize/terraformstate"
 	"github.com/dineshba/tf-summarize/writer"
 	tfjson "github.com/hashicorp/terraform-json"
 	"github.com/samber/lo"
-	"regexp"
-	"strings"
 )
 
-type TerraformUtils struct {
-}
+type TerraformUtils struct{}
 
 func parseTerraformPlanOutput(terraformJson string) (*tfjson.Plan, error) {
 	var plan tfjson.Plan
@@ -102,7 +102,7 @@ func (tu TerraformUtils) GetPlanFootprint(planJson string) (*IacPlanFootprint, e
 	return &footprint, nil
 }
 
-func (tu TerraformUtils) PerformPlanSimilarityCheck(footprint1 IacPlanFootprint, footprint2 IacPlanFootprint) (bool, error) {
+func (tu TerraformUtils) PerformPlanSimilarityCheck(footprint1, footprint2 IacPlanFootprint) (bool, error) {
 	return footprint1.hash() == footprint2.hash(), nil
 }
 
@@ -117,7 +117,6 @@ func (tu TerraformUtils) SimilarityCheck(footprints []IacPlanFootprint) (bool, e
 		return footprint == footprintHashes[0]
 	})
 	return allSimilar, nil
-
 }
 
 func (tu TerraformUtils) GetSummarizePlan(planJson string) (string, error) {

@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 )
 
 type PlanStorageAzure struct {
@@ -18,7 +18,7 @@ type PlanStorageAzure struct {
 	Context       context.Context
 }
 
-func (psa *PlanStorageAzure) PlanExists(artifactName string, storedPlanFilePath string) (bool, error) {
+func (psa *PlanStorageAzure) PlanExists(artifactName, storedPlanFilePath string) (bool, error) {
 	slog.Debug("Checking if plan exists in Azure Blob Storage",
 		"container", psa.ContainerName,
 		"path", storedPlanFilePath,
@@ -52,7 +52,7 @@ func (psa *PlanStorageAzure) PlanExists(artifactName string, storedPlanFilePath 
 	return true, nil
 }
 
-func (psa *PlanStorageAzure) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
+func (psa *PlanStorageAzure) StorePlanFile(fileContents []byte, artifactName, fileName string) error {
 	slog.Debug("Storing plan file in Azure Blob Storage",
 		"container", psa.ContainerName,
 		"path", fileName,
@@ -66,7 +66,6 @@ func (psa *PlanStorageAzure) StorePlanFile(fileContents []byte, artifactName str
 		fileContents,
 		&azblob.UploadBufferOptions{},
 	)
-	
 	if err != nil {
 		slog.Error("Failed to write file to Azure Blob Storage",
 			"container", psa.ContainerName,
@@ -81,7 +80,7 @@ func (psa *PlanStorageAzure) StorePlanFile(fileContents []byte, artifactName str
 	return nil
 }
 
-func (psa *PlanStorageAzure) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
+func (psa *PlanStorageAzure) RetrievePlan(localPlanFilePath, artifactName, storedPlanFilePath string) (*string, error) {
 	slog.Debug("Retrieving plan from Azure Blob Storage",
 		"container", psa.ContainerName,
 		"path", storedPlanFilePath,
@@ -127,7 +126,7 @@ func (psa *PlanStorageAzure) RetrievePlan(localPlanFilePath string, artifactName
 	return &fileName, nil
 }
 
-func (psa *PlanStorageAzure) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
+func (psa *PlanStorageAzure) DeleteStoredPlan(artifactName, storedPlanFilePath string) error {
 	slog.Debug("Deleting stored plan from Azure Blob Storage",
 		"container", psa.ContainerName,
 		"path", storedPlanFilePath,
@@ -139,7 +138,6 @@ func (psa *PlanStorageAzure) DeleteStoredPlan(artifactName string, storedPlanFil
 		storedPlanFilePath,
 		&azblob.DeleteBlobOptions{},
 	)
-
 	if err != nil {
 		slog.Error("Unable to delete file from Azure Blob Storage",
 			"container", psa.ContainerName,

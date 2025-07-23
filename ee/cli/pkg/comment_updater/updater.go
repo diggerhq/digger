@@ -3,14 +3,14 @@ package comment_updater
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/scheduler"
 )
 
-type AdvancedCommentUpdater struct {
-}
+type AdvancedCommentUpdater struct{}
 
 func DriftSummaryString(projectName string, issuesMap *map[string]*ci.Issue) string {
 	driftStatusForProject := (*issuesMap)[projectName]
@@ -22,7 +22,6 @@ func DriftSummaryString(projectName string, issuesMap *map[string]*ci.Issue) str
 }
 
 func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error {
-
 	issuesMap, err := getDriftStatusesFromPRIssues(jobs, prService)
 	if err != nil {
 		return fmt.Errorf("error while fetching drift status: %v", err)

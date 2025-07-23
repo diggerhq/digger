@@ -3,6 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+	"runtime/debug"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/cli/pkg/github"
@@ -13,13 +17,9 @@ import (
 	"github.com/diggerhq/digger/libs/policy"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
-	"log/slog"
-	"os"
-	"runtime/debug"
 )
 
 func initLogger() {
-
 	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
 	var level slog.Leveler
 	if logLevel == "DEBUG" {
@@ -34,7 +34,6 @@ func initLogger() {
 	}))
 
 	slog.SetDefault(logger)
-
 }
 
 var defaultCmd = &cobra.Command{
@@ -70,7 +69,7 @@ var defaultCmd = &cobra.Command{
 			usage.ReportErrorAndExit(spec.VCS.Actor, "Successfully ran spec", 0)
 		}
 
-		var logLeader = "Unknown CI"
+		logLeader := "Unknown CI"
 		ci := digger.DetectCI()
 
 		switch ci {

@@ -23,6 +23,7 @@ type AwsRoleProviderMock struct {
 
 // Mock client for testing cognito token retrieval
 type MockCognitoClient struct{}
+
 func (m *MockCognitoClient) GetId(ctx context.Context, params *cognitoidentity.GetIdInput, optFns ...func(*cognitoidentity.Options)) (*cognitoidentity.GetIdOutput, error) {
 	if params.IdentityPoolId == nil || *params.IdentityPoolId == "" {
 		return nil, errors.New("IdentityPoolId is required")
@@ -32,6 +33,7 @@ func (m *MockCognitoClient) GetId(ctx context.Context, params *cognitoidentity.G
 		IdentityId: aws.String("mock-identity-id"),
 	}, nil
 }
+
 func (m *MockCognitoClient) GetCredentialsForIdentity(ctx context.Context, params *cognitoidentity.GetCredentialsForIdentityInput, optFns ...func(*cognitoidentity.Options)) (*cognitoidentity.GetCredentialsForIdentityOutput, error) {
 	if params.IdentityId == nil || *params.IdentityId == "" {
 		return nil, errors.New("IdentityId is required")
@@ -46,20 +48,20 @@ func (m *MockCognitoClient) GetCredentialsForIdentity(ctx context.Context, param
 	}, nil
 }
 
-type MockTokenFetcher struct {}
-func (m *MockTokenFetcher) SetAudience(audience string) {} 
+type MockTokenFetcher struct{}
+
+func (m *MockTokenFetcher) SetAudience(audience string) {}
 func (m *MockTokenFetcher) GetIdentityToken() ([]byte, error) {
 	return []byte("mock-identity-token"), nil
 }
-
 
 func setupCognitoMocks() (*MockCognitoClient, *MockTokenFetcher) {
 	client := MockCognitoClient{}
 	tokenFetcher := MockTokenFetcher{}
 	defaultCognitoClient = &client
 	defaultTokenFetcher = &tokenFetcher
-	defaultLoadConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) (error)) (cfg aws.Config, err error) {
-		return aws.Config{}, nil   // Mock the aws.Config struct
+	defaultLoadConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (cfg aws.Config, err error) {
+		return aws.Config{}, nil // Mock the aws.Config struct
 	}
 	return &client, &tokenFetcher
 }
@@ -136,36 +138,35 @@ func TestPopulationForNoAwsRoleToAssumeDoesNotSetValueOfKeys(t *testing.T) {
 }
 
 func TestGetCognitoTokenGetsCreds(t *testing.T) {
-
-	setupCognitoMocks()	
+	setupCognitoMocks()
 	mockProject := digger_config.Project{
 		AwsCognitoOidcConfig: &digger_config.AwsCognitoOidcConfig{
 			CognitoPoolId: "mock-identity-pool-id",
-			AwsAccountId: "mock-aws-account-id",
-			AwsRegion: "mock-aws-region",
+			AwsAccountId:  "mock-aws-account-id",
+			AwsRegion:     "mock-aws-region",
 		},
 	}
 
 	credentials, err := GetCognitoToken(*mockProject.AwsCognitoOidcConfig, "token.actions.githubusercontent.com")
 	assert.Nil(t, err)
 	assert.Equal(t, credentials, map[string]string{
-		"AWS_ACCESS_KEY_ID":  		"mock-access-key-id",
-		"AWS_SECRET_ACCESS_KEY": 	"mock-secret-access-key",
-		"AWS_SESSION_TOKEN":   		"mock-session-token",
-	});
+		"AWS_ACCESS_KEY_ID":     "mock-access-key-id",
+		"AWS_SECRET_ACCESS_KEY": "mock-secret-access-key",
+		"AWS_SESSION_TOKEN":     "mock-session-token",
+	})
 
 	t.Cleanup(func() {
 		defaultCognitoClient = nil
 		defaultTokenFetcher = nil
-	})	
+	})
 }
 
 func TestGetCognitoTokenReturnsErrorForMissingPoolId(t *testing.T) {
 	setupCognitoMocks()
 	mockProject := digger_config.Project{
-		AwsCognitoOidcConfig: &digger_config.AwsCognitoOidcConfig{			
+		AwsCognitoOidcConfig: &digger_config.AwsCognitoOidcConfig{
 			AwsAccountId: "mock-aws-account-id",
-			AwsRegion: "mock-aws-region",
+			AwsRegion:    "mock-aws-region",
 		},
 	}
 
@@ -179,7 +180,7 @@ func TestGetCognitoTokenReturnsErrorForMissingAccountId(t *testing.T) {
 	mockProject := digger_config.Project{
 		AwsCognitoOidcConfig: &digger_config.AwsCognitoOidcConfig{
 			CognitoPoolId: "mock-identity-pool-id",
-			AwsRegion: "mock-aws-region",
+			AwsRegion:     "mock-aws-region",
 		},
 	}
 
@@ -193,7 +194,7 @@ func TestGetCognitoTokenReturnsErrorForMissingRegion(t *testing.T) {
 	mockProject := digger_config.Project{
 		AwsCognitoOidcConfig: &digger_config.AwsCognitoOidcConfig{
 			CognitoPoolId: "mock-identity-pool-id",
-			AwsAccountId: "mock-aws-account-id",
+			AwsAccountId:  "mock-aws-account-id",
 		},
 	}
 
@@ -203,46 +204,42 @@ func TestGetCognitoTokenReturnsErrorForMissingRegion(t *testing.T) {
 }
 
 func TestParseRegionFromPoolId(t *testing.T) {
-	region := parseRegionFromPoolId("us-east-1:00000000-0000-0000-0000-000000000000") // this is a fake guid generated locally. 
+	region := parseRegionFromPoolId("us-east-1:00000000-0000-0000-0000-000000000000") // this is a fake guid generated locally.
 	assert.Equal(t, region, "us-east-1")
 }
 
 func TestGetAuthStrategyDefault(t *testing.T) {
-
 	job := Job{
 		ProjectName: "test-project",
-		ProjectDir: "/tmp/test-project",		
+		ProjectDir:  "/tmp/test-project",
 	}
-		
+
 	strategy := job.GetAuthStrategy()
 	assert.Equal(t, strategy, BackendConfig)
 }
 
 func TestGetAuthStrategyCognito(t *testing.T) {
-	
 	job := Job{
 		ProjectName: "test-project",
-		ProjectDir: "/tmp/test-project",
+		ProjectDir:  "/tmp/test-project",
 		CognitoOidcConfig: &digger_config.AwsCognitoOidcConfig{
 			CognitoPoolId: "mock-identity-pool-id",
-			AwsAccountId: "mock-aws-account-id",
-			AwsRegion: "mock-aws-region",
+			AwsAccountId:  "mock-aws-account-id",
+			AwsRegion:     "mock-aws-region",
 		},
 	}
-		
+
 	strategy := job.GetAuthStrategy()
 	assert.Equal(t, strategy, Cognito)
 }
 
 func TestGetAuthStrategyTerragrunt(t *testing.T) {
-
 	job := Job{
 		ProjectName: "test-project",
-		ProjectDir: "/tmp/test-project",
-		Terragrunt: true,
+		ProjectDir:  "/tmp/test-project",
+		Terragrunt:  true,
 	}
-		
+
 	strategy := job.GetAuthStrategy()
 	assert.Equal(t, strategy, Terragrunt)
 }
-

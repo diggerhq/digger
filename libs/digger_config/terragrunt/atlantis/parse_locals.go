@@ -5,6 +5,8 @@ package atlantis
 // parses the `locals` blocks and evaluates their contents.
 
 import (
+	"path/filepath"
+
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -12,8 +14,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/zclconf/go-cty/cty"
-
-	"path/filepath"
 )
 
 // ResolvedLocals are the parsed result of local values this module cares about
@@ -41,7 +41,7 @@ type ResolvedLocals struct {
 }
 
 // parseHcl uses the HCL2 parser to parse the given string into an HCL file body.
-func parseHcl(parser *hclparse.Parser, hcl string, filename string) (file *hcl.File, err error) {
+func parseHcl(parser *hclparse.Parser, hcl, filename string) (file *hcl.File, err error) {
 	// The HCL2 parser and especially cty conversions will panic in many types of errors, so we have to recover from
 	// those panics here and convert them to normal errors
 	defer func() {
@@ -68,7 +68,7 @@ func parseHcl(parser *hclparse.Parser, hcl string, filename string) (file *hcl.F
 }
 
 // Merges in values from a child into a parent set of `local` values
-func mergeResolvedLocals(parent ResolvedLocals, child ResolvedLocals) ResolvedLocals {
+func mergeResolvedLocals(parent, child ResolvedLocals) ResolvedLocals {
 	if child.AtlantisWorkflow != "" {
 		parent.AtlantisWorkflow = child.AtlantisWorkflow
 	}

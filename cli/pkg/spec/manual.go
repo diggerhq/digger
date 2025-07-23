@@ -2,6 +2,10 @@ package spec
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+	"os/exec"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
@@ -12,9 +16,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/libs/storage"
-	"log/slog"
-	"os"
-	"os/exec"
 )
 
 func RunSpecManualCommand(
@@ -28,7 +29,6 @@ func RunSpecManualCommand(
 	PlanStorageProvider spec.PlanStorageProvider,
 	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
-
 	job, err := jobProvider.GetJob(spec.Job)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
@@ -37,7 +37,6 @@ func RunSpecManualCommand(
 	lock, err := lockProvider.GetLock(spec.Lock)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get job: %v", err), 1)
-
 	}
 
 	//prService, err := vcsProvider.GetPrService(spec.VCS)

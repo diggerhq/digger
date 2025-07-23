@@ -2,8 +2,9 @@ package supa
 
 import (
 	"fmt"
-	"github.com/supabase-community/supabase-go"
 	"os"
+
+	"github.com/supabase-community/supabase-go"
 )
 
 var client *supabase.Client = nil

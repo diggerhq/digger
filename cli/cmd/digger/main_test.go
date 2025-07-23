@@ -1,15 +1,17 @@
 package main
 
 import (
+	"log"
+	"testing"
+
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	"github.com/diggerhq/digger/libs/comment_utils/summary"
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/policy"
 	"github.com/diggerhq/digger/libs/storage"
-	"log"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
@@ -18,8 +20,6 @@ import (
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 
 	"github.com/google/go-github/v61/github"
-
-	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
@@ -875,7 +875,6 @@ var githubInvalidContextJson = `{
 `
 
 func TestGitHubNewPullRequestContext(t *testing.T) {
-
 	actionContext, err := models.GetGitHubContext(githubContextNewPullRequestJson)
 	context := actionContext.ToEventPackage()
 
@@ -1020,7 +1019,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	var impactedProjects []configuration.Project
 	impactedProjects = make([]configuration.Project, 1)
 	impactedProjects[0] = project
-	var requestedProject = project
+	requestedProject := project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
 	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "digger plan", impactedProjects, &requestedProject, workflows, "prbranch", "main")

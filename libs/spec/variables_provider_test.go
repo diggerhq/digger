@@ -6,9 +6,10 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // generateTestKeyPair generates a test RSA key pair
@@ -45,7 +46,6 @@ func TestDecryptProvider(t *testing.T) {
 	}{
 		{
 			variables: []VariableSpec{{
-
 				Name:     "XYZ",
 				Value:    "simple text",
 				IsSecret: false,
@@ -55,9 +55,8 @@ func TestDecryptProvider(t *testing.T) {
 		},
 		{
 			variables: []VariableSpec{{
-
 				Name: "XYZ",
-				//Value:    "simple text",
+				// Value:    "simple text",
 				IsSecret: true,
 			}},
 			plaintext:   "secret text",

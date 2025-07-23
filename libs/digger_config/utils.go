@@ -25,7 +25,7 @@ func NormalizeFileName(fileName string) string {
 	return res
 }
 
-func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
+func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns, excludePatterns []string) bool {
 	fileToMatch = NormalizeFileName(fileToMatch)
 	for i := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])

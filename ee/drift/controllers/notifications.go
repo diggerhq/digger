@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	utils2 "github.com/diggerhq/digger/next/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/slack-go/slack"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/diggerhq/digger/backend/models"
+	utils2 "github.com/diggerhq/digger/next/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/slack-go/slack"
 )
 
 func sendTestSlackWebhook(webhookURL string) error {

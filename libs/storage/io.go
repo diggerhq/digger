@@ -9,13 +9,12 @@ import (
 )
 
 type Zip interface {
-	GetFileFromZip(zipFile string, filename string) (string, error)
+	GetFileFromZip(zipFile, filename string) (string, error)
 }
 
-type Zipper struct {
-}
+type Zipper struct{}
 
-func (z *Zipper) GetFileFromZip(zipFile string, filename string) (string, error) {
+func (z *Zipper) GetFileFromZip(zipFile, filename string) (string, error) {
 	reader, err := zip.OpenReader(zipFile)
 	if err != nil {
 		return "", err
