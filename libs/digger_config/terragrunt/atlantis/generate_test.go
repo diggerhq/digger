@@ -2,6 +2,7 @@ package atlantis
 
 import (
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/singleflight"
 	"gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
@@ -22,7 +23,7 @@ func resetForRun() error {
 
 	// reset caches
 	getDependenciesCache = newGetDependenciesCache()
-
+	requestGroup = singleflight.Group{}
 	return nil
 }
 
