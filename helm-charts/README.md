@@ -1,70 +1,119 @@
-<img width="1470" alt="digger-opensource-gitops-banner" src="https://github.com/diggerhq/digger/assets/1280498/7fb44db3-38ca-4021-8714-87a2f1a14982">
-
-CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialised CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
-
-But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
-
-Digger runs terraform natively in your CI. This is:
-
-- Secure, because cloud access secrets aren't shared with a third-party
-- Cost-effective, because you are not paying for additional compute just to run your terraform
-
-## Differences Compared to Atlantis
-
-- No need to host and maintain a server
-- Secure by design
-- Scalable compute with jobs isolation
-- Role-based access control via OPA
-- Read more about differences with Atlantis in our blog post
-​
-## Compared to Terraform Cloud and other TACOs
-
-- Open source
-- No duplication of the CI/CD stack
-- Secrets not shared with a third party
-​
-## Support for other CI’s
-
-We are currently designing Digger to be Multi-CI, so that in addition to GitHub Actions, you can run Terraform/OpenTofu within other CI’s such as Gitlab CI, Azure DevOps, Bitbucket, TeamCity, Circle CI and Jenkins, while still having the option to orchestrate jobs using Digger’s Orchestrator Backend.
-
-Read more in this [blog](https://blog.digger.dev/how-we-are-designing-digger-to-support-multiple-ci-systems/), and please share your requirement on [Slack](https://bit.ly/diggercommunity) if you require support for other CI’s. Your feedback/insight would help us a lot as this feature is in active development.
-
-
-
 # Digger Backend Helm Chart
 
-## Installation steps
+This Helm chart deploys the Digger backend orchestrator for managing Terraform/OpenTofu runs in your CI/CD pipelines.
 
-The installation must be executed in two steps, as explaned in the [Digger official documentation](https://docs.digger.dev/self-host/deploy-docker-compose#create-github-app):
+## Installation
 
-1. Install the `digger-backend` helm chart from https://diggerhq.github.io/helm-charts/, leaving empty all the data related to the GitHub App
-2. Go to `your_digger_hostname/github/setup` to install and configure the GitHub App
-3. Configure in the helm values or in the external secret all the data related to the new GitHub app and upgrade the helm installation to reload the Digger application with the new configuration
+### Install from GitHub Container Registry
 
-## Configuration Details
+```bash
+# Install directly
+helm install digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
+  --namespace digger \
+  --create-namespace \
+  --values values.yaml
 
-To configure the Digger backend deployment with the Helm chart, you'll need to set several values in the `values.yaml` file. Below are the key configurations to consider:
+# Or pull a specific version
+helm pull oci://ghcr.io/diggerhq/helm-charts/digger-backend --version 0.1.12
+```
 
-- `digger.image.repository`: The Docker image repository for the Digger backend (e.g., `registry.digger.dev/diggerhq/digger_backend`).
-- `digger.image.tag`: The specific version tag of the Docker image to deploy (e.g., `"v0.4.2"`).
+### Installation Steps
 
-- `digger.service.type`: The type of Kubernetes service to create, such as `ClusterIP`, `NodePort`, or `LoadBalancer`.
-- `digger.service.port`: The port number that the service will expose (e.g., `3000`).
+The installation is a two-step process:
 
-- `digger.ingress.enabled`: Set to `true` to create an Ingress for the service.
-- `digger.annotations`: Add the needed annotations based on your ingress controller configuration.
-- `digger.ingress.host`: The hostname to use for the Ingress resource (e.g., `digger-backend.test`).
-- `digger.ingress.path`: The path for the Ingress resource (e.g., `/`).
-- `digger.ingress.className`: the classname to use for ingress (only considered for kuberetes >= 1.18)
-- `digger.ingress.tls.secretName`: The name of the TLS secret to use for Ingress encryption (e.g., `digger-backend-tls`).
+1. **Initial deployment**: Install the helm chart with basic configuration
+2. **GitHub App setup**: Navigate to `https://your-digger-hostname/github/setup` to create and configure the GitHub App
+3. **Update configuration**: Add the GitHub App credentials to your values and upgrade the release
 
-- `digger.secret.*`: Various secrets needed for the application, such as `HTTP_BASIC_AUTH_PASSWORD` and `BEARER_AUTH_TOKEN`. You can provide them directly or reference an existing Kubernetes secret by setting `useExistingSecret` to `true` and specifying `existingSecretName`.
+## Configuration
 
-- `digger.postgres.*`: If you're using an external Postgres database, configure the `user`, `database`, and `host` accordingly. Ensure you provide the `password` either directly or through an existing secret in the `secret.*` section.
+### Basic Configuration
 
-Remember to replace placeholders and default values with your specific, sensitive information before deploying the chart. For example, it's essential to generate a strong `bearerAuthToken` and `postgresPassword` rather than using the defaults for security reasons.
+Create a `values.yaml` file with your configuration:
 
-You can also deploy a PostgreSQL database ONLY FOR TEST PURPOSES configuring the `postgres.*` section:
+```yaml
+digger:
+  # Docker image
+  image:
+    repository: registry.digger.dev/diggerhq/digger_backend
+    tag: "v0.6.106"  # Check for latest version
 
-- `postgres.enabled`: Set to `true` if you want to deploy a postgres database
-- `postgres.secret.*`: As for the digger secret, you can pass the `postgres` user password directly or through an existing secret
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 3000
+
+  # Ingress configuration
+  ingress:
+    enabled: true
+    host: "digger.example.com"  # Your domain
+    annotations: {}  # Add your ingress controller annotations
+    tls:
+      secretName: "digger-tls"  # If using TLS
+
+  # Required secrets
+  secrets:
+    httpBasicAuthUsername: "admin"
+    httpBasicAuthPassword: "<generate-strong-password>"
+    bearerAuthToken: "<generate-strong-token>"
+    hostname: "digger.example.com"
+    
+    # GitHub App credentials (filled after setup)
+    githubOrg: ""
+    githubAppId: ""
+    githubAppClientId: ""
+    githubAppClientSecret: ""
+    githubAppPrivateKey: ""
+    githubWebhookSecret: ""
+    
+    # Database configuration
+    databaseURL: ""  # Leave empty if using built-in postgres
+    postgresPassword: "<generate-strong-password>"
+
+  # Resource limits (optional)
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+```
+
+### Database Options
+
+#### Option 1: External PostgreSQL (Recommended for production)
+```yaml
+digger:
+  secrets:
+    databaseURL: "postgresql://user:password@host:5432/digger"
+```
+
+#### Option 2: Built-in PostgreSQL (Testing only)
+```yaml
+postgres:
+  enabled: true
+  secret:
+    postgresPassword: "<test-password>"
+```
+
+### Using Existing Secrets
+
+Instead of putting secrets in values.yaml, reference an existing Kubernetes secret:
+
+```yaml
+digger:
+  secret:
+    useExistingSecret: true
+    existingSecretName: "digger-secrets"
+```
+
+## Upgrade After GitHub App Setup
+
+After configuring the GitHub App at `/github/setup`, update your values with the app credentials and upgrade:
+
+```bash
+helm upgrade digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
+  --namespace digger \
+  --values values.yaml
+```
