@@ -47,8 +47,9 @@ helm upgrade digger-backend ./digger-backend/
 
 ### CI/CD Workflows
 - **Pull Request Testing** (`.github/workflows/helm-test.yml`): Runs `helm unittest` and linting on PR changes to helm-charts/
-- **Release Process** (`.github/workflows/helm-release.yml`): On merge to main, publishes to GitHub Container Registry at `oci://ghcr.io/diggerhq/helm-charts/digger-backend`
+- **Release Process** (`.github/workflows/helm-release.yml`): On merge to **develop** branch (not main!), publishes to GitHub Container Registry at `oci://ghcr.io/diggerhq/helm-charts/digger-backend`
 - **Installation**: Users install directly from OCI registry, not GitHub Pages
+- **Important**: This repo uses `develop` as the default branch, not `main`
 
 ### Important Configuration Patterns
 
