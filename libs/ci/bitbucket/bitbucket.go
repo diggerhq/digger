@@ -153,7 +153,7 @@ func (svc BitbucketAPI) PublishIssue(title, body string, labels *[]string) (int6
 	return 0, fmt.Errorf("implement me")
 }
 
-func (svc BitbucketAPI) UpdateIssue(ID int64, title, body string) (int64, error) {
+func (svc BitbucketAPI) UpdateIssue(id int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 

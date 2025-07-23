@@ -30,7 +30,7 @@ func (n NoopApi) ReportProjectRun(namespace, projectName string, startedAt, ende
 	return nil
 }
 
-func (n NoopApi) ReportProjectJobStatus(repo, projectName, jobId, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson, PrCommentUrl, PrCommentId, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+func (n NoopApi) ReportProjectJobStatus(repo, projectName, jobId, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson, prCommentUrl, prCommentId, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 
@@ -130,7 +130,7 @@ func (d DiggerApi) ReportProjectRun(namespace, projectName string, startedAt, en
 	return nil
 }
 
-func (d DiggerApi) ReportProjectJobStatus(repo, projectName, jobId, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson, PrCommentUrl, PrCommentId, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+func (d DiggerApi) ReportProjectJobStatus(repo, projectName, jobId, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson, prCommentUrl, prCommentId, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	repoNameForBackendReporting := strings.ReplaceAll(repo, "/", "-")
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
@@ -161,8 +161,8 @@ func (d DiggerApi) ReportProjectJobStatus(repo, projectName, jobId, status strin
 		"timestamp":          timestamp,
 		"job_summary":        planSummaryJson,
 		"job_plan_footprint": planFootprint.ToJson(),
-		"pr_comment_url":     PrCommentUrl,
-		"pr_comment_id":      PrCommentId,
+		"pr_comment_url":     prCommentUrl,
+		"pr_comment_id":      prCommentId,
 		"terraform_output":   terraformOutput,
 	}
 

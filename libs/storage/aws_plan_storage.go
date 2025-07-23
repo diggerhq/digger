@@ -40,7 +40,7 @@ type PlanStorageAWS struct {
 	KMSEncryptionId   string
 }
 
-func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType, KMSEncryptionId string) (*PlanStorageAWS, error) {
+func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType, kmsEncryptionId string) (*PlanStorageAWS, error) {
 	if bucketName == "" {
 		slog.Error("AWS S3 bucket name not provided")
 		return nil, fmt.Errorf("AWS_S3_BUCKET is not defined")
@@ -70,13 +70,13 @@ func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType
 			slog.Debug("Using AES256 encryption for S3 storage")
 			planStorage.EncryptionType = ServerSideEncryptionAes256
 		case "KMS":
-			if KMSEncryptionId == "" {
+			if kmsEncryptionId == "" {
 				slog.Error("KMS encryption requested but no KMS key specified")
 				return nil, fmt.Errorf("KMS encryption requested but no KMS key specified")
 			}
-			slog.Debug("Using KMS encryption for S3 storage", "kmsKeyId", KMSEncryptionId)
+			slog.Debug("Using KMS encryption for S3 storage", "kmsKeyId", kmsEncryptionId)
 			planStorage.EncryptionType = ServerSideEncryptionAwsKms
-			planStorage.KMSEncryptionId = KMSEncryptionId
+			planStorage.KMSEncryptionId = kmsEncryptionId
 		default:
 			slog.Error("Unknown encryption type specified", "encryptionType", encryptionType)
 			return nil, fmt.Errorf("unknown encryption type specified for aws plan bucket: %v", encryptionType)

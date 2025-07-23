@@ -34,7 +34,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) PublishIssue(t
 	return 0, nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) UpdateIssue(ID int64, title, body string) (int64, error) {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) UpdateIssue(id int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 

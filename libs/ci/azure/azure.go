@@ -246,10 +246,8 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 
 		if res, ok := latestUniqueRequestStatuses[key]; !ok {
 			latestUniqueRequestStatuses[key] = &status
-		} else {
-			if status.CreationDate.Time.After(res.CreationDate.Time) {
-				latestUniqueRequestStatuses[key] = &status
-			}
+		} else if status.CreationDate.Time.After(res.CreationDate.Time) {
+			latestUniqueRequestStatuses[key] = &status
 		}
 	}
 
@@ -433,7 +431,7 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2
 
 func ConvertAzureEventToCommands(parseAzureContext Azure, impactedProjects []digger_config2.Project, requestedProject *digger_config2.Project, workflows map[string]digger_config2.Workflow) ([]scheduler.Job, bool, error) {
 	jobs := make([]scheduler.Job, 0)
-	//&dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber,
+	// &dependencyGraph, diggerProjectNamespace, parsedAzureContext.BaseUrl, parsedAzureContext.EventType, prNumber,
 
 	switch parseAzureContext.EventType {
 	case AzurePrCreated, AzurePrUpdated, AzurePrReopened:

@@ -15,8 +15,8 @@ func (p GetSpecPayload) ToMapStruct() map[string]interface{} {
 		"command":        p.Command,
 		"repo_full_name": p.RepoFullName,
 		"actor":          p.Actor,
-		//"default_branch": p.DefaultBranch,
-		//"pr_branch":      p.PrBranch,
+		// "default_branch": p.DefaultBranch,
+		// "pr_branch":      p.PrBranch,
 		"digger_config": p.DiggerConfig,
 		"project":       p.Project,
 	}

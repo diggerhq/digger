@@ -183,7 +183,7 @@ func CreateJobsForProjects(projects []digger_config.Project, command, event, rep
 			CommandEnvVars:     commandEnvVars,
 			StateEnvVars:       stateEnvVars,
 			PullRequestNumber:  issueNumber,
-			EventName:          event, //"issue_comment",
+			EventName:          event, // "issue_comment",
 			Namespace:          repoFullName,
 			RequestedBy:        requestedBy,
 			StateEnvProvider:   StateEnvProvider,

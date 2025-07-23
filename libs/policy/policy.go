@@ -29,15 +29,15 @@ type DiggerHttpPolicyProvider struct {
 
 type NoOpPolicyChecker struct{}
 
-func (p NoOpPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation, SCMrepository, projectName, projectDir, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
+func (p NoOpPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, scmOrganisation, scmRepository, projectName, projectDir, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 	return true, nil
 }
 
-func (p NoOpPolicyChecker) CheckPlanPolicy(SCMrepository, SCMOrganisation, projectname, projectDir, planOutput string) (bool, []string, error) {
+func (p NoOpPolicyChecker) CheckPlanPolicy(scmRepository, scmOrganisation, projectname, projectDir, planOutput string) (bool, []string, error) {
 	return true, nil, nil
 }
 
-func (p NoOpPolicyChecker) CheckDriftPolicy(SCMOrganisation, SCMrepository, projectname string) (bool, error) {
+func (p NoOpPolicyChecker) CheckDriftPolicy(scmOrganisation, scmRepository, projectname string) (bool, error) {
 	return true, nil
 }
 
@@ -343,24 +343,24 @@ type DiggerPolicyChecker struct {
 }
 
 // TODO refactor to use AccessPolicyContext - too many arguments
-func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, SCMOrganisation, SCMrepository, projectName, projectDir, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
+func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prService *ci.PullRequestService, scmOrganisation, scmRepository, projectName, projectDir, command string, prNumber *int, requestedBy string, planPolicyViolations []string) (bool, error) {
 	slog.Debug("Checking access policy",
-		"organisation", SCMOrganisation,
-		"repository", SCMrepository,
+		"organisation", scmOrganisation,
+		"repository", scmRepository,
 		"project", projectName,
 		"command", command,
 		"requestedBy", requestedBy)
 
-	policy, err := p.PolicyProvider.GetAccessPolicy(SCMOrganisation, SCMrepository, projectName, projectDir)
+	policy, err := p.PolicyProvider.GetAccessPolicy(scmOrganisation, scmRepository, projectName, projectDir)
 	if err != nil {
 		slog.Error("Error fetching policy", "error", err)
 		return false, err
 	}
 
-	teams, err := ciService.GetUserTeams(SCMOrganisation, requestedBy)
+	teams, err := ciService.GetUserTeams(scmOrganisation, requestedBy)
 	if err != nil {
 		slog.Error("Error fetching user teams",
-			"organisation", SCMOrganisation,
+			"organisation", scmOrganisation,
 			"user", requestedBy,
 			"error", err)
 		slog.Warn("Teams failed to be fetched, using empty list for access policy checks")
@@ -380,7 +380,7 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prServic
 
 	input := map[string]interface{}{
 		"user":                 requestedBy,
-		"organisation":         SCMOrganisation,
+		"organisation":         scmOrganisation,
 		"teams":                teams,
 		"approvals":            approvals,
 		"planPolicyViolations": planPolicyViolations,
@@ -437,13 +437,13 @@ func (p DiggerPolicyChecker) CheckAccessPolicy(ciService ci.OrgService, prServic
 	return true, nil
 }
 
-func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository, SCMOrganisation, projectname, projectDir, planOutput string) (bool, []string, error) {
+func (p DiggerPolicyChecker) CheckPlanPolicy(scmRepository, scmOrganisation, projectname, projectDir, planOutput string) (bool, []string, error) {
 	slog.Debug("Checking plan policy",
-		"organisation", SCMOrganisation,
-		"repository", SCMrepository,
+		"organisation", scmOrganisation,
+		"repository", scmRepository,
 		"project", projectname)
 
-	policy, err := p.PolicyProvider.GetPlanPolicy(SCMOrganisation, SCMrepository, projectname, projectDir)
+	policy, err := p.PolicyProvider.GetPlanPolicy(scmOrganisation, scmRepository, projectname, projectDir)
 	if err != nil {
 		slog.Error("Failed to get plan policy", "error", err)
 		return false, nil, fmt.Errorf("failed get plan policy: %v", err)
@@ -504,23 +504,23 @@ func (p DiggerPolicyChecker) CheckPlanPolicy(SCMrepository, SCMOrganisation, pro
 	if len(decisionsResult) > 0 {
 		slog.Info("Plan policy check failed",
 			"violations", len(decisionsResult),
-			"organisation", SCMOrganisation,
-			"repository", SCMrepository,
+			"organisation", scmOrganisation,
+			"repository", scmRepository,
 			"project", projectname)
 		return false, decisionsResult, nil
 	}
 
 	slog.Info("Plan policy check passed",
-		"organisation", SCMOrganisation,
-		"repository", SCMrepository,
+		"organisation", scmOrganisation,
+		"repository", scmRepository,
 		"project", projectname)
 	return true, []string{}, nil
 }
 
-func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation, SCMrepository, projectName string) (bool, error) {
+func (p DiggerPolicyChecker) CheckDriftPolicy(scmOrganisation, scmRepository, projectName string) (bool, error) {
 	slog.Debug("Checking drift policy",
-		"organisation", SCMOrganisation,
-		"repository", SCMrepository,
+		"organisation", scmOrganisation,
+		"repository", scmRepository,
 		"project", projectName)
 
 	// TODO: Get rid of organisation if its not needed
@@ -532,7 +532,7 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation, SCMrepository, pr
 	}
 
 	input := map[string]interface{}{
-		"organisation": SCMOrganisation,
+		"organisation": scmOrganisation,
 		"project":      projectName,
 	}
 
@@ -571,14 +571,14 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation, SCMrepository, pr
 		}
 		if !decision {
 			slog.Info("Drift detection disabled by policy",
-				"organisation", SCMOrganisation,
+				"organisation", scmOrganisation,
 				"project", projectName)
 			return false, nil
 		}
 	}
 
 	slog.Info("Drift detection enabled by policy",
-		"organisation", SCMOrganisation,
+		"organisation", scmOrganisation,
 		"project", projectName)
 	return true, nil
 }

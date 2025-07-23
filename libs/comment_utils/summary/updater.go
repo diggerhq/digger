@@ -34,8 +34,8 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 		"jobType", jobType)
 
 	message := ""
-	message = message + fmt.Sprintf("| Project | Status | %v | + | ~ | - |\n", jobTypeTitle)
-	message = message + "|---------|--------|------|---|---|---|\n"
+	message += fmt.Sprintf("| Project | Status | %v | + | ~ | - |\n", jobTypeTitle)
+	message += "|---------|--------|------|---|---|---|\n"
 
 	for i, job := range jobs {
 		jobSpec := jobSpecs[i]
@@ -47,7 +47,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 			workflowUrl = *job.WorkflowRunUrl
 		}
 
-		message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>%v</a> | %v | %v | %v|\n",
+		message += fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>%v</a> | %v | %v | %v|\n",
 			job.Status.ToEmoji(),
 			jobSpec.ProjectName,
 			workflowUrl,

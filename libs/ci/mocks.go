@@ -28,7 +28,7 @@ func (t MockPullRequestManager) PublishIssue(title, body string, labels *[]strin
 	return 0, nil
 }
 
-func (t MockPullRequestManager) UpdateIssue(ID int64, title, body string) (int64, error) {
+func (t MockPullRequestManager) UpdateIssue(id int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 

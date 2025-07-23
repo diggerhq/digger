@@ -78,7 +78,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 	}
 
 	message := ""
-	message = message + fmt.Sprintf("# Group: %v (similar: %v)\n", location, allSimilarInGroup)
+	message += fmt.Sprintf("# Group: %v (similar: %v)\n", location, allSimilarInGroup)
 
 	slog.Info("generating comment for source location",
 		"location", location,

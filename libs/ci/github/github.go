@@ -147,8 +147,8 @@ func (svc GithubService) PublishIssue(title, body string, labels *[]string) (int
 	return *githubissue.ID, err
 }
 
-func (svc GithubService) UpdateIssue(ID int64, title, body string) (int64, error) {
-	githubissue, _, err := svc.Client.Issues.Edit(context.Background(), svc.Owner, svc.RepoName, int(ID), &github.IssueRequest{Title: &title, Body: &body})
+func (svc GithubService) UpdateIssue(id int64, title, body string) (int64, error) {
+	githubissue, _, err := svc.Client.Issues.Edit(context.Background(), svc.Owner, svc.RepoName, int(id), &github.IssueRequest{Title: &title, Body: &body})
 	if err != nil {
 		return 0, fmt.Errorf("could not edit issue: %v", err)
 	}
@@ -236,10 +236,10 @@ func (svc GithubService) CreateCommentReaction(id, reaction string) error {
 	return nil
 }
 
-func (svc GithubService) IsPullRequest(PrNumber int) (bool, error) {
-	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, PrNumber)
+func (svc GithubService) IsPullRequest(prNumber int) (bool, error) {
+	issue, _, err := svc.Client.Issues.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
-		slog.Error("error getting pull request (as issue)", "error", err, "prNumber", PrNumber)
+		slog.Error("error getting pull request (as issue)", "error", err, "prNumber", prNumber)
 		return false, fmt.Errorf("error getting pull request (as issue): %v", err)
 	}
 	return issue.IsPullRequest(), nil

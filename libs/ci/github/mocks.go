@@ -48,7 +48,7 @@ func (t MockCiService) PublishIssue(title, body string, labels *[]string) (int64
 	return 0, fmt.Errorf("implement me")
 }
 
-func (svc MockCiService) UpdateIssue(ID int64, title, body string) (int64, error) {
+func (svc MockCiService) UpdateIssue(id int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 

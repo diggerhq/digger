@@ -220,7 +220,7 @@ func (svc GitLabService) PublishIssue(title, body string, labels *[]string) (int
 	return 0, fmt.Errorf("implement me")
 }
 
-func (svc GitLabService) UpdateIssue(ID int64, title, body string) (int64, error) {
+func (svc GitLabService) UpdateIssue(id int64, title, body string) (int64, error) {
 	return 0, fmt.Errorf("implement me")
 }
 

@@ -113,10 +113,10 @@ type CommentPerRunStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy CommentPerRunStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	comments, err := ciService.GetComments(PrNumber)
+func (strategy CommentPerRunStrategy) Report(ciService ci.PullRequestService, prNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
+	comments, err := ciService.GetComments(prNumber)
 	if err != nil {
-		slog.Error("error getting comments", "error", err, "prNumber", PrNumber)
+		slog.Error("error getting comments", "error", err, "prNumber", prNumber)
 		return "", "", fmt.Errorf("error getting comments: %v", err)
 	}
 
@@ -126,11 +126,11 @@ func (strategy CommentPerRunStrategy) Report(ciService ci.PullRequestService, Pr
 	} else {
 		reportTitle = "Digger run report at " + strategy.TimeOfRun.Format("2006-01-02 15:04:05 (MST)")
 	}
-	commentId, commentUrl, err := upsertComment(ciService, PrNumber, report, reportFormatter, comments, reportTitle, supportsCollapsibleComment)
+	commentId, commentUrl, err := upsertComment(ciService, prNumber, report, reportFormatter, comments, reportTitle, supportsCollapsibleComment)
 	return commentId, commentUrl, err
 }
 
-func upsertComment(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, supportsCollapsible bool) (string, string, error) {
+func upsertComment(ciService ci.PullRequestService, prNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, supportsCollapsible bool) (string, string, error) {
 	report = reportFormatter(report)
 	commentIdForThisRun := ""
 	var commentBody string
@@ -151,9 +151,9 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 		} else {
 			commentMessage = utils.AsCollapsibleComment(reportTitle, false)(report)
 		}
-		comment, err := ciService.PublishComment(PrNumber, commentMessage)
+		comment, err := ciService.PublishComment(prNumber, commentMessage)
 		if err != nil {
-			slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
+			slog.Error("error publishing comment", "error", err, "prNumber", prNumber)
 			return "", "", fmt.Errorf("error publishing comment: %v", err)
 		}
 		return fmt.Sprintf("%v", comment.Id), comment.Url, nil
@@ -173,9 +173,9 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 		completeComment = utils.AsCollapsibleComment(reportTitle, false)(commentBody)
 	}
 
-	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
+	err := ciService.EditComment(prNumber, commentIdForThisRun, completeComment)
 	if err != nil {
-		slog.Error("error editing comment", "error", err, "commentId", commentIdForThisRun, "prNumber", PrNumber)
+		slog.Error("error editing comment", "error", err, "commentId", commentIdForThisRun, "prNumber", prNumber)
 		return "", "", fmt.Errorf("error editing comment: %v", err)
 	}
 	return fmt.Sprintf("%v", commentIdForThisRun), commentUrl, nil
@@ -185,24 +185,24 @@ type LatestRunCommentStrategy struct {
 	TimeOfRun time.Time
 }
 
-func (strategy LatestRunCommentStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	comments, err := ciService.GetComments(PrNumber)
+func (strategy LatestRunCommentStrategy) Report(ciService ci.PullRequestService, prNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
+	comments, err := ciService.GetComments(prNumber)
 	if err != nil {
-		slog.Error("error getting comments", "error", err, "prNumber", PrNumber)
+		slog.Error("error getting comments", "error", err, "prNumber", prNumber)
 		return "", "", fmt.Errorf("error getting comments: %v", err)
 	}
 
 	reportTitle := "Digger latest run report"
-	commentId, commentUrl, err := upsertComment(ciService, PrNumber, report, reportFormatter, comments, reportTitle, supportsCollapsibleComment)
+	commentId, commentUrl, err := upsertComment(ciService, prNumber, report, reportFormatter, comments, reportTitle, supportsCollapsibleComment)
 	return commentId, commentUrl, err
 }
 
 type MultipleCommentsStrategy struct{}
 
-func (strategy MultipleCommentsStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	comment, err := ciService.PublishComment(PrNumber, reportFormatter(report))
+func (strategy MultipleCommentsStrategy) Report(ciService ci.PullRequestService, prNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
+	comment, err := ciService.PublishComment(prNumber, reportFormatter(report))
 	if err != nil {
-		slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
+		slog.Error("error publishing comment", "error", err, "prNumber", prNumber)
 		return "", "", err
 	}
 	return comment.Id, comment.Url, nil

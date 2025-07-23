@@ -17,7 +17,7 @@ func (t MockBackendApi) ReportProjectRun(repo, projectName string, startedAt, en
 	return nil
 }
 
-func (t MockBackendApi) ReportProjectJobStatus(repo, projectName, jobId, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson, PrCommentUrl, PrCommentId, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+func (t MockBackendApi) ReportProjectJobStatus(repo, projectName, jobId, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson, prCommentUrl, prCommentId, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 
