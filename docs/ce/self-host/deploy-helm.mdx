@@ -12,12 +12,43 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
 
 <Steps>
   <Step title="Create Helm values">
-    Create a `values.yaml` file. This will be used to configure settings for the Digger Helm chart.
-    To explore all configurable properties, check the [values.yaml](https://github.com/diggerhq/digger/blob/develop/helm-charts/digger-backend/values.yaml) file in the repository.
+    Create a `values.yaml` file. Start with this minimal configuration that will get Digger running:
+    
+    ```yaml values.yaml
+    # Minimal configuration for initial setup
+    digger:
+      # Disable ingress for initial setup
+      ingress:
+        enabled: false
+      
+      # Basic authentication settings
+      secret:
+        httpBasicAuthUsername: "admin"
+        httpBasicAuthPassword: "changeme123"  # CHANGE THIS!
+        bearerAuthToken: "changeme456"        # CHANGE THIS!
+        hostname: "localhost"                 # Will be updated later
+    
+    # Enable built-in PostgreSQL for testing
+    postgres:
+      enabled: true
+      secret:
+        useExistingSecret: false
+        postgresPassword: "changeme789"       # CHANGE THIS!
+    ```
     
     <Info>
-      You can also install without a values.yaml file initially and configure later, but using a values file is recommended for better control.
+      This minimal configuration:
+      - Disables ingress (we'll configure it later)
+      - Sets up basic authentication
+      - Uses built-in PostgreSQL for testing
+      - Gets you up and running quickly
     </Info>
+    
+    <Warning>
+      Remember to change all default passwords before proceeding!
+    </Warning>
+    
+    To explore all configurable properties, check the [values.yaml](https://github.com/diggerhq/digger/blob/develop/helm-charts/digger-backend/values.yaml) file in the repository.
   </Step>
 
   <Step title="Select Digger version">
