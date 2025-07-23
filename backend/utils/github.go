@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"log/slog"
 	net "net/http"
 	"os"
@@ -35,6 +37,41 @@ type GithubClientProvider interface {
 func (gh DiggerGithubRealClientProvider) NewClient(netClient *net.Client) (*github.Client, error) {
 	ghClient := github.NewClient(netClient)
 	return ghClient, nil
+}
+
+type loggingRoundTripper struct {
+	rt net.RoundTripper
+}
+
+func (lrt *loggingRoundTripper) RoundTrip(req *net.Request) (*net.Response, error) {
+	// Log the request
+	slog.Debug("GitHub API Request",
+		"method", req.Method,
+		"url", req.URL.String(),
+		"headers", req.Header,
+	)
+
+	resp, err := lrt.rt.RoundTrip(req)
+	if err != nil {
+		slog.Error("GitHub API Request failed", "error", err)
+		return nil, err
+	}
+
+	// Read and clone response body for logging
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Error("Failed to read response body", "error", err)
+		return resp, err
+	}
+	resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // restore the body for the actual client
+
+	slog.Debug("GitHub API Response",
+		"status", resp.Status,
+		"headers", resp.Header,
+		"body", string(bodyBytes),
+	)
+
+	return resp, nil
 }
 
 func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId int64) (*github.Client, *string, error) {
@@ -83,7 +120,11 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 		return nil, nil, fmt.Errorf("error initialising git app token: %v\n", err)
 	}
 
-	ghClient, err := gh.NewClient(&net.Client{Transport: itr})
+	clientWithLogging := &net.Client{
+		Transport: &loggingRoundTripper{rt: itr},
+	}
+
+	ghClient, err := gh.NewClient(clientWithLogging)
 	if err != nil {
 		slog.Error("Failed to create GitHub client", "error", err)
 		return nil, nil, fmt.Errorf("error creating new client: %v", err)
