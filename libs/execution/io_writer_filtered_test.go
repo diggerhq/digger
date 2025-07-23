@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewFilteringWriter(t *testing.T) {
-	var buf bytes.Buffer = bytes.Buffer{}
+	buf := bytes.Buffer{}
 	pattern := regexp.MustCompile("sensitive")
 	writer := NewFilteringWriter(nil, &buf, pattern)
 

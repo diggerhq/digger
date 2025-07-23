@@ -102,19 +102,11 @@ func copyTerraformEnvConfig(terraformEnvConfig *TerraformEnvConfigYaml) *Terrafo
 	result.Commands = make([]EnvVar, len(terraformEnvConfig.Commands))
 
 	for i, s := range terraformEnvConfig.State {
-		item := EnvVar{
-			s.Name,
-			s.ValueFrom,
-			s.Value,
-		}
+		item := EnvVar(s)
 		result.State[i] = item
 	}
 	for i, s := range terraformEnvConfig.Commands {
-		item := EnvVar{
-			s.Name,
-			s.ValueFrom,
-			s.Value,
-		}
+		item := EnvVar(s)
 		result.Commands[i] = item
 	}
 
@@ -128,12 +120,7 @@ func copyStage(stage *StageYaml) *Stage {
 	result.Steps = make([]Step, len(stage.Steps))
 
 	for i, s := range stage.Steps {
-		item := Step{
-			Action:    s.Action,
-			Value:     s.Value,
-			ExtraArgs: s.ExtraArgs,
-			Shell:     s.Shell,
-		}
+		item := Step(s)
 		result.Steps[i] = item
 	}
 	return &result

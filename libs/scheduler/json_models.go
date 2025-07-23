@@ -134,12 +134,7 @@ func jsonToStage(stageJson StageJson) *Stage {
 	}
 	steps := make([]Step, len(stageJson.Steps))
 	for i, step := range stageJson.Steps {
-		steps[i] = Step{
-			Action:    step.Action,
-			Value:     step.Value,
-			ExtraArgs: step.ExtraArgs,
-			Shell:     step.Shell,
-		}
+		steps[i] = Step(step)
 	}
 	return &Stage{
 		Steps:       steps,
@@ -153,12 +148,7 @@ func stageToJson(stage *Stage) StageJson {
 	}
 	steps := make([]StepJson, len(stage.Steps))
 	for i, step := range stage.Steps {
-		steps[i] = StepJson{
-			Action:    step.Action,
-			Value:     step.Value,
-			ExtraArgs: step.ExtraArgs,
-			Shell:     step.Shell,
-		}
+		steps[i] = StepJson(step)
 	}
 	return StageJson{
 		Steps:       steps,

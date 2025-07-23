@@ -65,10 +65,11 @@ func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType
 
 	if encryptionEnabled {
 		planStorage.EncryptionEnabled = true
-		if encryptionType == "AES256" {
+		switch encryptionType {
+		case "AES256":
 			slog.Debug("Using AES256 encryption for S3 storage")
 			planStorage.EncryptionType = ServerSideEncryptionAes256
-		} else if encryptionType == "KMS" {
+		case "KMS":
 			if KMSEncryptionId == "" {
 				slog.Error("KMS encryption requested but no KMS key specified")
 				return nil, fmt.Errorf("KMS encryption requested but no KMS key specified")
@@ -76,7 +77,7 @@ func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType
 			slog.Debug("Using KMS encryption for S3 storage", "kmsKeyId", KMSEncryptionId)
 			planStorage.EncryptionType = ServerSideEncryptionAwsKms
 			planStorage.KMSEncryptionId = KMSEncryptionId
-		} else {
+		default:
 			slog.Error("Unknown encryption type specified", "encryptionType", encryptionType)
 			return nil, fmt.Errorf("unknown encryption type specified for aws plan bucket: %v", encryptionType)
 		}

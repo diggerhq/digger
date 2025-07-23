@@ -3,7 +3,6 @@ package policy
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -233,23 +232,24 @@ func (p DiggerHttpPolicyProvider) GetAccessPolicy(organisation, repo, projectNam
 				"error", err)
 			return "", fmt.Errorf("error while fetching access policy for organisation: %v", err)
 		}
-		if resp.StatusCode == 200 {
+		switch resp.StatusCode {
+		case 200:
 			slog.Debug("Found organisation access policy", "organisation", organisation)
 			return content, nil
-		} else if resp.StatusCode == 404 {
+		case 404:
 			slog.Debug("Organisation access policy not found, using default", "organisation", organisation)
 			return DefaultAccessPolicy, nil
-		} else {
+		default:
 			slog.Error("Unexpected response for organisation policy",
 				"statusCode", resp.StatusCode,
 				"response", content)
-			return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
+			return "", fmt.Errorf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode)
 		}
 	} else {
 		slog.Error("Unexpected response for project policy",
 			"statusCode", resp.StatusCode,
 			"response", content)
-		return "", errors.New(fmt.Sprintf("unexpected response while fetching project policy: %v code %v", content, resp.StatusCode))
+		return "", fmt.Errorf("unexpected response while fetching project policy: %v code %v", content, resp.StatusCode)
 	}
 }
 
@@ -288,23 +288,24 @@ func (p DiggerHttpPolicyProvider) GetPlanPolicy(organisation, repo, projectName,
 				"error", err)
 			return "", err
 		}
-		if resp.StatusCode == 200 {
+		switch resp.StatusCode {
+		case 200:
 			slog.Debug("Found organisation plan policy", "organisation", organisation)
 			return content, nil
-		} else if resp.StatusCode == 404 {
+		case 404:
 			slog.Debug("Organisation plan policy not found", "organisation", organisation)
 			return "", nil
-		} else {
+		default:
 			slog.Error("Unexpected response for organisation policy",
 				"statusCode", resp.StatusCode,
 				"response", content)
-			return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
+			return "", fmt.Errorf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode)
 		}
 	} else {
 		slog.Error("Unexpected response for project policy",
 			"statusCode", resp.StatusCode,
 			"response", content)
-		return "", errors.New(fmt.Sprintf("unexpected response while fetching project policy: %v code %v", content, resp.StatusCode))
+		return "", fmt.Errorf("unexpected response while fetching project policy: %v code %v", content, resp.StatusCode)
 	}
 }
 
@@ -318,17 +319,18 @@ func (p DiggerHttpPolicyProvider) GetDriftPolicy() (string, error) {
 			"error", err)
 		return "", err
 	}
-	if resp.StatusCode == 200 {
+	switch resp.StatusCode {
+	case 200:
 		slog.Debug("Found drift policy", "organisation", p.DiggerOrganisation)
 		return content, nil
-	} else if resp.StatusCode == 404 {
+	case 404:
 		slog.Debug("Drift policy not found", "organisation", p.DiggerOrganisation)
 		return "", nil
-	} else {
+	default:
 		slog.Error("Unexpected response for drift policy",
 			"statusCode", resp.StatusCode,
 			"response", content)
-		return "", errors.New(fmt.Sprintf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode))
+		return "", fmt.Errorf("unexpected response while fetching organisation policy: %v, code %v", content, resp.StatusCode)
 	}
 }
 

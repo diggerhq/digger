@@ -266,11 +266,12 @@ func (b BitbucketAPI) SetStatus(prNumber int, status, statusContext string) erro
 
 	url := fmt.Sprintf("%s/repositories/%s/%s/commit/%s/statuses/build", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prResponse.Source.Commit.Hash)
 
-	if status == "failure" {
+	switch status {
+	case "failure":
 		status = "FAILED"
-	} else if status == "success" {
+	case "success":
 		status = "SUCCESSFUL"
-	} else if status == "pending" {
+	case "pending":
 		status = "INPROGRESS"
 	}
 

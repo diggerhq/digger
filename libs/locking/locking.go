@@ -254,7 +254,8 @@ func GetLock() (Lock, error) {
 		return &NoOpLock{}, nil
 	}
 
-	if lockProvider == "" || lockProvider == "aws" {
+	switch lockProvider {
+	case "", "aws":
 		slog.Info("Using AWS lock provider")
 
 		// https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/
@@ -292,7 +293,7 @@ func GetLock() (Lock, error) {
 		dynamoDb := dynamodb.NewFromConfig(cfg)
 		dynamoDbLock := aws.DynamoDbLock{DynamoDb: dynamoDb}
 		return &dynamoDbLock, nil
-	} else if lockProvider == "gcp" {
+	case "gcp":
 		slog.Info("Using GCP lock provider")
 		ctx, client := gcp.GetGoogleStorageClient()
 		defer func(client *storage.Client) {
@@ -309,7 +310,7 @@ func GetLock() (Lock, error) {
 		bucket := client.Bucket(bucketName)
 		lock := gcp.GoogleStorageLock{Client: client, Bucket: bucket, Context: ctx}
 		return &lock, nil
-	} else if lockProvider == "azure" {
+	case "azure":
 		slog.Info("Using Azure lock provider")
 		return azure.NewStorageAccountLock()
 	}

@@ -403,7 +403,7 @@ func (svc GithubService) SetOutput(prNumber int, key, value string) error {
 	if err != nil {
 		return fmt.Errorf("could not open file for writing during digger step")
 	}
-	_, err = f.WriteString(fmt.Sprintf("%v=%v", key, value))
+	_, err = fmt.Fprintf(f, "%v=%v", key, value)
 	if err != nil {
 		return fmt.Errorf("could not write digger file step")
 	}
@@ -580,7 +580,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 			})
 		} else if *payload.Action == "converted_to_draft" {
 			var commands []string
-			if config.AllowDraftPRs == false && len(workflow.Configuration.OnPullRequestConvertedToDraft) == 0 {
+			if !config.AllowDraftPRs && len(workflow.Configuration.OnPullRequestConvertedToDraft) == 0 {
 				commands = []string{"digger unlock"}
 			} else {
 				commands = workflow.Configuration.OnPullRequestConvertedToDraft
@@ -694,8 +694,7 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 
 func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, int, error) {
 	var impactedProjects []digger_config.Project
-	var prNumber int
-	prNumber = *payload.PullRequest.Number
+	var prNumber int = *payload.PullRequest.Number
 
 	slog.Info("processing GitHub pull request event",
 		"prNumber", prNumber,

@@ -14,7 +14,7 @@ import (
 func randomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-	var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	b := make([]byte, length)
 	for i := range b {

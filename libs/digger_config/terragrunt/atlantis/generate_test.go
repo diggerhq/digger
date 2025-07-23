@@ -11,8 +11,7 @@ import (
 )
 
 func init() {
-	var level slog.Leveler
-	level = slog.LevelDebug
+	var level slog.Leveler = slog.LevelDebug
 	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: level,
 	})

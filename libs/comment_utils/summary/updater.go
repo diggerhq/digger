@@ -35,7 +35,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 
 	message := ""
 	message = message + fmt.Sprintf("| Project | Status | %v | + | ~ | - |\n", jobTypeTitle)
-	message = message + fmt.Sprintf("|---------|--------|------|---|---|---|\n")
+	message = message + "|---------|--------|------|---|---|---|\n"
 
 	for i, job := range jobs {
 		jobSpec := jobSpecs[i]

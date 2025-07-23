@@ -153,10 +153,8 @@ func (r ReporterProvider) GetReporter(title string, reporterSpec ReporterSpec, c
 		}
 	}
 
-	isSupportMarkdown := true
-	if vcs == "bitbucket" {
-		isSupportMarkdown = false
-	}
+	isSupportMarkdown := !(vcs == "bitbucket")
+
 	switch reporterSpec.ReporterType {
 	case "noop":
 		slog.Debug("Using NoOp reporter")

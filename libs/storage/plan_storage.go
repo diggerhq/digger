@@ -311,7 +311,7 @@ func getLatestArtifactWithName(artifacts []*github.Artifact, name string) *githu
 		if *item.Name != name {
 			continue
 		}
-		if latest == nil || item.UpdatedAt.Time.After(latest.UpdatedAt.Time) {
+		if latest == nil || item.UpdatedAt.After(latest.UpdatedAt.Time) {
 			latest = item
 		}
 	}
@@ -338,8 +338,8 @@ func NewPlanStorage(ghToken, ghRepoOwner, ghRepositoryName string, prNumber *int
 		"owner", ghRepoOwner,
 		"repo", ghRepositoryName)
 
-	switch {
-	case uploadDestination == "github":
+	switch uploadDestination {
+	case "github":
 		if ghToken == "" {
 			slog.Error("GITHUB_TOKEN not specified for GitHub plan storage")
 			return nil, fmt.Errorf("failed to get github service: GITHUB_TOKEN not specified")
@@ -353,7 +353,7 @@ func NewPlanStorage(ghToken, ghRepoOwner, ghRepositoryName string, prNumber *int
 			PullRequestNumber: *prNumber,
 			ZipManager:        zipManager,
 		}
-	case uploadDestination == "gcp":
+	case "gcp":
 		ctx, client := gcp.GetGoogleStorageClient()
 		bucketName := strings.ToLower(os.Getenv("GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET"))
 		if bucketName == "" {
@@ -367,7 +367,7 @@ func NewPlanStorage(ghToken, ghRepoOwner, ghRepositoryName string, prNumber *int
 			Bucket:  bucket,
 			Context: ctx,
 		}
-	case uploadDestination == "aws":
+	case "aws":
 		bucketName := strings.ToLower(os.Getenv("AWS_S3_BUCKET"))
 		encryptionEnabled := os.Getenv("PLAN_UPLOAD_S3_ENCRYPTION_ENABLED") == "true"
 		encryptionType := os.Getenv("PLAN_UPLOAD_S3_ENCRYPTION_TYPE")
@@ -384,10 +384,10 @@ func NewPlanStorage(ghToken, ghRepoOwner, ghRepositoryName string, prNumber *int
 			slog.Error("Failed to create AWS plan storage", "error", err)
 			return nil, fmt.Errorf("error while creating AWS plan storage: %v", err)
 		}
-	case uploadDestination == "gitlab":
+	case "gitlab":
 		slog.Warn("GitLab plan storage not yet implemented")
 		// TODO implement me
-	case uploadDestination == "azure":
+	case "azure":
 		containerName := strings.ToLower(os.Getenv("PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME"))
 		if containerName == "" {
 			slog.Error("PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME not defined for Azure plan storage")

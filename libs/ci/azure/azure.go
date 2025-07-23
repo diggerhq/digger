@@ -201,13 +201,14 @@ func (svc *AzureReposService) UpdateIssue(ID int64, title, body string) (int64, 
 
 func (a *AzureReposService) SetStatus(prNumber int, status, statusContext string) error {
 	var gitStatusState git.GitStatusState
-	if status == "success" {
+	switch status {
+	case "success":
 		gitStatusState = git.GitStatusStateValues.Succeeded
-	} else if status == "failure" {
+	case "failure":
 		gitStatusState = git.GitStatusStateValues.Failed
-	} else if status == "pending" {
+	case "pending":
 		gitStatusState = git.GitStatusStateValues.Pending
-	} else {
+	default:
 		gitStatusState = git.GitStatusStateValues.NotSet
 	}
 
@@ -394,9 +395,9 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2
 	var impactedProjects []digger_config2.Project
 	var prNumber int
 
-	switch azureEvent.(type) {
+	switch azureEvent := azureEvent.(type) {
 	case AzurePrEvent:
-		prNumber = azureEvent.(AzurePrEvent).Resource.PullRequestId
+		prNumber = azureEvent.Resource.PullRequestId
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not get changed files: %v", err)
@@ -404,14 +405,14 @@ func ProcessAzureReposEvent(azureEvent interface{}, diggerConfig *digger_config2
 
 		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
 	case AzureCommentEvent:
-		prNumber = azureEvent.(AzureCommentEvent).Resource.PullRequest.PullRequestId
+		prNumber = azureEvent.Resource.PullRequest.PullRequestId
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not get changed files: %v", err)
 		}
 
 		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
-		requestedProject := ci.ParseProjectName(azureEvent.(AzureCommentEvent).Resource.Comment.Content)
+		requestedProject := ci.ParseProjectName(azureEvent.Resource.Comment.Content)
 
 		if requestedProject == "" {
 			return impactedProjects, nil, prNumber, nil

@@ -81,7 +81,7 @@ func GetFilesWithExtension(workingDir, ext string) ([]string, error) {
 		slog.Error("error reading directory",
 			"error", err,
 			"dir", workingDir)
-		return nil, errors.New(fmt.Sprintf("error reading directory %s: %v", workingDir, err))
+		return nil, fmt.Errorf("error reading directory %s: %v", workingDir, err)
 	}
 	for _, f := range listOfFiles {
 		if !f.IsDir() {
@@ -393,7 +393,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 
 			// if blocks of include/exclude patterns defined
 			for _, b := range config.GenerateProjectsConfig.Blocks {
-				if b.Terragrunt == true {
+				if b.Terragrunt {
 					if checkBlockInChangedFiles(*b.RootDir, changedFiles) {
 						slog.Info("generating terragrunt projects for block",
 							"blockName", b.BlockName,
@@ -518,7 +518,7 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 		return configYaml, err
 	}
 
-	if generateProjects == true {
+	if generateProjects {
 		slog.Info("generating projects from config", "fileName", fileName)
 		err = HandleYamlProjectGeneration(configYaml, workingDir, changedFiles)
 		if err != nil {
@@ -947,7 +947,7 @@ func isFileExists(path string) bool {
 }
 
 func retrieveConfigFile(workingDir string) (string, error) {
-	var fileName string = "digger"
+	fileName := "digger"
 	customConfigFile := os.Getenv("DIGGER_FILENAME") != ""
 
 	if customConfigFile {
