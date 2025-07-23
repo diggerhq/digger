@@ -36,7 +36,7 @@ digger:
   # Docker image
   image:
     repository: registry.digger.dev/diggerhq/digger_backend
-    tag: "v0.6.106"  # Check for latest version
+    tag: "v0.6.106"  # Should match appVersion in Chart.yaml
 
   # Service configuration
   service:
@@ -52,7 +52,7 @@ digger:
       secretName: "digger-tls"  # If using TLS
 
   # Required secrets
-  secrets:
+  secret:
     httpBasicAuthUsername: "admin"
     httpBasicAuthPassword: "<generate-strong-password>"
     bearerAuthToken: "<generate-strong-token>"
@@ -60,15 +60,18 @@ digger:
     
     # GitHub App credentials (filled after setup)
     githubOrg: ""
-    githubAppId: ""
-    githubAppClientId: ""
+    githubAppID: ""  # Note: uppercase ID
+    githubAppClientID: ""
     githubAppClientSecret: ""
-    githubAppPrivateKey: ""
+    githubAppKeyFile: ""  # base64 encoded private key
     githubWebhookSecret: ""
     
-    # Database configuration
-    databaseURL: ""  # Leave empty if using built-in postgres
-    postgresPassword: "<generate-strong-password>"
+  # PostgreSQL configuration
+  postgres:
+    user: "postgres"
+    database: "digger"
+    host: "your-postgres-host"
+    password: "<generate-strong-password>"
 
   # Resource limits (optional)
   resources:
@@ -85,8 +88,12 @@ digger:
 #### Option 1: External PostgreSQL (Recommended for production)
 ```yaml
 digger:
-  secrets:
-    databaseURL: "postgresql://user:password@host:5432/digger"
+  postgres:
+    user: "digger"
+    database: "digger"
+    host: "postgresql.example.com"
+    password: "your-secure-password"
+    sslmode: "require"  # or "disable" for non-SSL connections
 ```
 
 #### Option 2: Built-in PostgreSQL (Testing only)
