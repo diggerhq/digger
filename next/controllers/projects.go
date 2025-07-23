@@ -228,7 +228,7 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *model.Dig
 	}
 
 	for _, detail := range sourceDetails {
-		reporter := reporting.SourceGroupingReporter{serializedJobs, int(batch.PrNumber), ghService}
+		reporter := reporting.SourceGroupingReporter{Jobs: serializedJobs, PrNumber: int(batch.PrNumber), PrService: ghService}
 		reporter.UpdateComment(sourceDetails, detail.SourceLocation, projectToTerraformOutput)
 	}
 	return nil
