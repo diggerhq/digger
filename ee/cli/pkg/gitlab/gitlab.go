@@ -50,14 +50,14 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		usage.ReportErrorAndExit(repoName, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
-	//gitLabContext, err := gitlab.ParseGitLabContext()
+	// gitLabContext, err := gitlab.ParseGitLabContext()
 	//if err != nil {
 	//	fmt.Printf("failed to parse GitLab context. %s\n", err.Error())
 	//	os.Exit(4)
 	//}
 
 	// it's ok to not have merge request info if it has been merged
-	//if (gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0) && gitLabContext.EventType != "merge_request_merge" {
+	// if (gitLabContext.MergeRequestIId == nil || len(gitLabContext.OpenMergeRequests) == 0) && gitLabContext.EventType != "merge_request_merge" {
 	//	fmt.Println("No merge request found.")
 	//	os.Exit(0)
 	//}

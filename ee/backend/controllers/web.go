@@ -65,7 +65,7 @@ func (web *WebController) ReposPage(c *gin.Context) {
 
 	maps.Copy(pageContext, gin.H{
 		"Repos": repos,
-		//"GithubApp": githubApp,
+		// "GithubApp": githubApp,
 	})
 	c.HTML(http.StatusOK, "repos.tmpl", pageContext)
 }
