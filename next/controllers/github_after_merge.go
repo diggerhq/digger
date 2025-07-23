@@ -73,7 +73,7 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 		log.Printf("error getting workflows from config: %v", err)
 		return fmt.Errorf("error getting workflows from config")
 	}
-	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
+	config := &dg_configuration.DiggerConfig{
 		ApplyAfterMerge:   true,
 		AllowDraftPRs:     false,
 		CommentRenderMode: "",

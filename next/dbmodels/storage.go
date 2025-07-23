@@ -697,7 +697,7 @@ func (db *Database) UpdateBatchStatus(batch *model.DiggerBatch) error {
 			allJobsSucceeded = false
 		}
 	}
-	if allJobsSucceeded == true {
+	if allJobsSucceeded {
 		batch.Status = int16(scheduler.BatchJobSucceeded)
 		db.GormDB.Save(batch)
 	}
@@ -956,8 +956,7 @@ func (db *Database) UpdateDiggerJob(job *model.DiggerJob) error {
 func (db *Database) GetDiggerJobsForBatch(batchId string) ([]model.DiggerJob, error) {
 	jobs := make([]model.DiggerJob, 0)
 
-	var where *gorm.DB
-	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
+	var where *gorm.DB = db.GormDB.Where("digger_jobs.batch_id = ?", batchId)
 
 	result := where.Find(&jobs)
 	if result.Error != nil {
@@ -971,8 +970,7 @@ func (db *Database) GetDiggerJobsForBatch(batchId string) ([]model.DiggerJob, er
 func (db *Database) GetDiggerJobsForBatchWithStatus(batchId string, status []scheduler.DiggerJobStatus) ([]model.DiggerJob, error) {
 	jobs := make([]model.DiggerJob, 0)
 
-	var where *gorm.DB
-	where = db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status IN ?", status)
+	var where *gorm.DB = db.GormDB.Where("digger_jobs.batch_id = ?", batchId).Where("status IN ?", status)
 
 	result := where.Find(&jobs)
 	if result.Error != nil {
@@ -986,8 +984,7 @@ func (db *Database) GetDiggerJobsForBatchWithStatus(batchId string, status []sch
 func (db *Database) GetDiggerJobsWithStatus(status scheduler.DiggerJobStatus) ([]model.DiggerJob, error) {
 	jobs := make([]model.DiggerJob, 0)
 
-	var where *gorm.DB
-	where = db.GormDB.Where("status = ?", status)
+	var where *gorm.DB = db.GormDB.Where("status = ?", status)
 
 	result := where.Find(&jobs)
 	if result.Error != nil {
@@ -1275,7 +1272,7 @@ func (db *Database) UpdateRepoDiggerConfig(orgId string, config configuration.Di
 					return fmt.Errorf("could not create project: %v", err)
 				}
 			} else {
-				if isMainBranch == true {
+				if isMainBranch {
 					p.IsInMainBranch = isMainBranch
 				}
 				p.IsGenerated = dc.Generated

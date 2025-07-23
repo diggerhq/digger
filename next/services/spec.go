@@ -68,7 +68,7 @@ func RefreshVariableSpecForJob(job *model.DiggerJob) error {
 		return fmt.Errorf("could not get orb: %v", err)
 	}
 
-	repoName := strings.Replace(batch.RepoFullName, "/", "-", -1)
+	repoName := strings.ReplaceAll(batch.RepoFullName, "/", "-")
 	repo, err := dbmodels.DB.GetRepo(batch.OrganizationID, repoName)
 	if err != nil {
 		log.Printf("could not get repo: %v", err)
@@ -152,11 +152,11 @@ func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 
 	switch batch.EventType {
 	case dbmodels.DiggerBatchMergeEvent:
-		runName += fmt.Sprintf(" (merge)")
+		runName += " (merge)"
 	case dbmodels.DiggerBatchDriftEvent:
-		runName += fmt.Sprintf(" (drift)")
+		runName += " (drift)"
 	case dbmodels.DiggerBatchManualTriggerEvent:
-		runName += fmt.Sprintf(" (user)")
+		runName += " (user)"
 	case dbmodels.DiggerBatchPullRequestEvent:
 		runName += fmt.Sprintf(" PR: %v", prNumber)
 	}

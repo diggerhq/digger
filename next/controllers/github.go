@@ -353,7 +353,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 	p := dbmodels.DB.Query.Project
 	projects, err := dbmodels.DB.Query.Project.Where(p.RepoID.Eq(repo.ID)).Find()
 
-	var dgprojects []dg_configuration.Project = []dg_configuration.Project{}
+	dgprojects := []dg_configuration.Project{}
 	for _, proj := range projects {
 		projectBranch := proj.Branch
 		if targetBranch == projectBranch {
@@ -367,7 +367,7 @@ func handlePullRequestEvent(gh next_utils.GithubClientProvider, payload *github.
 		log.Printf("error getting workflows from config: %v", err)
 		return fmt.Errorf("error getting workflows from config")
 	}
-	var config *dg_configuration.DiggerConfig = &dg_configuration.DiggerConfig{
+	config := &dg_configuration.DiggerConfig{
 		ApplyAfterMerge:   true,
 		AllowDraftPRs:     false,
 		CommentRenderMode: "",
@@ -602,7 +602,7 @@ func getBatchType(jobs []orchestrator_scheduler.Job) orchestrator_scheduler.Digg
 	allJobsContainApply := lo.EveryBy(jobs, func(job orchestrator_scheduler.Job) bool {
 		return lo.Contains(job.Commands, "digger apply")
 	})
-	if allJobsContainApply == true {
+	if allJobsContainApply {
 		return orchestrator_scheduler.BatchTypeApply
 	} else {
 		return orchestrator_scheduler.BatchTypePlan
