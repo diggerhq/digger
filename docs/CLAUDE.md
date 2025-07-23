@@ -39,11 +39,23 @@
 
 ## Git workflow
 
+When user says "let's push to git" or similar:
+1. Check git status first
+2. If on develop or main, create a new branch using convention:
+   - `docs/` for documentation changes
+   - `feat/` for new features
+   - `fix/` for bug fixes
+3. Stage and commit changes with one-line message
+4. Push with `-u` flag to set upstream: `git push -u origin branch-name`
+5. Default branch is `develop` (not main)
+
+Standard workflow:
 - NEVER use --no-verify when committing
 - Ask how to handle uncommitted changes before starting
 - Create a new branch when no clear branch exists for changes
 - Commit frequently throughout development
 - NEVER skip or disable pre-commit hooks
+- Keep commit messages to one line unless user requests otherwise
 
 ## Do not
 
