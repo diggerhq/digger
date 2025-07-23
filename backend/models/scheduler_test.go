@@ -12,6 +12,7 @@ import (
 )
 
 func setupSuiteScheduler(tb testing.TB) (func(tb testing.TB), *Database) {
+	tb.Helper()
 	// database file name
 	dbName := "database_test.db"
 

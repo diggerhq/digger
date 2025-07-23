@@ -568,6 +568,7 @@ var installationCreatedEvent = `
 }`
 
 func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
+	tb.Helper()
 	// database file name
 	dbName := "database_test.db"
 
@@ -660,6 +661,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	models.DB = database
 	// Return a function to teardown the test
 	return func(tb testing.TB) {
+		tb.Helper()
 		err = os.Remove(dbName)
 		if err != nil {
 			panic(err)

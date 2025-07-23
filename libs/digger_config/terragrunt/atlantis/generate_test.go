@@ -27,6 +27,7 @@ func resetForRun() error {
 }
 
 func runTest(t *testing.T, goldenFile, testPath string, createProjectName bool, workflowName string, withWorkspace, parallel, ignoreParentTerragrunt, ignoreDependencyBlocks, cascadeDependencies bool) {
+	t.Helper()
 	resetForRun()
 	atlantisConfig, _, err := Parse(
 		testPath,

@@ -33,6 +33,7 @@ linters:
     - usestdlibvars
     - misspell
     - tagalign
+    - thelper
 
 settings:
   misspell:
