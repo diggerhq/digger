@@ -10,12 +10,13 @@ import (
 type CommentUpdaterProviderAdvanced struct{}
 
 func (c CommentUpdaterProviderAdvanced) Get(renderMode string) (comment_updater.CommentUpdater, error) {
-	if renderMode == digger_config.CommentRenderModeBasic {
+	switch renderMode {
+	case digger_config.CommentRenderModeBasic:
 		return comment_updater.BasicCommentUpdater{}, nil
-	} else if renderMode == digger_config.CommentRenderModeGroupByModule {
+	case digger_config.CommentRenderModeGroupByModule:
 		commentUpdater := comment_updater.BasicCommentUpdater{}
 		return commentUpdater, nil
-	} else {
+	default:
 		return nil, fmt.Errorf("Unknown comment render mode found: %v", renderMode)
 	}
 }
