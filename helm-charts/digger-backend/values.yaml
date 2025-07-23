@@ -1,0 +1,141 @@
+# values.yaml
+
+digger:
+  # image values
+  # repository: digger backend image repository
+  # tag: digger backend image tag
+  image:
+    repository: registry.digger.dev/diggerhq/digger_backend
+    tag: "v0.6.101"
+
+  # Custom environment variables to be added to the backend deployment
+  # Format:
+  # customEnv:
+  #   - name: MY_CUSTOM_ENV
+  #     value: "my-value"
+  #   - name: ANOTHER_ENV
+  #     value: "another-value"
+  customEnv: []
+
+  # Set the log level for the backend
+  # DEBUG will enable the debug logs, any other value will set it to INFO
+  logLevel: "INFO"
+
+  # Resource limits and requests for the pods
+  resources: {}
+  #  requests:
+  #    cpu: 100m
+  #    memory: 140Mi
+  #  limits:
+  #    cpu: 500m
+  #    memory: 200Mi
+
+  # livenessProbe and startupProbe settings
+  # https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+
+  # livenessProbe: configure probing of /health endpoint
+  # periodSeconds: how often to perform the probe (20 seconds)
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    periodSeconds: 20
+
+  # startupProbe: configure probing of /health endpoint for startup
+  # failureThreshold: how many times the probe can fail before the container is considered failed (30 times)
+  # periodSeconds: how often to perform the probe (10 seconds)
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    failureThreshold: 30
+    periodSeconds: 10
+
+  # service values
+  # type: service type (ClusterIP, LoadBalancer, etc)
+  # port: port number to expose
+  service:
+    type: ClusterIP
+    port: 3000 # default port for digger backend
+
+  # ingress values
+  # enabled: enable ingress resource or not (default: true)
+  # host: hostname to use (default: "")
+  # path: path to expose (default: "/")
+  # tls: tls settings if using https
+  #   secretName: name of k8s secret for tls certs (default: "digger-backend-tls")
+  ingress:
+    enabled: true
+    className: ""
+    annotations:
+      {}
+      # kubernetes.io/ingress.class: nginx
+    #  kubernetes.io/tls-acme: 'true'
+    host: ""
+    path: /
+    tls:
+      secretName: "digger-backend-tls"
+
+  # digger requires a secret with the following key-value pairs:
+  # HTTP_BASIC_AUTH_USERNAME: <value>
+  # HTTP_BASIC_AUTH_PASSWORD: <value>
+  # BEARER_AUTH_TOKEN: <value>
+  # HOSTNAME: <value>
+  # GITHUB_ORG: <value>
+  # GITHUB_APP_ID: <value>
+  # GITHUB_APP_CLIENT_ID: <value>
+  # GITHUB_APP_CLIENT_SECRET: <value>
+  # GITHUB_APP_PRIVATE_KEY: <value>
+  # GITHUB_WEBHOOK_SECRET: <value>
+  # POSTGRES_PASSWORD: <value>
+  # pass the content in clear or specify the name of the existing secret
+  secret:
+    useExistingSecret: false
+    existingSecretName: ""
+
+    httpBasicAuthUsername: "admin"
+    httpBasicAuthPassword: "admin"
+    bearerAuthToken: "" # You should generate
+    hostname: ""
+    githubOrg: ""
+    githubAppID: ""
+    githubAppClientID: ""
+    githubAppClientSecret: ""
+    githubAppKeyFile: "" #base64 encoded file
+    githubWebhookSecret: ""
+
+  # configure this section if you want to use an external postgres database
+
+  postgres:
+    # specify the secret name and key to pull the existing postgres database password from
+    existingSecretName: ""
+    existingSecretKey: "postgres-password"
+
+    # to define connection details in chart:
+    sslmode: "disable"
+    user: "postgres"
+    database: "digger"
+    host: "pg-postgresql.db"
+    password: "password"
+    port: "5432"
+    allow_dirty: false # set to true if the database has already a schema
+
+# configure this section if you want to deploy a postgres db
+# WARNING: use only for test purposes, no persistency has been configured
+postgres:
+  sslmode: "disable"
+  enabled: false
+  image: postgres
+  tag: "14"
+  resources:
+    limits: {}
+    requests: {}
+  # postgres requires a secret with the following key-value pairs:
+  # postgres-password: <value>
+
+  # pass the content in clear or specify the name of the existing secret
+  secret:
+    useExistingSecret: true
+    existingSecretName: "new-pg-creds"
+
+    password: "password"

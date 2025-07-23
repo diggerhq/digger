@@ -1,0 +1,35 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "digger-backend.fullname" . }}-postgres
+spec:
+  serviceName: "{{ include "digger-backend.fullname" . }}-postgres"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "digger-backend.name" . }}-postgres
+  template:
+    metadata:
+      labels:
+        app: {{ include "digger-backend.name" . }}-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: {{ printf "%s:%s" .Values.postgres.image .Values.postgres.tag }}
+        ports:
+        - containerPort: 5432
+        {{- if .Values.resources }}
+        resources: {{- toYaml .Values.postgres.resources | nindent 10 }}
+        {{- end }}
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgres-password
+              {{- if .Values.postgres.secret.useExistingSecret }}
+              name: {{ .Values.postgres.secret.existingSecretName }}
+              {{- else }}
+              name: {{ include "digger-backend.fullname" . }}-postgres-secret
+              {{- end }}
+{{- end }}
