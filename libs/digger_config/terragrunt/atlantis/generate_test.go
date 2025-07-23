@@ -1,12 +1,13 @@
 package atlantis
 
 import (
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/sync/singleflight"
-	"gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/singleflight"
+	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -20,14 +21,13 @@ func init() {
 }
 
 func resetForRun() error {
-
 	// reset caches
 	getDependenciesCache = newGetDependenciesCache()
 	requestGroup = singleflight.Group{}
 	return nil
 }
 
-func runTest(t *testing.T, goldenFile string, testPath string, createProjectName bool, workflowName string, withWorkspace bool, parallel bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool) {
+func runTest(t *testing.T, goldenFile, testPath string, createProjectName bool, workflowName string, withWorkspace, parallel, ignoreParentTerragrunt, ignoreDependencyBlocks, cascadeDependencies bool) {
 	resetForRun()
 	atlantisConfig, _, err := Parse(
 		testPath,
@@ -51,7 +51,6 @@ func runTest(t *testing.T, goldenFile string, testPath string, createProjectName
 		false,
 		false,
 	)
-
 	if err != nil {
 		slog.Error("failed to parse terragrunt configuration", "error", err)
 		t.Fatal(err)

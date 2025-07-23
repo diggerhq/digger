@@ -3,6 +3,8 @@ package atlantis
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -12,7 +14,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
-	"path/filepath"
 )
 
 // terragruntDependencies is a struct that can be used to only decode the dependencies block.
@@ -418,8 +419,8 @@ func TerragruntConfigFromPartialConfigString(
 	decodeList []config.PartialDecodeSectionType,
 ) (*config.TerragruntConfig, error) {
 	if terragruntOptions.UsePartialParseConfigCache {
-		var cacheKey = fmt.Sprintf("%#v-%#v-%#v-%#v", filename, configString, includeFromChild, decodeList)
-		var config, found = terragruntConfigCache.Get(cacheKey)
+		cacheKey := fmt.Sprintf("%#v-%#v-%#v-%#v", filename, configString, includeFromChild, decodeList)
+		config, found := terragruntConfigCache.Get(cacheKey)
 
 		if !found {
 			terragruntOptions.Logger.Debugf("Cache miss for '%s' (partial parsing), decodeList: '%v'.", filename, decodeList)

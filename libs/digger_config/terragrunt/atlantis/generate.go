@@ -166,7 +166,7 @@ func getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks bool, gitRoo
 			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
-		//locals := ResolvedLocals{}
+		// locals := ResolvedLocals{}
 
 		// Get deps from locals
 		if locals.ExtraAtlantisDependencies != nil {

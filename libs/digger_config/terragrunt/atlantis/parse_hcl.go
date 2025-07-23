@@ -1,9 +1,8 @@
 package atlantis
 
 import (
-	"path/filepath"
-
 	"log/slog"
+	"path/filepath"
 
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/terragrunt/config"
