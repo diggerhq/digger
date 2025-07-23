@@ -116,5 +116,4 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 
 	log.Printf("specBytes: %v", spec)
 	c.String(200, string(specBytes))
-	return
 }

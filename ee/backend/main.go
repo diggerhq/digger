@@ -99,7 +99,6 @@ func main() {
 	} else {
 		r.GET("/", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "healthy.tmpl", gin.H{})
-			return
 		})
 	}
 

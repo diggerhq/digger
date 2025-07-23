@@ -97,7 +97,8 @@ func (web *WebController) PoliciesPage(c *gin.Context) {
 func (web *WebController) AddPolicyPage(c *gin.Context) {
 	orgId := c.GetHeader(middleware.ORGANISATION_ID_KEY)
 
-	if c.Request.Method == "GET" {
+	switch c.Request.Method {
+	case "GET":
 
 		message := ""
 		projects, done := models.DB.GetProjectsFromContext(c, middleware.ORGANISATION_ID_KEY)
@@ -115,7 +116,7 @@ func (web *WebController) AddPolicyPage(c *gin.Context) {
 		c.HTML(http.StatusOK, "policy_add.tmpl", gin.H{
 			"Message": message, "Projects": projects, "PolicyTypes": policyTypes,
 		})
-	} else if c.Request.Method == "POST" {
+	case "POST":
 		policyText := c.PostForm("policytext")
 		if policyText == "" {
 			message := "Policy can't be empty"
@@ -209,8 +210,8 @@ func (web *WebController) RunDetailsPage(c *gin.Context) {
 	stateSyncOutput := ""
 	terraformPlanOutput := ""
 	runOutput := string(ansihtml.ConvertToHTMLWithClasses([]byte(run.Output), "terraform-output-", true))
-	runOutput = strings.Replace(runOutput, "  ", "&nbsp;&nbsp;", -1)
-	runOutput = strings.Replace(runOutput, "\n", "<br>\n", -1)
+	runOutput = strings.ReplaceAll(runOutput, "  ", "&nbsp;&nbsp;")
+	runOutput = strings.ReplaceAll(runOutput, "\n", "<br>\n")
 
 	planIndex := strings.Index(runOutput, "Terraform used the selected providers to generate the following execution")
 	if planIndex != -1 {

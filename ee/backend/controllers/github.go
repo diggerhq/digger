@@ -195,7 +195,7 @@ func (d DiggerEEController) GithubAppConnectionsConfirm(c *gin.Context) {
 	_, err = models.DB.CreateVCSConnection(cfg.GetName(), models.DiggerVCSGithub, cfg.GetID(), cfg.GetClientID(), clientSecretEnc, webhookSecretEnc, PEMEnc, PEM64Enc, *cfg.Owner.Login, cfg.GetHTMLURL(), "", "", "", "", orgId)
 	if err != nil {
 		log.Printf("failed to create github app connection record: %v", err)
-		c.String(500, fmt.Sprintf("Failed to create github app record on callback"))
+		c.String(500, "Failed to create github app record on callback")
 		return
 	}
 
