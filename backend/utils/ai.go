@@ -67,7 +67,7 @@ func GenerateTerraformCode(appCode, generationEndpoint, apiToken string) (string
 			"statusCode", resp.StatusCode,
 			"response", string(body),
 		)
-		return "", fmt.Errorf("unexpected error occured while generating code")
+		return "", fmt.Errorf("unexpected error occurred while generating code")
 	}
 
 	type GeneratorResponse struct {
@@ -147,7 +147,7 @@ func GetAiSummaryFromTerraformPlans(plans, summaryEndpoint, apiToken string) (st
 			"statusCode", resp.StatusCode,
 			"response", string(body),
 		)
-		return "", fmt.Errorf("unexpected error occured while generating code")
+		return "", fmt.Errorf("unexpected error occurred while generating code")
 	}
 
 	type GeneratorResponse struct {

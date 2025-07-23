@@ -426,7 +426,7 @@ func (svc GithubService) GetHeadCommitFromBranch(branch string) (string, string,
 	branchInfo, _, err := svc.Client.Repositories.GetBranch(context.Background(), svc.Owner, svc.RepoName, branch, 0)
 	if err != nil {
 		slog.Error("error fetching branch", "error", err, "branch", branch)
-		return "", "", fmt.Errorf("could not retrive branch details: %v", err)
+		return "", "", fmt.Errorf("could not retrieve branch details: %v", err)
 	}
 
 	headCommit := branchInfo.GetCommit()
