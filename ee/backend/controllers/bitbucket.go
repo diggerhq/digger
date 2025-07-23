@@ -277,7 +277,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
-		fmt.Errorf("error setting status for PR: %v", err)
+		return fmt.Errorf("error setting status for PR: %v", err)
 	}
 
 	impactedProjectsMap := make(map[string]dg_configuration.Project)

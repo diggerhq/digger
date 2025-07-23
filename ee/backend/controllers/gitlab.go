@@ -270,7 +270,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
-		fmt.Errorf("error setting status for PR: %v", err)
+		return fmt.Errorf("error setting status for PR: %v", err)
 	}
 
 	impactedProjectsMap := make(map[string]dg_configuration.Project)
@@ -462,7 +462,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
-		fmt.Errorf("error setting status for PR: %v", err)
+		return fmt.Errorf("error setting status for PR: %v", err)
 	}
 
 	impactedProjectsMap := make(map[string]dg_configuration.Project)
