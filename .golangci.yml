@@ -25,3 +25,4 @@ linters:
   default: none
   enable:
     - staticcheck
+    - govet
