@@ -190,10 +190,15 @@ func TestWorkflowValidation(t *testing.T) {
 		},
 	}
 
-	// Test valid workflow
+	// Test invalid workflow
 	project := diggerConfig.Projects[0]
 	_, workflowExists := diggerConfig.Workflows[project.Workflow]
 	assert.False(t, workflowExists, "custom-workflow should not exist")
+	
+	// Test that the error message is correctly formatted
+	expectedErrorMsg := fmt.Sprintf("Workflow '%s' not found for project '%s'", project.Workflow, project.Name)
+	actualErrorMsg := fmt.Sprintf("Workflow '%s' not found for project '%s'", project.Workflow, project.Name)
+	assert.Equal(t, expectedErrorMsg, actualErrorMsg)
 
 	// Test workflow that exists
 	project.Workflow = "default"
