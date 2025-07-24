@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"bytes"
-	"io"
 	"log/slog"
 	net "net/http"
 )
@@ -16,7 +14,6 @@ func (lrt *LoggingRoundTripper) RoundTrip(req *net.Request) (*net.Response, erro
 	slog.Debug("GitHub API Request",
 		"method", req.Method,
 		"url", req.URL.String(),
-		"headers", req.Header,
 	)
 
 	resp, err := lrt.Rt.RoundTrip(req)
@@ -25,18 +22,13 @@ func (lrt *LoggingRoundTripper) RoundTrip(req *net.Request) (*net.Response, erro
 		return nil, err
 	}
 
-	// Read and clone response body for logging
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		slog.Error("Failed to read response body", "error", err)
-		return resp, err
-	}
-	resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // restore the body for the actual client
-
 	slog.Debug("GitHub API Response",
 		"status", resp.Status,
-		"headers", resp.Header,
-		"body", string(bodyBytes),
+		"X-RateLimit-Limit", resp.Header.Get("X-RateLimit-Limit"),
+		"X-RateLimit-Remaining", resp.Header.Get("X-RateLimit-Remaining"),
+		"X-RateLimit-Used", resp.Header.Get("X-RateLimit-Used"),
+		"X-RateLimit-Resource", resp.Header.Get("X-RateLimit-Resource"),
+		"X-RateLimit-Reset", resp.Header.Get("X-RateLimit-Reset"),
 	)
 
 	return resp, nil
