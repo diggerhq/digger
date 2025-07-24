@@ -12,7 +12,7 @@ primary_region = 'lhr'
   JWT_AUTH = 'true'
   DIGGER_PROJECTS_SVC_APP_NAME = 'projects-refresh-service'
   DIGGER_LOAD_PROJECTS_ON_PUSH = 'true'
-
+  DIGGER_MAX_PROJECTS_PER_CHANGE=100
 
 [build]
   dockerfile = 'Dockerfile_backend_ee'
