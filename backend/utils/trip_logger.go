@@ -13,7 +13,7 @@ func (lrt *LoggingRoundTripper) RoundTrip(req *net.Request) (*net.Response, erro
 	// Log the request
 	slog.Debug("GitHub API Request",
 		"method", req.Method,
-		"url", req.URL.String(),
+		"url_path", req.URL.Path,
 	)
 
 	resp, err := lrt.Rt.RoundTrip(req)
