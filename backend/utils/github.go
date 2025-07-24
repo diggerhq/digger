@@ -83,7 +83,11 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 		return nil, nil, fmt.Errorf("error initialising git app token: %v\n", err)
 	}
 
-	ghClient, err := gh.NewClient(&net.Client{Transport: itr})
+	clientWithLogging := &net.Client{
+		Transport: &LoggingRoundTripper{Rt: itr},
+	}
+
+	ghClient, err := gh.NewClient(clientWithLogging)
 	if err != nil {
 		slog.Error("Failed to create GitHub client", "error", err)
 		return nil, nil, fmt.Errorf("error creating new client: %v", err)
