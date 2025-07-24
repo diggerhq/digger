@@ -24,7 +24,7 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
     digger:
       image:
         repository: registry.digger.dev/diggerhq/digger_backend
-        tag: "v0.6.106" # Select tag from GitHub releases
+        tag: "v0.6.110" # Select tag from GitHub releases
         pullPolicy: IfNotPresent
     ```
     
@@ -33,26 +33,6 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
     </Warning>
   </Step>
 
-  <Step title="Configure required secrets">
-    Configure the required secrets for Digger. Note that GitHub App credentials will be filled after the initial setup.
-    
-    ```yaml values.yaml
-    digger:
-      secret:
-        httpBasicAuthUsername: "admin"
-        httpBasicAuthPassword: "<strong-password>"
-        bearerAuthToken: "<strong-token>"
-        hostname: "digger.example.com"
-        
-        # GitHub App credentials (filled after setup)
-        githubOrg: ""
-        githubAppID: ""  # Note: uppercase ID
-        githubAppClientID: ""
-        githubAppClientSecret: ""
-        githubAppKeyFile: ""  # base64 encoded private key
-        githubWebhookSecret: ""
-    ```
-  </Step>
 
   <Step title="Configure database">
     Choose your database configuration based on your environment:
@@ -79,7 +59,8 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
         postgres:
           enabled: true
           secret:
-            postgresPassword: "<test-password>"
+            useExistingSecret: false  # Important: set to false
+            password: "<test-password>"
         ```
         
         <Warning>
@@ -103,6 +84,34 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
           # kubernetes.io/ingress.class: "nginx"
           # cert-manager.io/cluster-issuer: "letsencrypt-prod"
     ```
+  </Step>
+
+  <Step title="Configure initial secrets">
+    Configure the authentication and hostname settings. Make sure the hostname matches your ingress configuration:
+    
+    ```yaml values.yaml
+    digger:
+      secret:
+        httpBasicAuthUsername: "admin"
+        httpBasicAuthPassword: "<strong-password>"  # CHANGE THIS
+        bearerAuthToken: "<strong-token>"          # CHANGE THIS
+        hostname: "digger.example.com"             # MUST match your ingress host
+        githubOrg: "your-github-org"               # Your GitHub organization name
+        
+        # GitHub App credentials - leave empty for now
+        githubAppID: ""
+        githubAppClientID: ""
+        githubAppClientSecret: ""
+        githubAppKeyFile: ""
+        githubWebhookSecret: ""
+    ```
+    
+    <Warning>
+      **Important**: 
+      - The `hostname` must exactly match the host you configured in the ingress step
+      - The `githubOrg` must be your actual GitHub organization name where you'll install the app
+      - Change all default passwords and tokens
+    </Warning>
   </Step>
 
   <Step title="Install the Helm chart">
@@ -264,5 +273,9 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
   # For testing only - use external database in production
   postgres:
     enabled: false
+    # If you enable the built-in postgres:
+    # secret:
+    #   useExistingSecret: false
+    #   password: "test-password"
   ```
 </Accordion>
