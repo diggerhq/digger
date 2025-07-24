@@ -2,18 +2,14 @@ package services
 
 import (
 	"fmt"
-	"log/slog"
-	"runtime/debug"
-	"time"
-
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
+	"log/slog"
 )
 
 func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoFullName string, repoOwner string, repoName string, workflowFileName string, gh utils.GithubClientProvider) error {
@@ -168,63 +164,6 @@ func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, 
 	}
 
 	slog.Info("Job successfully triggered", "jobId", job.DiggerJobID, "status", job.Status)
-	go UpdateWorkflowUrlForJob(job, ciBackend, spec)
 
 	return nil
-}
-
-// This is meant to run asynchronously since it queries for job url
-func UpdateWorkflowUrlForJob(job *models.DiggerJob, ciBackend ci_backends.CiBackend, spec *spec.Spec) {
-	defer func() {
-		if r := recover(); r != nil {
-			stack := string(debug.Stack())
-			slog.Error("Recovered from panic in UpdateWorkflowUrlForJob",
-				"jobId", job.DiggerJobID,
-				"error", r,
-				"stackTrace", stack,
-			)
-		}
-	}()
-
-	batch := job.Batch
-	// for now we only perform this update for github
-	if batch.VCS != models.DiggerVCSGithub {
-		slog.Debug("Skipping workflow URL update for non-GitHub VCS", "jobId", job.DiggerJobID, "vcs", batch.VCS)
-		return
-	}
-
-	slog.Info("Starting workflow URL update", "jobId", job.DiggerJobID)
-
-	for n := 0; n < 30; n++ {
-		time.Sleep(1 * time.Second)
-		workflowUrl, err := ciBackend.GetWorkflowUrl(*spec)
-		if err != nil {
-			slog.Debug("Error fetching workflow URL",
-				"jobId", job.DiggerJobID,
-				"attempt", n+1,
-				"error", err)
-		} else {
-			if workflowUrl == "#" || workflowUrl == "" {
-				slog.Debug("Received blank workflow URL", "jobId", job.DiggerJobID, "attempt", n+1)
-			} else {
-				job.WorkflowRunUrl = &workflowUrl
-				err = models.DB.UpdateDiggerJob(job)
-				if err != nil {
-					slog.Error("Failed to update job with workflow URL",
-						"jobId", job.DiggerJobID,
-						"url", workflowUrl,
-						"error", err)
-					continue
-				} else {
-					slog.Info("Successfully updated workflow URL",
-						"jobId", job.DiggerJobID,
-						"url", workflowUrl)
-				}
-				return
-			}
-		}
-	}
-
-	slog.Warn("Failed to obtain workflow URL after multiple attempts", "jobId", job.DiggerJobID)
-	// if we get to here its highly likely that the workflow job entirely failed to start for some reason
 }
