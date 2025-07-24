@@ -621,6 +621,7 @@ type SetJobStatusRequest struct {
 	PrCommentUrl    string                      `json:"pr_comment_url"`
 	PrCommentId     string                      `json:"pr_comment_id"`
 	TerraformOutput string                      `json:"terraform_output"`
+	WorkflowUrl     string                      `json:"workflow_url,omitempty"`
 }
 
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
@@ -664,6 +665,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	switch request.Status {
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
+		if request.WorkflowUrl != "" {
+			slog.Debug("Adding workflow url to job", "jobId", jobId, "workflowUrl", request.WorkflowUrl)
+			job.WorkflowRunUrl = &request.WorkflowUrl
+		}
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
 			slog.Error("Error updating job status",
@@ -862,44 +867,13 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
-	// attempt to update workflow run url
+	// attempt to update workflow run url, note we only have this for backwards compatibility with
+	// older digger cli versions, newer cli versions after v0.6.110 will send the workflow url so
+	// we don't need to pull API, saving us rate limit exceeded errors
 	slog.Debug("Attempting to update workflow run URL", "jobId", jobId)
-
-	client, _, err := utils.GetGithubClient(d.GithubClientProvider, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
+	err = updateWorkflowUrlForJob(d.GithubClientProvider, job)
 	if err != nil {
-		slog.Warn("Error creating GitHub client for workflow URL update",
-			"jobId", jobId,
-			"repoFullName", job.Batch.RepoFullName,
-			"error", err,
-		)
-	} else {
-		_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(
-			client,
-			job.Batch.RepoOwner,
-			job.Batch.RepoName,
-			job.DiggerJobID,
-		)
-		if err != nil {
-			slog.Warn("Error getting workflow ID from job",
-				"jobId", jobId,
-				"error", err,
-			)
-		} else if workflowRunUrl != "#" && workflowRunUrl != "" {
-			job.WorkflowRunUrl = &workflowRunUrl
-			err = models.DB.UpdateDiggerJob(job)
-			if err != nil {
-				slog.Error("Error updating job with workflow URL",
-					"jobId", jobId,
-					"workflowUrl", workflowRunUrl,
-					"error", err,
-				)
-			} else {
-				slog.Debug("Updated job with workflow URL",
-					"jobId", jobId,
-					"workflowUrl", workflowRunUrl,
-				)
-			}
-		}
+		slog.Warn("Failed to update workflow run URL", "jobId", jobId, "error", err)
 	}
 
 	job.StatusUpdatedAt = request.Timestamp
@@ -989,6 +963,63 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	)
 
 	c.JSON(http.StatusOK, res)
+}
+
+func updateWorkflowUrlForJob(githubClientProvider utils.GithubClientProvider, job *models.DiggerJob) error {
+	if job == nil {
+		return fmt.Errorf("job is nil")
+	}
+	if job.WorkflowRunUrl != nil && *job.WorkflowRunUrl != "#" && *job.WorkflowRunUrl != "" {
+		slog.Debug("Workflow URL already exists", "jobId", job.DiggerJobID)
+		return nil
+	}
+	jobId := job.DiggerJobID
+	client, _, err := utils.GetGithubClient(githubClientProvider, job.Batch.GithubInstallationId, job.Batch.RepoFullName)
+	if err != nil {
+		slog.Warn("Error creating GitHub client for workflow URL update",
+			"jobId", jobId,
+			"repoFullName", job.Batch.RepoFullName,
+			"error", err,
+		)
+		return fmt.Errorf("error creating GitHub client for workflow URL update: %v", err)
+	}
+
+	_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(
+		client,
+		job.Batch.RepoOwner,
+		job.Batch.RepoName,
+		job.DiggerJobID,
+	)
+	if err != nil {
+		slog.Warn("Error getting workflow ID from job",
+			"jobId", jobId,
+			"error", err,
+		)
+		return fmt.Errorf("error getting workflow ID from job: %v", err)
+	}
+
+	if workflowRunUrl != "#" && workflowRunUrl != "" {
+		job.WorkflowRunUrl = &workflowRunUrl
+		err = models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			slog.Error("Error updating job with workflow URL",
+				"jobId", jobId,
+				"workflowUrl", workflowRunUrl,
+				"error", err,
+			)
+			return fmt.Errorf("error updating job with workflow URL: %v", err)
+		} else {
+			slog.Debug("Updated job with workflow URL",
+				"jobId", jobId,
+				"workflowUrl", workflowRunUrl,
+			)
+		}
+	} else {
+		slog.Debug("Workflow URL not found for job",
+			"jobId", jobId)
+		return fmt.Errorf("workflow URL not found for job (workflowUrl returned: %v)", workflowRunUrl)
+	}
+	return nil
 }
 
 type CreateProjectRunRequest struct {

@@ -135,6 +135,22 @@ func (d DiggerApi) ReportProjectRun(namespace string, projectName string, starte
 	return nil
 }
 
+func isGitHubActions() bool {
+	return os.Getenv("GITHUB_ACTIONS") == "true"
+}
+
+func getWorkflowUrl() string {
+	if isGitHubActions() {
+		githubServerURL := os.Getenv("GITHUB_SERVER_URL")  // e.g., https://github.com
+		githubRepository := os.Getenv("GITHUB_REPOSITORY") // e.g., diggerhq/demo-opentofu
+		githubRunID := os.Getenv("GITHUB_RUN_ID")          // numeric run ID
+		workflowURL := fmt.Sprintf("%s/%s/actions/runs/%s", githubServerURL, githubRepository, githubRunID)
+		return workflowURL
+	} else {
+		return "#"
+	}
+}
+
 func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, PrCommentId string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	repoNameForBackendReporting := strings.ReplaceAll(repo, "/", "-")
 	u, err := url.Parse(d.DiggerHost)
@@ -160,6 +176,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 		}
 	}
 
+	workflowUrl := getWorkflowUrl()
 	u.Path = filepath.Join(u.Path, "repos", repoNameForBackendReporting, "projects", projectName, "jobs", jobId, "set-status")
 	request := map[string]interface{}{
 		"status":             status,
@@ -169,6 +186,7 @@ func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId
 		"pr_comment_url":     PrCommentUrl,
 		"pr_comment_id":      PrCommentId,
 		"terraform_output":   terraformOutput,
+		"workflow_url":       workflowUrl,
 	}
 
 	jsonData, err := json.Marshal(request)
