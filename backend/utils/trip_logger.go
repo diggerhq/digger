@@ -24,12 +24,17 @@ func (lrt *LoggingRoundTripper) RoundTrip(req *net.Request) (*net.Response, erro
 
 	slog.Debug("GitHub API Response",
 		"status", resp.Status,
-		"X-RateLimit-Limit", resp.Header.Get("X-RateLimit-Limit"),
-		"X-RateLimit-Remaining", resp.Header.Get("X-RateLimit-Remaining"),
-		"X-RateLimit-Used", resp.Header.Get("X-RateLimit-Used"),
-		"X-RateLimit-Resource", resp.Header.Get("X-RateLimit-Resource"),
-		"X-RateLimit-Reset", resp.Header.Get("X-RateLimit-Reset"),
 	)
+	
+	if resp.Header != nil {
+		slog.Debug("GitHub API Rate Limits",
+			"X-RateLimit-Limit", resp.Header.Get("X-RateLimit-Limit"),
+			"X-RateLimit-Remaining", resp.Header.Get("X-RateLimit-Remaining"),
+			"X-RateLimit-Used", resp.Header.Get("X-RateLimit-Used"),
+			"X-RateLimit-Resource", resp.Header.Get("X-RateLimit-Resource"),
+			"X-RateLimit-Reset", resp.Header.Get("X-RateLimit-Reset"),
+		)
+	}
 
 	return resp, nil
 }
