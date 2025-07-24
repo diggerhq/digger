@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/spf13/cast"
+	"log/slog"
 	"os"
 )
 
@@ -16,6 +17,11 @@ func MaxImpactedProjectsPerChange() int {
 	if m == "" {
 		return 99999
 	} else {
-		return cast.ToInt(m)
+		v, err := cast.ToIntE(m)
+		if err != nil {
+			slog.Warn("unable to cast %s to int, defaulting to 99999")
+			return 99999
+		}
+		return v
 	}
 }
