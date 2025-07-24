@@ -19,7 +19,7 @@ func MaxImpactedProjectsPerChange() int {
 	} else {
 		v, err := cast.ToIntE(m)
 		if err != nil {
-			slog.Warn("unable to cast %s to int, defaulting to 99999")
+			slog.Warn("unable to cast DIGGER_MAX_PROJECTS_PER_CHANGE to int, defaulting to 99999", "DIGGER_MAX_PROJECTS_PER_CHANGE", m)
 			return 99999
 		}
 		return v
