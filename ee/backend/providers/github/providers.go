@@ -80,7 +80,11 @@ func (gh DiggerGithubEEClientProvider) Get(githubAppId int64, installationId int
 		return nil, nil, fmt.Errorf("error initialising git app token: %v\n", err)
 	}
 
-	ghClient, err := gh.NewClient(&net.Client{Transport: itr})
+	clientWithLogging := &net.Client{
+		Transport: &utils.LoggingRoundTripper{Rt: itr},
+	}
+
+	ghClient, err := gh.NewClient(clientWithLogging)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get digger client: %v", err)
 	}
