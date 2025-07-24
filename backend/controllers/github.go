@@ -610,6 +610,26 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
+	maxImpactedProjectsPerChange := config2.MaxImpactedProjectsPerChange()
+	if len(impactedProjects) > maxImpactedProjectsPerChange {
+		slog.Error("Number of impacted projects exceeds number of changed files",
+			"prNumber", prNumber,
+			"impactedProjectCount", len(impactedProjects),
+			"changedFileCount", len(changedFiles),
+		)
+
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds Max allowed ImpactedProjectsPerChange: %v, we set this limit to protect against hitting github API limits", len(impactedProjects), maxImpactedProjectsPerChange))
+
+		slog.Debug("Detailed event information",
+			slog.Group("details",
+				slog.Any("changedFiles", changedFiles),
+				slog.Int("configLength", len(diggerYmlStr)),
+				slog.Int("impactedProjectCount", len(impactedProjects)),
+			),
+		)
+		return fmt.Errorf("error processing event")
+	}
+
 	diggerCommand, err := orchestrator_scheduler.GetCommandFromJob(jobsForImpactedProjects[0])
 	if err != nil {
 		slog.Error("Could not determine Digger command from job",
@@ -1440,6 +1460,26 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 			return fmt.Errorf("error processing event")
 		}
+	}
+
+	maxImpactedProjectsPerChange := config2.MaxImpactedProjectsPerChange()
+	if len(impactedProjects) > maxImpactedProjectsPerChange {
+		slog.Error("Number of impacted projects exceeds number of changed files",
+			"prNumber", issueNumber,
+			"impactedProjectCount", len(impactedProjects),
+			"changedFileCount", len(changedFiles),
+		)
+
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds Max allowed ImpactedProjectsPerChange: %v, we set this limit to protect against hitting github API limits", len(impactedProjects), maxImpactedProjectsPerChange))
+
+		slog.Debug("Detailed event information",
+			slog.Group("details",
+				slog.Any("changedFiles", changedFiles),
+				slog.Int("configLength", len(diggerYmlStr)),
+				slog.Int("impactedProjectCount", len(impactedProjects)),
+			),
+		)
+		return fmt.Errorf("error processing event")
 	}
 
 	// perform unlocking in backend
