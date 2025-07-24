@@ -1017,7 +1017,7 @@ func updateWorkflowUrlForJob(githubClientProvider utils.GithubClientProvider, jo
 	} else {
 		slog.Debug("Workflow URL not found for job",
 			"jobId", jobId)
-		return fmt.Errorf("workflow URL not found for job (workflowUrl returned: %v)")
+		return fmt.Errorf("workflow URL not found for job (workflowUrl returned: %v)", workflowRunUrl)
 	}
 	return nil
 }
