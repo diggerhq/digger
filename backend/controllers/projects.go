@@ -621,6 +621,7 @@ type SetJobStatusRequest struct {
 	PrCommentUrl    string                      `json:"pr_comment_url"`
 	PrCommentId     string                      `json:"pr_comment_id"`
 	TerraformOutput string                      `json:"terraform_output"`
+	WorkflowUrl     string                      `json:"workflow_url,omitempty"`
 }
 
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
@@ -664,6 +665,9 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	switch request.Status {
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
+		if request.WorkflowUrl != "" {
+			job.WorkflowRunUrl = &request.WorkflowUrl
+		}
 		err := models.DB.UpdateDiggerJob(job)
 		if err != nil {
 			slog.Error("Error updating job status",
