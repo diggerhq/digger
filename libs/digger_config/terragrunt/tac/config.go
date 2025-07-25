@@ -1,4 +1,4 @@
-package atlantis
+package tac
 
 // Represents an entire digger_config file
 type AtlantisConfig struct {

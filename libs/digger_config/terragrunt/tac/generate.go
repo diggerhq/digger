@@ -1,4 +1,4 @@
-package atlantis
+package tac
 
 import (
 	"context"
@@ -628,7 +628,7 @@ func createHclProject(defaultWorkflow string, defaultApplyRequirements []string,
 }
 
 // Finds the absolute paths of all terragrunt.hcl files
-func getAllTerragruntFiles(filterPath string, projectHclFiles []string, path string) ([]string, error) {
+func getAllTerragruntFiles(filterPaths []string, projectHclFiles []string, path string) ([]string, error) {
 	options, err := options.NewTerragruntOptionsWithConfigPath(path)
 	if err != nil {
 		return nil, err
@@ -640,11 +640,15 @@ func getAllTerragruntFiles(filterPath string, projectHclFiles []string, path str
 	workingPaths := []string{path}
 
 	// filters are not working (yet) if using project hcl files (which are kind of filters by themselves)
-	if filterPath != "" && len(projectHclFiles) == 0 {
-		// get all matching folders
-		workingPaths, err = filepath.Glob(filterPath)
-		if err != nil {
-			return nil, err
+	if len(filterPaths) > 0 && len(projectHclFiles) == 0 {
+		workingPaths = []string{}
+		for _, filterPath := range filterPaths {
+			// get all matching folders
+			theseWorkingPaths, err := filepath.Glob(filterPath)
+			if err != nil {
+				return nil, err
+			}
+			workingPaths = append(workingPaths, theseWorkingPaths...)
 		}
 	}
 
@@ -711,7 +715,7 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 	return uniqueHclFileAbsPaths
 }
 
-func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPath string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool, executionOrderGroups bool, triggerProjectsFromDirOnly bool) (*AtlantisConfig, map[string][]string, error) {
+func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPaths []string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool, executionOrderGroups bool, triggerProjectsFromDirOnly bool, oldConfig *AtlantisConfig) (*AtlantisConfig, map[string][]string, error) {
 	// Ensure the gitRoot has a trailing slash and is an absolute path
 	absoluteGitRoot, err := filepath.Abs(gitRoot)
 	if err != nil {
@@ -741,13 +745,17 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 		ParallelApply: parallel,
 	}
 
+	if oldConfig != nil {
+		atlantisConfig.Projects = oldConfig.Projects
+	}
+
 	lock := sync.Mutex{}
 	ctx := context.Background()
 	errGroup, _ := errgroup.WithContext(ctx)
 	sem := semaphore.NewWeighted(10)
 	projectDependenciesMap := sync.Map{}
 	for _, workingDir := range workingDirs {
-		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
+		terragruntFiles, err := getAllTerragruntFiles(filterPaths, projectHclFiles, workingDir)
 		if err != nil {
 			return nil, nil, err
 		}

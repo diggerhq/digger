@@ -71,7 +71,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 		return nil
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, err := ce_controllers.GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch, nil)
+	diggerYmlStr, ghService, config, projectsGraph, err := ce_controllers.GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch, nil, nil)
 	if err != nil {
 		log.Printf("Error loading digger.yml: %v", err)
 		return fmt.Errorf("error loading digger.yml")

@@ -43,7 +43,7 @@ func LoadProjectsFromGithubRepo(gh utils2.GithubClientProvider, installationId s
 	}
 
 	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
-		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
+		config, _, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
 		if err != nil {
 			log.Printf("ERROR load digger.yml: %v", err)
 			return fmt.Errorf("error loading digger.yml %v", err)

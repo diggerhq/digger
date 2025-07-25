@@ -7,8 +7,9 @@ import (
 // storing repo cache such as digger.yml configuration
 type RepoCache struct {
 	gorm.Model
-	OrgId        uint
-	RepoFullName string
-	DiggerYmlStr string
-	DiggerConfig []byte `gorm:"type:bytea"`
+	OrgId                    uint
+	RepoFullName             string
+	DiggerYmlStr             string
+	DiggerConfig             []byte `gorm:"type:bytea"`
+	TerragruntAtlantisConfig []byte `gorm:"type:bytea"`
 }

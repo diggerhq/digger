@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"net/http"
@@ -65,13 +66,14 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 
 	var diggerYmlStr string
 	var config *dg_configuration.DiggerConfig
+	var newAtlantisConfig *tac.AtlantisConfig
 
 	// update the cache here, do it async for immediate response
 	go func() {
 		err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 			diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 			diggerYmlStr = string(diggerYmlBytes)
-			config, _, _, err = dg_configuration.LoadDiggerConfig(dir, true, nil)
+			config, _, _, newAtlantisConfig, err = dg_configuration.LoadDiggerConfig(dir, true, nil, nil)
 			if err != nil {
 				slog.Error("Error loading digger config", "error", err)
 				return err
@@ -83,7 +85,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 			slog.Error("Could not load digger config", "error", err)
 			return
 		}
-		_, err = models.DB.UpsertRepoCache(orgId, repoFullName, diggerYmlStr, *config)
+		_, err = models.DB.UpsertRepoCache(orgId, repoFullName, diggerYmlStr, *config, newAtlantisConfig)
 		if err != nil {
 			slog.Error("Could not update repo cache", "error", err)
 			return

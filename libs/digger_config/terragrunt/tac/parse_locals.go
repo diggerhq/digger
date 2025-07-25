@@ -1,4 +1,4 @@
-package atlantis
+package tac
 
 // Terragrunt doesn't give us an easy way to access all of the Locals from a module
 // in an easy to digest way. This file is mostly just follows along how Terragrunt

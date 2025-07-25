@@ -23,7 +23,7 @@ var validateCmd = &cobra.Command{
 		log.Printf("Starting validation of digger.yml in path: %s", configPath)
 
 		// Load the Digger config file
-		_, configYaml, _, err := digger_config.LoadDiggerConfig(configPath, true, nil)
+		_, configYaml, _, _, err := digger_config.LoadDiggerConfig(configPath, true, nil, nil)
 		if err != nil {
 			log.Printf("Error loading digger.yml: %v", err)
 			fmt.Fprintf(os.Stderr, "Invalid digger config file: %v\n", err)

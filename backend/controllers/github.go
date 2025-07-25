@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"math/rand"
@@ -914,7 +915,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	return nil
 }
 
-func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, changedFiles []string) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *dg_github.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	slog.Info("Getting Digger config for branch",
 		slog.Group("repository",
 			slog.String("fullName", repoFullName),
@@ -954,7 +955,7 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 
 		slog.Debug("Successfully read digger.yml file", "configLength", len(diggerYmlStr))
 
-		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
+		config, _, dependencyGraph, _, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles, taConfig)
 		if err != nil {
 			slog.Error("Error loading and parsing Digger config",
 				"directory", dir,
@@ -1046,6 +1047,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 
 	// check if items should be loaded from cache
 	useCache := false
+	var taConfig *tac.AtlantisConfig = nil
 	if val, _ := os.LookupEnv("DIGGER_CONFIG_REPO_CACHE_ENABLED"); val == "1" && !slices.Contains(prLabels, "digger:no-cache") {
 		useCache = true
 		slog.Info("Attempting to load config from cache",
@@ -1054,7 +1056,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 			"prNumber", prNumber,
 		)
 
-		diggerYmlStr, config, dependencyGraph, err := retrieveConfigFromCache(orgId, repoFullName)
+		_, _, _, taConfigTemp, err := retrieveConfigFromCache(orgId, repoFullName)
 		if err != nil {
 			slog.Info("Could not load from cache, falling back to live loading",
 				"orgId", orgId,
@@ -1065,9 +1067,8 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 			slog.Info("Successfully loaded config from cache",
 				"orgId", orgId,
 				"repoFullName", repoFullName,
-				"projectCount", len(config.Projects),
 			)
-			return diggerYmlStr, ghService, config, *dependencyGraph, &prBranch, &prCommitSha, changedFiles, nil
+			taConfig = taConfigTemp
 		}
 	}
 
@@ -1084,7 +1085,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 		"prNumber", prNumber,
 	)
 
-	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch, changedFiles)
+	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, prBranch, changedFiles, taConfig)
 	if err != nil {
 		slog.Error("Error loading Digger config from repository",
 			"prNumber", prNumber,
@@ -1098,7 +1099,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, changedFiles, nil
 }
 
-func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_configuration.DiggerConfig, *graph.Graph[string, dg_configuration.Project], error) {
+func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_configuration.DiggerConfig, *graph.Graph[string, dg_configuration.Project], *tac.AtlantisConfig, error) {
 	slog.Debug("Retrieving config from cache",
 		"orgId", orgId,
 		"repoFullName", repoFullName,
@@ -1111,7 +1112,7 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_confi
 			"repoFullName", repoFullName,
 			"error", err,
 		)
-		return "", nil, nil, fmt.Errorf("failed to load repo cache: %v", err)
+		return "", nil, nil, nil, fmt.Errorf("failed to load repo cache: %v", err)
 	}
 
 	var config dg_configuration.DiggerConfig
@@ -1122,7 +1123,18 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_confi
 			"repoFullName", repoFullName,
 			"error", err,
 		)
-		return "", nil, nil, fmt.Errorf("failed to unmarshal config from cache: %v", err)
+		return "", nil, nil, nil, fmt.Errorf("failed to unmarshal config from cache: %v", err)
+	}
+
+	var taConfig tac.AtlantisConfig
+	err = json.Unmarshal(repoCache.TerragruntAtlantisConfig, &taConfig)
+	if err != nil {
+		slog.Error("Failed to unmarshal config from cache",
+			"orgId", orgId,
+			"repoFullName", repoFullName,
+			"error", err,
+		)
+		return "", nil, nil, nil, fmt.Errorf("failed to unmarshal config from cache: %v", err)
 	}
 
 	slog.Debug("Creating project dependency graph from cached config",
@@ -1138,7 +1150,7 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_confi
 			"repoFullName", repoFullName,
 			"error", err,
 		)
-		return "", nil, nil, fmt.Errorf("error creating dependency graph from cached config: %v", err)
+		return "", nil, nil, nil, fmt.Errorf("error creating dependency graph from cached config: %v", err)
 	}
 
 	slog.Info("Successfully retrieved config from cache",
@@ -1147,7 +1159,7 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *dg_confi
 		"projectCount", len(config.Projects),
 	)
 
-	return repoCache.DiggerYmlStr, &config, &projectsGraph, nil
+	return repoCache.DiggerYmlStr, &config, &projectsGraph, &taConfig, nil
 }
 
 func GetRepoByInstllationId(installationId int64, repoOwner string, repoName string) (*models.Repo, error) {
