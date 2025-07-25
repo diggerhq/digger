@@ -87,7 +87,7 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
   </Step>
 
   <Step title="Configure initial secrets">
-    Configure the authentication and hostname settings. Make sure the hostname matches your ingress configuration:
+    Configure the authentication and hostname settings:
     
     ```yaml values.yaml
     digger:
@@ -95,7 +95,7 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
         httpBasicAuthUsername: "admin"
         httpBasicAuthPassword: "<strong-password>"  # CHANGE THIS
         bearerAuthToken: "<strong-token>"          # CHANGE THIS
-        hostname: "digger.example.com"             # MUST match your ingress host
+        hostname: "https://digger.example.com"     # Include https:// prefix!
         githubOrg: "your-github-org"               # Your GitHub organization name
         
         # GitHub App credentials - leave empty for now
@@ -106,9 +106,18 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
         githubWebhookSecret: ""
     ```
     
+    <Note>
+      **Hostname configuration is different from ingress:**
+      - Ingress host: `digger.example.com` (no protocol)
+      - Secret hostname: `https://digger.example.com` (requires https:// prefix)
+      
+      For example:
+      - If your ingress host is `digger.35.232.52.175.nip.io`
+      - Your secret hostname should be `https://digger.35.232.52.175.nip.io`
+    </Note>
+    
     <Warning>
       **Important**: 
-      - The `hostname` must exactly match the host you configured in the ingress step
       - The `githubOrg` must be your actual GitHub organization name where you'll install the app
       - Change all default passwords and tokens
     </Warning>
@@ -246,7 +255,7 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
       httpBasicAuthUsername: "admin"
       httpBasicAuthPassword: "secure-password-123"
       bearerAuthToken: "secure-bearer-token-456"
-      hostname: "digger.example.com"
+      hostname: "https://digger.example.com"  # Include https:// prefix
       
       githubOrg: "your-github-org"
       githubAppID: "123456"
