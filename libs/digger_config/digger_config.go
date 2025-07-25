@@ -351,7 +351,11 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 
 		// if not nil we are updating from cached config so we can filter based on changed files only
 		if taConfig != nil {
-			parsingConfig.FilterPaths = GetDirNamesFromPaths(changedFiles)
+			relativeDirOfChangedFiles := GetDirNamesFromPaths(changedFiles)
+			absoluteDirOfChangedFiles := lo.Map(relativeDirOfChangedFiles, func(dir string, index int) string {
+				return path.Join(terraformDir, dir)
+			})
+			parsingConfig.FilterPaths = GetDirNamesFromPaths(absoluteDirOfChangedFiles)
 		}
 
 		newConfig, err := hydrateDiggerConfigYamlWithTerragrunt(config, parsingConfig, terraformDir, "", taConfig)
