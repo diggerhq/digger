@@ -214,6 +214,54 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
 
 </Steps>
 
+## Troubleshooting
+
+<Accordion title="Failed to validate installation_id error">
+  If you see "Failed to validate installation_id" after GitHub App installation:
+  
+  1. **Check GitHub App credentials in your values.yaml:**
+     ```yaml
+     digger:
+       secret:
+         githubAppClientID: "Iv1.abc123def456"    # Should not be empty
+         githubAppClientSecret: "github_secret"    # Should not be empty
+     ```
+  
+  2. **Verify environment variables are set in the pod:**
+     ```bash
+     # Get pod name
+     kubectl get pods -n digger
+     
+     # Check environment variables in the pod
+     kubectl exec -n digger deployment/digger-backend -- printenv | grep GITHUB_APP_CLIENT
+     ```
+  
+  3. **Restart the deployment to pick up new environment variables:**
+     ```bash
+     kubectl rollout restart deployment/digger-backend -n digger
+     ```
+</Accordion>
+
+<Accordion title="No response after creating pull request">
+  If Digger doesn't respond when you create a pull request:
+  
+  1. **Check backend logs for errors:**
+     ```bash
+     kubectl logs -n digger deployment/digger-backend --tail=100 -f
+     ```
+  
+  2. **Verify webhook deliveries in GitHub:**
+     - Go to your GitHub App settings: `https://github.com/settings/apps/your-app-name`
+     - Click on "Advanced" tab
+     - Check "Recent Deliveries" for failed webhook attempts
+     - Look for 4xx/5xx HTTP status codes or connection timeouts
+  
+  3. **Common webhook issues:**
+     - Ensure your hostname is accessible from GitHub
+     - Check that your ingress is properly configured
+     - Verify SSL certificates are valid
+</Accordion>
+
 ## Advanced Configuration
 
 <Accordion title="Using existing secrets">
