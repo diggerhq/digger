@@ -140,20 +140,18 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
     ```
   </Step>
 
-  <Step title="GitHub App setup">
-    Navigate to your Digger hostname to create and configure the GitHub App:
+  <Step title="Create GitHub App">
+    Navigate to your Digger hostname to create the GitHub App:
     
     1. Go to `https://your-digger-hostname/github/setup`
     2. Follow the web interface to create your GitHub App
-    3. Install the app in your GitHub organization
-    4. Collect the generated credentials:
-       - GitHub App ID
-       - Client ID  
-       - Client Secret
-       - Private Key (base64 encoded)
-       - Webhook Secret
+    3. The page will display your app credentials
     
     ![Digger GitHub App Setup Success](/images/digger-github-app-wizard.png)
+    
+    <Note>
+      **Don't close this tab yet!** You'll need these credentials in the next steps.
+    </Note>
   </Step>
 
   <Step title="Update configuration with GitHub App credentials">
@@ -180,30 +178,16 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
     ```
   </Step>
 
-  <Step title="Access Digger">
-    After deployment, wait for 2-5 minutes for all pods to reach a running state. 
-    You can find the IP address/hostname by executing:
+  <Step title="Install GitHub App">
+    Click the installation link shown in the GitHub App creation wizard:
     
-    ```bash
-    kubectl get ingress -n digger
-    ```
+    - The link will look like: `https://github.com/apps/your-digger-app-name/installations/new`
+    - Install the app in your GitHub organization
+    - Select which repositories the app can access
     
-    Access Digger at your configured hostname and verify the GitHub App is properly connected.
+    After installation, you can verify everything is working by creating a pull request with Terraform/OpenTofu files and commenting `digger plan`.
   </Step>
 
-  <Step title="Upgrade your instance">
-    To upgrade your instance of Digger, update the docker image tag in your Helm values and rerun:
-    
-    ```bash
-    helm upgrade digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
-      --namespace digger \
-      --values values.yaml
-    ```
-    
-    <Tip>
-      Always back up your database before each upgrade, especially in a production environment.
-    </Tip>
-  </Step>
 </Steps>
 
 ## Advanced Configuration
