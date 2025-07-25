@@ -50,6 +50,7 @@ func runTest(t *testing.T, goldenFile string, testPath string, createProjectName
 		false,
 		false,
 		false,
+		nil,
 	)
 
 	if err != nil {
