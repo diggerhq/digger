@@ -184,93 +184,81 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
     - The link will look like: `https://github.com/apps/your-digger-app-name/installations/new`
     - Install the app in your GitHub organization
     - Select which repositories the app can access
+  </Step>
+
+  <Step title="Verify installation">
+    Test that your Digger installation is working correctly:
     
-    After installation, you can verify everything is working by creating a pull request with Terraform/OpenTofu files and commenting `digger plan`.
+    1. **Create a test pull request** in one of your repositories with Terraform/OpenTofu files
+    2. **Digger will automatically start planning** - You should immediately see:
+    
+    **GitHub status checks appearing as pending:**
+    
+    ![GitHub Checks Pending](/images/digger-plan-checks.png)
+    
+    **Digger bot comment with affected projects table:**
+    
+    ![Digger Plan Jobs Table](/images/digger-plan-jobs.png)
+    
+    <Note>
+      **What you should see:**
+      - GitHub checks appear as "pending" while jobs are running
+      - Digger bot comments with a table showing each affected project
+      - Project status updates from "pending..." to completion status
+      
+      You can re-run planning anytime by commenting `digger plan` on the pull request.
+      
+      If you don't see these responses, check the [troubleshooting section](#troubleshooting) below.
+    </Note>
   </Step>
 
 </Steps>
 
-## Advanced Configuration
+## Troubleshooting
 
-<Accordion title="Using existing secrets">
-  If you prefer to manage secrets separately, you can reference an existing Kubernetes secret:
+<Accordion title="Failed to validate installation_id error">
+  If you see "Failed to validate installation_id" after GitHub App installation:
   
-  ```yaml values.yaml
-  digger:
-    secret:
-      useExistingSecret: true
-      existingSecretName: "digger-secrets"
-  ```
+  1. **Check GitHub App credentials in your values.yaml:**
+     ```yaml
+     digger:
+       secret:
+         githubAppClientID: "Iv1.abc123def456"    # Should not be empty
+         githubAppClientSecret: "github_secret"    # Should not be empty
+     ```
+  
+  2. **Verify environment variables are set in the pod:**
+     ```bash
+     # Get pod name
+     kubectl get pods -n digger
+     
+     # Check environment variables in the pod
+     kubectl exec -n digger deployment/digger-backend -- printenv | grep GITHUB_APP_CLIENT
+     ```
+  
+  3. **Restart the deployment to pick up new environment variables:**
+     ```bash
+     kubectl rollout restart deployment/digger-backend -n digger
+     ```
 </Accordion>
 
-<Accordion title="Resource configuration">
-  Configure resource limits and requests:
+<Accordion title="No response after creating pull request">
+  If Digger doesn't respond when you create a pull request:
   
-  ```yaml values.yaml
-  digger:
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
-  ```
+  1. **Check backend logs for errors:**
+     ```bash
+     kubectl logs -n digger deployment/digger-backend --tail=100 -f
+     ```
+  
+  2. **Verify webhook deliveries in GitHub:**
+     - Go to your GitHub App settings: `https://github.com/settings/apps/your-app-name`
+     - Click on "Advanced" tab
+     - Check "Recent Deliveries" for failed webhook attempts
+     - Look for 4xx/5xx HTTP status codes or connection timeouts
+  
+  3. **Common webhook issues:**
+     - Ensure your hostname is accessible from GitHub
+     - Check that your ingress is properly configured
+     - Verify SSL certificates are valid
 </Accordion>
 
-<Accordion title="Full values.yaml example">
-  ```yaml values.yaml
-  digger:
-    image:
-      repository: registry.digger.dev/diggerhq/digger_backend
-      tag: "v0.6.106"
-      pullPolicy: IfNotPresent
-    
-    service:
-      type: ClusterIP
-      port: 3000
-    
-    ingress:
-      enabled: true
-      host: "digger.example.com"
-      annotations:
-        kubernetes.io/ingress.class: "nginx"
-        cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    
-    secret:
-      httpBasicAuthUsername: "admin"
-      httpBasicAuthPassword: "secure-password-123"
-      bearerAuthToken: "secure-bearer-token-456"
-      hostname: "https://digger.example.com"  # Include https:// prefix
-      
-      githubOrg: "your-github-org"
-      githubAppID: "123456"
-      githubAppClientID: "Iv1.abc123def456"
-      githubAppClientSecret: "github_app_client_secret"
-      githubAppKeyFile: "LS0tLS1CRUdJTi..."
-      githubWebhookSecret: "webhook_secret"
-    
-    postgres:
-      user: "digger"
-      database: "digger"
-      host: "postgresql.example.com"
-      password: "postgres-password"
-      sslmode: "require"
-    
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
-  
-  # For testing only - use external database in production
-  postgres:
-    enabled: false
-    # If you enable the built-in postgres:
-    # secret:
-    #   useExistingSecret: false
-    #   password: "test-password"
-  ```
-</Accordion>
