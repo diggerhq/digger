@@ -4,21 +4,22 @@ title: "With Terragrunt"
 
 In this tutorial, you will set up Digger to automate Terragrunt pull requests using Github Actions
 
-# Prerequisites
-
+**Prerequisites**
 - A GitHub repository with valid Terragrunt code
 - Your cloud provider credentials:
   - For AWS: [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
   - For GCP: [Hashicorp's GCP tutorial](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
   - For Azure: [Hashicorp's Azure tutorial](https://developer.hashicorp.com/terraform/tutorials/azure-get-started/azure-build)
 
-# Step 1: create your Digger account
+<Steps>
+  <Step title="Create your Digger account">
 
 Head to [ui.digger.dev](https://ui.digger.dev) and sign up using your preferred method.
 
 You should see an empty dashboard after you sign up.
+  </Step>
 
-# Step 2: install the Digger GitHub App
+  <Step title="Install the Digger GitHub App">
 
 Install the Digger [GitHub App](https://github.com/apps/digger-pro/installations/select_target) into your repository.
 
@@ -28,8 +29,9 @@ Digger GitHub App does not need access to your cloud account, it just starts job
 You can also [self-host Digger orchestrator](/ce/self-host/deploy-docker) with a private GiHub app and issue your own token
 
 </Note>
+  </Step>
 
-# Step 3: Create Action Secrets with cloud credentials
+  <Step title="Create Action Secrets with cloud credentials">
 
 In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
 
@@ -53,8 +55,9 @@ In GitHub repository settings, go to Secrets and Variables - Actions. Create the
     You'll need to configure OIDC authentication by setting up federated credentials in your Azure App Registration. See [Azure OIDC setup](/ce/azure-specific/azure) for details.
   </Tab>
 </Tabs>
+  </Step>
 
-# Step 4: Create digger.yml
+  <Step title="Create digger.yml">
 
 Terragrunt projects can be configured in two ways:
 
@@ -109,8 +112,9 @@ This approach automatically discovers all Terragrunt modules under each director
 <Note>
 For more advanced configurations and performance optimization for large monorepos, see [Using Terragrunt](/ce/howto/using-terragrunt) and [Generate Projects](/ce/howto/generate-projects#blocks-syntax-with-terragrunt).
 </Note>
+  </Step>
 
-# Step 5: Create Github Actions workflow file
+  <Step title="Create Github Actions workflow file">
 
 Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 
@@ -268,23 +272,27 @@ Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 <Note>
 Notice that we use `setup-terragrunt: true` instead of `setup-terraform`. Terragrunt will handle the Terraform binary installation internally.
 </Note>
+  </Step>
 
-# Step 6: Create a PR to verify that it works
+  <Step title="Create a PR to verify that it works">
 
 Terragrunt will run an existing plan against your code.
 
 Make any change to your Terragrunt code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of Terragrunt Plan added as a comment to your PR.
 
 Then you can add a comment like `digger apply` and shortly after apply output will be added as comment too.
+  </Step>
 
-# Demo repositories
+</Steps>
+
+## Demo repositories
 
 - [Individual projects demo](https://github.com/diggerhq/demo-terragrunt-gcp)
 - [Generated projects demo](https://github.com/diggerhq/test-terragrunt-racecondition)
 
-# Important notes
+## Important notes
 
-## SOPS integration
+### SOPS integration
 
 If you use `sops_decrypt_file` in your `terragrunt.hcl`, you need to handle the case when Digger generates projects in the backend. Use the `DIGGER_GENERATE_PROJECT` environment variable:
 
