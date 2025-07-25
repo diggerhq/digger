@@ -801,6 +801,18 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		return nil, fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
 	}
 
+	if cachedConfig != nil {
+		// in this case we need to ensure that none of the terragrunts had been deleted, if we don't do this we will
+		// have impacted projects for terragrunt.hcl that don't exist, resulting in an error
+		atlantisConfig.Projects = lo.Filter(atlantisConfig.Projects, func(p tac.AtlantisProject, _ int) bool {
+			terragruntPath := path.Join(root, p.Dir, "terragrunt.hcl")
+			if _, err := os.Stat(terragruntPath); errors.Is(err, os.ErrNotExist) {
+				return false
+			}
+			return true
+		})
+	}
+
 	if atlantisConfig.Projects == nil {
 		slog.Error("atlantis projects configuration is nil")
 		return nil, fmt.Errorf("atlantisConfig.Projects is nil")
