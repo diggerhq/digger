@@ -184,8 +184,32 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
     - The link will look like: `https://github.com/apps/your-digger-app-name/installations/new`
     - Install the app in your GitHub organization
     - Select which repositories the app can access
+  </Step>
+
+  <Step title="Verify installation">
+    Test that your Digger installation is working correctly:
     
-    After installation, you can verify everything is working by creating a pull request with Terraform/OpenTofu files and commenting `digger plan`.
+    1. **Create a test pull request** in one of your repositories with Terraform/OpenTofu files
+    2. **Digger will automatically start planning** - You should immediately see:
+    
+    **GitHub status checks appearing as pending:**
+    
+    ![GitHub Checks Pending](/images/digger-plan-checks.png)
+    
+    **Digger bot comment with affected projects table:**
+    
+    ![Digger Plan Jobs Table](/images/digger-plan-jobs.png)
+    
+    <Note>
+      **What you should see:**
+      - GitHub checks appear as "pending" while jobs are running
+      - Digger bot comments with a table showing each affected project
+      - Project status updates from "pending..." to completion status
+      
+      You can re-run planning anytime by commenting `digger plan` on the pull request.
+      
+      If you don't see these responses, check the [troubleshooting section](#troubleshooting) below.
+    </Note>
   </Step>
 
 </Steps>
