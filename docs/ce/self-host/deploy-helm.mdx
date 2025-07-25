@@ -262,3 +262,21 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
      - Verify SSL certificates are valid
 </Accordion>
 
+<Accordion title="Invalid URL error when creating GitHub App">
+  If you get an "Invalid URL" error when creating the GitHub App from manifest:
+  
+  1. **Check URL format in your values.yaml:**
+     ```yaml
+     digger:
+       ingress:
+         host: "digger.example.com"        # NO https:// prefix
+       secret:
+         hostname: "https://digger.example.com"  # REQUIRES https:// prefix
+     ```
+  
+  2. **Restart deployment after fixing URLs:**
+     ```bash
+     kubectl rollout restart deployment/digger-backend -n digger
+     ```
+</Accordion>
+
