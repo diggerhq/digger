@@ -146,7 +146,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
-		projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, project)
+	projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, project)
 
 		if !projectFound {
 			// Log available projects to help with debugging
