@@ -4,21 +4,22 @@ title: "With Terraform"
 
 In this tutorial, you will set up Digger to automate terraform pull requests using Github Actions
 
-# Prerequisites
-
+**Prerequisites**
 - A GitHub repository with valid terraform code
 - Your cloud provider credentials:
   - For AWS: [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
   - For GCP: [Hashicorp's GCP tutorial](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
   - For Azure: [Hashicorp's Azure tutorial](https://developer.hashicorp.com/terraform/tutorials/azure-get-started/azure-build)
 
-# Step 1: create your Digger account
+<Steps>
+  <Step title="Create your Digger account">
 
 Head to [ui.digger.dev](https://ui.digger.dev) and sign up using your preferred method.
 
 You should see an empty dashboard after you sign up.
+  </Step>
 
-# Step 2: install the Digger GitHub App
+  <Step title="Install the Digger GitHub App">
 
 Install the Digger [GitHub App](https://github.com/apps/digger-pro/installations/select_target) into your repository.
 
@@ -28,8 +29,9 @@ Digger GitHub App does not need access to your cloud account, it just starts job
 You can also [self-host Digger orchestrator](/ce/self-host/deploy-docker) with a private GiHub app and issue your own token
 
 </Note>
+  </Step>
 
-# Step 3: Create Action Secrets with cloud credentials
+  <Step title="Create Action Secrets with cloud credentials">
 
 In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
 
@@ -51,8 +53,9 @@ In GitHub repository settings, go to Secrets and Variables - Actions. Create the
     You'll need to configure OIDC authentication by setting up federated credentials in your Azure App Registration. See [Azure OIDC setup](/ce/azure-specific/azure) for details.
   </Tab>
 </Tabs>
+  </Step>
 
-# Step 4: Create digger.yml
+  <Step title="Create digger.yml">
 
 This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
 
@@ -61,8 +64,9 @@ projects:
 - name: production
   dir: prod
 ```
+  </Step>
 
-# Step 5: Create Github Actions workflow file
+  <Step title="Create Github Actions workflow file">
 
 Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 
@@ -218,16 +222,20 @@ Place it at `.github/workflows/digger_workflow.yml` (name is important!)
     - ARM_* environment variables for the Azure Terraform provider
   </Tab>
 </Tabs>
+  </Step>
 
-# Step 6: Create a PR to verify that it works
+  <Step title="Create a PR to verify that it works">
 
 Terraform will run an existing plan against your code.
 
 Make any change to your terraform code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of Terraform Plan added as a comment to your PR.
 
 Then you can add a comment like `digger apply` and shortly after apply output will be added as comment too.
+  </Step>
 
-# Demo repositories
+</Steps>
+
+## Demo repositories
 
 - [AWS demo repo](https://github.com/diggerhq/quickstart-actions-aws)
 - [GCP demo repo](https://github.com/diggerhq/demo-conftest-gcp/)
