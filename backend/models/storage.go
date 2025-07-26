@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"log/slog"
 	"math"
 	"net/http"
@@ -1746,12 +1747,21 @@ func (db *Database) GetDiggerLock(resource string) (*DiggerLock, error) {
 	return lock, nil
 }
 
-func (db *Database) UpsertRepoCache(orgId uint, repoFullName string, diggerYmlStr string, diggerConfig configuration.DiggerConfig) (*RepoCache, error) {
+func (db *Database) UpsertRepoCache(orgId uint, repoFullName string, diggerYmlStr string, diggerConfig configuration.DiggerConfig, newAtlantisConfig *tac.AtlantisConfig) (*RepoCache, error) {
 	var repoCache RepoCache
 
 	configMarshalled, err := json.Marshal(diggerConfig)
 	if err != nil {
 		slog.Error("could not marshal digger config",
+			"repoFullName", repoFullName,
+			"orgId", orgId,
+			"error", err)
+		return nil, fmt.Errorf("could not marshal config: %v", err)
+	}
+
+	atlantisConfigMarshalled, err := json.Marshal(newAtlantisConfig)
+	if err != nil {
+		slog.Error("could not marshal terragrunt-atlantis-config",
 			"repoFullName", repoFullName,
 			"orgId", orgId,
 			"error", err)
@@ -1777,6 +1787,7 @@ func (db *Database) UpsertRepoCache(orgId uint, repoFullName string, diggerYmlSt
 
 		repoCache.DiggerConfig = configMarshalled
 		repoCache.DiggerYmlStr = diggerYmlStr
+		repoCache.TerragruntAtlantisConfig = atlantisConfigMarshalled
 		result = db.GormDB.Save(&repoCache)
 	} else {
 		// create record here
@@ -1785,10 +1796,11 @@ func (db *Database) UpsertRepoCache(orgId uint, repoFullName string, diggerYmlSt
 			"orgId", orgId)
 
 		repoCache = RepoCache{
-			OrgId:        orgId,
-			RepoFullName: repoFullName,
-			DiggerYmlStr: diggerYmlStr,
-			DiggerConfig: configMarshalled,
+			OrgId:                    orgId,
+			RepoFullName:             repoFullName,
+			DiggerYmlStr:             diggerYmlStr,
+			DiggerConfig:             configMarshalled,
+			TerragruntAtlantisConfig: atlantisConfigMarshalled,
 		}
 		result = db.GormDB.Save(&repoCache)
 		if result.Error != nil {

@@ -1,4 +1,4 @@
-package atlantis
+package tac
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -35,7 +35,7 @@ func runTest(t *testing.T, goldenFile string, testPath string, createProjectName
 		true,
 		false,
 		parallel,
-		"",
+		make([]string, 0),
 		false,
 		ignoreParentTerragrunt,
 		ignoreDependencyBlocks,
@@ -50,6 +50,7 @@ func runTest(t *testing.T, goldenFile string, testPath string, createProjectName
 		false,
 		false,
 		false,
+		nil,
 	)
 
 	if err != nil {

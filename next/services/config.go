@@ -46,7 +46,7 @@ func GetWorkflowsForRepoAndBranch(gh utils.GithubClientProvider, repoId int64, b
 			log.Printf("Error creating blank digger.yml if not exists: %v", err)
 			return err
 		}
-		config, _, _, err = dg_configuration.LoadDiggerConfig(dir, false, nil)
+		config, _, _, _, err = dg_configuration.LoadDiggerConfig(dir, false, nil, nil)
 		if err != nil {
 			log.Printf("Error loading digger config: %v", err)
 			return err

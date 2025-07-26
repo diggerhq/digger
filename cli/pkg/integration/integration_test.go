@@ -358,7 +358,7 @@ func TestHappyPath(t *testing.T) {
 	execution.CreateValidTerraformTestFile(dir)
 	execution.CreateSingleEnvDiggerYmlFile(dir)
 
-	diggerConfig, _, _, err := configuration.LoadDiggerConfig(dir, true, nil)
+	diggerConfig, _, _, _, err := configuration.LoadDiggerConfig(dir, true, nil, nil)
 	assert.NoError(t, err)
 
 	lock, err := locking.GetLock()
@@ -509,7 +509,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	execution.CreateValidTerraformTestFile(dir)
 	execution.CreateMultiEnvDiggerYmlFile(dir)
 
-	diggerConfig, _, _, err := configuration.LoadDiggerConfig(dir, true, nil)
+	diggerConfig, _, _, _, err := configuration.LoadDiggerConfig(dir, true, nil, nil)
 	assert.NoError(t, err)
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
@@ -725,7 +725,7 @@ workflows:
 	execution.CreateValidTerraformTestFile(dir)
 	execution.CreateCustomDiggerYmlFile(dir, diggerCfg)
 
-	diggerConfig, _, _, err := configuration.LoadDiggerConfig(dir, true, nil)
+	diggerConfig, _, _, _, err := configuration.LoadDiggerConfig(dir, true, nil, nil)
 	assert.NoError(t, err)
 
 	assert.NotNil(t, diggerConfig.Workflows)

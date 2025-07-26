@@ -1,4 +1,4 @@
-package atlantis
+package tac
 
 import (
 	"github.com/gruntwork-io/terragrunt/config"

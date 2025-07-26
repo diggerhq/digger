@@ -25,6 +25,18 @@ func NormalizeFileName(fileName string) string {
 	return res
 }
 
+func GetDirNameFromPath(filePath string) string {
+	return filepath.Dir(filePath)
+}
+
+func GetDirNamesFromPaths(filePaths []string) []string {
+	res := make([]string, 0)
+	for _, filePath := range filePaths {
+		res = append(res, GetDirNameFromPath(filePath))
+	}
+	return res
+}
+
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
 	fileToMatch = NormalizeFileName(fileToMatch)
 	for i := range includePatterns {

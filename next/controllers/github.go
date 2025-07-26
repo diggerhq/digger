@@ -542,7 +542,7 @@ func getDiggerConfigForBranch(gh next_utils.GithubClientProvider, installationId
 	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
-		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
+		config, _, dependencyGraph, _, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles, nil)
 		if err != nil {
 			log.Printf("Error loading digger config: %v", err)
 			return err

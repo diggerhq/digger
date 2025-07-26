@@ -1,10 +1,15 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"github.com/diggerhq/digger/libs/git_utils"
+	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -15,13 +20,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type UpdateCacheRequest struct {
+	RepoFullName   string `json:"repo_full_name"`
+	Branch         string `json:"branch"`
+	OrgId          uint   `json:"org_id"`
+	InstallationId int64  `json:"installation_id"`
+}
+
 func (d DiggerController) UpdateRepoCache(c *gin.Context) {
-	type UpdateCacheRequest struct {
-		RepoFullName   string `json:"repo_full_name"`
-		Branch         string `json:"branch"`
-		OrgId          uint   `json:"org_id"`
-		InstallationId int64  `json:"installation_id"`
-	}
 
 	var request UpdateCacheRequest
 	err := c.BindJSON(&request)
@@ -65,13 +71,14 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 
 	var diggerYmlStr string
 	var config *dg_configuration.DiggerConfig
+	var newAtlantisConfig *tac.AtlantisConfig
 
 	// update the cache here, do it async for immediate response
 	go func() {
 		err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 			diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 			diggerYmlStr = string(diggerYmlBytes)
-			config, _, _, err = dg_configuration.LoadDiggerConfig(dir, true, nil)
+			config, _, _, newAtlantisConfig, err = dg_configuration.LoadDiggerConfig(dir, true, nil, nil)
 			if err != nil {
 				slog.Error("Error loading digger config", "error", err)
 				return err
@@ -83,7 +90,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 			slog.Error("Could not load digger config", "error", err)
 			return
 		}
-		_, err = models.DB.UpsertRepoCache(orgId, repoFullName, diggerYmlStr, *config)
+		_, err = models.DB.UpsertRepoCache(orgId, repoFullName, diggerYmlStr, *config, newAtlantisConfig)
 		if err != nil {
 			slog.Error("Could not update repo cache", "error", err)
 			return
@@ -92,4 +99,73 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	}()
 
 	c.String(http.StatusOK, "successfully submitted cache for processing, check backend logs for progress")
+}
+
+func sendProcessCacheRequest(repoFullName string, branch string, installationId int64) error {
+	diggerHostname := os.Getenv("HOSTNAME")
+	webhookSecret := os.Getenv("DIGGER_INTERNAL_SECRET")
+
+	installationLink, err := models.DB.GetGithubInstallationLinkForInstallationId(installationId)
+	if err != nil {
+		slog.Error("Error getting installation link", "installationId", installationId, "error", err)
+		return err
+	}
+
+	orgId := installationLink.OrganisationId
+
+	payload := UpdateCacheRequest{
+		RepoFullName:   repoFullName,
+		Branch:         branch,
+		InstallationId: installationId,
+		OrgId:          orgId,
+	}
+
+	cacheRefreshUrl, err := url.JoinPath(diggerHostname, "_internal/update_repo_cache")
+	if err != nil {
+		slog.Error("Error joining URL paths", "error", err)
+		return err
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		slog.Error("Process Cache: error marshaling JSON", "error", err)
+		return err
+	}
+
+	req, err := http.NewRequest("POST", cacheRefreshUrl, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		slog.Error("Process Cache: Error creating request", "error", err)
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", webhookSecret))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	statusCode := resp.StatusCode
+	if statusCode != 200 {
+		// Read response body to get error details
+		responseBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			slog.Error("Failed to read error response body", "error", err)
+		}
+
+		slog.Error("got unexpected cache status",
+			"statusCode", statusCode,
+			"repoFullName", repoFullName,
+			"orgId", orgId,
+			"branch", branch,
+			"installationId", installationId,
+			"responseBody", string(responseBody))
+
+		return fmt.Errorf("cache update failed with status code %d: %s", statusCode, string(responseBody))
+	}
+	return nil
 }
