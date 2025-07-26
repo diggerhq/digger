@@ -430,7 +430,11 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, a
 
 	repoCacheEnabled := os.Getenv("DIGGER_CONFIG_REPO_CACHE_ENABLED")
 	if repoCacheEnabled == "1" && strings.HasSuffix(ref, defaultBranch) {
-		go sendProcessCacheRequest(repoFullName, defaultBranch, installationId)
+		go func() {
+			if err := sendProcessCacheRequest(repoFullName, defaultBranch, installationId); err != nil {
+				slog.Error("Failed to process cache request", "error", err, "repoFullName", repoFullName)
+			}
+		}()
 	}
 
 	return nil
