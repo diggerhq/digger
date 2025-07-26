@@ -119,7 +119,7 @@ func sendProcessCacheRequest(repoFullName string, branch string, installationId 
 		OrgId:          orgId,
 	}
 
-	driftUrl, err := url.JoinPath(diggerHostname, "_internal/update_repo_cache")
+	cacheRefreshUrl, err := url.JoinPath(diggerHostname, "_internal/update_repo_cache")
 	if err != nil {
 		slog.Error("Error joining URL paths", "error", err)
 		return err
@@ -131,9 +131,9 @@ func sendProcessCacheRequest(repoFullName string, branch string, installationId 
 		return err
 	}
 
-	req, err := http.NewRequest("POST", driftUrl, bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest("POST", cacheRefreshUrl, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		fmt.Println("Process Drift: Error creating request:", err)
+		fmt.Println("Process Cache: Error creating request:", err)
 		return err
 	}
 
