@@ -128,13 +128,13 @@ func sendProcessCacheRequest(repoFullName string, branch string, installationId 
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		fmt.Println("Process Cache: error marshaling JSON:", err)
+		slog.Error("Process Cache: error marshaling JSON", "error", err)
 		return err
 	}
 
 	req, err := http.NewRequest("POST", cacheRefreshUrl, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		fmt.Println("Process Cache: Error creating request:", err)
+		slog.Error("Process Cache: Error creating request", "error", err)
 		return err
 	}
 
