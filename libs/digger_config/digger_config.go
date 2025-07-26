@@ -771,7 +771,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 	slog.Debug("parsing terragrunt configuration",
 		"root", root,
 		"defaultWorkflow", parsingConfig.DefaultWorkflow,
-		"filterPath", parsingConfig.FilterPaths)
+"filterPaths", parsingConfig.FilterPaths)
 
 	atlantisConfig, projectDependsOnMap, err := tac.Parse(
 		root,
