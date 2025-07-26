@@ -1761,7 +1761,7 @@ func (db *Database) UpsertRepoCache(orgId uint, repoFullName string, diggerYmlSt
 
 	atlantisConfigMarshalled, err := json.Marshal(newAtlantisConfig)
 	if err != nil {
-		slog.Error("could not marshal digger config",
+		slog.Error("could not marshal terragrunt-atlantis-config",
 			"repoFullName", repoFullName,
 			"orgId", orgId,
 			"error", err)
