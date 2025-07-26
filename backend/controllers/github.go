@@ -417,7 +417,6 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, a
 	loadProjectsOnPush := os.Getenv("DIGGER_LOAD_PROJECTS_ON_PUSH")
 
 	if loadProjectsOnPush == "true" {
-
 		if strings.HasSuffix(ref, defaultBranch) {
 			slog.Debug("Loading projects from GitHub repo (push event)", "loadProjectsOnPush", loadProjectsOnPush, "ref", ref, "defaultBranch", defaultBranch)
 			err := services.LoadProjectsFromGithubRepo(gh, strconv.FormatInt(installationId, 10), repoFullName, repoOwner, repoName, cloneURL, defaultBranch)
@@ -427,6 +426,11 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, a
 		}
 	} else {
 		slog.Debug("Skipping loading projects from GitHub repo", "loadProjectsOnPush", loadProjectsOnPush)
+	}
+
+	repoCacheEnabled := os.Getenv("DIGGER_CONFIG_REPO_CACHE_ENABLED")
+	if repoCacheEnabled == "1" && strings.HasSuffix(ref, defaultBranch) {
+		go sendProcessCacheRequest(repoFullName, defaultBranch, installationId)
 	}
 
 	return nil

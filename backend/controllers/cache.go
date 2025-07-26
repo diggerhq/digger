@@ -1,11 +1,14 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -16,13 +19,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type UpdateCacheRequest struct {
+	RepoFullName   string `json:"repo_full_name"`
+	Branch         string `json:"branch"`
+	OrgId          uint   `json:"org_id"`
+	InstallationId int64  `json:"installation_id"`
+}
+
 func (d DiggerController) UpdateRepoCache(c *gin.Context) {
-	type UpdateCacheRequest struct {
-		RepoFullName   string `json:"repo_full_name"`
-		Branch         string `json:"branch"`
-		OrgId          uint   `json:"org_id"`
-		InstallationId int64  `json:"installation_id"`
-	}
 
 	var request UpdateCacheRequest
 	err := c.BindJSON(&request)
@@ -94,4 +98,55 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	}()
 
 	c.String(http.StatusOK, "successfully submitted cache for processing, check backend logs for progress")
+}
+
+func sendProcessCacheRequest(repoFullName string, branch string, installationId int64) error {
+	diggerHostname := os.Getenv("HOSTNAME")
+	webhookSecret := os.Getenv("DIGGER_INTERNAL_SECRET")
+
+	installationLink, err := models.DB.GetGithubInstallationLinkForInstallationId(installationId)
+	if err != nil {
+		slog.Error("Error getting installation link", "installationId", installationId, "error", err)
+		return err
+	}
+
+	orgId := installationLink.OrganisationId
+
+	payload := UpdateCacheRequest{
+		RepoFullName:   repoFullName,
+		Branch:         branch,
+		InstallationId: installationId,
+		OrgId:          orgId,
+	}
+
+	driftUrl, _ := url.JoinPath(diggerHostname, "_internal/update_repo_cache")
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Println("Process Cache: error marshaling JSON:", err)
+		return err
+	}
+
+	req, err := http.NewRequest("POST", driftUrl, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		fmt.Println("Process Drift: Error creating request:", err)
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", webhookSecret))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	statusCode := resp.StatusCode
+	if statusCode != 200 {
+		slog.Error("got unexpected cache status", "statusCode", statusCode, "repoFullName", repoFullName, "orgId", orgId, "branch", branch, "installationId", installationId)
+	}
+	return nil
 }
