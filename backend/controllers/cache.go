@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"github.com/diggerhq/digger/libs/git_utils"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -155,15 +156,15 @@ func sendProcessCacheRequest(repoFullName string, branch string, installationId 
 		if err != nil {
 			slog.Error("Failed to read error response body", "error", err)
 		}
-		
-		slog.Error("got unexpected cache status", 
-			"statusCode", statusCode, 
-			"repoFullName", repoFullName, 
-			"orgId", orgId, 
-			"branch", branch, 
+
+		slog.Error("got unexpected cache status",
+			"statusCode", statusCode,
+			"repoFullName", repoFullName,
+			"orgId", orgId,
+			"branch", branch,
 			"installationId", installationId,
 			"responseBody", string(responseBody))
-		
+
 		return fmt.Errorf("cache update failed with status code %d: %s", statusCode, string(responseBody))
 	}
 	return nil
