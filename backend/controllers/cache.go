@@ -150,7 +150,21 @@ func sendProcessCacheRequest(repoFullName string, branch string, installationId 
 
 	statusCode := resp.StatusCode
 	if statusCode != 200 {
-		slog.Error("got unexpected cache status", "statusCode", statusCode, "repoFullName", repoFullName, "orgId", orgId, "branch", branch, "installationId", installationId)
+		// Read response body to get error details
+		responseBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			slog.Error("Failed to read error response body", "error", err)
+		}
+		
+		slog.Error("got unexpected cache status", 
+			"statusCode", statusCode, 
+			"repoFullName", repoFullName, 
+			"orgId", orgId, 
+			"branch", branch, 
+			"installationId", installationId,
+			"responseBody", string(responseBody))
+		
+		return fmt.Errorf("cache update failed with status code %d: %s", statusCode, string(responseBody))
 	}
 	return nil
 }
