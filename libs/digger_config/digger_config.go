@@ -3,6 +3,7 @@ package digger_config
 import (
 	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"log/slog"
 	"os"
 	"path"
@@ -11,8 +12,6 @@ import (
 	"strings"
 
 	"github.com/samber/lo"
-
-	"github.com/diggerhq/digger/libs/digger_config/terragrunt/atlantis"
 
 	"github.com/dominikbraun/graph"
 	"gopkg.in/yaml.v3"
@@ -212,35 +211,35 @@ func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string, configYa
 
 var ErrDiggerConfigConflict = errors.New("more than one digger digger_config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
-func LoadDiggerConfig(workingDir string, generateProjects bool, changedFiles []string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
+func LoadDiggerConfig(workingDir string, generateProjects bool, changedFiles []string, taConfig *tac.AtlantisConfig) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], *tac.AtlantisConfig, error) {
 	slog.Info("loading digger configuration",
 		"workingDir", workingDir,
 		"generateProjects", generateProjects,
 		"changedFilesCount", len(changedFiles))
 
 	config := &DiggerConfig{}
-	configYaml, err := LoadDiggerConfigYaml(workingDir, generateProjects, changedFiles)
+	configYaml, newAtlantisConfig, err := LoadDiggerConfigYaml(workingDir, generateProjects, changedFiles, taConfig)
 	if err != nil {
 		slog.Error("failed to load digger config YAML", "error", err, "workingDir", workingDir)
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml)
 	if err != nil {
 		slog.Error("failed to convert YAML to config", "error", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	err = ValidateDiggerConfig(config)
 	if err != nil {
 		slog.Warn("digger config validation failed", "error", err)
-		return config, configYaml, projectDependencyGraph, err
+		return config, configYaml, projectDependencyGraph, newAtlantisConfig, err
 	}
 
 	slog.Info("digger configuration loaded successfully",
 		"projectCount", len(config.Projects),
 		"workflowCount", len(config.Workflows))
-	return config, configYaml, projectDependencyGraph, nil
+	return config, configYaml, projectDependencyGraph, newAtlantisConfig, nil
 }
 
 func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
@@ -259,7 +258,7 @@ func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*Digger
 		return nil, nil, nil, err
 	}
 
-	err = HandleYamlProjectGeneration(configYaml, terraformDir, nil)
+	_, err = HandleYamlProjectGeneration(configYaml, terraformDir, nil, nil)
 	if err != nil {
 		slog.Error("failed to handle project generation", "error", err)
 		return nil, nil, nil, err
@@ -322,27 +321,49 @@ func checkBlockInChangedFiles(dir string, changedFiles []string) bool {
 	return false
 }
 
-func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, changedFiles []string) error {
+func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, changedFiles []string, taConfig *tac.AtlantisConfig) (*tac.AtlantisConfig, error) {
 	os.Setenv("DIGGER_GENERATE_PROJECT", "true")
 	defer os.Unsetenv("DIGGER_GENERATE_PROJECT")
 	if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.TerragruntParsingConfig != nil {
 		slog.Warn("terragrunt generation using top level config is deprecated",
 			"recommendation", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 
-		err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir, "")
+		// if not nil we are updating from cached config so we can filter based on changed files only
+		if taConfig != nil {
+			relativeDirOfChangedFiles := GetDirNamesFromPaths(changedFiles)
+			absoluteDirOfChangedFiles := lo.Map(relativeDirOfChangedFiles, func(dir string, index int) string {
+				return path.Join(terraformDir, dir)
+			})
+			config.GenerateProjectsConfig.TerragruntParsingConfig.FilterPaths = absoluteDirOfChangedFiles
+		}
+
+		newConfig, err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir, "", taConfig)
 		if err != nil {
 			slog.Error("failed to hydrate config with terragrunt", "error", err)
-			return err
+			return nil, err
 		}
+		return newConfig, nil
 	} else if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.Terragrunt {
 		slog.Warn("terragrunt generation using top level config is deprecated",
 			"recommendation", "https://docs.digger.dev/howto/generate-projects#blocks-syntax-with-terragrunt")
 
-		err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir, "")
+		parsingConfig := TerragruntParsingConfig{}
+
+		// if not nil we are updating from cached config so we can filter based on changed files only
+		if taConfig != nil {
+			relativeDirOfChangedFiles := GetDirNamesFromPaths(changedFiles)
+			absoluteDirOfChangedFiles := lo.Map(relativeDirOfChangedFiles, func(dir string, index int) string {
+				return path.Join(terraformDir, dir)
+			})
+			parsingConfig.FilterPaths = GetDirNamesFromPaths(absoluteDirOfChangedFiles)
+		}
+
+		newConfig, err := hydrateDiggerConfigYamlWithTerragrunt(config, parsingConfig, terraformDir, "", taConfig)
 		if err != nil {
 			slog.Error("failed to hydrate config with terragrunt", "error", err)
-			return err
+			return nil, err
 		}
+		return newConfig, nil
 	} else if config.GenerateProjectsConfig != nil {
 		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
 
@@ -351,7 +372,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 
 		if err != nil {
 			slog.Error("error walking through directories", "error", err, "terraformDir", terraformDir)
-			return fmt.Errorf("error while walking through directories: %v", err)
+			return nil, fmt.Errorf("error while walking through directories: %v", err)
 		}
 
 		var includePatterns []string
@@ -392,7 +413,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			err = validateBlockYaml(config.GenerateProjectsConfig.Blocks)
 			if err != nil {
 				slog.Error("block validation failed", "error", err)
-				return err
+				return nil, err
 			}
 
 			// if blocks of include/exclude patterns defined
@@ -416,16 +437,16 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						tgParsingConfig.CreateProjectName = true
 						tgParsingConfig.DefaultWorkflow = workflow
 						tgParsingConfig.WorkflowFile = b.WorkflowFile
-						tgParsingConfig.FilterPath = path.Join(terraformDir, *b.RootDir)
+						tgParsingConfig.FilterPaths = []string{path.Join(terraformDir, *b.RootDir)}
 						tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
 						tgParsingConfig.AwsCognitoOidcConfig = b.AwsCognitoOidcConfig
 
-						err := hydrateDiggerConfigYamlWithTerragrunt(config, *tgParsingConfig, terraformDir, b.BlockName)
+						_, err := hydrateDiggerConfigYamlWithTerragrunt(config, *tgParsingConfig, terraformDir, b.BlockName, nil)
 						if err != nil {
 							slog.Error("failed to hydrate config with terragrunt",
 								"error", err,
 								"blockName", b.BlockName)
-							return err
+							return nil, err
 						}
 					} else {
 						slog.Debug("skipping block due to no changed files", "blockName", b.BlockName)
@@ -476,15 +497,17 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 				}
 			}
 		}
+		slog.Info("completed project generation",
+			"projectCount", len(config.Projects),
+			"terraformDir", terraformDir)
+		return nil, nil
 	}
 
-	slog.Info("completed project generation",
-		"projectCount", len(config.Projects),
-		"terraformDir", terraformDir)
-	return nil
+	// shouldn't get here
+	return nil, nil
 }
 
-func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles []string) (*DiggerConfigYaml, error) {
+func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles []string, taConfig *tac.AtlantisConfig) (*DiggerConfigYaml, *tac.AtlantisConfig, error) {
 	slog.Info("loading digger config YAML",
 		"workingDir", workingDir,
 		"generateProjects", generateProjects,
@@ -495,39 +518,40 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 	if err != nil {
 		if errors.Is(err, ErrDiggerConfigConflict) {
 			slog.Error("config file conflict detected", "error", err, "workingDir", workingDir)
-			return nil, fmt.Errorf("error while retrieving digger_config file: %v", err)
+			return nil, nil, fmt.Errorf("error while retrieving digger_config file: %v", err)
 		}
 	}
 
 	if fileName == "" {
 		slog.Error("digger config file not found", "workingDir", workingDir)
-		return nil, fmt.Errorf("could not find digger.yml or digger.yaml in root of repository")
+		return nil, nil, fmt.Errorf("could not find digger.yml or digger.yaml in root of repository")
 	} else {
 		slog.Debug("reading digger config file", "fileName", fileName)
 		data, err := os.ReadFile(fileName)
 		if err != nil {
 			slog.Error("failed to read config file", "error", err, "fileName", fileName)
-			return nil, fmt.Errorf("failed to read digger_config file %s: %v", fileName, err)
+			return nil, nil, fmt.Errorf("failed to read digger_config file %s: %v", fileName, err)
 		}
 
 		if err := yaml.Unmarshal(data, configYaml); err != nil {
 			slog.Error("error parsing YAML", "error", err, "fileName", fileName)
-			return nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
+			return nil, nil, fmt.Errorf("error parsing '%s': %v", fileName, err)
 		}
 	}
 
 	err = ValidateDiggerConfigYaml(configYaml, fileName)
 	if err != nil {
 		slog.Error("config validation failed", "error", err, "fileName", fileName)
-		return configYaml, err
+		return configYaml, nil, err
 	}
 
+	var newAtlantisConfig *tac.AtlantisConfig = nil
 	if generateProjects == true {
 		slog.Info("generating projects from config", "fileName", fileName)
-		err = HandleYamlProjectGeneration(configYaml, workingDir, changedFiles)
+		newAtlantisConfig, err = HandleYamlProjectGeneration(configYaml, workingDir, changedFiles, taConfig)
 		if err != nil {
 			slog.Error("project generation failed", "error", err)
-			return configYaml, err
+			return configYaml, newAtlantisConfig, err
 		}
 	}
 
@@ -535,7 +559,7 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 		"fileName", fileName,
 		"projectCount", len(configYaml.Projects),
 		"workflowCount", len(configYaml.Workflows))
-	return configYaml, nil
+	return configYaml, newAtlantisConfig, nil
 }
 
 func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) error {
@@ -699,10 +723,10 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 	return nil
 }
 
-func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string, blockName string) error {
+func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string, blockName string, cachedConfig *tac.AtlantisConfig) (*tac.AtlantisConfig, error) {
 	slog.Info("hydrating config with terragrunt projects",
 		"workingDir", workingDir,
-		"filterPath", parsingConfig.FilterPath)
+		"filterPaths", parsingConfig.FilterPaths)
 
 	root := workingDir
 	if parsingConfig.GitRoot != nil {
@@ -740,18 +764,22 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		workflowFile = parsingConfig.WorkflowFile
 	}
 
+	if cachedConfig != nil {
+		parsingConfig.PreserveProjects = true
+	}
+
 	slog.Debug("parsing terragrunt configuration",
 		"root", root,
 		"defaultWorkflow", parsingConfig.DefaultWorkflow,
-		"filterPath", parsingConfig.FilterPath)
+"filterPaths", parsingConfig.FilterPaths)
 
-	atlantisConfig, projectDependsOnMap, err := atlantis.Parse(
+	atlantisConfig, projectDependsOnMap, err := tac.Parse(
 		root,
 		parsingConfig.ProjectHclFiles,
 		projectExternalChilds,
 		parsingConfig.AutoMerge,
 		parallel,
-		parsingConfig.FilterPath,
+		parsingConfig.FilterPaths,
 		parsingConfig.CreateHclProjectChilds,
 		ignoreParentTerragrunt,
 		parsingConfig.IgnoreDependencyBlocks,
@@ -766,15 +794,28 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.UseProjectMarkers,
 		executionOrderGroups,
 		parsingConfig.TriggerProjectsFromDirOnly,
+		cachedConfig,
 	)
 	if err != nil {
 		slog.Error("failed to parse terragrunt configuration", "error", err)
-		return fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
+		return nil, fmt.Errorf("failed to autogenerate digger_config, error during parse: %v", err)
+	}
+
+	if cachedConfig != nil {
+		// in this case we need to ensure that none of the terragrunts had been deleted, if we don't do this we will
+		// have impacted projects for terragrunt.hcl that don't exist, resulting in an error
+		atlantisConfig.Projects = lo.Filter(atlantisConfig.Projects, func(p tac.AtlantisProject, _ int) bool {
+			terragruntPath := path.Join(root, p.Dir, "terragrunt.hcl")
+			if _, err := os.Stat(terragruntPath); errors.Is(err, os.ErrNotExist) {
+				return false
+			}
+			return true
+		})
 	}
 
 	if atlantisConfig.Projects == nil {
 		slog.Error("atlantis projects configuration is nil")
-		return fmt.Errorf("atlantisConfig.Projects is nil")
+		return nil, fmt.Errorf("atlantisConfig.Projects is nil")
 	}
 
 	configYaml.AutoMerge = &atlantisConfig.AutoMerge
@@ -797,7 +838,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			slog.Error("could not normalize patterns",
 				"error", err,
 				"projectDir", projectDir)
-			return fmt.Errorf("could not normalize patterns: %v", err)
+			return nil, fmt.Errorf("could not normalize patterns: %v", err)
 		}
 
 		slog.Debug("adding terragrunt project",
@@ -828,7 +869,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 
 	slog.Info("completed hydrating config with terragrunt projects",
 		"totalProjectCount", len(configYaml.Projects))
-	return nil
+	return atlantisConfig, nil
 }
 
 func (c *DiggerConfig) GetProject(projectName string) *Project {

@@ -35,7 +35,7 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	}
 
 	repoFullName := fmt.Sprintf("%v/%v", repoOwner, repoName)
-	diggerConfig, _, _, err := digger_config.LoadDiggerConfig("./", true, nil)
+	diggerConfig, _, _, _, err := digger_config.LoadDiggerConfig("./", true, nil, nil)
 	if err != nil {
 		usage.ReportErrorAndExit(repoOwner, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}

@@ -199,7 +199,7 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		config, _, _, err := digger_config.LoadDiggerConfig("./", true, nil)
+		config, _, _, _, err := digger_config.LoadDiggerConfig("./", true, nil, nil)
 		if err != nil {
 			log.Printf("Invalid digger config file: %v. Exiting.", err)
 			os.Exit(1)

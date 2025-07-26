@@ -107,7 +107,7 @@ func GetDiggerConfigForBitbucketBranch(bb BitbucketProvider, token string, repoF
 		}
 
 		diggerYmlStr = string(diggerYmlBytes)
-		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
+		config, _, dependencyGraph, _, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles, nil)
 		if err != nil {
 			slog.Error("Error loading Digger config",
 				"repoFullName", repoFullName,

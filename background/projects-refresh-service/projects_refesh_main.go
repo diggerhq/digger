@@ -46,7 +46,7 @@ func main() {
 
 	slog.Info("refreshing projects from repo", "repoFullName", repoFullName)
 	err := utils3.CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "", func(dir string) error {
-		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
+		config, _, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil, nil)
 		if err != nil {
 			slog.Error("failed to load digger.yml: %v", "error", err)
 			return fmt.Errorf("error loading digger.yml %v", err)
