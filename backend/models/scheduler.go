@@ -55,6 +55,7 @@ type DiggerJob struct {
 	ProjectName                  string
 	Batch                        *DiggerBatch
 	BatchID                      *string `gorm:"index:idx_digger_job_id"`
+	Layer                        uint
 	PRCommentUrl                 string
 	PRCommentId                  *int64
 	DiggerJobSummary             DiggerJobSummary

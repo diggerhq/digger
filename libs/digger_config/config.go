@@ -15,6 +15,7 @@ type DiggerConfig struct {
 	CommentRenderMode          string
 	DependencyConfiguration    DependencyConfiguration
 	DeletePriorComments        bool
+	RespectLayers              bool
 	PrLocks                    bool
 	Projects                   []Project
 	AutoMerge                  bool
@@ -47,6 +48,7 @@ type Project struct {
 	Dir                  string
 	Workspace            string
 	Terragrunt           bool
+	Layer                uint
 	OpenTofu             bool
 	Pulumi               bool
 	Workflow             string
