@@ -720,17 +720,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error initializing comment reporter")
 	}
 
-	err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
-	if err != nil {
-		slog.Error("Failed to comment initial status for jobs",
-			"prNumber", prNumber,
-			"jobCount", len(jobsForImpactedProjects),
-			"error", err,
-		)
-		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
-		return fmt.Errorf("failed to comment initial status for jobs")
-	}
-
 	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 	if err != nil {
 		slog.Error("Error setting status for PR",
@@ -739,6 +728,35 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: error setting status for PR: %v", err))
 		return fmt.Errorf("error setting status for PR: %v", err)
+	}
+
+	nLayers, _ := orchestrator_scheduler.CountUniqueLayers(jobsForImpactedProjects)
+	if config.RespectLayers && nLayers > 1 {
+		slog.Debug("Respecting layers",
+			"prNumber", prNumber)
+		err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
+		if err != nil {
+			slog.Error("Failed to comment initial status for jobs",
+				"prNumber", prNumber,
+				"jobCount", len(jobsForImpactedProjects),
+				"error", err,
+			)
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
+			return fmt.Errorf("failed to comment initial status for jobs")
+		}
+		slog.Debug("not performing plan since there are multiple layers and respect_layers is enabled")
+		return nil
+	} else {
+		err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
+		if err != nil {
+			slog.Error("Failed to comment initial status for jobs",
+				"prNumber", prNumber,
+				"jobCount", len(jobsForImpactedProjects),
+				"error", err,
+			)
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to comment initial status for jobs: %v", err))
+			return fmt.Errorf("failed to comment initial status for jobs")
+		}
 	}
 
 	slog.Debug("Preparing job and project maps",
@@ -788,6 +806,9 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		"jobCount", len(impactedJobsMap),
 	)
 
+	if config.RespectLayers {
+
+	}
 	batchId, _, err := utils.ConvertJobsToDiggerJobs(
 		*diggerCommand,
 		models.DiggerVCSGithub,

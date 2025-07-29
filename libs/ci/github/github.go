@@ -495,6 +495,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				ProjectDir:         project.Dir,
 				ProjectWorkspace:   project.Workspace,
 				ProjectWorkflow:    project.Workflow,
+				Layer:              project.Layer,
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
 				Pulumi:             project.Pulumi,

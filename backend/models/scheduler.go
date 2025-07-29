@@ -26,6 +26,7 @@ const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
 type DiggerBatch struct {
 	gorm.Model
 	ID                       uuid.UUID `gorm:"primary_key"`
+	Layer                    uint
 	VCS                      DiggerVCSType
 	PrNumber                 int
 	CommentId                *int64
@@ -55,7 +56,6 @@ type DiggerJob struct {
 	ProjectName                  string
 	Batch                        *DiggerBatch
 	BatchID                      *string `gorm:"index:idx_digger_job_id"`
-	Layer                        uint
 	PRCommentUrl                 string
 	PRCommentId                  *int64
 	DiggerJobSummary             DiggerJobSummary
