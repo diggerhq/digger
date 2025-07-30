@@ -400,7 +400,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("error while fetching branch name")
 	}
 
-	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, glService)
+	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, glService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))

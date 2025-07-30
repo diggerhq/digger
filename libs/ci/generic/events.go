@@ -6,6 +6,7 @@ import (
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
+	"github.com/samber/lo"
 	"strings"
 )
 
@@ -18,12 +19,12 @@ func GetRunEnvVars(defaultBranch string, prBranch string, projectName string, pr
 	}
 }
 
-func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, *digger_config.Project, int, error) {
+func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) (impactedProjectsByComment []digger_config.Project, sourceMapping map[string]digger_config.ProjectToSourceMapping, requestedProject *digger_config.Project, prNum int, individualLayerRequested bool, err error) {
 	var impactedProjects []digger_config.Project
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 	if err != nil {
-		return nil, nil, nil, 0, fmt.Errorf("could not get changed files")
+		return nil, nil, nil, 0, false, fmt.Errorf("could not get changed files")
 	}
 
 	impactedProjects, impactedProjectsSourceMapping := diggerConfig.GetModifiedProjects(changedFiles)
@@ -31,22 +32,34 @@ func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *di
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
 		impactedProjects, err = FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
 		if err != nil {
-			return nil, nil, nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
+			return nil, nil, nil, prNumber, false, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}
 	}
 
-	requestedProject := scheduler.ParseProjectName(commentBody)
+	// if a layer is requested we filter out that layer only and return those layers
+	requestedLayer, layerFound, err := scheduler.ParseProjectLayer(commentBody)
+	if err != nil {
+		return nil, nil, nil, 0, false, fmt.Errorf("failed to parse layer from comment %v", err)
+	}
+	if layerFound {
+		requestedLayerImpactedProjects := lo.Filter(impactedProjects, func(project digger_config.Project, _ int) bool {
+			return int(project.Layer) == requestedLayer
+		})
+		return requestedLayerImpactedProjects, impactedProjectsSourceMapping, nil, prNumber, true, nil
+	}
 
-	if requestedProject == "" {
-		return impactedProjects, impactedProjectsSourceMapping, nil, prNumber, nil
+	requestedProjectName := scheduler.ParseProjectName(commentBody)
+	if requestedProjectName == "" {
+		return impactedProjects, impactedProjectsSourceMapping, nil, prNumber, false, nil
 	}
 
 	for _, project := range impactedProjects {
-		if project.Name == requestedProject {
-			return impactedProjects, impactedProjectsSourceMapping, &project, prNumber, nil
+		if project.Name == requestedProjectName {
+			return impactedProjects, impactedProjectsSourceMapping, &project, prNumber, false, nil
 		}
 	}
-	return nil, nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
+
+	return nil, nil, nil, 0, false, fmt.Errorf("requested project not found in modified projects")
 }
 
 func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config.Project, dependencyGraph graph.Graph[string, digger_config.Project]) ([]digger_config.Project, error) {

@@ -1453,7 +1453,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"branchName", prBranchName,
 	)
 
-	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, ghService)
+	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, ghService)
 	if err != nil {
 		slog.Error("Error processing issue comment event",
 			"issueNumber", issueNumber,
@@ -1479,6 +1479,14 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error converting event to jobs: %v", err))
 		return fmt.Errorf("error converting event to jobs")
 	}
+	//
+	//// if we have a specific layer, we need to do an extra check to figure out whether all impacted projects are covered
+	//// for now we check if the requested layer is the highest layer amongst impacted projects
+	//if individualLayerRequested && config.RespectLayers {
+	//	_, uniqueLayers := orchestrator_scheduler.CountUniqueLayers(jobs)
+	//	maxLayer := uniqueLayers[len(uniqueLayers)-1]
+	//	coverAllImpactedProjects = maxLayer == requestedLayer
+	//}
 
 	slog.Info("Issue comment event converted to jobs successfully",
 		"issueNumber", issueNumber,

@@ -215,7 +215,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		return fmt.Errorf("error while fetching branch name")
 	}
 
-	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, bbService)
+	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, bbService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
