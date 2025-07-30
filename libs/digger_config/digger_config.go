@@ -754,7 +754,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		cascadeDependencies = *parsingConfig.CascadeDependencies
 	}
 
-	executionOrderGroups := false
+	executionOrderGroups := true
 	if parsingConfig.ExecutionOrderGroups != nil {
 		executionOrderGroups = *parsingConfig.ExecutionOrderGroups
 	}
@@ -847,7 +847,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			"workspace", atlantisProject.Workspace)
 
 		executionOrderGroup := uint(atlantisProject.ExecutionOrderGroup)
-		
+
 		diggerProject := &ProjectYaml{
 			BlockName:            blockName,
 			Name:                 atlantisProject.Name,

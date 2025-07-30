@@ -109,13 +109,11 @@ func IsApplyJobs(jobs []JobJson) bool {
 }
 
 func CountUniqueLayers(jobs []Job) (uint, []uint) {
-	uniqueLayerJobs := lo.UniqBy(jobs, func(job Job) uint {
+	layerOnly := lo.Map(jobs, func(job Job, _ int) uint {
 		return job.Layer
 	})
 
-	uniqueLayers := lo.Map(uniqueLayerJobs, func(job Job, _ int) uint {
-		return job.Layer
-	})
+	uniqueLayers := lo.Uniq(layerOnly)
 
 	return uint(len(uniqueLayers)), uniqueLayers
 }

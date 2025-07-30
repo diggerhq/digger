@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"log/slog"
+	"sort"
 
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
@@ -200,6 +201,14 @@ func ReportLayersTableForJobs(cr *CommentReporter, jobs []scheduler.Job) error {
 	prService := cr.PrService
 	commentId := cr.CommentId
 
+	// sort jobs by layer for better display (sort by name too)
+	sort.Slice(jobs, func(i, j int) bool {
+		if jobs[i].Layer == jobs[j].Layer {
+			return jobs[i].ProjectName < jobs[j].ProjectName
+		}
+		return jobs[i].Layer < jobs[j].Layer
+	})
+
 	slog.Info("Reporting initial jobs status",
 		"prNumber", prNumber,
 		"commentId", commentId,
@@ -218,14 +227,15 @@ func ReportLayersTableForJobs(cr *CommentReporter, jobs []scheduler.Job) error {
 		}
 	}
 
-	message += `\\n\\n
-<details open>
+	message += "----------------\n\n"
+	message += `
+<details>
   <summary>Instructions</summary>
 
-Since you enabled layers in your configuration, you can proceed to perform a layer-by-layer deployment. \\n
-To start planning the first layer you can run "digger plan --layer 0". To apply the first layer, run "digger apply --layer 0". \\n
+Since you enabled layers in your configuration, you can proceed to perform a layer-by-layer deployment.
+To start planning the first layer you can run "digger plan --layer 0". To apply the first layer, run "digger apply --layer 0".
 
-To deploy the next layer, run "digger plan --layer 1". To apply the next layer, run "digger apply --layer 1". \\n
+To deploy the next layer, run "digger plan --layer 1". To apply the next layer, run "digger apply --layer 1".
 
 And so on. A new commit on the branch will restart this deployment process.
 </details>

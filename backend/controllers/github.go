@@ -731,10 +731,15 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	nLayers, _ := orchestrator_scheduler.CountUniqueLayers(jobsForImpactedProjects)
+	slog.Debug("Number of layers",
+		"prNumber", prNumber,
+		"nLayers", nLayers,
+		"respectLayers", config.RespectLayers,
+	)
 	if config.RespectLayers && nLayers > 1 {
 		slog.Debug("Respecting layers",
 			"prNumber", prNumber)
-		err = utils.ReportInitialJobsStatus(commentReporter, jobsForImpactedProjects)
+		err = utils.ReportLayersTableForJobs(commentReporter, jobsForImpactedProjects)
 		if err != nil {
 			slog.Error("Failed to comment initial status for jobs",
 				"prNumber", prNumber,
