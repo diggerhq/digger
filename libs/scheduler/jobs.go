@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"github.com/samber/lo"
 	"slices"
 
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
@@ -17,6 +18,7 @@ type Job struct {
 	ProjectDir         string
 	ProjectWorkspace   string
 	ProjectWorkflow    string
+	Layer              uint
 	Terragrunt         bool
 	OpenTofu           bool
 	Pulumi             bool
@@ -104,4 +106,14 @@ func IsApplyJobs(jobs []JobJson) bool {
 		isApply = isApply && job.IsApply()
 	}
 	return isApply
+}
+
+func CountUniqueLayers(jobs []Job) (uint, []uint) {
+	layerOnly := lo.Map(jobs, func(job Job, _ int) uint {
+		return job.Layer
+	})
+
+	uniqueLayers := lo.Uniq(layerOnly)
+
+	return uint(len(uniqueLayers)), uniqueLayers
 }

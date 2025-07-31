@@ -9,6 +9,7 @@ import (
 
 type DiggerConfigYaml struct {
 	ApplyAfterMerge            *bool                        `yaml:"apply_after_merge"`
+	RespectLayers              *bool                        `yaml:"respect_layers"`
 	AllowDraftPRs              *bool                        `yaml:"allow_draft_prs"`
 	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
 	DeletePriorComments        *bool                        `yaml:"delete_prior_comments"`
@@ -45,6 +46,7 @@ type ProjectYaml struct {
 	Workflow             string                      `yaml:"workflow"`
 	WorkflowFile         string                      `yaml:"workflow_file"`
 	IncludePatterns      []string                    `yaml:"include_patterns,omitempty"`
+	Layer                *uint                       `yaml:"layer"`
 	ExcludePatterns      []string                    `yaml:"exclude_patterns,omitempty"`
 	DependencyProjects   []string                    `yaml:"depends_on,omitempty"`
 	DriftDetection       *bool                       `yaml:"drift_detection,omitempty"`

@@ -453,7 +453,7 @@ func TestHappyPath(t *testing.T) {
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
 
-	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch", "main")
+	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
@@ -476,7 +476,7 @@ func TestHappyPath(t *testing.T) {
 
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch", "main")
+	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
@@ -590,7 +590,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	// 'digger plan' comment should trigger terraform execution
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch", "main")
+	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
@@ -603,7 +603,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	// 'digger apply' comment should trigger terraform execution and unlock the project
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch", "main")
+	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
@@ -626,7 +626,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch", "main")
+	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
@@ -809,7 +809,7 @@ workflows:
 	// 'digger plan' comment should trigger terraform execution
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch", "main")
+	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
@@ -822,7 +822,7 @@ workflows:
 	// 'digger apply' comment should trigger terraform execution and unlock the project
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch", "main")
+	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
@@ -844,7 +844,7 @@ workflows:
 
 	impactedProjects, requestedProject, prNumber, err = dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 	assert.NoError(t, err)
-	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, requestedProject, diggerConfig.Workflows, "prBranch", "main")
+	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)

@@ -20,9 +20,13 @@ func copyProjects(projects []*ProjectYaml) []Project {
 	result := make([]Project, len(projects))
 	for i, p := range projects {
 		driftDetection := true
-
+		layer := uint(0)
 		if p.DriftDetection != nil {
 			driftDetection = *p.DriftDetection
+		}
+
+		if p.Layer != nil {
+			layer = *p.Layer
 		}
 
 		var roleToAssume *AssumeRoleForProject = nil
@@ -75,6 +79,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.Dir,
 			workspace,
 			p.Terragrunt,
+			layer,
 			p.OpenTofu,
 			p.Pulumi,
 			p.Workflow,
@@ -211,6 +216,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.AutoMerge = *diggerYaml.AutoMerge
 	} else {
 		diggerConfig.AutoMerge = false
+	}
+
+	if diggerYaml.RespectLayers != nil {
+		diggerConfig.RespectLayers = *diggerYaml.RespectLayers
+	} else {
+		diggerConfig.RespectLayers = false
 	}
 
 	if diggerYaml.DeletePriorComments != nil {

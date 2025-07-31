@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +14,20 @@ func ParseProjectName(comment string) string {
 		return match[1]
 	}
 	return ""
+}
+
+func ParseProjectLayer(comment string) (int, bool, error) {
+	re := regexp.MustCompile(`--layer ([0-9]+)`)
+	match := re.FindStringSubmatch(comment)
+	if len(match) > 1 {
+		layerInt, err := strconv.Atoi(match[1])
+		if err != nil {
+			return -1, false, err
+		}
+		return layerInt, true, nil
+
+	}
+	return -1, false, nil
 }
 
 type DiggerCommand string
