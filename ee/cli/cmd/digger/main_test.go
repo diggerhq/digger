@@ -925,7 +925,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	lock := &locking.MockLock{}
 	prManager := ci.MockPullRequestManager{ChangedFiles: []string{"dev/test.tf"}}
 	planStorage := storage.MockPlanStorage{}
-	impactedProjects, requestedProject, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, &prManager)
+	impactedProjects, _, prNumber, err := dggithub.ProcessGitHubEvent(ghEvent, &diggerConfig, &prManager)
 	assert.NoError(t, err)
 	reporter := &reporting.CiReporter{
 		CiService: &prManager,
@@ -935,7 +935,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	policyChecker := policy.MockPolicyChecker{}
 	backendApi := backendapi.MockBackendApi{}
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "digger plan", impactedProjects, requestedProject, map[string]configuration.Workflow{}, "prbranch", "main")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "digger plan", impactedProjects, impactedProjects, map[string]configuration.Workflow{}, "prbranch", "main")
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
 	assert.NoError(t, err)
@@ -1029,10 +1029,9 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	var impactedProjects []configuration.Project
 	impactedProjects = make([]configuration.Project, 1)
 	impactedProjects[0] = project
-	var requestedProject = project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(*repo.FullName, *user.Login, *issue.Number, "digger plan", impactedProjects, &requestedProject, workflows, "prbranch", "main")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs(*repo.FullName, *user.Login, *issue.Number, "digger plan", impactedProjects, impactedProjects, workflows, "prbranch", "main")
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])
