@@ -754,7 +754,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		cascadeDependencies = *parsingConfig.CascadeDependencies
 	}
 
-	executionOrderGroups := true
+	executionOrderGroups := false
 	if parsingConfig.ExecutionOrderGroups != nil {
 		executionOrderGroups = *parsingConfig.ExecutionOrderGroups
 	}
