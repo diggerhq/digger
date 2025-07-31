@@ -71,7 +71,7 @@
         "ce/features/commentops",
         "ce/features/opa-policies",
         "ce/features/concurrency",
-        "ce/features/layering-terragrunt",
+        "ce/features/layering",
         "ce/features/pr-level-locks",
         "ce/features/plan-persistence",
         "ce/features/private-runners"
