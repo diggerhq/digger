@@ -771,7 +771,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 	slog.Debug("parsing terragrunt configuration",
 		"root", root,
 		"defaultWorkflow", parsingConfig.DefaultWorkflow,
-"filterPaths", parsingConfig.FilterPaths)
+		"filterPaths", parsingConfig.FilterPaths)
 
 	atlantisConfig, projectDependsOnMap, err := tac.Parse(
 		root,
@@ -846,10 +846,13 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			"projectDir", projectDir,
 			"workspace", atlantisProject.Workspace)
 
+		executionOrderGroup := uint(atlantisProject.ExecutionOrderGroup)
+
 		diggerProject := &ProjectYaml{
 			BlockName:            blockName,
 			Name:                 atlantisProject.Name,
 			Dir:                  projectDir,
+			Layer:                &executionOrderGroup,
 			Workspace:            atlantisProject.Workspace,
 			Terragrunt:           true,
 			Workflow:             atlantisProject.Workflow,

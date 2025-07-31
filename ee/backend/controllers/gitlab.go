@@ -400,7 +400,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("error while fetching branch name")
 	}
 
-	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, glService)
+	processIssueCommentEventResult, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, glService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
@@ -408,9 +408,12 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
+	impactedProjectsForComment := processIssueCommentEventResult.ImpactedProjectsForComment
+	impactedProjectsSourceMapping := processIssueCommentEventResult.ImpactedProjectsSourceMapping
+	allImpactedProjects := processIssueCommentEventResult.AllImpactedProjects
 	// perform unlocking in backend
 	if config.PrLocks {
-		for _, project := range impactedProjects {
+		for _, project := range impactedProjectsForComment {
 			prLock := dg_locking.PullRequestLock{
 				InternalLock: locking.BackendDBLock{
 					OrgId: organisationId,
@@ -436,7 +439,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return nil
 	}
 
-	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))
@@ -466,7 +469,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	}
 
 	impactedProjectsMap := make(map[string]dg_configuration.Project)
-	for _, p := range impactedProjects {
+	for _, p := range impactedProjectsForComment {
 		impactedProjectsMap[p.Name] = p
 	}
 

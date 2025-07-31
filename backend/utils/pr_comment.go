@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"log/slog"
+	"sort"
 
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
@@ -135,6 +136,28 @@ func UpdateCRComment(cr *CommentReporter, comment string) error {
 	return nil
 }
 
+func trimMessageIfExceedsMaxLength(message string) string {
+
+	const GithubCommentMaxLength = 65536
+
+	if len(message) > GithubCommentMaxLength {
+		slog.Warn("Comment message is too long, trimming",
+			"originalLength", len(message),
+			"maxLength", GithubCommentMaxLength,
+		)
+
+		const footer = "[trimmed]"
+		trimLength := len(message) - GithubCommentMaxLength + len(footer)
+		message = message[:len(message)-trimLength] + footer
+
+		slog.Debug("Trimmed comment message",
+			"newLength", len(message),
+			"trimmedBytes", trimLength,
+		)
+	}
+	return message
+}
+
 func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 	prNumber := cr.PrNumber
 	prService := cr.PrService
@@ -158,24 +181,7 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 		}
 	}
 
-	const GithubCommentMaxLength = 65536
-
-	if len(message) > GithubCommentMaxLength {
-		slog.Warn("Comment message is too long, trimming",
-			"originalLength", len(message),
-			"maxLength", GithubCommentMaxLength,
-		)
-
-		const footer = "[trimmed]"
-		trimLength := len(message) - GithubCommentMaxLength + len(footer)
-		message = message[:len(message)-trimLength] + footer
-
-		slog.Debug("Trimmed comment message",
-			"newLength", len(message),
-			"trimmedBytes", trimLength,
-		)
-	}
-
+	message = trimMessageIfExceedsMaxLength(message)
 	err := prService.EditComment(prNumber, commentId, message)
 	if err != nil {
 		slog.Error("Failed to update comment with initial jobs status",
@@ -190,32 +196,54 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 	return nil
 }
 
-func ReportNoProjectsImpacted(cr *CommentReporter, jobs []scheduler.Job) error {
+func ReportLayersTableForJobs(cr *CommentReporter, jobs []scheduler.Job) error {
 	prNumber := cr.PrNumber
 	prService := cr.PrService
 	commentId := cr.CommentId
 
-	slog.Info("Reporting no projects impacted",
+	// sort jobs by layer for better display (sort by name too)
+	sort.Slice(jobs, func(i, j int) bool {
+		if jobs[i].Layer == jobs[j].Layer {
+			return jobs[i].ProjectName < jobs[j].ProjectName
+		}
+		return jobs[i].Layer < jobs[j].Layer
+	})
+
+	slog.Info("Reporting initial jobs status",
 		"prNumber", prNumber,
 		"commentId", commentId,
 		"jobCount", len(jobs),
 	)
 
-	message := "" +
-		":construction_worker: The following projects are impacted\n\n"
-	for _, job := range jobs {
-		message = message + fmt.Sprintf(""+
-			"<!-- PROJECTHOLDER %v -->\n"+
-			":clock11: **%v**: pending...\n"+
-			"<!-- PROJECTHOLDEREND %v -->\n"+
-			"", job.ProjectName, job.ProjectName, job.ProjectName)
-
-		slog.Debug("Added project placeholder to message", "projectName", job.ProjectName)
+	message := ""
+	if len(jobs) == 0 {
+		message = message + ":construction_worker: No projects impacted"
+	} else {
+		message = message + fmt.Sprintf("| Project | Layer |\n")
+		message = message + fmt.Sprintf("|---------|--------|\n")
+		for _, job := range jobs {
+			message = message + fmt.Sprintf(""+
+				"|:clock11: **%v**|%v|\n", job.ProjectName, job.Layer)
+		}
 	}
 
+	message += "----------------\n\n"
+	message += `
+<details>
+  <summary>Instructions</summary>
+
+Since you enabled layers in your configuration, you can proceed to perform a layer-by-layer deployment.
+To start planning the first layer you can run "digger plan --layer 0". To apply the first layer, run "digger apply --layer 0".
+
+To deploy the next layer, run "digger plan --layer 1". To apply the next layer, run "digger apply --layer 1".
+
+And so on. A new commit on the branch will restart this deployment process.
+</details>
+`
+	message = trimMessageIfExceedsMaxLength(message)
 	err := prService.EditComment(prNumber, commentId, message)
 	if err != nil {
-		slog.Error("Failed to update comment with no projects impacted message",
+		slog.Error("Failed to update comment with initial jobs status",
 			"prNumber", prNumber,
 			"commentId", commentId,
 			"error", err,
@@ -223,6 +251,6 @@ func ReportNoProjectsImpacted(cr *CommentReporter, jobs []scheduler.Job) error {
 		return err
 	}
 
-	slog.Debug("Successfully reported no projects impacted", "prNumber", prNumber, "commentId", commentId)
+	slog.Debug("Successfully reported initial jobs status", "prNumber", prNumber, "commentId", commentId)
 	return nil
 }
