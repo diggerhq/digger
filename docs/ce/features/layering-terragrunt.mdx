@@ -1,0 +1,54 @@
+---
+title: "Layring with Terragrunt"
+---
+
+In a terragrunt monorepo you will usually have multiple dependant modules
+where the order of execution is important. The dependencies can be represented as rings or layers
+where the innermost layer is dependend on by the layer above which is depended on by the layer above and so on.
+
+![](/images/features/terragruntDependencies.png)
+
+In the example above we can consider modules core/network and core/security to be in layer 0.
+
+Modules layer1/compute and layer1/storage and layer1/monitoring are in layer 1.
+
+Modules layer2/api and layer2/analytics and layer2/frontend are in layer2, the outermost layer.
+
+So usually what we want is if we have a change in core/network, we first want to plan and apply that change.
+
+Subsequently we want to plan and apply the changes of layer1/compute, layer1/storage and layer1/monitoring, since they depend on the outputs of core.
+
+Finally we want to plan and apply the modules in the layer2 group since they depend on the modules in layer1.
+
+In digger this could have been done individually by using the -p flag such as "digger apply -p core_network" and doing the appiles in the intended order, but this was cumbersome and tiring.
+
+With layering you can achieve this layer by layer in a single command. To enable layering in the terragrunt syntax you can do it as follows:
+
+```
+respect_layers: true
+
+generate_projects:
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    createWorkspace: true
+    defaultWorkflow: default
+    cascadeDependencies: false
+    dependsOnOrdering: false
+    executionOrderGroups: true
+```
+
+With layering enabled when you open a PR touching a module, digger will first display all impacted projects and the layers, it will then guide you on the next commands to start planning and applying the layers in the right order
+
+![](/images/features/layering1.png)
+
+![](/images/features/layering2.png)
+
+## Limitations
+
+There are a few limitations currently which will be addressed in future releases:
+
+1. The aggregate status checks of digger/plan and digger/apply may not work as expected
+2. The automerge feature may not work as expected
+
+this is because of how digger currently relies on single event to figure out if it includes all projects to perform the merge. A future refactor of the code will address these limitations.
