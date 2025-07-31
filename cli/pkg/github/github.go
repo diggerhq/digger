@@ -3,6 +3,10 @@ package github
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"os"
+	"strings"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
@@ -21,9 +25,6 @@ import (
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
 	"gopkg.in/yaml.v3"
-	"log/slog"
-	"os"
-	"strings"
 )
 
 func initLogger() {
@@ -145,13 +146,25 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
-		var projectConfig digger_config.Project
-		for _, projectConfig = range diggerConfig.Projects {
-			if projectConfig.Name == project {
-				break
+	projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, project)
+
+		if !projectFound {
+			// Log available projects to help with debugging
+			var availableProjects []string
+			for _, p := range diggerConfig.Projects {
+				availableProjects = append(availableProjects, p.Name)
 			}
+			slog.Error("Project not found in digger configuration",
+				"requestedProject", project,
+				"availableProjects", availableProjects)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Project '%s' not found in digger configuration. Available projects: %v", project, availableProjects), 1)
 		}
-		workflow := diggerConfig.Workflows[projectConfig.Workflow]
+
+		slog.Info("Found project configuration", "projectName", projectConfig.Name, "projectDir", projectConfig.Dir)
+		workflow, ok := diggerConfig.Workflows[projectConfig.Workflow]
+		if !ok {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Workflow '%s' not found for project '%s'", projectConfig.Workflow, projectConfig.Name), 1)
+		}
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 
@@ -348,6 +361,16 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	}
 
 	usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
+}
+
+// Helper function to search for a project in the configuration
+func findProjectInConfig(projects []digger_config.Project, projectName string) (digger_config.Project, bool) {
+	for _, config := range projects {
+		if config.Name == projectName {
+			return config, true
+		}
+	}
+	return digger_config.Project{}, false
 }
 
 func logCommands(projectCommands []scheduler.Job) {
