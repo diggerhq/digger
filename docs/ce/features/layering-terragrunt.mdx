@@ -44,7 +44,34 @@ With layering enabled when you open a PR touching a module, digger will first di
 
 ![](/images/features/layering2.png)
 
-## Limitations
+## Usage with other flags
+
+Using layering with other include_patterns works well to coordinate changes across layers.
+For example say you have a VPC module which is used in to generate some subnets and you need to use those subnet layers
+in a few other modules. You can have digger.yml as follows:
+
+```
+respect_layers: true
+
+projects:
+  - name: vpc
+    dir: vpc
+    layer: 1
+  - name: service_1
+    dir: service_1
+    layer: 2
+    include_patterns: ["vpc/**"]
+  - name: service_2
+    dir: l3_1
+    layer: 2
+    include_patterns: ["vpc/**"]
+```
+
+and with that if you make a change to the vpc module you will be able to first plan and apply vpc, then plan and apply service_1
+and service_2 in parallel.
+
+
+## Current Limitations
 
 There are a few limitations currently which will be addressed in future releases:
 
