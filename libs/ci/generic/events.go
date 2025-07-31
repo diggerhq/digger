@@ -19,12 +19,21 @@ func GetRunEnvVars(defaultBranch string, prBranch string, projectName string, pr
 	}
 }
 
-func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) (impactedProjectsByComment []digger_config.Project, sourceMapping map[string]digger_config.ProjectToSourceMapping, requestedProject *digger_config.Project, prNum int, individualLayerRequested bool, err error) {
+type ProcessIssueCommentEventResult struct {
+	// this represents the projects that need to be planned/ applied for this comment
+	ImpactedProjectsForComment    []digger_config.Project
+	ImpactedProjectsSourceMapping map[string]digger_config.ProjectToSourceMapping
+	PRNumber                      int
+	// this represents all projects impacted by the PR based on changed files
+	AllImpactedProjects []digger_config.Project
+}
+
+func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) (*ProcessIssueCommentEventResult, error) {
 	var impactedProjects []digger_config.Project
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 	if err != nil {
-		return nil, nil, nil, 0, false, fmt.Errorf("could not get changed files")
+		return &ProcessIssueCommentEventResult{}, fmt.Errorf("could not get changed files")
 	}
 
 	impactedProjects, impactedProjectsSourceMapping := diggerConfig.GetModifiedProjects(changedFiles)
@@ -32,34 +41,49 @@ func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *di
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
 		impactedProjects, err = FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
 		if err != nil {
-			return nil, nil, nil, prNumber, false, fmt.Errorf("failed to find all projects dependant on impacted projects")
+			return &ProcessIssueCommentEventResult{}, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}
 	}
 
 	// if a layer is requested we filter out that layer only and return those layers
 	requestedLayer, layerFound, err := scheduler.ParseProjectLayer(commentBody)
 	if err != nil {
-		return nil, nil, nil, 0, false, fmt.Errorf("failed to parse layer from comment %v", err)
+		return &ProcessIssueCommentEventResult{}, fmt.Errorf("failed to parse layer from comment %v", err)
 	}
 	if layerFound {
 		requestedLayerImpactedProjects := lo.Filter(impactedProjects, func(project digger_config.Project, _ int) bool {
 			return int(project.Layer) == requestedLayer
 		})
-		return requestedLayerImpactedProjects, impactedProjectsSourceMapping, nil, prNumber, true, nil
+		return &ProcessIssueCommentEventResult{
+			requestedLayerImpactedProjects,
+			impactedProjectsSourceMapping,
+			prNumber,
+			impactedProjects,
+		}, nil
 	}
 
 	requestedProjectName := scheduler.ParseProjectName(commentBody)
 	if requestedProjectName == "" {
-		return impactedProjects, impactedProjectsSourceMapping, nil, prNumber, false, nil
+		return &ProcessIssueCommentEventResult{
+			impactedProjects,
+			impactedProjectsSourceMapping,
+			prNumber,
+			impactedProjects,
+		}, nil
 	}
 
 	for _, project := range impactedProjects {
 		if project.Name == requestedProjectName {
-			return impactedProjects, impactedProjectsSourceMapping, &project, prNumber, false, nil
+			return &ProcessIssueCommentEventResult{
+				[]digger_config.Project{project},
+				impactedProjectsSourceMapping,
+				prNumber,
+				impactedProjects,
+			}, nil
 		}
 	}
 
-	return nil, nil, nil, 0, false, fmt.Errorf("requested project not found in modified projects")
+	return &ProcessIssueCommentEventResult{}, fmt.Errorf("requested project not found in modified projects")
 }
 
 func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config.Project, dependencyGraph graph.Graph[string, digger_config.Project]) ([]digger_config.Project, error) {
@@ -110,7 +134,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 	return impactedProjectsWithDependantProjects, nil
 }
 
-func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prNumber int, commentBody string, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string, defaultBranch string) ([]scheduler.Job, bool, error) {
+func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prNumber int, commentBody string, impactedProjectsForComment []digger_config.Project, allImpactedProjects []digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string, defaultBranch string) ([]scheduler.Job, bool, error) {
 	jobs := make([]scheduler.Job, 0)
 	prBranch := prBranchName
 
@@ -118,16 +142,10 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 
 	coversAllImpactedProjects := true
 
-	runForProjects := impactedProjects
+	runForProjects := impactedProjectsForComment
 
-	if requestedProject != nil {
-		if len(impactedProjects) > 1 {
-			coversAllImpactedProjects = false
-			runForProjects = []digger_config.Project{*requestedProject}
-		} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
-			return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
-		}
-	}
+	coversAllImpactedProjects = len(impactedProjectsForComment) == len(allImpactedProjects)
+
 	diggerCommand := strings.ToLower(commentBody)
 	diggerCommand = strings.TrimSpace(diggerCommand)
 	var commandToRun string

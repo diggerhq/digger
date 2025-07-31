@@ -1453,7 +1453,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"branchName", prBranchName,
 	)
 
-	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, ghService)
+	processEventResult, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, ghService)
 	if err != nil {
 		slog.Error("Error processing issue comment event",
 			"issueNumber", issueNumber,
@@ -1462,32 +1462,28 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error processing event: %v", err))
 		return fmt.Errorf("error processing event")
 	}
+	impactedProjectsForComment := processEventResult.ImpactedProjectsForComment
+	impactedProjectsSourceMapping := processEventResult.ImpactedProjectsSourceMapping
+	allImpactedProjects := processEventResult.AllImpactedProjects
 
 	slog.Info("Issue comment event processed successfully",
 		"issueNumber", issueNumber,
-		"impactedProjectCount", len(impactedProjects),
-		"requestedProject", requestedProject,
+		"impactedProjectCount", len(impactedProjectsForComment),
+		"allImpactedProjectsCount", len(allImpactedProjects),
+
 	)
 
-	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch)
 	if err != nil {
 		slog.Error("Error converting event to jobs",
 			"issueNumber", issueNumber,
-			"impactedProjectCount", len(impactedProjects),
+			"impactedProjectCount", len(impactedProjectsForComment),
 			"error", err,
 		)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error converting event to jobs: %v", err))
 		return fmt.Errorf("error converting event to jobs")
 	}
-	//
-	//// if we have a specific layer, we need to do an extra check to figure out whether all impacted projects are covered
-	//// for now we check if the requested layer is the highest layer amongst impacted projects
-	//if individualLayerRequested && config.RespectLayers {
-	//	_, uniqueLayers := orchestrator_scheduler.CountUniqueLayers(jobs)
-	//	maxLayer := uniqueLayers[len(uniqueLayers)-1]
-	//	coverAllImpactedProjects = maxLayer == requestedLayer
-	//}
-
+	
 	slog.Info("Issue comment event converted to jobs successfully",
 		"issueNumber", issueNumber,
 		"jobCount", len(jobs),
@@ -1495,20 +1491,20 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	// if flag set we dont allow more projects impacted than the number of changed files in PR (safety check)
 	if config2.LimitByNumOfFilesChanged() {
-		if len(impactedProjects) > len(changedFiles) {
+		if len(impactedProjectsForComment) > len(changedFiles) {
 			slog.Error("Number of impacted projects exceeds number of changed files",
 				"issueNumber", issueNumber,
-				"impactedProjectCount", len(impactedProjects),
+				"impactedProjectCount", len(impactedProjectsForComment),
 				"changedFileCount", len(changedFiles),
 			)
 
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds number of changed files: %v", len(impactedProjects), len(changedFiles)))
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds number of changed files: %v", len(impactedProjectsForComment), len(changedFiles)))
 
 			slog.Debug("Detailed event information",
 				slog.Group("details",
 					slog.Any("changedFiles", changedFiles),
 					slog.Int("configLength", len(diggerYmlStr)),
-					slog.Int("impactedProjectCount", len(impactedProjects)),
+					slog.Int("impactedProjectCount", len(impactedProjectsForComment)),
 				),
 			)
 
@@ -1517,20 +1513,20 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	maxImpactedProjectsPerChange := config2.MaxImpactedProjectsPerChange()
-	if len(impactedProjects) > maxImpactedProjectsPerChange {
+	if len(impactedProjectsForComment) > maxImpactedProjectsPerChange {
 		slog.Error("Number of impacted projects exceeds number of changed files",
 			"prNumber", issueNumber,
-			"impactedProjectCount", len(impactedProjects),
+			"impactedProjectCount", len(impactedProjectsForComment),
 			"changedFileCount", len(changedFiles),
 		)
 
-		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds Max allowed ImpactedProjectsPerChange: %v, we set this limit to protect against hitting github API limits", len(impactedProjects), maxImpactedProjectsPerChange))
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error the number impacted projects %v exceeds Max allowed ImpactedProjectsPerChange: %v, we set this limit to protect against hitting github API limits", len(impactedProjectsForComment), maxImpactedProjectsPerChange))
 
 		slog.Debug("Detailed event information",
 			slog.Group("details",
 				slog.Any("changedFiles", changedFiles),
 				slog.Int("configLength", len(diggerYmlStr)),
-				slog.Int("impactedProjectCount", len(impactedProjects)),
+				slog.Int("impactedProjectCount", len(impactedProjectsForComment)),
 			),
 		)
 		return fmt.Errorf("error processing event")
@@ -1540,11 +1536,11 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	if config.PrLocks {
 		slog.Info("Processing PR locks for impacted projects",
 			"issueNumber", issueNumber,
-			"projectCount", len(impactedProjects),
+			"projectCount", len(impactedProjectsForComment),
 			"command", *diggerCommand,
 		)
 
-		for _, project := range impactedProjects {
+		for _, project := range impactedProjectsForComment {
 			prLock := dg_locking.PullRequestLock{
 				InternalLock: locking.BackendDBLock{
 					OrgId: orgId,
@@ -1614,12 +1610,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	slog.Debug("Preparing job and project maps",
 		"issueNumber", issueNumber,
-		"projectCount", len(impactedProjects),
+		"projectCount", len(impactedProjectsForComment),
 		"jobCount", len(jobs),
 	)
 
 	impactedProjectsMap := make(map[string]dg_configuration.Project)
-	for _, p := range impactedProjects {
+	for _, p := range impactedProjectsForComment {
 		impactedProjectsMap[p.Name] = p
 	}
 

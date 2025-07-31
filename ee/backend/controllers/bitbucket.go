@@ -215,7 +215,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		return fmt.Errorf("error while fetching branch name")
 	}
 
-	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, bbService)
+	processIssueCommentResult, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, bbService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
@@ -223,9 +223,13 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	}
 	log.Printf("Bitbucket IssueComment event processed successfully\n")
 
+	impactedProjectsForComment := processIssueCommentResult.ImpactedProjectsForComment
+	impactedProjectsSourceMapping := processIssueCommentResult.ImpactedProjectsSourceMapping
+	allImpactedProjects := processIssueCommentResult.AllImpactedProjects
+
 	// perform unlocking in backend
 	if config.PrLocks {
-		for _, project := range impactedProjects {
+		for _, project := range impactedProjectsForComment {
 			prLock := dg_locking.PullRequestLock{
 				InternalLock: locking.BackendDBLock{
 					OrgId: organisationId,
@@ -251,7 +255,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		return nil
 	}
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))
@@ -281,7 +285,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	}
 
 	impactedProjectsMap := make(map[string]dg_configuration.Project)
-	for _, p := range impactedProjects {
+	for _, p := range impactedProjectsForComment {
 		impactedProjectsMap[p.Name] = p
 	}
 
