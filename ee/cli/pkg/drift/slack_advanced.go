@@ -3,6 +3,7 @@ package drift
 import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/drift"
+	"github.com/diggerhq/digger/libs/comment_utils"
 )
 
 type SlackAdvancedAggregatedNotificationWithAiSummary struct {
@@ -34,6 +35,8 @@ func (slack SlackAdvancedAggregatedNotificationWithAiSummary) Flush() error {
 	for _, projectName := range slack.projectNames {
 		message = message + fmt.Sprintf("- %v \n", projectName)
 	}
+	message = message + "\n\n"
+	message = message + fmt.Sprintf("workflow url: %v", comment_utils.GetWorkflowUrl())
 	err := drift.SendSlackMessage(slack.Url, message)
 	if err != nil {
 		return err
