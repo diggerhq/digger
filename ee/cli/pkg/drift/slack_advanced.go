@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/libs/comment_utils"
+	"log/slog"
 )
 
 type SlackAdvancedAggregatedNotificationWithAiSummary struct {
@@ -31,6 +32,7 @@ func (slack SlackAdvancedAggregatedNotificationWithAiSummary) SendErrorNotificat
 }
 
 func (slack SlackAdvancedAggregatedNotificationWithAiSummary) Flush() error {
+	slog.Info("flushing drift for projects", "projects", slack.projectNames)
 	if len(slack.projectNames) == 0 {
 		return nil
 	}
