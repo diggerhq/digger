@@ -12,10 +12,13 @@ type DriftNotificationProviderAdvanced struct{}
 
 func (d DriftNotificationProviderAdvanced) Get(prService ci.PullRequestService) (core_drift.Notification, error) {
 	slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
+	slackNotificationAdvancedUrl := os.Getenv("INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL")
 	DriftAsGithubIssues := os.Getenv("INPUT_DRIFT_GITHUB_ISSUES")
 	var notification core_drift.Notification
 	if slackNotificationUrl != "" {
 		notification = drift.SlackNotification{slackNotificationUrl}
+	} else if slackNotificationAdvancedUrl != "" {
+		notification = NewSlackAdvancedAggregatedNotificationWithAiSummary(slackNotificationAdvancedUrl)
 	} else if DriftAsGithubIssues != "" {
 		notification = GithubIssueNotification{GithubService: &prService}
 	} else {

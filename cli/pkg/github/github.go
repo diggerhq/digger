@@ -146,7 +146,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
-	projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, project)
+		projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, project)
 
 		if !projectFound {
 			// Log available projects to help with debugging
@@ -197,6 +197,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	} else if runningMode == "drift-detection" {
 		blockFiltersStr := os.Getenv("INPUT_DIGGER_BLOCK_FILTERS")
 		blockFilters := strings.Split(blockFiltersStr, ",")
+		notification, err := driftNotificationProvider.Get(githubPrService)
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get drift notification type: %v", err), 8)
+		}
 		for _, projectConfig := range diggerConfig.Projects {
 			if !projectConfig.DriftDetection {
 				continue
@@ -249,15 +253,15 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				CommandRoleArn:     cmdArn,
 			}
 
-			notification, err := driftNotificationProvider.Get(githubPrService)
-			if err != nil {
-				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get drift notification type: %v", err), 8)
-			}
-
 			err = digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
-				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				slog.Error("Failed to run commands", "repository", ghRepository, "project", projectConfig.Name, "error", err)
+				notification.SendErrorNotificationForProject(projectConfig.Name, ghRepository, err)
 			}
+		}
+		err = notification.Flush()
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to flush drift notification. %s", err), 8)
 		}
 	} else {
 

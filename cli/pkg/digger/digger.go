@@ -762,7 +762,8 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 			slog.Warn("Warning: no notification configured, not sending any notifications")
 			return plan, nil
 		}
-		err := (*notification).Send(projectName, plan)
+		repoFullName := fmt.Sprintf("%s/%s", SCMOrganisation, SCMrepository)
+		err := (*notification).SendNotificationForProject(projectName, repoFullName, plan)
 		if err != nil {
 			slog.Error("Error sending drift drift.", "error", err)
 		}
