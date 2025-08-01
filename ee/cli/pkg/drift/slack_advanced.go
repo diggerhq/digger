@@ -31,6 +31,9 @@ func (slack SlackAdvancedAggregatedNotificationWithAiSummary) SendErrorNotificat
 }
 
 func (slack SlackAdvancedAggregatedNotificationWithAiSummary) Flush() error {
+	if len(slack.projectNames) == 0 {
+		return nil
+	}
 	message := fmt.Sprintf(":bangbang: Drift detected in repo %v. digger projects: \n\n", slack.RepoFullName)
 	for _, projectName := range slack.projectNames {
 		message = message + fmt.Sprintf("- %v \n", projectName)
