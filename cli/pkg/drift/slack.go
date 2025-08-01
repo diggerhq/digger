@@ -36,7 +36,7 @@ func SplitCodeBlocks(message string) []string {
 	return res
 }
 
-func (slack SlackNotification) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
+func (slack *SlackNotification) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
 	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v, repo: %v details below: \n\n```\n%v\n```", projectName, repoFullName, plan)
 	parts := SplitCodeBlocks(message)
 	for _, part := range parts {
@@ -50,11 +50,11 @@ func (slack SlackNotification) SendNotificationForProject(projectName string, re
 	return nil
 }
 
-func (slack SlackNotification) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
+func (slack *SlackNotification) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
 	message := fmt.Sprintf(":red_circle: Encountered an error while processing drift, project: %v, repo: %v details below: \n\n```\n%v\n```", projectName, repoFullName, err)
 	return SendSlackMessage(slack.Url, message)
 }
 
-func (slack SlackNotification) Flush() error {
+func (slack *SlackNotification) Flush() error {
 	return nil
 }

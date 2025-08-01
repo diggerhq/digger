@@ -16,11 +16,12 @@ func (d DriftNotificationProviderAdvanced) Get(prService ci.PullRequestService) 
 	DriftAsGithubIssues := os.Getenv("INPUT_DRIFT_GITHUB_ISSUES")
 	var notification core_drift.Notification
 	if slackNotificationUrl != "" {
-		notification = drift.SlackNotification{slackNotificationUrl}
+		notification = &drift.SlackNotification{Url: slackNotificationUrl}
 	} else if slackNotificationAdvancedUrl != "" {
-		notification = NewSlackAdvancedAggregatedNotificationWithAiSummary(slackNotificationAdvancedUrl)
+		advanced := NewSlackAdvancedAggregatedNotificationWithAiSummary(slackNotificationAdvancedUrl)
+		notification = &advanced
 	} else if DriftAsGithubIssues != "" {
-		notification = GithubIssueNotification{GithubService: &prService}
+		notification = &GithubIssueNotification{GithubService: &prService}
 	} else {
 		return nil, fmt.Errorf("could not identify drift mode, please specify slack or github")
 	}

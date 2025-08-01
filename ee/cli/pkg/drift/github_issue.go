@@ -12,7 +12,7 @@ type GithubIssueNotification struct {
 	RelatedPrNumber *int64
 }
 
-func (ghi GithubIssueNotification) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
+func (ghi *GithubIssueNotification) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
 	log.Printf("Info: Sending drift notification regarding project: %v", projectName)
 	title := fmt.Sprintf("Drift detected in project: %v", projectName)
 	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
@@ -42,10 +42,10 @@ func (ghi GithubIssueNotification) SendNotificationForProject(projectName string
 	return nil
 }
 
-func (ghi GithubIssueNotification) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
+func (ghi *GithubIssueNotification) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
 	return nil
 }
 
-func (ghi GithubIssueNotification) Flush() error {
+func (ghi *GithubIssueNotification) Flush() error {
 	return nil
 }
