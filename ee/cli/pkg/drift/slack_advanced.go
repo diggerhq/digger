@@ -20,18 +20,18 @@ func NewSlackAdvancedAggregatedNotificationWithAiSummary(url string) SlackAdvanc
 	}
 }
 
-func (slack SlackAdvancedAggregatedNotificationWithAiSummary) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
+func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
 	slack.projectNames = append(slack.projectNames, projectName)
 	slack.RepoFullName = repoFullName
 	return nil
 }
 
-func (slack SlackAdvancedAggregatedNotificationWithAiSummary) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
+func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
 	message := fmt.Sprintf(":red_circle: Encountered an error while processing drift, project: %v, repo: %v details below: \n\n```\n%v\n```", projectName, repoFullName, err)
 	return drift.SendSlackMessage(slack.Url, message)
 }
 
-func (slack SlackAdvancedAggregatedNotificationWithAiSummary) Flush() error {
+func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) Flush() error {
 	slog.Info("flushing drift for projects", "projects", slack.projectNames)
 	if len(slack.projectNames) == 0 {
 		return nil
