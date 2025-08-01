@@ -42,8 +42,7 @@ func (slack *SlackNotification) SendNotificationForProject(projectName string, r
 			":file_folder: *Project:* `%s`\n"+
 			":books: *Repository:* `%s`\n\n"+
 			":memo: *Terraform Plan:*\n```\n%v\n```\n\n"+
-			"_Review and apply changes when ready._",
-		projectName, repoFullName, plan,
+			projectName, repoFullName, plan,
 	)
 	parts := SplitCodeBlocks(message)
 	for _, part := range parts {

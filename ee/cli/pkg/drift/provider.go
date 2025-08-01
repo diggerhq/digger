@@ -5,7 +5,6 @@ import (
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/libs/ci"
-	"log/slog"
 	"os"
 )
 
@@ -16,7 +15,6 @@ func (d DriftNotificationProviderAdvanced) Get(prService ci.PullRequestService) 
 	slackNotificationAdvancedUrl := os.Getenv("INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL")
 	DriftAsGithubIssues := os.Getenv("INPUT_DRIFT_GITHUB_ISSUES")
 	var notification core_drift.Notification
-	slog.Info("DriftNotificationProviderAdvanced", "slackNotificationUrl", len(slackNotificationUrl), "slackNotificationAdvancedUrl", len(slackNotificationAdvancedUrl), "DriftAsGithubIssues", len(DriftAsGithubIssues), "slackNotificationUrl", slackNotificationUrl, "slackNotificationAdvancedUrl", slackNotificationAdvancedUrl, "DriftAsGithubIssues", DriftAsGithubIssues)
 	if slackNotificationUrl != "" {
 		notification = &drift.SlackNotification{Url: slackNotificationUrl}
 	} else if slackNotificationAdvancedUrl != "" {
