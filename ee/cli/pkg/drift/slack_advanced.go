@@ -13,8 +13,8 @@ type SlackAdvancedAggregatedNotificationWithAiSummary struct {
 	projectNames []string
 }
 
-func NewSlackAdvancedAggregatedNotificationWithAiSummary(url string) SlackAdvancedAggregatedNotificationWithAiSummary {
-	return SlackAdvancedAggregatedNotificationWithAiSummary{
+func NewSlackAdvancedAggregatedNotificationWithAiSummary(url string) *SlackAdvancedAggregatedNotificationWithAiSummary {
+	return &SlackAdvancedAggregatedNotificationWithAiSummary{
 		Url:          url,
 		projectNames: make([]string, 0),
 	}

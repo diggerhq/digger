@@ -18,8 +18,7 @@ func (d DriftNotificationProviderAdvanced) Get(prService ci.PullRequestService) 
 	if slackNotificationUrl != "" {
 		notification = &drift.SlackNotification{Url: slackNotificationUrl}
 	} else if slackNotificationAdvancedUrl != "" {
-		advanced := NewSlackAdvancedAggregatedNotificationWithAiSummary(slackNotificationAdvancedUrl)
-		notification = &advanced
+		notification = NewSlackAdvancedAggregatedNotificationWithAiSummary(slackNotificationAdvancedUrl)
 	} else if DriftAsGithubIssues != "" {
 		notification = &GithubIssueNotification{GithubService: &prService}
 	} else {
