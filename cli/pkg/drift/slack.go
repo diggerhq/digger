@@ -41,8 +41,8 @@ func (slack *SlackNotification) SendNotificationForProject(projectName string, r
 		":warning: *Infrastructure Drift Detected* :warning:\n\n"+
 			":file_folder: *Project:* `%s`\n"+
 			":books: *Repository:* `%s`\n\n"+
-			":memo: *Terraform Plan:*\n```\n%v\n```\n\n"+
-			projectName, repoFullName, plan,
+			":memo: *Terraform Plan:*\n```\n%v\n```\n\n",
+		projectName, repoFullName, plan,
 	)
 	parts := SplitCodeBlocks(message)
 	for _, part := range parts {
