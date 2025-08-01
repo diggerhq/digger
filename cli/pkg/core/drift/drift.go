@@ -1,5 +1,7 @@
 package drift
 
 type Notification interface {
-	Send(projectName string, plan string) error
+	SendNotificationForProject(projectName string, repoFullName string, plan string) error
+	SendErrorNotificationForProject(projectName string, repoFullName string, err error) error
+	Flush() error
 }

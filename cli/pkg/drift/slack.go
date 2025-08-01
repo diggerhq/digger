@@ -1,12 +1,8 @@
 package drift
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 	"regexp"
 	"strings"
 )
@@ -40,48 +36,39 @@ func SplitCodeBlocks(message string) []string {
 	return res
 }
 
-func (slack SlackNotification) Send(projectName string, plan string) error {
-	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
-	httpClient := &http.Client{}
-	type SlackMessage struct {
-		Text string `json:"text"`
-	}
+func (slack *SlackNotification) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
+	message := fmt.Sprintf(
+		":warning: *Infrastructure Drift Detected* :warning:\n\n"+
+			":file_folder: *Project:* `%s`\n"+
+			":books: *Repository:* `%s`\n\n"+
+			":memo: *Terraform Plan:*\n```\n%v\n```\n\n",
+		projectName, repoFullName, plan,
+	)
 	parts := SplitCodeBlocks(message)
 	for _, part := range parts {
-		slackMessage := SlackMessage{
-			Text: part,
-		}
-
-		jsonData, err := json.Marshal(slackMessage)
-		if err != nil {
-			slog.Error("failed to marshal slack message", "error", err)
-			return err
-		}
-
-		request, err := http.NewRequest("POST", slack.Url, bytes.NewBuffer(jsonData))
-		if err != nil {
-			slog.Error("failed to create slack drift request", "error", err)
-			return err
-		}
-
-		request.Header.Set("Content-Type", "application/json")
-		resp, err := httpClient.Do(request)
+		err := SendSlackMessage(slack.Url, part)
 		if err != nil {
 			slog.Error("failed to send slack drift request", "error", err)
 			return err
 		}
-		if resp.StatusCode != 200 {
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				slog.Error("failed to read response body", "error", err)
-				return err
-			}
-			slog.Error("failed to send slack drift request", "status code", resp.Status, "body", body)
-			msg := fmt.Sprintf("failed to send slack drift request. %v. Message: %v", resp.Status, body)
-			return fmt.Errorf("%s", msg)
-		}
-		resp.Body.Close()
 	}
 
+	return nil
+}
+
+func (slack *SlackNotification) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
+	message := fmt.Sprintf(
+		":rotating_light: *Error While Drift Processing* :rotating_light:\n\n"+
+			":file_folder: *Project:* `%s`\n"+
+			":books: *Repository:* `%s`\n\n"+
+			":warning: *Error Details:*\n```\n%v\n```\n\n"+
+			"_Please check the workflow logs for more information._",
+		projectName, repoFullName, err,
+	)
+
+	return SendSlackMessage(slack.Url, message)
+}
+
+func (slack *SlackNotification) Flush() error {
 	return nil
 }
