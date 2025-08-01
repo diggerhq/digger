@@ -38,7 +38,7 @@ func SplitCodeBlocks(message string) []string {
 
 func (slack *SlackNotification) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
 	message := fmt.Sprintf(
-		":rotating_light: *Infrastructure Drift Detected* :rotating_light:\n\n"+
+		":warning: *Infrastructure Drift Detected* :warning:\n\n"+
 			":file_folder: *Project:* `%s`\n"+
 			":books: *Repository:* `%s`\n\n"+
 			":memo: *Terraform Plan:*\n```\n%v\n```\n\n"+

@@ -43,9 +43,17 @@ func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) Flush() error {
 	if len(slack.projectNames) == 0 {
 		return nil
 	}
+	var projectNamesCompact = slack.projectNames
+	if len(slack.projectNames) > 50 {
+		projectNamesCompact = slack.projectNames[:50]
+	}
 	var projectList strings.Builder
-	for _, projectName := range slack.projectNames {
+	for _, projectName := range projectNamesCompact {
 		projectList.WriteString(fmt.Sprintf("• `%s`\n", projectName))
+	}
+
+	if len(slack.projectNames) > 50 {
+		projectList.WriteString("_and more..._\n")
 	}
 
 	message := fmt.Sprintf(
@@ -57,6 +65,7 @@ func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) Flush() error {
 		projectList.String(),
 		comment_utils.GetWorkflowUrl(),
 	)
+
 	err := drift.SendSlackMessage(slack.Url, message)
 	if err != nil {
 		return err
