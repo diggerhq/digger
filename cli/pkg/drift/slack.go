@@ -37,7 +37,14 @@ func SplitCodeBlocks(message string) []string {
 }
 
 func (slack *SlackNotification) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
-	message := fmt.Sprintf(":bangbang: Drift detected in digger project %v, repo: %v details below: \n\n```\n%v\n```", projectName, repoFullName, plan)
+	message := fmt.Sprintf(
+		":rotating_light: *Infrastructure Drift Detected* :rotating_light:\n\n"+
+			":file_folder: *Project:* `%s`\n"+
+			":books: *Repository:* `%s`\n\n"+
+			":memo: *Terraform Plan:*\n```\n%v\n```\n\n"+
+			"_Review and apply changes when ready._",
+		projectName, repoFullName, plan,
+	)
 	parts := SplitCodeBlocks(message)
 	for _, part := range parts {
 		err := SendSlackMessage(slack.Url, part)
@@ -51,7 +58,15 @@ func (slack *SlackNotification) SendNotificationForProject(projectName string, r
 }
 
 func (slack *SlackNotification) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
-	message := fmt.Sprintf(":red_circle: Encountered an error while processing drift, project: %v, repo: %v details below: \n\n```\n%v\n```", projectName, repoFullName, err)
+	message := fmt.Sprintf(
+		":rotating_light: *Error While Drift Processing* :rotating_light:\n\n"+
+			":file_folder: *Project:* `%s`\n"+
+			":books: *Repository:* `%s`\n\n"+
+			":warning: *Error Details:*\n```\n%v\n```\n\n"+
+			"_Please check the workflow logs for more information._",
+		projectName, repoFullName, err,
+	)
+
 	return SendSlackMessage(slack.Url, message)
 }
 

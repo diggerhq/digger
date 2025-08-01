@@ -29,12 +29,14 @@ func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) SendNotificationF
 
 func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
 	message := fmt.Sprintf(
-		":x: *Drift Processing Error*\n\n"+
-			"*Project:* `%s`\n"+
-			"*Repository:* `%s`\n\n"+
-			"*Error Details:*\n```\n%v\n```",
+		":rotating_light: *Error While Drift Processing* :rotating_light:\n\n"+
+			":file_folder: *Project:* `%s`\n"+
+			":books: *Repository:* `%s`\n\n"+
+			":warning: *Error Details:*\n```\n%v\n```\n\n"+
+			"_Please check the workflow logs for more information._",
 		projectName, repoFullName, err,
 	)
+
 	return drift.SendSlackMessage(slack.Url, message)
 }
 
