@@ -5,6 +5,7 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/libs/comment_utils"
 	"log/slog"
+	"strings"
 )
 
 type SlackAdvancedAggregatedNotificationWithAiSummary struct {
@@ -27,7 +28,13 @@ func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) SendNotificationF
 }
 
 func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) SendErrorNotificationForProject(projectName string, repoFullName string, err error) error {
-	message := fmt.Sprintf(":red_circle: Encountered an error while processing drift, project: %v, repo: %v details below: \n\n```\n%v\n```", projectName, repoFullName, err)
+	message := fmt.Sprintf(
+		":x: *Drift Processing Error*\n\n"+
+			"*Project:* `%s`\n"+
+			"*Repository:* `%s`\n\n"+
+			"*Error Details:*\n```\n%v\n```",
+		projectName, repoFullName, err,
+	)
 	return drift.SendSlackMessage(slack.Url, message)
 }
 
@@ -36,12 +43,20 @@ func (slack *SlackAdvancedAggregatedNotificationWithAiSummary) Flush() error {
 	if len(slack.projectNames) == 0 {
 		return nil
 	}
-	message := fmt.Sprintf(":bangbang: Drift detected in repo %v. digger projects: \n\n", slack.RepoFullName)
+	var projectList strings.Builder
 	for _, projectName := range slack.projectNames {
-		message = message + fmt.Sprintf("- %v \n", projectName)
+		projectList.WriteString(fmt.Sprintf("• `%s`\n", projectName))
 	}
-	message = message + "\n\n"
-	message = message + fmt.Sprintf("workflow url: %v", comment_utils.GetWorkflowUrl())
+
+	message := fmt.Sprintf(
+		":warning: *Drift Detected* :warning:\n\n"+
+			"*Repository:* `%s`\n\n"+
+			"*Affected Digger Projects:*\n%s\n"+
+			":link: <<%s|View Workflow>>",
+		slack.RepoFullName,
+		projectList.String(),
+		comment_utils.GetWorkflowUrl(),
+	)
 	err := drift.SendSlackMessage(slack.Url, message)
 	if err != nil {
 		return err
