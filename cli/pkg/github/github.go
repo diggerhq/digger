@@ -256,9 +256,9 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			err = digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
 				slog.Error("Failed to run commands", "repository", ghRepository, "project", projectConfig.Name, "error", err)
-				notificaicationErr := notification.SendErrorNotificationForProject(projectConfig.Name, ghRepository, err)
-				if notificaicationErr != nil {
-					slog.Error("Failed to send error notification", "repository", ghRepository, "project", projectConfig.Name, "error", notificaicationErr)
+				notificationErr := notification.SendErrorNotificationForProject(projectConfig.Name, ghRepository, err)
+				if notificationErr != nil {
+					slog.Error("Failed to send error notification", "repository", ghRepository, "project", projectConfig.Name, "error", notificationErr)
 				}
 			}
 		}
