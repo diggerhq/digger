@@ -449,6 +449,11 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}()
 
+	if os.Getenv("DIGGER_IGNORE_PULL_REQUEST_EVENTS") == "1" {
+		slog.Debug("Ignoring pull request event as DIGGER_IGNORE_PULL_REQUEST_EVENTS is set")
+		return nil
+	}
+
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
@@ -1470,7 +1475,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"issueNumber", issueNumber,
 		"impactedProjectCount", len(impactedProjectsForComment),
 		"allImpactedProjectsCount", len(allImpactedProjects),
-
 	)
 
 	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch)
@@ -1483,7 +1487,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error converting event to jobs: %v", err))
 		return fmt.Errorf("error converting event to jobs")
 	}
-	
+
 	slog.Info("Issue comment event converted to jobs successfully",
 		"issueNumber", issueNumber,
 		"jobCount", len(jobs),

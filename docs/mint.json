@@ -107,7 +107,8 @@
         "ce/howto/using-infracost",
         "ce/howto/using-opa-conftest",
         "ce/howto/using-terragrunt",
-        "ce/howto/versioning"
+        "ce/howto/versioning",
+        "ce/howto/ignore-pull-request-events"
       ]
     },
     {
