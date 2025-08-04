@@ -94,7 +94,6 @@
         "ce/howto/disable-auto-checkout",
         "ce/howto/disable-telemetry",
         "ce/howto/generate-projects",
-        "ce/howto/group-plans-by-source",
         "ce/howto/include-exclude-patterns",
         "ce/howto/masking-sensitive-values",
         "ce/howto/multiacc-aws",
