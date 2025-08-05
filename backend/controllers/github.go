@@ -1458,7 +1458,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"branchName", prBranchName,
 	)
 
-	processEventResult, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, ghService)
+	processEventResult, err := generic.ProcessIssueCommentEvent(issueNumber, config, projectsGraph, ghService)
 	if err != nil {
 		slog.Error("Error processing issue comment event",
 			"issueNumber", issueNumber,
@@ -1467,9 +1467,18 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error processing event: %v", err))
 		return fmt.Errorf("error processing event")
 	}
-	impactedProjectsForComment := processEventResult.ImpactedProjectsForComment
 	impactedProjectsSourceMapping := processEventResult.ImpactedProjectsSourceMapping
 	allImpactedProjects := processEventResult.AllImpactedProjects
+
+	impactedProjectsForComment, err := generic.FilterOutProjectsFromComment(allImpactedProjects, commentBody)
+	if err != nil {
+		slog.Error("Error filtering out projects from comment",
+			"issueNumber", issueNumber,
+			"error", err,
+		)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error filtering out projects from comment: %v", err))
+		return fmt.Errorf("error filtering out projects from comment")
+	}
 
 	slog.Info("Issue comment event processed successfully",
 		"issueNumber", issueNumber,
