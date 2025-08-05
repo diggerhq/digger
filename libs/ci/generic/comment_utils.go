@@ -48,7 +48,7 @@ func (s *singleUseInt) Set(v string) error {
 
 // ParseDiggerCommentFlags parse the flags in the comment such as -p and -d and --layer
 // validates that the right number of flags are specified
-// Does not validate the a
+// Does not validate the "digger plan" part of the command that is left to a prior function
 func ParseDiggerCommentFlags(comment string) (*CommentParts, bool, error) {
 	comment = strings.TrimSpace(strings.ToLower(comment))
 
