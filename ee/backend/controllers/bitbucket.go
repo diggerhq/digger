@@ -215,7 +215,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		return fmt.Errorf("error while fetching branch name")
 	}
 
-	processIssueCommentResult, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, bbService)
+	processIssueCommentResult, err := generic.ProcessIssueCommentEvent(issueNumber, config, projectsGraph, bbService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
@@ -223,9 +223,15 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	}
 	log.Printf("Bitbucket IssueComment event processed successfully\n")
 
-	impactedProjectsForComment := processIssueCommentResult.ImpactedProjectsForComment
 	impactedProjectsSourceMapping := processIssueCommentResult.ImpactedProjectsSourceMapping
 	allImpactedProjects := processIssueCommentResult.AllImpactedProjects
+
+	impactedProjectsForComment, err := generic.FilterOutProjectsFromComment(allImpactedProjects, commentBody)
+	if err != nil {
+		log.Printf("errror filtering out projects from comment issueNumber: %v, error: %v", issueNumber, err)
+		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: Error filtering out projects from comment: %v", err))
+		return fmt.Errorf("error filtering out projects from comment")
+	}
 
 	// perform unlocking in backend
 	if config.PrLocks {
