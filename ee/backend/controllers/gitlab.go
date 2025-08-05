@@ -413,7 +413,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 
 	impactedProjectsForComment, err := generic.FilterOutProjectsFromComment(allImpactedProjects, commentBody)
 	if err != nil {
-		log.Printf("errror filtering out projects from comment issueNumber: %v, error: %v", issueNumber, err)
+		log.Printf("error filtering out projects from comment issueNumber: %v, error: %v", issueNumber, err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error filtering out projects from comment: %v", err))
 		return fmt.Errorf("error filtering out projects from comment")
 	}
