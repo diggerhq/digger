@@ -78,7 +78,7 @@ func ParseDiggerCommentFlags(comment string) (*CommentParts, bool, error) {
 
 	err = fs.Parse(args[2:])
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to parse input %v", err)
+		return nil, false, fmt.Errorf("failed to parse input %v", comment)
 	}
 
 	// ❗ Disallow mixing --layer with -p or -d
