@@ -68,8 +68,8 @@ func ParseDiggerCommentFlags(comment string) (*CommentParts, bool, error) {
 	var directories multiFlag
 	layer := &singleUseInt{val: -1, name: "layer"}
 
-	fs.Var(&projects, "p", "project (short form")
-	fs.Var(&projects, "project", "project (long form")
+	fs.Var(&projects, "p", "project (short form)")
+	fs.Var(&projects, "project", "project (long form)")
 
 	fs.Var(&directories, "d", "directory (short form)")
 	fs.Var(&directories, "directory", "directory (long form)")
