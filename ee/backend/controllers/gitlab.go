@@ -400,7 +400,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("error while fetching branch name")
 	}
 
-	processIssueCommentEventResult, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, glService)
+	processIssueCommentEventResult, err := generic.ProcessIssueCommentEvent(issueNumber, config, projectsGraph, glService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
@@ -408,9 +408,16 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
-	impactedProjectsForComment := processIssueCommentEventResult.ImpactedProjectsForComment
 	impactedProjectsSourceMapping := processIssueCommentEventResult.ImpactedProjectsSourceMapping
 	allImpactedProjects := processIssueCommentEventResult.AllImpactedProjects
+
+	impactedProjectsForComment, err := generic.FilterOutProjectsFromComment(allImpactedProjects, commentBody)
+	if err != nil {
+		log.Printf("error filtering out projects from comment issueNumber: %v, error: %v", issueNumber, err)
+		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error filtering out projects from comment: %v", err))
+		return fmt.Errorf("error filtering out projects from comment")
+	}
+
 	// perform unlocking in backend
 	if config.PrLocks {
 		for _, project := range impactedProjectsForComment {

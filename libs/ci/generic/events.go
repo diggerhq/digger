@@ -6,7 +6,6 @@ import (
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
-	"github.com/samber/lo"
 	"strings"
 )
 
@@ -21,14 +20,13 @@ func GetRunEnvVars(defaultBranch string, prBranch string, projectName string, pr
 
 type ProcessIssueCommentEventResult struct {
 	// this represents the projects that need to be planned/ applied for this comment
-	ImpactedProjectsForComment    []digger_config.Project
 	ImpactedProjectsSourceMapping map[string]digger_config.ProjectToSourceMapping
 	PRNumber                      int
 	// this represents all projects impacted by the PR based on changed files
 	AllImpactedProjects []digger_config.Project
 }
 
-func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) (*ProcessIssueCommentEventResult, error) {
+func ProcessIssueCommentEvent(prNumber int, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) (*ProcessIssueCommentEventResult, error) {
 	var impactedProjects []digger_config.Project
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 
@@ -45,45 +43,12 @@ func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *di
 		}
 	}
 
-	// if a layer is requested we filter out that layer only and return those layers
-	requestedLayer, layerFound, err := scheduler.ParseProjectLayer(commentBody)
-	if err != nil {
-		return &ProcessIssueCommentEventResult{}, fmt.Errorf("failed to parse layer from comment %v", err)
-	}
-	if layerFound {
-		requestedLayerImpactedProjects := lo.Filter(impactedProjects, func(project digger_config.Project, _ int) bool {
-			return int(project.Layer) == requestedLayer
-		})
-		return &ProcessIssueCommentEventResult{
-			requestedLayerImpactedProjects,
-			impactedProjectsSourceMapping,
-			prNumber,
-			impactedProjects,
-		}, nil
-	}
+	return &ProcessIssueCommentEventResult{
+		impactedProjectsSourceMapping,
+		prNumber,
+		impactedProjects,
+	}, nil
 
-	requestedProjectName := scheduler.ParseProjectName(commentBody)
-	if requestedProjectName == "" {
-		return &ProcessIssueCommentEventResult{
-			impactedProjects,
-			impactedProjectsSourceMapping,
-			prNumber,
-			impactedProjects,
-		}, nil
-	}
-
-	for _, project := range impactedProjects {
-		if project.Name == requestedProjectName {
-			return &ProcessIssueCommentEventResult{
-				[]digger_config.Project{project},
-				impactedProjectsSourceMapping,
-				prNumber,
-				impactedProjects,
-			}, nil
-		}
-	}
-
-	return &ProcessIssueCommentEventResult{}, fmt.Errorf("requested project not found in modified projects")
 }
 
 func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config.Project, dependencyGraph graph.Graph[string, digger_config.Project]) ([]digger_config.Project, error) {
