@@ -60,7 +60,7 @@ func TestParseDiggerCommentFlags(t *testing.T) {
 	assert.Error(t, err)
 
 	// cant mix layer and project
-	// cant specify layer more than once
+	// cant mix layer and project
 	comment = "digger plan --layer 1 --project whodat"
 	parts, valid, err = ParseDiggerCommentFlags(comment)
 	assert.Error(t, err)
