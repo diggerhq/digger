@@ -38,19 +38,18 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	message = message + fmt.Sprintf("| Project | Status | %v | + | ~ | - |\n", jobTypeTitle)
 	message = message + fmt.Sprintf("|---------|--------|------|---|---|---|\n")
 
-	for i, job := range jobs {
-		jobSpec := jobSpecs[i]
+	for _, job := range jobs {
 		prCommentUrl := job.PRCommentUrl
-		
+
 		// Safe handling of WorkflowRunUrl pointer
 		workflowUrl := "#"
 		if job.WorkflowRunUrl != nil {
 			workflowUrl = *job.WorkflowRunUrl
 		}
-		
+
 		message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>%v</a> | %v | %v | %v|\n",
 			job.Status.ToEmoji(),
-			jobSpec.ProjectName,
+			scheduler.GetProjectAlias(job),
 			workflowUrl,
 			job.Status.ToString(),
 			prCommentUrl,

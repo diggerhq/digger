@@ -177,7 +177,7 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 		message = message + fmt.Sprintf("|---------|--------|\n")
 		for _, job := range jobs {
 			message = message + fmt.Sprintf(""+
-				"|:clock11: **%v**|pending...|\n", job.ProjectName)
+				"|:clock11: **%v**|pending...|\n", job.GetProjectAlias())
 		}
 	}
 
@@ -223,7 +223,7 @@ func ReportLayersTableForJobs(cr *CommentReporter, jobs []scheduler.Job) error {
 		message = message + fmt.Sprintf("|---------|--------|\n")
 		for _, job := range jobs {
 			message = message + fmt.Sprintf(""+
-				"|:clock11: **%v**|%v|\n", job.ProjectName, job.Layer)
+				"|:clock11: **%v**|%v|\n", job.GetProjectAlias(), job.Layer)
 		}
 	}
 

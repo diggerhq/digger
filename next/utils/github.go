@@ -138,9 +138,9 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 			var err error
 			switch command {
 			case "digger plan":
-				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/plan")
+				err = prService.SetStatus(prNumber, "pending", job.GetProjectAlias()+"/plan")
 			case "digger apply":
-				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/apply")
+				err = prService.SetStatus(prNumber, "pending", job.GetProjectAlias()+"/apply")
 			}
 			if err != nil {
 				log.Printf("Error setting status: %v", err)

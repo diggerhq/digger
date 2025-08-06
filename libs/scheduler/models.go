@@ -98,6 +98,7 @@ type SerializedJob struct {
 	DiggerJobId      string          `json:"digger_job_id"`
 	Status           DiggerJobStatus `json:"status"`
 	ProjectName      string          `json:"project_name"`
+	ProjectAlias     string          `json:"project_alias"`
 	JobString        []byte          `json:"job_string"`
 	PlanFootprint    []byte          `json:"plan_footprint"`
 	PRCommentUrl     string          `json:"pr_comment_url"`
@@ -169,4 +170,11 @@ func (s *SerializedJob) ResourcesSummaryString(isPlan bool) string {
 	} else {
 		return "..."
 	}
+}
+
+func GetProjectAlias(j SerializedJob) string {
+	if j.ProjectAlias != "" {
+		return j.ProjectAlias
+	}
+	return j.ProjectName
 }

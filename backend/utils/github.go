@@ -184,13 +184,13 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 					"prNumber", prNumber,
 					"project", job.ProjectName,
 				)
-				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/plan")
+				err = prService.SetStatus(prNumber, "pending", job.GetProjectAlias()+"/plan")
 			case "digger apply":
 				slog.Debug("Setting PR status for apply",
 					"prNumber", prNumber,
 					"project", job.ProjectName,
 				)
-				err = prService.SetStatus(prNumber, "pending", job.ProjectName+"/apply")
+				err = prService.SetStatus(prNumber, "pending", job.GetProjectAlias()+"/apply")
 			}
 			if err != nil {
 				slog.Error("Failed to set PR status",

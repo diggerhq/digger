@@ -124,6 +124,7 @@ func (j *DiggerJob) MapToJsonStruct() (orchestrator_scheduler.SerializedJob, err
 		JobString:        j.SerializedJobSpec,
 		PlanFootprint:    j.PlanFootprint,
 		ProjectName:      job.ProjectName,
+		ProjectAlias:     job.ProjectAlias,
 		WorkflowRunUrl:   j.WorkflowRunUrl,
 		PRCommentUrl:     j.PRCommentUrl,
 		ResourcesCreated: j.DiggerJobSummary.ResourcesCreated,
