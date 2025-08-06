@@ -15,6 +15,7 @@ var IacTypePulumi IacType = "pulumi"
 
 type Job struct {
 	ProjectName        string
+	ProjectAlias       string
 	ProjectDir         string
 	ProjectWorkspace   string
 	ProjectWorkflow    string
@@ -74,6 +75,13 @@ func ToConfigStage(configStage *configuration.Stage) *Stage {
 		Steps:       steps,
 		FilterRegex: configStage.FilterRegex,
 	}
+}
+
+func (j *Job) GetProjectAlias() string {
+	if j.ProjectAlias != "" {
+		return j.ProjectAlias
+	}
+	return j.ProjectName
 }
 
 func (j *Job) IsPlan() bool {

@@ -20,11 +20,11 @@ func copyProjects(projects []*ProjectYaml) []Project {
 	result := make([]Project, len(projects))
 	for i, p := range projects {
 		driftDetection := true
-		layer := uint(0)
 		if p.DriftDetection != nil {
 			driftDetection = *p.DriftDetection
 		}
 
+		layer := uint(0)
 		if p.Layer != nil {
 			layer = *p.Layer
 		}
@@ -76,6 +76,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 		item := Project{
 			p.BlockName,
 			p.Name,
+			p.Alias,
 			p.Dir,
 			workspace,
 			p.Terragrunt,

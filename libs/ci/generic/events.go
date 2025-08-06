@@ -167,6 +167,7 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 		workspace := project.Workspace
 		jobs = append(jobs, scheduler.Job{
 			ProjectName:        project.Name,
+			ProjectAlias:       project.Alias,
 			ProjectDir:         project.Dir,
 			ProjectWorkspace:   workspace,
 			ProjectWorkflow:    project.Workflow,
