@@ -29,29 +29,7 @@ func resetForRun() error {
 
 func runTest(t *testing.T, goldenFile string, testPath string, createProjectName bool, workflowName string, withWorkspace bool, parallel bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool) {
 	resetForRun()
-	atlantisConfig, _, err := Parse(
-		testPath,
-		nil,
-		true,
-		false,
-		parallel,
-		make([]string, 0),
-		false,
-		ignoreParentTerragrunt,
-		ignoreDependencyBlocks,
-		true,
-		workflowName,
-		nil,
-		false,
-		"",
-		createProjectName,
-		withWorkspace,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
+	atlantisConfig, _, err := Parse(testPath, nil, true, false, parallel, make([]string, 0), false, ignoreParentTerragrunt, ignoreDependencyBlocks, true, workflowName, nil, false, "", "_", createProjectName, withWorkspace, true, false, false, false, nil)
 
 	if err != nil {
 		slog.Error("failed to parse terragrunt configuration", "error", err)

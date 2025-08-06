@@ -316,7 +316,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 	}
 }
 
-func createBaseProject(dir string, workflow string, terraformVersion string, applyRequirements *[]string, autoPlan bool, dependencies []string, createProjectName bool, createWorkspace bool) *AtlantisProject {
+func createBaseProject(dir string, workflow string, terraformVersion string, applyRequirements *[]string, autoPlan bool, dependencies []string, createProjectName bool, createWorkspace bool, aliasDelimeter string) *AtlantisProject {
 	project := &AtlantisProject{
 		Dir:               filepath.ToSlash(dir),
 		Workflow:          workflow,
@@ -329,20 +329,23 @@ func createBaseProject(dir string, workflow string, terraformVersion string, app
 	}
 
 	if createProjectName || createWorkspace {
-		projectName := projectNameFromDir(project.Dir)
+		projectName := SanitizeDirName(project.Dir, "_")
 		if createProjectName {
 			project.Name = projectName
+			project.Alias = SanitizeDirName(projectName, aliasDelimeter)
 		}
 		if createWorkspace {
 			project.Workspace = projectName
 		}
+		alias := SanitizeDirName(project.Dir, aliasDelimeter)
+		project.Alias = alias
 	}
 
 	return project
 }
 
 // Creates an AtlantisProject for a directory
-func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, sourcePath string, triggerProjectsFromDirOnly bool) (*AtlantisProject, []string, error) {
+func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, sourcePath string, triggerProjectsFromDirOnly bool, aliasDelimeter string) (*AtlantisProject, []string, error) {
 	options, err := options.NewTerragruntOptionsWithConfigPath(sourcePath)
 
 	var potentialProjectDependencies []string
@@ -373,16 +376,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 			return nil, potentialProjectDependencies, nil
 		}
 
-		project := createBaseProject(
-			relativeSourceDir,
-			defaultWorkflow,
-			defaultTerraformVersion,
-			&defaultApplyRequirements,
-			autoPlan,
-			relativeDependencies,
-			createProjectName,
-			createWorkspace,
-		)
+		project := createBaseProject(relativeSourceDir, defaultWorkflow, defaultTerraformVersion, &defaultApplyRequirements, autoPlan, relativeDependencies, createProjectName, createWorkspace, aliasDelimeter)
 		return project, potentialProjectDependencies, nil
 	}
 
@@ -413,7 +407,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		if !filepath.IsAbs(absolutePath) {
 			absolutePath = makePathAbsolute(gitRoot, dependencyPath, sourcePath)
 		}
-		potentialProjectDependencies = append(potentialProjectDependencies, projectNameFromDir(filepath.Dir(strings.TrimPrefix(absolutePath, gitRoot))))
+		potentialProjectDependencies = append(potentialProjectDependencies, SanitizeDirName(filepath.Dir(strings.TrimPrefix(absolutePath, gitRoot)), "_"))
 
 		relativePath, err := filepath.Rel(absoluteSourceDir, absolutePath)
 		if err != nil {
@@ -446,21 +440,13 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		terraformVersion = locals.TerraformVersion
 	}
 
-	project := createBaseProject(
-		relativeSourceDir,
-		workflow,
-		terraformVersion,
-		applyRequirements,
-		resolvedAutoPlan,
-		relativeDependencies,
-		createProjectName,
-		createWorkspace,
-	)
+	project := createBaseProject(relativeSourceDir, workflow, terraformVersion, applyRequirements, resolvedAutoPlan, relativeDependencies, createProjectName, createWorkspace, aliasDelimeter)
 
-	projectName := projectNameFromDir(project.Dir)
-
+	projectName := SanitizeDirName(project.Dir, "_")
+	projectAlias := SanitizeDirName(project.Dir, aliasDelimeter)
 	if createProjectName {
 		project.Name = projectName
+		project.Alias = projectAlias
 	}
 
 	if createWorkspace {
@@ -470,7 +456,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 	return project, potentialProjectDependencies, nil
 }
 
-func projectNameFromDir(projectDir string) string {
+func SanitizeDirName(projectDir string, delimeter string) string {
 	// Terraform Cloud limits the workspace names to be less than 90 characters
 	// with letters, numbers, -, and _
 	// https://www.terraform.io/docs/cloud/workspaces/naming.html
@@ -478,11 +464,11 @@ func projectNameFromDir(projectDir string) string {
 	// However a workspace 97 chars long has been working perfectly.
 	// We are going to use the same name for both workspace & project name as it is unique.
 	regex := regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
-	projectName := regex.ReplaceAllString(projectDir, "_")
+	projectName := regex.ReplaceAllString(projectDir, delimeter)
 	return projectName
 }
 
-func createHclProject(defaultWorkflow string, defaultApplyRequirements []string, autoplan bool, useProjectMarkers bool, defaultTerraformVersion string, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, createProjectName bool, createWorkspace bool, sourcePaths []string, workingDir string, projectHcl string) (*AtlantisProject, error) {
+func createHclProject(defaultWorkflow string, defaultApplyRequirements []string, autoplan bool, useProjectMarkers bool, defaultTerraformVersion string, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, createProjectName bool, createWorkspace bool, sourcePaths []string, workingDir string, projectHcl string, aliasDelimiter string) (*AtlantisProject, error) {
 	var projectHclDependencies []string
 	var childDependencies []string
 	workflow := defaultWorkflow
@@ -618,6 +604,7 @@ func createHclProject(defaultWorkflow string, defaultApplyRequirements []string,
 
 	if createProjectName {
 		project.Name = projectName
+		project.Alias = SanitizeDirName(projectName, aliasDelimiter)
 	}
 
 	if createWorkspace {
@@ -715,7 +702,7 @@ func getAllTerragruntProjectHclFiles(projectHclFiles []string, gitRoot string) m
 	return uniqueHclFileAbsPaths
 }
 
-func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPaths []string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool, executionOrderGroups bool, triggerProjectsFromDirOnly bool, oldConfig *AtlantisConfig) (*AtlantisConfig, map[string][]string, error) {
+func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChilds bool, autoMerge bool, parallel bool, filterPaths []string, createHclProjectChilds bool, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, projectAliasDelimeter string, createProjectName bool, createWorkspace bool, preserveProjects bool, useProjectMarkers bool, executionOrderGroups bool, triggerProjectsFromDirOnly bool, oldConfig *AtlantisConfig) (*AtlantisConfig, map[string][]string, error) {
 	// Ensure the gitRoot has a trailing slash and is an absolute path
 	absoluteGitRoot, err := filepath.Abs(gitRoot)
 	if err != nil {
@@ -785,7 +772,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 				errGroup.Go(func() error {
 					defer sem.Release(1)
-					project, projDeps, err := createProject(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, defaultWorkflow, defaultApplyRequirements, autoPlan, defaultTerraformVersion, createProjectName, createWorkspace, terragruntPath, triggerProjectsFromDirOnly)
+					project, projDeps, err := createProject(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, defaultWorkflow, defaultApplyRequirements, autoPlan, defaultTerraformVersion, createProjectName, createWorkspace, terragruntPath, triggerProjectsFromDirOnly, projectAliasDelimeter)
 					if err != nil {
 						return err
 					}
@@ -844,7 +831,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 			errGroup.Go(func() error {
 				defer sem.Release(1)
-				project, err := createHclProject(defaultWorkflow, defaultApplyRequirements, autoPlan, useProjectMarkers, defaultTerraformVersion, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, createProjectName, createWorkspace, terragruntFiles, workingDir, projectHcl)
+				project, err := createHclProject(defaultWorkflow, defaultApplyRequirements, autoPlan, useProjectMarkers, defaultTerraformVersion, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, createProjectName, createWorkspace, terragruntFiles, workingDir, projectHcl, projectAliasDelimeter)
 				if err != nil {
 					return err
 				}

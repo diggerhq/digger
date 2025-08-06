@@ -36,6 +36,8 @@ type AtlantisProject struct {
 	// Define project name
 	Name string `yaml:"name,omitempty"`
 
+	Alias string `yaml:"alias,omitempty"`
+	
 	// Autoplan settings for which plans affect other plans
 	Autoplan AutoplanConfig `yaml:"autoplan"`
 
