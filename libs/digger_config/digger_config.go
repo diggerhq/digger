@@ -733,8 +733,13 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		root = path.Join(workingDir, *parsingConfig.GitRoot)
 		slog.Debug("using custom git root", "root", root)
 	}
-	projectExternalChilds := true
 
+	projectAliasDelimiter := "_"
+	if parsingConfig.ProjectAliasDelimiter != "" {
+		projectAliasDelimiter = parsingConfig.ProjectAliasDelimiter
+	}
+
+	projectExternalChilds := true
 	if parsingConfig.CreateHclProjectExternalChilds != nil {
 		projectExternalChilds = *parsingConfig.CreateHclProjectExternalChilds
 	}
@@ -788,6 +793,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.DefaultApplyRequirements,
 		parsingConfig.AutoPlan,
 		parsingConfig.DefaultTerraformVersion,
+		projectAliasDelimiter,
 		parsingConfig.CreateProjectName,
 		parsingConfig.CreateWorkspace,
 		parsingConfig.PreserveProjects,
@@ -851,6 +857,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		diggerProject := &ProjectYaml{
 			BlockName:            blockName,
 			Name:                 atlantisProject.Name,
+			Alias:                atlantisProject.Alias,
 			Dir:                  projectDir,
 			Layer:                &executionOrderGroup,
 			Workspace:            atlantisProject.Workspace,

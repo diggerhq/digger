@@ -492,6 +492,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
+				ProjectAlias:       project.Alias,
 				ProjectDir:         project.Dir,
 				ProjectWorkspace:   project.Workspace,
 				ProjectWorkflow:    project.Workflow,
@@ -524,6 +525,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
+				ProjectAlias:       project.Alias,
 				ProjectDir:         project.Dir,
 				ProjectWorkspace:   project.Workspace,
 				ProjectWorkflow:    project.Workflow,
@@ -555,6 +557,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
+				ProjectAlias:       project.Alias,
 				ProjectDir:         project.Dir,
 				ProjectWorkspace:   project.Workspace,
 				ProjectWorkflow:    project.Workflow,
@@ -594,6 +597,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
+				ProjectAlias:       project.Alias,
 				ProjectDir:         project.Dir,
 				ProjectWorkspace:   project.Workspace,
 				ProjectWorkflow:    project.Workflow,

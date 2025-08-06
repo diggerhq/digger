@@ -10,4 +10,5 @@ projects:
     - ../../terragrunt.hcl
   dir: child/deep
   name: child_deep
+  alias: child_deep
 version: 3

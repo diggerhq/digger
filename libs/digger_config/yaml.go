@@ -38,6 +38,7 @@ type DependencyConfigurationYaml struct {
 type ProjectYaml struct {
 	BlockName            string                      `yaml:"block_name"`
 	Name                 string                      `yaml:"name"`
+	Alias                string                      `yaml:"alias,omitempty"`
 	Dir                  string                      `yaml:"dir"`
 	Workspace            string                      `yaml:"workspace"`
 	Terragrunt           bool                        `yaml:"terragrunt"`
@@ -161,6 +162,7 @@ type TerragruntParsingConfig struct {
 	Parallel                   *bool    `yaml:"parallel,omitempty"`
 	CreateWorkspace            bool     `yaml:"createWorkspace"`
 	CreateProjectName          bool     `yaml:"createProjectName"`
+	ProjectAliasDelimiter      string   `yaml:"projectAliasDelimiter"`
 	DefaultTerraformVersion    string   `yaml:"defaultTerraformVersion"`
 	DefaultWorkflow            string   `yaml:"defaultWorkflow"`
 	FilterPaths                []string `yaml:"filterPaths"`
