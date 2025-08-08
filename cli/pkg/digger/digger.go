@@ -114,10 +114,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			}
 			exectorResults[i] = *executorResult
 
-			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
-			if err != nil {
-				slog.Error("Error reporting project Run", "error", err)
-			}
 		}
 	}
 
