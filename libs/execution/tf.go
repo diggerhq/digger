@@ -168,10 +168,11 @@ func (tf Terraform) Plan(params []string, envs map[string]string, planArtefactFi
 }
 
 func (tf Terraform) Show(params []string, envs map[string]string, planArtefactFilePath string, retrunJson bool) (string, string, error) {
-	params = append(params, []string{"-no-color", planArtefactFilePath}...)
+	params = append(params, "-no-color")
 	if retrunJson {
-		params = append(params, []string{"-json"}...)
+		params = append(params, "-json")
 	}
+	params = append(params, planArtefactFilePath)
 	stdout, stderr, _, err := tf.runTerraformCommand("show", false, envs, nil, params...)
 	if err != nil {
 		return "", "", err
