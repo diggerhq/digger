@@ -16,7 +16,7 @@ type TerraformExecutor interface {
 	Apply([]string, *string, map[string]string) (string, string, error)
 	Destroy([]string, map[string]string) (string, string, error)
 	Plan([]string, map[string]string, string, *string) (bool, string, string, error)
-	Show([]string, map[string]string, string) (string, string, error)
+	Show([]string, map[string]string, string, bool) (string, string, error)
 }
 
 type Terraform struct {
@@ -167,8 +167,11 @@ func (tf Terraform) Plan(params []string, envs map[string]string, planArtefactFi
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (tf Terraform) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
-	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
+func (tf Terraform) Show(params []string, envs map[string]string, planArtefactFilePath string, retrunJson bool) (string, string, error) {
+	params = append(params, []string{"-no-color", planArtefactFilePath}...)
+	if retrunJson {
+		params = append(params, []string{"-json"}...)
+	}
 	stdout, stderr, _, err := tf.runTerraformCommand("show", false, envs, nil, params...)
 	if err != nil {
 		return "", "", err

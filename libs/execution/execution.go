@@ -192,7 +192,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 		}
 
 		showArgs := make([]string, 0)
-		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars, *storedPlanPath)
+		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars, *storedPlanPath, true)
 		return terraformPlanOutput, nil
 
 	} else {
@@ -202,7 +202,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 
 func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, string, error) {
 	plan := ""
-	terraformPlanOutput := ""
+	terraformPlanOutputJsonString := ""
 	planSummary := &iac_utils.IacSummary{}
 	isEmptyPlan := true
 	var planSteps []scheduler.Step
@@ -264,9 +264,12 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 	///////
 	showArgs := make([]string, 0)
-	terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath())
+	terraformPlanOutputJsonString, _, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
+	if err != nil {
+		return nil, false, false, "", "", fmt.Errorf("error showing plan: %v", err)
+	}
 
-	isEmptyPlan, planSummary, err := d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutput)
+	isEmptyPlan, planSummary, err = d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutputJsonString)
 	if err != nil {
 		return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
 	}
@@ -294,6 +297,11 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 		}
 	}
 
+	terraformPlanOutput, _, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
+	if err != nil {
+		return nil, false, false, "", "", fmt.Errorf("error showing plan: %v", err)
+	}
+
 	// TODO: move this function to iacUtils interface and implement for pulumi
 	plan = cleanupTerraformPlan(!isEmptyPlan, nil, terraformPlanOutput, "")
 	if err != nil {
@@ -302,7 +310,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 	//////
 
 	reportAdditionalOutput(d.Reporter, d.projectId())
-	return planSummary, true, !isEmptyPlan, plan, terraformPlanOutput, nil
+	return planSummary, true, !isEmptyPlan, plan, terraformPlanOutputJsonString, nil
 }
 
 func reportError(r reporting.Reporter, stderr string) {

@@ -45,7 +45,7 @@ func (pl Pulumi) Plan(params []string, envs map[string]string, planArtefactFileP
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (pl Pulumi) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
+func (pl Pulumi) Show(params []string, envs map[string]string, planArtefactFilePath string, b bool) (string, string, error) {
 	pl.selectStack()
 	// TODO figure out how to avoid running a second plan (preview) here
 	params = append(params, []string{"--json"}...)

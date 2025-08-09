@@ -62,7 +62,7 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planA
 	return true, stdout, stderr, err
 }
 
-func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
+func (terragrunt Terragrunt) Show(params []string, envs map[string]string, planArtefactFilePath string, b bool) (string, string, error) {
 	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("show", false, envs, nil, params...)
 	if exitCode != 0 {
