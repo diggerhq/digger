@@ -17,6 +17,6 @@ workflows:
     plan:
       steps:
         - init
-        - run: terraform plan --provider-cache=false -input=false -refresh -no-color 
+        - run: terraform plan -input=false -refresh -no-color 
         # - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
 
