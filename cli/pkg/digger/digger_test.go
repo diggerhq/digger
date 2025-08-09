@@ -391,7 +391,7 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Init ", "Plan ", "Show ", "StorePlanFile plan", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan ", "Run   echo", "Show ", "StorePlanFile plan", "Show "}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {
