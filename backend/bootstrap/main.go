@@ -192,7 +192,6 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	authorized.GET("/orgs/:organisation/drift-policy", controllers.FindDriftPolicyForOrg)
 
 	authorized.GET("/repos/:repo/projects/:projectName/runs", controllers.RunHistoryForProject)
-	authorized.POST("/repos/:repo/projects/:projectName/runs", controllers.CreateRunForProject)
 
 	authorized.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", diggerController.SetJobStatusForProject)
 
