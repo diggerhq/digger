@@ -17,7 +17,6 @@ workflows:
     plan:
       steps:
         - init
-        # - plan
-        - plan: terraform plan -input=false -no-color -detailed-exitcode -lock-timeout=3m -out $DIGGER_PLANFILE
-        - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
+        - run: terraform plan -input=false -refresh -no-color -out $DIGGER_PLANFILE
+        # - run: infracost breakdown --path=. | tee -a $DIGGER_OUT
 
