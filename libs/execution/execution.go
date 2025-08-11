@@ -318,7 +318,7 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_uti
 		if err != nil {
 			return "", "", nil, false, fmt.Errorf("unable to create file: %v", err)
 		}
-		defer file.Close()
+		file.Close()
 	}
 
 	if d.PlanStorage != nil {
@@ -338,9 +338,6 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_uti
 
 	// TODO: move this function to iacUtils interface and implement for pulumi
 	cleanedUpPlan := cleanupTerraformPlan(stdout)
-	if err != nil {
-		slog.Error("error publishing comment", "error", err)
-	}
 	return cleanedUpPlan, terraformPlanJsonOutputString, planSummary, isEmptyPlan, nil
 }
 
