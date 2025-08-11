@@ -37,3 +37,22 @@ If your custom command writes into a file path defined in the `$DIGGER_OUT` env 
 ![](/images/custom-command-output-infracost.png)
 
 The value of `$DIGGER_OUT` defaults to `$RUNNER_TEMP/digger-out.log`; you can change that if needed by setting the env var explicitly.
+
+## Overriding plan commands
+
+You can add extra arguments to the plan command by setting the `extra_args` key in the `steps` section of the `plan` command.
+
+However in some cases if you wish to override the plan command entirely you can do it by excluding the plan in the steps and having your command specified in the run like so:
+
+```
+
+workflows:
+  default:
+    plan:
+      steps:
+        - init
+        # exclude plan entierly and use custom command
+        - run: terraform plan -input=false -refresh -no-color -out $DIGGER_PLANFILE
+```
+
+Note that you need to use the -out flag to write the output to the $DIGGER_PLANFILE env variable, since this will be used in postprocessing steps by digger.

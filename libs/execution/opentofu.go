@@ -63,8 +63,12 @@ func (tf OpenTofu) Plan(params []string, envs map[string]string, planArtefactFil
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (tf OpenTofu) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
-	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
+func (tf OpenTofu) Show(params []string, envs map[string]string, planArtefactFilePath string, returnJson bool) (string, string, error) {
+	params = append(params, "-no-color")
+	if returnJson {
+		params = append(params, "-json")
+	}
+	params = append(params, planArtefactFilePath)
 	stdout, stderr, _, err := tf.runOpentofuCommand("show", false, envs, nil, params...)
 	if err != nil {
 		return "", "", err
