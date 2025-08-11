@@ -318,7 +318,7 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_uti
 		if err != nil {
 			return "", "", nil, false, fmt.Errorf("unable to create file: %v", err)
 		}
-		file.Close()
+		defer file.Close()
 	}
 
 	if d.PlanStorage != nil {
