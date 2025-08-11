@@ -246,7 +246,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v, stdout: %v, stderr: %v", err, stdout, stderr)
 			}
 
-			plan, planSummary, isEmptyPlan, err = d.postProcessPlan(stdout)
+			plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(stdout)
 			if err != nil {
 				slog.Debug("error post processing plan",
 					"error", err,
@@ -280,12 +280,11 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 	}
 
 	if !hasPlanStep {
-		rawPlan, rawPlanStderr, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
+		rawPlan, _, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
 		if err != nil {
 			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
 		}
-		slog.Info("show completed", "rawPlan", rawPlan, "rawPlanStderr", rawPlanStderr)
-		plan, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
+		plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
 		if err != nil {
 			slog.Debug("error post processing plan",
 				"error", err,
@@ -301,24 +300,23 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 	return planSummary, true, !isEmptyPlan, plan, terraformPlanOutputJsonString, nil
 }
 
-func (d DiggerExecutor) postProcessPlan(stdout string) (string, *iac_utils.IacSummary, bool, error) {
+func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_utils.IacSummary, bool, error) {
 	showArgs := make([]string, 0)
-	terraformPlanOutput, terraformPlanOutputStderr, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
+	terraformPlanJsonOutputString, _, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
 	if err != nil {
-		return "", nil, false, fmt.Errorf("error running terraform show: %v", err)
+		return "", "", nil, false, fmt.Errorf("error running terraform show: %v", err)
 	}
-	slog.Info("show completed", "terraformPlanOutput", terraformPlanOutput, "terraformPlanOutputStderr", terraformPlanOutputStderr)
 
-	isEmptyPlan, planSummary, err := d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutput)
+	isEmptyPlan, planSummary, err := d.IacUtils.GetSummaryFromPlanJson(terraformPlanJsonOutputString)
 	if err != nil {
-		return "", nil, false, fmt.Errorf("error checking for empty plan: %v", err)
+		return "", "", nil, false, fmt.Errorf("error checking for empty plan: %v", err)
 	}
 
 	if !isEmptyPlan {
 		nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
 		file, err := os.Create(nonEmptyPlanFilepath)
 		if err != nil {
-			return "", nil, false, fmt.Errorf("unable to create file: %v", err)
+			return "", "", nil, false, fmt.Errorf("unable to create file: %v", err)
 		}
 		defer file.Close()
 	}
@@ -327,13 +325,14 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, *iac_utils.IacSu
 		fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
 		if err != nil {
 			fmt.Println("Error reading file:", err)
-			return "", nil, false, fmt.Errorf("error reading file bytes: %v", err)
+			return "", "", nil, false, fmt.Errorf("error reading file bytes: %v", err)
 		}
 
 		err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
 			fmt.Println("Error storing artifact file:", err)
-			return "", nil, false, fmt.Errorf("error storing artifact file: %v", err)
+			return "", "", nil, false, fmt.Errorf("error storing artifact file: %v", err)
+
 		}
 	}
 
@@ -342,7 +341,7 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, *iac_utils.IacSu
 	if err != nil {
 		slog.Error("error publishing comment", "error", err)
 	}
-	return cleanedUpPlan, planSummary, isEmptyPlan, nil
+	return cleanedUpPlan, terraformPlanJsonOutputString, planSummary, isEmptyPlan, nil
 }
 
 func reportError(r reporting.Reporter, stderr string) {
