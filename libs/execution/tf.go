@@ -167,9 +167,9 @@ func (tf Terraform) Plan(params []string, envs map[string]string, planArtefactFi
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (tf Terraform) Show(params []string, envs map[string]string, planArtefactFilePath string, retrunJson bool) (string, string, error) {
+func (tf Terraform) Show(params []string, envs map[string]string, planArtefactFilePath string, returnJson bool) (string, string, error) {
 	params = append(params, "-no-color")
-	if retrunJson {
+	if returnJson {
 		params = append(params, "-json")
 	}
 	params = append(params, planArtefactFilePath)
