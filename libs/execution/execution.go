@@ -280,10 +280,11 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 	}
 
 	if !hasPlanStep {
-		rawPlan, _, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
+		rawPlan, rawPlanStderr, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
 		if err != nil {
 			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
 		}
+		slog.Info("show completed", "rawPlan", rawPlan, "rawPlanStderr", rawPlanStderr)
 		plan, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
 		if err != nil {
 			slog.Debug("error post processing plan",
@@ -302,10 +303,11 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 func (d DiggerExecutor) postProcessPlan(stdout string) (string, *iac_utils.IacSummary, bool, error) {
 	showArgs := make([]string, 0)
-	terraformPlanOutput, _, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
+	terraformPlanOutput, terraformPlanOutputStderr, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
 	if err != nil {
 		return "", nil, false, fmt.Errorf("error running terraform show: %v", err)
 	}
+	slog.Info("show completed", "terraformPlanOutput", terraformPlanOutput, "terraformPlanOutputStderr", terraformPlanOutputStderr)
 
 	isEmptyPlan, planSummary, err := d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutput)
 	if err != nil {
