@@ -239,12 +239,14 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			// TODO remove those only for pulumi project
 			planArgs = append(planArgs, step.ExtraArgs...)
 
-			_, _, _, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
+			var err error
+			var stdout, stderr string
+			isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
 			if err != nil {
-				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v", err)
+				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v, stdout: %v, stderr: %v", err, stdout, stderr)
 			}
 
-			plan, planSummary, isEmptyPlan, err = d.postProcessPlan(plan)
+			plan, planSummary, isEmptyPlan, err = d.postProcessPlan(stdout)
 			if err != nil {
 				slog.Debug("error post processing plan",
 					"error", err,
@@ -278,8 +280,11 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 	}
 
 	if !hasPlanStep {
-		var err error
-		plan, planSummary, isEmptyPlan, err = d.postProcessPlan(plan)
+		rawPlan, _, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
+		if err != nil {
+			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
+		}
+		plan, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
 		if err != nil {
 			slog.Debug("error post processing plan",
 				"error", err,
@@ -297,7 +302,10 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 func (d DiggerExecutor) postProcessPlan(stdout string) (string, *iac_utils.IacSummary, bool, error) {
 	showArgs := make([]string, 0)
-	terraformPlanOutput, _, _ := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
+	terraformPlanOutput, _, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
+	if err != nil {
+		return "", nil, false, fmt.Errorf("error running terraform show: %v", err)
+	}
 
 	isEmptyPlan, planSummary, err := d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutput)
 	if err != nil {
@@ -314,7 +322,6 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, *iac_utils.IacSu
 	}
 
 	if d.PlanStorage != nil {
-
 		fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
 		if err != nil {
 			fmt.Println("Error reading file:", err)
