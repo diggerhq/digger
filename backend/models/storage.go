@@ -1726,7 +1726,7 @@ func (db *Database) CreateDiggerLock(resource string, lockId int, orgId uint) (*
 	return lock, nil
 }
 
-func (db *Database) DeleteAllLocksAquiredByPR(prNumber int, orgId uint) error {
+func (db *Database) DeleteAllLocksAcquiredByPR(prNumber int, orgId uint) error {
 	l := DiggerLock{}
 	err := db.GormDB.Where("lock_id=? AND organisation_id=?", prNumber, orgId).Delete(&l).Error
 	if err != nil {

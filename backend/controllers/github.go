@@ -699,7 +699,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	// remove any dangling locks which are no longer in the list of impacted projects
 	if *diggerCommand == orchestrator_scheduler.DiggerCommandUnlock {
-		err := models.DB.DeleteAllLocksAquiredByPR(prNumber, organisationId)
+		err := models.DB.DeleteAllLocksAcquiredByPR(prNumber, organisationId)
 		if err != nil {
 			slog.Error("Failed to delete locks",
 				"prNumber", prNumber,
@@ -1595,7 +1595,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	// remove any dangling locks which are no longer in the list of impacted projects
 	if *diggerCommand == orchestrator_scheduler.DiggerCommandUnlock {
-		err := models.DB.DeleteAllLocksAquiredByPR(issueNumber, orgId)
+		err := models.DB.DeleteAllLocksAcquiredByPR(issueNumber, orgId)
 		if err != nil {
 			slog.Error("Failed to delete locks",
 				"prNumber", issueNumber,
