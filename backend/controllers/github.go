@@ -697,6 +697,20 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
+	// remove any dangling locks which are no longer in the list of impacted projects
+	if *diggerCommand == orchestrator_scheduler.DiggerCommandUnlock {
+		err := models.DB.DeleteAllLocksAquiredByPR(prNumber, organisationId)
+		if err != nil {
+			slog.Error("Failed to delete locks",
+				"prNumber", prNumber,
+				"command", *diggerCommand,
+				"error", err,
+			)
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to delete locks: %v", err))
+			return fmt.Errorf("failed to delete locks: %v", err)
+		}
+	}
+
 	// if commands are locking or unlocking we don't need to trigger any jobs
 	if *diggerCommand == orchestrator_scheduler.DiggerCommandUnlock ||
 		*diggerCommand == orchestrator_scheduler.DiggerCommandLock {
@@ -1576,6 +1590,20 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 				commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
 				return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
 			}
+		}
+	}
+
+	// remove any dangling locks which are no longer in the list of impacted projects
+	if *diggerCommand == orchestrator_scheduler.DiggerCommandUnlock {
+		err := models.DB.DeleteAllLocksAquiredByPR(issueNumber, orgId)
+		if err != nil {
+			slog.Error("Failed to delete locks",
+				"prNumber", issueNumber,
+				"command", *diggerCommand,
+				"error", err,
+			)
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to delete locks: %v", err))
+			return fmt.Errorf("failed to delete locks: %v", err)
 		}
 	}
 
