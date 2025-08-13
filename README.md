@@ -60,6 +60,26 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 - No duplication of the CI/CD stack
 - Secrets not shared with a third party
 
+## How Digger is Used
+
+- [Production ready Terraform setup powered by Digger CI/CD](https://medium.com/converge-bio/production-ready-terraform-setup-powered-by-digger-ci-cd-47f18803cdd9) - authored by Amit Lavi from [Converge Bio](https://converge-bio.com/)
+
+- ["I like Digger more than Terraform Cloud and Atlantis"](https://zenn.dev/kiwamizamurai/articles/48594bcad234fb) (Translated from Japanese), includes an [example repo](https://github.com/kiwamizamurai/digger_tutorial)
+
+- How the data ops team at [Brevo](https://www.brevo.com/) uses Digger (a part of this [podcast](https://youtu.be/511RilKsQCY?si=FTPlehy3hVd7zXAM), french)
+
+- ["Use Digger to run Terraform in a different GCP project for each environment"](https://qiita.com/Takayoshi_Makabe/items/d0206cc5c356023c0561) (Japanese)
+
+- ["Automatically merging pull requests after terraform apply with Digger"](https://kakakakakku.hatenablog.com/entry/2025/03/10/143453) (Japanese)
+  
+
+
+
+
+
+
+
+
 ## Contributing
 
 We love contributions. Check out our [contributing guide](CONTRIBUTING.md) to get started.
