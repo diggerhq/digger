@@ -616,7 +616,6 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 }
 
 func checkThatOnlyOneIacSpecifiedPerProject(project *Project) error {
-	slog.Debug("checking IAC configuration for project", "projectName", project.Name)
 
 	nOfIac := 0
 	if project.Terragrunt {
