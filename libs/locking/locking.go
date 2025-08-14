@@ -87,27 +87,11 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 	_, isNoOpLock := projectLock.InternalLock.(*NoOpLock)
 
 	if lockAcquired && !isNoOpLock {
-		comment := "Project " + projectLock.projectId() + " has been locked by PR #" + strconv.Itoa(projectLock.PrNumber)
-		reportingLockingSuccess(projectLock.Reporter, comment)
 		slog.Info("Project locked successfully",
 			"projectId", projectLock.projectId(),
 			"prNumber", projectLock.PrNumber)
 	}
 	return lockAcquired, nil
-}
-
-func reportingLockingSuccess(r reporting.Reporter, comment string) {
-	if r.SupportsMarkdown() {
-		_, _, err := r.Report(comment, utils.AsCollapsibleComment("Locking successful", false))
-		if err != nil {
-			slog.Error("Failed to publish comment", "error", err)
-		}
-	} else {
-		_, _, err := r.Report(comment, utils.AsComment("Locking successful"))
-		if err != nil {
-			slog.Error("Failed to publish comment", "error", err)
-		}
-	}
 }
 
 func reportLockingFailed(r reporting.Reporter, comment string) {
