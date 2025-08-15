@@ -158,7 +158,7 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesDeleted, resourcesDeleted)
 }
 
-func TestDiggerLockFunctionlaities(t *testing.T) {
+func TestDiggerLockFunctionalities(t *testing.T) {
 	teardownSuite, _, _ := setupSuite(t)
 	defer teardownSuite(t)
 
