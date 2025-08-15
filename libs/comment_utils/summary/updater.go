@@ -94,7 +94,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 func formatExampleCommands() string {
 	return `
 <details>
-  <summary>Example Commands</summary>
+  <summary>Instructions</summary>
 
 To apply these changes, run the following command:
 
@@ -108,16 +108,14 @@ To plan the changes without applying them:
 digger plan
 ` + "```" + `
 
-To apply a specific layer (if using layers):
-
+To lock the projects in this PR run the following command:
 ` + "```" + `bash
-digger apply --layer <layer-number>
+digger lock
 ` + "```" + `
 
-To plan a specific layer:
-
+To unlock the projects in this PR run the following command:
 ` + "```" + `bash
-digger plan --layer <layer-number>
+digger unlock
 ` + "```" + `
 </details>
 `
