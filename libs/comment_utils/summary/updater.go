@@ -96,24 +96,13 @@ func formatExampleCommands() string {
 <details>
   <summary>Instructions</summary>
 
-To apply these changes, run the following command:
+▶️ To apply these changes, run the following command:
 
 ` + "```" + `bash
 digger apply
 ` + "```" + `
 
-To plan the changes without applying them:
-
-` + "```" + `bash
-digger plan
-` + "```" + `
-
-To lock the projects in this PR run the following command:
-` + "```" + `bash
-digger lock
-` + "```" + `
-
-To unlock the projects in this PR run the following command:
+🚮 To unlock the projects in this PR run the following command:
 ` + "```" + `bash
 digger unlock
 ` + "```" + `
