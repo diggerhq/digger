@@ -96,7 +96,7 @@ func formatExampleCommands() string {
 <details>
   <summary>Instructions</summary>
 
-▶️ To apply these changes, run the following command:
+⏩ To apply these changes, run the following command:
 
 ` + "```" + `bash
 digger apply
