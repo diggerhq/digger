@@ -411,6 +411,10 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 			if os.Getenv("ACTIVATE_VENV") == "true" {
 				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 			}
+			if plansFilename != nil {
+				slog.Debug("adding plan file path to environment", "DIGGER_PLANFILE", *plansFilename)
+				d.RunEnvVars["DIGGER_PLANFILE"] = *plansFilename
+			}
 			commands = append(commands, step.Value)
 			slog.Info("Running command",
 				"command", step.Value,
