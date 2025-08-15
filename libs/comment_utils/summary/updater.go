@@ -59,6 +59,8 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 			job.ResourcesDeleted)
 	}
 
+	message = message + "\n" + formatExampleCommands()
+
 	const GithubCommentMaxLength = 65536
 	if len(message) > GithubCommentMaxLength {
 		// TODO: Handle the case where message is too long by trimming
@@ -86,6 +88,39 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	}
 
 	return nil
+}
+
+// formatExampleCommands creates a collapsible markdown section with example commands
+func formatExampleCommands() string {
+	return `
+<details>
+  <summary>Example Commands</summary>
+
+To apply these changes, run the following command:
+
+` + "```" + `bash
+digger apply
+` + "```" + `
+
+To plan the changes without applying them:
+
+` + "```" + `bash
+digger plan
+` + "```" + `
+
+To apply a specific layer (if using layers):
+
+` + "```" + `bash
+digger apply --layer <layer-number>
+` + "```" + `
+
+To plan a specific layer:
+
+` + "```" + `bash
+digger plan --layer <layer-number>
+` + "```" + `
+</details>
+`
 }
 
 type NoopCommentUpdater struct {

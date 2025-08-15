@@ -2,6 +2,7 @@ package comment_updater
 
 import (
 	"fmt"
+
 	"github.com/diggerhq/digger/libs/digger_config"
 )
 
