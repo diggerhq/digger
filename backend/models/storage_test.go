@@ -35,7 +35,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *Database, *Organisation) {
 	// migrate tables
 	err = gdb.AutoMigrate(&Policy{}, &Organisation{}, &Repo{}, &Project{}, &Token{},
 		&User{}, &ProjectRun{}, &GithubAppInstallation{}, &VCSConnection{}, &GithubAppInstallationLink{},
-		&GithubDiggerJobLink{}, &DiggerJob{}, &DiggerJobParentLink{})
+		&GithubDiggerJobLink{}, &DiggerJob{}, &DiggerJobParentLink{}, &DiggerLock{})
 	if err != nil {
 		panic(err)
 	}
@@ -156,4 +156,28 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesCreated, resourcesCreated)
 	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesUpdated, resourcesUpdated)
 	assert.Equal(t, jobssss[0].DiggerJobSummary.ResourcesDeleted, resourcesDeleted)
+}
+
+func TestDiggerLockFunctionlaities(t *testing.T) {
+	teardownSuite, _, _ := setupSuite(t)
+	defer teardownSuite(t)
+
+	DB.CreateDiggerLock("org/repo1#dev", 1, 1)
+	DB.CreateDiggerLock("org/repo1#staging", 1, 1)
+	DB.CreateDiggerLock("org/repo1#prod", 1, 1)
+
+	DB.CreateDiggerLock("org/repo2#dev", 1, 1)
+	DB.CreateDiggerLock("org/repo2#prod", 1, 1)
+
+	existingLocks, err := DB.GetLocksForOrg(1)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, len(existingLocks))
+
+	DB.DeleteAllLocksAcquiredByPR(1, "org/repo1", 1)
+
+	existingLocksAfterDeletion, err := DB.GetLocksForOrg(1)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(existingLocksAfterDeletion))
+	assert.Equal(t, "org/repo2#dev", existingLocksAfterDeletion[0].Resource)
+	assert.Equal(t, "org/repo2#prod", existingLocksAfterDeletion[1].Resource)
 }

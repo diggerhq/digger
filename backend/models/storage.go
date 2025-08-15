@@ -1703,6 +1703,15 @@ func (db *Database) RefreshProjectsFromRepo(orgId string, config configuration.D
 	return nil
 }
 
+func (db *Database) GetLocksForOrg(orgId uint) ([]DiggerLock, error) {
+	locks := make([]DiggerLock, 0)
+	err := db.GormDB.Where("organisation_id=?", orgId).Find(&locks).Error
+	if err != nil {
+		return nil, err
+	}
+	return locks, nil
+}
+
 func (db *Database) CreateDiggerLock(resource string, lockId int, orgId uint) (*DiggerLock, error) {
 	lock := &DiggerLock{
 		Resource:       resource,
@@ -1726,9 +1735,10 @@ func (db *Database) CreateDiggerLock(resource string, lockId int, orgId uint) (*
 	return lock, nil
 }
 
-func (db *Database) DeleteAllLocksAcquiredByPR(prNumber int, orgId uint) error {
+func (db *Database) DeleteAllLocksAcquiredByPR(prNumber int, repoFullName string, orgId uint) error {
 	l := DiggerLock{}
-	err := db.GormDB.Where("lock_id=? AND organisation_id=?", prNumber, orgId).Delete(&l).Error
+	err := db.GormDB.Where("lock_id=? AND organisation_id=? AND resource LIKE ?", prNumber, orgId, repoFullName+"%").Delete(&l).Error // fmt.Sprintf("%%/%s", repoFullName).Delete(&l).Error
+
 	if err != nil {
 		return fmt.Errorf("could not delete all locks: %v", err)
 	}
