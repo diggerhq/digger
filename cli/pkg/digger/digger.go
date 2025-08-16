@@ -104,6 +104,14 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 					exectorResults[i] = *executorResult
 				}
 				slog.Error("Project command failed, skipping job", "project name", job.ProjectName, "command", command)
+				if reportFinalStatusToBackend {
+					LogRed("Reporting failed job status for project %v to backend...", job.ProjectName)
+					iacUtils := iac_utils.GetIacUtilsIacType(job.IacType())
+					_, err := backendApi.ReportProjectJobStatus(job.Namespace, job.ProjectName, jobId, "failed", time.Now(), nil, "", "", "", "", iacUtils)
+					if err != nil {
+						slog.Error("error reporting job status", "error", err)
+					}
+				}
 				break
 			}
 			exectorResults[i] = *executorResult
@@ -143,6 +151,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		prNumber := *currentJob.PullRequestNumber
 
 		iacUtils := iac_utils.GetIacUtilsIacType(currentJob.IacType())
+		LogGreen("Reporting job status for project %v to backend...", projectNameForBackendReporting)
 		batchResult, err := backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, jobPrCommentId, terraformOutput, iacUtils)
 		if err != nil {
 			slog.Error("error reporting Job status", "error", err)
