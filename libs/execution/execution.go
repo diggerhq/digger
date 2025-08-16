@@ -382,6 +382,11 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 		}
 	}
 
+	if d.RunEnvVars == nil {
+		slog.Debug("RunEnvVars is nil, creating new map")
+		d.RunEnvVars = make(map[string]string)
+	}
+
 	for _, step := range applySteps {
 		if step.Action == "init" {
 			stdout, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
@@ -411,6 +416,7 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 			if os.Getenv("ACTIVATE_VENV") == "true" {
 				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 			}
+
 			if plansFilename != nil {
 				slog.Debug("adding plan file path to environment", "DIGGER_PLANFILE", *plansFilename)
 				d.RunEnvVars["DIGGER_PLANFILE"] = *plansFilename
