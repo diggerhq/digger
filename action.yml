@@ -458,6 +458,7 @@ runs:
             export GODEBUG=fips140=only
             export GOFIPS140=v1.0.0
           fi        
+          echo "in build and run digger step"
           go build -o digger ./cmd/digger
           chmod +x digger
           PATH=$PATH:$(pwd)
@@ -507,6 +508,7 @@ runs:
         else
           curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }} -o digger
         fi
+        echo "in digger step"
         chmod +x digger
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
@@ -548,7 +550,6 @@ runs:
       run:
         pwd
         ls
-        
         eval "${{inputs.local-dev-startup-command}}"
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
