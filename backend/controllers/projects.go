@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -627,6 +628,8 @@ type SetJobStatusRequest struct {
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+
+	runtime.Breakpoint()
 
 	if !exists {
 		slog.Warn("Organisation ID not found in context", "jobId", jobId)
