@@ -12,7 +12,7 @@ run-name: ${{inputs.run_name}}
 
 jobs:
   digger-job:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write      # required to merge PRs
       actions: write       # required for plan persistence
