@@ -416,7 +416,7 @@ runs:
 
 
     - name: build and run digger
-      if: ${{ !startsWith(github.action_ref, 'v') }} && ${{ inputs.local-dev-mode }} == "false"
+      if: ${{ !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == "false" }}
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -466,7 +466,7 @@ runs:
           digger
 
     - name: run digger
-      if: ${{ startsWith(github.action_ref, 'v') }} && ${{ inputs.local-dev-mode }} == "false"
+      if: ${{ startsWith(github.action_ref, 'v') && inputs.local-dev-mode == "false" }}
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -515,7 +515,7 @@ runs:
         digger
 
     - name: run digger
-      if:  ${{ inputs.local-dev-mode }} == "true"
+      if:  ${{ inputs.local-dev-mode == "true" }}
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
