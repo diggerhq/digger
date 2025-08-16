@@ -535,7 +535,7 @@ runs:
         TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
-      id: digger
+      id: digger-local-run
       shell: bash
       run:
         eval ${{inputs.local-dev-startup-command}}
