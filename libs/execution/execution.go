@@ -224,6 +224,11 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 		return step.Action == "plan"
 	})
 
+	// setting additional env vars for run step
+	if d.RunEnvVars == nil {
+		d.RunEnvVars = make(map[string]string)
+	}
+
 	for _, step := range planSteps {
 		slog.Info("Running step", "action", step.Action)
 		if step.Action == "init" {
@@ -266,10 +271,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			slog.Info("Running command",
 				"command", step.Value,
 				"project", d.ProjectNamespace+"#"+d.ProjectName)
-			// setting additional env vars for run step
-			if d.RunEnvVars == nil {
-				d.RunEnvVars = make(map[string]string)
-			}
+
 			slog.Debug("adding plan file path to environment", "DIGGER_PLANFILE", d.PlanPathProvider.LocalPlanFilePath())
 			d.RunEnvVars["DIGGER_PLANFILE"] = d.PlanPathProvider.LocalPlanFilePath()
 			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
