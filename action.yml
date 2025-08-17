@@ -549,13 +549,19 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        cd $GITHUB_ACTION_PATH/cli
-        pwd
-        ls
-        go build -o digger ./cmd/digger && chmod +x digger
-        PATH=$PATH:$(pwd)
-        cd $GITHUB_WORKSPACE
-        digger
+      
+        echo "📍 Current directory: $(pwd)"
+        echo "📂 Listing contents:"
+        ls -la
+      
+        echo "📦 Building digger CLI..."
+        if ! go build -o digger ./cmd/digger; then
+        echo "❌ Go build failed"
+        exit 1
+        fi
+      
+        chmod +x digger
+        echo "✅ Build success"
 
 
 
