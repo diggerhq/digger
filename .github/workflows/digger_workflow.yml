@@ -12,7 +12,7 @@ run-name: ${{inputs.run_name}}
 
 jobs:
   digger-job:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write      # required to merge PRs
       actions: write       # required for plan persistence
@@ -32,7 +32,7 @@ jobs:
           api-key: ${{ secrets.INFRACOST_API_KEY }}      
 
       - name: digger
-        uses: diggerhq/digger@feat/support-PLANOUT
+        uses: diggerhq/digger@feat/local-dev-support
         with:
           digger-spec: ${{ inputs.spec }}
           digger-private-key: ${{ secrets.DIGGER_PRIVATE_KEY }}
@@ -40,6 +40,8 @@ jobs:
           disable-locking: true
           setup-opentofu: true
           setup-terraform: true
+          local-dev-mode: "true"
+          local-dev-cli-path: "/Users/mohamedsayed/dev/digger/digger/cli/digger"
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
