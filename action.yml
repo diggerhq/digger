@@ -8,10 +8,10 @@ inputs:
     description: run digger for local development?
     required: false
     default: false
-  local-dev-startup-command:
-    description: startup command to prepare digger
+  local-dev-cli-path:
+    description: The path to compiled digger cli on the self-hosted runner
     required: false
-    default: go build -o digger ./cmd/digger && chmod +x digger
+    default: './digger'
   ee:
     description: use ee cli?
     required: false
@@ -381,7 +381,6 @@ runs:
     - name: Copy Digger CLI go.sum for cache key
       run: |
         if [[ "${{ inputs.local-dev-mode }}" == "true" ]]; then 
-          echo "running in local dev mode"
         elif [[ ${{ inputs.ee }} == "true" ]]; then
           cp "$GITHUB_ACTION_PATH/ee/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
         else
@@ -458,7 +457,6 @@ runs:
             export GODEBUG=fips140=only
             export GOFIPS140=v1.0.0
           fi        
-          echo "in build and run digger step"
           go build -o digger ./cmd/digger
           chmod +x digger
           PATH=$PATH:$(pwd)
@@ -508,7 +506,6 @@ runs:
         else
           curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }} -o digger
         fi
-        echo "in digger step"
         chmod +x digger
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
@@ -550,29 +547,11 @@ runs:
       run: |
         set -euo pipefail
 
-        echo "📍 cd /Users/mohamedsayed/dev/digger/digger/cli"
-        cd "/Users/mohamedsayed/dev/digger/digger/cli"
-
-      
-        echo "📍 Current directory: $(pwd)"
-        echo "📂 Listing contents:"
-        ls -la
-      
-        echo "📦 Building digger CLI..."
-        if ! go build -x -v -o digger ./cmd/digger; then
-        echo "❌ Go build failed"
-        exit 1
-        fi
-      
-        chmod +x digger
-        echo "✅ Build success"
-
-        export PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         
         echo "🚀 Running digger..."
-        digger || { echo "❌ digger failed with exit code $?"; exit 1; }
-        echo "✅ digger completed"        
+        ${{ inputs.local-dev-cli-path }} || { echo "❌ digger failed with exit code $?"; exit 1; }
+        echo "✅ digger completed"
 
     - uses: actions/cache/save@v4
       name: cache-save
