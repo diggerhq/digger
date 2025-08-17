@@ -567,7 +567,10 @@ runs:
         chmod +x digger
         echo "✅ Build success"
 
-
+        PATH=$PATH:$(pwd)
+        cd $GITHUB_WORKSPACE
+        digger        
+        
 
     - uses: actions/cache/save@v4
       name: cache-save
