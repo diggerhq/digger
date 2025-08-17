@@ -555,7 +555,7 @@ runs:
         ls -la
       
         echo "📦 Building digger CLI..."
-        if ! go build -o digger ./cmd/digger; then
+        if ! go build -x -v -o digger ./cmd/digger; then
         echo "❌ Go build failed"
         exit 1
         fi
