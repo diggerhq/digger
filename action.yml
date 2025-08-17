@@ -567,10 +567,12 @@ runs:
         chmod +x digger
         echo "✅ Build success"
 
-        PATH=$PATH:$(pwd)
+        export PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
-        digger        
         
+        echo "🚀 Running digger..."
+        ./digger || { echo "❌ digger failed with exit code $?"; exit 1; }
+        echo "✅ digger completed"        
 
     - uses: actions/cache/save@v4
       name: cache-save
