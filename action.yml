@@ -549,7 +549,6 @@ runs:
       shell: bash
       run: |
         cd $GITHUB_ACTION_PATH
-        cd ../
         pwd
         ls
         eval "${{inputs.local-dev-startup-command}}"
