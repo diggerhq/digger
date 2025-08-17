@@ -548,6 +548,7 @@ runs:
       id: digger-local-run
       shell: bash
       run: |
+        set -euo pipefail
         cd $GITHUB_ACTION_PATH/cli
         pwd
         ls
