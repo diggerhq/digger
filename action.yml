@@ -551,7 +551,7 @@ runs:
         cd $GITHUB_ACTION_PATH/cli
         pwd
         ls
-        eval "${{inputs.local-dev-startup-command}}"
+        eval ${{inputs.local-dev-startup-command}}
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         digger
