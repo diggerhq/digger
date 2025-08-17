@@ -381,6 +381,7 @@ runs:
     - name: Copy Digger CLI go.sum for cache key
       run: |
         if [[ "${{ inputs.local-dev-mode }}" == "true" ]]; then 
+          echo "Digger CLI is in local dev mode, skipping go.sum copy"
         elif [[ ${{ inputs.ee }} == "true" ]]; then
           cp "$GITHUB_ACTION_PATH/ee/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
         else

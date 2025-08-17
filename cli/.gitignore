@@ -1,3 +1,4 @@
 **/digger
 !/pkg/digger
 !/cmd/digger
+actions-runner/
