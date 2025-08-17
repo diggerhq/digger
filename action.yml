@@ -549,6 +549,10 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+
+        echo "📍 cd $GITHUB_ACTION_PATH/cli"
+        cd "$GITHUB_ACTION_PATH/cli"
+
       
         echo "📍 Current directory: $(pwd)"
         echo "📂 Listing contents:"
