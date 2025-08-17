@@ -548,7 +548,7 @@ runs:
       id: digger-local-run
       shell: bash
       run: |
-        cd $GITHUB_ACTION_PATH
+        cd $GITHUB_ACTION_PATH/cli
         pwd
         ls
         eval "${{inputs.local-dev-startup-command}}"
