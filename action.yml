@@ -571,7 +571,7 @@ runs:
         cd $GITHUB_WORKSPACE
         
         echo "🚀 Running digger..."
-        ./digger || { echo "❌ digger failed with exit code $?"; exit 1; }
+        digger || { echo "❌ digger failed with exit code $?"; exit 1; }
         echo "✅ digger completed"        
 
     - uses: actions/cache/save@v4
