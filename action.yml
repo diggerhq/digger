@@ -514,7 +514,7 @@ runs:
         cd $GITHUB_WORKSPACE
         digger
 
-    - name: run digger
+    - name: run digger in local dev mode
       if:  ${{ inputs.local-dev-mode == 'true' }}
       env:
         actionref: ${{ github.action_ref }}
@@ -548,6 +548,8 @@ runs:
       id: digger-local-run
       shell: bash
       run: |
+        cd $GITHUB_ACTION_PATH
+        cd ../
         pwd
         ls
         eval "${{inputs.local-dev-startup-command}}"
