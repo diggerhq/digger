@@ -550,8 +550,8 @@ runs:
       run: |
         set -euo pipefail
 
-        echo "📍 cd $GITHUB_ACTION_PATH/cli"
-        cd "$GITHUB_ACTION_PATH/cli"
+        echo "📍 cd /Users/mohamedsayed/dev/digger/digger/cli"
+        cd "/Users/mohamedsayed/dev/digger/digger/cli"
 
       
         echo "📍 Current directory: $(pwd)"
