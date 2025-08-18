@@ -22,6 +22,8 @@ import (
 	"github.com/diggerhq/digger/libs/iac_utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"gorm.io/gorm"
 )
 
@@ -663,6 +665,60 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	)
 
 	switch request.Status {
+	case "created":
+		job.Status = orchestrator_scheduler.DiggerJobCreated
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			slog.Error("Error updating job status",
+				"jobId", jobId,
+				"status", request.Status,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			return
+		}
+
+		slog.Info("Job status updated to created", "jobId", jobId)
+
+		// Update PR comment with real-time status
+		go func() {
+			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			if err != nil {
+				slog.Warn("Failed to update PR comment for created job",
+					"jobId", jobId,
+					"batchId", job.Batch.ID,
+					"error", err,
+				)
+			}
+		}()
+
+	case "triggered":
+		job.Status = orchestrator_scheduler.DiggerJobTriggered
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			slog.Error("Error updating job status",
+				"jobId", jobId,
+				"status", request.Status,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			return
+		}
+
+		slog.Info("Job status updated to triggered", "jobId", jobId)
+
+		// Update PR comment with real-time status
+		go func() {
+			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			if err != nil {
+				slog.Warn("Failed to update PR comment for triggered job",
+					"jobId", jobId,
+					"batchId", job.Batch.ID,
+					"error", err,
+				)
+			}
+		}()
+
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
 		if request.WorkflowUrl != "" {
@@ -681,6 +737,18 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 
 		slog.Info("Job status updated to started", "jobId", jobId)
+
+		// Update PR comment with real-time status
+		go func() {
+			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			if err != nil {
+				slog.Warn("Failed to update PR comment for started job",
+					"jobId", jobId,
+					"batchId", job.Batch.ID,
+					"error", err,
+				)
+			}
+		}()
 
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
@@ -839,6 +907,18 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			models.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
 		}
 
+		// Update PR comment with real-time status for succeeded job
+		go func() {
+			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			if err != nil {
+				slog.Warn("Failed to update PR comment for succeeded job",
+					"jobId", jobId,
+					"batchId", job.Batch.ID,
+					"error", err,
+				)
+			}
+		}()
+
 	case "failed":
 		job.Status = orchestrator_scheduler.DiggerJobFailed
 		job.TerraformOutput = request.TerraformOutput
@@ -858,12 +938,24 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			"batchId", batchId,
 		)
 
+		// Update PR comment with real-time status for failed job
+		go func() {
+			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			if err != nil {
+				slog.Warn("Failed to update PR comment for failed job",
+					"jobId", jobId,
+					"batchId", job.Batch.ID,
+					"error", err,
+				)
+			}
+		}()
+
 	default:
 		slog.Warn("Unexpected job status received",
 			"jobId", jobId,
 			"status", request.Status,
 		)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unexpected job status"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Unexpected job status: %s. Valid statuses are: created, triggered, started, succeeded, failed", request.Status)})
 		return
 	}
 
@@ -963,6 +1055,150 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	)
 
 	c.JSON(http.StatusOK, res)
+}
+
+// updatePRCommentRealtime updates the GitHub PR comment with current job statuses
+func updatePRCommentRealtime(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	slog.Debug("Updating PR comment with real-time job statuses", "batchId", batch.ID, "prNumber", batch.PrNumber)
+
+	// Get PR service for this batch
+	prService, err := GetPrServiceFromBatch(batch, gh)
+	if err != nil {
+		slog.Error("Error getting PR service for real-time comment update", "batchId", batch.ID, "error", err)
+		return fmt.Errorf("error getting PR service: %v", err)
+	}
+
+	// Get all jobs for this batch
+	jobs, err := models.DB.GetDiggerJobsForBatch(batch.ID)
+	if err != nil {
+		slog.Error("Error getting jobs for batch", "batchId", batch.ID, "error", err)
+		return fmt.Errorf("error getting jobs for batch: %v", err)
+	}
+
+	if len(jobs) == 0 {
+		slog.Debug("No jobs found for batch", "batchId", batch.ID)
+		return nil
+	}
+
+	// Generate comment message
+	message, err := generateRealtimeCommentMessage(jobs, batch.BatchType)
+	if err != nil {
+		slog.Error("Error generating real-time comment message", "batchId", batch.ID, "error", err)
+		return fmt.Errorf("error generating comment message: %v", err)
+	}
+
+	// Update or create the summary comment
+	commentId, err := updateOrCreateSummaryComment(prService, batch, message)
+	if err != nil {
+		slog.Error("Error updating real-time summary comment", "batchId", batch.ID, "error", err)
+		return fmt.Errorf("error updating summary comment: %v", err)
+	}
+
+	// Update batch with comment ID if it was newly created
+	if batch.CommentId == nil && commentId != nil {
+		batch.CommentId = commentId
+		err = models.DB.GormDB.Save(&batch).Error
+		if err != nil {
+			slog.Warn("Error saving comment ID to batch", "batchId", batch.ID, "commentId", commentId, "error", err)
+		}
+	}
+
+	slog.Debug("Successfully updated real-time PR comment", "batchId", batch.ID, "prNumber", batch.PrNumber, "commentId", commentId)
+	return nil
+}
+
+// generateRealtimeCommentMessage creates the markdown table for real-time PR comments
+// This matches the exact format used by the CLI's BasicCommentUpdater
+func generateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestrator_scheduler.DiggerCommand) (string, error) {
+	if len(jobs) == 0 {
+		return "", fmt.Errorf("no jobs provided")
+	}
+
+	jobTypeTitle := cases.Title(language.AmericanEnglish).String(string(batchType))
+
+	// Match exact CLI format - no header, just the table
+	message := ""
+	message += fmt.Sprintf("| Project | Status | %s | + | ~ | - |\n", jobTypeTitle)
+	message += fmt.Sprintf("|---------|--------|------|---|---|---|\n")
+
+	for _, job := range jobs {
+		prCommentUrl := job.PRCommentUrl
+		if prCommentUrl == "" {
+			prCommentUrl = "#"
+		}
+
+		// Safe handling of WorkflowRunUrl pointer
+		workflowUrl := "#"
+		if job.WorkflowRunUrl != nil {
+			workflowUrl = *job.WorkflowRunUrl
+		}
+
+		// Get project name from job spec
+		var jobSpec orchestrator_scheduler.JobJson
+		projectName := "Unknown"
+		if job.SerializedJobSpec != nil {
+			err := job.UnmarshalJobSpec(&jobSpec)
+			if err == nil {
+				projectName = jobSpec.ProjectName
+			}
+		}
+
+		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
+		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
+			job.Status.ToEmoji(),
+			projectName,
+			workflowUrl,
+			job.Status.ToString(),
+			prCommentUrl,
+			jobTypeTitle,
+			job.ResourcesCreated,
+			job.ResourcesUpdated,
+			job.ResourcesDeleted)
+	}
+
+	// Handle comment length limits
+	const GithubCommentMaxLength = 65536
+	if len(message) > GithubCommentMaxLength {
+		slog.Warn("Comment message too long, trimming", "originalLength", len(message), "maxLength", GithubCommentMaxLength)
+		const footer = "\n\n[Message truncated due to length limits]"
+		trimLength := len(message) - GithubCommentMaxLength + len(footer)
+		message = message[:len(message)-trimLength] + footer
+		slog.Debug("Trimmed comment message", "newLength", len(message))
+	}
+
+	return message, nil
+}
+
+// updateOrCreateSummaryComment updates or creates the summary comment for the batch
+func updateOrCreateSummaryComment(prService ci.PullRequestService, batch *models.DiggerBatch, message string) (*int64, error) {
+	if batch.CommentId != nil {
+		// Update existing comment
+		commentIdStr := strconv.FormatInt(*batch.CommentId, 10)
+		err := prService.EditComment(batch.PrNumber, commentIdStr, message)
+		if err != nil {
+			slog.Warn("Failed to update existing comment, will create new one", "commentId", *batch.CommentId, "prNumber", batch.PrNumber, "error", err)
+			// Fall through to create new comment
+		} else {
+			slog.Debug("Successfully updated existing comment", "commentId", *batch.CommentId, "prNumber", batch.PrNumber)
+			return batch.CommentId, nil
+		}
+	}
+
+	// Create new comment
+	comment, err := prService.PublishComment(batch.PrNumber, message)
+	if err != nil {
+		slog.Error("Failed to create new comment", "prNumber", batch.PrNumber, "error", err)
+		return nil, fmt.Errorf("failed to create comment: %v", err)
+	}
+
+	commentId, err := strconv.ParseInt(comment.Id, 10, 64)
+	if err != nil {
+		slog.Error("Failed to parse comment ID", "commentIdStr", comment.Id, "error", err)
+		return nil, fmt.Errorf("failed to parse comment ID: %v", err)
+	}
+
+	slog.Debug("Successfully created new comment", "commentId", commentId, "prNumber", batch.PrNumber)
+	return &commentId, nil
 }
 
 func updateWorkflowUrlForJob(githubClientProvider utils.GithubClientProvider, job *models.DiggerJob) error {
