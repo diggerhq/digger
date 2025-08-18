@@ -682,7 +682,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		// Update PR comment with real-time status
 		go func() {
-			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			err := updatePRCommentRealtime(d.GithubClientProvider, job.Batch)
 			if err != nil {
 				slog.Warn("Failed to update PR comment for created job",
 					"jobId", jobId,
@@ -709,7 +709,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		// Update PR comment with real-time status
 		go func() {
-			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			err := updatePRCommentRealtime(d.GithubClientProvider, job.Batch)
 			if err != nil {
 				slog.Warn("Failed to update PR comment for triggered job",
 					"jobId", jobId,
@@ -740,7 +740,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		// Update PR comment with real-time status
 		go func() {
-			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			err := updatePRCommentRealtime(d.GithubClientProvider, job.Batch)
 			if err != nil {
 				slog.Warn("Failed to update PR comment for started job",
 					"jobId", jobId,
@@ -909,7 +909,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		// Update PR comment with real-time status for succeeded job
 		go func() {
-			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			err := updatePRCommentRealtime(d.GithubClientProvider, job.Batch)
 			if err != nil {
 				slog.Warn("Failed to update PR comment for succeeded job",
 					"jobId", jobId,
@@ -940,7 +940,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 		// Update PR comment with real-time status for failed job
 		go func() {
-			err := updatePRCommentRealtime(d.GithubClientProvider, &job.Batch)
+			err := updatePRCommentRealtime(d.GithubClientProvider, job.Batch)
 			if err != nil {
 				slog.Warn("Failed to update PR comment for failed job",
 					"jobId", jobId,
@@ -1137,7 +1137,7 @@ func generateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		var jobSpec orchestrator_scheduler.JobJson
 		projectName := "Unknown"
 		if job.SerializedJobSpec != nil {
-			err := job.UnmarshalJobSpec(&jobSpec)
+			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
 			if err == nil {
 				projectName = jobSpec.ProjectName
 			}
@@ -1151,9 +1151,9 @@ func generateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			job.Status.ToString(),
 			prCommentUrl,
 			jobTypeTitle,
-			job.ResourcesCreated,
-			job.ResourcesUpdated,
-			job.ResourcesDeleted)
+			job.DiggerJobSummary.ResourcesCreated,
+			job.DiggerJobSummary.ResourcesUpdated,
+			job.DiggerJobSummary.ResourcesDeleted)
 	}
 
 	// Handle comment length limits
