@@ -2,6 +2,10 @@ package spec
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+	"os/exec"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
@@ -12,9 +16,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/libs/storage"
-	"log/slog"
-	"os"
-	"os/exec"
 )
 
 func RunSpecManualCommand(
@@ -133,10 +134,10 @@ func RunSpecManualCommand(
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
-	commentUpdater := comment_summary.NoopCommentUpdater{}
+	// commentUpdater := comment_summary.NoopCommentUpdater{}
 	// do not change these placeholders as they are parsed by dgctl to stream logs
 	slog.Info("<========= DIGGER RUNNING IN MANUAL MODE =========>")
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, noopBackendApi, spec.JobId, false, false, commentId, currentDir)
+	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, noopBackendApi, spec.JobId, false, false, commentId, currentDir)
 	slog.Info("<========= DIGGER COMPLETED =========>")
 	if err != nil || allAppliesSuccess == false {
 		usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Terraform execution failed", 1)
