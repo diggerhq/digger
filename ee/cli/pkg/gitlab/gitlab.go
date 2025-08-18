@@ -2,22 +2,22 @@ package gitlab
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	core_backend "github.com/diggerhq/digger/libs/backendapi"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/digger_config"
 	core_locking "github.com/diggerhq/digger/libs/locking"
 	core_policy "github.com/diggerhq/digger/libs/policy"
 	"github.com/diggerhq/digger/libs/scheduler"
-	"log"
-	"os"
 )
 
-func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotificationProvider drift.DriftNotificationProvider) {
+func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, driftNotificationProvider drift.DriftNotificationProvider) {
 	repoOwner := os.Getenv("CI_PROJECT_NAMESPACE")
 
 	defer func() {
