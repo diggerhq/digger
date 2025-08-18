@@ -78,7 +78,8 @@ func UpdatePRCommentRealtime(gh GithubClientProvider, batch *models.DiggerBatch)
 		freshBatch.CommentId = commentId
 		err = models.DB.GormDB.Save(&freshBatch).Error
 		if err != nil {
-			slog.Warn("Error saving comment ID to batch", "batchId", freshBatch.ID, "commentId", commentId, "error", err)
+			slog.Error("Error saving comment ID to batch", "batchId", freshBatch.ID, "commentId", commentId, "error", err)
+			return fmt.Errorf("error saving comment ID to batch: %v", err)
 		}
 	}
 
