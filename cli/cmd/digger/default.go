@@ -3,19 +3,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+	"runtime/debug"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/cli/pkg/github"
 	spec2 "github.com/diggerhq/digger/cli/pkg/spec"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/policy"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
-	"log/slog"
-	"os"
-	"runtime/debug"
 )
 
 func initLogger() {
@@ -61,7 +61,6 @@ var defaultCmd = &cobra.Command{
 				lib_spec.BasicPolicyProvider{},
 				lib_spec.PlanStorageProvider{},
 				lib_spec.VariablesProvider{},
-				comment_updater.CommentUpdaterProviderBasic{},
 			)
 
 			if spec_err != nil {
@@ -76,7 +75,7 @@ var defaultCmd = &cobra.Command{
 		switch ci {
 		case digger.GitHub:
 			logLeader = os.Getenv("GITHUB_ACTOR")
-			github.GitHubCI(lock, policy.PolicyCheckerProviderBasic{}, BackendApi, ReportStrategy, dg_github.GithubServiceProviderBasic{}, comment_updater.CommentUpdaterProviderBasic{}, drift.DriftNotificationProviderBasic{})
+			github.GitHubCI(lock, policy.PolicyCheckerProviderBasic{}, BackendApi, ReportStrategy, dg_github.GithubServiceProviderBasic{}, drift.DriftNotificationProviderBasic{})
 		case digger.None:
 			print("No CI detected.")
 			os.Exit(10)

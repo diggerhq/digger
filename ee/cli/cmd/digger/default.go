@@ -4,11 +4,14 @@ import (
 	"crypto/fips140"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"runtime/debug"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github"
 	spec2 "github.com/diggerhq/digger/cli/pkg/spec"
 	"github.com/diggerhq/digger/cli/pkg/usage"
-	"github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
 	"github.com/diggerhq/digger/ee/cli/pkg/drift"
 	github2 "github.com/diggerhq/digger/ee/cli/pkg/github"
 	"github.com/diggerhq/digger/ee/cli/pkg/gitlab"
@@ -17,9 +20,6 @@ import (
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
-	"log"
-	"os"
-	"runtime/debug"
 )
 
 var defaultCmd = &cobra.Command{
@@ -56,7 +56,6 @@ var defaultCmd = &cobra.Command{
 					policy.AdvancedPolicyProvider{},
 					lib_spec.PlanStorageProvider{},
 					lib_spec.VariablesProvider{},
-					comment_summary.CommentUpdaterProviderBasic{},
 				)
 			}
 			usage.ReportErrorAndExit(spec.VCS.Actor, "Successfully ran spec", 0)
@@ -68,10 +67,10 @@ var defaultCmd = &cobra.Command{
 		switch ci {
 		case digger.GitHub:
 			logLeader = os.Getenv("GITHUB_ACTOR")
-			github.GitHubCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, comment_updater.CommentUpdaterProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
+			github.GitHubCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
 		case digger.GitLab:
 			log.Printf("gitlab CI detected")
-			gitlab.GitLabCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, comment_updater.CommentUpdaterProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
+			gitlab.GitLabCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
 		case digger.None:
 			print("No CI detected.")
 			os.Exit(10)

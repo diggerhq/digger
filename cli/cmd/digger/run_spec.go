@@ -3,14 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	spec2 "github.com/diggerhq/digger/cli/pkg/spec"
 	"github.com/diggerhq/digger/cli/pkg/usage"
-	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"strings"
 )
 
 var viperRunSpec *viper.Viper
@@ -41,7 +41,6 @@ var runSpecCmd = &cobra.Command{
 			lib_spec.BasicPolicyProvider{},
 			lib_spec.PlanStorageProvider{},
 			lib_spec.VariablesProvider{},
-			comment_summary.CommentUpdaterProviderBasic{},
 		)
 		if err != nil {
 			usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error running spec: %v", err), 1)

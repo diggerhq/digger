@@ -10,7 +10,6 @@ import (
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	backend2 "github.com/diggerhq/digger/libs/backendapi"
-	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/samber/lo"
@@ -35,7 +34,6 @@ func RunSpec(
 	policyProvider spec.SpecPolicyProvider,
 	PlanStorageProvider spec.PlanStorageProvider,
 	variablesProvider spec.VariablesProvider,
-	commentUpdaterProvider comment_summary.CommentUpdaterProvider,
 ) error {
 
 	backendApi, err := backedProvider.GetBackendApi(spec.Backend)
@@ -113,11 +111,7 @@ func RunSpec(
 	}
 
 	// TODO: render mode being passable from the spec as a string
-	commentUpdater, err := commentUpdaterProvider.Get(spec.CommentUpdater.CommentUpdaterType)
-	if err != nil {
-		message := fmt.Sprintf("could not get comment updater: %v", err)
-		reportError(spec, backendApi, message, err)
-	}
+	// Comment management now handled by backend
 
 	planStorage, err := PlanStorageProvider.GetPlanStorage(spec.VCS.RepoOwner, spec.VCS.RepoName, *spec.Job.PullRequestNumber)
 	if err != nil {
@@ -159,13 +153,12 @@ func RunSpec(
 	reportTerraformOutput := spec.Reporter.ReportTerraformOutput
 	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, backendApi, spec.JobId, true, reportTerraformOutput, commentId, currentDir)
 	if !allAppliesSuccess || err != nil {
-		serializedBatch, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "", "", "", nil)
+		_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "", "", "", nil)
 		if reportingError != nil {
 			message := fmt.Sprintf("Failed run commands. %v", err)
 			reportError(spec, backendApi, message, err)
 		}
-		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, prService, commentId)
-		digger.UpdateAggregateStatus(serializedBatch, prService)
+		// Comment updates and aggregate status now handled by backend
 		reportError(spec, backendApi, fmt.Sprintf("failed to run commands %v", err), err)
 	}
 	usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Digger finished successfully", 0)
