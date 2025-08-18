@@ -623,6 +623,7 @@ type SetJobStatusRequest struct {
 	WorkflowUrl     string                      `json:"workflow_url,omitempty"`
 }
 
+
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
@@ -678,16 +679,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to created", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go func() {
-			err := utils.UpdatePRCommentRealtime(d.GithubClientProvider, job.Batch)
-			if err != nil {
-				slog.Warn("Failed to update PR comment for created job",
-					"jobId", jobId,
-					"batchId", job.Batch.ID,
-					"error", err,
-				)
-			}
-		}()
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "created")
 
 	case "triggered":
 		job.Status = orchestrator_scheduler.DiggerJobTriggered
@@ -705,16 +697,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to triggered", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go func() {
-			err := utils.UpdatePRCommentRealtime(d.GithubClientProvider, job.Batch)
-			if err != nil {
-				slog.Warn("Failed to update PR comment for triggered job",
-					"jobId", jobId,
-					"batchId", job.Batch.ID,
-					"error", err,
-				)
-			}
-		}()
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "triggered")
 
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
@@ -736,16 +719,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to started", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go func() {
-			err := utils.UpdatePRCommentRealtime(d.GithubClientProvider, job.Batch)
-			if err != nil {
-				slog.Warn("Failed to update PR comment for started job",
-					"jobId", jobId,
-					"batchId", job.Batch.ID,
-					"error", err,
-				)
-			}
-		}()
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "started")
 
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
@@ -905,16 +879,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 
 		// Update PR comment with real-time status for succeeded job
-		go func() {
-			err := utils.UpdatePRCommentRealtime(d.GithubClientProvider, job.Batch)
-			if err != nil {
-				slog.Warn("Failed to update PR comment for succeeded job",
-					"jobId", jobId,
-					"batchId", job.Batch.ID,
-					"error", err,
-				)
-			}
-		}()
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "succeeded")
 
 	case "failed":
 		job.Status = orchestrator_scheduler.DiggerJobFailed
@@ -936,16 +901,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		)
 
 		// Update PR comment with real-time status for failed job
-		go func() {
-			err := utils.UpdatePRCommentRealtime(d.GithubClientProvider, job.Batch)
-			if err != nil {
-				slog.Warn("Failed to update PR comment for failed job",
-					"jobId", jobId,
-					"batchId", job.Batch.ID,
-					"error", err,
-				)
-			}
-		}()
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "failed")
 
 	default:
 		slog.Warn("Unexpected job status received",

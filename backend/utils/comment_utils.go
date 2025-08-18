@@ -86,6 +86,19 @@ func UpdatePRCommentRealtime(gh GithubClientProvider, batch *models.DiggerBatch)
 	return nil
 }
 
+// UpdatePRComment updates the PR comment for a job status change
+func UpdatePRComment(gh GithubClientProvider, jobId string, job *models.DiggerJob, status string) {
+	err := UpdatePRCommentRealtime(gh, job.Batch)
+	if err != nil {
+		slog.Warn("Failed to update PR comment for "+status+" job",
+			"jobId", jobId,
+			"batchId", job.Batch.ID,
+			"status", status,
+			"error", err,
+		)
+	}
+}
+
 // GenerateRealtimeCommentMessage creates the markdown table for real-time PR comments
 // This matches the exact format used by the CLI's BasicCommentUpdater
 func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestrator_scheduler.DiggerCommand) (string, error) {
