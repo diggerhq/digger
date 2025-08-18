@@ -90,7 +90,7 @@ func UpdatePRCommentRealtime(gh GithubClientProvider, batch *models.DiggerBatch)
 func UpdatePRComment(gh GithubClientProvider, jobId string, job *models.DiggerJob, status string) {
 	err := UpdatePRCommentRealtime(gh, job.Batch)
 	if err != nil {
-		slog.Warn("Failed to update PR comment for "+status+" job",
+		slog.Warn("Failed to update PR comment for job",
 			"jobId", jobId,
 			"batchId", job.Batch.ID,
 			"status", status,
