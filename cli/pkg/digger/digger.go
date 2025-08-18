@@ -147,11 +147,11 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		if reportTerraformOutput {
 			terraformOutput = exectorResults[0].TerraformOutput
 		}
-		prNumber := *currentJob.PullRequestNumber
+		// prNumber := *currentJob.PullRequestNumber
 
 		iacUtils := iac_utils.GetIacUtilsIacType(currentJob.IacType())
 		LogGreen("Reporting job status for project %v to backend...", projectNameForBackendReporting)
-		batchResult, err := backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, jobPrCommentId, terraformOutput, iacUtils)
+		_, err = backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, jobPrCommentId, terraformOutput, iacUtils)
 		if err != nil {
 			slog.Error("error reporting Job status", "error", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
