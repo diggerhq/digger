@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -629,8 +628,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
 
-	runtime.Breakpoint()
-
 	if !exists {
 		slog.Warn("Organisation ID not found in context", "jobId", jobId)
 		c.String(http.StatusForbidden, "Not allowed to access this resource")
@@ -841,6 +838,83 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		if request.JobSummary != nil {
 			models.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
 		}
+
+		// Handle summary table updates for successful jobs
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					slog.Error("Recovered from panic in summary table update handler",
+						"jobId", jobId,
+						"error", r,
+					)
+				}
+			}()
+
+			slog.Debug("Starting summary table update processing", "jobId", jobId)
+
+			// Get batch details for summary table update
+			batch := job.Batch
+			if batch == nil {
+				slog.Error("Batch not found for job", "jobId", jobId)
+				return
+			}
+
+			// Get PR service for comment operations
+			_, err := GetPrServiceFromBatch(batch, d.GithubClientProvider)
+			if err != nil {
+				slog.Error("Error getting PR service for summary update",
+					"jobId", jobId,
+					"batchId", batch.ID,
+					"error", err,
+				)
+				return
+			}
+
+			// Get all jobs for the batch to create comprehensive summary
+			batchJobs, err := models.DB.GetDiggerJobsForBatch(batch.ID)
+			if err != nil {
+				slog.Error("Error fetching batch jobs for summary update",
+					"jobId", jobId,
+					"batchId", batch.ID,
+					"error", err,
+				)
+				return
+			}
+
+			// Convert to serialized jobs format for compatibility with existing comment system
+			var serializedJobs []orchestrator_scheduler.SerializedJob
+			for _, batchJob := range batchJobs {
+				var jobSpec orchestrator_scheduler.JobJson
+				err := json.Unmarshal(batchJob.SerializedJobSpec, &jobSpec)
+				if err != nil {
+					slog.Error("Could not unmarshal job spec for summary",
+						"jobId", batchJob.DiggerJobID,
+						"error", err,
+					)
+					continue
+				}
+
+				serializedJob := orchestrator_scheduler.SerializedJob{
+					DiggerJobId: batchJob.DiggerJobID,
+					ProjectName: jobSpec.ProjectName,
+					Status:      batchJob.Status,
+				}
+				serializedJobs = append(serializedJobs, serializedJob)
+			}
+
+			// Update comments using existing comment management infrastructure
+			err = UpdateCommentsForBatchGroup(d.GithubClientProvider, batch, serializedJobs)
+			if err != nil {
+				slog.Error("Error updating summary table comments",
+					"jobId", jobId,
+					"batchId", batch.ID,
+					"error", err,
+				)
+				return
+			}
+
+			slog.Debug("Successfully updated summary table", "jobId", jobId, "batchId", batch.ID)
+		}()
 
 	case "failed":
 		job.Status = orchestrator_scheduler.DiggerJobFailed

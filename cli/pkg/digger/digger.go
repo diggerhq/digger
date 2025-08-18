@@ -12,7 +12,6 @@ import (
 
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/execution"
 	locking2 "github.com/diggerhq/digger/libs/locking"
@@ -66,7 +65,7 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
 	defer reporter.Flush()
 
 	slog.Debug("Variable info", "TF_PLUGIN_CACHE_DIR", os.Getenv("TF_PLUGIN_CACHE_DIR"))
@@ -156,17 +155,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		if err != nil {
 			slog.Error("error reporting Job status", "error", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
-		}
-
-		err = commentUpdater.UpdateComment(batchResult.Jobs, prNumber, prService, prCommentId)
-		if err != nil {
-			slog.Error("error Updating status comment", "error", err)
-			return false, false, err
-		}
-		err = UpdateAggregateStatus(batchResult, prService)
-		if err != nil {
-			slog.Error("error updating aggregate status check", "error", err)
-			return false, false, err
 		}
 
 	}
