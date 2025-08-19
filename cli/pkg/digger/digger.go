@@ -12,7 +12,7 @@ import (
 
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/instructions"
+
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/execution"
 	locking2 "github.com/diggerhq/digger/libs/locking"
@@ -327,7 +327,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 					reportPlanSummary(reporter, planSummary)
 
-					if err := instructions.FormatAndReportExampleCommands(job.ProjectName, reporter); err != nil {
+					if err := reporting.FormatAndReportExampleCommands(job.ProjectName, reporter); err != nil {
 						slog.Error("Failed to report example commands.", "error", err)
 					}
 				}
