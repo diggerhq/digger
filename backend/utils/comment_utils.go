@@ -78,7 +78,8 @@ func UpdatePRCommentRealtime(gh GithubClientProvider, batch *models.DiggerBatch)
 		freshBatch.CommentId = commentId
 		err = models.DB.GormDB.Save(&freshBatch).Error
 		if err != nil {
-			slog.Warn("Error saving comment ID to batch", "batchId", freshBatch.ID, "commentId", commentId, "error", err)
+			slog.Error("Error saving comment ID to batch", "batchId", freshBatch.ID, "commentId", commentId, "error", err)
+			return fmt.Errorf("error saving comment ID to batch: %v", err)
 		}
 	}
 
@@ -100,13 +101,13 @@ func UpdatePRComment(gh GithubClientProvider, jobId string, job *models.DiggerJo
 	}() 	
 
 	err := UpdatePRCommentRealtime(gh, job.Batch)
-		if err != nil {
-			slog.Warån("Failed to update PR comment for "+status+" job",
-				"jobId", jobId,
-				"batchId", job.Batch.ID,
-				"status", status,
-				"error", err,
-			)
+	if err != nil {
+		slog.Warn("Failed to update PR comment for job",
+			"jobId", jobId,
+			"batchId", job.Batch.ID,
+			"status", status,
+			"error", err,
+		)
 	}
 }
 
@@ -152,6 +153,18 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		}
 
 		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
+		// Default resource counts to 0 if DiggerJobSummary is nil
+		resourcesCreated := uint(0)
+		resourcesUpdated := uint(0)
+		resourcesDeleted := uint(0)
+		
+		// Only access DiggerJobSummary fields if it's not nil
+		if job.DiggerJobSummary.ID != 0 {
+			resourcesCreated = job.DiggerJobSummary.ResourcesCreated
+			resourcesUpdated = job.DiggerJobSummary.ResourcesUpdated
+			resourcesDeleted = job.DiggerJobSummary.ResourcesDeleted
+		}
+		
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
 			projectName,
@@ -159,9 +172,9 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			job.Status.ToString(),
 			prCommentUrl,
 			jobTypeTitle,
-			job.DiggerJobSummary.ResourcesCreated,
-			job.DiggerJobSummary.ResourcesUpdated,
-			job.DiggerJobSummary.ResourcesDeleted)
+			resourcesCreated,
+			resourcesUpdated,
+			resourcesDeleted)
 	}
 
 	// Handle comment length limits
