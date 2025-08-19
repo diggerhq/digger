@@ -137,6 +137,18 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		}
 
 		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
+		// Default resource counts to 0 if DiggerJobSummary is nil
+		resourcesCreated := uint(0)
+		resourcesUpdated := uint(0)
+		resourcesDeleted := uint(0)
+		
+		// Only access DiggerJobSummary fields if it's not nil
+		if job.DiggerJobSummary.ID != 0 {
+			resourcesCreated = job.DiggerJobSummary.ResourcesCreated
+			resourcesUpdated = job.DiggerJobSummary.ResourcesUpdated
+			resourcesDeleted = job.DiggerJobSummary.ResourcesDeleted
+		}
+		
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
 			projectName,
@@ -144,9 +156,9 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			job.Status.ToString(),
 			prCommentUrl,
 			jobTypeTitle,
-			job.DiggerJobSummary.ResourcesCreated,
-			job.DiggerJobSummary.ResourcesUpdated,
-			job.DiggerJobSummary.ResourcesDeleted)
+			resourcesCreated,
+			resourcesUpdated,
+			resourcesDeleted)
 	}
 
 	// Handle comment length limits
