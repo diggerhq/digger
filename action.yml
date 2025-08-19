@@ -560,7 +560,7 @@ runs:
           echo "❌ traversal/colon/relative not allowed"; exit 1
         fi        
 
-        DIR=$(realpath -e -- "$RAW") || { echo "❌ not found"; exit 1; }
+        DIR=$(realpath -- "$RAW") || { echo "❌ not found"; exit 1; }
         [[ -d "$DIR" ]] || { echo "❌ not a dir"; exit 1; }        
 
         BIN="$DIR/digger"
