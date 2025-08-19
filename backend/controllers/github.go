@@ -2599,8 +2599,23 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// we get repos accessible to this installation
 	slog.Debug("Listing repositories for installation", "installationId", installationId64)
 
-	val := client.Apps.ListRepos(context.Background(), nil)
-	opt := &github.ListOptions{Page: (len(val) / 100) + 1, PerPage: 100}
+	opt := &github.ListOptions{Page: 1, PerPage: 100}
+	for {
+		// Example: Listing authenticated user's repositories
+		repos, resp, err := client.Repositories.List(ctx, "", opt)
+		if err != nil {
+			log.Fatalf("Error listing repositories: %v", err)
+		}
+
+		for _, repo := range repos {
+			fmt.Printf("Repository: %s\n", *repo.FullName)
+		}
+
+		if resp.NextPage == 0 {
+			break // No more pages
+		}
+		opt.Page = resp.NextPage
+	}
 	listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
 	if err != nil {
 		slog.Error("Failed to list existing repositories",
