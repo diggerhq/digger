@@ -120,4 +120,10 @@ The value of "local-dev-cli-path" should be an absolute path to your compiled bi
 
 ![](/images/contributing/self-hosted-cli-local-dev.png)
 
+> **Security Warning**: Self-hosted runners have significant security implications. When using self-hosted runners, be aware that:
+> - Code from pull requests can run on your self-hosted runner, potentially executing malicious code on your machine
+> - If your repository is public, anyone can fork it and submit a pull request that could run code on your runner
+> - Only use self-hosted runners in private repositories where you trust all contributors, or implement proper security controls
+> - For more information, see [GitHub's security considerations for self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#self-hosted-runner-security)
+
 From here onwards the cycle is to make a local change, rebuild the cli and then trigger in github to test that change. Its a much faster iterative cycle in comparison to building from a branch each time.
