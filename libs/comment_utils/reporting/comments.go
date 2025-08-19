@@ -1,10 +1,8 @@
-package utils
+package reporting
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 )
 
 func GetTerraformOutputAsCollapsibleComment(summary string, open bool) func(string) string {
@@ -51,8 +49,7 @@ func AsComment(summary string) func(string) string {
 	}
 }
 
-// FormatAndReportExampleCommands formats and reports the example commands using the provided reporter
-func FormatAndReportExampleCommands(projectName string, reporter reporting.Reporter) error {
+func FormatAndReportExampleCommands(projectName string, reporter Reporter) error {
 	// Escape special shell characters to prevent command injection
 	escapedProjectName := strings.NewReplacer(
 		"`", "\\`",
