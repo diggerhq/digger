@@ -53,7 +53,20 @@ func AsComment(summary string) func(string) string {
 // for applying or unlocking a specific project
 func FormatExampleCommands(projectName string) string {
 
-	escapedProjectName := strings.Replace(projectName, "`", "\\`", -1)
+	// Escape special shell characters to prevent command injection
+	escapedProjectName := projectName
+	// Escape backticks
+	escapedProjectName = strings.Replace(escapedProjectName, "`", "\\`", -1)
+	// Escape spaces, quotes, dollar signs, and other special shell characters
+	escapedProjectName = strings.Replace(escapedProjectName, " ", "\\ ", -1)
+	escapedProjectName = strings.Replace(escapedProjectName, "\"", "\\\"", -1)
+	escapedProjectName = strings.Replace(escapedProjectName, "'", "\\'", -1)
+	escapedProjectName = strings.Replace(escapedProjectName, "$", "\\$", -1)
+	escapedProjectName = strings.Replace(escapedProjectName, "&", "\\&", -1)
+	escapedProjectName = strings.Replace(escapedProjectName, "|", "\\|", -1)
+	escapedProjectName = strings.Replace(escapedProjectName, ";", "\\;", -1)
+	escapedProjectName = strings.Replace(escapedProjectName, "(", "\\(", -1)
+	escapedProjectName = strings.Replace(escapedProjectName, ")", "\\)", -1)
 
 	return `
 
