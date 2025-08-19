@@ -113,10 +113,10 @@ Test run the local cli - it should display a message like "no CI detected". Now 
         with:
           # ...
           local-dev-mode: "true"
-          local-dev-cli-path: "/Users/myname/dev/digger/digger/cli/digger"
+          local-dev-cli-path: "/Users/myname/dev/digger/digger/cli"
 ```
 
-The value of "local-dev-cli-path" should be an absolute path to your compiled binary from the previous step. You should see this line when you try to run it:
+The value of "local-dev-cli-path" should be an absolute path to the location compiled binary from the previous step (excluding the binary name). You should see this line when you try to run it:
 
 ![](/images/contributing/self-hosted-cli-local-dev.png)
 
