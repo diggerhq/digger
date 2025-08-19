@@ -4,6 +4,14 @@ description: Manage terraform collaboration
 author: Digger
 
 inputs:
+  local-dev-mode:
+    description: run digger for local development?
+    required: false
+    default: false
+  local-dev-cli-path:
+    description: The path to where the compiled digger cli on the self-hosted runner exists (absolute path)
+    required: false
+    default: './digger'
   ee:
     description: use ee cli?
     required: false
@@ -365,7 +373,9 @@ runs:
 
     - name: Copy Digger CLI go.sum for cache key
       run: |
-        if [[ ${{ inputs.ee }} == "true" ]]; then
+        if [[ "${{ inputs.local-dev-mode }}" == "true" ]]; then 
+          echo "Digger CLI is in local dev mode, skipping go.sum copy"
+        elif [[ ${{ inputs.ee }} == "true" ]]; then
           cp "$GITHUB_ACTION_PATH/ee/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
         else
           cp "$GITHUB_ACTION_PATH/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
@@ -399,7 +409,7 @@ runs:
 
 
     - name: build and run digger
-      if: ${{ !startsWith(github.action_ref, 'v') }}
+      if: ${{ !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -448,7 +458,7 @@ runs:
           digger
 
     - name: run digger
-      if: ${{ startsWith(github.action_ref, 'v') }}
+      if: ${{ startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -494,6 +504,70 @@ runs:
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         digger
+
+    - name: run digger in local dev mode
+      if:  ${{ inputs.local-dev-mode == 'true' }}
+      env:
+        actionref: ${{ github.action_ref }}
+        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
+        PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
+        PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
+        PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME: ${{ inputs.upload-plan-destination-azure-container }}
+        PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.upload-plan-destination-azure-storage-account }}
+        GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
+        GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
+        AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
+        ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
+        DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
+        DIGGER_PRIVATE_KEY: ${{ inputs.digger-private-key }}
+        DIGGER_TOKEN: ${{ inputs.digger-token }}
+        DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
+        DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
+        DIGGER_FILENAME: ${{ inputs.digger-filename }}
+        ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
+        REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
+        INPUT_DIGGER_PROJECT: ${{ inputs.project }}
+        INPUT_DIGGER_MODE: ${{ inputs.mode }}
+        INPUT_DIGGER_COMMAND: ${{ inputs.command }}
+        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
+        NO_BACKEND: ${{ inputs.no-backend }}
+        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
+        TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
+        DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
+      id: digger-local-run
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        cd $GITHUB_WORKSPACE
+        
+        echo "🚀 Running digger..."
+        RAW="${{ inputs.local-dev-cli-path }}"
+        
+        # Validate path to prevent command injection
+        if [[ "$RAW" =~ [^a-zA-Z0-9_./-] ]]; then
+          echo "❌ Invalid characters in local-dev-cli-path"
+          exit 1
+        fi
+        
+        if "$RAW" in [!A-Za-z0-9_./-]; then
+          echo "❌ bad chars" ; exit 1
+        fi
+
+        if [[ "$RAW"  =~ \.\. || "$RAW" == : || "$RAW" != /* ]]; then
+          echo "❌ traversal/colon/relative not allowed"; exit 1
+        fi        
+
+        DIR=$(realpath -- "$RAW") || { echo "❌ not found"; exit 1; }
+        [[ -d "$DIR" ]] || { echo "❌ not a dir"; exit 1; }        
+
+        BIN="$DIR/digger"
+        [[ -x "$BIN" ]] || { echo "❌ digger not executable at $BIN"; exit 1; }        
+        
+        $BIN
+        echo "✅ digger completed"
 
     - uses: actions/cache/save@v4
       name: cache-save
