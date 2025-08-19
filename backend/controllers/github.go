@@ -2599,33 +2599,8 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// we get repos accessible to this installation
 	slog.Debug("Listing repositories for installation", "installationId", installationId64)
 
-	//opt := &github.ListOptions{Page: 1, PerPage: 100}
-	repoCount := 0
-	pageCount := 0
-	for {
-		// Example: Listing authenticated user's repositories
-		repos, resp, err := client.Apps.ListRepos(context.Background(), nil)
-		if err != nil {
-			slog.Error("Failed to list existing repositories",
-				"installationId", installationId64,
-				"error", err,
-			)
-			c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
-			return
-		}
-
-		for _, repo := range repos {
-			fmt.Printf("Repository: %s\n", *repo.FullName)
-			repoCount++
-			if repoCount == 100 {
-				//pageCount++
-				repoCount = 0 // Reset count for next page
-				//slog.Debug("Processed 100 repositories, moving to next page",
-				//	"installationId", installationId64,
-				//	"pageCount", pageCount,
-				//)
-				opt := &github.ListOptions{Page: 1, PerPage: 100}
-				listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
+	opt := &github.ListOptions{Page: 1, PerPage: 100}
+	listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
 	if err != nil {
 		slog.Error("Failed to list existing repositories",
 			"installationId", installationId64,
@@ -2635,7 +2610,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 	repos := listRepos.Repositories
-	//repos, _, err := client.Apps.ListRepos(context.Background(), &github.ListOptions{Page: pageCount, PerPage: 100})
 
 	slog.Info("Retrieved repositories for installation",
 		"installationId", installationId64,
@@ -2729,16 +2703,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		"repoCount", len(repos),
 	)
 
-	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})	
-			}
-		}
-
-		if resp.NextPage == 0 {
-			break // No more pages
-		}
-		//opt.Page = resp.NextPage
-	}
-	
+	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
 }
 
 func (d DiggerController) GithubReposPage(c *gin.Context) {
