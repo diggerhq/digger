@@ -9,7 +9,7 @@ inputs:
     required: false
     default: false
   local-dev-cli-path:
-    description: The path to where the compiled digger cli on the self-hosted runner exists (absolute path
+    description: The path to where the compiled digger cli on the self-hosted runner exists (absolute path)
     required: false
     default: './digger'
   ee:
