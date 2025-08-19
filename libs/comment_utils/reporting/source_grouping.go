@@ -98,6 +98,9 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 		message = message + commenter(terraformOutputs[project]) + "\n"
 	}
 
+	// Add instruction helpers to individual plan comments (same as CLI)
+	message = message + "\n" + formatExampleCommands()
+
 	CommentId := sourceDetaiItem.CommentId
 	if err != nil {
 		slog.Error("could not convert commentId to int64",
@@ -121,6 +124,27 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 	}
 
 	return nil
+}
+
+// formatExampleCommands creates a collapsible markdown section with example commands
+// This matches the exact format used by the CLI's BasicCommentUpdater
+func formatExampleCommands() string {
+	return `
+<details>
+  <summary>Instructions</summary>
+
+⏩ To apply these changes, run the following command:
+
+` + "```" + `bash
+digger apply
+` + "```" + `
+
+🚮 To unlock the projects in this PR run the following command:
+` + "```" + `bash
+digger unlock
+` + "```" + `
+</details>
+`
 }
 
 // returns a map inverting locations
