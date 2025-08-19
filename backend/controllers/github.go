@@ -2642,7 +2642,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 	repos := listRepos.Repositories*/
-	repos, _, err := client.Apps.ListRepos(context.Background(), &github.ListOptions{Page: pageCount, PerPage: repoCount})
+	repos, _, err := client.Apps.ListRepos(context.Background(), &github.ListOptions{Page: pageCount, PerPage: 100})
 
 	slog.Info("Retrieved repositories for installation",
 		"installationId", installationId64,
