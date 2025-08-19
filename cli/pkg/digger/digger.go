@@ -327,7 +327,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 					reportPlanSummary(reporter, planSummary)
 
-					reporter.Report(coreutils.FormatExampleCommands(job.ProjectName), coreutils.AsComment(""))
+					_, _, err = reporter.Report(coreutils.FormatExampleCommands(job.ProjectName), coreutils.AsComment(""))
+					if err != nil {
+						slog.Error("Failed to report example commands.", "error", err)
+					}
 
 				}
 			} else {
