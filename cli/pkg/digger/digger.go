@@ -339,11 +339,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				}
 			} else {
 				reportEmptyPlanOutput(reporter, projectLock.LockId())
-				
-				_, _, err = reporter.Report(coreutils.FormatExampleCommands(job.ProjectName), coreutils.AsCollapsibleComment("Instructions", false))
-				if err != nil {
-					slog.Error("Failed to report example commands.", "error", err)
-				}
 			}
 			err := prService.SetStatus(*job.PullRequestNumber, "success", job.GetProjectAlias()+"/plan")
 			if err != nil {
