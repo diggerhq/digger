@@ -2618,21 +2618,13 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 			fmt.Printf("Repository: %s\n", *repo.FullName)
 			repoCount++
 			if repoCount == 100 {
-				pageCount++
+				//pageCount++
 				repoCount = 0 // Reset count for next page
-				slog.Debug("Processed 100 repositories, moving to next page",
-					"installationId", installationId64,
-					"pageCount", pageCount,
-				)
-			}
-		}
-
-		if resp.NextPage == 0 {
-			break // No more pages
-		}
-		//opt.Page = resp.NextPage
-	}
-	/*listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
+				//slog.Debug("Processed 100 repositories, moving to next page",
+				//	"installationId", installationId64,
+				//	"pageCount", pageCount,
+				//)
+				listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
 	if err != nil {
 		slog.Error("Failed to list existing repositories",
 			"installationId", installationId64,
@@ -2641,8 +2633,8 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
 		return
 	}
-	repos := listRepos.Repositories*/
-	repos, _, err := client.Apps.ListRepos(context.Background(), &github.ListOptions{Page: pageCount, PerPage: 100})
+	repos := listRepos.Repositories
+	//repos, _, err := client.Apps.ListRepos(context.Background(), &github.ListOptions{Page: pageCount, PerPage: 100})
 
 	slog.Info("Retrieved repositories for installation",
 		"installationId", installationId64,
@@ -2736,7 +2728,16 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		"repoCount", len(repos),
 	)
 
-	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
+	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})	
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break // No more pages
+		}
+		//opt.Page = resp.NextPage
+	}
+	
 }
 
 func (d DiggerController) GithubReposPage(c *gin.Context) {
