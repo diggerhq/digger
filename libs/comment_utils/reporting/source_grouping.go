@@ -99,7 +99,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 	}
 
 	// Add instruction helpers to individual plan comments (same as CLI)
-	message = message + "\n" + FormatExampleCommands()
+	// message = message + "\n" + FormatExampleCommands(sourceDetaiItem.Projects[0])
 
 	CommentId := sourceDetaiItem.CommentId
 	if err != nil {
@@ -126,20 +126,30 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 	return nil
 }
 
-// formatExampleCommands creates a collapsible markdown section with example commands
+// FormatExampleCommands creates a collapsible markdown section with example commands
 // This matches the exact format used by the CLI's BasicCommentUpdater
-func FormatExampleCommands() string {
+func FormatExampleCommands(projectName string) string {
 	return `
 <details>
   <summary>Instructions</summary>
 
-⏩ To apply these changes, run the following command:
+▶️ To apply these changes, run the following command:
 
+` + "```" + `bash
+digger apply -p ` + projectName + `
+` + "```" + `
+
+⏩ To apply all changes in this PR:
 ` + "```" + `bash
 digger apply
 ` + "```" + `
 
-🚮 To unlock the projects in this PR run the following command:
+🚮 To unlock this project:
+` + "```" + `bash
+digger unlock -p ` + projectName + `
+` + "```" + `
+
+🚮 To unlock all projects in this PR:
 ` + "```" + `bash
 digger unlock
 ` + "```" + `
