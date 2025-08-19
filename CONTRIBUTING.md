@@ -20,7 +20,7 @@ and we would be happy to set you up.
 
 ## Introduction
 
-Digger is an open source terraform cloud alternative. We believe that open source software is important, and we welcome contributions from anyone who is interested in making our tool better.
+Digger is an open source terraform cloud alternative. We believe that open source software is important, and we welcome contributions from anyone who is interested in making our platform better.
 This document is intended to be a guide for people who want to contribute to Digger. We appreciate all contributions, no matter how big or small.
 
 ## How to contribute
@@ -51,6 +51,7 @@ libs/ # contains libraries that are common between digger cli and digger cloud b
 cli/cmd/ # contains the main cli files
 cli/pkg/ # contains packages that are used by the cli code, can import from libs/
 backend/ # contains the backend code, can import from libs/
+ee/ # contains the ee code, can import from libs/ and the other ce packages (but ce must not import from ee)
 docs/ # contains documentation pages
 ```
 
@@ -64,7 +65,7 @@ When you have made changes to the codebase that you would like to contribute bac
 4. Test out your changes in a demo GitHub repository using Github Actions.
 
    - You can test out the changes from your fork by referencing the Action within a Github workflow file: `uses: <github-username>/digger@your-branch`.
-   - Fork [this demo repository](https://github.com/diggerhq/digger_demo_multienv) to setup and assert your tests.
+   - Fork [this demo repository](https://github.com/diggerhq/demo-opentofu) to setup and assert your tests.
    - If you're adding new app level inputs that implies new environment variables, make sure to reference them **both within the `build digger` and `run digger` steps** in [`action.yml`](./action.yml).
 
 5. Update the documentation to reflect your changes, if applicable.
@@ -80,6 +81,11 @@ When you have made changes to the codebase that you would like to contribute bac
 - We perform additional manual and automated tests in this branch to make sure there are no regressions.
 - Once we are ready we tag the head of our release branch and perform a release on it.
 - Tagged releases are published as actions and they are the most suitable to be used in production.
+
+
+## How to test locally
+
+The easiest way to test locally is to follow our [Testing locally](https://docs.digger.dev/ce/contributing/setup-dev-environment) instructions.
 
 ## Code of Conduct
 
