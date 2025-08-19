@@ -2630,7 +2630,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		if resp.NextPage == 0 {
 			break // No more pages
 		}
-		opt.Page = resp.NextPage
+		//opt.Page = resp.NextPage
 	}
 	/*listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
 	if err != nil {
