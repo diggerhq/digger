@@ -45,3 +45,34 @@ func AsComment(summary string) func(string) string {
 		return summary + "\n" + comment
 	}
 }
+
+// FormatExampleCommands creates a collapsible markdown section with example commands
+// for applying or unlocking a specific project
+func FormatExampleCommands(projectName string) string {
+	return `
+<details>
+  <summary>Instructions</summary>
+
+▶️ To apply these changes, run the following command:
+
+` + "```" + `bash
+digger apply -p ` + projectName + `
+` + "```" + `
+
+⏩ To apply all changes in this PR:
+` + "```" + `bash
+digger apply
+` + "```" + `
+
+🚮 To unlock this project:
+` + "```" + `bash
+digger unlock -p ` + projectName + `
+` + "```" + `
+
+🚮 To unlock all projects in this PR:
+` + "```" + `bash
+digger unlock
+` + "```" + `
+</details>
+`
+}
