@@ -88,14 +88,25 @@ func UpdatePRCommentRealtime(gh GithubClientProvider, batch *models.DiggerBatch)
 
 // UpdatePRComment updates the PR comment for a job status change
 func UpdatePRComment(gh GithubClientProvider, jobId string, job *models.DiggerJob, status string) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("Recovered from panic in UpdatePRComment goroutine", 
+				"jobId", jobId, 
+				"status", "created", 
+				"error", r,
+				"stack", string(debug.Stack()),
+			)
+		}
+	}() 	
+
 	err := UpdatePRCommentRealtime(gh, job.Batch)
-	if err != nil {
-		slog.Warn("Failed to update PR comment for "+status+" job",
-			"jobId", jobId,
-			"batchId", job.Batch.ID,
-			"status", status,
-			"error", err,
-		)
+		if err != nil {
+			slog.Warån("Failed to update PR comment for "+status+" job",
+				"jobId", jobId,
+				"batchId", job.Batch.ID,
+				"status", status,
+				"error", err,
+			)
 	}
 }
 
@@ -132,6 +143,11 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
 			if err == nil {
 				projectName = jobSpec.ProjectName
+			}
+			else {
+				slog.Warn("Failed to unmarshal job spec for project name", 
+					"jobId", job.DiggerJobID, 
+					"error", err)
 			}
 		}
 
