@@ -16,7 +16,6 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/iac_utils"
@@ -624,6 +623,7 @@ type SetJobStatusRequest struct {
 	WorkflowUrl     string                      `json:"workflow_url,omitempty"`
 }
 
+
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
@@ -663,6 +663,42 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	)
 
 	switch request.Status {
+	case "created":
+		job.Status = orchestrator_scheduler.DiggerJobCreated
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			slog.Error("Error updating job status",
+				"jobId", jobId,
+				"status", request.Status,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			return
+		}
+
+		slog.Info("Job status updated to created", "jobId", jobId)
+
+		// Update PR comment with real-time status
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "created")
+
+	case "triggered":
+		job.Status = orchestrator_scheduler.DiggerJobTriggered
+		err := models.DB.UpdateDiggerJob(job)
+		if err != nil {
+			slog.Error("Error updating job status",
+				"jobId", jobId,
+				"status", request.Status,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating job status"})
+			return
+		}
+
+		slog.Info("Job status updated to triggered", "jobId", jobId)
+
+		// Update PR comment with real-time status
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "triggered")
+
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
 		if request.WorkflowUrl != "" {
@@ -681,6 +717,9 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 
 		slog.Info("Job status updated to started", "jobId", jobId)
+
+		// Update PR comment with real-time status
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "started")
 
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
@@ -839,6 +878,9 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			models.DB.UpdateDiggerJobSummary(job.DiggerJobID, request.JobSummary.ResourcesCreated, request.JobSummary.ResourcesUpdated, request.JobSummary.ResourcesDeleted)
 		}
 
+		// Update PR comment with real-time status for succeeded job
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "succeeded")
+
 	case "failed":
 		job.Status = orchestrator_scheduler.DiggerJobFailed
 		job.TerraformOutput = request.TerraformOutput
@@ -858,12 +900,15 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			"batchId", batchId,
 		)
 
+		// Update PR comment with real-time status for failed job
+		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "failed")
+
 	default:
 		slog.Warn("Unexpected job status received",
 			"jobId", jobId,
 			"status", request.Status,
 		)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unexpected job status"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Unexpected job status: %s. Valid statuses are: created, triggered, started, succeeded, failed", request.Status)})
 		return
 	}
 
@@ -964,6 +1009,12 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 }
+
+
+
+
+
+
 
 func updateWorkflowUrlForJob(githubClientProvider utils.GithubClientProvider, job *models.DiggerJob) error {
 	if job == nil {
@@ -1153,80 +1204,6 @@ func UpdateCommentsForBatchGroup(gh utils.GithubClientProvider, batch *models.Di
 	return nil
 }
 
-func GetPrServiceFromBatch(batch *models.DiggerBatch, gh utils.GithubClientProvider) (ci.PullRequestService, error) {
-	slog.Debug("Getting PR service for batch",
-		"batchId", batch.ID,
-		"vcs", batch.VCS,
-		"prNumber", batch.PrNumber,
-	)
-
-	switch batch.VCS {
-	case "github":
-		slog.Debug("Using GitHub service for batch",
-			"batchId", batch.ID,
-			"installationId", batch.GithubInstallationId,
-			"repoFullName", batch.RepoFullName,
-		)
-
-		service, _, err := utils.GetGithubService(
-			gh,
-			batch.GithubInstallationId,
-			batch.RepoFullName,
-			batch.RepoOwner,
-			batch.RepoName,
-		)
-
-		if err != nil {
-			slog.Error("Error getting GitHub service",
-				"batchId", batch.ID,
-				"repoFullName", batch.RepoFullName,
-				"error", err,
-			)
-		} else {
-			slog.Debug("Successfully got GitHub service",
-				"batchId", batch.ID,
-				"repoFullName", batch.RepoFullName,
-			)
-		}
-
-		return service, err
-
-	case "gitlab":
-		slog.Debug("Using GitLab service for batch",
-			"batchId", batch.ID,
-			"projectId", batch.GitlabProjectId,
-			"repoFullName", batch.RepoFullName,
-		)
-
-		service, err := utils.GetGitlabService(
-			utils.GitlabClientProvider{},
-			batch.GitlabProjectId,
-			batch.RepoName,
-			batch.RepoFullName,
-			batch.PrNumber,
-			"",
-		)
-
-		if err != nil {
-			slog.Error("Error getting GitLab service",
-				"batchId", batch.ID,
-				"projectId", batch.GitlabProjectId,
-				"error", err,
-			)
-		} else {
-			slog.Debug("Successfully got GitLab service",
-				"batchId", batch.ID,
-				"projectId", batch.GitlabProjectId,
-			)
-		}
-
-		return service, err
-	}
-
-	slog.Error("Unsupported VCS type", "vcs", batch.VCS, "batchId", batch.ID)
-	return nil, fmt.Errorf("could not retrieve a service for %v", batch.VCS)
-}
-
 func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
 	slog.Info("Creating Terraform outputs summary",
 		"batchId", batch.ID,
@@ -1259,7 +1236,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 			"prNumber", batch.PrNumber,
 		)
 
-		prService, err := GetPrServiceFromBatch(batch, gh)
+		prService, err := utils.GetPrServiceFromBatch(batch, gh)
 		if err != nil {
 			slog.Error("Error getting PR service",
 				"batchId", batch.ID,
@@ -1462,7 +1439,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 			"prNumber", batch.PrNumber,
 		)
 
-		prService, err := GetPrServiceFromBatch(batch, gh)
+		prService, err := utils.GetPrServiceFromBatch(batch, gh)
 		if err != nil {
 			slog.Error("Error getting PR service",
 				"batchId", batch.ID,
@@ -1554,7 +1531,7 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 			"prNumber", batch.PrNumber,
 		)
 
-		prService, err := GetPrServiceFromBatch(batch, gh)
+		prService, err := utils.GetPrServiceFromBatch(batch, gh)
 		if err != nil {
 			slog.Error("Error getting PR service",
 				"batchId", batch.ID,
