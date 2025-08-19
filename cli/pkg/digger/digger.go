@@ -326,6 +326,9 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 						slog.Error("Failed to report plan.", "error", err)
 					}
 					reportPlanSummary(reporter, planSummary)
+
+					reporter.Report(reporting.FormatExampleCommands(), coreutils.AsComment(""))
+
 				}
 			} else {
 				reportEmptyPlanOutput(reporter, projectLock.LockId())

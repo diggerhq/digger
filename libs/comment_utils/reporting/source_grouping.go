@@ -99,7 +99,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 	}
 
 	// Add instruction helpers to individual plan comments (same as CLI)
-	message = message + "\n" + formatExampleCommands()
+	message = message + "\n" + FormatExampleCommands()
 
 	CommentId := sourceDetaiItem.CommentId
 	if err != nil {
@@ -128,7 +128,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 
 // formatExampleCommands creates a collapsible markdown section with example commands
 // This matches the exact format used by the CLI's BasicCommentUpdater
-func formatExampleCommands() string {
+func FormatExampleCommands() string {
 	return `
 <details>
   <summary>Instructions</summary>
