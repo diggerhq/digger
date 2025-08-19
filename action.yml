@@ -565,7 +565,8 @@ runs:
 
         BIN="$DIR/digger"
         [[ -x "$BIN" ]] || { echo "❌ digger not executable at $BIN"; exit 1; }        
-
+        
+        $BIN
         echo "✅ digger completed"
 
     - uses: actions/cache/save@v4
