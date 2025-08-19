@@ -327,15 +327,9 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 					reportPlanSummary(reporter, planSummary)
 
-					if reporter.SupportsMarkdown() {
-						_, _, err = reporter.Report(coreutils.FormatExampleCommands(job.ProjectName), coreutils.AsCollapsibleComment("Instructions", false))
-					} else {
-						_, _, err = reporter.Report(coreutils.FormatExampleCommands(job.ProjectName), coreutils.AsComment("Instructions"))
-					}
-					if err != nil {
+					if err := coreutils.FormatAndReportExampleCommands(job.ProjectName, reporter); err != nil {
 						slog.Error("Failed to report example commands.", "error", err)
 					}
-
 				}
 			} else {
 				reportEmptyPlanOutput(reporter, projectLock.LockId())

@@ -3,6 +3,8 @@ package utils
 import (
 	"fmt"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 )
 
 func GetTerraformOutputAsCollapsibleComment(summary string, open bool) func(string) string {
@@ -49,42 +51,47 @@ func AsComment(summary string) func(string) string {
 	}
 }
 
-// FormatExampleCommands creates a collapsible markdown section with example commands
-// for applying or unlocking a specific project
-func FormatExampleCommands(projectName string) string {
-
+// FormatAndReportExampleCommands formats and reports the example commands using the provided reporter
+func FormatAndReportExampleCommands(projectName string, reporter reporting.Reporter) error {
 	// Escape special shell characters to prevent command injection
-	escapedProjectName := projectName
-	// Escape backticks
-	escapedProjectName = strings.Replace(escapedProjectName, "`", "\\`", -1)
-	// Escape spaces, quotes, dollar signs, and other special shell characters
-	escapedProjectName = strings.Replace(escapedProjectName, " ", "\\ ", -1)
-	escapedProjectName = strings.Replace(escapedProjectName, "\"", "\\\"", -1)
-	escapedProjectName = strings.Replace(escapedProjectName, "'", "\\'", -1)
-	escapedProjectName = strings.Replace(escapedProjectName, "$", "\\$", -1)
-	escapedProjectName = strings.Replace(escapedProjectName, "&", "\\&", -1)
-	escapedProjectName = strings.Replace(escapedProjectName, "|", "\\|", -1)
-	escapedProjectName = strings.Replace(escapedProjectName, ";", "\\;", -1)
-	escapedProjectName = strings.Replace(escapedProjectName, "(", "\\(", -1)
-	escapedProjectName = strings.Replace(escapedProjectName, ")", "\\)", -1)
+	escapedProjectName := strings.NewReplacer(
+		"`", "\\`",
+		" ", "\\ ",
+		"\"", "\\\"",
+		"'", "\\'",
+		"$", "\\$",
+		"&", "\\&",
+		"|", "\\|",
+		";", "\\;",
+		"(", "\\(",
+		")", "\\)",
+	).Replace(projectName)
 
-	return `
-
+	commands := fmt.Sprintf(`
 ▶️ To apply these changes, run the following command:
 
-` + "```" + `bash
-digger apply -p ` + escapedProjectName + `
-` + "```" + `
+`+"```"+`bash
+digger apply -p %s
+`+"```"+`
 
 ⏩ To apply all changes in this PR:
-` + "```" + `bash
+`+"```"+`bash
 digger apply
-` + "```" + `
+`+"```"+`
 
 🚮 To unlock all projects in this PR:
-` + "```" + `bash
+`+"```"+`bash
 digger unlock
-` + "```" + `
+`+"```"+`
+`, escapedProjectName)
 
-`
+	var formatter func(string) string
+	if reporter.SupportsMarkdown() {
+		formatter = AsCollapsibleComment("Instructions", false)
+	} else {
+		formatter = AsComment("Instructions")
+	}
+
+	_, _, err := reporter.Report(commands, formatter)
+	return err
 }
