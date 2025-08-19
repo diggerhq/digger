@@ -544,13 +544,28 @@ runs:
         cd $GITHUB_WORKSPACE
         
         echo "🚀 Running digger..."
+        RAW="${{ inputs.local-dev-cli-path }}"
+        
         # Validate path to prevent command injection
-        if [[ "${{ inputs.local-dev-cli-path }}" =~ [^a-zA-Z0-9_./:-] || "${{ inputs.local-dev-cli-path }}" =~ \.\. ]]; then
-          echo "❌ Invalid characters or path traversal in local-dev-cli-path"
+        if [[ "$RAW" =~ [^a-zA-Z0-9_./-] ]]; then
+          echo "❌ Invalid characters in local-dev-cli-path"
           exit 1
         fi
-        export PATH=$PATH:${{ inputs.local-dev-cli-path }}
-        digger || { echo "❌ digger failed with exit code $?"; exit 1; }
+        
+        if "$RAW" in [!A-Za-z0-9_./-] ); then
+          echo "❌ bad chars" ; exit 1
+        fi
+
+        if [[ "$RAW"  =~ \.\. || "$RAW" == : || "$RAW" != /* ]]; then
+          echo "❌ traversal/colon/relative not allowed"; exit 1
+        fi        
+
+        DIR=$(realpath -e -- "$RAW") || { echo "❌ not found"; exit 1; }
+        [[ -d "$DIR" ]] || { echo "❌ not a dir"; exit 1; }        
+
+        BIN="$DIR/digger"
+        [[ -x "$BIN" ]] || { echo "❌ digger not executable at $BIN"; exit 1; }        
+
         echo "✅ digger completed"
 
     - uses: actions/cache/save@v4
