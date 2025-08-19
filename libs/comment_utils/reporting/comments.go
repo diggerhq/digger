@@ -2,7 +2,6 @@ package reporting
 
 import (
 	"fmt"
-	"strings"
 )
 
 func GetTerraformOutputAsCollapsibleComment(summary string, open bool) func(string) string {
