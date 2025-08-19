@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/diggerhq/digger/backend/models"
@@ -93,7 +94,7 @@ func UpdatePRComment(gh GithubClientProvider, jobId string, job *models.DiggerJo
 		if r := recover(); r != nil {
 			slog.Error("Recovered from panic in UpdatePRComment goroutine", 
 				"jobId", jobId, 
-				"status", "created", 
+				"status", status, 
 				"error", r,
 				"stack", string(debug.Stack()),
 			)
@@ -144,15 +145,13 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
 			if err == nil {
 				projectName = jobSpec.ProjectName
-			}
-			else {
+			} else {
 				slog.Warn("Failed to unmarshal job spec for project name", 
 					"jobId", job.DiggerJobID, 
 					"error", err)
 			}
 		}
 
-		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
 		// Default resource counts to 0 if DiggerJobSummary is nil
 		resourcesCreated := uint(0)
 		resourcesUpdated := uint(0)
@@ -165,6 +164,7 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			resourcesDeleted = job.DiggerJobSummary.ResourcesDeleted
 		}
 		
+		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
 			projectName,
