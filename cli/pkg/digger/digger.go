@@ -12,7 +12,6 @@ import (
 
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
-
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/execution"
 	locking2 "github.com/diggerhq/digger/libs/locking"
