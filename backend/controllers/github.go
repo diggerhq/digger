@@ -2624,6 +2624,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 				//	"installationId", installationId64,
 				//	"pageCount", pageCount,
 				//)
+				opt := &github.ListOptions{Page: 1, PerPage: 100}
 				listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
 	if err != nil {
 		slog.Error("Failed to list existing repositories",
