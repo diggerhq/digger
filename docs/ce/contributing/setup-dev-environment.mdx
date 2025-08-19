@@ -109,8 +109,9 @@ Test run the local cli - it should display a message like "no CI detected". Now 
 
 ```
       - name: digger
-        uses: diggerhq/digger@feat/my-test-branch
+        uses: diggerhq/digger@vLatest # this version doesn't matter when using local dev
         with:
+          # ...
           local-dev-mode: "true"
           local-dev-cli-path: "/Users/myname/dev/digger/digger/cli/digger"
 ```
