@@ -2617,14 +2617,14 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		for _, repo := range repos {
 			fmt.Printf("Repository: %s\n", *repo.FullName)
 			repoCount++
-			/*if repoCount == 100 {
+			if repoCount == 100 {
 				pageCount++
 				repoCount = 0 // Reset count for next page
 				slog.Debug("Processed 100 repositories, moving to next page",
 					"installationId", installationId64,
 					"pageCount", pageCount,
 				)
-			}*/
+			}
 		}
 
 		if resp.NextPage == 0 {
@@ -2642,7 +2642,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 	repos := listRepos.Repositories*/
-	repos, _, err := client.Apps.ListRepos(context.Background(), &github.ListOptions{PerPage: repoCount})
+	repos, _, err := client.Apps.ListRepos(context.Background(), &github.ListOptions{Page: pageCount, PerPage: repoCount})
 
 	slog.Info("Retrieved repositories for installation",
 		"installationId", installationId64,
