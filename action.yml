@@ -545,8 +545,8 @@ runs:
         
         echo "🚀 Running digger..."
         # Validate path to prevent command injection
-        if [[ "${{ inputs.local-dev-cli-path }}" =~ [^a-zA-Z0-9_./-] ]]; then
-          echo "❌ Invalid characters in local-dev-cli-path"
+        if [[ "${{ inputs.local-dev-cli-path }}" =~ [^a-zA-Z0-9_./:-] || "${{ inputs.local-dev-cli-path }}" =~ \.\. ]]; then
+          echo "❌ Invalid characters or path traversal in local-dev-cli-path"
           exit 1
         fi
         export PATH=$PATH:${{ inputs.local-dev-cli-path }}
