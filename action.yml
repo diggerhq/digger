@@ -549,7 +549,8 @@ runs:
           echo "❌ Invalid characters in local-dev-cli-path"
           exit 1
         fi
-        ${{ inputs.local-dev-cli-path }} || { echo "❌ digger failed with exit code $?"; exit 1; }
+        export PATH=$PATH:${{ inputs.local-dev-cli-path }}
+        digger || { echo "❌ digger failed with exit code $?"; exit 1; }
         echo "✅ digger completed"
 
     - uses: actions/cache/save@v4
