@@ -544,6 +544,11 @@ runs:
         cd $GITHUB_WORKSPACE
         
         echo "🚀 Running digger..."
+        # Validate path to prevent command injection
+        if [[ "${{ inputs.local-dev-cli-path }}" =~ [^a-zA-Z0-9_./-] ]]; then
+          echo "❌ Invalid characters in local-dev-cli-path"
+          exit 1
+        fi
         ${{ inputs.local-dev-cli-path }} || { echo "❌ digger failed with exit code $?"; exit 1; }
         echo "✅ digger completed"
 
