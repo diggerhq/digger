@@ -1,6 +1,8 @@
-package utils
+package reporting
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func GetTerraformOutputAsCollapsibleComment(summary string, open bool) func(string) string {
 	var openTag string

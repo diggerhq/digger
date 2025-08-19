@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
 )
 
 type CiReporter struct {
@@ -147,9 +146,9 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 	if commentIdForThisRun == "" {
 		var commentMessage string
 		if !supportsCollapsible {
-			commentMessage = utils.AsComment(reportTitle)(report)
+			commentMessage = AsComment(reportTitle)(report)
 		} else {
-			commentMessage = utils.AsCollapsibleComment(reportTitle, false)(report)
+			commentMessage = AsCollapsibleComment(reportTitle, false)(report)
 		}
 		comment, err := ciService.PublishComment(PrNumber, commentMessage)
 		if err != nil {
@@ -168,9 +167,9 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 
 	var completeComment string
 	if !supportsCollapsible {
-		completeComment = utils.AsComment(reportTitle)(commentBody)
+		completeComment = AsComment(reportTitle)(commentBody)
 	} else {
-		completeComment = utils.AsCollapsibleComment(reportTitle, false)(commentBody)
+		completeComment = AsCollapsibleComment(reportTitle, false)(commentBody)
 	}
 
 	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
