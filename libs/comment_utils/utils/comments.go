@@ -1,6 +1,9 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func GetTerraformOutputAsCollapsibleComment(summary string, open bool) func(string) string {
 	var openTag string
@@ -49,14 +52,15 @@ func AsComment(summary string) func(string) string {
 // FormatExampleCommands creates a collapsible markdown section with example commands
 // for applying or unlocking a specific project
 func FormatExampleCommands(projectName string) string {
+
+	escapedProjectName := strings.Replace(projectName, "`", "\\`", -1)
+
 	return `
-<details>
-  <summary>Instructions</summary>
 
 ▶️ To apply these changes, run the following command:
 
 ` + "```" + `bash
-digger apply -p ` + projectName + `
+digger apply -p ` + escapedProjectName + `
 ` + "```" + `
 
 ⏩ To apply all changes in this PR:
@@ -68,6 +72,6 @@ digger apply
 ` + "```" + `bash
 digger unlock
 ` + "```" + `
-</details>
+
 `
 }
