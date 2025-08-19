@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/diggerhq/digger/libs/scheduler"
@@ -94,7 +93,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 			continue
 		}
 		expanded := i == 0 || !allSimilarInGroup
-		commenter := utils.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", project), expanded)
+		commenter := GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", project), expanded)
 		message = message + commenter(terraformOutputs[project]) + "\n"
 	}
 

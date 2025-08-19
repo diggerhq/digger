@@ -13,7 +13,6 @@ import (
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
-	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/execution"
 	locking2 "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/policy"
@@ -170,12 +169,12 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 func reportPolicyError(projectName string, command string, requestedBy string, reporter reporting.Reporter) string {
 	msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
 	if reporter.SupportsMarkdown() {
-		_, _, err := reporter.Report(msg, coreutils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command), false))
+		_, _, err := reporter.Report(msg, reporting.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command), false))
 		if err != nil {
 			slog.Error("Error publishing comment", "error", err)
 		}
 	} else {
-		_, _, err := reporter.Report(msg, coreutils.AsComment(fmt.Sprintf("Policy violation for %v - %v", projectName, command)))
+		_, _, err := reporter.Report(msg, reporting.AsComment(fmt.Sprintf("Policy violation for %v - %v", projectName, command)))
 		if err != nil {
 			slog.Error("Error publishing comment", "error", err)
 		}
@@ -295,9 +294,9 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				var planPolicyFormatter func(report string) string
 				summary := fmt.Sprintf("Terraform plan validation check (%v)", job.ProjectName)
 				if reporter.SupportsMarkdown() {
-					planPolicyFormatter = coreutils.AsCollapsibleComment(summary, false)
+					planPolicyFormatter = reporting.AsCollapsibleComment(summary, false)
 				} else {
-					planPolicyFormatter = coreutils.AsComment(summary)
+					planPolicyFormatter = reporting.AsComment(summary)
 				}
 
 				planSummary, err := iacUtils.GetSummarizePlan(planJsonOutput)
@@ -326,6 +325,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 						slog.Error("Failed to report plan.", "error", err)
 					}
 					reportPlanSummary(reporter, planSummary)
+
+					if err := reporting.FormatAndReportExampleCommands(job.ProjectName, reporter); err != nil {
+						slog.Error("Failed to report example commands.", "error", err)
+					}
 				}
 			} else {
 				reportEmptyPlanOutput(reporter, projectLock.LockId())
@@ -497,12 +500,12 @@ func reportApplyMergeabilityError(reporter reporting.Reporter) string {
 	slog.Error(comment)
 
 	if reporter.SupportsMarkdown() {
-		_, _, err := reporter.Report(comment, coreutils.AsCollapsibleComment("Apply error", false))
+		_, _, err := reporter.Report(comment, reporting.AsCollapsibleComment("Apply error", false))
 		if err != nil {
 			slog.Error("error publishing comment", "error", err)
 		}
 	} else {
-		_, _, err := reporter.Report(comment, coreutils.AsComment("Apply error"))
+		_, _, err := reporter.Report(comment, reporting.AsComment("Apply error"))
 		if err != nil {
 			slog.Error("error publishing comment", "error", err)
 		}
@@ -514,9 +517,9 @@ func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, pl
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
-		formatter = coreutils.GetTerraformOutputAsCollapsibleComment("Plan output", true)
+		formatter = reporting.GetTerraformOutputAsCollapsibleComment("Plan output", true)
 	} else {
-		formatter = coreutils.GetTerraformOutputAsComment("Plan output")
+		formatter = reporting.GetTerraformOutputAsComment("Plan output")
 	}
 
 	_, _, err := reporter.Report(plan, formatter)
@@ -529,9 +532,9 @@ func reportPlanSummary(reporter reporting.Reporter, summary string) {
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
-		formatter = coreutils.AsCollapsibleComment("Plan summary", false)
+		formatter = reporting.AsCollapsibleComment("Plan summary", false)
 	} else {
-		formatter = coreutils.AsComment("Plan summary")
+		formatter = reporting.AsComment("Plan summary")
 	}
 
 	_, _, err := reporter.Report("\n"+summary, formatter)

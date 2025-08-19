@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/locking/aws"
 	"github.com/diggerhq/digger/libs/locking/azure"
 	"github.com/diggerhq/digger/libs/locking/gcp"
@@ -96,12 +95,12 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 
 func reportLockingFailed(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
-		_, _, err := r.Report(comment, utils.AsCollapsibleComment("Locking failed", false))
+		_, _, err := r.Report(comment, reporting.AsCollapsibleComment("Locking failed", false))
 		if err != nil {
 			slog.Error("Failed to publish comment", "error", err)
 		}
 	} else {
-		_, _, err := r.Report(comment, utils.AsComment("Locking failed"))
+		_, _, err := r.Report(comment, reporting.AsComment("Locking failed"))
 		if err != nil {
 			slog.Error("Failed to publish comment", "error", err)
 		}
@@ -173,12 +172,12 @@ func (projectLock *PullRequestLock) Unlock() (bool, error) {
 
 func reportSuccessfulUnlocking(r reporting.Reporter, comment string) {
 	if r.SupportsMarkdown() {
-		_, _, err := r.Report(comment, utils.AsCollapsibleComment("Unlocking successful", false))
+		_, _, err := r.Report(comment, reporting.AsCollapsibleComment("Unlocking successful", false))
 		if err != nil {
 			slog.Error("Failed to publish comment", "error", err)
 		}
 	} else {
-		_, _, err := r.Report(comment, utils.AsComment("Unlocking successful"))
+		_, _, err := r.Report(comment, reporting.AsComment("Unlocking successful"))
 		if err != nil {
 			slog.Error("Failed to publish comment", "error", err)
 		}
