@@ -64,11 +64,6 @@ digger apply -p ` + projectName + `
 digger apply
 ` + "```" + `
 
-🚮 To unlock this project:
-` + "```" + `bash
-digger unlock -p ` + projectName + `
-` + "```" + `
-
 🚮 To unlock all projects in this PR:
 ` + "```" + `bash
 digger unlock
