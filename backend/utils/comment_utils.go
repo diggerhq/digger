@@ -177,6 +177,9 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			resourcesDeleted)
 	}
 
+	// Add instruction helpers (same as CLI)
+	message += "\n" + formatExampleCommands()
+
 	// Handle comment length limits
 	const GithubCommentMaxLength = 65536
 	if len(message) > GithubCommentMaxLength {
@@ -188,6 +191,27 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 	}
 
 	return message, nil
+}
+
+// formatExampleCommands creates a collapsible markdown section with example commands
+// This matches the exact format used by the CLI's BasicCommentUpdater
+func formatExampleCommands() string {
+	return `
+<details>
+  <summary>Instructions</summary>
+
+⏩ To apply these changes, run the following command:
+
+` + "```" + `bash
+digger apply
+` + "```" + `
+
+🚮 To unlock the projects in this PR run the following command:
+` + "```" + `bash
+digger unlock
+` + "```" + `
+</details>
+`
 }
 
 // UpdateOrCreateSummaryComment updates or creates the summary comment for the batch
