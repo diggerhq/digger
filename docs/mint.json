@@ -156,6 +156,13 @@
       ]
     },
     {
+      "group": "Contributing",
+      "pages": [
+        "ce/contributing/setup-dev-environment"
+      ]
+    },
+
+    {
       "group": "Troubleshooting",
       "pages": [
         "ce/troubleshooting/importing-existing-resources",
