@@ -1,0 +1,37 @@
+name: Digger Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        required: true
+      run_name:
+        required: false
+
+run-name: '${{inputs.run_name}}'
+
+jobs:
+  digger-job:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # required to merge PRs
+      actions: write       # required for plan persistence
+      id-token: write      # required for workload-identity-federation
+      pull-requests: write # required to post PR comments
+      issues: read         # required to check if PR number is an issue or not
+      statuses: write      # required to validate combined PR status
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+        run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+      - uses: diggerhq/digger@vLatest
+        with:
+          digger-spec: ${{ inputs.spec }}
+          setup-aws: true
+          setup-terraform: true
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
