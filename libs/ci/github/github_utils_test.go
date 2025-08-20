@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	net "net/http"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
@@ -40,9 +41,22 @@ func TestListRepositoriesReturnsAllReposities(t *testing.T) {
 	}
 	githubAppPrivateKey := string(decodedBytes)
 	tr := net.DefaultTransport
-	var githubAppId int64 = 1809092
-	var installationId int64 = 81774593
-	itr, err := ghinstallation.New(tr, githubAppId, installationId, []byte(githubAppPrivateKey))
+	var githubAppId = os.Getenv("GITHUB_APP_ID")
+	var installationId = os.Getenv("INSTALLATION_ID")
+
+	githubAppIdintValue, err := strconv.ParseInt(githubAppId, 10, 64)
+	if err != nil {
+		fmt.Printf("Error converting environment variable to int64: %v\n", err)
+		return
+	}
+
+	installationIdintValue, err := strconv.ParseInt(installationId, 10, 64)
+	if err != nil {
+		fmt.Printf("Error converting environment variable to int64: %v\n", err)
+		return
+	}
+
+	itr, err := ghinstallation.New(tr, githubAppIdintValue, installationIdintValue, []byte(githubAppPrivateKey))
 	if err != nil {
 		slog.Info("Failed to initialize GitHub app installation",
 			"githubAppId", githubAppId,
