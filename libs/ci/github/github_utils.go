@@ -4,10 +4,12 @@ import (
 	"context"
 	"log"
 	"log/slog"
+	"net/http"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/libs/ci"
 	next_utils "github.com/diggerhq/digger/next/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v61/github"
 )
 
@@ -16,7 +18,7 @@ type DiggerController struct {
 	GithubClientProvider next_utils.GithubClientProvider
 }
 
-func (d DiggerController) ListRepos() ([]*ci.Repo, error) {
+func (d DiggerController) ListRepos(c *gin.Context) ([]*ci.Repo, error) {
 	allRepos := make([]*ci.Repo, 0)
 	//err := c.BindJSON(&request)
 	opts := &github.RepositoryListByOrgOptions{
@@ -25,10 +27,10 @@ func (d DiggerController) ListRepos() ([]*ci.Repo, error) {
 
 	for {
 		opt := &github.ListOptions{Page: opts.Page, PerPage: 100}
-		client, _, err := d.GithubClientProvider.Get(10, 10)
+		client, _, err := d.GithubClientProvider.Get(10, 20)
 		if err != nil {
 			log.Printf("Error retrieving github client: %v", err)
-			//c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
 		}
 		listRepos, resp, err := client.Apps.ListRepos(context.Background(), opt)
 		if err != nil {
@@ -36,7 +38,7 @@ func (d DiggerController) ListRepos() ([]*ci.Repo, error) {
 				"installationId",
 				"error", err,
 			)
-			//c.JSON(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list existing repos: %v"})
 		}
 		repos := listRepos.Repositories
 		for _, repo := range repos {
