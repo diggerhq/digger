@@ -26,7 +26,7 @@ func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 		}
 		allRepos = append(allRepos, listRepos.Repositories...)
 		countLimit++
-		if countLimit == 2000 {
+		if countLimit == 20 {
 			slog.Error("Exceeded maximum number of existing repositories")
 			return nil, err
 		}
