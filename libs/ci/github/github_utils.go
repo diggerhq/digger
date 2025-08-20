@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/go-github/v61/github"
@@ -36,8 +37,8 @@ func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 		allRepos = append(allRepos, listRepos.Repositories...)
 		countLimit++
 		if countLimit == 20 {
-			slog.Error("Exceeded maximum number of existing repositories")
-			return nil, err
+			slog.Error("Exceeded maximum number of pages when listing repositories (2000 repositories)")
+			return allRepos, fmt.Errorf("organization has more than 2000 repositories, only first 2000 were retrieved")
 		}
 		if resp.NextPage == 0 {
 			break
