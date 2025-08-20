@@ -37,6 +37,10 @@ type Issue struct {
 	Body  string
 }
 
+type Repo struct {
+	ID    int64
+	Title string
+}
 type Comment struct {
 	Id           string
 	DiscussionId string // gitlab only
