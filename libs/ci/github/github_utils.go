@@ -11,14 +11,11 @@ import (
 func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 	allRepos := make([]*github.Repository, 0)
 	//err := c.BindJSON(&request)
-	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
-	}
+	opts := &github.ListOptions{PerPage: 100}
 
 	countLimit := 0
 	for {
-		opt := &github.ListOptions{Page: opts.Page, PerPage: 100}
-		listRepos, resp, err := client.Apps.ListRepos(context.Background(), opt)
+		listRepos, resp, err := client.Apps.ListRepos(context.Background(), opts)
 		if err != nil {
 			// Check specifically for rate limit errors
 			if _, ok := err.(*github.RateLimitError); ok {
@@ -37,8 +34,8 @@ func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 		allRepos = append(allRepos, listRepos.Repositories...)
 		countLimit++
 		if countLimit == 20 {
-			slog.Error("Exceeded maximum number of pages when listing repositories (2000 repositories)")
-			return allRepos, fmt.Errorf("organization has more than 2000 repositories, only first 2000 were retrieved")
+			slog.Error("Exceeded maximum number of existing repositories")
+			return nil, fmt.Errorf("exceeded maximum number of existing repositories")
 		}
 		if resp.NextPage == 0 {
 			break
