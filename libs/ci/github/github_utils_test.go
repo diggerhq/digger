@@ -53,10 +53,6 @@ func TestListRepositoriesReturnsAllReposities(t *testing.T) {
 	}
 
 	client := github.NewClient(&net.Client{Transport: itr})
-	if err != nil {
-		slog.Error("Failed to create GitHub client", "error", err)
-		t.Error()
-	}
 
 	allRepos, err := ListGithubRepos(client)
 	fmt.Println("err is", err)
