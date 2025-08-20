@@ -71,5 +71,6 @@ func TestListRepositoriesReturnsAllReposities(t *testing.T) {
 	allRepos, err := ListGithubRepos(client)
 	fmt.Println("err is", err)
 	assert.Nil(t, err)
+	// Currently Digger has 388 repositories, Update the hardcoded value to the expected number of repositories if the number changes in the future.
 	assert.Equal(t, 388, len(allRepos))
 }
