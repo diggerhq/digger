@@ -3,7 +3,6 @@ package github
 import (
 	"encoding/base64"
 	"fmt"
-	"log/slog"
 	net "net/http"
 	"os"
 	"strconv"
@@ -14,21 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initLogger() {
-	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
-	var level slog.Leveler
-	if logLevel == "DEBUG" {
-		level = slog.LevelDebug
-	} else {
-		level = slog.LevelInfo
-	}
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: level,
-	}))
-
-	slog.SetDefault(logger)
-}
-
 func TestListRepositoriesReturnsAllReposities(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip("skipping in CI")
@@ -36,7 +20,7 @@ func TestListRepositoriesReturnsAllReposities(t *testing.T) {
 	githubAppPrivateKeyB64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
 	decodedBytes, err := base64.StdEncoding.DecodeString(githubAppPrivateKeyB64)
 	if err != nil {
-		slog.Info("Failed to decode GITHUB_APP_PRIVATE_KEY_BASE64", "error", err)
+		fmt.Printf("Failed to decode GITHUB_APP_PRIVATE_KEY_BASE64, error: %v\n", err)
 		t.Error(err)
 	}
 	githubAppPrivateKey := string(decodedBytes)
@@ -57,11 +41,7 @@ func TestListRepositoriesReturnsAllReposities(t *testing.T) {
 
 	itr, err := ghinstallation.New(tr, githubAppIdintValue, installationIdintValue, []byte(githubAppPrivateKey))
 	if err != nil {
-		slog.Info("Failed to initialize GitHub app installation",
-			"githubAppId", githubAppId,
-			"installationId", installationId,
-			"error", err,
-		)
+		fmt.Printf("Failed to initialize GitHub app installation: githubAppId=%s, installationId=%s, error=%v\n", githubAppId, installationId, err)
 		t.Error(err)
 	}
 
