@@ -47,13 +47,12 @@ func TestListRepositoriesReturnsAllReposities(t *testing.T) {
 	githubAppIdintValue, err := strconv.ParseInt(githubAppId, 10, 64)
 	if err != nil {
 		fmt.Printf("Error converting environment variable to int64: %v\n", err)
-		return
+		t.Fatalf("Failed to parse GITHUB_APP_ID: %v", err)
 	}
-
 	installationIdintValue, err := strconv.ParseInt(installationId, 10, 64)
 	if err != nil {
 		fmt.Printf("Error converting environment variable to int64: %v\n", err)
-		return
+		t.Fatalf("Failed to parse INSTALLATION_ID: %v", err)
 	}
 
 	itr, err := ghinstallation.New(tr, githubAppIdintValue, installationIdintValue, []byte(githubAppPrivateKey))

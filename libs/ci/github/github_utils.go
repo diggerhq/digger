@@ -13,7 +13,7 @@ func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 	//err := c.BindJSON(&request)
 	opts := &github.ListOptions{PerPage: 100}
 
-	countLimit := 0
+	pageLimit := 0
 	for {
 		listRepos, resp, err := client.Apps.ListRepos(context.Background(), opts)
 		if err != nil {
@@ -32,10 +32,10 @@ func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 			return nil, err
 		}
 		allRepos = append(allRepos, listRepos.Repositories...)
-		countLimit++
-		if countLimit == 20 {
-			slog.Error("Exceeded maximum number of existing repositories")
-			return nil, fmt.Errorf("exceeded maximum number of existing repositories")
+		pageLimit++
+		if pageLimit == 20 {
+			slog.Error("Exceeded maximum number of pages (20) when listing repositories, results may be incomplete")
+			return nil, fmt.Errorf("exceeded maximum number of pages (20) when listing repositories, results may be incomplete")
 		}
 		if resp.NextPage == 0 {
 			break
