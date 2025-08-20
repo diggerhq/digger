@@ -1,0 +1,65 @@
+package github
+
+import (
+	"encoding/base64"
+	"fmt"
+	"log/slog"
+	net "net/http"
+	"os"
+	"testing"
+
+	"github.com/bradleyfalzon/ghinstallation/v2"
+	"github.com/google/go-github/v61/github"
+	"github.com/stretchr/testify/assert"
+)
+
+func initLogger() {
+	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
+	var level slog.Leveler
+	if logLevel == "DEBUG" {
+		level = slog.LevelDebug
+	} else {
+		level = slog.LevelInfo
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	}))
+
+	slog.SetDefault(logger)
+}
+
+func TestListRepositoriesReturnsAllReposities(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("skipping in CI")
+	}
+	githubAppPrivateKeyB64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
+	decodedBytes, err := base64.StdEncoding.DecodeString(githubAppPrivateKeyB64)
+	if err != nil {
+		slog.Info("Failed to decode GITHUB_APP_PRIVATE_KEY_BASE64", "error", err)
+		t.Error(err)
+	}
+	githubAppPrivateKey := string(decodedBytes)
+	tr := net.DefaultTransport
+	var githubAppId int64 = 1809092
+	var installationId int64 = 81774593
+	itr, err := ghinstallation.New(tr, githubAppId, installationId, []byte(githubAppPrivateKey))
+	if err != nil {
+		slog.Info("Failed to initialize GitHub app installation",
+			"githubAppId", githubAppId,
+			"installationId", installationId,
+			"error", err,
+		)
+		t.Error(err)
+	}
+
+	client := github.NewClient(&net.Client{Transport: itr})
+	if err != nil {
+		slog.Error("Failed to create GitHub client", "error", err)
+		t.Error()
+	}
+
+	allRepos, err := ListGithubRepos(client)
+	fmt.Println("err is", err)
+	assert.Nil(t, err)
+	assert.Equal(t, 388, len(allRepos))
+}
