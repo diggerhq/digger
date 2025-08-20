@@ -14,6 +14,7 @@ func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
 
+	countLimit := 0
 	for {
 		opt := &github.ListOptions{Page: opts.Page, PerPage: 100}
 		listRepos, resp, err := client.Apps.ListRepos(context.Background(), opt)
@@ -24,6 +25,11 @@ func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 			return nil, err
 		}
 		allRepos = append(allRepos, listRepos.Repositories...)
+		countLimit++
+		if countLimit == 2000 {
+			slog.Error("Exceeded maximum number of existing repositories")
+			return nil, err
+		}
 		if resp.NextPage == 0 {
 			break
 		}
