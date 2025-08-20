@@ -84,7 +84,7 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 	}
 
 	clientWithLogging := &net.Client{
-		Transport: &LoggingRoundTripper{Rt: itr},
+		Transport: &net.NewFileTransport(),
 	}
 
 	ghClient, err := gh.NewClient(clientWithLogging)

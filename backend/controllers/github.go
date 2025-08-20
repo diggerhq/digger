@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
-	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -20,6 +18,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
+	"github.com/diggerhq/digger/libs/git_utils"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
@@ -2599,8 +2600,8 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// we get repos accessible to this installation
 	slog.Debug("Listing repositories for installation", "installationId", installationId64)
 
-	opt := &github.ListOptions{Page: 1, PerPage: 100}
-	listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
+	repos, err := dg_github.ListGithubRepos(client)
+	fmt.Println("repo count is", len(repos))
 	if err != nil {
 		slog.Error("Failed to list existing repositories",
 			"installationId", installationId64,
@@ -2609,12 +2610,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
 		return
 	}
-	repos := listRepos.Repositories
-
-	slog.Info("Retrieved repositories for installation",
-		"installationId", installationId64,
-		"repoCount", len(repos),
-	)
 
 	// resets all existing installations (soft delete)
 	slog.Debug("Resetting existing GitHub installations",
