@@ -19,6 +19,15 @@ func ListGithubRepos(client *github.Client) ([]*github.Repository, error) {
 		opt := &github.ListOptions{Page: opts.Page, PerPage: 100}
 		listRepos, resp, err := client.Apps.ListRepos(context.Background(), opt)
 		if err != nil {
+			// Check specifically for rate limit errors
+			if _, ok := err.(*github.RateLimitError); ok {
+				slog.Error("GitHub API rate limit exceeded",
+					"error", err,
+				)
+				// Wait and retry after a delay or return a specific error
+				// For now, we'll just return with the rate limit error
+				return nil, err
+			}
 			slog.Error("Failed to list existing repositories",
 				"error", err,
 			)
