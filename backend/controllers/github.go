@@ -2455,8 +2455,8 @@ jobs:
 
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
-	//setupAction := c.Request.URL.Query()["setup_action"][0]
-	code := c.Request.URL.Query()["code"][0]
+	setupAction := c.Request.URL.Query()["setup_action"][0]
+	//code := c.Request.URL.Query()["code"][0]
 	appId := c.Request.URL.Query().Get("state")
 
 	slog.Info("Processing GitHub app callback", "installationId", installationId, "appId", appId)
@@ -2480,224 +2480,359 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 
 	slog.Debug("Validating GitHub callback", "installationId", installationId64, "clientId", clientId)
 
-	result, installation, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
-	if !result {
-		slog.Error("Failed to validate installation ID",
-			"installationId", installationId64,
-			"error", err,
-		)
-		c.String(http.StatusInternalServerError, "Failed to validate installation_id.")
-		return
-	}
+	if setupAction == "update" {
 
-	// TODO: Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
-	// create a new org for this installationID
-	// retrieve org for current orgID
-	installationIdInt64, err := strconv.ParseInt(installationId, 10, 64)
-	if err != nil {
-		slog.Error("Failed to parse installation ID as int64",
-			"installationId", installationId,
-			"error", err,
-		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "installationId could not be parsed"})
-		return
-	}
+		// if the setupAction is equal to update, keep the same logic but don't validate as we don't have the code query parameter.
 
-	slog.Debug("Looking up GitHub app installation link", "installationId", installationIdInt64)
-
-	var link *models.GithubAppInstallationLink
-	link, err = models.DB.GetGithubAppInstallationLink(installationIdInt64)
-	if err != nil {
-		slog.Error("Error getting GitHub app installation link",
-			"installationId", installationIdInt64,
-			"error", err,
-		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error getting github app link"})
-		return
-	}
-
-	if link == nil {
-		slog.Info("No existing link found, creating new organization and link",
-			"installationId", installationId,
-		)
-
-		name := fmt.Sprintf("dggr-def-%v", uuid.NewString()[:8])
-		externalId := uuid.NewString()
-
-		slog.Debug("Creating new organization",
-			"name", name,
-			"externalId", externalId,
-		)
-
-		org, err := models.DB.CreateOrganisation(name, "digger", externalId)
+		// TODO: Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
+		// create a new org for this installationID
+		// retrieve org for current orgID
+		installationIdInt64, err := strconv.ParseInt(installationId, 10, 64)
 		if err != nil {
-			slog.Error("Error creating organization",
-				"name", name,
+			slog.Error("Failed to parse installation ID as int64",
+				"installationId", installationId,
 				"error", err,
 			)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateOrganisation"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "installationId could not be parsed"})
 			return
 		}
 
-		slog.Debug("Creating GitHub installation link",
-			"orgId", org.ID,
-			"installationId", installationId64,
-		)
+		slog.Debug("Looking up GitHub app installation link", "installationId", installationIdInt64)
 
-		link, err = models.DB.CreateGithubInstallationLink(org, installationId64)
+		var link *models.GithubAppInstallationLink
+		link, err = models.DB.GetGithubAppInstallationLink(installationIdInt64)
+		if err != nil {
+			slog.Error("Error getting GitHub app installation link",
+				"installationId", installationIdInt64,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error getting github app link"})
+			return
+		}
+
+		if link == nil {
+			slog.Info("No existing link found, creating new organization and link",
+				"installationId", installationId,
+			)
+
+			name := fmt.Sprintf("dggr-def-%v", uuid.NewString()[:8])
+			externalId := uuid.NewString()
+
+			slog.Debug("Creating new organization",
+				"name", name,
+				"externalId", externalId,
+			)
+
+			org, err := models.DB.CreateOrganisation(name, "digger", externalId)
+			if err != nil {
+				slog.Error("Error creating organization",
+					"name", name,
+					"error", err,
+				)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateOrganisation"})
+				return
+			}
+
+			slog.Debug("Creating GitHub installation link",
+				"orgId", org.ID,
+				"installationId", installationId64,
+			)
+
+			link, err = models.DB.CreateGithubInstallationLink(org, installationId64)
+			if err != nil {
+				slog.Error("Error creating GitHub installation link",
+					"orgId", org.ID,
+					"installationId", installationId64,
+					"error", err,
+				)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateGithubInstallationLink"})
+				return
+			}
+
+			slog.Info("Created new organization and installation link",
+				"orgId", org.ID,
+				"installationId", installationId64,
+			)
+		} else {
+			slog.Info("Found existing installation link",
+				"orgId", link.OrganisationId,
+				"installationId", installationId64,
+			)
+		}
+
+		org := link.Organisation
+		orgId := link.OrganisationId
+
+		// create a github installation link (org ID matched to installation ID)
+		_, err = models.DB.CreateGithubInstallationLink(org, installationId64)
 		if err != nil {
 			slog.Error("Error creating GitHub installation link",
-				"orgId", org.ID,
+				"orgId", orgId,
 				"installationId", installationId64,
 				"error", err,
 			)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateGithubInstallationLink"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
 			return
 		}
 
-		slog.Info("Created new organization and installation link",
-			"orgId", org.ID,
-			"installationId", installationId64,
-		)
-	} else {
-		slog.Info("Found existing installation link",
-			"orgId", link.OrganisationId,
-			"installationId", installationId64,
-		)
-	}
+		// we get repos accessible to this installation
+		slog.Debug("Listing repositories for installation", "installationId", installationId64)
 
-	org := link.Organisation
-	orgId := link.OrganisationId
+		// resets all existing installations (soft delete)
+		slog.Debug("Resetting existing GitHub installations",
+			"installationId", installationId,
+		)
 
-	// create a github installation link (org ID matched to installation ID)
-	_, err = models.DB.CreateGithubInstallationLink(org, installationId64)
-	if err != nil {
-		slog.Error("Error creating GitHub installation link",
+		var AppInstallation models.GithubAppInstallation
+		err = models.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", models.GithubAppInstallDeleted).Error
+		if err != nil {
+			slog.Error("Failed to update GitHub installations",
+				"installationId", installationId,
+				"error", err,
+			)
+			c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
+			return
+		}
+
+		// reset all existing repos (soft delete)
+		slog.Debug("Soft deleting existing repositories",
 			"orgId", orgId,
-			"installationId", installationId64,
-			"error", err,
 		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
-		return
-	}
 
-	slog.Debug("Getting GitHub client",
-		"appId", *installation.AppID,
-		"installationId", installationId64,
-	)
+		var ExistingRepos []models.Repo
+		err = models.DB.GormDB.Delete(ExistingRepos, "organisation_id=?", orgId).Error
+		if err != nil {
+			slog.Error("Could not delete repositories",
+				"orgId", orgId,
+				"error", err,
+			)
+			c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
+			return
+		}
 
-	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
-	if err != nil {
-		slog.Error("Error retrieving GitHub client",
+		c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
+
+	} else {
+		code := c.Request.URL.Query()["code"][0]
+		result, installation, err := validateGithubCallback(d.GithubClientProvider, clientId, clientSecret, code, installationId64)
+		if !result {
+			slog.Error("Failed to validate installation ID",
+				"installationId", installationId64,
+				"error", err,
+			)
+			c.String(http.StatusInternalServerError, "Failed to validate installation_id.")
+			return
+		}
+
+		// TODO: Lookup org in GithubAppInstallation by installationID if found use that installationID otherwise
+		// create a new org for this installationID
+		// retrieve org for current orgID
+		installationIdInt64, err := strconv.ParseInt(installationId, 10, 64)
+		if err != nil {
+			slog.Error("Failed to parse installation ID as int64",
+				"installationId", installationId,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "installationId could not be parsed"})
+			return
+		}
+
+		slog.Debug("Looking up GitHub app installation link", "installationId", installationIdInt64)
+
+		var link *models.GithubAppInstallationLink
+		link, err = models.DB.GetGithubAppInstallationLink(installationIdInt64)
+		if err != nil {
+			slog.Error("Error getting GitHub app installation link",
+				"installationId", installationIdInt64,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error getting github app link"})
+			return
+		}
+
+		if link == nil {
+			slog.Info("No existing link found, creating new organization and link",
+				"installationId", installationId,
+			)
+
+			name := fmt.Sprintf("dggr-def-%v", uuid.NewString()[:8])
+			externalId := uuid.NewString()
+
+			slog.Debug("Creating new organization",
+				"name", name,
+				"externalId", externalId,
+			)
+
+			org, err := models.DB.CreateOrganisation(name, "digger", externalId)
+			if err != nil {
+				slog.Error("Error creating organization",
+					"name", name,
+					"error", err,
+				)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateOrganisation"})
+				return
+			}
+
+			slog.Debug("Creating GitHub installation link",
+				"orgId", org.ID,
+				"installationId", installationId64,
+			)
+
+			link, err = models.DB.CreateGithubInstallationLink(org, installationId64)
+			if err != nil {
+				slog.Error("Error creating GitHub installation link",
+					"orgId", org.ID,
+					"installationId", installationId64,
+					"error", err,
+				)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error with CreateGithubInstallationLink"})
+				return
+			}
+
+			slog.Info("Created new organization and installation link",
+				"orgId", org.ID,
+				"installationId", installationId64,
+			)
+		} else {
+			slog.Info("Found existing installation link",
+				"orgId", link.OrganisationId,
+				"installationId", installationId64,
+			)
+		}
+
+		org := link.Organisation
+		orgId := link.OrganisationId
+
+		// create a github installation link (org ID matched to installation ID)
+		_, err = models.DB.CreateGithubInstallationLink(org, installationId64)
+		if err != nil {
+			slog.Error("Error creating GitHub installation link",
+				"orgId", orgId,
+				"installationId", installationId64,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating GitHub installation"})
+			return
+		}
+
+		slog.Debug("Getting GitHub client",
 			"appId", *installation.AppID,
 			"installationId", installationId64,
-			"error", err,
 		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
-		return
-	}
 
-	// we get repos accessible to this installation
-	slog.Debug("Listing repositories for installation", "installationId", installationId64)
+		client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
+		if err != nil {
+			slog.Error("Error retrieving GitHub client",
+				"appId", *installation.AppID,
+				"installationId", installationId64,
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
+			return
+		}
 
-	repos, err := dg_github.ListGithubRepos(client)
-	if err != nil {
-		slog.Error("Failed to list existing repositories",
-			"installationId", installationId64,
-			"error", err,
-		)
-		c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
-		return
-	}
+		// we get repos accessible to this installation
+		slog.Debug("Listing repositories for installation", "installationId", installationId64)
 
-	// resets all existing installations (soft delete)
-	slog.Debug("Resetting existing GitHub installations",
-		"installationId", installationId,
-	)
+		repos, err := dg_github.ListGithubRepos(client)
+		if err != nil {
+			slog.Error("Failed to list existing repositories",
+				"installationId", installationId64,
+				"error", err,
+			)
+			c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
+			return
+		}
 
-	var AppInstallation models.GithubAppInstallation
-	err = models.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", models.GithubAppInstallDeleted).Error
-	if err != nil {
-		slog.Error("Failed to update GitHub installations",
+		// resets all existing installations (soft delete)
+		slog.Debug("Resetting existing GitHub installations",
 			"installationId", installationId,
-			"error", err,
 		)
-		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
-		return
-	}
 
-	// reset all existing repos (soft delete)
-	slog.Debug("Soft deleting existing repositories",
-		"orgId", orgId,
-	)
+		var AppInstallation models.GithubAppInstallation
+		err = models.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", models.GithubAppInstallDeleted).Error
+		if err != nil {
+			slog.Error("Failed to update GitHub installations",
+				"installationId", installationId,
+				"error", err,
+			)
+			c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
+			return
+		}
 
-	var ExistingRepos []models.Repo
-	err = models.DB.GormDB.Delete(ExistingRepos, "organisation_id=?", orgId).Error
-	if err != nil {
-		slog.Error("Could not delete repositories",
+		// reset all existing repos (soft delete)
+		slog.Debug("Soft deleting existing repositories",
 			"orgId", orgId,
-			"error", err,
-		)
-		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
-		return
-	}
-
-	// here we mark repos that are available one by one
-	slog.Info("Adding repositories to organization",
-		"orgId", orgId,
-		"repoCount", len(repos),
-	)
-
-	for i, repo := range repos {
-		repoFullName := *repo.FullName
-		repoOwner := strings.Split(*repo.FullName, "/")[0]
-		repoName := *repo.Name
-		repoUrl := fmt.Sprintf("https://%v/%v", utils.GetGithubHostname(), repoFullName)
-
-		slog.Debug("Processing repository",
-			"index", i+1,
-			"repoFullName", repoFullName,
-			"repoOwner", repoOwner,
-			"repoName", repoName,
 		)
 
-		_, err := models.DB.GithubRepoAdded(
-			installationId64,
-			*installation.AppID,
-			*installation.Account.Login,
-			*installation.Account.ID,
-			repoFullName,
-		)
+		var ExistingRepos []models.Repo
+		err = models.DB.GormDB.Delete(ExistingRepos, "organisation_id=?", orgId).Error
 		if err != nil {
-			slog.Error("Error recording GitHub repository",
-				"repoFullName", repoFullName,
+			slog.Error("Could not delete repositories",
+				"orgId", orgId,
 				"error", err,
 			)
-			c.String(http.StatusInternalServerError, "github repos added error: %v", err)
+			c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
 			return
 		}
 
-		cloneUrl := *repo.CloneURL
-		defaultBranch := *repo.DefaultBranch
+		// here we mark repos that are available one by one
+		slog.Info("Adding repositories to organization",
+			"orgId", orgId,
+			"repoCount", len(repos),
+		)
 
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64, *installation.AppID, defaultBranch, cloneUrl)
-		if err != nil {
-			slog.Error("Error creating or getting Digger repo",
+		for i, repo := range repos {
+			repoFullName := *repo.FullName
+			repoOwner := strings.Split(*repo.FullName, "/")[0]
+			repoName := *repo.Name
+			repoUrl := fmt.Sprintf("https://%v/%v", utils.GetGithubHostname(), repoFullName)
+
+			slog.Debug("Processing repository",
+				"index", i+1,
 				"repoFullName", repoFullName,
-				"error", err,
+				"repoOwner", repoOwner,
+				"repoName", repoName,
 			)
-			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
-			return
+
+			_, err := models.DB.GithubRepoAdded(
+				installationId64,
+				*installation.AppID,
+				*installation.Account.Login,
+				*installation.Account.ID,
+				repoFullName,
+			)
+			if err != nil {
+				slog.Error("Error recording GitHub repository",
+					"repoFullName", repoFullName,
+					"error", err,
+				)
+				c.String(http.StatusInternalServerError, "github repos added error: %v", err)
+				return
+			}
+
+			cloneUrl := *repo.CloneURL
+			defaultBranch := *repo.DefaultBranch
+
+			_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64, *installation.AppID, defaultBranch, cloneUrl)
+			if err != nil {
+				slog.Error("Error creating or getting Digger repo",
+					"repoFullName", repoFullName,
+					"error", err,
+				)
+				c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
+				return
+			}
 		}
+
+		slog.Info("GitHub app callback processed successfully",
+			"installationId", installationId64,
+			"orgId", orgId,
+			"repoCount", len(repos),
+		)
+
+		c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
 	}
-
-	slog.Info("GitHub app callback processed successfully",
-		"installationId", installationId64,
-		"orgId", orgId,
-		"repoCount", len(repos),
-	)
-
-	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
 }
 
 func (d DiggerController) GithubReposPage(c *gin.Context) {
