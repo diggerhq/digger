@@ -14,9 +14,15 @@ import (
 
 type ctxKey struct{}
 
+// Enhanced structure to track both logger and last access time
+type loggerEntry struct {
+	logger     *slog.Logger
+	lastAccess time.Time
+}
+
 var (
 	key              = ctxKey{}
-	goroutineLoggers sync.Map     // map[goroutineID]*slog.Logger
+	goroutineLoggers sync.Map     // map[goroutineID]*loggerEntry
 	baseLogger       *slog.Logger // Store the base logger to avoid loops
 	cleanupTicker    *time.Ticker // Ticker for periodic cleanup of stale goroutine loggers
 )
@@ -147,14 +153,14 @@ func GetBaseLogger() *slog.Logger {
 
 // Helper functions for middleware to access the goroutine map
 func StoreGoroutineLogger(gid uint64, logger *slog.Logger) {
-	if gid == 0 {
-		// Don't store fallback ID to prevent conflicts
+	if gid == 0 || logger == nil {
 		return
 	}
-	if logger == nil {
-		return
+	entry := &loggerEntry{
+		logger:     logger,
+		lastAccess: time.Now(),
 	}
-	goroutineLoggers.Store(gid, logger)
+	goroutineLoggers.Store(gid, entry)
 }
 
 func DeleteGoroutineLogger(gid uint64) {
@@ -166,16 +172,53 @@ func DeleteGoroutineLogger(gid uint64) {
 }
 
 func getGoroutineLogger() *slog.Logger {
-	if logger, ok := goroutineLoggers.Load(GetGoroutineID()); ok {
-		if slogLogger, ok := logger.(*slog.Logger); ok {
-			return slogLogger
+	if entry, ok := goroutineLoggers.Load(GetGoroutineID()); ok {
+		if loggerEntry, ok := entry.(*loggerEntry); ok {
+			// Update last access time
+			loggerEntry.lastAccess = time.Now()
+			return loggerEntry.logger
 		}
 		// Log error in debug mode
 		if os.Getenv("DIGGER_LOG_LEVEL") == "DEBUG" {
-			slog.Debug("Invalid logger type in goroutine map", "type", fmt.Sprintf("%T", logger))
+			slog.Debug("Invalid logger entry type in goroutine map", "type", fmt.Sprintf("%T", entry))
 		}
 	}
 	return nil
+}
+
+// Smart cleanup function
+func cleanupStaleGoroutineLoggers() {
+	staleThreshold := 15 * time.Minute // Clean up entries not accessed in 15 minutes
+	now := time.Now()
+	cleaned := 0
+	totalEntries := 0
+	
+	goroutineLoggers.Range(func(key, value interface{}) bool {
+		totalEntries++
+		gid := key.(uint64)
+		entry := value.(*loggerEntry)
+		
+		if now.Sub(entry.lastAccess) > staleThreshold {
+			goroutineLoggers.Delete(gid)
+			cleaned++
+		}
+		return true
+	})
+	
+	// Always log cleanup activity in debug mode
+	if os.Getenv("DIGGER_LOG_LEVEL") == "DEBUG" {
+		slog.Debug("Goroutine logger cleanup completed", 
+			"cleaned", cleaned, 
+			"remaining", totalEntries-cleaned,
+			"threshold_minutes", int(staleThreshold.Minutes()))
+	}
+	
+	// Log warning if too many stale entries (potential memory leak)
+	if cleaned > 50 {
+		slog.Warn("High number of stale goroutine loggers cleaned up", 
+			"count", cleaned,
+			"consider_investigating", "potential goroutine leak")
+	}
 }
 
 // Helper function to get goroutine ID
