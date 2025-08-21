@@ -15,7 +15,8 @@ type ctxKey struct{}
 
 var (
 	key              = ctxKey{}
-	goroutineLoggers sync.Map // map[goroutineID]*slog.Logger - shared with middleware
+	goroutineLoggers sync.Map     // map[goroutineID]*slog.Logger
+	baseLogger       *slog.Logger // Store the base logger to avoid loops
 )
 
 // contextAwareHandler wraps any slog.Handler and automatically includes request context
@@ -33,10 +34,12 @@ func (h *contextAwareHandler) Enabled(ctx context.Context, level slog.Level) boo
 
 func (h *contextAwareHandler) Handle(ctx context.Context, r slog.Record) error {
 	// Try to get request-scoped logger from goroutine map first
-	if logger := getGoroutineLogger(); logger != nil {
+	logger := getGoroutineLogger()
+
+	if logger != nil {
 		return logger.Handler().Handle(ctx, r)
 	}
-	
+
 	// Fall back to the wrapped handler
 	return h.handler.Handle(ctx, r)
 }
@@ -81,21 +84,26 @@ func Init() *slog.Logger {
 		},
 	})
 
-	// Wrap it with our context-aware handler
-	contextHandler := newContextAwareHandler(baseHandler)
-	
-	base := slog.New(contextHandler).With(
+	// Create base logger WITHOUT context-aware handler (to avoid loops)
+	baseLogger = slog.New(baseHandler).With(
 		slog.String("app", "digger-backend"),
 	)
-	
-	// This makes ALL slog calls automatically context-aware!
-	slog.SetDefault(base)
-	return base
+
+	// Create context-aware handler that wraps the base handler
+	contextHandler := &contextAwareHandler{handler: baseHandler}
+
+	// Create the default logger with context-aware handler
+	defaultLogger := slog.New(contextHandler).With(
+		slog.String("app", "digger-backend"),
+	)
+
+	slog.SetDefault(defaultLogger)
+	return defaultLogger
 }
 
 // inject stores a logger in ctx
 func Inject(ctx context.Context, l *slog.Logger) context.Context {
-	return context.WithValue(ctx, ctxKey{}, l)
+	return context.WithValue(ctx, key, l) // FIXED: Use 'key' consistently
 }
 
 // from returns the request scoped logger if present, else the global default
@@ -103,7 +111,7 @@ func From(ctx context.Context) *slog.Logger {
 	if ctx == nil {
 		return slog.Default()
 	}
-	if l, ok := ctx.Value(key).(*slog.Logger); ok && l != nil {
+	if l, ok := ctx.Value(key).(*slog.Logger); ok && l != nil { // Uses same 'key'
 		return l
 	}
 	return slog.Default()
@@ -119,6 +127,15 @@ func Default() *slog.Logger {
 	return slog.Default()
 }
 
+// GetBaseLogger returns the base logger for use in middleware (avoids loops)
+func GetBaseLogger() *slog.Logger {
+	if baseLogger == nil {
+		// Fallback if not initialized yet
+		return slog.Default()
+	}
+	return baseLogger
+}
+
 // Helper functions for middleware to access the goroutine map
 func StoreGoroutineLogger(gid uint64, logger *slog.Logger) {
 	goroutineLoggers.Store(gid, logger)
@@ -129,17 +146,17 @@ func DeleteGoroutineLogger(gid uint64) {
 }
 
 func getGoroutineLogger() *slog.Logger {
-	if logger, ok := goroutineLoggers.Load(getGoroutineID()); ok {
+	if logger, ok := goroutineLoggers.Load(GetGoroutineID()); ok {
 		return logger.(*slog.Logger)
 	}
 	return nil
 }
 
 // Helper function to get goroutine ID
-func getGoroutineID() uint64 {
+func GetGoroutineID() uint64 {
 	buf := make([]byte, 64)
 	buf = buf[:runtime.Stack(buf, false)]
-	
+
 	// Stack trace format: "goroutine 123 [running]:"
 	stack := string(buf)
 	if strings.HasPrefix(stack, "goroutine ") {
@@ -151,6 +168,16 @@ func getGoroutineID() uint64 {
 		}
 	}
 	return 0 // fallback
+}
+
+// Add this helper function:
+func InheritRequestLogger(ctx context.Context) (cleanup func()) {
+	if reqLogger := From(ctx); reqLogger != nil {
+		newGID := GetGoroutineID()
+		StoreGoroutineLogger(newGID, reqLogger)
+		return func() { DeleteGoroutineLogger(newGID) }
+	}
+	return func() {} // no-op cleanup
 }
 
 // Smart logging functions that can handle multiple signatures

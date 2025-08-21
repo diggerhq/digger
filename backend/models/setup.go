@@ -1,11 +1,11 @@
 package models
 
 import (
+	"github.com/diggerhq/digger/backend/logging"
 	sloggorm "github.com/imdatngo/slog-gorm/v2"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log/slog"
 	"os"
 	"time"
 )
@@ -20,7 +20,8 @@ var DEFAULT_ORG_NAME = "digger"
 var DB *Database
 
 func ConnectDatabase() {
-	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	slogger := logging.Default()
 
 	cfg := sloggorm.NewConfig(slogger.Handler()).
 		WithGroupKey("db").
@@ -35,7 +36,7 @@ func ConnectDatabase() {
 		Logger: glogger,
 	})
 	if err != nil {
-		slog.Error("Failed to connect to database", "error", err)
+		logging.Error("Failed to connect to database", "error", err)
 		panic("Failed to connect to database!")
 	}
 
@@ -44,10 +45,10 @@ func ConnectDatabase() {
 	// data and fixtures added
 	orgNumberOne, err := DB.GetOrganisation(DEFAULT_ORG_NAME)
 	if orgNumberOne == nil {
-		slog.Info("No default organization found, creating default organisation", "name", DEFAULT_ORG_NAME)
+		logging.Info("No default organization found, creating default organisation", "name", DEFAULT_ORG_NAME)
 		_, err := DB.CreateOrganisation("digger", "", DEFAULT_ORG_NAME)
 		if err != nil {
-			slog.Error("Failed to create default organization", "error", err)
+			logging.Error("Failed to create default organization", "error", err)
 		}
 	}
 }

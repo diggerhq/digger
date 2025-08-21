@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -16,7 +17,8 @@ func Middleware() gin.HandlerFunc {
 			c.Writer.Header().Set("X-Request-ID", rid)
 		}
 
-		reqLog := slog.Default().With(
+		// Use base logger to avoid infinite loop
+		reqLog := GetBaseLogger().With(
 			slog.String("request_id", rid),
 			slog.String("method", c.Request.Method),
 			slog.String("route", c.FullPath()),
@@ -29,8 +31,11 @@ func Middleware() gin.HandlerFunc {
 		c.Request = c.Request.WithContext(ctx)
 
 		// ALSO store in goroutine map for automatic detection
-		gid := getGoroutineID()
+		gid := GetGoroutineID()
 		StoreGoroutineLogger(gid, reqLog)
+
+		// TEMPORARY DEBUG - Remove after testing
+		fmt.Printf("DEBUG: Stored request logger for goroutine %d\n", gid)
 
 		start := time.Now()
 		c.Next()

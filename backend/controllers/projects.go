@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 	"github.com/diggerhq/digger/libs/iac_utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
+	"github.com/diggerhq/digger/backend/logging"
 	"gorm.io/gorm"
 )
 
@@ -679,7 +681,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to created", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "created")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "created")
+		}(c.Request.Context())
 
 	case "triggered":
 		job.Status = orchestrator_scheduler.DiggerJobTriggered
@@ -697,7 +702,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to triggered", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "triggered")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "triggered")
+		}(c.Request.Context())
 
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
@@ -719,7 +727,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to started", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "started")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "started")
+		}(c.Request.Context())
 
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
@@ -770,21 +781,20 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			"batchId", batchId,
 		)
 
-		go func() {
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
 			defer func() {
 				if r := recover(); r != nil {
 					stack := string(debug.Stack())
-					slog.Error("Recovered from panic in job completion handler",
-						"jobId", jobId,
-						"error", r,
-						slog.Group("stack",
-							slog.String("trace", stack),
-						),
-					)
+					logging.Error("Recovered from panic in job completion handler", map[string]any{
+						"job_id": jobId,
+						"error":  r,
+						"stack":  stack,
+					})
 				}
 			}()
 
-			slog.Debug("Starting post-success job processing", "jobId", jobId)
+			logging.Debug("Starting post-success job processing", "job_id", jobId)
 
 			ghClientProvider := d.GithubClientProvider
 			installationLink, err := models.DB.GetGithubInstallationLinkForOrg(orgId)
@@ -871,7 +881,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			}
 
 			slog.Debug("Successfully processed job completion", "jobId", jobId)
-		}()
+		}(c.Request.Context())
 
 		// store digger job summary
 		if request.JobSummary != nil {
@@ -879,7 +889,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 
 		// Update PR comment with real-time status for succeeded job
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "succeeded")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "succeeded")
+		}(c.Request.Context())
 
 	case "failed":
 		job.Status = orchestrator_scheduler.DiggerJobFailed
@@ -901,7 +914,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		)
 
 		// Update PR comment with real-time status for failed job
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "failed")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "failed")
+		}(c.Request.Context())
 
 	default:
 		slog.Warn("Unexpected job status received",
