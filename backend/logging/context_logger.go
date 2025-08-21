@@ -223,11 +223,6 @@ func parseLogArgs(args ...any) (context.Context, []any) {
 			for key, value := range v {
 				attrs = append(attrs, slog.Any(key, value))
 			}
-		case map[string]interface{}:
-			// Handle interface{} maps too
-			for key, value := range v {
-				attrs = append(attrs, slog.Any(key, value))
-			}
 		default:
 			// Pass through regular slog attributes (key-value pairs)
 			attrs = append(attrs, arg)
