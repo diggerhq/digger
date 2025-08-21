@@ -118,10 +118,6 @@ func From(ctx context.Context) *slog.Logger {
 	return slog.Default()
 }
 
-// With returns a new ctx with additional attrs layered onto the existing logger.
-func With(ctx context.Context, attrs ...any) context.Context {
-	return Inject(ctx, From(ctx).With(attrs...))
-}
 
 // Default returns the default logger for backward compatibility
 func Default() *slog.Logger {
@@ -227,40 +223,4 @@ func InheritRequestLogger(ctx context.Context) (cleanup func()) {
 }
 
 
-
-
-
-
-// parseLogArgs intelligently parses variadic arguments to extract context and attributes
-func parseLogArgs(args ...any) (context.Context, []any) {
-	if len(args) == 0 {
-		return nil, nil
-	}
-
-	var ctx context.Context
-	var attrs []any
-
-	// Check if last argument is context
-	lastIdx := len(args) - 1
-	if c, ok := args[lastIdx].(context.Context); ok {
-		ctx = c
-		args = args[:lastIdx] // Remove context from args
-	}
-
-	// Process remaining arguments
-	for _, arg := range args {
-		switch v := arg.(type) {
-		case map[string]any:
-			// Convert map to slog attributes
-			for key, value := range v {
-				attrs = append(attrs, slog.Any(key, value))
-			}
-		default:
-			// Pass through regular slog attributes (key-value pairs)
-			attrs = append(attrs, arg)
-		}
-	}
-
-	return ctx, attrs
-}
 
