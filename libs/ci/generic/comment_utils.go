@@ -3,9 +3,10 @@ package generic
 import (
 	"flag"
 	"fmt"
-	"github.com/google/shlex"
 	"strconv"
 	"strings"
+
+	"github.com/google/shlex"
 )
 
 type CommentParts struct {
@@ -50,7 +51,7 @@ func (s *singleUseInt) Set(v string) error {
 // validates that the right number of flags are specified
 // Does not validate the "digger plan" part of the command that is left to a prior function
 func ParseDiggerCommentFlags(comment string) (*CommentParts, bool, error) {
-	comment = strings.TrimSpace(strings.ToLower(comment))
+	comment = strings.TrimSpace(comment)
 
 	args, err := shlex.Split(comment)
 	if err != nil {
