@@ -1,0 +1,41 @@
+---
+title: "Caching providers"
+---
+
+In order to speed up your terraform runs it is great to cache providers so that each workflow run does not have to download the provider again. Digger provides
+an easy way to cache providers with a single argument as follows:
+
+```
+      - uses: diggerhq/digger@vLatest
+        with:
+            cache-depndencies: true
+```
+
+This will do the following:
+
+- When each jobs starts: it will attempt to restore cache from the github cache
+- After terraform runs it will download all the necessary providers into a cache directory
+- Once it is done it will store the cache back into github cache -- using the hash of the directory appended to the key
+
+The hashing of directories ensures that the cache is only saved if the contents of the directory has changed. Note that github
+cache is immutable so new caches will be new entries in the cache. Digger currently does not prune older caches so you may need
+to clean up older caches using a certain cycle.
+
+## Self-hosted runners and volumes caching
+
+If you are using self-hosted runners with github it might be overkill on your bandwidth to load and restore from cache. In this case it might be better to mount
+a common volume for all the runners to read and write to. Digger provides an argument to control the location for the terraform (or terragrunt) provider cache directory:
+
+```
+      - uses: diggerhq/digger@vLatest
+        with:
+            terraform-cache-dir: /home/myuser/mnt/terraform-cache
+```
+
+Where this path points to the location of a mounted volume that all the runners can read and write to. With this configuration in place, all runners will update the provider cache in place
+which means there is no need to re-download providers or upload them back to github cache each time.
+
+<Note>
+    We are currently looking into cases where there might be conflicts between [different runners](https://terragrunt.gruntwork.io/docs/features/provider-cache-server/#why-opentofuterraforms-built-in-provider-caching-doesnt-work)
+    writing to the same cache directory. It seems that recent versions of opentofu and terraform have improved their cache handling to avoid this issue. But it is an area we hope to document better for digger in the near future.
+</Note>
