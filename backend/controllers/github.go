@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
-	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -21,10 +19,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
+	"github.com/diggerhq/digger/libs/git_utils"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
-	"github.com/diggerhq/digger/backend/logging"
 	"github.com/diggerhq/digger/backend/locking"
+	"github.com/diggerhq/digger/backend/logging"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/segment"
@@ -441,10 +442,7 @@ func handlePushEvent(ctx context.Context, gh utils.GithubClientProvider, payload
 	if repoCacheEnabled == "1" && strings.HasSuffix(ref, defaultBranch) {
 		go func(ctx context.Context) {
 			if err := sendProcessCacheRequest(repoFullName, defaultBranch, installationId); err != nil {
-				slog.Error("Failed to process cache request", map[string]any{
-					"error":          err,
-					"repo_full_name": repoFullName,
-				})
+				slog.Error("Failed to process cache request", "error", err, "repoFullName", repoFullName)
 			}
 		}(ctx)
 	}

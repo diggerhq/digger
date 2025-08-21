@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/diggerhq/digger/backend/logging"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
@@ -22,7 +23,6 @@ import (
 	"github.com/diggerhq/digger/libs/iac_utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
-	"github.com/diggerhq/digger/backend/logging"
 	"gorm.io/gorm"
 )
 
@@ -625,7 +625,6 @@ type SetJobStatusRequest struct {
 	WorkflowUrl     string                      `json:"workflow_url,omitempty"`
 }
 
-
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
@@ -784,11 +783,14 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		go func(ctx context.Context) {
 			defer func() {
 				if r := recover(); r != nil {
-					slog.Error("Recovered from panic in job completion handler", map[string]any{
-						"job_id": jobId,
-						"error":  r,
-						"stack":  string(debug.Stack()),
-					})
+					stack := string(debug.Stack())
+					slog.Error("Recovered from panic in job completion handler",
+						"jobId", jobId,
+						"error", r,
+						slog.Group("stack",
+							slog.String("trace", stack),
+						),
+					)
 				}
 			}()
 			defer logging.InheritRequestLogger(ctx)()
@@ -1024,12 +1026,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 }
-
-
-
-
-
-
 
 func updateWorkflowUrlForJob(githubClientProvider utils.GithubClientProvider, job *models.DiggerJob) error {
 	if job == nil {
