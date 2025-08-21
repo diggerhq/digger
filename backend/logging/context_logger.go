@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"runtime"
@@ -138,23 +139,44 @@ func GetBaseLogger() *slog.Logger {
 
 // Helper functions for middleware to access the goroutine map
 func StoreGoroutineLogger(gid uint64, logger *slog.Logger) {
+	if gid == 0 {
+		// Don't store fallback ID to prevent conflicts
+		return
+	}
+	if logger == nil {
+		return
+	}
 	goroutineLoggers.Store(gid, logger)
 }
 
 func DeleteGoroutineLogger(gid uint64) {
+	if gid == 0 {
+		// Don't delete fallback ID
+		return
+	}
 	goroutineLoggers.Delete(gid)
 }
 
 func getGoroutineLogger() *slog.Logger {
 	if logger, ok := goroutineLoggers.Load(GetGoroutineID()); ok {
-		return logger.(*slog.Logger)
+		if slogLogger, ok := logger.(*slog.Logger); ok {
+			return slogLogger
+		}
+		// Log error in debug mode
+		if os.Getenv("DIGGER_LOG_LEVEL") == "DEBUG" {
+			slog.Debug("Invalid logger type in goroutine map", "type", fmt.Sprintf("%T", logger))
+		}
 	}
 	return nil
 }
 
 // Helper function to get goroutine ID
+const (
+	goroutineStackBufferSize = 64  // Make constant
+)
+
 func GetGoroutineID() uint64 {
-	buf := make([]byte, 64)
+	buf := make([]byte, goroutineStackBufferSize)
 	buf = buf[:runtime.Stack(buf, false)]
 
 	// Stack trace format: "goroutine 123 [running]:"
@@ -165,6 +187,10 @@ func GetGoroutineID() uint64 {
 			if id, err := strconv.ParseUint(stack[:idx], 10, 64); err == nil {
 				return id
 			}
+			// Log parsing error in debug mode
+			if os.Getenv("DIGGER_LOG_LEVEL") == "DEBUG" {
+				slog.Debug("Failed to parse goroutine ID", "stack", stack[:idx])
+			}
 		}
 	}
 	return 0 // fallback
@@ -172,12 +198,30 @@ func GetGoroutineID() uint64 {
 
 // Add this helper function:
 func InheritRequestLogger(ctx context.Context) (cleanup func()) {
+	if ctx == nil {
+		return func() {}
+	}
+	
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		// Context cancelled, don't inherit
+		return func() {}
+	default:
+		// Context still active, proceed
+	}
+	
 	if reqLogger := From(ctx); reqLogger != nil {
 		newGID := GetGoroutineID()
+		if newGID == 0 {
+			// Don't store with fallback ID
+			return func() {}
+		}
+		
 		StoreGoroutineLogger(newGID, reqLogger)
 		return func() { DeleteGoroutineLogger(newGID) }
 	}
-	return func() {} // no-op cleanup
+	return func() {}
 }
 
 // Smart logging functions that can handle multiple signatures

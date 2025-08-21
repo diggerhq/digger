@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -17,8 +16,14 @@ func Middleware() gin.HandlerFunc {
 			c.Writer.Header().Set("X-Request-ID", rid)
 		}
 
-		// Use base logger to avoid infinite loop
-		reqLog := GetBaseLogger().With(
+		// Protect against nil base logger
+		baseLogger := GetBaseLogger()
+		if baseLogger == nil {
+			// Fallback to default if initialization failed
+			baseLogger = slog.Default()
+		}
+
+		reqLog := baseLogger.With(
 			slog.String("request_id", rid),
 			slog.String("method", c.Request.Method),
 			slog.String("route", c.FullPath()),
@@ -30,18 +35,15 @@ func Middleware() gin.HandlerFunc {
 		ctx := Inject(c.Request.Context(), reqLog)
 		c.Request = c.Request.WithContext(ctx)
 
-		// ALSO store in goroutine map for automatic detection
+		// Store in goroutine map with error protection
 		gid := GetGoroutineID()
-		StoreGoroutineLogger(gid, reqLog)
-
-		// TEMPORARY DEBUG - Remove after testing
-		fmt.Printf("DEBUG: Stored request logger for goroutine %d\n", gid)
+		if gid != 0 {  // Only store if we got a valid ID
+			StoreGoroutineLogger(gid, reqLog)
+			defer DeleteGoroutineLogger(gid)  // Ensure cleanup
+		}
 
 		start := time.Now()
 		c.Next()
-
-		// Cleanup
-		DeleteGoroutineLogger(gid)
 
 		reqLog.Info("http_request_done",
 			slog.Int("status", c.Writer.Status()),
