@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"os"
 	"time"
+	"log/slog"
 )
 
 type Database struct {

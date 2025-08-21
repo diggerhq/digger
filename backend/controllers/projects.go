@@ -784,7 +784,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		go func(ctx context.Context) {
 			defer func() {
 				if r := recover(); r != nil {
-					logging.Error("Recovered from panic in job completion handler", map[string]any{
+					slog.Error("Recovered from panic in job completion handler", map[string]any{
 						"job_id": jobId,
 						"error":  r,
 						"stack":  string(debug.Stack()),
