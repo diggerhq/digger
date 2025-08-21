@@ -119,57 +119,6 @@ func Default() *slog.Logger {
 	return slog.Default()
 }
 
-// Convenience wrappers so you don't touch slog directly if you don't want to.
-func Info(ctx context.Context, msg string, attrs ...any)  { From(ctx).Info(msg, attrs...) }
-func Error(ctx context.Context, msg string, attrs ...any) { From(ctx).Error(msg, attrs...) }
-func Debug(ctx context.Context, msg string, attrs ...any) { From(ctx).Debug(msg, attrs...) }
-
-// Non-context convenience functions for backward compatibility
-func InfoMsg(msg string, attrs ...any)  { slog.Default().Info(msg, attrs...) }
-func ErrorMsg(msg string, attrs ...any) { slog.Default().Error(msg, attrs...) }
-func DebugMsg(msg string, attrs ...any) { slog.Default().Debug(msg, attrs...) }
-
-// Seamless logging functions that automatically check goroutine map
-func InfoAuto(msg string, attrs ...any) {
-	if logger := getGoroutineLogger(); logger != nil {
-		logger.Info(msg, attrs...)
-	} else {
-		slog.Info(msg, attrs...)
-	}
-}
-
-func ErrorAuto(msg string, attrs ...any) {
-	if logger := getGoroutineLogger(); logger != nil {
-		logger.Error(msg, attrs...)
-	} else {
-		slog.Error(msg, attrs...)
-	}
-}
-
-func DebugAuto(msg string, attrs ...any) {
-	if logger := getGoroutineLogger(); logger != nil {
-		logger.Debug(msg, attrs...)
-	} else {
-		slog.Debug(msg, attrs...)
-	}
-}
-
-func WarnAuto(msg string, attrs ...any) {
-	if logger := getGoroutineLogger(); logger != nil {
-		logger.Warn(msg, attrs...)
-	} else {
-		slog.Warn(msg, attrs...)
-	}
-}
-
-// Helper to get logger from goroutine map
-func getGoroutineLogger() *slog.Logger {
-	if logger, ok := goroutineLoggers.Load(getGoroutineID()); ok {
-		return logger.(*slog.Logger)
-	}
-	return nil
-}
-
 // Helper functions for middleware to access the goroutine map
 func StoreGoroutineLogger(gid uint64, logger *slog.Logger) {
 	goroutineLoggers.Store(gid, logger)
@@ -177,6 +126,13 @@ func StoreGoroutineLogger(gid uint64, logger *slog.Logger) {
 
 func DeleteGoroutineLogger(gid uint64) {
 	goroutineLoggers.Delete(gid)
+}
+
+func getGoroutineLogger() *slog.Logger {
+	if logger, ok := goroutineLoggers.Load(getGoroutineID()); ok {
+		return logger.(*slog.Logger)
+	}
+	return nil
 }
 
 // Helper function to get goroutine ID
@@ -198,6 +154,7 @@ func getGoroutineID() uint64 {
 }
 
 // Smart logging functions that can handle multiple signatures
+// These are the ONLY logging functions we need - they handle all cases
 func Info(msg string, args ...any) {
 	ctx, attrs := parseLogArgs(args...)
 	if ctx != nil {
@@ -279,3 +236,8 @@ func parseLogArgs(args ...any) (context.Context, []any) {
 
 	return ctx, attrs
 }
+
+// Backward compatibility functions (optional - can be removed if not needed)
+func InfoMsg(msg string, attrs ...any)  { slog.Default().Info(msg, attrs...) }
+func ErrorMsg(msg string, attrs ...any) { slog.Default().Error(msg, attrs...) }
+func DebugMsg(msg string, attrs ...any) { slog.Default().Debug(msg, attrs...) }
