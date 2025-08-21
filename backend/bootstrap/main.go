@@ -13,10 +13,10 @@ import (
 	"runtime/pprof"
 
 	"github.com/diggerhq/digger/backend/config"
+	"github.com/diggerhq/digger/backend/logging"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/utils"
 	pprof_gin "github.com/gin-contrib/pprof"
-	sloggin "github.com/samber/slog-gin"
 
 	"time"
 
@@ -98,7 +98,7 @@ func cleanupOldProfiles(dir string, keep int) {
 
 func Bootstrap(templates embed.FS, diggerController controllers.DiggerController) *gin.Engine {
 	defer segment.CloseClient()
-	initLogging()
+	logging.Init()
 	cfg := config.DiggerConfig
 
 	if err := sentry.Init(sentry.ClientOptions{
@@ -120,7 +120,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 	r := gin.Default()
 
-	r.Use(sloggin.New(slog.Default().WithGroup("http")))
+	r.Use(logging.Middleware())
 
 	if _, exists := os.LookupEnv("DIGGER_PPROF_DEBUG_ENABLED"); exists {
 		setupProfiler(r)
@@ -255,25 +255,4 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	}
 
 	return r
-}
-
-func initLogging() {
-	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
-	var level slog.Leveler
-
-	if logLevel == "DEBUG" {
-		level = slog.LevelDebug
-	} else if logLevel == "WARN" {
-		level = slog.LevelWarn
-	} else if logLevel == "ERROR" {
-		level = slog.LevelError
-	} else {
-		level = slog.LevelInfo
-	}
-
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: level,
-	})
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
 }
