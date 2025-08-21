@@ -131,8 +131,10 @@ func Default() *slog.Logger {
 // GetBaseLogger returns the base logger for use in middleware (avoids loops)
 func GetBaseLogger() *slog.Logger {
 	if baseLogger == nil {
-		// Fallback if not initialized yet
-		return slog.Default()
+		// SAFE FALLBACK: Create a simple logger without contextAwareHandler
+		return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})).With(slog.String("app", "digger-backend"))
 	}
 	return baseLogger
 }
