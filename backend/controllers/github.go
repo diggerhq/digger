@@ -541,7 +541,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	commentReporterManager := utils.InitCommentReporterManager(ghService, prNumber)
-	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING_CONFIG"); exists {
+	if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
 		_, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting....")
 		if err != nil {
 			slog.Error("Error initializing comment reporter",
@@ -597,7 +597,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,
 		)
-		// This one is for aggregate reporting
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: No projects impacted")
+		}
 		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 		return nil
 	}
@@ -1363,7 +1366,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	commentReporterManager := utils.InitCommentReporterManager(ghService, issueNumber)
-	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING_CONFIG"); exists {
+	if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
 		_, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting....")
 		if err != nil {
 			slog.Error("Error initializing comment reporter",
