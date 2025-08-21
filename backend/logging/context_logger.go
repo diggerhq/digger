@@ -18,6 +18,7 @@ var (
 	key              = ctxKey{}
 	goroutineLoggers sync.Map     // map[goroutineID]*slog.Logger
 	baseLogger       *slog.Logger // Store the base logger to avoid loops
+	cleanupTicker    *time.Ticker // Ticker for periodic cleanup of stale goroutine loggers
 )
 
 // contextAwareHandler wraps any slog.Handler and automatically includes request context
@@ -59,6 +60,15 @@ func (h *contextAwareHandler) WithGroup(name string) slog.Handler {
 
 // sets up the process wide base logger with automatic context detection
 func Init() *slog.Logger {
+
+	cleanupTicker = time.NewTicker(10 * time.Minute)
+	go func() {
+		for range cleanupTicker.C {
+			cleanupStaleGoroutineLoggers()
+		}
+	}()
+
+
 	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
 	var level slog.Leveler
 
