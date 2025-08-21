@@ -2454,7 +2454,18 @@ jobs:
 }
 
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
-	installationId := c.Request.URL.Query()["installation_id"][0]
+	installationIdParams, installationIdExists := c.Request.URL.Query()["installation_id"]
+	if !installationIdExists || len(installationIdParams) == 0 {
+		slog.Error("There was no installation_id in the url query parameters")
+		c.String(http.StatusBadRequest, "could not find the installation_id query parameter for github app")
+		return
+	}
+	installationId := installationIdParams[0]
+	if len(installationId) < 1 {
+		slog.Error("Installation_id parameter is empty")
+		c.String(http.StatusBadRequest, "installation_id parameter for github app is empty")
+		return
+	}
 	//setupAction := c.Request.URL.Query()["setup_action"][0]
 	codeParams, codeExists := c.Request.URL.Query()["code"]
 	if !codeExists || len(codeParams) == 0 {
