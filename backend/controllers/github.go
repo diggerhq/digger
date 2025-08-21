@@ -2456,10 +2456,16 @@ jobs:
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	installationId := c.Request.URL.Query()["installation_id"][0]
 	//setupAction := c.Request.URL.Query()["setup_action"][0]
-	code := c.Request.URL.Query()["code"][0]
-	if len(code) < 1 {
+	codeParams, codeExists := c.Request.URL.Query()["code"]
+	if !codeExists || len(codeParams) == 0 {
 		slog.Error("There was no code in the url query parameters")
 		c.String(http.StatusBadRequest, "could not find the code query parameter for github app")
+		return
+	}
+	code := codeParams[0]
+	if len(code) < 1 {
+		slog.Error("Code parameter is empty")
+		c.String(http.StatusBadRequest, "code parameter for github app is empty")
 		return
 	}
 	appId := c.Request.URL.Query().Get("state")
