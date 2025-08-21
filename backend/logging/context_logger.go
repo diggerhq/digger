@@ -224,51 +224,10 @@ func InheritRequestLogger(ctx context.Context) (cleanup func()) {
 	return func() {}
 }
 
-// Smart logging functions that can handle multiple signatures
-// These are the ONLY logging functions we need - they handle all cases
-func Info(msg string, args ...any) {
-	ctx, attrs := parseLogArgs(args...)
-	if ctx != nil {
-		From(ctx).Info(msg, attrs...)
-	} else if logger := getGoroutineLogger(); logger != nil {
-		logger.Info(msg, attrs...)
-	} else {
-		slog.Info(msg, attrs...)
-	}
-}
 
-func Error(msg string, args ...any) {
-	ctx, attrs := parseLogArgs(args...)
-	if ctx != nil {
-		From(ctx).Error(msg, attrs...)
-	} else if logger := getGoroutineLogger(); logger != nil {
-		logger.Error(msg, attrs...)
-	} else {
-		slog.Error(msg, attrs...)
-	}
-}
 
-func Debug(msg string, args ...any) {
-	ctx, attrs := parseLogArgs(args...)
-	if ctx != nil {
-		From(ctx).Debug(msg, attrs...)
-	} else if logger := getGoroutineLogger(); logger != nil {
-		logger.Debug(msg, attrs...)
-	} else {
-		slog.Debug(msg, attrs...)
-	}
-}
 
-func Warn(msg string, args ...any) {
-	ctx, attrs := parseLogArgs(args...)
-	if ctx != nil {
-		From(ctx).Warn(msg, attrs...)
-	} else if logger := getGoroutineLogger(); logger != nil {
-		logger.Warn(msg, attrs...)
-	} else {
-		slog.Warn(msg, attrs...)
-	}
-}
+
 
 // parseLogArgs intelligently parses variadic arguments to extract context and attributes
 func parseLogArgs(args ...any) (context.Context, []any) {
@@ -303,7 +262,3 @@ func parseLogArgs(args ...any) (context.Context, []any) {
 	return ctx, attrs
 }
 
-// Backward compatibility functions (optional - can be removed if not needed)
-func InfoMsg(msg string, attrs ...any)  { slog.Default().Info(msg, attrs...) }
-func ErrorMsg(msg string, attrs ...any) { slog.Default().Error(msg, attrs...) }
-func DebugMsg(msg string, attrs ...any) { slog.Default().Debug(msg, attrs...) }

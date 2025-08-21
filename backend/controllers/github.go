@@ -441,7 +441,7 @@ func handlePushEvent(ctx context.Context, gh utils.GithubClientProvider, payload
 	if repoCacheEnabled == "1" && strings.HasSuffix(ref, defaultBranch) {
 		go func(ctx context.Context) {
 			if err := sendProcessCacheRequest(repoFullName, defaultBranch, installationId); err != nil {
-				logging.Error("Failed to process cache request", map[string]any{
+				slog.Error("Failed to process cache request", map[string]any{
 					"error":          err,
 					"repo_full_name": repoFullName,
 				})

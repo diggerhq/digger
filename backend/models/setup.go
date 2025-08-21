@@ -36,7 +36,7 @@ func ConnectDatabase() {
 		Logger: glogger,
 	})
 	if err != nil {
-		logging.Error("Failed to connect to database", "error", err)
+		slog.Error("Failed to connect to database", "error", err)
 		panic("Failed to connect to database!")
 	}
 
@@ -45,10 +45,10 @@ func ConnectDatabase() {
 	// data and fixtures added
 	orgNumberOne, err := DB.GetOrganisation(DEFAULT_ORG_NAME)
 	if orgNumberOne == nil {
-		logging.Info("No default organization found, creating default organisation", "name", DEFAULT_ORG_NAME)
+		slog.Info("No default organization found, creating default organisation", "name", DEFAULT_ORG_NAME)
 		_, err := DB.CreateOrganisation("digger", "", DEFAULT_ORG_NAME)
 		if err != nil {
-			logging.Error("Failed to create default organization", "error", err)
+			slog.Error("Failed to create default organization", "error", err)
 		}
 	}
 }

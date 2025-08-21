@@ -793,7 +793,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			}()
 			defer logging.InheritRequestLogger(ctx)()
 
-			logging.Debug("Starting post-success job processing", "job_id", jobId)
+			slog.Debug("Starting post-success job processing", "job_id", jobId)
 
 			ghClientProvider := d.GithubClientProvider
 			installationLink, err := models.DB.GetGithubInstallationLinkForOrg(orgId)
