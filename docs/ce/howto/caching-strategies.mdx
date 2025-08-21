@@ -13,7 +13,7 @@ an easy way to cache providers with a single argument as follows:
 
 This will do the following:
 
-- When each jobs starts: it will attempt to restore cache from the github cache
+- When each job starts: it will attempt to restore cache from the github cache
 - After terraform runs it will download all the necessary providers into a cache directory
 - Once it is done it will store the cache back into github cache -- using the hash of the directory appended to the key
 
