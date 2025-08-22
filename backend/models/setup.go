@@ -1,13 +1,14 @@
 package models
 
 import (
+	"github.com/diggerhq/digger/backend/logging"
 	sloggorm "github.com/imdatngo/slog-gorm/v2"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log/slog"
 	"os"
 	"time"
+	"log/slog"
 )
 
 type Database struct {
@@ -20,7 +21,8 @@ var DEFAULT_ORG_NAME = "digger"
 var DB *Database
 
 func ConnectDatabase() {
-	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	slogger := logging.Default()
 
 	cfg := sloggorm.NewConfig(slogger.Handler()).
 		WithGroupKey("db").
