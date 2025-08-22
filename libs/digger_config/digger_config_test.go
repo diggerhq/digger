@@ -1317,9 +1317,24 @@ func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T)
 		Projects: projects,
 	}
 	//expectedImpactingLocations := map[string]ProjectToSourceMapping{}
-
+	// TODO: this behaviour doesn't make much sense, we should re-evaluate when we make it configurable
 	impactedProjects, _ := c.GetModifiedProjects(changedFiles)
-	assert.Equal(t, 0, len(impactedProjects))
+	assert.Equal(t, 1, len(impactedProjects))
+}
+
+func TestShouldDetectNestedFilesAsImpacted(t *testing.T) {
+	changedFiles := []string{"services/backend/files/config.json"}
+	projects := []Project{
+		Project{
+			Name: "services_backend",
+			Dir:  "services/backend",
+		},
+	}
+	c := DiggerConfig{
+		Projects: projects,
+	}
+	impactedProjects, _ := c.GetModifiedProjects(changedFiles)
+	assert.Equal(t, 1, len(impactedProjects))
 }
 
 func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {

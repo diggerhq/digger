@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
-	"github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -21,9 +19,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
+	"github.com/diggerhq/digger/libs/git_utils"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/locking"
+	"github.com/diggerhq/digger/backend/logging"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/segment"
@@ -108,7 +110,10 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			"repo", *event.Repo.FullName,
 		)
 
-		go handlePushEvent(gh, event, appId64)
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			handlePushEvent(ctx, gh, event, appId64)
+		}(c.Request.Context())
 
 	case *github.IssueCommentEvent:
 		slog.Info("Processing IssueCommentEvent",
@@ -122,7 +127,10 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			c.String(http.StatusOK, "OK")
 			return
 		}
-		go handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64, d.GithubWebhookPostIssueCommentHooks)
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64, d.GithubWebhookPostIssueCommentHooks)
+		}(c.Request.Context())
 
 	case *github.PullRequestEvent:
 		slog.Info("Processing PullRequestEvent",
@@ -133,7 +141,10 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		)
 
 		// run it as a goroutine to avoid timeouts
-		go handlePullRequestEvent(gh, event, d.CiBackendProvider, appId64)
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			handlePullRequestEvent(gh, event, d.CiBackendProvider, appId64)
+		}(c.Request.Context())
 
 	default:
 		slog.Debug("Unhandled event type", "eventType", reflect.TypeOf(event))
@@ -396,7 +407,7 @@ func handleInstallationDeletedEvent(installation *github.InstallationEvent, appI
 	return nil
 }
 
-func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, appId int64) error {
+func handlePushEvent(ctx context.Context, gh utils.GithubClientProvider, payload *github.PushEvent, appId int64) error {
 	slog.Debug("Handling push event", "appId", appId, "payload", payload)
 	defer func() {
 		if r := recover(); r != nil {
@@ -430,11 +441,12 @@ func handlePushEvent(gh utils.GithubClientProvider, payload *github.PushEvent, a
 
 	repoCacheEnabled := os.Getenv("DIGGER_CONFIG_REPO_CACHE_ENABLED")
 	if repoCacheEnabled == "1" && strings.HasSuffix(ref, defaultBranch) {
-		go func() {
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
 			if err := sendProcessCacheRequest(repoFullName, defaultBranch, installationId); err != nil {
 				slog.Error("Failed to process cache request", "error", err, "repoFullName", repoFullName)
 			}
-		}()
+		}(ctx)
 	}
 
 	return nil
@@ -540,7 +552,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	commentReporterManager := utils.InitCommentReporterManager(ghService, prNumber)
-	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING_CONFIG"); exists {
+	if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
 		_, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting....")
 		if err != nil {
 			slog.Error("Error initializing comment reporter",
@@ -596,7 +608,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,
 		)
-		// This one is for aggregate reporting
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: No projects impacted")
+		}
 		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 		return nil
 	}
@@ -1362,7 +1377,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	commentReporterManager := utils.InitCommentReporterManager(ghService, issueNumber)
-	if _, exists := os.LookupEnv("DIGGER_REPORT_BEFORE_LOADING_CONFIG"); exists {
+	if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
 		_, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting....")
 		if err != nil {
 			slog.Error("Error initializing comment reporter",
@@ -2453,9 +2468,31 @@ jobs:
 }
 
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
-	installationId := c.Request.URL.Query()["installation_id"][0]
+	installationIdParams, installationIdExists := c.Request.URL.Query()["installation_id"]
+	if !installationIdExists || len(installationIdParams) == 0 {
+		slog.Error("There was no installation_id in the url query parameters")
+		c.String(http.StatusBadRequest, "could not find the installation_id query parameter for github app")
+		return
+	}
+	installationId := installationIdParams[0]
+	if len(installationId) < 1 {
+		slog.Error("Installation_id parameter is empty")
+		c.String(http.StatusBadRequest, "installation_id parameter for github app is empty")
+		return
+	}
 	//setupAction := c.Request.URL.Query()["setup_action"][0]
-	code := c.Request.URL.Query()["code"][0]
+	codeParams, codeExists := c.Request.URL.Query()["code"]
+	if !codeExists || len(codeParams) == 0 {
+		slog.Error("There was no code in the url query parameters")
+		c.String(http.StatusBadRequest, "could not find the code query parameter for github app")
+		return
+	}
+	code := codeParams[0]
+	if len(code) < 1 {
+		slog.Error("Code parameter is empty")
+		c.String(http.StatusBadRequest, "code parameter for github app is empty")
+		return
+	}
 	appId := c.Request.URL.Query().Get("state")
 
 	slog.Info("Processing GitHub app callback", "installationId", installationId, "appId", appId)
@@ -2599,8 +2636,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 	// we get repos accessible to this installation
 	slog.Debug("Listing repositories for installation", "installationId", installationId64)
 
-	opt := &github.ListOptions{Page: 1, PerPage: 100}
-	listRepos, _, err := client.Apps.ListRepos(context.Background(), opt)
+	repos, err := dg_github.ListGithubRepos(client)
 	if err != nil {
 		slog.Error("Failed to list existing repositories",
 			"installationId", installationId64,
@@ -2609,12 +2645,6 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
 		return
 	}
-	repos := listRepos.Repositories
-
-	slog.Info("Retrieved repositories for installation",
-		"installationId", installationId64,
-		"repoCount", len(repos),
-	)
 
 	// resets all existing installations (soft delete)
 	slog.Debug("Resetting existing GitHub installations",

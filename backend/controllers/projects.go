@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/diggerhq/digger/backend/logging"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
@@ -623,7 +625,6 @@ type SetJobStatusRequest struct {
 	WorkflowUrl     string                      `json:"workflow_url,omitempty"`
 }
 
-
 func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	jobId := c.Param("jobId")
 	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
@@ -679,7 +680,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to created", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "created")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "created")
+		}(c.Request.Context())
 
 	case "triggered":
 		job.Status = orchestrator_scheduler.DiggerJobTriggered
@@ -697,7 +701,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to triggered", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "triggered")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "triggered")
+		}(c.Request.Context())
 
 	case "started":
 		job.Status = orchestrator_scheduler.DiggerJobStarted
@@ -719,7 +726,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		slog.Info("Job status updated to started", "jobId", jobId)
 
 		// Update PR comment with real-time status
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "started")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "started")
+		}(c.Request.Context())
 
 	case "succeeded":
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
@@ -770,7 +780,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			"batchId", batchId,
 		)
 
-		go func() {
+		go func(ctx context.Context) {
 			defer func() {
 				if r := recover(); r != nil {
 					stack := string(debug.Stack())
@@ -783,8 +793,9 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 					)
 				}
 			}()
+			defer logging.InheritRequestLogger(ctx)()
 
-			slog.Debug("Starting post-success job processing", "jobId", jobId)
+			slog.Debug("Starting post-success job processing", "job_id", jobId)
 
 			ghClientProvider := d.GithubClientProvider
 			installationLink, err := models.DB.GetGithubInstallationLinkForOrg(orgId)
@@ -871,7 +882,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			}
 
 			slog.Debug("Successfully processed job completion", "jobId", jobId)
-		}()
+		}(c.Request.Context())
 
 		// store digger job summary
 		if request.JobSummary != nil {
@@ -879,7 +890,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 
 		// Update PR comment with real-time status for succeeded job
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "succeeded")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "succeeded")
+		}(c.Request.Context())
 
 	case "failed":
 		job.Status = orchestrator_scheduler.DiggerJobFailed
@@ -901,7 +915,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		)
 
 		// Update PR comment with real-time status for failed job
-		go utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "failed")
+		go func(ctx context.Context) {
+			defer logging.InheritRequestLogger(ctx)()
+			utils.UpdatePRComment(d.GithubClientProvider, jobId, job, "failed")
+		}(c.Request.Context())
 
 	default:
 		slog.Warn("Unexpected job status received",
@@ -1009,12 +1026,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 }
-
-
-
-
-
-
 
 func updateWorkflowUrlForJob(githubClientProvider utils.GithubClientProvider, job *models.DiggerJob) error {
 	if job == nil {

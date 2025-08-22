@@ -54,10 +54,10 @@ workflows:
         - run: terraform plan -input=false -refresh -no-color -out $DIGGER_PLANFILE
 ```
 
-Note that you need to use the -out flag to write the output to the $DIGGER_PLANFILE env variable, since this will be used in postprocessing steps by digger.
+Note that you need to use the -out flag to write the output to the `$DIGGER_PLANFILE` env variable, since this will be used in postprocessing steps by digger.
 
-Similarly for the apply step you can use the $DIGGER_PLANFILE env variable to point to the plan file to apply. Note that this will only work when you have the [plan persistence](/ce/howto/store-plans-in-a-bucket)
-configured. If plan persistence is not configured, the $DIGGER_PLANFILE environment variable will not be set during the apply step. Here is an example with both plan and apply commands overriden:
+Similarly for the apply step you can use the `$DIGGER_PLANFILE` env variable to point to the plan file to apply. Note that this will only work when you have the [plan persistence](/ce/howto/store-plans-in-a-bucket)
+configured. If plan persistence is not configured, the `$DIGGER_PLANFILE` environment variable will not be set during the apply step. Here is an example with both plan and apply commands overriden:
 
 ```
 workflows:
