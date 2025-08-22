@@ -199,7 +199,7 @@ func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 
 			allComments = append(allComments, ci.Comment{
 				Id:   commentId,
-				Body: commentBody,  // Now safely handled
+				Body: commentBody,  
 				Url:  commentUrl,
 			})
 		}
