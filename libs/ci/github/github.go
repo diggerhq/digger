@@ -186,12 +186,12 @@ func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 			if comment.ID != nil {
 				commentId = strconv.FormatInt(*comment.ID, 10)
 			}
-			
+
 			var commentUrl string
 			if comment.HTMLURL != nil {
 				commentUrl = *comment.HTMLURL
 			}
-			
+
 			var commentBody *string
 			if comment.Body != nil {
 				commentBody = comment.Body
@@ -199,7 +199,7 @@ func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 
 			allComments = append(allComments, ci.Comment{
 				Id:   commentId,
-				Body: commentBody,  
+				Body: commentBody,
 				Url:  commentUrl,
 			})
 		}
@@ -277,7 +277,9 @@ func (svc GithubService) IsPullRequest(PrNumber int) (bool, error) {
 }
 
 func (svc GithubService) SetStatus(prNumber int, status string, statusContext string) error {
-	// we have to check if prNumber is an issue or not
+	ctx := context.Background()
+
+	// Check PR existence
 	isPullRequest, err := svc.IsPullRequest(prNumber)
 	if err != nil {
 		slog.Error("error checking if pull request is issue", "error", err, "prNumber", prNumber)
@@ -288,23 +290,40 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 		return nil
 	}
 
-	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
+	// Get PR to obtain head SHA
+	pr, _, err := svc.Client.PullRequests.Get(ctx, svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
-		return fmt.Errorf("error getting pull request : %v", err)
+		return fmt.Errorf("error getting pull request: %v", err)
 	}
 
-	// previously was setting description as "statusContext" but
-	// faced some issues with too long strings of > 140 chars:
-	// 422 Validation Failed [{Resource:Status Field:description Code:custom Message:description is too long (maximum is 140 characters)}]
-	// since description isn't shown in ui setting to blank for now
-	description := ""
+	var checkStatus string
+	var conclusion string
+	if status == "pending" {
+		checkStatus = "in_progress"
+		conclusion = ""
+	} else {
+		checkStatus = status
+		conclusion = "completed"
+	}
+	fmt.Printf("status: %v, checkStatus: %v, conclusion: %v\n", status, checkStatus, conclusion)
+	// Build check run options
+	opts := github.CreateCheckRunOptions{
+		Name:    statusContext, // similar to "Context" in Status API
+		HeadSHA: pr.GetHead().GetSHA(),
+		Status:  github.String(checkStatus), // required when setting a conclusion
+		//Conclusion: github.String(conclusion),
+		Output: &github.CheckRunOutput{
+			Title:   github.String(statusContext),
+			Summary: github.String(statusContext), // appears in UI, no 140-char limit like statuses
+		},
+	}
+	if conclusion != "" {
+		opts.Conclusion = github.String(conclusion)
+	}
 
-	_, _, err = svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
-		State:       &status,
-		Context:     &statusContext,
-		Description: &description,
-	})
+	// Create the check run
+	_, _, err = svc.Client.Checks.CreateCheckRun(ctx, svc.Owner, svc.RepoName, opts)
 	return err
 }
 

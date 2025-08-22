@@ -224,13 +224,13 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 	} else {
 		slog.Debug("Setting success status for empty job list", "prNumber", prNumber)
 
-		err := prService.SetStatus(prNumber, "success", "digger/plan")
+		err := prService.SetStatus(prNumber, "skipped", "digger/plan")
 		if err != nil {
 			slog.Error("Failed to set success plan status", "prNumber", prNumber, "error", err)
 			return fmt.Errorf("error setting pr status: %v", err)
 		}
 
-		err = prService.SetStatus(prNumber, "success", "digger/apply")
+		err = prService.SetStatus(prNumber, "skipped", "digger/apply")
 		if err != nil {
 			slog.Error("Failed to set success apply status", "prNumber", prNumber, "error", err)
 			return fmt.Errorf("error setting pr status: %v", err)
