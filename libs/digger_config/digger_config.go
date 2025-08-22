@@ -3,13 +3,14 @@ package digger_config
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 
 	"github.com/samber/lo"
 
@@ -926,7 +927,11 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) ([]Project, ma
 			includePatterns := project.IncludePatterns
 			excludePatterns := project.ExcludePatterns
 
-			includePatterns = append(includePatterns, filepath.Join(project.Dir, "*"))
+			if !project.Terragrunt {
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, "**", "*"))
+			} else {
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*"))
+			}
 
 			// all our patterns are the globale dir pattern + the include patterns specified by user
 			if MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
