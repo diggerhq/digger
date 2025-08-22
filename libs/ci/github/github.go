@@ -168,16 +168,44 @@ func (svc GithubService) PublishComment(prNumber int, comment string) (*ci.Comme
 }
 
 func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
-	comments, _, err := svc.Client.Issues.ListComments(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueListCommentsOptions{ListOptions: github.ListOptions{PerPage: 100}})
-	commentBodies := make([]ci.Comment, len(comments))
-	for i, comment := range comments {
-		commentBodies[i] = ci.Comment{
-			Id:   strconv.FormatInt(*comment.ID, 10),
-			Body: comment.Body,
-			Url:  *comment.HTMLURL,
-		}
+	var allComments []ci.Comment
+	opts := &github.IssueListCommentsOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
 	}
-	return commentBodies, err
+
+	for {
+		comments, resp, err := svc.Client.Issues.ListComments(context.Background(), svc.Owner, svc.RepoName, prNumber, opts)
+		if err != nil {
+			slog.Error("error getting pull request comments", "error", err, "prNumber", prNumber)
+			return nil, fmt.Errorf("error getting pull request comments: %v", err)
+		}
+
+		for _, comment := range comments {
+			// Add nil checks to prevent potential nil pointer dereference
+			var commentId string
+			if comment.ID != nil {
+				commentId = strconv.FormatInt(*comment.ID, 10)
+			}
+			
+			var commentUrl string
+			if comment.HTMLURL != nil {
+				commentUrl = *comment.HTMLURL
+			}
+			
+			allComments = append(allComments, ci.Comment{
+				Id:   commentId,
+				Body: comment.Body,
+				Url:  commentUrl,
+			})
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return allComments, nil
 }
 
 func (svc GithubService) GetApprovals(prNumber int) ([]string, error) {
