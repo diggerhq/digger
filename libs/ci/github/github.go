@@ -192,9 +192,14 @@ func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 				commentUrl = *comment.HTMLURL
 			}
 			
+			var commentBody *string
+			if comment.Body != nil {
+				commentBody = comment.Body
+			}
+
 			allComments = append(allComments, ci.Comment{
 				Id:   commentId,
-				Body: comment.Body,
+				Body: commentBody,  // Now safely handled
 				Url:  commentUrl,
 			})
 		}
