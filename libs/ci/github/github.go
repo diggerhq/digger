@@ -181,10 +181,21 @@ func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 		}
 
 		for _, comment := range comments {
+			// Add nil checks to prevent potential nil pointer dereference
+			var commentId string
+			if comment.ID != nil {
+				commentId = strconv.FormatInt(*comment.ID, 10)
+			}
+			
+			var commentUrl string
+			if comment.HTMLURL != nil {
+				commentUrl = *comment.HTMLURL
+			}
+			
 			allComments = append(allComments, ci.Comment{
-				Id:   strconv.FormatInt(*comment.ID, 10),
+				Id:   commentId,
 				Body: comment.Body,
-				Url:  *comment.HTMLURL,
+				Url:  commentUrl,
 			})
 		}
 
