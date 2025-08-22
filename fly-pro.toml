@@ -13,7 +13,7 @@ primary_region = 'lhr'
   DIGGER_PROJECTS_SVC_APP_NAME = 'projects-refresh-service'
   DIGGER_LOAD_PROJECTS_ON_PUSH = 'true'
   DIGGER_MAX_PROJECTS_PER_CHANGE=100
-
+  DIGGER_LOG_LEVEL = 'DEBUG'
 [build]
   dockerfile = 'Dockerfile_backend_ee'
 
