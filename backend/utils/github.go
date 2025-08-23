@@ -210,6 +210,7 @@ func SetPRStatusForJobs(prService ci.PullRequestService, prNumber int, jobs []sc
 		if scheduler.IsPlanJobs(jobs) {
 			slog.Debug("Setting aggregate plan status", "prNumber", prNumber)
 			err = prService.SetStatus(prNumber, "pending", "digger/plan")
+			err = prService.SetStatus(prNumber, "neutral", "digger/apply")
 		} else {
 			slog.Debug("Setting aggregate apply status", "prNumber", prNumber)
 			err = prService.SetStatus(prNumber, "pending", "digger/apply")

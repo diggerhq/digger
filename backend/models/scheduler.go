@@ -184,3 +184,19 @@ func (b *DiggerBatch) MapToJsonStruct() (orchestrator_scheduler.SerializedBatch,
 
 	return res, nil
 }
+
+func GetStatusCheckForJob(job *DiggerJob) (string, error) {
+	switch job.Status {
+	case orchestrator_scheduler.DiggerJobStarted:
+		return "pending", nil
+	case orchestrator_scheduler.DiggerJobTriggered:
+		return "pending", nil
+	case orchestrator_scheduler.DiggerJobCreated:
+		return "pending", nil
+	case orchestrator_scheduler.DiggerJobSucceeded:
+		return "success", nil
+	case orchestrator_scheduler.DiggerJobFailed:
+		return "failed", nil
+	}
+	return "", fmt.Errorf("unknown job status: %s", job.Status)
+}

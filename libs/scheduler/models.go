@@ -150,9 +150,9 @@ func (b *SerializedBatch) ToStatusCheck() string {
 	case BatchJobCreated:
 		return "pending"
 	case BatchJobInvalidated:
-		return "failure"
+		return "cancelled"
 	case BatchJobFailed:
-		return "success"
+		return "failure"
 	case BatchJobSucceeded:
 		return "success"
 	default:

@@ -303,10 +303,11 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 		checkStatus = "in_progress"
 		conclusion = ""
 	} else {
-		checkStatus = status
-		conclusion = "completed"
+		checkStatus = "completed"
+		conclusion = status
 	}
-	fmt.Printf("status: %v, checkStatus: %v, conclusion: %v\n", status, checkStatus, conclusion)
+
+	slog.Debug("IN github func, setting status", "prNumber", prNumber, "status", status, "statusContext", statusContext, "checkStatus", checkStatus, "conclusion", conclusion)
 	// Build check run options
 	opts := github.CreateCheckRunOptions{
 		Name:    statusContext, // similar to "Context" in Status API

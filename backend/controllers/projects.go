@@ -797,6 +797,33 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 			slog.Debug("Starting post-success job processing", "job_id", jobId)
 
+			jobLink, err := models.DB.GetDiggerJobLink(jobId)
+			if err != nil {
+				slog.Error("Error fetching job link",
+					"jobId", jobId,
+					"error", err,
+				)
+				return
+			}
+
+			workflowFileName := "digger_workflow.yml"
+
+			if !strings.Contains(jobLink.RepoFullName, "/") {
+				slog.Error("Invalid repo full name format",
+					"repoFullName", jobLink.RepoFullName,
+					"jobId", jobId,
+				)
+				return
+			}
+
+			repoFullNameSplit := strings.Split(jobLink.RepoFullName, "/")
+
+			slog.Info("Handling job completion",
+				"jobId", jobId,
+				"repoFullName", jobLink.RepoFullName,
+				"batchId", batchId,
+			)
+
 			ghClientProvider := d.GithubClientProvider
 			installationLink, err := models.DB.GetGithubInstallationLinkForOrg(orgId)
 			if err != nil {
@@ -826,26 +853,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 				return
 			}
 
-			jobLink, err := models.DB.GetDiggerJobLink(jobId)
-			if err != nil {
-				slog.Error("Error fetching job link",
-					"jobId", jobId,
-					"error", err,
-				)
-				return
-			}
-
-			workflowFileName := "digger_workflow.yml"
-
-			if !strings.Contains(jobLink.RepoFullName, "/") {
-				slog.Error("Invalid repo full name format",
-					"repoFullName", jobLink.RepoFullName,
-					"jobId", jobId,
-				)
-				return
-			}
-
-			repoFullNameSplit := strings.Split(jobLink.RepoFullName, "/")
 			client, _, err := ghClientProvider.Get(installations[0].GithubAppId, installationLink.GithubInstallationId)
 			if err != nil {
 				slog.Error("Error getting GitHub client",
@@ -856,12 +863,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 				)
 				return
 			}
-
-			slog.Info("Handling job completion",
-				"jobId", jobId,
-				"repoFullName", jobLink.RepoFullName,
-				"batchId", batchId,
-			)
 
 			err = services.DiggerJobCompleted(
 				client,
@@ -967,6 +968,44 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			"error", err,
 		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating batch status"})
+		return
+	}
+
+	refreshedBatch, err := models.DB.GetDiggerBatch(&batch.ID)
+	if err != nil {
+		slog.Error("Error getting refreshed batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting refreshed batch"})
+		return
+	}
+	err = UpdateCheckStatusForBatch(d.GithubClientProvider, refreshedBatch)
+	if err != nil {
+		slog.Error("Error updating check status",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating aggregate status check"})
+		return
+	}
+
+	refreshedJob, err := models.DB.GetDiggerJob(jobId)
+	if err != nil {
+		slog.Error("Error getting refreshed job",
+			"jobId", jobId,
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting refreshed job"})
+		return
+	}
+	err = UpdateCheckStatusForJob(d.GithubClientProvider, refreshedJob)
+	if err != nil {
+		slog.Error("Error updating check status",
+			"jobId", jobId,
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating aggregate status check"})
 		return
 	}
 
@@ -1400,6 +1439,87 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 		}
 	}
 
+	return nil
+}
+
+func UpdateCheckStatusForBatch(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	slog.Info("Updating PR status for batch",
+		"batchId", batch.ID,
+		"prNumber", batch.PrNumber,
+		"batchStatus", batch.Status,
+		"batchType", batch.BatchType,
+	)
+
+	prService, err := utils.GetPrServiceFromBatch(batch, gh)
+	if err != nil {
+		slog.Error("Error getting PR service",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error getting github service: %v", err)
+	}
+
+	isPlanBatch := batch.BatchType == orchestrator_scheduler.DiggerCommandPlan
+
+	serializedBatch, err := batch.MapToJsonStruct()
+	if err != nil {
+		slog.Error("Error mapping batch to json struct",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error mapping batch to json struct: %v", err)
+	}
+	slog.Debug("Updating PR status for batch",
+		"batchId", batch.ID, "prNumber", batch.PrNumber, "batchStatus", batch.Status, "batchType", batch.BatchType,
+		"newStatus", serializedBatch.ToStatusCheck())
+	if isPlanBatch {
+		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/plan")
+		prService.SetStatus(batch.PrNumber, "neutral", "digger/apply")
+	} else {
+		prService.SetStatus(batch.PrNumber, "success", "digger/plan")
+		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/apply")
+	}
+	return nil
+}
+
+func UpdateCheckStatusForJob(gh utils.GithubClientProvider, job *models.DiggerJob) error {
+	batch := job.Batch
+	slog.Info("Updating PR status for job",
+		"jobId", job.DiggerJobID,
+		"prNumber", batch.PrNumber,
+		"jobStatus", job.Status,
+		"batchType", batch.BatchType,
+	)
+
+	prService, err := utils.GetPrServiceFromBatch(batch, gh)
+	if err != nil {
+		slog.Error("Error getting PR service",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error getting github service: %v", err)
+	}
+
+	var jobSpec orchestrator_scheduler.JobJson
+	err = json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
+	if err != nil {
+		slog.Error("Could not unmarshal job spec", "jobId", job.DiggerJobID, "error", err)
+		return fmt.Errorf("could not marshal json string: %v", err)
+	}
+
+	isPlan := jobSpec.IsPlan()
+	status, err := models.GetStatusCheckForJob(job)
+	if err != nil {
+		return fmt.Errorf("could not get status check for job: %v", err)
+	}
+	slog.Debug("Updating PR status for job", "jobId", job.DiggerJobID, "status", status)
+	if isPlan {
+		prService.SetStatus(batch.PrNumber, status, jobSpec.GetProjectAlias()+"/plan")
+		prService.SetStatus(batch.PrNumber, "neutral", jobSpec.GetProjectAlias()+"/apply")
+	} else {
+		//prService.SetStatus(batch.PrNumber, "success", jobSpec.GetProjectAlias()+"/plan")
+		prService.SetStatus(batch.PrNumber, status, jobSpec.GetProjectAlias()+"/apply")
+	}
 	return nil
 }
 

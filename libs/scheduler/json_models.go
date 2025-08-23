@@ -192,3 +192,10 @@ func JobsSpecsToProjectMap(jobSpecs []JobJson) (map[string]JobJson, error) {
 	}
 	return res, nil
 }
+
+func (j *JobJson) GetProjectAlias() string {
+	if j.ProjectAlias != "" {
+		return j.ProjectAlias
+	}
+	return j.ProjectName
+}

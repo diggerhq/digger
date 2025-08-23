@@ -164,7 +164,7 @@ func RunSpec(
 			reportError(spec, backendApi, message, err)
 		}
 		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, prService, commentId)
-		digger.UpdateAggregateStatus(serializedBatch, prService)
+		//digger.UpdateAggregateStatus(serializedBatch, prService)
 		reportError(spec, backendApi, fmt.Sprintf("failed to run commands %v", err), err)
 	}
 	usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Digger finished successfully", 0)
