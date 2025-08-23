@@ -1,0 +1,45 @@
+# Build artifacts
+/opentacosvc
+/taco
+/terraform-provider-opentaco
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Development data
+.devdata/
+
+# Go
+vendor/
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

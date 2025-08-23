@@ -1,0 +1,40 @@
+run:
+  timeout: 5m
+  tests: false
+  skip-dirs:
+    - vendor
+    - .devdata
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - prealloc
+    - goimports
+    - gosimple
+    - unused
+  disable:
+    - gosec # We'll enable security linting later
+    - goconst # Too noisy for M1
+    - dupl # Too strict for scaffold
+
+linters-settings:
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/digger/opentaco
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: true
+
+issues:
+  exclude-rules:
+    # Exclude some linters from test files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - ineffassign

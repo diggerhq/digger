@@ -1,0 +1,354 @@
+# OpenTaco - Layer-0 State Control
+
+OpenTaco (Layer-0) is a CLI + lightweight service for state control—create/read/update/delete and lock Terraform/OpenTofu state files, and act as an HTTP state backend proxy, paving the way for dependency awareness and RBAC—self-hosted first, later backed by a user-provided S3 bucket ("bucket-only").
+
+## What is OpenTaco?
+
+OpenTaco is an open-source "Terraform Companion" that starts with state control: a CLI + lightweight service focused on managing state files and access to them, not CI jobs. The long game is a self-hostable alternative to Terraform Cloud / Enterprise: state + RBAC first, then remote execution, PR automation, drift, and policy as later layers. For Milestone 1, we build dummy, self-contained components that establish the shapes (API, CLI, provider) while staying entirely inside the opentaco/ directory.
+
+## Philosophy
+
+- **Layer-0 = State control** (CRUD + lock, plus a backend proxy). No runs, no PR automation, no UI in this layer.
+- **CLI-first** to settle semantics; UI comes later.
+- **Self-hosted, bucket-only later** (S3 as the only stateful store when we add real storage; the service remains stateless).
+- **Backwards compatibility** with existing S3 layouts (incl. Terragrunt) when we wire storage later; adoption should be drop-in.
+- **Import from TFC should be easy** (later); keep shapes friendly to that path.
+
+## Quick Start (Milestone 1 - Dummies)
+
+### Prerequisites
+
+- Go 1.25 or later
+- Make
+
+### Build Everything
+
+```bash
+make all
+```
+
+### Run the Service
+
+```bash
+make svc
+# Service starts on http://localhost:8080
+# Health check: curl http://localhost:8080/healthz
+```
+
+### Use the CLI
+
+```bash
+# Build the CLI
+make cli
+
+# Create a state
+./taco state create my-project/prod
+
+# List states
+./taco state ls
+
+# Get state metadata (size, lock status, last updated)
+./taco state info my-project/prod
+
+# Delete a state
+./taco state rm my-project/prod
+
+# Download state data
+./taco state pull my-project/prod output.tfstate
+
+# Upload state data  
+./taco state push my-project/prod input.tfstate
+
+# Lock a state manually
+./taco state lock my-project/prod
+
+# Unlock a state
+./taco state unlock my-project/prod
+
+# Acquire (lock + download in one operation)
+./taco state acquire my-project/prod output.tfstate
+
+# Release (upload + unlock in one operation)
+./taco state release my-project/prod input.tfstate
+```
+
+### Terraform Provider
+
+```bash
+# Build the provider
+make prov
+
+# Example usage
+cd providers/terraform/opentaco/examples/basic
+
+# Configure the provider
+cat > main.tf << 'EOF'
+terraform {
+  required_providers {
+    opentaco = {
+      source = "digger/opentaco"
+    }
+  }
+}
+
+provider "opentaco" {
+  endpoint = "http://localhost:8080"  # Or use OPENTACO_ENDPOINT env var
+}
+
+# Create a state registration
+resource "opentaco_state" "example" {
+  id = "my-project/prod/vpc"
+  
+  labels = {
+    environment = "production"
+    team        = "infrastructure"
+  }
+}
+
+# Read state metadata
+data "opentaco_state" "example" {
+  id = opentaco_state.example.id
+}
+
+output "state_info" {
+  value = {
+    id      = data.opentaco_state.example.id
+    size    = data.opentaco_state.example.size
+    locked  = data.opentaco_state.example.locked
+    updated = data.opentaco_state.example.updated
+  }
+}
+EOF
+
+# Run Terraform
+terraform init
+terraform apply
+```
+
+### Using as Terraform Backend
+
+```hcl
+terraform {
+  backend "http" {
+    address        = "http://localhost:8080/v1/backend/my-project__prod__vpc"
+    lock_address   = "http://localhost:8080/v1/backend/my-project__prod__vpc"
+    unlock_address = "http://localhost:8080/v1/backend/my-project__prod__vpc"
+  }
+}
+```
+
+## Architecture
+
+### Components
+
+1. **Service** (`cmd/opentacosvc/`) - HTTP server with two surfaces:
+   - Management API (`/v1`) for CRUD operations on states
+   - Terraform HTTP backend proxy (`/v1/backend/{id}`) for Terraform/OpenTofu
+
+2. **CLI** (`cmd/taco/`) - Command-line interface that calls the service for all operations
+
+3. **SDK** (`pkg/sdk/`) - Typed HTTP client used by both CLI and Terraform provider
+
+4. **Terraform Provider** (`providers/terraform/opentaco/`) - Manage states as Terraform resources
+
+### Storage
+
+For Milestone 1, we use dummy storage implementations:
+- **Memory Store** (default) - In-memory storage, resets on restart
+- **File Store** (optional) - Persists to `.devdata/` directory
+
+Later milestones will add S3 backend support while maintaining the same API contracts.
+
+## API Endpoints
+
+### Management API
+
+**Note**: State IDs containing slashes (e.g., `my-project/prod`) are URL-encoded by replacing `/` with `__` in the path.
+
+- `POST /v1/states` - Create a new state
+  - Body: `{"id": "my-project/prod"}`
+  - Response: `{"id": "my-project/prod", "created": "2025-01-01T00:00:00Z"}`
+
+- `GET /v1/states?prefix=` - List states with optional prefix filter
+  - Response: `{"states": [...], "count": 10}`
+
+- `GET /v1/states/{encoded_id}` - Get state metadata
+  - Example: `/v1/states/my-project__prod`
+  - Response: `{"id": "my-project/prod", "size": 1024, "updated": "...", "locked": false}`
+
+- `DELETE /v1/states/{encoded_id}` - Delete a state
+
+- `GET /v1/states/{encoded_id}/download` - Download state file
+  - Returns: Raw state file content
+
+- `POST /v1/states/{encoded_id}/upload` - Upload state file
+  - Body: Raw state file content
+  - Query param: `?if_locked_by={lock_id}` (optional)
+
+- `POST /v1/states/{encoded_id}/lock` - Lock a state
+  - Body: `{"id": "lock-uuid", "who": "user@host", "version": "1.0.0"}` (optional)
+  - Response: Lock info or 409 Conflict with current lock info
+
+- `DELETE /v1/states/{encoded_id}/unlock` - Unlock a state
+  - Body: `{"id": "lock-uuid"}`
+
+### Terraform Backend API
+
+- `GET /v1/backend/{id}` - Get state for Terraform
+- `POST /v1/backend/{id}` - Update state from Terraform
+- `LOCK /v1/backend/{id}` - Acquire lock for Terraform
+- `UNLOCK /v1/backend/{id}` - Release lock from Terraform
+
+## CLI Commands Reference
+
+### State Management
+
+- `taco state create <id>` - Register a new state
+- `taco state ls [prefix]` - List states, optionally filtered by prefix
+- `taco state info <id>` - Show state metadata (aliases: `show`, `describe`)
+- `taco state rm <id>` - Delete a state (aliases: `delete`, `remove`)
+
+### Data Operations
+
+- `taco state pull <id> [file]` - Download state data (stdout if no file specified)
+- `taco state push <id> <file>` - Upload state data from file
+
+### Lock Management
+
+- `taco state lock <id>` - Manually lock a state
+- `taco state unlock <id> [lock-id]` - Unlock a state (uses saved lock ID if not provided)
+
+### Combined Operations
+
+- `taco state acquire <id> [file]` - Lock + download in one operation
+- `taco state release <id> <file>` - Upload + unlock in one operation
+
+### Global Options
+
+- `--server URL` - OpenTaco server URL (default: `http://localhost:8080`, env: `OPENTACO_SERVER`)
+- `-v, --verbose` - Enable verbose output
+
+## Development
+
+### Project Structure
+
+```
+opentaco/
+├── cmd/
+│   ├── opentacosvc/    # Service binary
+│   └── taco/           # CLI binary
+├── internal/
+│   ├── api/            # HTTP handlers
+│   ├── backend/        # Terraform backend proxy
+│   ├── domain/         # Business logic
+│   ├── storage/        # Storage interfaces
+│   └── observability/  # Health/metrics
+├── pkg/
+│   └── sdk/            # Go client library
+└── providers/
+    └── terraform/      # Terraform provider
+        └── opentaco/
+```
+
+### Building from Source
+
+```bash
+# Initialize modules (first time only)
+make init
+
+# Build everything
+make all
+
+# Build individual components
+make build-svc   # Service only
+make build-cli   # CLI only
+make build-prov  # Provider only
+```
+
+### Running Tests
+
+```bash
+make test
+```
+
+### Linting
+
+```bash
+make lint
+```
+
+### Clean Build Artifacts
+
+```bash
+make clean
+```
+
+### Storage Options
+
+```bash
+# Run with in-memory storage (default)
+./opentacosvc
+
+# Run with file storage
+./opentacosvc -storage file -data-dir .devdata
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"State not found" errors**
+   - Ensure the state was created first: `./taco state create <id>`
+   - Check the exact ID with: `./taco state ls`
+
+2. **Lock conflicts**
+   - View lock info: `./taco state info <id>`
+   - Force unlock if needed: `./taco state unlock <id> <lock-id>`
+
+3. **Connection errors**
+   - Verify service is running: `curl http://localhost:8080/healthz`
+   - Check server URL: `./taco --server http://localhost:8080 state ls`
+
+## Implementation Notes
+
+### State ID Encoding
+
+- User-facing IDs use natural paths: `my-project/prod/vpc`
+- HTTP routes encode slashes as double underscores: `my-project__prod__vpc`
+- This is handled automatically by the CLI and SDK
+
+### Lock Behavior
+
+- Locks are cooperative - clients must respect them
+- Lock IDs are UUIDs generated by clients
+- The CLI saves lock IDs locally in `.taco/` for convenience
+- Terraform backend operations handle locking automatically
+
+### Dummy Storage Limitations (Milestone 1)
+
+- Memory store loses all data on restart
+- File store writes to `.devdata/` (gitignored)
+- No real persistence, versioning, or backup
+- Suitable only for development and testing
+
+## Future Roadmap
+
+### Near Term
+- **S3 Adapter**: Production storage backend maintaining compatibility with existing state layouts
+- **State Versioning**: Keep history of state changes
+- **Metrics**: Prometheus metrics for monitoring
+
+### Medium Term
+- **State Graph**: Track outputs and dependencies between states
+- **RBAC**: Organizations, teams, users with SSO integration
+- **Audit Logging**: Track all state operations
+
+### Long Term
+- **Remote Execution**: Run Terraform in controlled environments
+- **PR Automation**: GitOps workflows with state management
+- **Policy Engine**: OPA-based policy enforcement on state changes
+- **UI**: Web interface for state management
+
+## License
+
+[License information to be added]
