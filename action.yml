@@ -331,21 +331,13 @@ runs:
     - name: restore-s3-cache
       shell: bash
       run: |
-        echo "=== S3 Cache Restore ==="
         if [ ! -d "$TF_PLUGIN_CACHE_DIR" ]; then
           echo "Creating cache directory: $TF_PLUGIN_CACHE_DIR"
           mkdir -p "$TF_PLUGIN_CACHE_DIR"
         fi
-        
-        echo "Downloading ZIP cache from S3..."
-        aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}" "$TF_PLUGIN_CACHE_DIR" \
-          --region "${{ inputs.cache-dependencies-s3-region }}" \
-          --exclude "*" \
-          --include "*.zip" \
-          --quiet
-        
-        echo "ZIP files restored: $(find "$TF_PLUGIN_CACHE_DIR" -name '*.zip' | wc -l)"
-        echo "========================"
+        echo "Downloading cache from S3..."
+        aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet || true
+        echo "S3 cache restore completed"
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
     - name: debug-cache-before-terraform
@@ -644,17 +636,12 @@ runs:
       shell: bash
       run: |
         echo "Uploading cache to S3..."
-        if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -name '*.zip' | wc -l)" -gt 0 ]; then
-          echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -name '*.zip' | wc -l) ZIP files to cache"
-          # Only sync ZIP files, exclude extracted binaries
-          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" \
-            --region "${{ inputs.cache-dependencies-s3-region }}" \
-            --exclude "*" \
-            --include "*.zip" \
-            --quiet
-          echo "S3 cache save completed (ZIPs only)"
+        if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
+          echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l) files to cache"
+          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet
+          echo "S3 cache save completed"
         else
-          echo "No ZIP files to cache - skipping S3 sync"
+          echo "No files to cache - skipping S3 sync"
         fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
