@@ -595,9 +595,29 @@ runs:
       shell: bash
       run: |
         echo "Uploading cache to S3..."
-        aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --delete --quiet
-        echo "S3 cache save completed"
+        if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
+          echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l) files to cache"
+          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet
+          echo "S3 cache save completed"
+        else
+          echo "No files to cache - skipping S3 sync"
+        fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
+
+    - name: debug-cache-before-save
+      shell: bash
+      run: |
+        echo "=== Cache Debug Info ==="
+        echo "TF_PLUGIN_CACHE_DIR: $TF_PLUGIN_CACHE_DIR"
+        echo "Directory exists: $(test -d "$TF_PLUGIN_CACHE_DIR" && echo "YES" || echo "NO")"
+        if [ -d "$TF_PLUGIN_CACHE_DIR" ]; then
+          echo "Directory contents:"
+          find "$TF_PLUGIN_CACHE_DIR" -type f | head -20
+          echo "Total files: $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)"
+          echo "Directory size: $(du -sh "$TF_PLUGIN_CACHE_DIR" 2>/dev/null || echo "0")"
+        fi
+        echo "======================="
+      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' }}
 
 branding:
   icon: globe
