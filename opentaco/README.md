@@ -123,6 +123,27 @@ EOF
 # Run Terraform
 terraform init
 terraform apply
+
+#### Local Provider Install (for development)
+
+When using the local, unpublished provider:
+
+Option A — dev overrides in `~/.terraformrc`:
+
+```hcl
+provider_installation {
+  dev_overrides { "digger/opentaco" = "/absolute/path/to/opentaco/providers/terraform/opentaco" }
+  direct {}
+}
+```
+
+Option B — install into the plugin directory:
+
+```
+~/.terraform.d/plugins/digger/opentaco/0.0.0/<os>_<arch>/terraform-provider-opentaco
+```
+
+Then run `terraform init` again to pick up the local build.
 ```
 
 ### Using as Terraform Backend
@@ -196,8 +217,11 @@ Later milestones will add S3 backend support while maintaining the same API cont
 
 - `GET /v1/backend/{id}` - Get state for Terraform
 - `POST /v1/backend/{id}` - Update state from Terraform
+- `PUT /v1/backend/{id}` - Update state from Terraform (alias of POST)
 - `LOCK /v1/backend/{id}` - Acquire lock for Terraform
 - `UNLOCK /v1/backend/{id}` - Release lock from Terraform
+
+Note: Terraform lock coordination uses the `X-Terraform-Lock-ID` header; the service respects this header on update and unlock operations.
 
 ## CLI Commands Reference
 
@@ -228,6 +252,11 @@ Later milestones will add S3 backend support while maintaining the same API cont
 - `--server URL` - OpenTaco server URL (default: `http://localhost:8080`, env: `OPENTACO_SERVER`)
 - `-v, --verbose` - Enable verbose output
 
+### Environment Variables
+
+- CLI: `OPENTACO_SERVER` sets the default server URL for `taco`.
+- Terraform provider: `OPENTACO_ENDPOINT` sets the default provider endpoint.
+
 ## Development
 
 ### Project Structure
@@ -253,7 +282,7 @@ opentaco/
 ### Building from Source
 
 ```bash
-# Initialize modules (first time only)
+# Initialize modules (first time only; skip if go.mod files exist)
 make init
 
 # Build everything
