@@ -595,8 +595,13 @@ runs:
       shell: bash
       run: |
         echo "Uploading cache to S3..."
-        aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --delete --quiet
-        echo "S3 cache save completed"
+        if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
+          echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l) files to cache"
+          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet
+          echo "S3 cache save completed"
+        else
+          echo "No files to cache - skipping S3 sync to prevent deletion"
+        fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
