@@ -28,4 +28,3 @@ S3 layout:
 System state:
 - Default: `__opentaco_system_state`.
 - Created by CLI; service does not auto‑create.
-

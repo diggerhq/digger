@@ -29,4 +29,3 @@ Provider bootstrap:
   - Scaffolds a Terraform workspace in `dir` (default `opentaco-config`).
   - Configures the HTTP backend to `__opentaco_system_state` by default.
   - Creates that system state unless `--no-create` is set.
-

@@ -18,4 +18,3 @@ States
 Notes
 - IDs use natural paths like `myapp/prod`; clients may encode as `myapp__prod` for single-segment routes.
 - Upload respects `if_locked_by` to avoid overwriting when held by a different lock.
-

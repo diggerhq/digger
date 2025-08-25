@@ -40,4 +40,3 @@ cd examples/demo-provider/my-app
 terraform init
 terraform apply -auto-approve
 ```
-

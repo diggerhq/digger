@@ -11,38 +11,38 @@
     {
       "group": "Overview",
       "pages": [
-        "overview.md",
-        "getting-started.md"
+        "overview",
+        "getting-started"
       ]
     },
     {
       "group": "Components",
       "pages": [
-        "cli.md",
-        "service-backend.md",
-        "provider.md",
-        "storage.md"
+        "cli",
+        "service-backend",
+        "provider",
+        "storage"
       ]
     },
     {
       "group": "Guides",
       "pages": [
-        "demo.md",
-        "troubleshooting.md"
+        "demo",
+        "troubleshooting"
       ]
     },
     {
       "group": "Reference",
       "pages": [
-        "reference/api.md",
-        "reference/cli-commands.md",
-        "reference/terraform-backend.md"
+        "reference/api",
+        "reference/cli-commands",
+        "reference/terraform-backend"
       ]
     },
     {
       "group": "Development",
       "pages": [
-        "development.md"
+        "development"
       ]
     }
   ]

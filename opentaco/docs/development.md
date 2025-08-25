@@ -38,4 +38,3 @@ examples/demo-provider/         # End-to-end demo
 
 Stubs convention (for shape-only work)
 - When scaffolding endpoints without full implementation, return 501 with a uniform JSON body to keep clients predictable.
-

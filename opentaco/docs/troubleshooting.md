@@ -30,4 +30,3 @@ EOF
 export TF_CLI_CONFIG_FILE="$PWD/.terraformrc"
 terraform init -upgrade
 ```
-

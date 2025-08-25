@@ -22,4 +22,3 @@ IDs & encoding
 
 Routes wiring
 - Custom verbs must be explicitly registered (Echo: `e.Add("LOCK"...)`, `e.Add("UNLOCK"...)`).
-

@@ -52,4 +52,3 @@ Troubleshooting quick tips:
 - 405 on LOCK/UNLOCK → ensure service wires explicit routes for custom verbs.
 - 409 on save → service must read lock ID from header or query `?ID=`.
 - 409 on Create → state exists already; import, change `id`, or delete then apply.
-

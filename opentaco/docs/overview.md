@@ -21,4 +21,3 @@ Key ideas:
 System state convention:
 - Platform‑owned IDs start with `__opentaco_`.
 - Default system state: `__opentaco_system_state` (created by the CLI, not auto‑created by the service).
-

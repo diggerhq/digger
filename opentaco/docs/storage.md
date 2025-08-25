@@ -21,4 +21,3 @@ Object layout per state:
 System state convention:
 - Default system state: `__opentaco_system_state` (created by CLI).
 - Reserved IDs start with `__opentaco_`.
-
