@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/diggerhq/digger/opentaco/internal/backend"
-	"github.com/diggerhq/digger/opentaco/internal/observability"
-	"github.com/diggerhq/digger/opentaco/internal/storage"
-	"github.com/labstack/echo/v4"
+    "github.com/diggerhq/digger/opentaco/internal/backend"
+    statehandlers "github.com/diggerhq/digger/opentaco/internal/state"
+    "github.com/diggerhq/digger/opentaco/internal/observability"
+    "github.com/diggerhq/digger/opentaco/internal/storage"
+    "github.com/labstack/echo/v4"
 )
 
 // RegisterRoutes registers all API routes
@@ -17,8 +18,8 @@ func RegisterRoutes(e *echo.Echo, store storage.StateStore) {
 	// API v1 group
 	v1 := e.Group("/v1")
 	
-	// State handlers
-	stateHandler := NewStateHandler(store)
+    // State handlers (management API)
+    stateHandler := statehandlers.NewHandler(store)
 	
 	// Management API
 	v1.POST("/states", stateHandler.CreateState)
@@ -30,8 +31,8 @@ func RegisterRoutes(e *echo.Echo, store storage.StateStore) {
 	v1.POST("/states/:id/lock", stateHandler.LockState)
 	v1.DELETE("/states/:id/unlock", stateHandler.UnlockState)
 	
-	// Terraform HTTP backend proxy
-	backendHandler := backend.NewHandler(store)
+    // Terraform HTTP backend proxy
+    backendHandler := backend.NewHandler(store)
 	v1.GET("/backend/*", backendHandler.GetState)
 	v1.POST("/backend/*", backendHandler.UpdateState)
 	v1.PUT("/backend/*", backendHandler.UpdateState)

@@ -137,6 +137,14 @@ In this repo these commands are fully implemented and call the service. For M1-o
 - No auth, storage, external HTTP calls, or filesystem writes outside opentaco/.
 - When repo already contains working prototypes, treat this playbook as the shape contract and avoid regressing implemented behavior.
 
+### Consistency over DRY (handlers)
+- We intentionally keep the Management API and Terraform backend handlers separate and slightly duplicated to preserve protocol clarity.
+- Maintain consistent naming/placement so contributors can navigate easily:
+  - Routes registrar: `internal/api/routes.go` (only wiring)
+  - Management API handlers: `internal/state/handler.go`
+  - Terraform backend handlers: `internal/backend/handler.go`
+- Ensure semantics stay aligned across both surfaces (IDs, lock behavior, status codes), even if implementations differ.
+
 ### Stubs convention (for dummies)
 When scaffolding shapes without full implementations, return HTTP 501 Not Implemented with a uniform JSON body to keep clients predictable:
 

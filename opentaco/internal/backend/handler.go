@@ -64,14 +64,14 @@ func (h *Handler) UpdateState(c echo.Context) error {
 		})
 	}
 
-    // Get lock ID from header or query param (Terraform sends ?ID=...)
-    lockID := c.Request().Header.Get("X-Terraform-Lock-ID")
-    if lockID == "" {
-        lockID = c.QueryParam("ID")
-    }
-    if lockID == "" {
-        lockID = c.QueryParam("id")
-    }
+	// Get lock ID from header or query param (Terraform sends ?ID=...)
+	lockID := c.Request().Header.Get("X-Terraform-Lock-ID")
+	if lockID == "" {
+		lockID = c.QueryParam("ID")
+	}
+	if lockID == "" {
+		lockID = c.QueryParam("id")
+	}
 
 	// Upload state
 	err = h.store.Upload(c.Request().Context(), id, data, lockID)
@@ -97,7 +97,7 @@ func (h *Handler) UpdateState(c echo.Context) error {
 // HandleLockUnlock handles LOCK and UNLOCK operations
 func (h *Handler) HandleLockUnlock(c echo.Context) error {
 	method := c.Request().Method
-	
+
 	switch method {
 	case "LOCK":
 		return h.lock(c)
@@ -146,7 +146,7 @@ func (h *Handler) lock(c echo.Context) error {
 			// Retry lock
 			err = h.store.Lock(c.Request().Context(), id, &lockInfo)
 		}
-		
+
 		if err == storage.ErrLockConflict {
 			// Get current lock
 			currentLock, _ := h.store.GetLock(c.Request().Context(), id)
@@ -157,7 +157,7 @@ func (h *Handler) lock(c echo.Context) error {
 				"error": "State is already locked",
 			})
 		}
-		
+
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"error": "Failed to acquire lock",
@@ -220,3 +220,4 @@ func extractID(c echo.Context) string {
 	}
 	return c.Param("*")
 }
+
