@@ -132,7 +132,7 @@ provider "opentaco" {
 
 # Demo resource: registers a user state managed by OpenTaco
 resource "opentaco_state" "example" {
-  id = "demo/env/vpc"
+  id = "myapp/prod"
 }
 `,
         now,

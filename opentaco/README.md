@@ -151,7 +151,7 @@ Then run `terraform init` again to pick up the local build.
 Quickly scaffold a Terraform workspace which:
 - Stores its own TF state in the OpenTaco HTTP backend at `__opentaco_system_state`.
 - Configures the OpenTaco provider against your server.
-- Includes a demo `opentaco_state` resource (e.g., `demo/env/vpc`).
+- Includes a demo `opentaco_state` resource (e.g., `myapp/prod`).
 
 Steps:
 
@@ -172,7 +172,7 @@ terraform apply -auto-approve
 
 # 4) Verify in S3
 aws s3 ls s3://$OPENTACO_S3_BUCKET/$OPENTACO_S3_PREFIX/__opentaco_system_state/
-aws s3 ls s3://$OPENTACO_S3_BUCKET/$OPENTACO_S3_PREFIX/demo/env/vpc/
+aws s3 ls s3://$OPENTACO_S3_BUCKET/$OPENTACO_S3_PREFIX/myapp/prod/
 ```
 
 Notes:

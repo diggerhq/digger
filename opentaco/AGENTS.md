@@ -184,7 +184,7 @@ The repository includes working functionality beyond Milestone 1 for demos and i
   1. Start service on S3: set `OPENTACO_S3_BUCKET`, `OPENTACO_S3_REGION`, `OPENTACO_S3_PREFIX`, run `./opentacosvc`.
   2. Run `./taco provider init opentaco-config --server http://localhost:8080`.
   3. `cd opentaco-config && terraform init && terraform apply -auto-approve`.
-  4. Verify via `taco state ls` and S3 listing of `__opentaco_system_state/` and `demo/env/vpc/`.
+  4. Verify via `taco state ls` and S3 listing of `__opentaco_system_state/` and `myapp/prod/`.
 
 These prototypes support a crisp demo while the M1 shape contract remains documented above.
 
