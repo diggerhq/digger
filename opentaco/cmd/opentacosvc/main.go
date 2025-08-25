@@ -1,14 +1,14 @@
 package main
 
 import (
-	"context"
-	"flag"
-	"fmt"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
+    "context"
+    "flag"
+    "fmt"
+    "log"
+    "net/http"
+    "os"
+    "os/signal"
+    "time"
 
 	"github.com/diggerhq/digger/opentaco/internal/api"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
@@ -17,23 +17,38 @@ import (
 )
 
 func main() {
-	var (
-		port        = flag.String("port", "8080", "Server port")
-		storageType = flag.String("storage", "memory", "Storage type: memory or file")
-		dataDir     = flag.String("data-dir", ".devdata", "Data directory for file storage")
-	)
-	flag.Parse()
+    var (
+        port        = flag.String("port", "8080", "Server port")
+        storageType = flag.String("storage", "s3", "Storage type: s3 or memory (default: s3 with fallback to memory)")
+        s3Bucket    = flag.String("s3-bucket", os.Getenv("OPENTACO_S3_BUCKET"), "S3 bucket for state storage")
+        s3Prefix    = flag.String("s3-prefix", os.Getenv("OPENTACO_S3_PREFIX"), "S3 key prefix (optional)")
+        s3Region    = flag.String("s3-region", os.Getenv("OPENTACO_S3_REGION"), "S3 region (optional; uses AWS defaults if empty)")
+    )
+    flag.Parse()
 
-	// Initialize storage
-	var store storage.StateStore
-	switch *storageType {
-	case "file":
-		store = storage.NewFileStore(*dataDir)
-		log.Printf("Using file storage in %s", *dataDir)
-	default:
-		store = storage.NewMemStore()
-		log.Printf("Using in-memory storage")
-	}
+    // Initialize storage
+    var store storage.StateStore
+    switch *storageType {
+    case "s3":
+        if *s3Bucket == "" {
+            log.Printf("WARNING: S3 storage selected but bucket not provided. Falling back to in-memory storage.")
+            store = storage.NewMemStore()
+            log.Printf("Using in-memory storage")
+            break
+        }
+        s, err := storage.NewS3Store(context.Background(), *s3Bucket, *s3Prefix, *s3Region)
+        if err != nil {
+            log.Printf("WARNING: failed to initialize S3 store: %v. Falling back to in-memory storage.", err)
+            store = storage.NewMemStore()
+            log.Printf("Using in-memory storage")
+        } else {
+            store = s
+            log.Printf("Using S3 storage: bucket=%s prefix=%s region=%s", *s3Bucket, *s3Prefix, *s3Region)
+        }
+    default:
+        store = storage.NewMemStore()
+        log.Printf("Using in-memory storage")
+    }
 
 	// Create Echo instance
 	e := echo.New()

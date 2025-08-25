@@ -174,11 +174,12 @@ terraform {
 
 ### Storage
 
-For Milestone 1, we use dummy storage implementations:
-- **Memory Store** (default) - In-memory storage, resets on restart
-- **File Store** (optional) - Persists to `.devdata/` directory
+- **S3 Store (default)**: Uses your AWS account “bucket-only” layout. Configure via flags or env (standard AWS SDK chain is used for auth).
+- **Memory Store (fallback)**: Automatically used if S3 configuration is missing or fails at startup; resets on restart.
 
-Later milestones will add S3 backend support while maintaining the same API contracts.
+S3 object layout per state:
+- `<prefix>/<state-id>/terraform.tfstate`
+- `<prefix>/<state-id>/terraform.tfstate.lock` (present only while locked)
 
 ## API Endpoints
 
@@ -315,11 +316,21 @@ make clean
 ### Storage Options
 
 ```bash
-# Run with in-memory storage (default)
+# Run with S3 storage (default)
+# Uses standard AWS credential/config chain (env, shared config, IAM role)
+OPENTACO_S3_BUCKET=my-bucket \
+OPENTACO_S3_PREFIX=opentaco \
+OPENTACO_S3_REGION=us-east-1 \
 ./opentacosvc
 
-# Run with file storage
-./opentacosvc -storage file -data-dir .devdata
+# Explicit flags (optional)
+./opentacosvc -storage s3 \
+  -s3-bucket my-bucket \
+  -s3-prefix opentaco \
+  -s3-region us-east-1
+
+# Force in-memory storage
+./opentacosvc -storage memory
 ```
 
 ## Troubleshooting

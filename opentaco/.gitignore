@@ -10,6 +10,10 @@
 # Development data
 .devdata/
 
+# Local Go caches used in sandboxed builds
+.gocache/
+.gomodcache/
+
 # Go
 vendor/
 go.work
