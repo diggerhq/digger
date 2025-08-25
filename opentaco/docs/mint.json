@@ -1,8 +1,11 @@
 {
   "name": "OpenTaco",
-  "logo": {
-    "light": "",
-    "dark": ""
+  "logo": "assets/logo.svg",
+  "favicon": "assets/favicon.svg",
+  "colors": {
+    "primary": "#0EA5E9",
+    "light": "#FFFFFF",
+    "dark": "#0B1221"
   },
   "navigation": [
     {
@@ -44,4 +47,3 @@
     }
   ]
 }
-
