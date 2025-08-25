@@ -453,8 +453,8 @@ runs:
 
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
-        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
+        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
           if [[ ${{ inputs.ee }} == "true" ]]; then
@@ -500,8 +500,8 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
-        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
+        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
       shell: bash
@@ -548,8 +548,8 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
-        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
+        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger-local-run
       shell: bash
@@ -597,10 +597,10 @@ runs:
         echo "Uploading cache to S3..."
         if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
           echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l) files to cache"
-          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet
+          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --delete --quiet
           echo "S3 cache save completed"
         else
-          echo "No files to cache - skipping S3 sync to prevent deletion"
+          echo "No files to cache - skipping S3 sync"
         fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
