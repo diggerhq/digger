@@ -211,6 +211,18 @@ inputs:
     description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
     required: false
     default: ''
+  cache-dependencies-s3:
+    description: "Use S3 for caching terraform/terragrunt dependencies"
+    required: false
+    default: 'false'
+  cache-dependencies-s3-bucket:
+    description: "S3 bucket URL for caching (e.g., s3://mybucket/cache)"
+    required: false
+    default: ''
+  cache-dependencies-s3-region:
+    description: "AWS region for S3 cache bucket"
+    required: false
+    default: 'us-east-1'
 
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
@@ -315,6 +327,18 @@ runs:
         restore-keys: |
           digger-cache
       if: ${{ inputs.cache-dependencies == 'true' }}
+
+    - name: restore-s3-cache
+      shell: bash
+      run: |
+        if [ ! -d "$TF_PLUGIN_CACHE_DIR" ]; then
+          echo "Creating cache directory: $TF_PLUGIN_CACHE_DIR"
+          mkdir -p "$TF_PLUGIN_CACHE_DIR"
+        fi
+        echo "Downloading cache from S3..."
+        aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet || true
+        echo "S3 cache restore completed"
+      if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -566,6 +590,14 @@ runs:
       with:
         path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache-${{ hashFiles('**/cache') }}
+
+    - name: save-s3-cache
+      shell: bash
+      run: |
+        echo "Uploading cache to S3..."
+        aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --delete --quiet
+        echo "S3 cache save completed"
+      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
   icon: globe
