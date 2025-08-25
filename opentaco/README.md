@@ -42,34 +42,34 @@ make svc
 make cli
 
 # Create a state
-./taco state create my-project/prod
+./taco state create myapp/prod
 
 # List states
 ./taco state ls
 
 # Get state metadata (size, lock status, last updated)
-./taco state info my-project/prod
+./taco state info myapp/prod
 
 # Delete a state
-./taco state rm my-project/prod
+./taco state rm myapp/prod
 
 # Download state data
-./taco state pull my-project/prod output.tfstate
+./taco state pull myapp/prod output.tfstate
 
 # Upload state data  
-./taco state push my-project/prod input.tfstate
+./taco state push myapp/prod input.tfstate
 
 # Lock a state manually
-./taco state lock my-project/prod
+./taco state lock myapp/prod
 
 # Unlock a state
-./taco state unlock my-project/prod
+./taco state unlock myapp/prod
 
 # Acquire (lock + download in one operation)
-./taco state acquire my-project/prod output.tfstate
+./taco state acquire myapp/prod output.tfstate
 
 # Release (upload + unlock in one operation)
-./taco state release my-project/prod input.tfstate
+./taco state release myapp/prod input.tfstate
 ```
 
 ### Terraform Provider
@@ -97,7 +97,7 @@ provider "opentaco" {
 
 # Create a state registration
 resource "opentaco_state" "example" {
-  id = "my-project/prod/vpc"
+  id = "myapp/prod"
   
   labels = {
     environment = "production"
@@ -191,9 +191,9 @@ Notes:
 ```hcl
 terraform {
   backend "http" {
-    address        = "http://localhost:8080/v1/backend/my-project__prod__vpc"
-    lock_address   = "http://localhost:8080/v1/backend/my-project__prod__vpc"
-    unlock_address = "http://localhost:8080/v1/backend/my-project__prod__vpc"
+    address        = "http://localhost:8080/v1/backend/myapp/prod"
+    lock_address   = "http://localhost:8080/v1/backend/myapp/prod"
+    unlock_address = "http://localhost:8080/v1/backend/myapp/prod"
   }
 }
 ```
@@ -225,18 +225,18 @@ S3 object layout per state:
 
 ### Management API
 
-**Note**: State IDs containing slashes (e.g., `my-project/prod`) are URL-encoded by replacing `/` with `__` in the path.
+**Note**: State IDs containing slashes (e.g., `myapp/prod`) are URL-encoded by replacing `/` with `__` in the path.
 
 - `POST /v1/states` - Create a new state
-  - Body: `{"id": "my-project/prod"}`
-  - Response: `{"id": "my-project/prod", "created": "2025-01-01T00:00:00Z"}`
+  - Body: `{"id": "myapp/prod"}`
+  - Response: `{"id": "myapp/prod", "created": "2025-01-01T00:00:00Z"}`
 
 - `GET /v1/states?prefix=` - List states with optional prefix filter
   - Response: `{"states": [...], "count": 10}`
 
 - `GET /v1/states/{encoded_id}` - Get state metadata
-  - Example: `/v1/states/my-project__prod`
-  - Response: `{"id": "my-project/prod", "size": 1024, "updated": "...", "locked": false}`
+  - Example: `/v1/states/myapp__prod`
+  - Response: `{"id": "myapp/prod", "size": 1024, "updated": "...", "locked": false}`
 
 - `DELETE /v1/states/{encoded_id}` - Delete a state
 
@@ -425,8 +425,8 @@ cd opentaco-config && terraform init -upgrade
 
 ### State ID Encoding
 
-- User-facing IDs use natural paths: `my-project/prod/vpc`
-- HTTP routes encode slashes as double underscores: `my-project__prod__vpc`
+- User-facing IDs use natural paths: `myapp/prod`
+- HTTP routes encode slashes as double underscores: `myapp__prod`
 - This is handled automatically by the CLI and SDK
 
 ### Lock Behavior

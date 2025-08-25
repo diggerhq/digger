@@ -1,0 +1,47 @@
+{
+  "name": "OpenTaco",
+  "logo": {
+    "light": "",
+    "dark": ""
+  },
+  "navigation": [
+    {
+      "group": "Overview",
+      "pages": [
+        "overview.md",
+        "getting-started.md"
+      ]
+    },
+    {
+      "group": "Components",
+      "pages": [
+        "cli.md",
+        "service-backend.md",
+        "provider.md",
+        "storage.md"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "demo.md",
+        "troubleshooting.md"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": [
+        "reference/api.md",
+        "reference/cli-commands.md",
+        "reference/terraform-backend.md"
+      ]
+    },
+    {
+      "group": "Development",
+      "pages": [
+        "development.md"
+      ]
+    }
+  ]
+}
+
