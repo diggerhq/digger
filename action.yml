@@ -331,14 +331,61 @@ runs:
     - name: restore-s3-cache
       shell: bash
       run: |
+        echo "=== S3 Cache Restore ==="
+        echo "TF_PLUGIN_CACHE_DIR: $TF_PLUGIN_CACHE_DIR"
+        echo "S3 Bucket: ${{ inputs.cache-dependencies-s3-bucket }}"
+        
         if [ ! -d "$TF_PLUGIN_CACHE_DIR" ]; then
           echo "Creating cache directory: $TF_PLUGIN_CACHE_DIR"
           mkdir -p "$TF_PLUGIN_CACHE_DIR"
         fi
+        
+        echo "Files before S3 sync: $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)"
+        
         echo "Downloading cache from S3..."
-        aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet || true
-        echo "S3 cache restore completed"
+        aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}"
+        
+        echo "Files after S3 sync: $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)"
+        if [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
+          echo "✅ Cache restored from S3"
+          find "$TF_PLUGIN_CACHE_DIR" -type f | head -5
+        else
+          echo "❌ No files restored from S3"
+        fi
+        echo "========================"
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
+
+    - name: debug-cache-before-terraform
+      shell: bash
+      run: |
+        echo "=== Cache Debug Before Terraform ==="
+        echo "TF_PLUGIN_CACHE_DIR: $TF_PLUGIN_CACHE_DIR"
+        echo "TG_PROVIDER_CACHE: $TG_PROVIDER_CACHE"
+        echo "TERRAGRUNT_PROVIDER_CACHE: $TERRAGRUNT_PROVIDER_CACHE"
+        
+        if [ -d "$TF_PLUGIN_CACHE_DIR" ]; then
+          echo "✅ Cache directory exists"
+          echo "Files in cache:"
+          find "$TF_PLUGIN_CACHE_DIR" -type f | head -10
+          echo "Total files: $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)"
+          
+          # Check specific provider that should be cached
+          if find "$TF_PLUGIN_CACHE_DIR" -name "*terraform-provider-null*" -type f | grep -q .; then
+            echo "✅ Null provider found in cache"
+          else
+            echo "❌ Null provider NOT found in cache"
+          fi
+        else
+          echo "❌ Cache directory does not exist: $TF_PLUGIN_CACHE_DIR"
+        fi
+        
+        # Test environment variables
+        export TF_PLUGIN_CACHE_DIR="$TF_PLUGIN_CACHE_DIR"
+        echo "Environment test: TF_PLUGIN_CACHE_DIR is set to: $TF_PLUGIN_CACHE_DIR"
+        echo "=================================="
+      env:
+        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
