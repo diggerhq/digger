@@ -614,6 +614,7 @@ runs:
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
     - name: Enable Terraform debug log
+      shell: bash
       run: |
         echo "TF_LOG=DEBUG" >> $GITHUB_ENV
         echo "TF_LOG_PATH=${{ runner.temp }}/tf.log" >> $GITHUB_ENV
