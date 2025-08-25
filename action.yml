@@ -502,6 +502,9 @@ runs:
         DEBUG: 'true'
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
           if [[ ${{ inputs.ee }} == "true" ]]; then
@@ -549,6 +552,9 @@ runs:
         NO_BACKEND: ${{ inputs.no-backend }}
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
       shell: bash
@@ -597,6 +603,9 @@ runs:
         NO_BACKEND: ${{ inputs.no-backend }}
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger-local-run
       shell: bash
