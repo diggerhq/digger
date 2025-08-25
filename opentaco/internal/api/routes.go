@@ -35,5 +35,7 @@ func RegisterRoutes(e *echo.Echo, store storage.StateStore) {
 	v1.GET("/backend/*", backendHandler.GetState)
 	v1.POST("/backend/*", backendHandler.UpdateState)
 	v1.PUT("/backend/*", backendHandler.UpdateState)
-	v1.Any("/backend/*", backendHandler.HandleLockUnlock)
+	// Explicitly wire non-standard HTTP methods used by Terraform backend
+	e.Add("LOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
+	e.Add("UNLOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
 }

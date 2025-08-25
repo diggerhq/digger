@@ -146,6 +146,46 @@ Option B — install into the plugin directory:
 Then run `terraform init` again to pick up the local build.
 ```
 
+### Provider Bootstrap (taco provider init)
+
+Quickly scaffold a Terraform workspace which:
+- Stores its own TF state in the OpenTaco HTTP backend at `__opentaco_system_state`.
+- Configures the OpenTaco provider against your server.
+- Includes a demo `opentaco_state` resource (e.g., `demo/env/vpc`).
+
+Steps:
+
+```bash
+# 1) Start the service on S3
+OPENTACO_S3_BUCKET=<bucket> \
+OPENTACO_S3_REGION=<region> \
+OPENTACO_S3_PREFIX=<prefix> \
+./opentacosvc
+
+# 2) Scaffold the provider workspace
+./taco provider init opentaco-config --server http://localhost:8080
+
+# 3) Initialize and apply
+cd opentaco-config
+terraform init
+terraform apply -auto-approve
+
+# 4) Verify in S3
+aws s3 ls s3://$OPENTACO_S3_BUCKET/$OPENTACO_S3_PREFIX/__opentaco_system_state/
+aws s3 ls s3://$OPENTACO_S3_BUCKET/$OPENTACO_S3_PREFIX/demo/env/vpc/
+```
+
+Notes:
+- System state defaults to `__opentaco_system_state`. Override with `--system-state <id>` if desired.
+- The CLI creates the system state by convention (skip with `--no-create`).
+ - You can scaffold into the current directory with: `./taco provider init . --server http://localhost:8080`.
+
+### System State Convention
+
+- Reserved names starting with `__opentaco_` are platform‑owned and should not be used for user stacks.
+- Default system state ID is `__opentaco_system_state`, stored alongside user states under the same S3 prefix.
+- The backend treats this like any other state; the CLI drives creation by convention.
+
 ### Using as Terraform Backend
 
 ```hcl
@@ -253,6 +293,15 @@ Note: Terraform lock coordination uses the `X-Terraform-Lock-ID` header; the ser
 - `--server URL` - OpenTaco server URL (default: `http://localhost:8080`, env: `OPENTACO_SERVER`)
 - `-v, --verbose` - Enable verbose output
 
+### Provider Tools
+
+- `taco provider init [dir]` - Scaffold a Terraform workspace for the OpenTaco provider
+  - Flags:
+    - `--dir <path>`: Output directory (default `opentaco-config`; positional `[dir]` takes precedence if given)
+    - `--system-state <id>`: System state for the backend (default `__opentaco_system_state`)
+    - `--force`: Overwrite files if they exist
+    - `--no-create`: Do not create the system state (scaffold only)
+
 ### Environment Variables
 
 - CLI: `OPENTACO_SERVER` sets the default server URL for `taco`.
@@ -335,19 +384,42 @@ OPENTACO_S3_REGION=us-east-1 \
 
 ## Troubleshooting
 
-### Common Issues
+### Backend/Provider Issues
 
-1. **"State not found" errors**
-   - Ensure the state was created first: `./taco state create <id>`
-   - Check the exact ID with: `./taco state ls`
+- 405 on LOCK/UNLOCK during `terraform init/apply`:
+  - Cause: routes for custom HTTP verbs not wired.
+  - Fix (service): add `e.Add("LOCK", "/v1/backend/*", handler)` and `e.Add("UNLOCK", "/v1/backend/*", handler)`, rebuild, restart.
 
-2. **Lock conflicts**
-   - View lock info: `./taco state info <id>`
-   - Force unlock if needed: `./taco state unlock <id> <lock-id>`
+- 409 on POST/PUT ("Failed to save state"):
+  - Cause: backend not reading lock ID from Terraform query `?ID=<uuid>`.
+  - Fix (service): in update handler, read lock ID from header `X-Terraform-Lock-ID` OR query `ID`/`id`.
 
-3. **Connection errors**
-   - Verify service is running: `curl http://localhost:8080/healthz`
-   - Check server URL: `./taco --server http://localhost:8080 state ls`
+- 409 on Create in provider ("State already exists"):
+  - Cause: remote state with same `id` already exists; renaming the Terraform resource block does not change the backend ID.
+  - Fix options:
+    - Import: `terraform import opentaco_state.NAME <id>`.
+    - Change ID: update `id = "..."` to a new value.
+    - Remove remote: `./taco --server <url> state rm <id>` then apply.
+
+### Local provider override (no plugin copying)
+
+If Terraform cannot find the local provider, add a workspace-local CLI config and re-init:
+
+```bash
+# From repo root (path to provider source dir)
+ABS="$(pwd)/providers/terraform/opentaco"
+
+# Write a local override inside your scaffolded dir
+cat > opentaco-config/.terraformrc <<EOF
+provider_installation {
+  dev_overrides { "digger/opentaco" = "${ABS}" }
+  direct {}
+}
+EOF
+
+export TF_CLI_CONFIG_FILE="$PWD/opentaco-config/.terraformrc"
+cd opentaco-config && terraform init -upgrade
+```
 
 ## Implementation Notes
 

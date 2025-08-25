@@ -154,3 +154,50 @@ Each command calls the corresponding endpoint, prints the 501 JSON, and exits wi
 - Swap stubs for an S3 “bucket‑only” adapter while preserving shapes.
 - Add RBAC/SSO and outputs hashing for dependency awareness.
 - Keep Terraform HTTP backend proxy supported; consider S3‑compat endpoint later.
+
+---
+
+## Prototype Notes (Current Repo Behavior)
+
+The repository includes working functionality beyond Milestone 1 for demos and iteration. Do not regress these behaviors:
+
+- Storage
+  - Default storage is S3 (bucket‑only). Service uses AWS SDK default credential chain.
+  - If S3 is not configured or initialization fails, the service warns and falls back to in‑memory storage.
+  - S3 object layout per state:
+    - `<prefix>/<state-id>/terraform.tfstate`
+    - `<prefix>/<state-id>/terraform.tfstate.lock`
+
+- System State Convention
+  - Reserved, platform‑owned IDs start with double underscores.
+  - Default system state: `__opentaco_system_state` (sits alongside user states under the same S3 prefix).
+  - The backend treats it like any other state; no auto‑create in the service. Creation is CLI‑driven by convention.
+
+- CLI Enhancements
+  - `taco provider init` scaffolds a Terraform workspace that:
+    - Points the Terraform HTTP backend to `/v1/backend/__opentaco_system_state`.
+    - Configures the `opentaco` provider endpoint.
+    - Optionally creates the system state (skip with `--no-create`).
+  - Flags: `--dir`, `--system-state`, `--force`, `--no-create`.
+
+- Suggested Demo Flow
+  1. Start service on S3: set `OPENTACO_S3_BUCKET`, `OPENTACO_S3_REGION`, `OPENTACO_S3_PREFIX`, run `./opentacosvc`.
+  2. Run `./taco provider init opentaco-config --server http://localhost:8080`.
+  3. `cd opentaco-config && terraform init && terraform apply -auto-approve`.
+  4. Verify via `taco state ls` and S3 listing of `__opentaco_system_state/` and `demo/env/vpc/`.
+
+These prototypes support a crisp demo while the M1 shape contract remains documented above.
+
+---
+
+## Implementation Notes (Gotchas)
+
+- Echo custom methods: Wire Terraform's non-standard HTTP verbs explicitly.
+  - Add routes with `e.Add("LOCK", "/v1/backend/*", handler)` and `e.Add("UNLOCK", "/v1/backend/*", handler)`.
+  - `Group.Any(...)` does not catch custom verbs; missing routes yield 405 during `terraform init/apply`.
+- Backend lock ID handling: honor both header and query param.
+  - `UpdateState` must accept lock ID from header `X-Terraform-Lock-ID` or query `?ID=` (also accept `?id=`).
+  - Terraform sends `?ID=<uuid>` on state writes; ignoring it causes 409 conflicts on POST/PUT.
+- Provider bootstrap UX:
+  - `taco provider init [dir]` (positional arg optional). If omitted, defaults to `opentaco-config`. `--dir` still supported.
+  - By convention the CLI creates `__opentaco_system_state`; skip with `--no-create` if you want to manage it yourself.

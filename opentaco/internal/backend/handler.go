@@ -64,8 +64,14 @@ func (h *Handler) UpdateState(c echo.Context) error {
 		})
 	}
 
-	// Get lock ID from header
-	lockID := c.Request().Header.Get("X-Terraform-Lock-ID")
+    // Get lock ID from header or query param (Terraform sends ?ID=...)
+    lockID := c.Request().Header.Get("X-Terraform-Lock-ID")
+    if lockID == "" {
+        lockID = c.QueryParam("ID")
+    }
+    if lockID == "" {
+        lockID = c.QueryParam("id")
+    }
 
 	// Upload state
 	err = h.store.Upload(c.Request().Context(), id, data, lockID)
