@@ -10,11 +10,12 @@
   - API Surfaces to Freeze (shapes)
   - CLI Commands (wire to endpoints)
   - Terraform Provider
-  - Tooling & Versions (pin modern, battle-tested)
-  - Files to Create (what & why; minimal examples where helpful)
-  - Acceptance Criteria (Definition of Done)
-  - Style & Guardrails
-  - Next Milestones (context only, no action now)
+- Tooling & Versions (pin modern, battle-tested)
+- Files to Create (what & why; minimal examples where helpful)
+- Acceptance Criteria (Definition of Done)
+- Style & Guardrails
+- Next Milestones (context only, no action now)
+ - Docs Updates (keep Mintlify site in sync)
 
 ## Purpose (what OpenTaco is in one paragraph)
 OpenTaco is a self-hostable, open-source Terraform companion that starts with Layer‑0: state control (CRUD + lock + HTTP backend proxy) and grows into RBAC, policy, runs, and more. Milestone 1 is shape‑setting only: agents scaffold the service, CLI, SDK, and Terraform provider so all surfaces exist and compile, but business endpoints intentionally return Not Implemented. Keep the focus on state + RBAC as the core (see agents_context/opentaco-state-rbac.md), and defer automation/runs to later layers.
@@ -141,6 +142,18 @@ When scaffolding shapes without full implementations, return HTTP 501 Not Implem
 
 ```json
 { "error": "not_implemented", "message": "Milestone 1 dummy endpoint", "hint": "This route will be implemented in a later milestone." }
+
+## Docs Updates (keep Mintlify site in sync)
+
+- Live docs: https://opentaco.mintlify.app/
+- Source: `opentaco/docs/` (Mintlify).
+- Whenever you change behavior, update the relevant docs in the same PR:
+  - CLI flags/commands → `docs/cli.md`, `docs/reference/cli-commands.md`, and examples.
+  - API routes/shapes → `docs/service-backend.md`, `docs/reference/api.md`, `docs/reference/terraform-backend.md`.
+  - Storage semantics → `docs/storage.md`.
+  - Demo flow or defaults → `docs/demo.md`, examples under `examples/demo-provider/`.
+  - High-level narrative → `docs/overview.md`, `docs/getting-started.md`.
+- Ensure README “Documentation” section stays accurate (URL + note that docs live in `opentaco/docs/`).
 ```
 
 ## Next Milestones (context only, no action now)

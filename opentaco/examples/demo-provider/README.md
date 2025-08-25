@@ -2,6 +2,8 @@
 
 This walkthrough boots the OpenTaco service, scaffolds a provider workspace, creates a demo state via Terraform, and then shows how to point your own Terraform projects at that state using the OpenTaco HTTP backend.
 
+Full documentation: https://opentaco.mintlify.app/
+
 ## Prerequisites
 
 - Go 1.25

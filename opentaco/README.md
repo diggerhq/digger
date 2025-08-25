@@ -2,6 +2,11 @@
 
 OpenTaco (Layer-0) is a CLI + lightweight service for state control—create/read/update/delete and lock Terraform/OpenTofu state files, and act as an HTTP state backend proxy, paving the way for dependency awareness and RBAC. Today, the service runs stateless with an S3 “bucket-only” adapter for state storage (with an in-memory fallback for local demos).
 
+## Documentation
+
+- Live docs: https://opentaco.mintlify.app/
+- Source: `opentaco/docs/` (Mintlify). When changing APIs, CLI behavior, storage semantics, or examples, update the relevant docs pages (overview, getting-started, cli, service-backend, provider, storage, demo, troubleshooting, reference) in the same PR.
+
 ## What is OpenTaco?
 
 OpenTaco is an open-source "Terraform Companion" that starts with state control: a CLI + lightweight service focused on managing state files and access to them, not CI jobs. The long game is a self-hostable alternative to Terraform Cloud / Enterprise: state + RBAC first, then remote execution, PR automation, drift, and policy as later layers. This repo already includes a working S3 adapter, a Terraform HTTP backend proxy (GET/POST/PUT/LOCK/UNLOCK), and usable CLI + provider.
