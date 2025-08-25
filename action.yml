@@ -328,6 +328,23 @@ runs:
           digger-cache
       if: ${{ inputs.cache-dependencies == 'true' }}
 
+    # 1) Enable TF debug logging for subsequent steps
+    - name: Enable Terraform debug log
+      shell: bash
+      run: |
+        echo "TF_LOG=DEBUG" >> $GITHUB_ENV
+        echo "TF_LOG_PATH=$RUNNER_TEMP/tf.log" >> $GITHUB_ENV
+
+    # 2) (optional but nice) make Terraform print the cache dir in logs
+    - name: Write tf config to point at plugin cache (optional)
+      shell: bash
+      run: |
+        cat > "$RUNNER_TEMP/terraform.tfrc" <<'EOF'
+        plugin_cache_dir = "${{ env.TF_PLUGIN_CACHE_DIR }}"
+        EOF
+        echo "TF_CLI_CONFIG_FILE=$RUNNER_TEMP/terraform.tfrc" >> $GITHUB_ENV
+
+    # 3) Your S3 restore step for $TF_PLUGIN_CACHE_DIR happens here
     - name: restore-s3-cache
       shell: bash
       run: |
@@ -613,19 +630,15 @@ runs:
         fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
-    - name: Enable Terraform debug log
-      shell: bash
-      run: |
-        echo "TF_LOG=DEBUG" >> $GITHUB_ENV
-        echo "TF_LOG_PATH=${{ runner.temp }}/tf.log" >> $GITHUB_ENV
-
-    - name: Prove cache usage
+    # 5) Prove cache usage
+    - name: Prove plugin cache usage
       shell: bash
       run: |
         echo "===== grep cache hints ====="
-        grep -Ei 'plugin cache|copying provider|using cached|cache dir' "${{ runner.temp }}/tf.log" || true
-        echo "===== grep registry ====="
-        grep -Ei 'registry\.terraform\.io|releases\.hashicorp\.com|GET|HEAD' "${{ runner.temp }}/tf.log" || true
+        grep -Ei 'plugin cache|copying provider|using cached|cache dir|symlink.*provider' "$RUNNER_TEMP/tf.log" || true
+        echo "===== any registry fetches? ====="
+        grep -Ei 'registry\.terraform\.io|releases\.hashicorp\.com|GET|HEAD' "$RUNNER_TEMP/tf.log" || true
+        tail -n 200 "$RUNNER_TEMP/tf.log" || true
 
 branding:
   icon: globe
