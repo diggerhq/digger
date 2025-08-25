@@ -340,38 +340,6 @@ runs:
         echo "S3 cache restore completed"
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
-    - name: debug-cache-before-terraform
-      shell: bash
-      run: |
-        echo "=== Cache Debug Before Terraform ==="
-        echo "TF_PLUGIN_CACHE_DIR: $TF_PLUGIN_CACHE_DIR"
-        echo "TG_PROVIDER_CACHE: $TG_PROVIDER_CACHE"
-        echo "TERRAGRUNT_PROVIDER_CACHE: $TERRAGRUNT_PROVIDER_CACHE"
-        
-        if [ -d "$TF_PLUGIN_CACHE_DIR" ]; then
-          echo "✅ Cache directory exists"
-          echo "Files in cache:"
-          find "$TF_PLUGIN_CACHE_DIR" -type f | head -10
-          echo "Total files: $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)"
-          
-          # Check specific provider that should be cached
-          if find "$TF_PLUGIN_CACHE_DIR" -name "*terraform-provider-null*" -type f | grep -q .; then
-            echo "✅ Null provider found in cache"
-          else
-            echo "❌ Null provider NOT found in cache"
-          fi
-        else
-          echo "❌ Cache directory does not exist: $TF_PLUGIN_CACHE_DIR"
-        fi
-        
-        # Test environment variables
-        export TF_PLUGIN_CACHE_DIR="$TF_PLUGIN_CACHE_DIR"
-        echo "Environment test: TF_PLUGIN_CACHE_DIR is set to: $TF_PLUGIN_CACHE_DIR"
-        echo "=================================="
-      env:
-        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
-
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
@@ -644,6 +612,19 @@ runs:
           echo "No files to cache - skipping S3 sync"
         fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
+
+    - name: Enable Terraform debug log
+      run: |
+        echo "TF_LOG=DEBUG" >> $GITHUB_ENV
+        echo "TF_LOG_PATH=${{ runner.temp }}/tf.log" >> $GITHUB_ENV
+
+    - name: Prove cache usage
+      shell: bash
+      run: |
+        echo "===== grep cache hints ====="
+        grep -Ei 'plugin cache|copying provider|using cached|cache dir' "${{ runner.temp }}/tf.log" || true
+        echo "===== grep registry ====="
+        grep -Ei 'registry\.terraform\.io|releases\.hashicorp\.com|GET|HEAD' "${{ runner.temp }}/tf.log" || true
 
 branding:
   icon: globe
