@@ -328,23 +328,7 @@ runs:
           digger-cache
       if: ${{ inputs.cache-dependencies == 'true' }}
 
-    # 1) Enable TF debug logging for subsequent steps
-    - name: Enable Terraform debug log
-      shell: bash
-      run: |
-        echo "TF_LOG=DEBUG" >> $GITHUB_ENV
-        echo "TF_LOG_PATH=$RUNNER_TEMP/tf.log" >> $GITHUB_ENV
-
-    # 2) (optional but nice) make Terraform print the cache dir in logs
-    - name: Write tf config to point at plugin cache (optional)
-      shell: bash
-      run: |
-        cat > "$RUNNER_TEMP/terraform.tfrc" <<'EOF'
-        plugin_cache_dir = "${{ env.TF_PLUGIN_CACHE_DIR }}"
-        EOF
-        echo "TF_CLI_CONFIG_FILE=$RUNNER_TEMP/terraform.tfrc" >> $GITHUB_ENV
-
-    # 3) Your S3 restore step for $TF_PLUGIN_CACHE_DIR happens here
+    # After cache directory setup, before terraform operations
     - name: restore-s3-cache
       shell: bash
       run: |
@@ -357,6 +341,7 @@ runs:
         echo "S3 cache restore completed"
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
+    # Then terraform setup happens...
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
@@ -617,6 +602,7 @@ runs:
         path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache-${{ hashFiles('**/cache') }}
 
+    # At the end, after digger execution
     - name: save-s3-cache
       shell: bash
       run: |
@@ -629,16 +615,6 @@ runs:
           echo "No files to cache - skipping S3 sync"
         fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
-
-    # 5) Prove cache usage
-    - name: Prove plugin cache usage
-      shell: bash
-      run: |
-        echo "===== grep cache hints ====="
-        grep -Ei 'plugin cache|copying provider|using cached|cache dir|symlink.*provider' "$RUNNER_TEMP/tf.log" || true
-        echo "===== any registry fetches? ====="
-        grep -Ei 'registry\.terraform\.io|releases\.hashicorp\.com|GET|HEAD' "$RUNNER_TEMP/tf.log" || true
-        tail -n 200 "$RUNNER_TEMP/tf.log" || true
 
 branding:
   icon: globe
