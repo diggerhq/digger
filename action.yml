@@ -332,26 +332,19 @@ runs:
       shell: bash
       run: |
         echo "=== S3 Cache Restore ==="
-        echo "TF_PLUGIN_CACHE_DIR: $TF_PLUGIN_CACHE_DIR"
-        echo "S3 Bucket: ${{ inputs.cache-dependencies-s3-bucket }}"
-        
         if [ ! -d "$TF_PLUGIN_CACHE_DIR" ]; then
           echo "Creating cache directory: $TF_PLUGIN_CACHE_DIR"
           mkdir -p "$TF_PLUGIN_CACHE_DIR"
         fi
         
-        echo "Files before S3 sync: $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)"
+        echo "Downloading ZIP cache from S3..."
+        aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}" "$TF_PLUGIN_CACHE_DIR" \
+          --region "${{ inputs.cache-dependencies-s3-region }}" \
+          --exclude "*" \
+          --include "*.zip" \
+          --quiet
         
-        echo "Downloading cache from S3..."
-        aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}"
-        
-        echo "Files after S3 sync: $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)"
-        if [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
-          echo "✅ Cache restored from S3"
-          find "$TF_PLUGIN_CACHE_DIR" -type f | head -5
-        else
-          echo "❌ No files restored from S3"
-        fi
+        echo "ZIP files restored: $(find "$TF_PLUGIN_CACHE_DIR" -name '*.zip' | wc -l)"
         echo "========================"
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
@@ -651,12 +644,17 @@ runs:
       shell: bash
       run: |
         echo "Uploading cache to S3..."
-        if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
-          echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l) files to cache"
-          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --delete --quiet
-          echo "S3 cache save completed"
+        if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -name '*.zip' | wc -l)" -gt 0 ]; then
+          echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -name '*.zip' | wc -l) ZIP files to cache"
+          # Only sync ZIP files, exclude extracted binaries
+          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" \
+            --region "${{ inputs.cache-dependencies-s3-region }}" \
+            --exclude "*" \
+            --include "*.zip" \
+            --quiet
+          echo "S3 cache save completed (ZIPs only)"
         else
-          echo "No files to cache - skipping S3 sync"
+          echo "No ZIP files to cache - skipping S3 sync"
         fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
