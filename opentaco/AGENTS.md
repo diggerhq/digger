@@ -1,13 +1,15 @@
 # OpenTaco Agents Playbook (Milestone 1: Dummies)
 
+> Current Status (Aug 2025): This repository already implements a working S3 “bucket-only” storage adapter, the Terraform HTTP backend proxy (GET/POST/PUT/LOCK/UNLOCK), and functional CLI + Terraform provider. Treat the Milestone 1 sections below as the shape contract; do not regress the implemented behavior.
+
 - Table of Contents
   - Purpose (what OpenTaco is in one paragraph)
   - Milestone 1 Scope (what “dummies” means)
   - Project Placement & Constraints
   - Directory Structure (what & why for each path)
-  - API Surfaces to Freeze (shapes only; all return 501)
-  - CLI Commands (wire to endpoints; surface 501)
-  - Terraform Provider (skeleton only)
+  - API Surfaces to Freeze (shapes)
+  - CLI Commands (wire to endpoints)
+  - Terraform Provider
   - Tooling & Versions (pin modern, battle-tested)
   - Files to Create (what & why; minimal examples where helpful)
   - Acceptance Criteria (Definition of Done)
@@ -18,22 +20,16 @@
 OpenTaco is a self-hostable, open-source Terraform companion that starts with Layer‑0: state control (CRUD + lock + HTTP backend proxy) and grows into RBAC, policy, runs, and more. Milestone 1 is shape‑setting only: agents scaffold the service, CLI, SDK, and Terraform provider so all surfaces exist and compile, but business endpoints intentionally return Not Implemented. Keep the focus on state + RBAC as the core (see agents_context/opentaco-state-rbac.md), and defer automation/runs to later layers.
 
 ## Milestone 1 Scope (what “dummies” means)
-- All business endpoints return HTTP 501 Not Implemented with a uniform JSON body (below).
-- CLI calls those endpoints, prints the 501 message, and exits non‑zero.
-- Terraform provider compiles; operations return diagnostics “not implemented”.
-- Only /healthz and /readyz return 200 OK.
-- No storage, S3, DB, auth, or external side effects outside opentaco/.
-
-Uniform 501 error body:
-```json
-{ "error": "not_implemented", "message": "Milestone 1 dummy endpoint", "hint": "This route will be implemented in a later milestone." }
-```
+- Scope is shape‑setting only: scaffold service, CLI, SDK, provider so all surfaces exist and compile.
+- Endpoints may be stubbed during scaffolding; see “Stubs convention” in Style & Guardrails.
+- Only /healthz and /readyz must return 200 OK.
+- No storage, DB, auth, or external side effects outside opentaco/.
 
 ## Project Placement & Constraints
 - Everything lives under <repo-root>/opentaco/.
 - Do not touch files outside opentaco/ (no root go.work/CI/global configs).
 - Keep temp/build artifacts inside opentaco/ (use .gitignore if needed).
-- Note: repo currently contains working prototypes beyond M1; do not regress them. When stubbing new surfaces, follow the 501 pattern.
+- Note: repo currently contains working prototypes beyond M1; do not regress them. When stubbing new surfaces, follow the stubs convention in Style & Guardrails.
 
 ## Directory Structure (what & why for each path)
 ```
@@ -45,10 +41,10 @@ opentaco/
 │  ├─ opentacosvc/            # service entrypoint (Echo HTTP server)
 │  └─ taco/                   # CLI entrypoint (Cobra)
 ├─ internal/
-│  ├─ api/                    # management API handlers (return 501)
-│  ├─ backend/                # Terraform backend verbs (LOCK/UNLOCK/GET/POST/PUT → 501)
-│  ├─ domain/                 # pure types & tiny helpers (minimal in M1)
-│  ├─ storage/                # interfaces only (no impl in M1)
+│  ├─ api/                    # management API handlers (implemented)
+│  ├─ backend/                # Terraform backend (GET/POST/PUT/LOCK/UNLOCK implemented)
+│  ├─ domain/                 # pure types & tiny helpers
+│  ├─ storage/                # S3 adapter + in-memory fallback
 │  └─ observability/          # healthz/readyz, metrics stub, logging adapters
 ├─ pkg/
 │  └─ sdk/                    # typed HTTP client used by CLI & provider (Go module)
@@ -61,7 +57,8 @@ opentaco/
          └─ examples/
 ```
 
-## API Surfaces to Freeze (shapes only; all return 501)
+## API Surfaces to Freeze (shape contract; implemented in repo)
+Note: In this repo, these surfaces are already implemented and return real results. For M1 scaffolding in other contexts, stubbing is acceptable to establish the shape (see stubs convention).
 - Management API (prefix /v1):
   - POST /v1/states
   - GET /v1/states?prefix=<string>
@@ -73,7 +70,7 @@ opentaco/
   - DELETE /v1/states/*id:unlock
 - Terraform HTTP backend proxy (prefix /v1/backend/*id): GET, POST, PUT, LOCK, UNLOCK.
 
-Example Echo wiring for LOCK/UNLOCK and a 501 helper:
+Example Echo wiring for LOCK/UNLOCK:
 ```go
 // Router setup
 e := echo.New()
@@ -81,18 +78,9 @@ e.GET("/healthz", healthz)
 e.GET("/readyz", readyz)
 e.Add("LOCK",   "/v1/backend/*", backendHandle)
 e.Add("UNLOCK", "/v1/backend/*", backendHandle)
-
-// 501 helper
-func notImplemented(c echo.Context) error {
-    return c.JSON(http.StatusNotImplemented, map[string]string{
-        "error":   "not_implemented",
-        "message": "Milestone 1 dummy endpoint",
-        "hint":    "This route will be implemented in a later milestone.",
-    })
-}
 ```
 
-## CLI Commands (wire to endpoints; surface 501)
+## CLI Commands (wire to endpoints)
 ```
 taco state create <id> [-l key=val]
 taco state ls [--prefix <pfx>]
@@ -104,13 +92,13 @@ taco state unlock <id> --id <uuid>
 taco state acquire <id> [-f terraform.tfstate]
 taco state release <id> [-f terraform.tfstate]
 ```
-Each command calls the corresponding endpoint, prints the 501 JSON, and exits with non‑zero status.
+In this repo these commands are fully implemented and call the service. For M1-only scaffolding elsewhere, you may stub per the stubs convention.
 
-## Terraform Provider (skeleton only)
-- Provider config: endpoint (string).
-- Resource opentaco_state: schema { id (required), labels (optional map) }; CRUD → diag “not implemented”.
-- Data source opentaco_state: input { id }; read → diag “not implemented”.
-- Lives in opentaco/providers/terraform/opentaco as its own Go module; include examples/basic/main.tf (not executed in M1).
+## Terraform Provider
+ - Provider config: endpoint (string).
+ - Resource opentaco_state: schema { id (required), labels (optional map) }.
+ - Data source opentaco_state: input { id }.
+ - Lives in opentaco/providers/terraform/opentaco as its own Go module; examples under providers/terraform/opentaco/examples/.
 
 ## Tooling & Versions (pin modern, battle-tested)
 - Language: Go 1.25 (align with current repo). Use toolchain pinning if you introduce new modules.
@@ -122,33 +110,38 @@ Each command calls the corresponding endpoint, prints the 501 JSON, and exits wi
 - Lint: golangci-lint (align with .golangci.yml: gofmt, govet, staticcheck, errcheck, ineffassign, prealloc, goimports, gosimple, unused).
 
 ## Files to Create (what & why; minimal examples where helpful)
-- README.md: purpose, dummy scope, how to run service/CLI, where provider lives, constraints (no side effects outside opentaco/).
+- README.md: purpose, how to run service/CLI, where provider lives, constraints (no side effects outside opentaco/).
 - Makefile: build, lint, test, svc, cli, prov targets.
 - .golangci.yml: baseline linter configuration.
-- cmd/opentacosvc/: main.go bootstraps Echo; /healthz and /readyz → 200; all other handlers use notImplemented.
-- internal/api/: register Management API; handlers return 501 using the helper.
-- internal/backend/: backend proxy GET/POST/PUT/LOCK/UNLOCK → 501.
-- internal/domain/: tiny types (StateID, Lock, StateMeta, ErrorResponse) and the 501 error constant.
-- internal/storage/: StateStore interface only (no impl in M1).
+- cmd/opentacosvc/: main.go bootstraps Echo; /healthz and /readyz → 200; wire API/backends.
+- internal/api/: register Management API handlers.
+- internal/backend/: Terraform HTTP backend (GET/POST/PUT/LOCK/UNLOCK).
+- internal/domain/: tiny types (StateID, Lock, StateMeta, ErrorResponse).
+- internal/storage/: StateStore interfaces and adapters as applicable.
 - internal/observability/: healthz/readyz, metrics stub (200 OK empty body), logging glue.
-- pkg/sdk/: rest client; methods for each endpoint that forward requests and surface 501s as errors.
-- cmd/taco/: Cobra root with --server; subcommands above; print 501 JSON on error.
-- providers/terraform/opentaco/: main.go, provider/provider.go, resources/state_resource.go, datasources/state_data_source.go, examples/basic/main.tf — all methods return “not implemented”.
+- pkg/sdk/: typed HTTP client used by CLI & provider.
+- cmd/taco/: Cobra root with --server; subcommands as listed above.
+- providers/terraform/opentaco/: provider, resources, datasources, examples.
 
 ## Acceptance Criteria (Definition of Done)
 - Service, CLI, and provider compile from within opentaco/.
 - Service runs on :8080; /healthz and /readyz return 200 OK.
-- All Management and Backend routes return 501 with the uniform JSON.
-- CLI commands invoke endpoints and surface “Not Implemented” (non‑zero exit).
-- Provider builds; CRUD/Read return diagnostics “not implemented”.
+- Management and Backend routes match the shapes listed above.
+- CLI commands and provider wire to those routes.
 - golangci-lint passes on all code in opentaco/.
 - Zero changes outside opentaco/.
 
 ## Style & Guardrails
 - Keep handlers short; prefer pure helpers in internal/domain/.
 - No auth, storage, external HTTP calls, or filesystem writes outside opentaco/.
-- Include brief comments noting “Milestone 1 (dummies) — returns 501 intentionally”.
 - When repo already contains working prototypes, treat this playbook as the shape contract and avoid regressing implemented behavior.
+
+### Stubs convention (for dummies)
+When scaffolding shapes without full implementations, return HTTP 501 Not Implemented with a uniform JSON body to keep clients predictable:
+
+```json
+{ "error": "not_implemented", "message": "Milestone 1 dummy endpoint", "hint": "This route will be implemented in a later milestone." }
+```
 
 ## Next Milestones (context only, no action now)
 - Swap stubs for an S3 “bucket‑only” adapter while preserving shapes.

@@ -1,10 +1,10 @@
 # OpenTaco - Layer-0 State Control
 
-OpenTaco (Layer-0) is a CLI + lightweight service for state control—create/read/update/delete and lock Terraform/OpenTofu state files, and act as an HTTP state backend proxy, paving the way for dependency awareness and RBAC—self-hosted first, later backed by a user-provided S3 bucket ("bucket-only").
+OpenTaco (Layer-0) is a CLI + lightweight service for state control—create/read/update/delete and lock Terraform/OpenTofu state files, and act as an HTTP state backend proxy, paving the way for dependency awareness and RBAC. Today, the service runs stateless with an S3 “bucket-only” adapter for state storage (with an in-memory fallback for local demos).
 
 ## What is OpenTaco?
 
-OpenTaco is an open-source "Terraform Companion" that starts with state control: a CLI + lightweight service focused on managing state files and access to them, not CI jobs. The long game is a self-hostable alternative to Terraform Cloud / Enterprise: state + RBAC first, then remote execution, PR automation, drift, and policy as later layers. For Milestone 1, we build dummy, self-contained components that establish the shapes (API, CLI, provider) while staying entirely inside the opentaco/ directory.
+OpenTaco is an open-source "Terraform Companion" that starts with state control: a CLI + lightweight service focused on managing state files and access to them, not CI jobs. The long game is a self-hostable alternative to Terraform Cloud / Enterprise: state + RBAC first, then remote execution, PR automation, drift, and policy as later layers. This repo already includes a working S3 adapter, a Terraform HTTP backend proxy (GET/POST/PUT/LOCK/UNLOCK), and usable CLI + provider.
 
 ## Philosophy
 
@@ -14,7 +14,7 @@ OpenTaco is an open-source "Terraform Companion" that starts with state control:
 - **Backwards compatibility** with existing S3 layouts (incl. Terragrunt) when we wire storage later; adoption should be drop-in.
 - **Import from TFC should be easy** (later); keep shapes friendly to that path.
 
-## Quick Start (Milestone 1 - Dummies)
+## Quick Start
 
 ### Prerequisites
 
@@ -436,12 +436,16 @@ cd opentaco-config && terraform init -upgrade
 - The CLI saves lock IDs locally in `.taco/` for convenience
 - Terraform backend operations handle locking automatically
 
-### Dummy Storage Limitations (Milestone 1)
+### Storage Behavior
 
-- Memory store loses all data on restart
-- File store writes to `.devdata/` (gitignored)
-- No real persistence, versioning, or backup
-- Suitable only for development and testing
+- Default storage: S3 (bucket-only). Uses AWS default credential chain.
+- Fallback: if S3 is not configured or init fails, the service warns and falls back to in-memory storage.
+- S3 object layout per state:
+  - `<prefix>/<state-id>/terraform.tfstate`
+  - `<prefix>/<state-id>/terraform.tfstate.lock`
+- System state convention:
+  - Reserved IDs start with `__opentaco_`.
+  - Default system state is `__opentaco_system_state` and is created by the CLI (not auto-created by the service).
 
 ## Future Roadmap
 
