@@ -692,7 +692,8 @@ runs:
         fi
         
         PLATFORM="${{ runner.os }}-${{ runner.arch }}"
-        BUCKET="${{ inputs.cache-dependencies-s3-bucket }}"
+        # Remove s3:// prefix if present
+        BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
         echo "Looking for caches matching platform: $PLATFORM"
