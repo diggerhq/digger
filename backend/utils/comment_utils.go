@@ -165,9 +165,13 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		}
 		
 		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
+		projectAlias := projectName // fallback
+		if jobSpec.ProjectAlias != "" {
+			projectAlias = jobSpec.ProjectAlias
+		}
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
-			projectName,
+			projectAlias,  // <-- Use alias instead
 			workflowUrl,
 			job.Status.ToString(),
 			prCommentUrl,
