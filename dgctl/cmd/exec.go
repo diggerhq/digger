@@ -219,9 +219,18 @@ var execCmd = &cobra.Command{
 
 		projectName := execConfig.Project
 		command := execConfig.Command
-		projectConfig := config.GetProject(projectName)
+		projectConfig := config.GetProjectByNameOrAlias(projectName)
 		if projectConfig == nil {
-			log.Printf("project %v not found in config, does it exist?", projectName)
+			// Build helpful error message with available projects and aliases
+			var availableOptions []string
+			for _, p := range config.Projects {
+				if p.Alias != "" && p.Alias != p.Name {
+					availableOptions = append(availableOptions, fmt.Sprintf("%s (alias: %s)", p.Name, p.Alias))
+				} else {
+					availableOptions = append(availableOptions, p.Name)
+				}
+			}
+			log.Printf("project %v not found in config. Available projects: %v", projectName, availableOptions)
 			os.Exit(1)
 		}
 

@@ -1898,17 +1898,28 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 	}
 
 	slog.Debug("Looking for project in config",
-		"projectName", projectName,
+		"projectNameOrAlias", projectName,
 		"issueNumber", issueNumber,
 	)
 
-	project := config.GetProject(projectName)
+	project := config.GetProjectByNameOrAlias(projectName)
 	if project == nil {
+		// Build helpful error message with available projects and aliases
+		var availableOptions []string
+		for _, p := range config.Projects {
+			if p.Alias != "" && p.Alias != p.Name {
+				availableOptions = append(availableOptions, fmt.Sprintf("%s (alias: %s)", p.Name, p.Alias))
+			} else {
+				availableOptions = append(availableOptions, p.Name)
+			}
+		}
+		
 		slog.Error("Project not found in digger.yml",
-			"projectName", projectName,
+			"projectNameOrAlias", projectName,
 			"issueNumber", issueNumber,
+			"availableOptions", availableOptions,
 		)
-		commentReporterManager.UpdateComment(fmt.Sprintf("could not find project %v in digger.yml", projectName))
+		commentReporterManager.UpdateComment(fmt.Sprintf("could not find project %v in digger.yml. Available projects: %v", projectName, availableOptions))
 		return fmt.Errorf("could not find project %v in digger.yml", projectName)
 	}
 
