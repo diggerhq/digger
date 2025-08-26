@@ -88,7 +88,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			}
 
 			if !allowedToPerformCommand {
-				msg := reportPolicyError(job.ProjectName, command, job.RequestedBy, reporter)
+				msg := reportPolicyError(job.GetProjectAlias(), command, job.RequestedBy, reporter)
 				slog.Warn("Skipping command ... %v for project %v", command, job.ProjectName)
 				slog.Warn("Received policy error", "message", msg)
 				appliesPerProject[job.ProjectName] = false
@@ -191,11 +191,11 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		return nil, "error checking policy", fmt.Errorf("error checking policy: %v", err)
 	}
 
-	if !allowedToPerformCommand {
-		msg := reportPolicyError(job.ProjectName, command, requestedBy, reporter)
-		slog.Error(msg)
-		return nil, msg, errors.New(msg)
-	}
+			if !allowedToPerformCommand {
+			msg := reportPolicyError(job.GetProjectAlias(), command, requestedBy, reporter)
+			slog.Error(msg)
+			return nil, msg, errors.New(msg)
+		}
 
 	err = job.PopulateAwsCredentialsEnvVarsForJob()
 	if err != nil {
@@ -326,7 +326,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 					reportPlanSummary(reporter, planSummary)
 
-					if err := reporting.FormatAndReportExampleCommands(job.ProjectName, reporter); err != nil {
+					if err := reporting.FormatAndReportExampleCommands(job.GetProjectAlias(), reporter); err != nil {
 						slog.Error("Failed to report example commands.", "error", err)
 					}
 				}
@@ -410,7 +410,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				return nil, msg, fmt.Errorf("%s", msg)
 			}
 			if !allowedToApply {
-				msg := reportPolicyError(job.ProjectName, command, requestedBy, reporter)
+				msg := reportPolicyError(job.GetProjectAlias(), command, requestedBy, reporter)
 				slog.Error(msg)
 				return nil, msg, errors.New(msg)
 			}
