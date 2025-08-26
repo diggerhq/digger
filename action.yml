@@ -223,10 +223,7 @@ inputs:
     description: "AWS region for S3 cache bucket"
     required: false
     default: 'us-east-1'
-  cache-dependencies-s3-max-versions:
-    description: "Maximum number of S3 cache versions to keep per platform (older versions will be deleted)"
-    required: false
-    default: '3'
+
 
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
