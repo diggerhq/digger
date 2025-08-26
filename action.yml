@@ -387,13 +387,13 @@ runs:
         echo "Looking for existing cache with hash: $CACHE_HASH"
         
         # Look for any directory that ends with this hash
-        EXISTING_CACHE=$(aws s3 ls "s3://$BUCKET/artifacts/" | grep "$CACHE_HASH" | head -1 | awk '{print $2}' | sed 's|/||')
+        EXISTING_CACHE=$(aws s3 ls "s3://$BUCKET/artifacts/" --region "${{ inputs.cache-dependencies-s3-region }}" 2>/dev/null | grep "$CACHE_HASH" | head -1 | awk '{print $2}' | sed 's|/||') || EXISTING_CACHE=""
         
         if [ ! -z "$EXISTING_CACHE" ]; then
           echo "Found existing cache: $EXISTING_CACHE"
           S3_CACHE_PATH="s3://$BUCKET/artifacts/$EXISTING_CACHE"
           
-          if aws s3 sync "$S3_CACHE_PATH" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet; then
+          if aws s3 sync "$S3_CACHE_PATH" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet 2>/dev/null; then
             echo "Cache restored successfully from: $EXISTING_CACHE"
             # Store the existing cache name for potential reuse
             echo "S3_CACHE_DIR=$EXISTING_CACHE" >> $GITHUB_ENV
@@ -402,6 +402,8 @@ runs:
           fi
         else
           echo "No existing cache found for hash: $CACHE_HASH"
+          echo "Available caches:"
+          aws s3 ls "s3://$BUCKET/artifacts/" --region "${{ inputs.cache-dependencies-s3-region }}" 2>/dev/null || echo "No caches available or error listing"
         fi
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
 
