@@ -707,60 +707,68 @@ runs:
           MAX_VERSIONS=3
         fi
         
-        PLATFORM="${{ runner.os }}-${{ runner.arch }}"
         # Remove s3:// prefix if present
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
-        echo "Looking for caches matching platform: $PLATFORM"
-        echo "Will keep newest $MAX_VERSIONS versions"
+        echo "Looking for cache directories..."
         
-        # Get unique cache versions by looking at the platform-specific directories
-        CACHE_VERSIONS=$(aws s3api list-objects-v2 \
+        # Get all cache directories with their last modified times
+        CACHE_INFO=$(aws s3api list-objects-v2 \
           --bucket "$BUCKET" \
-          --prefix "artifacts/tf-" \
+          --prefix "artifacts/" \
+          --delimiter "/" \
           --region "$REGION" \
-          --query "Contents[?contains(Key, '${PLATFORM}')].Key" \
-          --output text | cut -d'/' -f2 | sort -u)
+          --query "CommonPrefixes[*].Prefix" \
+          --output text | while read -r prefix; do
+            # Get last modified time for each directory
+            LAST_MODIFIED=$(aws s3api list-objects-v2 \
+              --bucket "$BUCKET" \
+              --prefix "$prefix" \
+              --region "$REGION" \
+              --query "max_by(Contents, &LastModified).LastModified" \
+              --output text)
+            echo "$LAST_MODIFIED $prefix"
+          done | sort -r) # Sort by date, newest first
         
-        if [ -z "$CACHE_VERSIONS" ]; then
-          echo "No cache versions found for platform $PLATFORM"
-          echo "Current S3 contents:"
-          aws s3 ls "s3://$BUCKET/artifacts/" --recursive
+        if [ -z "$CACHE_INFO" ]; then
+          echo "No cache directories found"
           exit 0
         fi
         
-        # Count total versions
-        TOTAL_VERSIONS=$(echo "$CACHE_VERSIONS" | wc -l)
-        echo "Found $TOTAL_VERSIONS unique cache versions:"
-        echo "$CACHE_VERSIONS"
+        # Count total directories
+        TOTAL_DIRS=$(echo "$CACHE_INFO" | wc -l)
         
-        if [ "$TOTAL_VERSIONS" -gt "$MAX_VERSIONS" ]; then
-          # Calculate how many versions to delete
-          VERSIONS_TO_DELETE_COUNT=$((TOTAL_VERSIONS - MAX_VERSIONS))
+        echo "Found $TOTAL_DIRS cache directories (sorted by last modified):"
+        echo "$CACHE_INFO" | while read -r line; do
+          echo "  $line"
+        done
+        
+        if [ "$TOTAL_DIRS" -gt "$MAX_VERSIONS" ]; then
+          # Calculate how many to delete
+          DIRS_TO_DELETE_COUNT=$((TOTAL_DIRS - MAX_VERSIONS))
           
-          # Get oldest versions to delete
-          VERSIONS_TO_DELETE=$(echo "$CACHE_VERSIONS" | head -n "$VERSIONS_TO_DELETE_COUNT")
+          echo "Keeping newest $MAX_VERSIONS caches, will delete $DIRS_TO_DELETE_COUNT oldest"
           
-          echo "Will delete $VERSIONS_TO_DELETE_COUNT old cache versions:"
-          echo "$VERSIONS_TO_DELETE"
+          # Get the oldest directories to delete (skip the first MAX_VERSIONS lines)
+          DIRS_TO_DELETE=$(echo "$CACHE_INFO" | tail -n "$DIRS_TO_DELETE_COUNT" | awk '{print $2}')
           
-          # Delete each old version (this will remove all files for that version)
-          echo "$VERSIONS_TO_DELETE" | while read -r version; do
-            if [ ! -z "$version" ]; then
-              echo "Deleting cache version: $version"
-              aws s3 rm "s3://$BUCKET/artifacts/$version" --recursive --region "$REGION" --quiet
+          # Delete old cache directories
+          echo "$DIRS_TO_DELETE" | while read -r dir; do
+            if [ ! -z "$dir" ]; then
+              echo "Deleting cache directory: $dir (older version)"
+              aws s3 rm "s3://$BUCKET/$dir" --recursive --region "$REGION" --quiet
             fi
           done
           
-          echo "Cleanup completed - deleted $VERSIONS_TO_DELETE_COUNT old cache versions"
+          echo "Cleanup completed - deleted $DIRS_TO_DELETE_COUNT old cache versions"
         else
-          echo "Only $TOTAL_VERSIONS versions found, no cleanup needed (keeping up to $MAX_VERSIONS)"
+          echo "Only $TOTAL_DIRS caches found (keeping up to $MAX_VERSIONS) - no cleanup needed"
         fi
         
         echo "=== Final cache state ==="
-        echo "Remaining cache versions:"
-        aws s3 ls "s3://$BUCKET/artifacts/" | grep "$PLATFORM" || echo "No caches found for $PLATFORM"
+        echo "Remaining caches (newest first):"
+        aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
