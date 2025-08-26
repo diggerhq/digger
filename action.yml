@@ -699,16 +699,18 @@ runs:
         echo "Looking for caches matching platform: $PLATFORM"
         echo "Will keep newest $MAX_VERSIONS versions"
         
-        # Get all cache directories for this platform with their last modified dates
+        # Modified query to not require trailing slash and look in artifacts directory
         CACHE_INFO=$(aws s3api list-objects-v2 \
           --bucket "$BUCKET" \
           --prefix "artifacts/" \
           --region "$REGION" \
-          --query "Contents[?contains(Key, '$PLATFORM') && ends_with(Key, '/')].{Key:Key,LastModified:LastModified}" \
+          --query "Contents[?contains(Key, '${PLATFORM}')].{Key:Key,LastModified:LastModified}" \
           --output text | sort -k2 -r)
         
         if [ -z "$CACHE_INFO" ]; then
           echo "No cache directories found for platform $PLATFORM"
+          echo "Current S3 contents:"
+          aws s3 ls "s3://$BUCKET/artifacts/" --recursive
           exit 0
         fi
         
@@ -734,10 +736,8 @@ runs:
           # Delete old cache directories
           echo "$DIRS_TO_DELETE" | while read -r dir; do
             if [ ! -z "$dir" ]; then
-              echo "Deleting cache directory: $dir"
-              # Remove the trailing slash and delete recursively
-              CLEAN_DIR=$(echo "$dir" | sed 's|/$||')
-              aws s3 rm "s3://$BUCKET/$CLEAN_DIR" --recursive --region "$REGION" --quiet
+              echo "Deleting cache: $dir"
+              aws s3 rm "s3://$BUCKET/$dir" --region "$REGION" --quiet
             fi
           done
           
@@ -747,7 +747,7 @@ runs:
         fi
         
         echo "=== Final cache state ==="
-        aws s3 ls "$BUCKET/artifacts/" --region "$REGION" --recursive --human-readable | grep "$PLATFORM" || echo "No caches found for $PLATFORM"
+        aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" --recursive | grep "$PLATFORM" || echo "No caches found for $PLATFORM"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
