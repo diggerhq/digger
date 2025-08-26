@@ -44,8 +44,14 @@ func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, pr
 			workflowUrl = *job.WorkflowRunUrl
 		}
 
+		// Get display name with alias fallback
+		projectDisplayName := job.ProjectName
+		if job.ProjectAlias != "" {
+			projectDisplayName = job.ProjectAlias
+		}
+
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v %v\n", job.Status.ToEmoji(), jobSpec.ProjectName, workflowUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan), DriftSummaryString(job.ProjectName, issuesMap))
+		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v %v\n", job.Status.ToEmoji(), projectDisplayName, workflowUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan), DriftSummaryString(job.ProjectName, issuesMap))
 		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
 	}
 

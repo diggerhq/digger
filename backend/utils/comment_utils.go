@@ -140,11 +140,16 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 
 		// Get project name from job spec
 		var jobSpec orchestrator_scheduler.JobJson
-		projectName := "Unknown"
+		projectDisplayName := "Unknown"
 		if job.SerializedJobSpec != nil {
 			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
 			if err == nil {
-				projectName = jobSpec.ProjectName
+				// Use alias if available, fallback to project name
+				if jobSpec.ProjectAlias != "" {
+					projectDisplayName = jobSpec.ProjectAlias
+				} else {
+					projectDisplayName = jobSpec.ProjectName
+				}
 			} else {
 				slog.Warn("Failed to unmarshal job spec for project name", 
 					"jobId", job.DiggerJobID, 
@@ -167,7 +172,7 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
-			projectName,
+			projectDisplayName,
 			workflowUrl,
 			job.Status.ToString(),
 			prCommentUrl,
