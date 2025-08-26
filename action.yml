@@ -223,6 +223,10 @@ inputs:
     description: "AWS region for S3 cache bucket"
     required: false
     default: 'us-east-1'
+  cache-dependencies-s3-max-versions:
+    description: "Maximum number of S3 cache versions to keep per platform (older versions will be deleted)"
+    required: false
+    default: '3'
 
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
@@ -328,20 +332,66 @@ runs:
           digger-cache
       if: ${{ inputs.cache-dependencies == 'true' }}
 
-    # After cache directory setup, before terraform operations
+    - name: generate-cache-version
+      shell: bash
+      run: |
+        # For artifact caches, use tool versions + platform as the key
+        CACHE_COMPONENTS=""
+        
+        # Include active tool versions
+        if [[ "${{ inputs.setup-terraform }}" == "true" ]]; then
+          CACHE_COMPONENTS="${CACHE_COMPONENTS}tf-${{ inputs.terraform-version }}"
+        fi
+        if [[ "${{ inputs.setup-terragrunt }}" == "true" ]]; then
+          CACHE_COMPONENTS="${CACHE_COMPONENTS}-tg-${{ inputs.terragrunt-version }}"
+        fi
+        if [[ "${{ inputs.setup-opentofu }}" == "true" ]]; then
+          CACHE_COMPONENTS="${CACHE_COMPONENTS}-tofu-${{ inputs.opentofu-version }}"
+        fi
+        
+        # Platform is crucial for artifacts
+        PLATFORM="${{ runner.os }}-${{ runner.arch }}"
+        
+        # Use descriptive cache path instead of hash for artifacts
+        CACHE_VERSION="${CACHE_COMPONENTS}-${PLATFORM}"
+        # Remove leading dash if present
+        CACHE_VERSION=$(echo "$CACHE_VERSION" | sed 's/^-//')
+        
+        echo "S3_CACHE_VERSION=$CACHE_VERSION" >> $GITHUB_ENV
+        echo "Generated artifact cache version: $CACHE_VERSION"
+
     - name: restore-s3-cache
       shell: bash
       run: |
+        S3_CACHE_PATH="${{ inputs.cache-dependencies-s3-bucket }}/artifacts/${{ env.S3_CACHE_VERSION }}"
+        
         if [ ! -d "$TF_PLUGIN_CACHE_DIR" ]; then
           echo "Creating cache directory: $TF_PLUGIN_CACHE_DIR"
           mkdir -p "$TF_PLUGIN_CACHE_DIR"
         fi
-        echo "Downloading cache from S3..."
-        if ! aws s3 sync "${inputs.cache-dependencies-s3-bucket}" "$TF_PLUGIN_CACHE_DIR" --region "${inputs.cache-dependencies-s3-region}" --quiet; then
-          echo "Warning: failed to restore from S3 Error Code $?"
-          echo "This could be due to missing permissions or network issues" 
+        
+        echo "Restoring artifacts from S3 (version: ${{ env.S3_CACHE_VERSION }})..."
+        if ! aws s3 sync "$S3_CACHE_PATH" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet; then
+          echo "No cached artifacts found for ${{ env.S3_CACHE_VERSION }}"
+          
+          # Try platform-compatible fallbacks
+          echo "Looking for compatible cached artifacts..."
+          PLATFORM_PREFIX="${{ runner.os }}-${{ runner.arch }}"
+          
+          # List available caches and try to find a compatible one
+          COMPATIBLE_CACHE=$(aws s3 ls "${{ inputs.cache-dependencies-s3-bucket }}/artifacts/" --region "${{ inputs.cache-dependencies-s3-region }}" | grep "PRE.*${PLATFORM_PREFIX}" | tail -1 | awk '{print $2}' | sed 's|/||')
+          
+          if [ ! -z "$COMPATIBLE_CACHE" ]; then
+            echo "Found compatible cache: $COMPATIBLE_CACHE"
+            aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}/artifacts/$COMPATIBLE_CACHE" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet || true
+          else
+            echo "No compatible cached artifacts found - will download fresh"
+          fi
         else
-          echo "S3 cache restore completed"
+          echo "Artifact cache restored successfully"
+          # Show what was restored
+          echo "Cached artifacts:"
+          find "$TF_PLUGIN_CACHE_DIR" -type f | head -10
         fi
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
 
@@ -610,14 +660,93 @@ runs:
     - name: save-s3-cache
       shell: bash
       run: |
-        echo "Uploading cache to S3..."
+        S3_CACHE_PATH="${{ inputs.cache-dependencies-s3-bucket }}/artifacts/${{ env.S3_CACHE_VERSION }}"
+        
+        echo "Saving artifacts to S3 (version: ${{ env.S3_CACHE_VERSION }})..."
         if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
-          echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l) files to cache"
-          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "${{ inputs.cache-dependencies-s3-bucket }}" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet
-          echo "S3 cache save completed"
+          ARTIFACT_COUNT=$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)
+          CACHE_SIZE=$(du -sh "$TF_PLUGIN_CACHE_DIR" | cut -f1)
+          
+          echo "Caching $ARTIFACT_COUNT artifacts ($CACHE_SIZE total)"
+          
+          # Only upload if we have new artifacts (avoid unnecessary uploads)
+          aws s3 sync "$TF_PLUGIN_CACHE_DIR" "$S3_CACHE_PATH" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet --size-only
+          
+          echo "Artifact cache saved successfully"
+          echo "Cache location: $S3_CACHE_PATH"
         else
-          echo "No files to cache - skipping S3 sync"
+          echo "No artifacts to cache"
         fi
+      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
+
+    - name: cleanup-old-artifact-caches
+      shell: bash
+      run: |
+        MAX_VERSIONS=${{ inputs.cache-dependencies-s3-max-versions }}
+        echo "=== Cleaning up old artifact caches (keeping last $MAX_VERSIONS versions per platform) ==="
+        
+        # Validate MAX_VERSIONS is a positive integer
+        if ! [[ "$MAX_VERSIONS" =~ ^[1-9][0-9]*$ ]]; then
+          echo "Warning: Invalid max-versions value '$MAX_VERSIONS', using default of 3"
+          MAX_VERSIONS=3
+        fi
+        
+        PLATFORM="${{ runner.os }}-${{ runner.arch }}"
+        BUCKET="${{ inputs.cache-dependencies-s3-bucket }}"
+        REGION="${{ inputs.cache-dependencies-s3-region }}"
+        
+        echo "Looking for caches matching platform: $PLATFORM"
+        echo "Will keep newest $MAX_VERSIONS versions"
+        
+        # Get all cache directories for this platform with their last modified dates
+        CACHE_INFO=$(aws s3api list-objects-v2 \
+          --bucket "$BUCKET" \
+          --prefix "artifacts/" \
+          --region "$REGION" \
+          --query "Contents[?contains(Key, '$PLATFORM') && ends_with(Key, '/')].{Key:Key,LastModified:LastModified}" \
+          --output text | sort -k2 -r)
+        
+        if [ -z "$CACHE_INFO" ]; then
+          echo "No cache directories found for platform $PLATFORM"
+          exit 0
+        fi
+        
+        echo "Found cache directories (newest first):"
+        echo "$CACHE_INFO" | while read key date time; do
+          echo "  $key (modified: $date $time)"
+        done
+        
+        # Count total directories
+        TOTAL_DIRS=$(echo "$CACHE_INFO" | wc -l)
+        echo "Total cache directories: $TOTAL_DIRS"
+        
+        if [ "$TOTAL_DIRS" -gt "$MAX_VERSIONS" ]; then
+          # Calculate how many to delete
+          DIRS_TO_DELETE_COUNT=$((TOTAL_DIRS - MAX_VERSIONS))
+          
+          # Get directories to delete (oldest ones)
+          DIRS_TO_DELETE=$(echo "$CACHE_INFO" | tail -n "$DIRS_TO_DELETE_COUNT" | awk '{print $1}')
+          
+          echo "Will delete $DIRS_TO_DELETE_COUNT old cache directories:"
+          echo "$DIRS_TO_DELETE"
+          
+          # Delete old cache directories
+          echo "$DIRS_TO_DELETE" | while read -r dir; do
+            if [ ! -z "$dir" ]; then
+              echo "Deleting cache directory: $dir"
+              # Remove the trailing slash and delete recursively
+              CLEAN_DIR=$(echo "$dir" | sed 's|/$||')
+              aws s3 rm "s3://$BUCKET/$CLEAN_DIR" --recursive --region "$REGION" --quiet
+            fi
+          done
+          
+          echo "Cleanup completed - deleted $DIRS_TO_DELETE_COUNT old cache versions"
+        else
+          echo "Only $TOTAL_DIRS cache directories found, no cleanup needed (keeping up to $MAX_VERSIONS)"
+        fi
+        
+        echo "=== Final cache state ==="
+        aws s3 ls "$BUCKET/artifacts/" --region "$REGION" --recursive --human-readable | grep "$PLATFORM" || echo "No caches found for $PLATFORM"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
