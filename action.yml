@@ -701,7 +701,20 @@ runs:
           exit 0
         fi
         
-        echo "No existing cache found, creating new cache..."
+        # Double-check: Look for any existing cache with the same hash before creating new one
+        echo "Double-checking for existing cache with hash: $CACHE_HASH"
+        
+        if aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" >/dev/null 2>&1; then
+          EXISTING_HASH_CACHE=$(aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" 2>/dev/null | awk '{print $2}' | sed 's|/||' | grep "$CACHE_HASH" | head -1 || echo "")
+          
+          if [ ! -z "$EXISTING_HASH_CACHE" ]; then
+            echo "Found existing cache with same hash: $EXISTING_HASH_CACHE"
+            echo "Skipping cache save to avoid duplicate"
+            exit 0
+          fi
+        fi
+        
+        echo "No existing cache found with hash $CACHE_HASH, creating new cache..."
         
         # Check if we have files to cache
         if [ ! -d "$TF_PLUGIN_CACHE_DIR" ] || [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f 2>/dev/null | wc -l)" -eq 0 ]; then
