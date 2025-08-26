@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
@@ -12,6 +11,7 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"encoding/json"
 )
 
 // UpdatePRCommentRealtime updates the GitHub PR comment with current job statuses
@@ -40,14 +40,14 @@ func UpdatePRCommentRealtime(gh GithubClientProvider, batch *models.DiggerBatch)
 	// Requery database immediately before generating comment to get latest job statuses and batch data
 	// This minimizes race conditions where job statuses or batch data might change between queries
 	slog.Debug("Requerying jobs and batch for latest status before comment generation", "batchId", batch.ID)
-	
+
 	// Get fresh batch data
 	freshBatch, err := models.DB.GetDiggerBatch(&batch.ID)
 	if err != nil {
 		slog.Error("Error requerying batch", "batchId", batch.ID, "error", err)
 		return fmt.Errorf("error requerying batch: %v", err)
 	}
-	
+
 	// Get fresh job data
 	freshJobs, err := models.DB.GetDiggerJobsForBatch(batch.ID)
 	if err != nil {
@@ -92,14 +92,14 @@ func UpdatePRCommentRealtime(gh GithubClientProvider, batch *models.DiggerBatch)
 func UpdatePRComment(gh GithubClientProvider, jobId string, job *models.DiggerJob, status string) {
 	defer func() {
 		if r := recover(); r != nil {
-			slog.Error("Recovered from panic in UpdatePRComment goroutine", 
-				"jobId", jobId, 
-				"status", status, 
+			slog.Error("Recovered from panic in UpdatePRComment goroutine",
+				"jobId", jobId,
+				"status", status,
 				"error", r,
 				"stack", string(debug.Stack()),
 			)
 		}
-	}() 	
+	}()
 
 	err := UpdatePRCommentRealtime(gh, job.Batch)
 	if err != nil {
@@ -138,34 +138,73 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			workflowUrl = *job.WorkflowRunUrl
 		}
 
-		// Convert to SerializedJob to get proper alias handling
-		serializedJob, err := job.MapToJsonStruct()
-		if err != nil {
-			slog.Warn("Failed to convert job to serialized struct", 
-				"jobId", job.DiggerJobID, 
-				"error", err)
-			continue // Skip this job if we can't convert it
-		}
+		// Try to get project alias with proper error handling and fallbacks
+		projectAlias := "Unknown" // Final fallback
 
-		// Use the existing alias function
-		projectAlias := orchestrator_scheduler.GetProjectAlias(serializedJob)
+		//  Try using MapToJsonStruct for proper alias handling
+		serializedJob, err := job.MapToJsonStruct()
+		if err == nil {
+			// Success - use the scheduler function for alias
+			projectAlias = orchestrator_scheduler.GetProjectAlias(serializedJob)
+			slog.Debug("Successfully got project alias from serialized job",
+				"jobId", job.DiggerJobID,
+				"projectName", serializedJob.ProjectName,
+				"projectAlias", projectAlias)
+		} else {
+			//  Fallback to manual unmarshaling (original approach)
+			slog.Warn("Failed to convert job to serialized struct, falling back to manual unmarshaling",
+				"jobId", job.DiggerJobID,
+				"error", err)
+
+			if job.SerializedJobSpec != nil {
+				var jobSpec orchestrator_scheduler.JobJson
+				unmarshalErr := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
+				if unmarshalErr == nil {
+					// Try to get alias from job spec, fallback to project name
+					if jobSpec.ProjectAlias != "" {
+						projectAlias = jobSpec.ProjectAlias
+					} else if jobSpec.ProjectName != "" {
+						projectAlias = jobSpec.ProjectName
+					}
+					slog.Debug("Got project info from manual unmarshaling",
+						"jobId", job.DiggerJobID,
+						"projectName", jobSpec.ProjectName,
+						"projectAlias", projectAlias)
+				} else {
+					if job.ProjectName != "" {
+						projectAlias = job.ProjectName
+						slog.Debug("Using job.ProjectName as final fallback",
+							"jobId", job.DiggerJobID,
+							"projectName", job.ProjectName)
+					} else {
+						slog.Warn("Failed to get any project information, using 'Unknown'",
+							"jobId", job.DiggerJobID,
+							"marshalError", err,
+							"unmarshalError", unmarshalErr)
+					}
+				}
+			} else {
+				slog.Warn("SerializedJobSpec is nil, cannot determine project name",
+					"jobId", job.DiggerJobID)
+			}
+		}
 
 		// Default resource counts to 0 if DiggerJobSummary is nil
 		resourcesCreated := uint(0)
 		resourcesUpdated := uint(0)
 		resourcesDeleted := uint(0)
-		
+
 		// Only access DiggerJobSummary fields if it's not nil
 		if job.DiggerJobSummary.ID != 0 {
 			resourcesCreated = job.DiggerJobSummary.ResourcesCreated
 			resourcesUpdated = job.DiggerJobSummary.ResourcesUpdated
 			resourcesDeleted = job.DiggerJobSummary.ResourcesDeleted
 		}
-		
+
 		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
-			projectAlias, 
+			projectAlias,
 			workflowUrl,
 			job.Status.ToString(),
 			prCommentUrl,
