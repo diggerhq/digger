@@ -331,12 +331,20 @@ runs:
 
     - name: restore-s3-cache
       shell: bash
+      if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
       run: |
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
-        chmod +x "${{ github.action_path }}/scripts/s3-cache-download.bash"
-        "${{ github.action_path }}/scripts/s3-cache-download.bash" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
+        SCRIPT_PATH="${{ github.action_path }}/scripts/s3-cache-download.bash"
+        if [ ! -f "$SCRIPT_PATH" ]; then
+          echo "::error::S3 cache download script not found at $SCRIPT_PATH"
+          echo "Please make sure the script exists and is properly installed."
+          exit 1
+        fi
+        
+        chmod +x "$SCRIPT_PATH"
+        "$SCRIPT_PATH" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
 
     # Then terraform setup happens...
@@ -602,13 +610,21 @@ runs:
 
     - name: save-s3-cache
       shell: bash
+      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
       run: |
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
-        chmod +x "${{ github.action_path }}/scripts/s3-cache-upload.bash"
-        "${{ github.action_path }}/scripts/s3-cache-upload.bash" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
-      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
+        SCRIPT_PATH="${{ github.action_path }}/scripts/s3-cache-upload.bash"
+        if [ ! -f "$SCRIPT_PATH" ]; then
+          echo "::error::S3 cache upload script not found at $SCRIPT_PATH"
+          echo "Please make sure the script exists and is properly installed."
+          exit 1
+        fi
+        
+        chmod +x "$SCRIPT_PATH"
+        "$SCRIPT_PATH" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
+      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
 
 branding:
   icon: globe
