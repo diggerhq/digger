@@ -699,55 +699,52 @@ runs:
         echo "Looking for caches matching platform: $PLATFORM"
         echo "Will keep newest $MAX_VERSIONS versions"
         
-        # Modified query to not require trailing slash and look in artifacts directory
-        CACHE_INFO=$(aws s3api list-objects-v2 \
+        # Get unique cache versions by looking at the platform-specific directories
+        CACHE_VERSIONS=$(aws s3api list-objects-v2 \
           --bucket "$BUCKET" \
-          --prefix "artifacts/" \
+          --prefix "artifacts/tf-" \
           --region "$REGION" \
-          --query "Contents[?contains(Key, '${PLATFORM}')].{Key:Key,LastModified:LastModified}" \
-          --output text | sort -k2 -r)
+          --query "Contents[?contains(Key, '${PLATFORM}')].Key" \
+          --output text | cut -d'/' -f2 | sort -u)
         
-        if [ -z "$CACHE_INFO" ]; then
-          echo "No cache directories found for platform $PLATFORM"
+        if [ -z "$CACHE_VERSIONS" ]; then
+          echo "No cache versions found for platform $PLATFORM"
           echo "Current S3 contents:"
           aws s3 ls "s3://$BUCKET/artifacts/" --recursive
           exit 0
         fi
         
-        echo "Found cache directories (newest first):"
-        echo "$CACHE_INFO" | while read key date time; do
-          echo "  $key (modified: $date $time)"
-        done
+        # Count total versions
+        TOTAL_VERSIONS=$(echo "$CACHE_VERSIONS" | wc -l)
+        echo "Found $TOTAL_VERSIONS unique cache versions:"
+        echo "$CACHE_VERSIONS"
         
-        # Count total directories
-        TOTAL_DIRS=$(echo "$CACHE_INFO" | wc -l)
-        echo "Total cache directories: $TOTAL_DIRS"
-        
-        if [ "$TOTAL_DIRS" -gt "$MAX_VERSIONS" ]; then
-          # Calculate how many to delete
-          DIRS_TO_DELETE_COUNT=$((TOTAL_DIRS - MAX_VERSIONS))
+        if [ "$TOTAL_VERSIONS" -gt "$MAX_VERSIONS" ]; then
+          # Calculate how many versions to delete
+          VERSIONS_TO_DELETE_COUNT=$((TOTAL_VERSIONS - MAX_VERSIONS))
           
-          # Get directories to delete (oldest ones)
-          DIRS_TO_DELETE=$(echo "$CACHE_INFO" | tail -n "$DIRS_TO_DELETE_COUNT" | awk '{print $1}')
+          # Get oldest versions to delete
+          VERSIONS_TO_DELETE=$(echo "$CACHE_VERSIONS" | head -n "$VERSIONS_TO_DELETE_COUNT")
           
-          echo "Will delete $DIRS_TO_DELETE_COUNT old cache directories:"
-          echo "$DIRS_TO_DELETE"
+          echo "Will delete $VERSIONS_TO_DELETE_COUNT old cache versions:"
+          echo "$VERSIONS_TO_DELETE"
           
-          # Delete old cache directories
-          echo "$DIRS_TO_DELETE" | while read -r dir; do
-            if [ ! -z "$dir" ]; then
-              echo "Deleting cache: $dir"
-              aws s3 rm "s3://$BUCKET/$dir" --region "$REGION" --quiet
+          # Delete each old version (this will remove all files for that version)
+          echo "$VERSIONS_TO_DELETE" | while read -r version; do
+            if [ ! -z "$version" ]; then
+              echo "Deleting cache version: $version"
+              aws s3 rm "s3://$BUCKET/artifacts/$version" --recursive --region "$REGION" --quiet
             fi
           done
           
-          echo "Cleanup completed - deleted $DIRS_TO_DELETE_COUNT old cache versions"
+          echo "Cleanup completed - deleted $VERSIONS_TO_DELETE_COUNT old cache versions"
         else
-          echo "Only $TOTAL_DIRS cache directories found, no cleanup needed (keeping up to $MAX_VERSIONS)"
+          echo "Only $TOTAL_VERSIONS versions found, no cleanup needed (keeping up to $MAX_VERSIONS)"
         fi
         
         echo "=== Final cache state ==="
-        aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" --recursive | grep "$PLATFORM" || echo "No caches found for $PLATFORM"
+        echo "Remaining cache versions:"
+        aws s3 ls "s3://$BUCKET/artifacts/" | grep "$PLATFORM" || echo "No caches found for $PLATFORM"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
