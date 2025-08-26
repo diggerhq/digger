@@ -12,8 +12,8 @@ import (
 type AdvancedCommentUpdater struct {
 }
 
-func DriftSummaryString(projectName string, issuesMap *map[string]*ci.Issue) string {
-	driftStatusForProject := (*issuesMap)[projectName]
+func DriftSummaryString(projectIdentifier string, issuesMap *map[string]*ci.Issue) string {
+	driftStatusForProject := (*issuesMap)[projectIdentifier]
 	if driftStatusForProject == nil {
 		return ""
 	}
@@ -44,9 +44,16 @@ func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, pr
 			workflowUrl = *job.WorkflowRunUrl
 		}
 
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v %v\n", job.Status.ToEmoji(), scheduler.GetProjectAlias(job), workflowUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan), DriftSummaryString(job.ProjectName, issuesMap))
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
+		projectAlias := scheduler.GetProjectAlias(job)
+		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", projectAlias)
+		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v %v\n",
+			job.Status.ToEmoji(),
+			projectAlias,
+			workflowUrl,
+			job.Status.ToString(),
+			job.ResourcesSummaryString(isPlan),
+			DriftSummaryString(projectAlias, issuesMap))
+		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", projectAlias)
 	}
 
 	prService.EditComment(prNumber, prCommentId, message)

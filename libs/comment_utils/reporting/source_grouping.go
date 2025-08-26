@@ -56,7 +56,8 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 		} else {
 			footprint = iac_utils.IacPlanFootprint{}
 		}
-		projectNameToFootPrintMap[job.ProjectName] = footprint
+		projectKey := scheduler.GetProjectAlias(job) // Use alias as key
+		projectNameToFootPrintMap[projectKey] = footprint
 	}
 
 	// TODO: make it generic based on iac type
@@ -93,8 +94,11 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 			continue
 		}
 		expanded := i == 0 || !allSimilarInGroup
-		commenter := GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", scheduler.GetProjectAlias(job)), expanded)
-		message = message + commenter(terraformOutputs[project]) + "\n"
+
+		// Use alias for both display and map lookup
+		projectAlias := scheduler.GetProjectAlias(job)
+		commenter := GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", projectAlias), expanded)
+		message = message + commenter(terraformOutputs[projectAlias]) + "\n" // Use same key
 	}
 
 	CommentId := sourceDetaiItem.CommentId

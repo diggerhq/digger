@@ -151,8 +151,8 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 				"projectName", serializedJob.ProjectName,
 				"projectAlias", projectAlias)
 		} else {
-			//  Fallback to manual unmarshaling (original approach)
-			slog.Warn("Failed to convert job to serialized struct, falling back to manual unmarshaling",
+			//Fallback - construct minimal SerializedJob manually
+			slog.Warn("Failed to convert job to serialized struct, falling back to manual construction",
 				"jobId", job.DiggerJobID,
 				"error", err)
 
@@ -160,13 +160,18 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 				var jobSpec orchestrator_scheduler.JobJson
 				unmarshalErr := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
 				if unmarshalErr == nil {
-					// Try to get alias from job spec, fallback to project name
-					if jobSpec.ProjectAlias != "" {
-						projectAlias = jobSpec.ProjectAlias
-					} else if jobSpec.ProjectName != "" {
-						projectAlias = jobSpec.ProjectName
+					// Use the same logic as orchestrator_scheduler.GetProjectAlias
+					projectAlias = orchestrator_scheduler.GetProjectAlias(orchestrator_scheduler.SerializedJob{
+						ProjectAlias: jobSpec.ProjectAlias,
+						ProjectName:  jobSpec.ProjectName,
+					})
+
+					// Add your empty string protection
+					if projectAlias == "" {
+						projectAlias = "Unknown"
 					}
-					slog.Debug("Got project info from manual unmarshaling",
+
+					slog.Debug("Got project alias using GetProjectAlias",
 						"jobId", job.DiggerJobID,
 						"projectName", jobSpec.ProjectName,
 						"projectAlias", projectAlias)
