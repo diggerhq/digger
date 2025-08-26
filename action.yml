@@ -337,9 +337,13 @@ runs:
           mkdir -p "$TF_PLUGIN_CACHE_DIR"
         fi
         echo "Downloading cache from S3..."
-        aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet || true
-        echo "S3 cache restore completed"
-      if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
+        if ! aws s3 sync "${inputs.cache-dependencies-s3-bucket}" "$TF_PLUGIN_CACHE_DIR" --region "${inputs.cache-dependencies-s3-region}" --quiet; then
+          echo "Warning: failed to restore from S3 Error Code $?"
+          echo "This could be due to missing permissions or network issues" 
+        else
+          echo "S3 cache restore completed"
+        fi
+      if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
 
     # Then terraform setup happens...
     - name: Setup Terraform
