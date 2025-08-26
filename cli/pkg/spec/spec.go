@@ -19,7 +19,7 @@ func reportError(spec spec.Spec, backendApi backend2.Api, message string, err er
 	slog.Error(message)
 	_, reportingError := backendApi.ReportProjectJobStatus(spec.VCS.RepoName, spec.Job.ProjectName, spec.JobId, "failed", time.Now(), nil, "", "", "", "", nil)
 	if reportingError != nil {
-		usage.ReportErrorAndExit(spec.VCS.RepoOwner, fmt.Sprintf("Failed to run commands. %v", err), 5)
+		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Failed to run commands. %v", err), 5)
 	}
 	usage.ReportErrorAndExit(spec.VCS.Actor, message, 1)
 }
@@ -99,7 +99,7 @@ func RunSpec(
 		reportError(spec, backendApi, message, err)
 	}
 
-	reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.ProjectName), spec.Reporter, prService, *spec.Job.PullRequestNumber, spec.VCS.VcsType)
+	reporter, err := reporterProvider.GetReporter(fmt.Sprintf("%v for %v", spec.Job.JobType, job.GetProjectAlias()), spec.Reporter, prService, *spec.Job.PullRequestNumber, spec.VCS.VcsType)
 	if err != nil {
 		message := fmt.Sprintf("could not get reporter: %v", err)
 		reportError(spec, backendApi, message, err)
