@@ -332,51 +332,9 @@ runs:
           digger-cache
       if: ${{ inputs.cache-dependencies == 'true' }}
 
-    - name: generate-cache-version
-      shell: bash
-      run: |
-        # Create a hash based on factors that affect cache validity
-        HASH_INPUT=""
-        
-        # Include terraform/terragrunt versions if being used
-        if [[ "${{ inputs.setup-terraform }}" == "true" ]]; then
-          HASH_INPUT="${HASH_INPUT}tf-${{ inputs.terraform-version }}"
-        fi
-        if [[ "${{ inputs.setup-terragrunt }}" == "true" ]]; then
-          HASH_INPUT="${HASH_INPUT}tg-${{ inputs.terragrunt-version }}"
-        fi
-        if [[ "${{ inputs.setup-opentofu }}" == "true" ]]; then
-          HASH_INPUT="${HASH_INPUT}tofu-${{ inputs.opentofu-version }}"
-        fi
-        
-        # Add provider versions from .terraform.lock.hcl if it exists
-        if [ -f ".terraform.lock.hcl" ]; then
-          echo "Including provider versions in cache key..."
-          PROVIDER_HASH=$(grep -A 1 "provider " .terraform.lock.hcl | grep "version" | sort | sha256sum | cut -c1-8)
-          HASH_INPUT="${HASH_INPUT}-p${PROVIDER_HASH}"
-        else
-          # Look for provider version constraints in .tf files
-          echo "Looking for provider version constraints in .tf files..."
-          PROVIDER_HASH=$(find . -name "*.tf" -exec grep -h "required_providers" -A 5 {} \; | grep "version" | sort | sha256sum | cut -c1-8)
-          if [ ! -z "$PROVIDER_HASH" ]; then
-            HASH_INPUT="${HASH_INPUT}-p${PROVIDER_HASH}"
-          fi
-        fi
-        
-        # Add OS and architecture for platform-specific caches
-        HASH_INPUT="${HASH_INPUT}-${{ runner.os }}-${{ runner.arch }}"
-        
-        # Create a short hash for cache identification
-        CONTENT_HASH=$(echo -n "$HASH_INPUT" | sha256sum | cut -c1-12)
-        
-        echo "S3_CACHE_HASH=$CONTENT_HASH" >> $GITHUB_ENV
-        echo "Generated cache hash: $CONTENT_HASH"
-        echo "Cache components: $HASH_INPUT"
-
     - name: restore-s3-cache
       shell: bash
       run: |
-        CACHE_HASH="${{ env.S3_CACHE_HASH }}"
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
@@ -385,43 +343,13 @@ runs:
           mkdir -p "$TF_PLUGIN_CACHE_DIR"
         fi
         
-        echo "Looking for existing cache with hash: $CACHE_HASH"
-        
-        # Check if bucket/prefix exists and we have access
-        if ! aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" >/dev/null 2>&1; then
-          echo "No existing caches found (bucket/prefix doesn't exist or no access)"
-          echo "Will create new cache after terraform operations"
-          exit 0
-        fi
-        
-        # Look for any directory that contains this hash (could be timestamped or just hash)
-        EXISTING_CACHE=""
-        
-        # Try to find directories ending with our hash
-        CACHE_CANDIDATES=$(aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" 2>/dev/null | awk '{print $2}' | sed 's|/||' | grep "$CACHE_HASH" || echo "")
-        
-        if [ ! -z "$CACHE_CANDIDATES" ]; then
-          # Take the first match (they should all have the same content anyway)
-          EXISTING_CACHE=$(echo "$CACHE_CANDIDATES" | head -1)
-          echo "Found existing cache: $EXISTING_CACHE"
-          
-          S3_CACHE_PATH="s3://$BUCKET/artifacts/$EXISTING_CACHE"
-          
-          echo "Restoring cache from: $S3_CACHE_PATH"
-          if aws s3 sync "$S3_CACHE_PATH" "$TF_PLUGIN_CACHE_DIR" --region "$REGION" --quiet 2>/dev/null; then
-            echo "Cache restored successfully from: $EXISTING_CACHE"
-            echo "Cached artifacts:"
-            find "$TF_PLUGIN_CACHE_DIR" -type f | head -5
-            # Mark that we found an existing cache
-            echo "S3_CACHE_FOUND=true" >> $GITHUB_ENV
-            echo "S3_EXISTING_CACHE_DIR=$EXISTING_CACHE" >> $GITHUB_ENV
-          else
-            echo "Warning: Failed to restore cache, will create new one"
-          fi
+        echo "Restoring cache from S3..."
+        if aws s3 sync "s3://$BUCKET" "$TF_PLUGIN_CACHE_DIR" --region "$REGION" --quiet 2>/dev/null; then
+          echo "Cache restored successfully"
+          echo "Cached artifacts:"
+          find "$TF_PLUGIN_CACHE_DIR" -type f | head -5
         else
-          echo "No existing cache found for hash: $CACHE_HASH"
-          echo "Available caches:"
-          aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" 2>/dev/null | head -10 || echo "No caches available"
+          echo "No existing cache found or failed to restore (this is normal for first run)"
         fi
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
 
@@ -686,147 +614,26 @@ runs:
         path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache-${{ hashFiles('**/cache') }}
 
-    # At the end, after digger execution
     - name: save-s3-cache
       shell: bash
       run: |
-        CACHE_HASH="${{ env.S3_CACHE_HASH }}"
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
-        # Skip if we already found and used an existing cache
-        if [ "${{ env.S3_CACHE_FOUND }}" == "true" ]; then
-          echo "Cache already exists and was restored: ${{ env.S3_EXISTING_CACHE_DIR }}"
-          echo "Skipping cache save to avoid duplicates"
-          exit 0
-        fi
-        
-        # Double-check: Look for any existing cache with the same hash before creating new one
-        echo "Double-checking for existing cache with hash: $CACHE_HASH"
-        
-        if aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" >/dev/null 2>&1; then
-          EXISTING_HASH_CACHE=$(aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" 2>/dev/null | awk '{print $2}' | sed 's|/||' | grep "$CACHE_HASH" | head -1 || echo "")
-          
-          if [ ! -z "$EXISTING_HASH_CACHE" ]; then
-            echo "Found existing cache with same hash: $EXISTING_HASH_CACHE"
-            echo "Skipping cache save to avoid duplicate"
-            exit 0
-          fi
-        fi
-        
-        echo "No existing cache found with hash $CACHE_HASH, creating new cache..."
-        
-        # Check if we have files to cache
         if [ ! -d "$TF_PLUGIN_CACHE_DIR" ] || [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f 2>/dev/null | wc -l)" -eq 0 ]; then
           echo "No files to cache - cache directory is empty or doesn't exist"
           exit 0
         fi
         
-        # Create new timestamped directory name
-        TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
-        CACHE_DIR="${TIMESTAMP}-${CACHE_HASH}"
-        S3_CACHE_PATH="s3://$BUCKET/artifacts/$CACHE_DIR"
-        
         ARTIFACT_COUNT=$(find "$TF_PLUGIN_CACHE_DIR" -type f 2>/dev/null | wc -l)
-        CACHE_SIZE=$(du -sh "$TF_PLUGIN_CACHE_DIR" 2>/dev/null | cut -f1 || echo "unknown")
+        echo "Saving cache to S3..."
+        echo "Caching $ARTIFACT_COUNT files"
         
-        echo "Saving new cache to: $CACHE_DIR"
-        echo "Caching $ARTIFACT_COUNT files ($CACHE_SIZE total)"
-        
-        if aws s3 sync "$TF_PLUGIN_CACHE_DIR" "$S3_CACHE_PATH" --region "$REGION" --quiet --size-only 2>/dev/null; then
-          echo "New cache saved successfully: $CACHE_DIR"
+        if aws s3 sync "$TF_PLUGIN_CACHE_DIR" "s3://$BUCKET" --region "$REGION" --quiet 2>/dev/null; then
+          echo "Cache saved successfully"
         else
           echo "Warning: Failed to save cache (this won't fail the build)"
         fi
-      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
-
-    - name: cleanup-old-artifact-caches
-      shell: bash
-      run: |
-        MAX_VERSIONS=${{ inputs.cache-dependencies-s3-max-versions }}
-        echo "=== Cleaning up old artifact caches (keeping last $MAX_VERSIONS) ==="
-        
-        BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
-        REGION="${{ inputs.cache-dependencies-s3-region }}"
-        
-        echo "Looking for cache directories in s3://$BUCKET/artifacts/"
-        
-        # Check if bucket/prefix exists
-        if ! aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" >/dev/null 2>&1; then
-          echo "No cache directories found (bucket/prefix doesn't exist or no access)"
-          exit 0
-        fi
-        
-        # Get all cache directories
-        ALL_DIRS=$(aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" 2>/dev/null | awk '{print $2}' | sed 's|/||' | grep -v '^$' | sort || echo "")
-        
-        if [ -z "$ALL_DIRS" ]; then
-          echo "No cache directories found"
-          exit 0
-        fi
-        
-        echo "Found cache directories:"
-        echo "$ALL_DIRS"
-        
-        # Separate timestamped and legacy directories
-        TIMESTAMPED_DIRS=$(echo "$ALL_DIRS" | grep '^[0-9]\{14\}-[a-fA-F0-9]\+$' | sort -r || echo "")
-        LEGACY_DIRS=$(echo "$ALL_DIRS" | grep -v '^[0-9]\{14\}-[a-fA-F0-9]\+$' | sort || echo "")
-        
-        # Count total directories
-        TOTAL_TIMESTAMPED=0
-        TOTAL_LEGACY=0
-        
-        if [ ! -z "$TIMESTAMPED_DIRS" ] && [ "$TIMESTAMPED_DIRS" != "" ]; then
-          TOTAL_TIMESTAMPED=$(echo "$TIMESTAMPED_DIRS" | wc -l)
-        fi
-        
-        if [ ! -z "$LEGACY_DIRS" ] && [ "$LEGACY_DIRS" != "" ]; then
-          TOTAL_LEGACY=$(echo "$LEGACY_DIRS" | wc -l)
-        fi
-        
-        TOTAL_DIRS=$((TOTAL_TIMESTAMPED + TOTAL_LEGACY))
-        
-        echo "Found $TOTAL_TIMESTAMPED timestamped directories and $TOTAL_LEGACY legacy directories"
-        echo "Total: $TOTAL_DIRS directories"
-        
-        if [ "$TOTAL_DIRS" -gt "$MAX_VERSIONS" ]; then
-          DIRS_TO_DELETE_COUNT=$((TOTAL_DIRS - MAX_VERSIONS))
-          echo "Need to delete $DIRS_TO_DELETE_COUNT directories (keeping newest $MAX_VERSIONS)"
-          
-          # Create combined sorted list (timestamped first, then legacy)
-          {
-            if [ ! -z "$TIMESTAMPED_DIRS" ] && [ "$TIMESTAMPED_DIRS" != "" ]; then
-              echo "$TIMESTAMPED_DIRS"
-            fi
-            if [ ! -z "$LEGACY_DIRS" ] && [ "$LEGACY_DIRS" != "" ]; then
-              echo "$LEGACY_DIRS"
-            fi
-          } > /tmp/all_sorted_dirs
-          
-          # Get directories to delete (oldest ones)
-          DIRS_TO_DELETE=$(tail -n "$DIRS_TO_DELETE_COUNT" /tmp/all_sorted_dirs)
-          
-          echo "Directories to delete (oldest $DIRS_TO_DELETE_COUNT):"
-          echo "$DIRS_TO_DELETE"
-          
-          # Delete old directories
-          echo "$DIRS_TO_DELETE" | while read -r dir; do
-            if [ ! -z "$dir" ]; then
-              echo "Deleting cache directory: $dir"
-              aws s3 rm "s3://$BUCKET/artifacts/$dir" --recursive --region "$REGION" --quiet 2>/dev/null || echo "Warning: Failed to delete $dir"
-            fi
-          done
-          
-          # Clean up temp file
-          rm -f /tmp/all_sorted_dirs
-          
-          echo "Cleanup completed - deleted $DIRS_TO_DELETE_COUNT old cache versions"
-        else
-          echo "Only $TOTAL_DIRS directories found (keeping up to $MAX_VERSIONS) - no cleanup needed"
-        fi
-        
-        echo "=== Final cache state ==="
-        aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" 2>/dev/null || echo "No caches remaining or error listing"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
