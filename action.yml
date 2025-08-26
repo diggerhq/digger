@@ -713,25 +713,60 @@ runs:
           --delimiter "/" \
           --region "$REGION" \
           --query "CommonPrefixes[*].Prefix" \
-          --output text) || CACHE_DIRS=""
+          --output text 2>/dev/null) || CACHE_DIRS=""
         
-        if [ -z "$CACHE_DIRS" ]; then
+        if [ -z "$CACHE_DIRS" ] || [ "$CACHE_DIRS" == "None" ]; then
           echo "No cache directories found"
           exit 0
         fi
         
+        echo "Found directories: $CACHE_DIRS"
+        
         # Filter and sort directories by timestamp in the name (newest first)
         # Format: artifacts/YYYYMMDDHHMMSS-hash/
-        SORTED_DIRS=$(echo "$CACHE_DIRS" | grep -o 'artifacts/[0-9]\{14\}-[a-f0-9]\+/' | sort -r) || SORTED_DIRS=""
+        SORTED_DIRS=$(echo "$CACHE_DIRS" | grep -o 'artifacts/[0-9]\{14\}-[a-f0-9]\+/' | sort -r 2>/dev/null) || SORTED_DIRS=""
         
         if [ -z "$SORTED_DIRS" ]; then
-          echo "No timestamped cache directories found, checking legacy directories..."
-          # For legacy directories without timestamps, list them all
-          echo "$CACHE_DIRS"
+          echo "No timestamped cache directories found, checking all directories..."
+          # Handle legacy directories (hash-only names)
+          ALL_DIRS=$(echo "$CACHE_DIRS" | tr '\t' '\n' | grep -v '^$' | sort)
+          
+          if [ -z "$ALL_DIRS" ]; then
+            echo "No cache directories to manage"
+            exit 0
+          fi
+          
+          echo "Found legacy directories:"
+          echo "$ALL_DIRS"
+          
+          # Count legacy directories
+          TOTAL_DIRS=$(echo "$ALL_DIRS" | wc -l)
+          echo "Found $TOTAL_DIRS legacy cache directories"
+          
+          if [ "$TOTAL_DIRS" -gt "$MAX_VERSIONS" ]; then
+            DIRS_TO_DELETE_COUNT=$((TOTAL_DIRS - MAX_VERSIONS))
+            echo "Will delete $DIRS_TO_DELETE_COUNT oldest legacy directories"
+            
+            # For legacy directories, we can't sort by timestamp, so just delete the first ones
+            DIRS_TO_DELETE=$(echo "$ALL_DIRS" | head -n "$DIRS_TO_DELETE_COUNT")
+            
+            echo "Legacy directories to delete:"
+            echo "$DIRS_TO_DELETE"
+            
+            echo "$DIRS_TO_DELETE" | while read -r dir; do
+              if [ ! -z "$dir" ]; then
+                echo "Deleting legacy cache directory: $dir"
+                aws s3 rm "s3://$BUCKET/$dir" --recursive --region "$REGION" --quiet || echo "Warning: Failed to delete $dir"
+              fi
+            done
+          else
+            echo "Only $TOTAL_DIRS legacy directories found, no cleanup needed"
+          fi
+          
           exit 0
         fi
         
-        # Count total directories
+        # Handle timestamped directories
         TOTAL_DIRS=$(echo "$SORTED_DIRS" | wc -l)
         echo "Found $TOTAL_DIRS timestamped cache directories"
         
@@ -751,7 +786,7 @@ runs:
           echo "$DIRS_TO_DELETE" | while read -r dir; do
             if [ ! -z "$dir" ]; then
               echo "Deleting cache directory: $dir (older version)"
-              aws s3 rm "s3://$BUCKET/$dir" --recursive --region "$REGION" --quiet
+              aws s3 rm "s3://$BUCKET/$dir" --recursive --region "$REGION" --quiet || echo "Warning: Failed to delete $dir"
             fi
           done
           
@@ -762,7 +797,7 @@ runs:
         
         echo "=== Final cache state ==="
         echo "Remaining caches:"
-        aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION"
+        aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" 2>/dev/null || echo "No caches remaining or error listing"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
