@@ -326,7 +326,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 					reportPlanSummary(reporter, planSummary)
 
-					if err := reporting.FormatAndReportExampleCommands(job.ProjectName, reporter); err != nil {
+					if err := reporting.FormatAndReportExampleCommands(job.ProjectName, job.GetProjectAlias(), reporter); err != nil {
 						slog.Error("Failed to report example commands.", "error", err)
 					}
 				}

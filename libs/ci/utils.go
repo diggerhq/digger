@@ -7,7 +7,7 @@ import (
 
 // TODO move func to lib-orchestrator library after gitlab and azure moves there
 func ParseProjectName(comment string) string {
-	re := regexp.MustCompile(`-p ([0-9a-zA-Z\-_]+)`)
+	re := regexp.MustCompile(`-p ([0-9a-zA-Z\-_/]+)`)
 	match := re.FindStringSubmatch(comment)
 	if len(match) > 1 {
 		return match[1]
