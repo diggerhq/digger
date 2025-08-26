@@ -698,6 +698,9 @@ runs:
     - name: cleanup-old-artifact-caches
       shell: bash
       run: |
+        # Enable bash debugging for troubleshooting
+        set -x
+        
         MAX_VERSIONS=${{ inputs.cache-dependencies-s3-max-versions }}
         echo "=== Cleaning up old artifact caches (keeping last $MAX_VERSIONS versions per platform) ==="
         
@@ -705,45 +708,76 @@ runs:
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
-        echo "Looking for cache directories..."
+        echo "Looking for cache directories in s3://$BUCKET/artifacts/ (region: $REGION)..."
         
-        # First, get a list of all immediate subdirectories in artifacts/
+        # Check if bucket exists and we have access
+        if ! aws s3api head-bucket --bucket "$BUCKET" --region "$REGION" 2>/dev/null; then
+          echo "Error: Cannot access bucket $BUCKET. Check permissions or if bucket exists."
+          exit 0  # Don't fail the build for cache issues
+        fi
+        
+        # First, list all objects to see what's there
+        echo "Listing all objects in bucket for debugging:"
+        aws s3 ls "s3://$BUCKET/artifacts/" --recursive --region "$REGION" || echo "No objects found or error listing objects"
+        
+        # Get a list of all immediate subdirectories in artifacts/
+        echo "Fetching cache directories..."
         CACHE_DIRS=$(aws s3api list-objects-v2 \
           --bucket "$BUCKET" \
           --prefix "artifacts/" \
           --delimiter "/" \
+          --region "$REGION" \
           --query "CommonPrefixes[*].Prefix" \
-          --output text)
+          --output text) || CACHE_DIRS=""
         
         if [ -z "$CACHE_DIRS" ]; then
           echo "No cache directories found"
           exit 0
         fi
         
+        echo "Found directories:"
+        echo "$CACHE_DIRS"
+        
         # Process each directory and get its last modified time
+        echo "Getting last modified times..."
         CACHE_INFO=""
         while read -r dir; do
           if [ ! -z "$dir" ]; then
+            echo "Processing directory: $dir"
             # Get the latest modified time of any object in this directory
             LAST_MODIFIED=$(aws s3api list-objects-v2 \
               --bucket "$BUCKET" \
               --prefix "$dir" \
+              --region "$REGION" \
               --query "Contents[0].LastModified" \
-              --output text)
+              --output text) || LAST_MODIFIED=""
+            
+            echo "Last modified time for $dir: $LAST_MODIFIED"
+            
             if [ "$LAST_MODIFIED" != "None" ] && [ ! -z "$LAST_MODIFIED" ]; then
               CACHE_INFO="${CACHE_INFO}${LAST_MODIFIED} ${dir}\n"
+            else
+              echo "Warning: Could not get last modified time for $dir"
             fi
           fi
         done <<< "$CACHE_DIRS"
         
+        echo "Cache info before sorting:"
+        echo -e "$CACHE_INFO"
+        
         # Sort by timestamp (newest first) and remove empty lines
-        SORTED_CACHES=$(echo -e "$CACHE_INFO" | grep -v '^$' | sort -r)
+        SORTED_CACHES=$(echo -e "$CACHE_INFO" | grep -v '^$' | sort -r) || SORTED_CACHES=""
+        
+        echo "Sorted caches:"
+        echo "$SORTED_CACHES"
         
         # Count total directories
-        TOTAL_DIRS=$(echo "$SORTED_CACHES" | grep -v '^$' | wc -l)
+        TOTAL_DIRS=0
+        if [ ! -z "$SORTED_CACHES" ]; then
+          TOTAL_DIRS=$(echo "$SORTED_CACHES" | grep -v '^$' | wc -l)
+        fi
         
-        echo "Found $TOTAL_DIRS cache directories (sorted by last modified):"
-        echo "$SORTED_CACHES"
+        echo "Found $TOTAL_DIRS cache directories (sorted by last modified)"
         
         if [ "$TOTAL_DIRS" -gt "$MAX_VERSIONS" ]; then
           # Calculate how many to delete
@@ -752,24 +786,34 @@ runs:
           echo "Keeping newest $MAX_VERSIONS caches, will delete $DIRS_TO_DELETE_COUNT oldest"
           
           # Get the oldest directories to delete (skip the first MAX_VERSIONS lines)
-          DIRS_TO_DELETE=$(echo "$SORTED_CACHES" | tail -n "$DIRS_TO_DELETE_COUNT" | awk '{print $2}')
+          DIRS_TO_DELETE=$(echo "$SORTED_CACHES" | tail -n "$DIRS_TO_DELETE_COUNT" | awk '{print $2}') || DIRS_TO_DELETE=""
           
-          # Delete old cache directories
-          echo "$DIRS_TO_DELETE" | while read -r dir; do
-            if [ ! -z "$dir" ]; then
-              echo "Deleting cache directory: $dir (older version)"
-              aws s3 rm "s3://$BUCKET/$dir" --recursive --region "$REGION" --quiet
-            fi
-          done
-          
-          echo "Cleanup completed - deleted $DIRS_TO_DELETE_COUNT old cache versions"
+          if [ -z "$DIRS_TO_DELETE" ]; then
+            echo "No directories to delete"
+          else
+            echo "Directories to delete:"
+            echo "$DIRS_TO_DELETE"
+            
+            # Delete old cache directories
+            echo "$DIRS_TO_DELETE" | while read -r dir; do
+              if [ ! -z "$dir" ]; then
+                echo "Deleting cache directory: $dir (older version)"
+                aws s3 rm "s3://$BUCKET/$dir" --recursive --region "$REGION" --quiet || echo "Warning: Error deleting $dir"
+              fi
+            done
+            
+            echo "Cleanup completed - deleted $DIRS_TO_DELETE_COUNT old cache versions"
+          fi
         else
           echo "Only $TOTAL_DIRS caches found (keeping up to $MAX_VERSIONS) - no cleanup needed"
         fi
         
         echo "=== Final cache state ==="
-        echo "Remaining caches (newest first):"
-        aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION"
+        echo "Remaining caches:"
+        aws s3 ls "s3://$BUCKET/artifacts/" --region "$REGION" || echo "Error listing final state"
+        
+        # Disable debug mode
+        set +x
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
