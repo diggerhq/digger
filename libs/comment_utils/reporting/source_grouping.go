@@ -95,10 +95,27 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 		}
 		expanded := i == 0 || !allSimilarInGroup
 
-		// Use alias for both display and map lookup
+		// Use alias for display but ensure we have the output
 		projectAlias := scheduler.GetProjectAlias(job)
 		commenter := GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", projectAlias), expanded)
-		message = message + commenter(terraformOutputs[projectAlias]) + "\n" // Use same key
+
+		// Try to get output using alias first, fall back to project name if needed
+		output, exists := terraformOutputs[projectAlias]
+		if !exists {
+			output, exists = terraformOutputs[job.ProjectName]
+			if !exists {
+				slog.Warn("No terraform output found for project",
+					"projectAlias", projectAlias,
+					"projectName", job.ProjectName)
+				output = "No output available"
+			} else {
+				slog.Debug("Used project name fallback for terraform output",
+					"projectAlias", projectAlias,
+					"projectName", job.ProjectName)
+			}
+		}
+
+		message = message + commenter(output) + "\n"
 	}
 
 	CommentId := sourceDetaiItem.CommentId
