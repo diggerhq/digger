@@ -138,19 +138,17 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 			workflowUrl = *job.WorkflowRunUrl
 		}
 
-		// Get project name from job spec
-		var jobSpec orchestrator_scheduler.JobJson
-		projectName := "Unknown"
-		if job.SerializedJobSpec != nil {
-			err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
-			if err == nil {
-				projectName = jobSpec.ProjectName
-			} else {
-				slog.Warn("Failed to unmarshal job spec for project name", 
-					"jobId", job.DiggerJobID, 
-					"error", err)
-			}
+		// Convert to SerializedJob to get proper alias handling
+		serializedJob, err := job.MapToJsonStruct()
+		if err != nil {
+			slog.Warn("Failed to convert job to serialized struct", 
+				"jobId", job.DiggerJobID, 
+				"error", err)
+			continue // Skip this job if we can't convert it
 		}
+
+		// Use the existing alias function
+		projectAlias := orchestrator_scheduler.GetProjectAlias(serializedJob)
 
 		// Default resource counts to 0 if DiggerJobSummary is nil
 		resourcesCreated := uint(0)
@@ -165,13 +163,9 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		}
 		
 		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
-		projectAlias := projectName // fallback
-		if jobSpec.ProjectAlias != "" {
-			projectAlias = jobSpec.ProjectAlias
-		}
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
-			projectAlias,  // <-- Use alias instead
+			projectAlias, 
 			workflowUrl,
 			job.Status.ToString(),
 			prCommentUrl,
