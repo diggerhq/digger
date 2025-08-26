@@ -335,9 +335,6 @@ runs:
     - name: generate-cache-version
       shell: bash
       run: |
-        # Create timestamp for cache versioning
-        TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
-        
         # Create a hash based on factors that affect cache validity
         HASH_INPUT=""
         
@@ -369,51 +366,42 @@ runs:
         # Add OS and architecture for platform-specific caches
         HASH_INPUT="${HASH_INPUT}-${{ runner.os }}-${{ runner.arch }}"
         
-        # Create a short hash
+        # Create a short hash for cache identification
         CONTENT_HASH=$(echo -n "$HASH_INPUT" | sha256sum | cut -c1-12)
         
-        # Final cache version combines timestamp and content hash
-        CACHE_VERSION="${TIMESTAMP}-${CONTENT_HASH}"
-        echo "S3_CACHE_VERSION=$CACHE_VERSION" >> $GITHUB_ENV
-        echo "Generated artifact cache version: $CACHE_VERSION"
-        echo "Cache version components:"
-        echo "  Tool versions: $HASH_INPUT"
-        if [ ! -z "$PROVIDER_HASH" ]; then
-          echo "  Provider hash: $PROVIDER_HASH"
-        fi
+        # Store both the hash (for lookup) and timestamped version (for directory naming)
+        echo "S3_CACHE_HASH=$CONTENT_HASH" >> $GITHUB_ENV
+        echo "Generated cache hash: $CONTENT_HASH (for lookup)"
 
     - name: restore-s3-cache
       shell: bash
       run: |
-        S3_CACHE_PATH="${{ inputs.cache-dependencies-s3-bucket }}/artifacts/${{ env.S3_CACHE_VERSION }}"
+        CACHE_HASH="${{ env.S3_CACHE_HASH }}"
+        BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         
         if [ ! -d "$TF_PLUGIN_CACHE_DIR" ]; then
           echo "Creating cache directory: $TF_PLUGIN_CACHE_DIR"
           mkdir -p "$TF_PLUGIN_CACHE_DIR"
         fi
         
-        echo "Restoring artifacts from S3 (version: ${{ env.S3_CACHE_VERSION }})..."
-        if ! aws s3 sync "$S3_CACHE_PATH" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet; then
-          echo "No cached artifacts found for ${{ env.S3_CACHE_VERSION }}"
+        echo "Looking for existing cache with hash: $CACHE_HASH"
+        
+        # Look for any directory that ends with this hash
+        EXISTING_CACHE=$(aws s3 ls "s3://$BUCKET/artifacts/" | grep "$CACHE_HASH" | head -1 | awk '{print $2}' | sed 's|/||')
+        
+        if [ ! -z "$EXISTING_CACHE" ]; then
+          echo "Found existing cache: $EXISTING_CACHE"
+          S3_CACHE_PATH="s3://$BUCKET/artifacts/$EXISTING_CACHE"
           
-          # Try platform-compatible fallbacks
-          echo "Looking for compatible cached artifacts..."
-          PLATFORM_PREFIX="${{ runner.os }}-${{ runner.arch }}"
-          
-          # List available caches and try to find a compatible one
-          COMPATIBLE_CACHE=$(aws s3 ls "${{ inputs.cache-dependencies-s3-bucket }}/artifacts/" --region "${{ inputs.cache-dependencies-s3-region }}" | grep "PRE.*${PLATFORM_PREFIX}" | tail -1 | awk '{print $2}' | sed 's|/||')
-          
-          if [ ! -z "$COMPATIBLE_CACHE" ]; then
-            echo "Found compatible cache: $COMPATIBLE_CACHE"
-            aws s3 sync "${{ inputs.cache-dependencies-s3-bucket }}/artifacts/$COMPATIBLE_CACHE" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet || true
+          if aws s3 sync "$S3_CACHE_PATH" "$TF_PLUGIN_CACHE_DIR" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet; then
+            echo "Cache restored successfully from: $EXISTING_CACHE"
+            # Store the existing cache name for potential reuse
+            echo "S3_CACHE_DIR=$EXISTING_CACHE" >> $GITHUB_ENV
           else
-            echo "No compatible cached artifacts found - will download fresh"
+            echo "Failed to restore cache, will create new one"
           fi
         else
-          echo "Artifact cache restored successfully"
-          # Show what was restored
-          echo "Cached artifacts:"
-          find "$TF_PLUGIN_CACHE_DIR" -type f | head -10
+          echo "No existing cache found for hash: $CACHE_HASH"
         fi
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
 
@@ -682,22 +670,27 @@ runs:
     - name: save-s3-cache
       shell: bash
       run: |
-        S3_CACHE_PATH="${{ inputs.cache-dependencies-s3-bucket }}/artifacts/${{ env.S3_CACHE_VERSION }}"
+        CACHE_HASH="${{ env.S3_CACHE_HASH }}"
+        BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         
-        echo "Saving artifacts to S3 (version: ${{ env.S3_CACHE_VERSION }})..."
+        # Check if we already have a cache directory from restore
+        if [ ! -z "${{ env.S3_CACHE_DIR }}" ]; then
+          echo "Cache already exists: ${{ env.S3_CACHE_DIR }}, skipping save"
+          exit 0
+        fi
+        
+        # Create new timestamped directory name
+        TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
+        CACHE_DIR="${TIMESTAMP}-${CACHE_HASH}"
+        S3_CACHE_PATH="s3://$BUCKET/artifacts/$CACHE_DIR"
+        
+        echo "Saving new cache to: $CACHE_DIR"
         if [ -d "$TF_PLUGIN_CACHE_DIR" ] && [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)" -gt 0 ]; then
-          ARTIFACT_COUNT=$(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l)
-          CACHE_SIZE=$(du -sh "$TF_PLUGIN_CACHE_DIR" | cut -f1)
-          
-          echo "Caching $ARTIFACT_COUNT artifacts ($CACHE_SIZE total)"
-          
-          # Only upload if we have new artifacts (avoid unnecessary uploads)
+          echo "Found $(find "$TF_PLUGIN_CACHE_DIR" -type f | wc -l) files to cache"
           aws s3 sync "$TF_PLUGIN_CACHE_DIR" "$S3_CACHE_PATH" --region "${{ inputs.cache-dependencies-s3-region }}" --quiet --size-only
-          
-          echo "Artifact cache saved successfully"
-          echo "Cache location: $S3_CACHE_PATH"
+          echo "New cache saved successfully: $CACHE_DIR"
         else
-          echo "No artifacts to cache"
+          echo "No files to cache"
         fi
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
