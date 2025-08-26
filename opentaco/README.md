@@ -41,6 +41,12 @@ make svc
 # Ready:  curl http://localhost:8080/readyz
 ```
 
+Auth is enabled by default. To temporarily bypass it (e.g., provider dev):
+
+```bash
+./opentacosvc -auth-disable -storage memory
+```
+
 ### Use the CLI
 
 ```bash
@@ -77,10 +83,68 @@ make cli
 # Release (upload + unlock in one operation)
 ./taco state release myapp/prod input.tfstate
 
-# Auth commands (stubs)
-./taco login           # OIDC PKCE (stub message)
-./taco whoami          # Prints anonymous payload (stub)
-./taco creds --json    # Prints placeholder AWS Process Credentials JSON (stub)
+# Auth commands
+./taco login --issuer <OIDC_ISSUER> --client-id <CLIENT_ID>  # Runs PKCE flow and saves tokens
+# or simply:
+# ./taco login --server http://localhost:8080                  # CLI fetches issuer/client_id from /v1/auth/config
+./taco whoami                                              # Prints current identity (if logged in)
+./taco creds --json                                        # Prints AWS Process Credentials JSON via service
+./taco logout                                              # Removes saved tokens for --server
+```
+
+### Authentication (OIDC quick start)
+
+Configure OIDC so `taco login` works and protected endpoints require login.
+
+1) WorkOS setup
+- Create a User Management project and a Native (PKCE) OAuth application.
+- Add redirect URI: `http://127.0.0.1:8585/callback`.
+- Note values:
+  - Client ID: `<WORKOS_CLIENT_ID>`
+  - Issuer: `https://api.workos.com/user_management`
+  - Authorization endpoint: `https://api.workos.com/user_management/authorize`
+  - Token endpoint: `https://api.workos.com/user_management/token`
+
+2) Service config (verifies ID tokens and issues OpenTaco tokens)
+
+```bash
+export OPENTACO_AUTH_ISSUER="https://api.workos.com/user_management"
+export OPENTACO_AUTH_CLIENT_ID="<WORKOS_CLIENT_ID>"
+./opentacosvc -storage memory
+```
+
+3) Login via CLI (PKCE)
+
+```bash
+./taco login \
+  --server http://localhost:8080 \
+  --issuer https://api.workos.com/user_management \
+  --client-id <WORKOS_CLIENT_ID> \
+  --auth-url https://api.workos.com/user_management/authorize \
+  --token-url https://api.workos.com/user_management/token
+```
+
+This opens a browser (also prints the URL). After you authenticate, the CLI exchanges the OIDC ID token with the service and saves OpenTaco tokens to `~/.config/opentaco/credentials.json`. To force the login box even if an SSO session exists, add `--force-login`.
+
+Auth0 variant:
+
+```bash
+export OPENTACO_AUTH_ISSUER="https://<TENANT>.auth0.com"     # or <region>.auth0.com
+export OPENTACO_AUTH_CLIENT_ID="<AUTH0_NATIVE_APP_CLIENT_ID>"
+./opentacosvc -storage memory
+
+# No flags needed; CLI uses discovery via /v1/auth/config
+./taco login --server http://localhost:8080
+```
+
+4) Verify auth
+
+```bash
+# Without login (or in a fresh shell without saved tokens): should return 401
+curl -i http://localhost:8080/v1/states
+
+# Using CLI (adds bearer automatically)
+./taco state ls
 ```
 
 ### Terraform Provider
@@ -236,7 +300,9 @@ S3 object layout per state:
 
 ### Management API
 
-**Note**: State IDs containing slashes (e.g., `myapp/prod`) are URL-encoded by replacing `/` with `__` in the path.
+Auth: All management endpoints require `Authorization: Bearer <access>`, unless the service is started with `-auth-disable`.
+
+Note: State IDs containing slashes (e.g., `myapp/prod`) are URL-encoded by replacing `/` with `__` in the path.
 
 - `POST /v1/states` - Create a new state
   - Body: `{"id": "myapp/prod"}`
@@ -275,13 +341,14 @@ S3 object layout per state:
 
 Note: Terraform lock coordination uses the `X-Terraform-Lock-ID` header; the service respects this header on update and unlock operations.
 
-### Auth (stubs)
+### Auth
 
-- `POST /v1/auth/exchange` – 501 Not Implemented (shape stub)
-- `POST /v1/auth/token` – 501 Not Implemented
-- `POST /v1/auth/issue-s3-creds` – 501 Not Implemented
-- `GET /v1/auth/me` – 200 stub payload
-- `GET /oidc/jwks.json` – 200 with empty `keys`
+- `GET  /v1/auth/config` – Server OIDC config (issuer, client_id, optional endpoints, redirect URIs)
+- `POST /v1/auth/exchange` – Exchange OIDC ID token for OpenTaco access/refresh
+- `POST /v1/auth/token` – Refresh to new access (rotates refresh)
+- `POST /v1/auth/issue-s3-creds` – Issue stateless STS creds; requires `Authorization: Bearer <access>`
+- `GET  /v1/auth/me` – Echo subject/roles/groups from Bearer if present
+- `GET  /oidc/jwks.json` – JWKS with current signing key
 
 ## CLI Commands Reference
 
@@ -325,6 +392,13 @@ Note: Terraform lock coordination uses the `X-Terraform-Lock-ID` header; the ser
 
 - CLI: `OPENTACO_SERVER` sets the default server URL for `taco`.
 - Terraform provider: `OPENTACO_ENDPOINT` sets the default provider endpoint.
+
+### Auth
+
+- `taco login [--force-login]` – PKCE login; saves tokens to `~/.config/opentaco/credentials.json`
+- `taco whoami` – Prints current identity
+- `taco creds --json` – Prints AWS Process Credentials JSON via `/v1/auth/issue-s3-creds`
+- `taco logout` – Removes saved tokens for `--server`
 
 ## Development
 

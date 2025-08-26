@@ -30,3 +30,10 @@ EOF
 export TF_CLI_CONFIG_FILE="$PWD/.terraformrc"
 terraform init -upgrade
 ```
+
+401 Unauthorized on API/backend
+- Cause: Auth is enforced by default; `/v1` and `/v1/backend/*` require `Authorization: Bearer <access>`.
+- Fix:
+  - Use `./taco login` and then run state commands; the CLI attaches Bearer automatically.
+  - Ensure tokens exist in `~/.config/opentaco/credentials.json` under the current `--server`.
+  - Temporarily disable auth for Terraform backend testing with: `./opentacosvc -auth-disable`.

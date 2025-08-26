@@ -1,15 +1,14 @@
 package commands
 
 import (
-    "context"
-    "fmt"
-    "os"
-    "path/filepath"
-    "strings"
-    "time"
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
-    "github.com/diggerhq/digger/opentaco/pkg/sdk"
-    "github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -55,7 +54,7 @@ func runProviderInit(cmd *cobra.Command, args []string) error {
 
     // Optionally create the system state via API (idempotent-ish)
     if !initNoCreate {
-        client := sdk.NewClient(base)
+        client := newAuthedClient()
 
         // Check existence first
         _, err := client.GetState(context.Background(), initSystemID)
@@ -154,4 +153,3 @@ func isHTTPError(err error, code int) bool {
     prefix := fmt.Sprintf("HTTP %d:", code)
     return strings.HasPrefix(err.Error(), prefix)
 }
-

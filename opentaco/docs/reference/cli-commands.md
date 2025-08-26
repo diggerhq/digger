@@ -21,3 +21,9 @@ State
 
 Provider
 - `taco provider init [dir] [--system-state <id>] [--no-create] [--force]`
+
+Auth
+- `taco login [--force-login]` — OIDC PKCE login; saves tokens to `~/.config/opentaco/credentials.json`.
+- `taco whoami` — Prints current identity.
+- `taco creds --json` — Prints AWS Process Credentials JSON via `/v1/auth/issue-s3-creds`.
+- `taco logout` — Removes saved tokens for `--server`.

@@ -44,7 +44,7 @@ var createCmd = &cobra.Command{
     Short: "Create a new state",
     Args:  cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
-        client := sdk.NewClient(serverURL)
+        client := newAuthedClient()
         stateID := args[0]
 
         printVerbose("Creating state: %s", stateID)
@@ -64,7 +64,7 @@ var listCmd = &cobra.Command{
     Short:   "List states",
     Aliases: []string{"list"},
     RunE: func(cmd *cobra.Command, args []string) error {
-        client := sdk.NewClient(serverURL)
+        client := newAuthedClient()
 
         prefix := ""
         if len(args) > 0 {
@@ -113,7 +113,7 @@ var infoCmd = &cobra.Command{
     Aliases: []string{"show", "describe"},
     Args:    cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
-        client := sdk.NewClient(serverURL)
+        client := newAuthedClient()
         stateID := args[0]
 
         printVerbose("Getting state metadata: %s", stateID)
@@ -137,7 +137,7 @@ var deleteCmd = &cobra.Command{
     Aliases: []string{"delete", "remove"},
     Args:    cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
-        client := sdk.NewClient(serverURL)
+        client := newAuthedClient()
         stateID := args[0]
 
         printVerbose("Deleting state: %s", stateID)
@@ -157,7 +157,7 @@ var pullCmd = &cobra.Command{
     Short: "Download state data",
     Args:  cobra.RangeArgs(1, 2),
     RunE: func(cmd *cobra.Command, args []string) error {
-        client := sdk.NewClient(serverURL)
+        client := newAuthedClient()
         stateID := args[0]
 
         printVerbose("Downloading state: %s", stateID)
@@ -187,7 +187,7 @@ var pushCmd = &cobra.Command{
     Short: "Upload state data",
     Args:  cobra.ExactArgs(2),
     RunE: func(cmd *cobra.Command, args []string) error {
-        client := sdk.NewClient(serverURL)
+        client := newAuthedClient()
         stateID := args[0]
         inputFile := args[1]
 
@@ -217,7 +217,7 @@ var lockCmd = &cobra.Command{
     Short: "Lock a state",
     Args:  cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
-        client := sdk.NewClient(serverURL)
+        client := newAuthedClient()
         stateID := args[0]
 
         printVerbose("Locking state: %s", stateID)
@@ -407,4 +407,3 @@ func getHostname() string {
     }
     return hostname
 }
-

@@ -2,27 +2,39 @@ package middleware
 
 import (
     "net/http"
+    "strings"
 
     "github.com/labstack/echo/v4"
 )
 
-// AuthMiddleware is a placeholder that currently allows all requests through.
-// It will later verify OpenTaco access tokens and enrich context with principal info.
-func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-    return func(c echo.Context) error {
-        // TODO: verify bearer token and attach principal to context
-        return next(c)
+// AccessTokenVerifier is a function that validates an access token.
+// It should return nil if valid, or an error if invalid.
+type AccessTokenVerifier func(token string) error
+
+// RequireAuth returns middleware that verifies Bearer access tokens using the provided verifier.
+func RequireAuth(verify AccessTokenVerifier) echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            if verify == nil {
+                return next(c)
+            }
+            authz := c.Request().Header.Get("Authorization")
+            if !strings.HasPrefix(authz, "Bearer ") {
+                return c.JSON(http.StatusUnauthorized, map[string]string{"error":"missing_bearer"})
+            }
+            token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
+            if err := verify(token); err != nil {
+                return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_token"})
+            }
+            return next(c)
+        }
     }
 }
 
-// RBACMiddleware is a placeholder that currently allows all requests through.
-// Future implementation will extract the principal and enforce action-level permissions.
+// RBACMiddleware placeholder (currently pass-through)
 func RBACMiddleware(_ string) echo.MiddlewareFunc {
     return func(next echo.HandlerFunc) echo.HandlerFunc {
-        return func(c echo.Context) error {
-            // TODO: enforce RBAC based on route/action
-            return next(c)
-        }
+        return func(c echo.Context) error { return next(c) }
     }
 }
 
@@ -34,4 +46,3 @@ func NotImplemented(c echo.Context) error {
         "hint":    "This route will be implemented in a later milestone.",
     })
 }
-

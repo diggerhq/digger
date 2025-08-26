@@ -29,3 +29,10 @@ Provider bootstrap:
   - Scaffolds a Terraform workspace in `dir` (default `opentaco-config`).
   - Configures the HTTP backend to `__opentaco_system_state` by default.
   - Creates that system state unless `--no-create` is set.
+
+Auth:
+- `taco login [--force-login]` — Runs OIDC PKCE, saves tokens to `~/.config/opentaco/credentials.json` under the current `--server`.
+  - No flags needed if the server exposes `/v1/auth/config` (OpenTaco does); the CLI will auto-discover issuer/client_id.
+- `taco whoami` — Prints current identity.
+- `taco creds --json` — Prints AWS Process Credentials JSON via `/v1/auth/issue-s3-creds`.
+- `taco logout` — Removes saved tokens for the current `--server`.

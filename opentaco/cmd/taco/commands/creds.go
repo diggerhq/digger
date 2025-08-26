@@ -1,8 +1,10 @@
 package commands
 
 import (
+    "bytes"
     "encoding/json"
     "fmt"
+    "net/http"
     "os"
 
     "github.com/spf13/cobra"
@@ -27,16 +29,28 @@ func runCreds(cmd *cobra.Command, args []string) error {
         fmt.Fprintln(os.Stderr, "Use --json for AWS credential_process output")
         return fmt.Errorf("missing --json flag")
     }
-    // Stubbed output to keep shape; real values will be provided by the service later.
-    payload := map[string]any{
-        "Version":         1,
-        "AccessKeyId":     "OTC.k1.DUMMY",
-        "SecretAccessKey": "DUMMY",
-        "SessionToken":    "DUMMY",
-        "Expiration":      "2099-01-01T00:00:00Z",
+    base := normalizedBase(serverURL)
+    cf, err := loadCreds()
+    if err != nil { return err }
+    tok, ok := cf.Profiles[base]
+    if !ok || tok.AccessToken == "" {
+        return fmt.Errorf("no credentials found for %s; run 'taco login' first", base)
     }
+    // For now POST empty body; Authorization is what matters
+    req, err := http.NewRequest("POST", base+"/v1/auth/issue-s3-creds", bytes.NewReader([]byte("{}")))
+    if err != nil { return err }
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+tok.AccessToken)
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil { return err }
+    defer resp.Body.Close()
+    if resp.StatusCode != 200 {
+        return fmt.Errorf("issue-s3-creds failed: HTTP %d", resp.StatusCode)
+    }
+    // Pass JSON through to stdout
+    var payload map[string]any
+    if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil { return err }
     enc := json.NewEncoder(os.Stdout)
     enc.SetEscapeHTML(false)
     return enc.Encode(payload)
 }
-

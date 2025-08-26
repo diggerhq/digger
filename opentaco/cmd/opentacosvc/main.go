@@ -19,6 +19,7 @@ import (
 func main() {
     var (
         port        = flag.String("port", "8080", "Server port")
+        authDisable = flag.Bool("auth-disable", false, "Disable auth enforcement (default: false)")
         storageType = flag.String("storage", "s3", "Storage type: s3 or memory (default: s3 with fallback to memory)")
         s3Bucket    = flag.String("s3-bucket", os.Getenv("OPENTACO_S3_BUCKET"), "S3 bucket for state storage")
         s3Prefix    = flag.String("s3-prefix", os.Getenv("OPENTACO_S3_PREFIX"), "S3 key prefix (optional)")
@@ -62,8 +63,8 @@ func main() {
 	e.Use(middleware.Secure())
 	e.Use(middleware.CORS())
 
-	// Initialize API
-	api.RegisterRoutes(e, store)
+    // Initialize API (auth enabled by default; can be disabled via flag)
+    api.RegisterRoutes(e, store, !*authDisable)
 
 	// Start server
 	go func() {

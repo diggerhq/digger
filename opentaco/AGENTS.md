@@ -213,24 +213,25 @@ The repository includes working functionality beyond Milestone 1 for demos and i
 
 These prototypes support a crisp demo while the M1 shape contract remains documented above.
 
-### Auth scaffolding (stubs in this repo)
+### Auth support (in this repo)
 
-To prepare for OIDC, JWTs, STS, and RBAC without gating existing flows, this repo includes stubbed shapes that compile and return predictable responses:
+This repo includes working OIDC login (PKCE), JWT mint/verify + JWKS, and stateless STS creds, with auth enforcement ON by default for `/v1` routes.
 
 - New packages:
   - `internal/auth/`, `internal/oidc/`, `internal/sts/`, `internal/rbac/`, `internal/middleware/`.
 - New routes (Echo):
-  - `POST /v1/auth/exchange` → 501
-  - `POST /v1/auth/token` → 501
-  - `POST /v1/auth/issue-s3-creds` → 501
-  - `GET  /v1/auth/me` → 200 stub
-  - `GET  /oidc/jwks.json` → 200 with empty `keys`
-- New CLI commands (stubs):
-  - `taco login`, `taco creds --json`, `taco whoami`.
+  - `GET  /v1/auth/config` – server OIDC config for the CLI
+  - `POST /v1/auth/exchange` – OIDC ID token → OpenTaco access/refresh
+  - `POST /v1/auth/token` – refresh → new access (rotates refresh)
+  - `POST /v1/auth/issue-s3-creds` – stateless STS creds (requires Bearer)
+  - `GET  /v1/auth/me` – subject/roles/groups (from Bearer)
+  - `GET  /oidc/jwks.json` – JWKS
+- CLI commands:
+  - `taco login` (PKCE; auto-discovers via `/v1/auth/config`, supports `--force-login`), `taco creds --json`, `taco whoami`, `taco logout`.
 
 Notes:
-- These are scaffolds only and do not enforce auth/RBAC yet; existing S3 adapter, HTTP backend proxy, CLI, and provider behavior remain intact.
-- Placeholder docs added and will be populated as auth lands: `docs/backend_profile_guide.md`, `docs/auth_config_examples.md`, `docs/final_spec_state_auth_sts.md`.
+- Auth enforcement is ON by default for `/v1` routes in this repo. Use `-auth-disable` on the service to bypass for local/dev.
+- Docs placeholders exist and will be expanded: `docs/backend_profile_guide.md`, `docs/auth_config_examples.md`, `docs/final_spec_state_auth_sts.md`.
 
 ---
 

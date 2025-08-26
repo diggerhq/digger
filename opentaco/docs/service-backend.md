@@ -28,3 +28,8 @@ S3 layout:
 System state:
 - Default: `__opentaco_system_state`.
 - Created by CLI; service does not auto‑create.
+
+Auth
+- Auth is enforced by default for `/v1` and `/v1/backend/*`. Clients must include `Authorization: Bearer <access>`.
+- Use `taco login` to obtain tokens; the CLI will attach Bearer automatically to API calls.
+- For Terraform provider/backend flows, use `-auth-disable` temporarily until the provider is wired to send Bearer headers.

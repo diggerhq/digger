@@ -2,26 +2,51 @@ package api
 
 import (
     "github.com/diggerhq/digger/opentaco/internal/backend"
-    authhandlers "github.com/diggerhq/digger/opentaco/internal/auth"
+    authpkg "github.com/diggerhq/digger/opentaco/internal/auth"
+    "github.com/diggerhq/digger/opentaco/internal/middleware"
     statehandlers "github.com/diggerhq/digger/opentaco/internal/state"
     "github.com/diggerhq/digger/opentaco/internal/observability"
+    "github.com/diggerhq/digger/opentaco/internal/oidc"
+    "github.com/diggerhq/digger/opentaco/internal/sts"
     "github.com/diggerhq/digger/opentaco/internal/storage"
     "github.com/labstack/echo/v4"
 )
 
 // RegisterRoutes registers all API routes
-func RegisterRoutes(e *echo.Echo, store storage.StateStore) {
+func RegisterRoutes(e *echo.Echo, store storage.StateStore, authEnabled bool) {
 	// Health checks
 	health := observability.NewHealthHandler()
 	e.GET("/healthz", health.Healthz)
 	e.GET("/readyz", health.Readyz)
 
-	// API v1 group
+	// Prepare auth deps
+    signer, _ := authpkg.NewSignerFromEnv()
+    stsi, _ := sts.NewStatelessIssuerFromEnv()
+    ver, _ := oidc.NewFromEnv()
+
+	// Auth routes (no auth required)
+    authHandler := authpkg.NewHandler(signer, stsi, ver)
+    e.POST("/v1/auth/exchange", authHandler.Exchange)
+    e.POST("/v1/auth/token", authHandler.Token)
+    e.POST("/v1/auth/issue-s3-creds", authHandler.IssueS3Creds)
+    e.GET("/v1/auth/me", authHandler.Me)
+    e.GET("/oidc/jwks.json", authHandler.JWKS)
+    e.GET("/v1/auth/config", authHandler.Config)
+
+	// API v1 protected group
 	v1 := e.Group("/v1")
+    var verifyFn middleware.AccessTokenVerifier
+    if authEnabled {
+        verifyFn = func(token string) error {
+            if signer == nil { return echo.ErrUnauthorized }
+            _, err := signer.VerifyAccess(token)
+            return err
+        }
+        v1.Use(middleware.RequireAuth(verifyFn))
+    }
 	
     // State handlers (management API)
     stateHandler := statehandlers.NewHandler(store)
-    authHandler := authhandlers.NewHandler()
 	
     // Management API
     v1.POST("/states", stateHandler.CreateState)
@@ -38,16 +63,14 @@ func RegisterRoutes(e *echo.Echo, store storage.StateStore) {
 	v1.GET("/backend/*", backendHandler.GetState)
 	v1.POST("/backend/*", backendHandler.UpdateState)
 	v1.PUT("/backend/*", backendHandler.UpdateState)
-	// Explicitly wire non-standard HTTP methods used by Terraform backend
-	e.Add("LOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
-    e.Add("UNLOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
+    // Explicitly wire non-standard HTTP methods used by Terraform backend
+    if authEnabled {
+        e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(verifyFn)(backendHandler.HandleLockUnlock))
+        e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(verifyFn)(backendHandler.HandleLockUnlock))
+    } else {
+        e.Add("LOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
+        e.Add("UNLOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
+    }
 
-    // Auth & STS routes
-    v1.POST("/auth/exchange", authHandler.Exchange)
-    v1.POST("/auth/token", authHandler.Token)
-    v1.POST("/auth/issue-s3-creds", authHandler.IssueS3Creds)
-    v1.GET("/auth/me", authHandler.Me)
-
-    // JWKS (well-known-ish)
-    e.GET("/oidc/jwks.json", authHandler.JWKS)
+    // (auth routes defined above; keep v1 protected for states/backend)
 }

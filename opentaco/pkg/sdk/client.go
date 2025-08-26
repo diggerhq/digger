@@ -14,18 +14,19 @@ import (
 
 // Client is the OpenTaco SDK client
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
+    baseURL    string
+    httpClient *http.Client
+    authToken  string
 }
 
 // NewClient creates a new OpenTaco client
 func NewClient(baseURL string) *Client {
-	return &Client{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-	}
+    return &Client{
+        baseURL: baseURL,
+        httpClient: &http.Client{
+            Timeout: 30 * time.Second,
+        },
+    }
 }
 
 // NewClientWithHTTPClient creates a new client with a custom HTTP client
@@ -233,16 +234,20 @@ func (c *Client) UnlockState(ctx context.Context, stateID string, lockID string)
 // Helper methods
 
 func (c *Client) do(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
+    req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
+    if err != nil {
+        return nil, fmt.Errorf("failed to create request: %w", err)
+    }
 
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
+    if body != nil {
+        req.Header.Set("Content-Type", "application/json")
+    }
 
-	return c.httpClient.Do(req)
+    if c.authToken != "" {
+        req.Header.Set("Authorization", "Bearer "+c.authToken)
+    }
+
+    return c.httpClient.Do(req)
 }
 
 func (c *Client) doJSON(ctx context.Context, method, path string, payload interface{}) (*http.Response, error) {
@@ -273,5 +278,8 @@ func parseError(resp *http.Response) error {
 
 // encodeStateID encodes a state ID for use in URLs by replacing slashes with double underscores
 func encodeStateID(id string) string {
-	return strings.ReplaceAll(id, "/", "__")
+    return strings.ReplaceAll(id, "/", "__")
 }
+
+// SetBearerToken sets the Authorization bearer token for subsequent requests.
+func (c *Client) SetBearerToken(token string) { c.authToken = token }
