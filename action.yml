@@ -701,48 +701,49 @@ runs:
         MAX_VERSIONS=${{ inputs.cache-dependencies-s3-max-versions }}
         echo "=== Cleaning up old artifact caches (keeping last $MAX_VERSIONS versions per platform) ==="
         
-        # Validate MAX_VERSIONS is a positive integer
-        if ! [[ "$MAX_VERSIONS" =~ ^[1-9][0-9]*$ ]]; then
-          echo "Warning: Invalid max-versions value '$MAX_VERSIONS', using default of 3"
-          MAX_VERSIONS=3
-        fi
-        
         # Remove s3:// prefix if present
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
         echo "Looking for cache directories..."
         
-        # Get all cache directories with their last modified times
-        CACHE_INFO=$(aws s3api list-objects-v2 \
+        # First, get a list of all immediate subdirectories in artifacts/
+        CACHE_DIRS=$(aws s3api list-objects-v2 \
           --bucket "$BUCKET" \
           --prefix "artifacts/" \
           --delimiter "/" \
-          --region "$REGION" \
           --query "CommonPrefixes[*].Prefix" \
-          --output text | while read -r prefix; do
-            # Get last modified time for each directory
-            LAST_MODIFIED=$(aws s3api list-objects-v2 \
-              --bucket "$BUCKET" \
-              --prefix "$prefix" \
-              --region "$REGION" \
-              --query "max_by(Contents, &LastModified).LastModified" \
-              --output text)
-            echo "$LAST_MODIFIED $prefix"
-          done | sort -r) # Sort by date, newest first
+          --output text)
         
-        if [ -z "$CACHE_INFO" ]; then
+        if [ -z "$CACHE_DIRS" ]; then
           echo "No cache directories found"
           exit 0
         fi
         
+        # Process each directory and get its last modified time
+        CACHE_INFO=""
+        while read -r dir; do
+          if [ ! -z "$dir" ]; then
+            # Get the latest modified time of any object in this directory
+            LAST_MODIFIED=$(aws s3api list-objects-v2 \
+              --bucket "$BUCKET" \
+              --prefix "$dir" \
+              --query "Contents[0].LastModified" \
+              --output text)
+            if [ "$LAST_MODIFIED" != "None" ] && [ ! -z "$LAST_MODIFIED" ]; then
+              CACHE_INFO="${CACHE_INFO}${LAST_MODIFIED} ${dir}\n"
+            fi
+          fi
+        done <<< "$CACHE_DIRS"
+        
+        # Sort by timestamp (newest first) and remove empty lines
+        SORTED_CACHES=$(echo -e "$CACHE_INFO" | grep -v '^$' | sort -r)
+        
         # Count total directories
-        TOTAL_DIRS=$(echo "$CACHE_INFO" | wc -l)
+        TOTAL_DIRS=$(echo "$SORTED_CACHES" | grep -v '^$' | wc -l)
         
         echo "Found $TOTAL_DIRS cache directories (sorted by last modified):"
-        echo "$CACHE_INFO" | while read -r line; do
-          echo "  $line"
-        done
+        echo "$SORTED_CACHES"
         
         if [ "$TOTAL_DIRS" -gt "$MAX_VERSIONS" ]; then
           # Calculate how many to delete
@@ -751,7 +752,7 @@ runs:
           echo "Keeping newest $MAX_VERSIONS caches, will delete $DIRS_TO_DELETE_COUNT oldest"
           
           # Get the oldest directories to delete (skip the first MAX_VERSIONS lines)
-          DIRS_TO_DELETE=$(echo "$CACHE_INFO" | tail -n "$DIRS_TO_DELETE_COUNT" | awk '{print $2}')
+          DIRS_TO_DELETE=$(echo "$SORTED_CACHES" | tail -n "$DIRS_TO_DELETE_COUNT" | awk '{print $2}')
           
           # Delete old cache directories
           echo "$DIRS_TO_DELETE" | while read -r dir; do
