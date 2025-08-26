@@ -335,19 +335,8 @@ runs:
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
-        if [ ! -d "$TF_PLUGIN_CACHE_DIR" ]; then
-          echo "Creating cache directory: $TF_PLUGIN_CACHE_DIR"
-          mkdir -p "$TF_PLUGIN_CACHE_DIR"
-        fi
-        
-        echo "Restoring cache from S3..."
-        if aws s3 sync "s3://$BUCKET" "$TF_PLUGIN_CACHE_DIR" --region "$REGION" --quiet 2>/dev/null; then
-          echo "Cache restored successfully"
-          echo "Cached artifacts:"
-          find "$TF_PLUGIN_CACHE_DIR" -type f | head -5
-        else
-          echo "No existing cache found or failed to restore (this is normal for first run)"
-        fi
+        chmod +x "${{ github.action_path }}/scripts/s3-cache-download.bash"
+        "${{ github.action_path }}/scripts/s3-cache-download.bash" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
       if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
 
     # Then terraform setup happens...
@@ -617,20 +606,8 @@ runs:
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         
-        if [ ! -d "$TF_PLUGIN_CACHE_DIR" ] || [ "$(find "$TF_PLUGIN_CACHE_DIR" -type f 2>/dev/null | wc -l)" -eq 0 ]; then
-          echo "No files to cache - cache directory is empty or doesn't exist"
-          exit 0
-        fi
-        
-        ARTIFACT_COUNT=$(find "$TF_PLUGIN_CACHE_DIR" -type f 2>/dev/null | wc -l)
-        echo "Saving cache to S3..."
-        echo "Caching $ARTIFACT_COUNT files"
-        
-        if aws s3 sync "$TF_PLUGIN_CACHE_DIR" "s3://$BUCKET" --region "$REGION" --quiet 2>/dev/null; then
-          echo "Cache saved successfully"
-        else
-          echo "Warning: Failed to save cache (this won't fail the build)"
-        fi
+        chmod +x "${{ github.action_path }}/scripts/s3-cache-upload.bash"
+        "${{ github.action_path }}/scripts/s3-cache-upload.bash" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' }}
 
 branding:
