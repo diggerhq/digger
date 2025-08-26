@@ -335,30 +335,46 @@ runs:
     - name: generate-cache-version
       shell: bash
       run: |
-        # For artifact caches, use tool versions + platform as the key
-        CACHE_COMPONENTS=""
+        # Create a hash based on factors that affect cache validity
+        HASH_INPUT=""
         
-        # Include active tool versions
+        # Include terraform/terragrunt versions if being used
         if [[ "${{ inputs.setup-terraform }}" == "true" ]]; then
-          CACHE_COMPONENTS="${CACHE_COMPONENTS}tf-${{ inputs.terraform-version }}"
+          HASH_INPUT="${HASH_INPUT}tf-${{ inputs.terraform-version }}"
         fi
         if [[ "${{ inputs.setup-terragrunt }}" == "true" ]]; then
-          CACHE_COMPONENTS="${CACHE_COMPONENTS}-tg-${{ inputs.terragrunt-version }}"
+          HASH_INPUT="${HASH_INPUT}tg-${{ inputs.terragrunt-version }}"
         fi
         if [[ "${{ inputs.setup-opentofu }}" == "true" ]]; then
-          CACHE_COMPONENTS="${CACHE_COMPONENTS}-tofu-${{ inputs.opentofu-version }}"
+          HASH_INPUT="${HASH_INPUT}tofu-${{ inputs.opentofu-version }}"
         fi
         
-        # Platform is crucial for artifacts
-        PLATFORM="${{ runner.os }}-${{ runner.arch }}"
+        # Add provider versions from .terraform.lock.hcl if it exists
+        if [ -f ".terraform.lock.hcl" ]; then
+          echo "Including provider versions in cache key..."
+          PROVIDER_HASH=$(grep -A 1 "provider " .terraform.lock.hcl | grep "version" | sort | sha256sum | cut -c1-8)
+          HASH_INPUT="${HASH_INPUT}-p${PROVIDER_HASH}"
+        else
+          # Look for provider version constraints in .tf files
+          echo "Looking for provider version constraints in .tf files..."
+          PROVIDER_HASH=$(find . -name "*.tf" -exec grep -h "required_providers" -A 5 {} \; | grep "version" | sort | sha256sum | cut -c1-8)
+          if [ ! -z "$PROVIDER_HASH" ]; then
+            HASH_INPUT="${HASH_INPUT}-p${PROVIDER_HASH}"
+          fi
+        fi
         
-        # Use descriptive cache path instead of hash for artifacts
-        CACHE_VERSION="${CACHE_COMPONENTS}-${PLATFORM}"
-        # Remove leading dash if present
-        CACHE_VERSION=$(echo "$CACHE_VERSION" | sed 's/^-//')
+        # Add OS and architecture for platform-specific caches
+        HASH_INPUT="${HASH_INPUT}-${{ runner.os }}-${{ runner.arch }}"
         
+        # Create a short hash
+        CACHE_VERSION=$(echo -n "$HASH_INPUT" | sha256sum | cut -c1-12)
         echo "S3_CACHE_VERSION=$CACHE_VERSION" >> $GITHUB_ENV
         echo "Generated artifact cache version: $CACHE_VERSION"
+        echo "Cache version components:"
+        echo "  Tool versions: $HASH_INPUT"
+        if [ ! -z "$PROVIDER_HASH" ]; then
+          echo "  Provider hash: $PROVIDER_HASH"
+        fi
 
     - name: restore-s3-cache
       shell: bash
