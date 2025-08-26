@@ -123,7 +123,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		jobPrCommentId, jobPrCommentUrl, err := reporter.Flush()
 		if err != nil {
 			slog.Error("error while sending job comments", "error", err)
-			cmt, cmt_err := prService.PublishComment(*currentJob.PullRequestNumber, fmt.Sprintf(":yellow_circle: Warning: failed to post report for project %v, received error: %v.\n\n you may review details in the job logs", currentJob.ProjectName, err))
+			cmt, cmt_err := prService.PublishComment(*currentJob.PullRequestNumber, fmt.Sprintf(":yellow_circle: Warning: failed to post report for project %v, received error: %v.\n\n you may review details in the job logs", currentJob.GetProjectAlias(), err))
 			if cmt_err != nil {
 				slog.Error("Error while posting error comment", "error", err)
 				return false, false, fmt.Errorf("failed to post reporter error comment, aborting. Error: %v", err)
@@ -292,7 +292,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					return nil, msg, fmt.Errorf("%s", msg)
 				}
 				var planPolicyFormatter func(report string) string
-				summary := fmt.Sprintf("Terraform plan validation check (%v)", job.ProjectName)
+				summary := fmt.Sprintf("Terraform plan validation check (%v)", job.GetProjectAlias())
 				if reporter.SupportsMarkdown() {
 					planPolicyFormatter = reporting.AsCollapsibleComment(summary, false)
 				} else {
