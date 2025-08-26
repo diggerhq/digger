@@ -192,10 +192,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	}
 
 			if !allowedToPerformCommand {
-			msg := reportPolicyError(job.GetProjectAlias(), command, requestedBy, reporter)
-			slog.Error(msg)
-			return nil, msg, errors.New(msg)
-		}
+		msg := reportPolicyError(job.GetProjectAlias(), command, requestedBy, reporter)
+		slog.Error(msg)
+		return nil, msg, errors.New(msg)
+	}
 
 	err = job.PopulateAwsCredentialsEnvVarsForJob()
 	if err != nil {
