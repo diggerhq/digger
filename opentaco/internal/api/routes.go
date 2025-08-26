@@ -2,6 +2,7 @@ package api
 
 import (
     "github.com/diggerhq/digger/opentaco/internal/backend"
+    authhandlers "github.com/diggerhq/digger/opentaco/internal/auth"
     statehandlers "github.com/diggerhq/digger/opentaco/internal/state"
     "github.com/diggerhq/digger/opentaco/internal/observability"
     "github.com/diggerhq/digger/opentaco/internal/storage"
@@ -20,9 +21,10 @@ func RegisterRoutes(e *echo.Echo, store storage.StateStore) {
 	
     // State handlers (management API)
     stateHandler := statehandlers.NewHandler(store)
+    authHandler := authhandlers.NewHandler()
 	
-	// Management API
-	v1.POST("/states", stateHandler.CreateState)
+    // Management API
+    v1.POST("/states", stateHandler.CreateState)
 	v1.GET("/states", stateHandler.ListStates)
 	v1.GET("/states/:id", stateHandler.GetState)
 	v1.DELETE("/states/:id", stateHandler.DeleteState)
@@ -38,5 +40,14 @@ func RegisterRoutes(e *echo.Echo, store storage.StateStore) {
 	v1.PUT("/backend/*", backendHandler.UpdateState)
 	// Explicitly wire non-standard HTTP methods used by Terraform backend
 	e.Add("LOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
-	e.Add("UNLOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
+    e.Add("UNLOCK", "/v1/backend/*", backendHandler.HandleLockUnlock)
+
+    // Auth & STS routes
+    v1.POST("/auth/exchange", authHandler.Exchange)
+    v1.POST("/auth/token", authHandler.Token)
+    v1.POST("/auth/issue-s3-creds", authHandler.IssueS3Creds)
+    v1.GET("/auth/me", authHandler.Me)
+
+    // JWKS (well-known-ish)
+    e.GET("/oidc/jwks.json", authHandler.JWKS)
 }

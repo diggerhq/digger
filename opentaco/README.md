@@ -37,7 +37,8 @@ make all
 ```bash
 make svc
 # Service starts on http://localhost:8080
-# Health check: curl http://localhost:8080/healthz
+# Health: curl http://localhost:8080/healthz
+# Ready:  curl http://localhost:8080/readyz
 ```
 
 ### Use the CLI
@@ -75,13 +76,18 @@ make cli
 
 # Release (upload + unlock in one operation)
 ./taco state release myapp/prod input.tfstate
+
+# Auth commands (stubs)
+./taco login           # OIDC PKCE (stub message)
+./taco whoami          # Prints anonymous payload (stub)
+./taco creds --json    # Prints placeholder AWS Process Credentials JSON (stub)
 ```
 
 ### Terraform Provider
 
 ```bash
 # Build the provider
-make prov
+make build-prov
 
 # Example usage
 cd providers/terraform/opentaco/examples/basic
@@ -269,6 +275,14 @@ S3 object layout per state:
 
 Note: Terraform lock coordination uses the `X-Terraform-Lock-ID` header; the service respects this header on update and unlock operations.
 
+### Auth (stubs)
+
+- `POST /v1/auth/exchange` – 501 Not Implemented (shape stub)
+- `POST /v1/auth/token` – 501 Not Implemented
+- `POST /v1/auth/issue-s3-creds` – 501 Not Implemented
+- `GET /v1/auth/me` – 200 stub payload
+- `GET /oidc/jwks.json` – 200 with empty `keys`
+
 ## CLI Commands Reference
 
 ### State Management
@@ -321,10 +335,16 @@ opentaco/
 ├── cmd/
 │   ├── opentacosvc/    # Service binary
 │   └── taco/           # CLI binary
+│       └── commands/   # Cobra commands package
 ├── internal/
 │   ├── api/            # HTTP handlers
 │   ├── backend/        # Terraform backend proxy
 │   ├── domain/         # Business logic
+│   ├── auth/           # Auth handlers & JWKS (stub)
+│   ├── oidc/           # OIDC verifier abstraction (stub)
+│   ├── sts/            # STS issuer interface (stub)
+│   ├── rbac/           # RBAC checker (permissive stub)
+│   ├── middleware/     # AuthN/AuthZ middlewares, 501 helper
 │   ├── storage/        # Storage interfaces
 │   └── observability/  # Health/metrics
 ├── pkg/
@@ -366,6 +386,14 @@ make lint
 ```bash
 make clean
 ```
+
+### Configuration (auth stubs)
+
+- Example auth config shape is provided in `configs/auth.yaml` (not yet enforced).
+- Docs placeholders for upcoming auth/STS work:
+  - `docs/backend_profile_guide.md`
+  - `docs/auth_config_examples.md`
+  - `docs/final_spec_state_auth_sts.md`
 
 ### Storage Options
 

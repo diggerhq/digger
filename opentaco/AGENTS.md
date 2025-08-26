@@ -41,8 +41,10 @@ opentaco/
 ├─ cmd/
 │  ├─ opentacosvc/            # service entrypoint (Echo HTTP server)
 │  └─ taco/                   # CLI entrypoint (Cobra)
+│     └─ commands/            # CLI commands package (keeps root main thin)
 ├─ internal/
-│  ├─ api/                    # management API handlers (implemented)
+│  ├─ api/                    # routes registrar (wiring only)
+│  ├─ state/                  # Management API handlers (implemented)
 │  ├─ backend/                # Terraform backend (GET/POST/PUT/LOCK/UNLOCK implemented)
 │  ├─ domain/                 # pure types & tiny helpers
 │  ├─ storage/                # S3 adapter + in-memory fallback
@@ -57,6 +59,13 @@ opentaco/
          ├─ datasources/
          └─ examples/
 ```
+
+Also present in this repo (beyond the core M1 shape) to support upcoming auth/STS work as stubs:
+- `internal/auth/` – JWT mint/verify handlers and JWKS (stubbed)
+- `internal/oidc/` – OIDC verifier abstraction (stubbed)
+- `internal/sts/` – STS issuer interface (stubbed)
+- `internal/rbac/` – roles/permissions checker (currently permissive stub)
+- `internal/middleware/` – AuthN/AuthZ middlewares and uniform 501 helper
 
 ## API Surfaces to Freeze (shape contract; implemented in repo)
 Note: In this repo, these surfaces are already implemented and return real results. For M1 scaffolding in other contexts, stubbing is acceptable to establish the shape (see stubs convention).
@@ -115,13 +124,14 @@ In this repo these commands are fully implemented and call the service. For M1-o
 - Makefile: build, lint, test, svc, cli, prov targets.
 - .golangci.yml: baseline linter configuration.
 - cmd/opentacosvc/: main.go bootstraps Echo; /healthz and /readyz → 200; wire API/backends.
-- internal/api/: register Management API handlers.
+- internal/api/: routes registrar (only wiring).
+- internal/state/: Management API handlers (CRUD, lock/unlock, upload/download).
 - internal/backend/: Terraform HTTP backend (GET/POST/PUT/LOCK/UNLOCK).
 - internal/domain/: tiny types (StateID, Lock, StateMeta, ErrorResponse).
 - internal/storage/: StateStore interfaces and adapters as applicable.
 - internal/observability/: healthz/readyz, metrics stub (200 OK empty body), logging glue.
 - pkg/sdk/: typed HTTP client used by CLI & provider.
-- cmd/taco/: Cobra root with --server; subcommands as listed above.
+- cmd/taco/: Cobra entrypoint; commands live under `cmd/taco/commands/`.
 - providers/terraform/opentaco/: provider, resources, datasources, examples.
 
 ## Acceptance Criteria (Definition of Done)
@@ -150,6 +160,7 @@ When scaffolding shapes without full implementations, return HTTP 501 Not Implem
 
 ```json
 { "error": "not_implemented", "message": "Milestone 1 dummy endpoint", "hint": "This route will be implemented in a later milestone." }
+```
 
 ## Docs Updates (keep Mintlify site in sync)
 
@@ -201,6 +212,25 @@ The repository includes working functionality beyond Milestone 1 for demos and i
   4. Verify via `taco state ls` and S3 listing of `__opentaco_system_state/` and `myapp/prod/`.
 
 These prototypes support a crisp demo while the M1 shape contract remains documented above.
+
+### Auth scaffolding (stubs in this repo)
+
+To prepare for OIDC, JWTs, STS, and RBAC without gating existing flows, this repo includes stubbed shapes that compile and return predictable responses:
+
+- New packages:
+  - `internal/auth/`, `internal/oidc/`, `internal/sts/`, `internal/rbac/`, `internal/middleware/`.
+- New routes (Echo):
+  - `POST /v1/auth/exchange` → 501
+  - `POST /v1/auth/token` → 501
+  - `POST /v1/auth/issue-s3-creds` → 501
+  - `GET  /v1/auth/me` → 200 stub
+  - `GET  /oidc/jwks.json` → 200 with empty `keys`
+- New CLI commands (stubs):
+  - `taco login`, `taco creds --json`, `taco whoami`.
+
+Notes:
+- These are scaffolds only and do not enforce auth/RBAC yet; existing S3 adapter, HTTP backend proxy, CLI, and provider behavior remain intact.
+- Placeholder docs added and will be populated as auth lands: `docs/backend_profile_guide.md`, `docs/auth_config_examples.md`, `docs/final_spec_state_auth_sts.md`.
 
 ---
 

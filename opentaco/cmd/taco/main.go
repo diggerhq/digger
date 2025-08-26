@@ -1,13 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"os"
+    "fmt"
+    "os"
+
+    "github.com/diggerhq/digger/opentaco/cmd/taco/commands"
 )
 
 func main() {
-	if err := Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+    if err := commands.Execute(); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
+    }
 }
