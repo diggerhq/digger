@@ -39,6 +39,19 @@ if [ "$ARTIFACT_COUNT" -eq 0 ]; then
   exit 0
 fi
 
+# Check if AWS CLI is available and credentials are configured
+if ! command -v aws &> /dev/null; then
+  echo "Error: AWS CLI is not installed or not in PATH"
+  exit 1
+fi
+
+# Verify AWS credentials are available
+if ! aws sts get-caller-identity --region "$REGION" &> /dev/null; then
+  echo "Error: AWS credentials are not properly configured or are invalid"
+  echo "Please ensure AWS credentials are set up correctly before running this script"
+  exit 1
+fi
+
 # Upload cache to S3
 echo "Saving cache to S3 bucket: $BUCKET (region: $REGION)"
 echo "Uploading $ARTIFACT_COUNT files"
