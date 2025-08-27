@@ -1,6 +1,7 @@
 package execution
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -245,7 +246,8 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 			var err error
 			var stdout, stderr string
-			isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
+			//isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
+			err = errors.New("Test Error")
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v, stdout: %v, stderr: %v", err, stdout, stderr)
 			}
