@@ -331,7 +331,6 @@ runs:
 
     - name: restore-s3-cache
       shell: bash
-      if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
       run: |
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
@@ -610,7 +609,6 @@ runs:
 
     - name: save-s3-cache
       shell: bash
-      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
       run: |
         BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
         REGION="${{ inputs.cache-dependencies-s3-region }}"
