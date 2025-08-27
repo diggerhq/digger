@@ -289,7 +289,6 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
 		}
 		plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
-
 		if err != nil {
 			reportError(d.Reporter, err.Error())
 			slog.Debug("error post processing plan",
@@ -369,7 +368,6 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 		var err error
 		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
-			reportError(d.Reporter, err.Error())
 			return nil, false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}
 	}
