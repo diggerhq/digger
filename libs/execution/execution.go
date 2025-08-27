@@ -1,7 +1,6 @@
 package execution
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -247,13 +246,14 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			var err error
 			var stdout, stderr string
 			isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
-			err = errors.New("Test Error")
 			if err != nil {
+				reportTerraformError(d.Reporter, stderr)
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v, stdout: %v, stderr: %v", err, stdout, stderr)
 			}
 
 			plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(stdout)
 			if err != nil {
+				reportError(d.Reporter, err.Error())
 				slog.Debug("error post processing plan",
 					"error", err,
 					"plan", plan,
@@ -276,7 +276,6 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			slog.Debug("adding plan file path to environment", "DIGGER_PLANFILE", d.PlanPathProvider.LocalPlanFilePath())
 			d.RunEnvVars["DIGGER_PLANFILE"] = d.PlanPathProvider.LocalPlanFilePath()
 			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
-			err = errors.New("Test Error Run")
 			if err != nil {
 				reportError(d.Reporter, err.Error())
 				return nil, false, false, "", "", fmt.Errorf("error running command: %v", err)
@@ -286,13 +285,14 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 	if !hasPlanStep {
 		rawPlan, _, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
-		err = errors.New("Test Error hasPlanStep")
 		if err != nil {
+			reportTerraformError(d.Reporter, err.Error())
 			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
 		}
 		plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
-		err = errors.New("Test Error postProcessPlan")
+
 		if err != nil {
+			reportError(d.Reporter, err.Error())
 			slog.Debug("error post processing plan",
 				"error", err,
 				"plan", plan,
@@ -311,11 +311,14 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_uti
 	showArgs := make([]string, 0)
 	terraformPlanJsonOutputString, _, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
 	if err != nil {
+		reportTerraformError(d.Reporter, err.Error())
 		return "", "", nil, false, fmt.Errorf("error running terraform show: %v", err)
 	}
 
 	isEmptyPlan, planSummary, err := d.IacUtils.GetSummaryFromPlanJson(terraformPlanJsonOutputString)
+	err = errors.New("some error")
 	if err != nil {
+		reportError(d.Reporter, err.Error())
 		return "", "", nil, false, fmt.Errorf("error checking for empty plan: %v", err)
 	}
 
@@ -323,6 +326,7 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_uti
 		nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
 		file, err := os.Create(nonEmptyPlanFilepath)
 		if err != nil {
+			reportError(d.Reporter, err.Error())
 			return "", "", nil, false, fmt.Errorf("unable to create file: %v", err)
 		}
 		defer file.Close()
@@ -331,12 +335,14 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_uti
 	if d.PlanStorage != nil {
 		fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
 		if err != nil {
+			reportError(d.Reporter, err.Error())
 			fmt.Println("Error reading file:", err)
 			return "", "", nil, false, fmt.Errorf("error reading file bytes: %v", err)
 		}
 
 		err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
+			reportError(d.Reporter, err.Error())
 			fmt.Println("Error storing artifact file:", err)
 			return "", "", nil, false, fmt.Errorf("error storing artifact file: %v", err)
 
@@ -370,6 +376,7 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 		var err error
 		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
+			reportError(d.Reporter, err.Error())
 			return nil, false, "", fmt.Errorf("error retrieving plan: %v", err)
 		}
 	}
