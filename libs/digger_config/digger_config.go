@@ -883,43 +883,28 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 }
 
 func (c *DiggerConfig) GetProject(projectName string) *Project {
-	return c.GetProjectByNameOrAlias(projectName)
-}
-
-func (c *DiggerConfig) GetProjectByNameOrAlias(projectNameOrAlias string) *Project {
-	// First try to find by name for exact match
 	for _, project := range c.Projects {
-		if projectNameOrAlias == project.Name {
-			slog.Debug("found project by name", "projectNameOrAlias", projectNameOrAlias, "projectName", project.Name)
+		if projectName == project.Name {
 			return &project
 		}
 	}
-	
-	// Then try to find by alias if no exact name match
-	for _, project := range c.Projects {
-		if projectNameOrAlias == project.Alias && project.Alias != "" {
-			slog.Debug("found project by alias", "projectNameOrAlias", projectNameOrAlias, "projectName", project.Name, "projectAlias", project.Alias)
-			return &project
-		}
-	}
-	
-	slog.Debug("project not found by name or alias", "projectNameOrAlias", projectNameOrAlias)
+	slog.Debug("project not found by name", "projectName", projectName)
 	return nil
 }
 
-func (c *DiggerConfig) GetProjects(projectNameOrAlias string) []Project {
-	if projectNameOrAlias == "" {
+func (c *DiggerConfig) GetProjects(projectName string) []Project {
+	if projectName == "" {
 		slog.Debug("returning all projects", "count", len(c.Projects))
 		return c.Projects
 	}
 
-	project := c.GetProjectByNameOrAlias(projectNameOrAlias)
+	project := c.GetProject(projectName)
 	if project == nil {
-		slog.Debug("no project found for name or alias", "projectNameOrAlias", projectNameOrAlias)
+		slog.Debug("no project found for name", "projectName", projectName)
 		return nil
 	}
 
-	slog.Debug("found project by name or alias", "projectNameOrAlias", projectNameOrAlias, "projectName", project.Name)
+	slog.Debug("found project by name", "projectName")
 	return []Project{*project}
 }
 

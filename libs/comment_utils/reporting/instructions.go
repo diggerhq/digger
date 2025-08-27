@@ -5,15 +5,9 @@ import (
 	"strings"
 )
 
-func FormatAndReportExampleCommands(projectName string, projectAlias string, reporter Reporter) error {
+func FormatAndReportExampleCommands(projectName string, reporter Reporter) error {
 	// Escape special shell characters to prevent command injection
-	projectDisplayName := projectName
-	
-	if projectAlias != "" {
-		projectDisplayName = projectAlias
-	}	
-
-	escapedProjectDisplayName := strings.NewReplacer(
+	escapedProjectName := strings.NewReplacer(
 		"`", "\\`",
 		" ", "\\ ",
 		"\"", "\\\"",
@@ -24,8 +18,7 @@ func FormatAndReportExampleCommands(projectName string, projectAlias string, rep
 		";", "\\;",
 		"(", "\\(",
 		")", "\\)",
-		"/", "\\/", // Add this line to escape forward slashes
-	).Replace(projectDisplayName)
+	).Replace(projectName)
 
 	commands := fmt.Sprintf(`
 ▶️ To apply these changes, run the following command:
@@ -43,7 +36,7 @@ digger apply
 `+"```"+`bash
 digger unlock
 `+"```"+`
-`, escapedProjectDisplayName)
+`, escapedProjectName)
 
 	var formatter func(string) string
 	if reporter.SupportsMarkdown() {
