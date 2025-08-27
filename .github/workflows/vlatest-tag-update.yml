@@ -73,7 +73,6 @@ jobs:
               body: 'Automated vLatest release from `develop`.',
               draft: false,
               prerelease: false,
-              // If supported on your repo, this marks it as the "Latest" on the Releases page.
-              make_latest: 'true'
+              make_latest: 'false'
             });
             core.info(`Created release ${res.data.html_url}`);
