@@ -344,7 +344,7 @@ runs:
         
         chmod +x "$SCRIPT_PATH"
         "$SCRIPT_PATH" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
-      if: ${{ inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
+      if: ${{ inputs.cache-dependencies-s3 == 'true' }}
 
     # Then terraform setup happens...
     - name: Setup Terraform
@@ -622,7 +622,7 @@ runs:
         
         chmod +x "$SCRIPT_PATH"
         "$SCRIPT_PATH" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
-      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' && inputs.cache-dependencies-s3-bucket != '' && inputs.setup-aws == 'true' }}
+      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' }}
 
 branding:
   icon: globe
