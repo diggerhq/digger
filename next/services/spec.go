@@ -141,7 +141,6 @@ func GetRunNameFromJob(job model.DiggerJob) (*string, error) {
 	batchIdShort := batch.ID[:8]
 	diggerCommand := fmt.Sprintf("digger %v", batch.BatchType)
 	projectName := jobSpec.ProjectName
-
 	requestedBy := jobSpec.RequestedBy
 	prNumber := *jobSpec.PullRequestNumber
 
