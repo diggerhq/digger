@@ -25,7 +25,8 @@ to clean up older caches using a certain cycle.
 
 You can cache in AWS s3 rather than artefacts. This requires a bucket for caching and setting similar settings:
 
-``` - uses: diggerhq/digger@vLatest
+```
+    - uses: diggerhq/digger@vLatest
         with:
             cache-dependencies-s3: true
             cache-dependencies-s3-bucket: s3://terraform-cache-1756322349465/cache
