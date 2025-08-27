@@ -1,7 +1,13 @@
 package execution
 
 import (
+	"errors"
 	"fmt"
+	"github.com/diggerhq/digger/libs/iac_utils"
+	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/storage"
+	"github.com/samber/lo"
 	"log/slog"
 	"os"
 	"path"
@@ -9,12 +15,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/storage"
-	"github.com/samber/lo"
 
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
