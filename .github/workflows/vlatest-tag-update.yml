@@ -1,4 +1,4 @@
-name: Recreate vLatest from develop
+name: Recreate vLatest release from develop
 
 on:
   workflow_dispatch:
