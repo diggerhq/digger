@@ -904,7 +904,7 @@ func (c *DiggerConfig) GetProjects(projectName string) []Project {
 		return nil
 	}
 
-	slog.Debug("found project by name", "projectName")
+	slog.Debug("found project by name", "projectName", projectName)
 	return []Project{*project}
 }
 

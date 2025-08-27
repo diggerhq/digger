@@ -1905,10 +1905,10 @@ func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporte
 	project := config.GetProject(projectName)
 	if project == nil {
 		slog.Error("Project not found in digger.yml",
-			"projectNameOrAlias", projectName,
+			"projectName", projectName,
 			"issueNumber", issueNumber,
 		)
-		commentReporterManager.UpdateComment(fmt.Sprintf("could not find project %v in digger.yml.", projectName))
+		commentReporterManager.UpdateComment(fmt.Sprintf("could not find project %v in digger.yml", projectName))
 		return fmt.Errorf("could not find project %v in digger.yml", projectName)
 	}
 

@@ -149,14 +149,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, project)
 
 		if !projectFound {
-			// Log available projects and aliases to help with debugging
+			// Log available projects to help with debugging
 			var availableProjects []string
 			for _, p := range diggerConfig.Projects {
-				if p.Alias != "" && p.Alias != p.Name {
-					availableProjects = append(availableProjects, fmt.Sprintf("%s (alias: %s)", p.Name, p.Alias))
-				} else {
-					availableProjects = append(availableProjects, p.Name)
-				}
+				availableProjects = append(availableProjects, p.Name)
 			}
 			slog.Error("Project not found in digger configuration",
 				"requestedProject", project,
@@ -382,21 +378,12 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 }
 
 // Helper function to search for a project in the configuration
-func findProjectInConfig(projects []digger_config.Project, projectNameOrAlias string) (digger_config.Project, bool) {
-	// First try to find by name for exact match
+func findProjectInConfig(projects []digger_config.Project, projectName string) (digger_config.Project, bool) {
 	for _, config := range projects {
-		if config.Name == projectNameOrAlias {
+		if config.Name == projectName {
 			return config, true
 		}
 	}
-	
-	// Then try to find by alias if no exact name match
-	for _, config := range projects {
-		if config.Alias == projectNameOrAlias && config.Alias != "" {
-			return config, true
-		}
-	}
-	
 	return digger_config.Project{}, false
 }
 
