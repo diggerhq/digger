@@ -211,6 +211,19 @@ inputs:
     description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
     required: false
     default: ''
+  cache-dependencies-s3:
+    description: "Use S3 for caching terraform/terragrunt dependencies"
+    required: false
+    default: 'false'
+  cache-dependencies-s3-bucket:
+    description: "S3 bucket URL for caching (e.g., s3://mybucket/cache)"
+    required: false
+    default: ''
+  cache-dependencies-s3-region:
+    description: "AWS region for S3 cache bucket"
+    required: false
+    default: 'us-east-1'
+
 
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
@@ -316,6 +329,24 @@ runs:
           digger-cache
       if: ${{ inputs.cache-dependencies == 'true' }}
 
+    - name: restore-s3-cache
+      shell: bash
+      run: |
+        BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
+        REGION="${{ inputs.cache-dependencies-s3-region }}"
+        
+        SCRIPT_PATH="${{ github.action_path }}/scripts/s3-cache-download.bash"
+        if [ ! -f "$SCRIPT_PATH" ]; then
+          echo "::error::S3 cache download script not found at $SCRIPT_PATH"
+          echo "Please make sure the script exists and is properly installed."
+          exit 1
+        fi
+        
+        chmod +x "$SCRIPT_PATH"
+        "$SCRIPT_PATH" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
+      if: ${{ inputs.cache-dependencies-s3 == 'true' }}
+
+    # Then terraform setup happens...
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
@@ -429,8 +460,11 @@ runs:
 
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: 'true'
-        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
+        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
           if [[ ${{ inputs.ee }} == "true" ]]; then
@@ -476,8 +510,11 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
-        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
+        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger
       shell: bash
@@ -524,8 +561,11 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
-        TG_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ inputs.cache-dependencies == 'true' && 1 || 0 }}
+        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
+        TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       id: digger-local-run
       shell: bash
@@ -566,6 +606,23 @@ runs:
       with:
         path: ${{ env.TF_PLUGIN_CACHE_DIR }}
         key: digger-cache-${{ hashFiles('**/cache') }}
+
+    - name: save-s3-cache
+      shell: bash
+      run: |
+        BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
+        REGION="${{ inputs.cache-dependencies-s3-region }}"
+        
+        SCRIPT_PATH="${{ github.action_path }}/scripts/s3-cache-upload.bash"
+        if [ ! -f "$SCRIPT_PATH" ]; then
+          echo "::error::S3 cache upload script not found at $SCRIPT_PATH"
+          echo "Please make sure the script exists and is properly installed."
+          exit 1
+        fi
+        
+        chmod +x "$SCRIPT_PATH"
+        "$SCRIPT_PATH" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
+      if: ${{ always() && inputs.cache-dependencies-s3 == 'true' }}
 
 branding:
   icon: globe

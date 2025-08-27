@@ -21,6 +21,17 @@ The hashing of directories ensures that the cache is only saved if the contents 
 cache is immutable so new caches will be new entries in the cache. Digger currently does not prune older caches so you may need
 to clean up older caches using a certain cycle.
 
+## S3 caching
+
+You can cache in AWS s3 rather than artefacts. This requires a bucket for caching and setting similar settings:
+
+``` - uses: diggerhq/digger@vLatest
+        with:
+            cache-dependencies-s3: true
+            cache-dependencies-s3-bucket: s3://terraform-cache-1756322349465/cache
+            cache-dependencies-s3-region: us-east-1
+```
+
 ## Self-hosted runners and volumes caching
 
 If you are using self-hosted runners with github it might be overkill on your bandwidth to load and restore from cache. In this case it might be better to mount
