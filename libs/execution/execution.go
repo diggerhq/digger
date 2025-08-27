@@ -246,7 +246,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 			var err error
 			var stdout, stderr string
-			//isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
+			isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
 			err = errors.New("Test Error")
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v, stdout: %v, stderr: %v", err, stdout, stderr)
@@ -276,6 +276,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			slog.Debug("adding plan file path to environment", "DIGGER_PLANFILE", d.PlanPathProvider.LocalPlanFilePath())
 			d.RunEnvVars["DIGGER_PLANFILE"] = d.PlanPathProvider.LocalPlanFilePath()
 			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
+			err = errors.New("Test Error Run")
 			if err != nil {
 				return nil, false, false, "", "", fmt.Errorf("error running command: %v", err)
 			}
@@ -284,10 +285,12 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 
 	if !hasPlanStep {
 		rawPlan, _, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
+		err = errors.New("Test Error hasPlanStep")
 		if err != nil {
 			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
 		}
 		plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
+		err = errors.New("Test Error postProcessPlan")
 		if err != nil {
 			slog.Debug("error post processing plan",
 				"error", err,
