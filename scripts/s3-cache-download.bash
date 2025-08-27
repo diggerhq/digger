@@ -25,10 +25,8 @@ if [ -z "$CACHE_DIR" ]; then
 fi
 
 # Ensure cache directory exists
-if [ ! -d "$CACHE_DIR" ]; then
-  echo "Creating cache directory: $CACHE_DIR"
-  mkdir -p "$CACHE_DIR"
-fi
+mkdir -p "$CACHE_DIR"
+echo "Ensuring cache directory exists: $CACHE_DIR"
 
 # Download cache from S3
 echo "Restoring cache from S3 bucket: $BUCKET (region: $REGION)"
