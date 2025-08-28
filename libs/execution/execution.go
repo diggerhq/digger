@@ -2,6 +2,11 @@ package execution
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/libs/iac_utils"
+	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/storage"
+	"github.com/samber/lo"
 	"log/slog"
 	"os"
 	"path"
@@ -9,12 +14,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/scheduler"
-	"github.com/diggerhq/digger/libs/storage"
-	"github.com/samber/lo"
 
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -247,11 +246,13 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			var stdout, stderr string
 			isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
 			if err != nil {
+				reportTerraformError(d.Reporter, stderr)
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v, stdout: %v, stderr: %v", err, stdout, stderr)
 			}
 
 			plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(stdout)
 			if err != nil {
+				reportError(d.Reporter, err.Error())
 				slog.Debug("error post processing plan",
 					"error", err,
 					"plan", plan,
@@ -275,6 +276,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			d.RunEnvVars["DIGGER_PLANFILE"] = d.PlanPathProvider.LocalPlanFilePath()
 			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
+				reportError(d.Reporter, err.Error())
 				return nil, false, false, "", "", fmt.Errorf("error running command: %v", err)
 			}
 		}
@@ -283,10 +285,12 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 	if !hasPlanStep {
 		rawPlan, _, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
 		if err != nil {
+			reportTerraformError(d.Reporter, err.Error())
 			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
 		}
 		plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
 		if err != nil {
+			reportError(d.Reporter, err.Error())
 			slog.Debug("error post processing plan",
 				"error", err,
 				"plan", plan,
