@@ -93,7 +93,9 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 			continue
 		}
 		expanded := i == 0 || !allSimilarInGroup
-		commenter := GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", project), expanded)
+		// Use alias for display with fallback to project name
+		displayName := scheduler.GetProjectAlias(job)
+		commenter := GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", displayName), expanded)
 		message = message + commenter(terraformOutputs[project]) + "\n"
 	}
 
