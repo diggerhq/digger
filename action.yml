@@ -543,6 +543,10 @@ runs:
           exit 1
         fi
 
+        if "$RAW" in [!A-Za-z0-9_./-]; then
+          echo "❌ bad chars" ; exit 1
+        fi
+
         if [[ "$RAW"  =~ \.\. || "$RAW" == : || "$RAW" != /* ]]; then
           echo "❌ traversal/colon/relative not allowed"; exit 1
         fi        
