@@ -482,16 +482,51 @@ runs:
       id: digger
       shell: bash
       run: |
+        set -euo pipefail
+        
+        echo "🔧 Downloading Digger CLI..."
+        echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Action Ref: ${actionref}"
+        
         if [[ ${{ inputs.ee }} == "true" ]]; then
           if [[ ${{ inputs.fips }} == "true" ]]; then
-            curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips -o digger
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
           else
-            curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }} -o digger
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}"
           fi
         else
-          curl -sL https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }} -o digger
+          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
         fi
+        
+        echo "Downloading from: $DOWNLOAD_URL"
+        
+        if ! curl -sL --fail "$DOWNLOAD_URL" -o digger; then
+          echo "Failed to download Digger CLI from $DOWNLOAD_URL"
+          echo ""
+          echo "Possible reasons:"
+          echo "1. The release ${actionref} might not exist"
+          echo "2. Binary for ${{ runner.os }}-${{ runner.arch }} might not be available"
+          echo "3. Network connectivity issues"
+          echo ""
+          echo "Suggestions:"
+          echo "- Check if release ${actionref} exists at: https://github.com/diggerhq/digger/releases"
+          echo "- Verify the architecture combination is supported"
+          echo "- Try using a different release version"
+          exit 1
+        fi
+        
+        if [[ ! -f digger || ! -s digger ]]; then
+          echo "Downloaded file is empty or doesn't exist"
+          exit 1
+        fi
+        
         chmod +x digger
+        
+        if [[ ! -x digger ]]; then
+          echo "Failed to make digger executable"
+          exit 1
+        fi
+        
+        echo "Successfully downloaded and prepared Digger CLI"
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         digger
