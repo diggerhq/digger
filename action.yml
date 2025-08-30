@@ -498,7 +498,7 @@ runs:
         fi
         
 
-        DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/vLattest/digger-cli-Linux-X64"
+        DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/vLatest/digger-cli-Linux-X64"
         echo "Downloading from: $DOWNLOAD_URL"
         
         if ! curl -sL --fail "$DOWNLOAD_URL" -o digger; then
