@@ -61,7 +61,8 @@
         "ee/buildkite",
         "ee/fips-140",
         "ee/ai-summaries",
-        "ee/remote-jobs"
+        "ee/remote-jobs",
+        "ee/saas"
       ]
     },
     {

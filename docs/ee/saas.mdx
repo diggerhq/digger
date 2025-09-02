@@ -1,0 +1,32 @@
+---
+title: "Try Digger EE on Cloud"
+---
+
+Digger Enterprise Edition is available as a SaaS offering. You can try it out for free by signing up at [ui.digger.dev](https://ui.digger.dev).
+The best quickstart for this is either the self-guided tour on the website or the quickstart pages found here:
+
+- [terraform](/ce/getting-started/with-terraform)
+- [opentofu](/ce/getting-started/with-opentofu)
+- [terragrunt](/ce/getting-started/with-terragrunt)
+
+Since the backend hosted on ui.digger.dev is based on the EE image it will enable you to trial the EE functions. Once you have
+the basic version of the workflow running you can [request a license key](https://digger.dev) by speaking to the team and update
+it in the digger_workflow.yml step like so:
+
+```
+      - uses: diggerhq/digger@vLatest
+        with:
+          digger-spec: ${{ inputs.spec }}
+          # ...
+          ee: 'true'
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIGGER_LICENSE_KEY: ${{ secrets.DIGGER_LICENSE_KEY }}
+```
+
+The key changes is passing `ee: true` and the license key as an env variable to the workflow. You can then proceed to perform improvements to the workflow as seen fit.
+
+
+
+
