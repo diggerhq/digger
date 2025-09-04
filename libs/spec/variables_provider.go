@@ -14,6 +14,9 @@ func (p VariablesProvider) GetVariables(variables []VariableSpec) (map[string]ma
 
 	// Group variables by their stage
 	stagedVariables := lo.GroupBy(variables, func(variable VariableSpec) string {
+		if variable.Stage == "" {
+			return "default"
+		}
 		return variable.Stage
 	})
 

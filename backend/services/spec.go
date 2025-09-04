@@ -149,29 +149,26 @@ func getVariablesSpecFromEnvMap(envVars map[string]string, stage string) []spec.
 	return variablesSpec
 }
 
-func findDuplicatesInStage(variablesSpec []spec.VariableSpec, stage string) (error) {
+func findDuplicatesInStage(variablesSpec []spec.VariableSpec, stage string, jobId string) (error) {
 	// Extract the names from VariableSpec
 	justNames := lo.Map(variablesSpec, func(item spec.VariableSpec, i int) string {
 		return item.Name
 	})
-
 	// Group names by their occurrence
 	nameCounts := lo.CountValues(justNames)
-
 	// Filter names that occur more than once
 	duplicates := lo.Keys(lo.PickBy(nameCounts, func(name string, count int) bool {
 		return count > 1
 	}))
-
 	if len(duplicates) > 0 {
-		return fmt.Errorf("duplicate variable names found in '%s' stage: %v", stage, strings.Join(duplicates, ", "))
+		return fmt.Errorf("duplicate variable names found in '%s' stage for job %s: %v", stage, jobId, strings.Join(duplicates, ", "))
 	}
-
 	return nil // No duplicates found
 }
 
 func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 	var jobSpec scheduler.JobJson
+	var jobId = job.DiggerJobID;
 	err := json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
 	if err != nil {
 		slog.Error("Could not unmarshal job spec", "jobId", job.DiggerJobID, "error", err)
@@ -182,13 +179,13 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 	commandVariables := getVariablesSpecFromEnvMap(jobSpec.CommandEnvVars, "commands")
 	runVariables := getVariablesSpecFromEnvMap(jobSpec.RunEnvVars, "run")
 
-	if err := findDuplicatesInStage(stateVariables, "state"); err != nil {
+	if err := findDuplicatesInStage(stateVariables, "state", jobId); err != nil {
 		return nil, err
 	}
-	if err := findDuplicatesInStage(commandVariables, "commands"); err != nil {
+	if err := findDuplicatesInStage(commandVariables, "commands", jobId); err != nil {
 		return nil, err
 	}
-	if err := findDuplicatesInStage(runVariables, "run"); err != nil {
+	if err := findDuplicatesInStage(runVariables, "run", jobId); err != nil {
 		return nil, err
 	}
 

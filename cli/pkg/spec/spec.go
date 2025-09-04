@@ -133,10 +133,15 @@ func RunSpec(
 	}
 
 	// Merge variables for each stage into the job's environment variables
-	for _, vars := range variablesMap {
-		job.StateEnvVars = lo.Assign(job.StateEnvVars, vars)
-		job.CommandEnvVars = lo.Assign(job.CommandEnvVars, vars)
-		job.RunEnvVars = lo.Assign(job.RunEnvVars, vars)
+	// Each stage has its own set of variables
+	if stateVars, ok := variablesMap["state"]; ok {
+		job.StateEnvVars = lo.Assign(job.StateEnvVars, stateVars)
+	}
+	if commandVars, ok := variablesMap["commands"]; ok {
+		job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandVars)
+	}
+	if runVars, ok := variablesMap["run"]; ok {
+		job.RunEnvVars = lo.Assign(job.RunEnvVars, runVars)
 	}
 
 	jobs := []scheduler.Job{job}
