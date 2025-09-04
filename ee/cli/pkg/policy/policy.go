@@ -1,7 +1,7 @@
 package policy
 
 import (
-	"github.com/diggerhq/digger/ee/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/git_utils"
 	"github.com/samber/lo"
 	"os"
 	"path"
@@ -62,7 +62,7 @@ func GetPrefixesForPath(path string, fileName string) []string {
 
 func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName string, projectDir string, fileName string) (string, error) {
 	var contents string
-	err := utils.CloneGitRepoAndDoAction(p.ManagementRepoUrl, "main", p.GitToken, func(basePath string) error {
+	err := git_utils.CloneGitRepoAndDoAction(p.ManagementRepoUrl, "main", "", p.GitToken, "", func(basePath string) error {
 		// we start with the project directory path prefixes as the highest priority
 		prefixes := GetPrefixesForPath(path.Join(basePath, projectDir), fileName)
 

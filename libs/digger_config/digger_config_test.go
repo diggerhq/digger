@@ -2,16 +2,25 @@ package digger_config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/dominikbraun/graph"
 	"github.com/go-git/go-git/v5"
+	"github.com/pkg/errors"
 
 	"github.com/stretchr/testify/assert"
 )
+
+var hclFile = `terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+
+inputs = {
+  foo = "bar"
+}
+`
 
 func setUp() (string, func()) {
 	tempDir := createTempDir()
@@ -34,7 +43,7 @@ func TestDiggerConfigWhenMultipleConfigExist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.Error(t, err, "expected error to be returned")
 	assert.ErrorContains(t, err, ErrDiggerConfigConflict.Error(), "expected error to match target error")
 	assert.Nil(t, dg, "expected diggerConfig to be nil")
@@ -75,7 +84,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "path/to/module/test", dg.GetDirectory("prod"))
@@ -90,7 +99,7 @@ func TestNoDiggerYaml(t *testing.T) {
 	defer deleteFile()
 
 	os.Chdir(tempDir)
-	_, _, _, err := LoadDiggerConfig("./", true, nil)
+	_, _, _, _, err := LoadDiggerConfig("./", true, nil, nil)
 	assert.Error(t, err, "expected error since digger.yml and digger.yaml is missing")
 }
 
@@ -112,7 +121,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	fmt.Printf("%v", err)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
@@ -155,7 +164,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	fmt.Printf("%v", err)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
@@ -176,7 +185,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "default", dg.Projects[0].Workflow)
@@ -198,7 +207,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "path/to/module", dg.GetDirectory("dev"))
@@ -223,7 +232,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, Step{Action: "run", Value: "echo \"hello\"", Shell: ""}, dg.Workflows["myworkflow"].Plan.Steps[0], "parsed struct does not match expected struct")
 }
@@ -268,7 +277,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, []EnvVar{
 		{Name: "TF_VAR_state", Value: "s3://mybucket/terraform.tfstate"},
@@ -308,7 +317,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.Equal(t, Step{Action: "run", Value: "rm -rf .terraform", Shell: ""}, dg.Workflows["dev"].Plan.Steps[0], "parsed struct does not match expected struct")
 	assert.Equal(t, Step{Action: "init", ExtraArgs: nil, Shell: ""}, dg.Workflows["dev"].Plan.Steps[1], "parsed struct does not match expected struct")
@@ -317,6 +326,84 @@ workflows:
 	assert.Equal(t, Step{Action: "run", Value: "rm -rf .terraform", Shell: ""}, dg.Workflows["default"].Plan.Steps[0], "parsed struct does not match expected struct")
 	assert.Equal(t, Step{Action: "init", ExtraArgs: nil, Shell: ""}, dg.Workflows["default"].Plan.Steps[1], "parsed struct does not match expected struct")
 	assert.Equal(t, Step{Action: "plan", ExtraArgs: []string{"-var-file=vars/dev.tfvars"}, Shell: ""}, dg.Workflows["default"].Plan.Steps[2], "parsed struct does not match expected struct")
+}
+
+func TestProjectWithMisconfiguredRunStepThrowsError(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+  - name: "dev"
+    dir: "dev"
+  - name: "staging"
+    dir: "staging"
+  - name: "prod"
+    dir: "prod"
+workflows:
+  default:
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger unlock"]
+    plan:
+      steps:
+      - init:
+          extra_args: ["-backend-config=tf_backend.tfbackend" ]
+      - run:
+          command: terragrunt plan -input=false -out=$PLANFILE
+    apply:
+      steps:
+      - init:
+          extra_args: ["-backend-config=tf_backend.tfbackend" ]
+      - apply:
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.Error(t, err, "expected error to be raised")
+	assert.Contains(t, err.Error(), "step.run must be a string")
+}
+
+func TestProjectWithMisconfiguredRunShellMisconfiguredThrowsError(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+  - name: "dev"
+    dir: "dev"
+  - name: "staging"
+    dir: "staging"
+  - name: "prod"
+    dir: "prod"
+workflows:
+  default:
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger unlock"]
+    plan:
+      steps:
+      - init:
+          extra_args: ["-backend-config=tf_backend.tfbackend" ]
+      - run: terragrunt plan -input=false -out=$PLANFILE
+        shell:
+          - incorrect
+          - "bash"
+    apply:
+      steps:
+      - init:
+          extra_args: ["-backend-config=tf_backend.tfbackend" ]
+      - apply:
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
+	defer deleteFile()
+
+	_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.Error(t, err, "expected error to be raised")
+	assert.Contains(t, err.Error(), "step.run.shell must be a string")
 }
 
 func TestDiggerGenerateProjects(t *testing.T) {
@@ -338,7 +425,7 @@ generate_projects:
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev_test1", dg.Projects[0].Name)
@@ -371,7 +458,7 @@ generate_projects:
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev_test1_utils", dg.Projects[0].Name)
@@ -404,7 +491,7 @@ generate_projects:
 		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
 		assert.NoError(t, err, "expected error to be nil")
 	}
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev", dg.Projects[0].Name)
@@ -419,7 +506,7 @@ func TestMissingProjectsReturnsError(t *testing.T) {
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
-	config, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	config, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, len(config.Projects), 0)
 }
@@ -435,20 +522,24 @@ projects:
   workflow: my_custom_workflow
 workflows:
   my_custom_workflow:
-    steps:
-      - run: echo "run"
-      - init: terraform init
-      - plan: terraform plan
+    plan:
+      filter_regex: "myregex"
+      steps:
+        - run: echo "run"
+        - init: 
+        - plan:
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "my_custom_workflow", dg.Projects[0].Workflow)
 	_, ok := dg.Workflows["my_custom_workflow"]
 	assert.True(t, ok)
+	r := dg.Workflows["my_custom_workflow"].Plan.FilterRegex
+	assert.Equal(t, "myregex", *r)
 }
 
 func TestDiggerConfigCustomWorkflowMissingParams(t *testing.T) {
@@ -465,7 +556,7 @@ projects:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.Error(t, err, "failed to find workflow digger_config 'my_custom_workflow' for project 'my-first-app'")
 
 	// steps block is missing for workflows
@@ -480,7 +571,7 @@ workflows:
 	deleteFile = createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	diggerConfig, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	diggerConfig, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.Equal(t, "my_custom_workflow", diggerConfig.Projects[0].Workflow)
 	workflow, ok := diggerConfig.Workflows["my_custom_workflow"]
 	assert.True(t, ok)
@@ -509,7 +600,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.Equal(t, "failed to find workflow digger_config 'my_custom_workflow' for project 'my-first-app'", err.Error())
 
 }
@@ -534,7 +625,7 @@ workflows:
 	deleteFile := createFile(path.Join(tempDir, "digger.yaml"), diggerCfg)
 	defer deleteFile()
 
-	_, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.Nil(t, err)
 }
 
@@ -774,7 +865,7 @@ workflows:
 		t.Run(tt.name, func(t *testing.T) {
 			deleteFile := createFile(path.Join(tempDir, "digger.yaml"), tt.diggerCfg)
 			defer deleteFile()
-			_, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+			_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 			assert.ErrorContains(t, err, tt.wantErr)
 		})
 	}
@@ -783,7 +874,7 @@ workflows:
 func createTempDir() string {
 	dir, err := os.MkdirTemp("", "tmp")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return dir
 }
@@ -792,25 +883,25 @@ func deleteTempDir(name string) {
 	err := os.RemoveAll(name)
 	if err != nil {
 		fmt.Printf("deleteTempDir error, %v", err.Error())
-		log.Fatal(err)
+		panic(err)
 	}
 }
 
 func createFile(filepath string, content string) func() {
 	f, err := os.Create(filepath)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	_, err = f.WriteString(content)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	return func() {
 		err := f.Close()
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}
 }
@@ -829,7 +920,7 @@ func createAndCloseFile(filepath string, content string) error {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			log.Printf("failed to close file %v\n", f.Name())
+			panic(errors.Errorf("failed to close file %v\n", f.Name()))
 		}
 	}(f)
 	return nil
@@ -873,7 +964,7 @@ workflows:
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "dev_test1", dg.Projects[0].Name)
@@ -894,6 +985,42 @@ workflows:
 	assert.Equal(t, []string{"modules/dontincludeme/**"}, dg.Projects[0].ExcludePatterns)
 	assert.Equal(t, []string{"modules/dontincludeme/**"}, dg.Projects[1].ExcludePatterns)
 	assert.Nil(t, dg.Projects[2].ExcludePatterns)
+
+	assert.Equal(t, 3, len(dg.Projects))
+}
+
+func TestDiggerGenerateProjectsTerragruntBlocks(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: test1
+      terragrunt: true
+      root_dir: dev
+      workspace: devdev
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+	dirsToCreate := []string{"dev/test1", "dev/test2", "dev/project", "testtt", "prod/one"}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
+		defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), hclFile)()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+	assert.Equal(t, "dev_project", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test1", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[2].Name)
+	assert.Equal(t, "test1", dg.Projects[0].BlockName)
+	assert.Equal(t, "test1", dg.Projects[1].BlockName)
+	assert.Equal(t, "test1", dg.Projects[2].BlockName)
 
 	assert.Equal(t, 3, len(dg.Projects))
 }
@@ -919,7 +1046,7 @@ generate_projects:
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, "tofu_test1", dg.Projects[0].Name)
@@ -983,7 +1110,7 @@ projects:
 	defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
 	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
 
-	_, config, _, err := LoadDiggerConfig(tempDir, true, nil)
+	_, config, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err)
 
 	print(config)
@@ -1016,7 +1143,7 @@ generate_projects:
 
 	err = createAndCloseFile(path.Join(projectDir, "digger.yml"), diggerCfg)
 	assert.NoError(t, err)
-	_, _, _, err = LoadDiggerConfig(projectDir, true, nil)
+	_, _, _, _, err = LoadDiggerConfig(projectDir, true, nil, nil)
 	assert.NoError(t, err)
 }
 
@@ -1036,18 +1163,11 @@ generate_projects:
     defaultWorkflow: default
 
 `
-	hclFile := `terraform {
-  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
-}
 
-inputs = {
-  foo = "bar"
-}
-`
 	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
 	defer createFile(path.Join(tempDir, "terragrunt.hcl"), hclFile)()
 
-	_, config, _, err := LoadDiggerConfig(tempDir, true, nil)
+	_, config, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err)
 
 	print(config)
@@ -1076,7 +1196,7 @@ generate_projects:
 
 	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
 
-	_, config, _, err := LoadDiggerConfig(tempDir, true, nil)
+	_, config, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 
@@ -1099,7 +1219,7 @@ func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, config, _, err := LoadDiggerConfig(tempDir, true, nil)
+	_, config, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, "projects_dev_test1", config.Projects[0].Name)
@@ -1146,7 +1266,7 @@ generate_projects:
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
 	assert.Equal(t, true, dg.TraverseToNestedProjects)
@@ -1180,9 +1300,41 @@ projects:
 	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
 	defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
 
-	dg, _, _, err := LoadDiggerConfig(tempDir, true, nil)
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, false, dg.AllowDraftPRs)
+}
+
+func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T) {
+	changedFiles := []string{"prod/main.tf", "dev/test/main.tf"}
+	projects := []Project{
+		Project{
+			Name: "dev",
+			Dir:  ".",
+		},
+	}
+	c := DiggerConfig{
+		Projects: projects,
+	}
+	//expectedImpactingLocations := map[string]ProjectToSourceMapping{}
+	// TODO: this behaviour doesn't make much sense, we should re-evaluate when we make it configurable
+	impactedProjects, _ := c.GetModifiedProjects(changedFiles)
+	assert.Equal(t, 1, len(impactedProjects))
+}
+
+func TestShouldDetectNestedFilesAsImpacted(t *testing.T) {
+	changedFiles := []string{"services/backend/files/config.json"}
+	projects := []Project{
+		Project{
+			Name: "services_backend",
+			Dir:  "services/backend",
+		},
+	}
+	c := DiggerConfig{
+		Projects: projects,
+	}
+	impactedProjects, _ := c.GetModifiedProjects(changedFiles)
+	assert.Equal(t, 1, len(impactedProjects))
 }
 
 func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {

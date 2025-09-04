@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"github.com/samber/lo"
 	"slices"
 
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
@@ -14,9 +15,11 @@ var IacTypePulumi IacType = "pulumi"
 
 type Job struct {
 	ProjectName        string
+	ProjectAlias       string
 	ProjectDir         string
 	ProjectWorkspace   string
 	ProjectWorkflow    string
+	Layer              uint
 	Terragrunt         bool
 	OpenTofu           bool
 	Pulumi             bool
@@ -31,9 +34,9 @@ type Job struct {
 	StateEnvVars       map[string]string
 	CommandEnvVars     map[string]string
 	StateEnvProvider   *stscreds.WebIdentityRoleProvider
-	StateRoleArn	   string
+	StateRoleArn       string
 	CommandEnvProvider *stscreds.WebIdentityRoleProvider
-	CommandRoleArn	   string
+	CommandRoleArn     string
 	CognitoOidcConfig  *configuration.AwsCognitoOidcConfig
 	SkipMergeCheck     bool
 }
@@ -46,7 +49,8 @@ type Step struct {
 }
 
 type Stage struct {
-	Steps []Step
+	FilterRegex *string
+	Steps       []Step
 }
 
 func ToConfigStep(configState configuration.Step) Step {
@@ -68,8 +72,16 @@ func ToConfigStage(configStage *configuration.Stage) *Stage {
 		steps = append(steps, ToConfigStep(step))
 	}
 	return &Stage{
-		Steps: steps,
+		Steps:       steps,
+		FilterRegex: configStage.FilterRegex,
 	}
+}
+
+func (j *Job) GetProjectAlias() string {
+	if j.ProjectAlias != "" {
+		return j.ProjectAlias
+	}
+	return j.ProjectName
 }
 
 func (j *Job) IsPlan() bool {
@@ -102,4 +114,14 @@ func IsApplyJobs(jobs []JobJson) bool {
 		isApply = isApply && job.IsApply()
 	}
 	return isApply
+}
+
+func CountUniqueLayers(jobs []Job) (uint, []uint) {
+	layerOnly := lo.Map(jobs, func(job Job, _ int) uint {
+		return job.Layer
+	})
+
+	uniqueLayers := lo.Uniq(layerOnly)
+
+	return uint(len(uniqueLayers)), uniqueLayers
 }

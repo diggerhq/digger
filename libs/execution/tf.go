@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"regexp"
@@ -15,8 +15,8 @@ type TerraformExecutor interface {
 	Init([]string, map[string]string) (string, string, error)
 	Apply([]string, *string, map[string]string) (string, string, error)
 	Destroy([]string, map[string]string) (string, string, error)
-	Plan([]string, map[string]string, string) (bool, string, string, error)
-	Show([]string, map[string]string, string) (string, string, error)
+	Plan([]string, map[string]string, string, *string) (bool, string, string, error)
+	Show([]string, map[string]string, string, bool) (string, string, error)
 }
 
 type Terraform struct {
@@ -27,14 +27,16 @@ type Terraform struct {
 func (tf Terraform) Init(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "-input=false")
 	params = append(params, "-no-color")
-	stdout, stderr, _, err := tf.runTerraformCommand("init", true, envs, params...)
+	stdout, stderr, _, err := tf.runTerraformCommand("init", true, envs, nil, params...)
 
 	// switch to workspace for next step
 	// TODO: make this an individual and isolated step
 	if tf.Workspace != "default" {
 		werr := tf.switchToWorkspace(envs)
 		if werr != nil {
-			log.Printf("Fatal: Error terraform switch to workspace %v", err)
+			slog.Error("Failed to switch workspace",
+				"workspace", tf.Workspace,
+				"error", werr)
 			return "", "", werr
 		}
 	}
@@ -48,29 +50,31 @@ func (tf Terraform) Apply(params []string, plan *string, envs map[string]string)
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, _, err := tf.runTerraformCommand("apply", true, envs, params...)
+	stdout, stderr, _, err := tf.runTerraformCommand("apply", true, envs, nil, params...)
 	return stdout, stderr, err
 }
 
 func (tf Terraform) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
-	stdout, stderr, _, err := tf.runTerraformCommand("destroy", true, envs, params...)
+	stdout, stderr, _, err := tf.runTerraformCommand("destroy", true, envs, nil, params...)
 	return stdout, stderr, err
 }
 
 func (tf Terraform) switchToWorkspace(envs map[string]string) error {
-	workspaces, _, _, err := tf.runTerraformCommand("workspace", false, envs, "list")
+	workspaces, _, _, err := tf.runTerraformCommand("workspace", false, envs, nil, "list")
 	if err != nil {
 		return err
 	}
 	workspaces = tf.formatTerraformWorkspaces(workspaces)
 	if strings.Contains(workspaces, tf.Workspace) {
-		_, _, _, err := tf.runTerraformCommand("workspace", true, envs, "select", tf.Workspace)
+		slog.Debug("Selecting existing workspace", "workspace", tf.Workspace)
+		_, _, _, err := tf.runTerraformCommand("workspace", true, envs, nil, "select", tf.Workspace)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, _, _, err := tf.runTerraformCommand("workspace", true, envs, "new", tf.Workspace)
+		slog.Debug("Creating new workspace", "workspace", tf.Workspace)
+		_, _, _, err := tf.runTerraformCommand("workspace", true, envs, nil, "new", tf.Workspace)
 		if err != nil {
 			return err
 		}
@@ -78,7 +82,7 @@ func (tf Terraform) switchToWorkspace(envs map[string]string) error {
 	return nil
 }
 
-func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool, envs map[string]string, arg ...string) (string, string, int, error) {
+func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool, envs map[string]string, filterRegex *string, arg ...string) (string, string, int, error) {
 	args := []string{command}
 	args = append(args, arg...)
 
@@ -91,18 +95,29 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 		}
 	}
 
+	regEx, err := stringToRegex(filterRegex)
+	if err != nil {
+		return "", "", 0, err
+	}
+
 	var mwout, mwerr io.Writer
 	var stdout, stderr bytes.Buffer
 	if printOutputToStdout {
-		mwout = io.MultiWriter(os.Stdout, &stdout)
-		mwerr = io.MultiWriter(os.Stderr, &stderr)
+		mwout = NewFilteringWriter(os.Stdout, &stdout, regEx)
+		mwerr = NewFilteringWriter(os.Stderr, &stderr, regEx)
 	} else {
-		mwout = io.Writer(&stdout)
-		mwerr = io.Writer(&stderr)
+		mwout = NewFilteringWriter(nil, &stdout, regEx)
+		mwerr = NewFilteringWriter(nil, &stderr, regEx)
 	}
 
 	cmd := exec.Command("terraform", expandedArgs...)
-	log.Printf("Running command: terraform %v", RedactSecrets(expandedArgs))
+	slog.Info("Running Terraform command",
+		slog.Group("command",
+			"binary", "terraform",
+			"args", RedactSecrets(expandedArgs),
+			"workingDir", tf.WorkingDir,
+		),
+	)
 	cmd.Dir = tf.WorkingDir
 
 	env := os.Environ()
@@ -113,11 +128,15 @@ func (tf Terraform) runTerraformCommand(command string, printOutputToStdout bool
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
 	if err != nil && cmd.ProcessState.ExitCode() != 2 {
-		log.Println("Error:", err)
+		slog.Error("Command execution failed",
+			"command", "terraform",
+			"exitCode", cmd.ProcessState.ExitCode(),
+			"error", err,
+		)
 	}
 
 	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err
@@ -129,29 +148,32 @@ type StdWriter struct {
 }
 
 func (tf Terraform) formatTerraformWorkspaces(list string) string {
-
 	list = strings.TrimSpace(list)
 	char_replace := strings.NewReplacer("*", "", "\n", ",", " ", "")
 	list = char_replace.Replace(list)
 	return list
 }
 
-func (tf Terraform) Plan(params []string, envs map[string]string, planArtefactFilePath string) (bool, string, string, error) {
+func (tf Terraform) Plan(params []string, envs map[string]string, planArtefactFilePath string, filterRegex *string) (bool, string, string, error) {
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
 	if planArtefactFilePath != "" {
 		params = append(params, []string{"-out", planArtefactFilePath}...)
 	}
 	params = append(params, "-lock-timeout=3m")
-	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", true, envs, params...)
+	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", true, envs, filterRegex, params...)
 	if err != nil && statusCode != 2 {
 		return false, "", "", err
 	}
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (tf Terraform) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
-	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
-	stdout, stderr, _, err := tf.runTerraformCommand("show", false, envs, params...)
+func (tf Terraform) Show(params []string, envs map[string]string, planArtefactFilePath string, returnJson bool) (string, string, error) {
+	params = append(params, "-no-color")
+	if returnJson {
+		params = append(params, "-json")
+	}
+	params = append(params, planArtefactFilePath)
+	stdout, stderr, _, err := tf.runTerraformCommand("show", false, envs, nil, params...)
 	if err != nil {
 		return "", "", err
 	}

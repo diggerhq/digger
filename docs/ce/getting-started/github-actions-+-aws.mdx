@@ -8,23 +8,32 @@ In this tutorial, you will set up Digger to automate terraform pull requests usi
 
 - A GitHub repository with valid terraform code. Here's a [demo repo](https://github.com/diggerhq/quickstart-actions-aws)
 - Your AWS credentials. See [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
-- Digger [GitHub App](https://github.com/apps/digger-cloud/installations/select_target) installed
+
+# Step 1: create your Digger account
+
+Head to [ui.digger.dev](https://ui.digger.dev) and sign up using your preferred method.
+
+You should see onboarding screen after you sign up, which guides you to install the github app and perform the next steps
+
+# Step 2: install the Digger GitHub App
+
+Install the Digger [GitHub App](https://github.com/apps/digger-pro) into your repository.
 
 <Note>
 Digger GitHub App does not need access to your cloud account, it just starts jobs in your CI. All sensitive data stays in your CI job.
 
-You can also [self-host Digger orchestrator](/self-host/deploy-docker) with a private GiHub app and issue your own token
+You can also [self-host Digger orchestrator](/ce/self-host/deploy-docker) with a private GiHub app and issue your own token
 
 </Note>
 
-# Create Action Secrets with AWS credentials (you can also [use OIDC](https://docs.digger.dev/cloud-providers/authenticating-with-oidc-on-aws))
+# Step 3: Create Action Secrets with AWS credentials (you can also [use OIDC](/ce/cloud-providers/authenticating-with-oidc-on-aws)
 
 In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
 
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 
-# Create digger.yml
+# Step 4: Create digger.yml
 
 This file contains Digger configuration and needs to be placed at the root level of your repository. Assuming your terraform code is in the `prod` directory:
 
@@ -34,7 +43,7 @@ projects:
   dir: prod
 ```
 
-# Create Github Actions workflow file
+# Step 5: Create Github Actions workflow file
 
 Place it at `.github/workflows/digger_workflow.yml` (name is important!)
 
@@ -70,6 +79,7 @@ jobs:
         with:
           digger-spec: ${{ inputs.spec }}
           setup-aws: true
+          setup-terraform: true
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         env:
@@ -77,7 +87,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-# Create a PR to verify that it works
+# Step 6: Create a PR to verify that it works
 
 Terraform will run an existing plan against your code.
 

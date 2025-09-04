@@ -1,0 +1,312 @@
+---
+title: "With Terragrunt"
+---
+
+In this tutorial, you will set up Digger to automate Terragrunt pull requests using Github Actions
+
+**Prerequisites**
+- A GitHub repository with valid Terragrunt code
+- Your cloud provider credentials:
+  - For AWS: [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
+  - For GCP: [Hashicorp's GCP tutorial](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
+  - For Azure: [Hashicorp's Azure tutorial](https://developer.hashicorp.com/terraform/tutorials/azure-get-started/azure-build)
+
+<Steps>
+  <Step title="Create your Digger account">
+
+Head to [ui.digger.dev](https://ui.digger.dev) and sign up using your preferred method.
+
+You should see an empty dashboard after you sign up.
+  </Step>
+
+  <Step title="Install the Digger GitHub App">
+
+Install the Digger [GitHub App](https://github.com/apps/digger-pro/installations/select_target) into your repository.
+
+<Note>
+Digger GitHub App does not need access to your cloud account, it just starts jobs in your CI. All sensitive data stays in your CI job.
+
+You can also [self-host Digger orchestrator](/ce/self-host/deploy-docker) with a private GiHub app and issue your own token
+
+</Note>
+  </Step>
+
+  <Step title="Create Action Secrets with cloud credentials">
+
+In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
+
+<Tabs>
+  <Tab title="AWS">
+    - `AWS_ACCESS_KEY_ID`
+    - `AWS_SECRET_ACCESS_KEY`
+    
+    You can also [use OIDC](/ce/cloud-providers/authenticating-with-oidc-on-aws) for AWS authentication.
+  </Tab>
+  <Tab title="GCP">
+    - `GCP_CREDENTIALS` - contents of your GCP Service Account Key json file
+    
+    You can also [use OIDC](/gcp/federated-oidc-access/) for GCP authentication.
+  </Tab>
+  <Tab title="Azure">
+    - `AZURE_CLIENT_ID` - Your Azure App Registration Client ID
+    - `AZURE_TENANT_ID` - Your Azure Tenant ID
+    - `AZURE_SUBSCRIPTION_ID` - Your Azure Subscription ID
+    
+    You'll need to configure OIDC authentication by setting up federated credentials in your Azure App Registration. See [Azure OIDC setup](/ce/azure-specific/azure) for details.
+  </Tab>
+</Tabs>
+  </Step>
+
+  <Step title="Create digger.yml">
+
+Terragrunt projects can be configured in two ways:
+
+## Option A: Individual projects (for smaller setups)
+
+If you have a few Terragrunt modules, you can list them individually:
+
+```yaml
+projects:
+- name: dev
+  dir: dev
+  terragrunt: true
+- name: prod
+  dir: prod
+  terragrunt: true
+```
+
+## Option B: Generated projects (recommended for larger setups)
+
+For Terragrunt monorepos with many modules, use the blocks syntax to automatically generate projects:
+
+```yaml
+generate_projects:
+  blocks:
+    - block_name: dev
+      terragrunt: true
+      root_dir: "dev/"
+      workflow: default
+    - block_name: staging
+      terragrunt: true
+      root_dir: "staging/"
+      workflow: default
+    - block_name: prod
+      terragrunt: true
+      root_dir: "prod/"
+      workflow: default
+
+workflows:
+  default:
+    plan:
+      steps:
+        - init
+        - plan
+    apply:
+      steps:
+        - init
+        - apply
+```
+
+This approach automatically discovers all Terragrunt modules under each directory and creates projects for them. Digger will also handle dependencies between modules.
+
+<Note>
+For more advanced configurations and performance optimization for large monorepos, see [Using Terragrunt](/ce/howto/using-terragrunt) and [Generate Projects](/ce/howto/generate-projects#blocks-syntax-with-terragrunt).
+</Note>
+  </Step>
+
+  <Step title="Create Github Actions workflow file">
+
+Place it at `.github/workflows/digger_workflow.yml` (name is important!)
+
+<Tabs>
+  <Tab title="AWS">
+    ```yaml
+    name: Digger Workflow
+
+    on:
+      workflow_dispatch:
+        inputs:
+          spec:
+            required: true
+          run_name:
+            required: false
+
+    run-name: '${{inputs.run_name}}'
+
+    jobs:
+      digger-job:
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write      # required to merge PRs
+          actions: write       # required for plan persistence
+          id-token: write      # required for workload-identity-federation
+          pull-requests: write # required to post PR comments
+          issues: read         # required to check if PR number is an issue or not
+          statuses: write      # required to validate combined PR status
+
+        steps:
+          - uses: actions/checkout@v4
+          - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+            run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+          - uses: diggerhq/digger@vLatest
+            with:
+              digger-spec: ${{ inputs.spec }}
+              setup-aws: true
+              setup-terragrunt: true
+              terragrunt-version: 0.44.1
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            env:
+              GITHUB_CONTEXT: ${{ toJson(github) }}
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    ```
+  </Tab>
+  <Tab title="GCP">
+    ```yaml
+    name: Digger
+
+    on:
+      workflow_dispatch:
+        inputs:
+          spec:
+            required: true
+          run_name:
+            required: false
+
+    run-name: '${{inputs.run_name}}'
+
+    jobs:
+      digger-job:
+        name: Digger
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write      # required to merge PRs
+          actions: write       # required for plan persistence
+          id-token: write      # required for workload-identity-federation
+          pull-requests: write # required to post PR comments
+          issues: read         # required to check if PR number is an issue or not
+          statuses: write      # required to validate combined PR status
+        steps:
+        - uses: actions/checkout@v4
+        - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+          run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+        - id: 'auth'
+          uses: 'google-github-actions/auth@v1'
+          with:
+            credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+            create_credentials_file: true
+        - name: 'Set up Cloud SDK'
+          uses: 'google-github-actions/setup-gcloud@v1'
+        - name: 'Use gcloud CLI'
+          run: 'gcloud info'
+        - name: digger run
+            uses: diggerhq/digger@vLatest
+            with:
+              digger-spec: ${{ inputs.spec }}
+              setup-aws: false
+              setup-terragrunt: true
+              terragrunt-version: 0.44.1
+            env:
+              GITHUB_CONTEXT: ${{ toJson(github) }}
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    ```
+    
+    This workflow includes additional steps for GCP:
+    - Authenticate into GCP using Google's official [Auth action](https://github.com/google-github-actions/auth). Note the `create_credentials_file: true` option; without it, subsequent steps that rely on [Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc) will not work.
+    - Set up Google Cloud SDK for use in the subsequent steps via Google's official [Setup-gcloud action](https://github.com/google-github-actions/setup-gcloud)
+    - Verify that GCP is configured correctly by running `gcloud info`
+  </Tab>
+  <Tab title="Azure">
+    ```yaml
+    name: Digger Workflow
+
+    on:
+      workflow_dispatch:
+        inputs:
+          spec:
+            required: true
+          run_name:
+            required: false
+
+    run-name: '${{inputs.run_name}}'
+
+    jobs:
+      digger-job:
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write      # required to merge PRs
+          actions: write       # required for plan persistence
+          id-token: write      # required for workload-identity-federation
+          pull-requests: write # required to post PR comments
+          issues: read         # required to check if PR number is an issue or not
+          statuses: write      # required to validate combined PR status
+
+        steps:
+          - uses: actions/checkout@v4
+          - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+            run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+          - uses: diggerhq/digger@vLatest
+            with:
+              digger-spec: ${{ inputs.spec }}
+              setup-azure: true
+              azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+              azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+              azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+              setup-terragrunt: true
+              terragrunt-version: 0.44.1
+            env:
+              GITHUB_CONTEXT: ${{ toJson(github) }}
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+              ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+              ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    ```
+    
+    This workflow uses Azure OIDC authentication, which requires:
+    - Setting up federated credentials in your Azure App Registration for GitHub Actions
+    - The `id-token: write` permission for workload identity federation
+    - ARM_* environment variables for the Azure Terraform provider
+  </Tab>
+</Tabs>
+
+<Note>
+Notice that we use `setup-terragrunt: true` instead of `setup-terraform`. Terragrunt will handle the Terraform binary installation internally.
+</Note>
+  </Step>
+
+  <Step title="Create a PR to verify that it works">
+
+Terragrunt will run an existing plan against your code.
+
+Make any change to your Terragrunt code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of Terragrunt Plan added as a comment to your PR.
+
+Then you can add a comment like `digger apply` and shortly after apply output will be added as comment too.
+  </Step>
+
+</Steps>
+
+## Demo repositories
+
+- [Individual projects demo](https://github.com/diggerhq/demo-terragrunt-gcp)
+- [Generated projects demo](https://github.com/diggerhq/test-terragrunt-racecondition)
+
+## Important notes
+
+### SOPS integration
+
+If you use `sops_decrypt_file` in your `terragrunt.hcl`, you need to handle the case when Digger generates projects in the backend. Use the `DIGGER_GENERATE_PROJECT` environment variable:
+
+```hcl
+locals {
+  secrets = get_env("DIGGER_GENERATE_PROJECT", "false") == "true" ? {} : yamldecode(sops_decrypt_file("secrets.yaml"))
+}
+```
+
+This prevents SOPS decryption errors during project generation.
+
+## Performance optimization
+
+For very large Terragrunt monorepos, consider:
+- Using the blocks syntax to segment your repository
+- Implementing [config caching](/ce/howto/generate-projects#caching-digger-config) for faster PR processing
+- Organizing modules by environment or provider to minimize traversal time

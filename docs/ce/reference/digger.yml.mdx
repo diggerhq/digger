@@ -98,15 +98,17 @@ workflows:
 
 ### Top-level
 
-| Key                         | Type                                                       | Default | Required | Description                                            | Notes |
-| --------------------------- | ---------------------------------------------------------- | ------- | -------- | ------------------------------------------------------ | ----- |
-| telemetry                   | boolean                                                    | true    | no       | allows collecting anonymised usage and debugging data  |       |
-| auto_merge                  | boolean                                                    | false   | no       | automatically merge pull requests when all checks pass |       |
-| pr_locks                    | boolean                                                    | true    | no       | Enable PR-level locking                                |       |
-| projects                    | array of [Projects](/ce/reference/digger.yml#project)         | \[\]    | no       | list of projects to manage                             |       |
-| generate_projects           | [GenerateProjects](/ce/reference/digger.yml#generateprojects) | {}      | no       | generate projects from a directory structure           |       |
-| workflows                   | map of [Workflows](/ce/reference/digger.yml#workflows)        | {}      | no       | workflows and configurations to run on events          |       |
-| traverse_to_nested_projects | boolean                                                    | false   | no       | enabled traversal of nested directories                |       |
+| Key                         | Type                                                          | Default  | Required | Description                                                                                                                            | Notes                                         |
+|-----------------------------|---------------------------------------------------------------|----------|----------|----------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|
+| telemetry                   | boolean                                                       | true     | no       | allows collecting anonymised usage and debugging data                                                                                  |                                               |
+| auto_merge                  | boolean                                                       | false    | no       | automatically merge pull requests when all checks pass                                                                                 |                                               |
+| auto_merge_strategy         | string                                                        | "squash" | no       | The merge strategy to use while automerging, defaults to "squash". Possible values: 'squash', 'merge' (for merge commits) and 'rebase' | currently only github supported for this flag |
+| pr_locks                    | boolean                                                       | true     | no       | Enable PR-level locking                                                                                                                |                                               |
+| delete_prior_comments       | boolean                                                       | false    | no       | Enables digger to delete previous comments to reduce noise in the PR                                                                   |                                               |
+| projects                    | array of [Projects](/ce/reference/digger.yml#project)         | \[\]     | no       | list of projects to manage                                                                                                             |                                               |
+| generate_projects           | [GenerateProjects](/ce/reference/digger.yml#generateprojects) | {}       | no       | generate projects from a directory structure                                                                                           |                                               |
+| workflows                   | map of [Workflows](/ce/reference/digger.yml#workflows)        | {}       | no       | workflows and configurations to run on events                                                                                          |                                               |
+| traverse_to_nested_projects | boolean                                                       | false    | no       | enabled traversal of nested directories                                                                                                |                                               |
 
 ### Project
 

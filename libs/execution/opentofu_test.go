@@ -1,10 +1,10 @@
 package execution
 
 import (
-	"github.com/stretchr/testify/assert"
-	"log"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExecuteTofuPlan(t *testing.T) {
@@ -12,7 +12,7 @@ func TestExecuteTofuPlan(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 
@@ -20,7 +20,7 @@ func TestExecuteTofuPlan(t *testing.T) {
 
 	tf := OpenTofu{WorkingDir: dir, Workspace: "dev"}
 	tf.Init([]string{}, map[string]string{})
-	_, _, _, err := tf.Plan([]string{}, map[string]string{}, "")
+	_, _, _, err := tf.Plan([]string{}, map[string]string{}, "", nil)
 	assert.NoError(t, err)
 }
 
@@ -29,7 +29,7 @@ func TestExecuteTofuApply(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 
@@ -37,7 +37,7 @@ func TestExecuteTofuApply(t *testing.T) {
 
 	tf := OpenTofu{WorkingDir: dir, Workspace: "dev"}
 	tf.Init([]string{}, map[string]string{})
-	_, _, _, err := tf.Plan([]string{}, map[string]string{}, "")
+	_, _, _, err := tf.Plan([]string{}, map[string]string{}, "", nil)
 	assert.NoError(t, err)
 }
 
@@ -46,7 +46,7 @@ func TestExecuteTofuApplyDefaultWorkspace(t *testing.T) {
 	defer func(name string) {
 		err := os.RemoveAll(name)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}(dir)
 
@@ -56,7 +56,7 @@ func TestExecuteTofuApplyDefaultWorkspace(t *testing.T) {
 	tf.Init([]string{}, map[string]string{})
 	var planArgs []string
 	planArgs = append(planArgs, "-out", "plan.tfplan")
-	tf.Plan(planArgs, map[string]string{}, "")
+	tf.Plan(planArgs, map[string]string{}, "", nil)
 	plan := "plan.tfplan"
 	_, _, err := tf.Apply([]string{}, &plan, map[string]string{})
 	assert.NoError(t, err)

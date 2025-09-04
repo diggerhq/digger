@@ -1,27 +1,48 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
+
+type BillingPlan string
+
+const (
+	BillingPlanFree    BillingPlan = "free"
+	BillingPlanPro     BillingPlan = "pro"
+	BillingPlanPremium BillingPlan = "unlimited" // custom plan with unlimited resources
+)
+
+const MaxFreePlanProjectsPerOrg uint = 3
 
 type Organisation struct {
 	gorm.Model
-	Name           string `gorm:"uniqueIndex:idx_organisation"`
-	ExternalSource string `gorm:"uniqueIndex:idx_external_source"`
-	ExternalId     string `gorm:"uniqueIndex:idx_external_source"`
+	Name                        string `gorm:"Index:idx_organisation"`
+	ExternalSource              string `gorm:"uniqueIndex:idx_external_source"`
+	ExternalId                  string `gorm:"uniqueIndex:idx_external_source"`
+	DriftEnabled                bool   `gorm:"default:false"`
+	DriftWebhookUrl             string
+	DriftCronTab                string      `gorm:"default:'0 0 * * *'"`
+	BillingPlan                 BillingPlan `gorm:"default:'free'"`
+	BillingStripeSubscriptionId string
 }
 
 type Repo struct {
 	gorm.Model
-	Name             string `gorm:"uniqueIndex:idx_org_repo"`
-	RepoFullName     string
-	RepoOrganisation string
-	RepoName         string
-	RepoUrl          string
-	OrganisationID   uint `gorm:"uniqueIndex:idx_org_repo"`
-	Organisation     *Organisation
-	DiggerConfig     string
+	Name                    string `gorm:"uniqueIndex:idx_org_repo"`
+	RepoFullName            string
+	RepoOrganisation        string
+	RepoName                string
+	RepoUrl                 string
+	VCS                     DiggerVCSType `gorm:"default:'github'"`
+	OrganisationID          uint          `gorm:"uniqueIndex:idx_org_repo"`
+	Organisation            *Organisation
+	DiggerConfig            string
+	GithubAppInstallationId int64
+	GithubAppId             int64
+	DefaultBranch           string
+	CloneUrl                string
 }
 
 type ProjectRun struct {
@@ -53,8 +74,6 @@ func (p *ProjectRun) MapToJsonStruct() interface{} {
 		Id:            p.ID,
 		ProjectID:     p.ProjectID,
 		ProjectName:   p.Project.Name,
-		RepoUrl:       p.Project.Repo.RepoUrl,
-		RepoFullName:  p.Project.Repo.RepoFullName,
 		StartedAt:     time.UnixMilli(p.StartedAt),
 		EndedAt:       time.UnixMilli(p.EndedAt),
 		Status:        p.Status,
@@ -71,58 +90,96 @@ const (
 	ProjectInactive ProjectStatus = 2
 )
 
+type DriftStatus string
+
+const DriftStatusNewDrift DriftStatus = "new drift"
+const DriftStatusNoDrift DriftStatus = "no drift"
+const DriftStatusAcknowledgeDrift DriftStatus = "acknowledged drift"
+
 type Project struct {
 	gorm.Model
-	Name              string `gorm:"uniqueIndex:idx_project"`
-	OrganisationID    uint   `gorm:"uniqueIndex:idx_project"`
-	Organisation      *Organisation
-	RepoID            uint `gorm:"uniqueIndex:idx_project"`
-	Repo              *Repo
-	ConfigurationYaml string // TODO: probably needs to be deleted
-	Status            ProjectStatus
-	IsGenerated       bool
-	IsInMainBranch    bool
+	Name               string `gorm:"uniqueIndex:idx_project_org"`
+	Directory          string
+	OrganisationID     uint `gorm:"uniqueIndex:idx_project_org"`
+	Organisation       *Organisation
+	RepoFullName       string      `gorm:"uniqueIndex:idx_project_org"`
+	DriftEnabled       bool        `gorm:"default:false"`
+	DriftStatus        DriftStatus `gorm:"default:'no drift'"`
+	LatestDriftCheck   time.Time
+	DriftTerraformPlan string
+	DriftToCreate      uint
+	DriftToUpdate      uint
+	DriftToDelete      uint
+	Status             ProjectStatus
+	IsGenerated        bool
+	IsInMainBranch     bool
 }
 
 func (p *Project) MapToJsonStruct() interface{} {
-	lastRun, _ := DB.GetLastDiggerRunForProject(p.Name)
-	status := RunSucceeded
-	if lastRun != nil {
-		status = lastRun.Status
-	}
+	//lastRun, _ := DB.GetLastDiggerRunForProject(p.Name)
+	//status := RunSucceeded
+	//if lastRun != nil {
+	//	status = lastRun.Status
+	//}
 	return struct {
-		Id                    uint   `json:"id"`
-		Name                  string `json:"name"`
-		Directory             string `json:"directory"`
-		OrganisationID        uint   `json:"organisation_id"`
-		OrganisationName      string `json:"organisation_name"`
-		RepoID                uint   `json:"repo_id"`
-		RepoFullName          string `json:"repo_full_name"`
-		RepoName              string `json:"repo_name"`
-		RepoOrg               string `json:"repo_org"`
-		RepoUrl               string `json:"repo_url"`
-		IsInMainBranch        bool   `json:"is_in_main_branch"`
-		IsGenerated           bool   `json:"is_generated"`
-		LastActivityTimestamp string `json:"last_activity_timestamp"`
-		LastActivityAuthor    string `json:"last_activity_author"`
-		LastActivityStatus    string `json:"last_activity_status"`
+		Id                    uint      `json:"id"`
+		Name                  string    `json:"name"`
+		Directory             string    `json:"directory"`
+		OrganisationID        uint      `json:"organisation_id"`
+		OrganisationName      string    `json:"organisation_name"`
+		RepoID                uint      `json:"repo_id"`
+		RepoFullName          string    `json:"repo_full_name"`
+		IsInMainBranch        bool      `json:"is_in_main_branch"`
+		IsGenerated           bool      `json:"is_generated"`
+		DriftEnabled          bool      `json:"drift_enabled"`
+		DriftStatus           string    `json:"drift_status"`
+		LatestDriftCheck      time.Time `json:"latest_drift_check"`
+		DriftTerraformPlan    string    `json:"drift_terraform_plan"`
+		LastActivityTimestamp string    `json:"last_activity_timestamp"`
+		LastActivityAuthor    string    `json:"last_activity_author"`
+		LastActivityStatus    string    `json:"last_activity_status"`
 	}{
 		Id:                    p.ID,
 		Name:                  p.Name,
+		Directory:             p.Directory,
 		OrganisationID:        p.OrganisationID,
-		RepoID:                p.RepoID,
 		OrganisationName:      p.Organisation.Name,
-		RepoFullName:          p.Repo.RepoFullName,
-		RepoName:              p.Repo.RepoName,
-		RepoOrg:               p.Repo.RepoOrganisation,
-		RepoUrl:               p.Repo.RepoUrl,
+		RepoFullName:          p.RepoFullName,
+		DriftEnabled:          p.DriftEnabled,
+		DriftStatus:           string(p.DriftStatus),
+		LatestDriftCheck:      p.LatestDriftCheck,
+		DriftTerraformPlan:    p.DriftTerraformPlan,
 		LastActivityTimestamp: p.UpdatedAt.String(),
 		LastActivityAuthor:    "unknown",
-		LastActivityStatus:    string(status),
-		IsGenerated:           p.IsGenerated,
-		IsInMainBranch:        p.IsInMainBranch,
+		//LastActivityStatus:    string(status),
+		IsGenerated:    p.IsGenerated,
+		IsInMainBranch: p.IsInMainBranch,
 	}
-
+}
+func (r *Repo) MapToJsonStruct() interface{} {
+	OrganisationName := func() string {
+		if r.Organisation == nil {
+			return ""
+		}
+		return r.Organisation.Name
+	}
+	return struct {
+		Id               uint   `json:"id"`
+		Name             string `json:"name"`
+		RepoFullName     string `json:"repo_full_name"`
+		RepoUrl          string `json:"repo_url"`
+		VCS              string `json:"vcs"`
+		OrganisationID   uint   `json:"organisation_id"`
+		OrganisationName string `json:"organisation_name"`
+	}{
+		Id:               r.ID,
+		Name:             r.RepoName,
+		RepoFullName:     r.RepoFullName,
+		RepoUrl:          r.RepoUrl,
+		VCS:              string(r.VCS),
+		OrganisationID:   r.OrganisationID,
+		OrganisationName: OrganisationName(),
+	}
 }
 
 type Token struct {

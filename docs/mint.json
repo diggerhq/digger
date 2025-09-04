@@ -44,8 +44,9 @@
     {
       "group": "Getting Started",
       "pages": [
-        "ce/getting-started/github-actions-+-aws",
-        "ce/getting-started/github-actions-and-gcp"
+        "ce/getting-started/with-terraform",
+        "ce/getting-started/with-opentofu",
+        "ce/getting-started/with-terragrunt"
       ]
     },
     {
@@ -57,7 +58,11 @@
         "ee/opa",
         "ee/multi-github",
         "ee/gitlab",
-        "ee/buildkite"
+        "ee/buildkite",
+        "ee/fips-140",
+        "ee/ai-summaries",
+        "ee/remote-jobs",
+        "ee/saas"
       ]
     },
     {
@@ -67,6 +72,7 @@
         "ce/features/commentops",
         "ce/features/opa-policies",
         "ce/features/concurrency",
+        "ce/features/layering",
         "ce/features/pr-level-locks",
         "ce/features/plan-persistence",
         "ce/features/private-runners"
@@ -75,7 +81,9 @@
     {
       "group": "How To",
       "pages": [
+        "ce/howto/managing-state",
         "ce/howto/specify-terraform-version",
+        "ce/howto/caching-strategies",
         "ce/howto/apply-on-merge",
         "ce/howto/apply-requirements",
         "ce/howto/auto-merge",
@@ -84,11 +92,12 @@
         "ce/howto/custom-commands",
         "ce/howto/destroy-manual",
         "ce/howto/draft-prs",
+        "ce/howto/codeowners",
         "ce/howto/disable-auto-checkout",
         "ce/howto/disable-telemetry",
         "ce/howto/generate-projects",
-        "ce/howto/group-plans-by-source",
         "ce/howto/include-exclude-patterns",
+        "ce/howto/masking-sensitive-values",
         "ce/howto/multiacc-aws",
         "ce/howto/policy-overrides",
         "ce/howto/project-level-roles",
@@ -99,7 +108,8 @@
         "ce/howto/using-infracost",
         "ce/howto/using-opa-conftest",
         "ce/howto/using-terragrunt",
-        "ce/howto/versioning"
+        "ce/howto/versioning",
+        "ce/howto/ignore-pull-request-events"
       ]
     },
     {
@@ -109,7 +119,8 @@
         "ce/self-host/deploy-docker",
         "ce/self-host/deploy-docker-compose",
         "ce/self-host/deploy-binary",
-        "ce/self-host/deploy-helm"
+        "ce/self-host/deploy-helm",
+        "ce/self-host/self-host-on-azure"
       ]
     },
     {
@@ -117,7 +128,10 @@
       "pages": [
         "ce/reference/digger.yml",
         "ce/reference/action-inputs",
-        "ce/reference/api"
+        "ce/reference/api",
+        "ce/reference/terraform.lock",
+        "ce/securing-digger/spec-signing",
+        "ce/reference/comment-args"
       ]
     },
     {
@@ -143,6 +157,13 @@
         "ce/azure-specific/azure-devops-locking-connection-methods"
       ]
     },
+    {
+      "group": "Contributing",
+      "pages": [
+        "ce/contributing/setup-dev-environment"
+      ]
+    },
+
     {
       "group": "Troubleshooting",
       "pages": [

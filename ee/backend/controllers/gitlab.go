@@ -3,6 +3,14 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"reflect"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/locking"
@@ -18,18 +26,12 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
 	"github.com/xanzy/go-gitlab"
-	"io"
-	"log"
-	"net/http"
-	"os"
-	"reflect"
-	"strconv"
-	"strings"
 )
 
 type DiggerEEController struct {
 	GithubClientProvider utils.GithubClientProvider
 	GitlabProvider       utils.GitlabProvider
+	BitbucketProvider    utils.BitbucketProvider
 	CiBackendProvider    ci_backends.CiBackendProvider
 }
 
@@ -92,84 +94,12 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-	case *gitlab.PushEvent:
-		log.Printf("Got push event for %v %v", event.Project.URL, event.Ref)
-		err := handlePushEvent(d.GitlabProvider, event, organisationId)
-		if err != nil {
-			log.Printf("handlePushEvent error: %v", err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
+
 	default:
 		log.Printf("Unhandled event, event type %v", reflect.TypeOf(event))
 	}
 
 	c.JSON(200, "ok")
-}
-
-func handlePushEvent(gh utils.GitlabProvider, payload *gitlab.PushEvent, organisationId uint) error {
-	//projectId := payload.Project.ID
-	repoFullName := payload.Project.PathWithNamespace
-	repoOwner, repoName, _ := strings.Cut(repoFullName, "/")
-	cloneURL := payload.Project.GitHTTPURL
-	webURL := payload.Project.WebURL
-	ref := payload.Ref
-	defaultBranch := payload.Project.DefaultBranch
-
-	pushBranch := ""
-	if strings.HasPrefix(ref, "refs/heads/") {
-		pushBranch = strings.TrimPrefix(ref, "refs/heads/")
-	} else {
-		log.Printf("push was not to a branch, ignoring %v", ref)
-		return nil
-	}
-
-	diggerRepoName := strings.ReplaceAll(repoFullName, "/", "-")
-	//repo, err := models.DB.GetRepo(organisationId, diggerRepoName)
-	//if err != nil {
-	//	log.Printf("Error getting Repo: %v", err)
-	//	return fmt.Errorf("error getting github app link")
-	//}
-	// create repo if not exists
-	org, err := models.DB.GetOrganisationById(organisationId)
-	if err != nil {
-		log.Printf("Error: could not get organisation: %v", err)
-		return nil
-	}
-
-	repo, err := models.DB.CreateRepo(diggerRepoName, repoFullName, repoOwner, repoName, webURL, org, "")
-	if err != nil {
-		log.Printf("Error: could not create repo: %v", err)
-		return nil
-	}
-
-	token := os.Getenv("DIGGER_GITLAB_ACCESS_TOKEN")
-	if token == "" {
-		log.Printf("could not find gitlab token: %v", err)
-		return fmt.Errorf("could not find gitlab token")
-	}
-
-	var isMainBranch bool
-	if strings.HasSuffix(ref, defaultBranch) {
-		isMainBranch = true
-	} else {
-		isMainBranch = false
-	}
-
-	err = utils.CloneGitRepoAndDoAction(cloneURL, pushBranch, "", token, func(dir string) error {
-		config, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil)
-		if err != nil {
-			log.Printf("ERROR load digger.yml: %v", err)
-			return fmt.Errorf("error loading digger.yml %v", err)
-		}
-		models.DB.UpdateRepoDiggerConfig(organisationId, *config, repo, isMainBranch)
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error while cloning repo: %v", err)
-	}
-
-	return nil
 }
 
 func GetGitlabRepoUrl(event interface{}) string {
@@ -196,6 +126,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 	isDraft := payload.ObjectAttributes.WorkInProgress
 	branch := payload.ObjectAttributes.SourceBranch
 	commitSha := payload.ObjectAttributes.LastCommit.ID
+	action := payload.ObjectAttributes.Action
 	//defaultBranch := payload.Repository.DefaultBranch
 	//actor := payload.User.Username
 	//discussionId := ""
@@ -207,6 +138,30 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		log.Printf("GetGithubService error: %v", glerr)
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
+
+	// here we check if pr was merged and automatic deletion is enabled, to avoid errors when
+	// pr is merged and the branch does not exist we handle that gracefully
+	if action == "merge" {
+		sourceBranch, _, err := glService.GetBranchName(prNumber)
+		if err != nil {
+			utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not retrieve PR details, error: %v", err))
+			log.Printf("Could not retrieve PR details error: %v", err)
+			return fmt.Errorf("Could not retrieve PR details: %v", err)
+		}
+
+		branchExists, err := glService.CheckBranchExists(sourceBranch)
+		if err != nil {
+			utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not check if branch exists, error: %v", err))
+			log.Printf("Could not check if branch exists, error: %v", err)
+			return fmt.Errorf("Could not check if branch exists: %v", err)
+
+		}
+		if !branchExists {
+			log.Printf("automatic branch deletion is configured, ignoring pr closed event")
+			return nil
+		}
+	}
+
 	comment, err := glService.PublishComment(prNumber, fmt.Sprintf("Report for pull request (%v)", commitSha))
 	discussionId := comment.DiscussionId
 
@@ -218,7 +173,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	diggeryamlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranch(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, prNumber, discussionId)
+	diggeryamlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranchGitlab(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, prNumber, discussionId)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
@@ -237,7 +192,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		return fmt.Errorf("error processing event")
 	}
 
-	jobsForImpactedProjects, _, err := gitlab2.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config)
+	jobsForImpactedProjects, coverAllImpactedProjects, err := gitlab2.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config)
 	if err != nil {
 		log.Printf("Error converting event to jobsForImpactedProjects: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Error converting event to jobsForImpactedProjects: %v", err))
@@ -333,7 +288,8 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		log.Printf("strconv.ParseInt error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, 0, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggeryamlStr, projectId, "", false)
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, 0, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggeryamlStr, projectId, "", false, coverAllImpactedProjects, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -407,7 +363,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	diggerYmlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranch(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, issueNumber, discussionId)
+	diggerYmlStr, config, projectsGraph, err := utils.GetDiggerConfigForBranchGitlab(gitlabProvider, projectId, repoFullName, repoOwner, repoName, cloneURL, branch, issueNumber, discussionId)
 	if err != nil {
 		log.Printf("getDiggerConfigForPR error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Could not load digger config, error: %v", err))
@@ -444,7 +400,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("error while fetching branch name")
 	}
 
-	impactedProjects, impactedProjectsSourceMapping, requestedProject, _, err := generic.ProcessIssueCommentEvent(issueNumber, commentBody, config, projectsGraph, glService)
+	processIssueCommentEventResult, err := generic.ProcessIssueCommentEvent(issueNumber, config, projectsGraph, glService)
 	if err != nil {
 		log.Printf("Error processing event: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error processing event: %v", err))
@@ -452,9 +408,19 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	}
 	log.Printf("GitHub IssueComment event processed successfully\n")
 
+	impactedProjectsSourceMapping := processIssueCommentEventResult.ImpactedProjectsSourceMapping
+	allImpactedProjects := processIssueCommentEventResult.AllImpactedProjects
+
+	impactedProjectsForComment, err := generic.FilterOutProjectsFromComment(allImpactedProjects, commentBody)
+	if err != nil {
+		log.Printf("error filtering out projects from comment issueNumber: %v, error: %v", issueNumber, err)
+		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error filtering out projects from comment: %v", err))
+		return fmt.Errorf("error filtering out projects from comment")
+	}
+
 	// perform unlocking in backend
 	if config.PrLocks {
-		for _, project := range impactedProjects {
+		for _, project := range impactedProjectsForComment {
 			prLock := dg_locking.PullRequestLock{
 				InternalLock: locking.BackendDBLock{
 					OrgId: organisationId,
@@ -480,7 +446,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return nil
 	}
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, requestedProject, config.Workflows, prBranchName, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))
@@ -510,7 +476,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	}
 
 	impactedProjectsMap := make(map[string]dg_configuration.Project)
-	for _, p := range impactedProjects {
+	for _, p := range impactedProjectsForComment {
 		impactedProjectsMap[p.Name] = p
 	}
 
@@ -524,7 +490,8 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		log.Printf("ParseInt err: %v", err)
 		return fmt.Errorf("parseint error: %v", err)
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, projectId, "", false)
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, projectId, "", false, coverAllImpactedProjects, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

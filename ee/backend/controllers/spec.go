@@ -54,7 +54,7 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 
 	workflowFile := project.WorkflowFile
 
-	jobs, err := generic.CreateJobsForProjects([]digger_config.Project{project}, command, "manual", repoFullName, actor, config.Workflows, &issueNumber, &commitSha, "", "")
+	jobs, err := generic.CreateJobsForProjects([]digger_config.Project{project}, command, "manual", repoFullName, actor, config.Workflows, &issueNumber, &commitSha, "", "", false)
 	if err != nil {
 		log.Printf("could not create jobs based on project: %v", err)
 		c.String(500, fmt.Sprintf("could not create jobs based on project: %v", err))

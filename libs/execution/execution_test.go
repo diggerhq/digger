@@ -65,7 +65,7 @@ Terraform will perform the following actions:
 
 Plan: 2 to add, 0 to change, 0 to destroy.
 `
-	res := cleanupTerraformPlan(true, nil, stdout, "")
+	res := cleanupTerraformPlan(stdout)
 	index := strings.Index(stdout, "Terraform will perform the following actions:")
 	assert.Equal(t, stdout[index:], res)
 }
@@ -256,7 +256,7 @@ Plan: 9 to add, 0 to change, 0 to destroy.
 Changes to Outputs:
   + api_url = (known after apply)
 `
-	res := cleanupTerraformPlan(true, nil, stdout, "")
+	res := cleanupTerraformPlan(stdout)
 	index := strings.Index(stdout, "OpenTofu will perform the following actions:")
 	assert.Equal(t, stdout[index:], res)
 }

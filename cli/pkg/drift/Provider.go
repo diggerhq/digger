@@ -17,9 +17,9 @@ func (d DriftNotificationProviderBasic) Get(prService ci.PullRequestService) (co
 	slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
 	var notification core_drift.Notification
 	if slackNotificationUrl != "" {
-		notification = SlackNotification{slackNotificationUrl}
+		notification = &SlackNotification{slackNotificationUrl}
 	} else {
-		return nil, fmt.Errorf("could not identify drift mode, please specify slack or github")
+		return nil, fmt.Errorf("could not identify drift mode, please specify slack using env variable INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
 	}
 	return notification, nil
 }

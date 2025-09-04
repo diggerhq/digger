@@ -3,14 +3,23 @@ package digger_config
 const CommentRenderModeBasic = "basic"
 const CommentRenderModeGroupByModule = "group_by_module"
 
+type AutomergeStrategy string
+
+const AutomergeStrategySquash AutomergeStrategy = "squash"
+const AutomergeStrategyMerge AutomergeStrategy = "merge"
+const AutomergeStrategyRebase AutomergeStrategy = "rebase"
+
 type DiggerConfig struct {
 	ApplyAfterMerge            bool
 	AllowDraftPRs              bool
 	CommentRenderMode          string
 	DependencyConfiguration    DependencyConfiguration
+	DeletePriorComments        bool
+	RespectLayers              bool
 	PrLocks                    bool
 	Projects                   []Project
 	AutoMerge                  bool
+	AutoMergeStrategy          AutomergeStrategy
 	Telemetry                  bool
 	Workflows                  map[string]Workflow
 	MentionDriftedProjectsInPR bool
@@ -34,10 +43,13 @@ type AssumeRoleForProject struct {
 }
 
 type Project struct {
+	BlockName            string // the block name if this is a generated project
 	Name                 string
+	Alias                string
 	Dir                  string
 	Workspace            string
 	Terragrunt           bool
+	Layer                uint
 	OpenTofu             bool
 	Pulumi               bool
 	Workflow             string
@@ -86,7 +98,8 @@ type Step struct {
 }
 
 type Stage struct {
-	Steps []Step
+	Steps       []Step
+	FilterRegex *string
 }
 
 func defaultWorkflow() *Workflow {

@@ -1,0 +1,129 @@
+---
+title: "Setting up a local development environment"
+---
+
+
+## Setting up the backend
+
+To get started running the backend service you will need:
+
+- digger’s repo cloned https://github.com/diggerhq/digger
+- some kind of ngrok to tunnel connections to port 3000 - this is needed to receive github webhooks to the service
+- go 1.24 running on your machine
+
+<Steps>
+    <Step title="Install ngrok">
+        You can use ngrok to tunnel connections to port 3000. You can find installation instructions [here](https://ngrok.com/docs/getting-started).
+        The reason we need this is so that we can receive github webhooks to the service
+    </Step>
+
+    <Step title="Create a local database">
+        I usually start one with docker:
+
+        ```
+        docker run --name digger-pg \
+        -e POSTGRES_PASSWORD='SuperSecurePasswordWithAtLeast14Characters' \
+        -e POSTGRES_USER=postgres \
+        -e POSTGRES_DB=digger \
+        -p 54312:5432 \
+        -d postgres:15
+        ```
+
+        which will create this connections tring:
+
+        ```
+        export DATABASE_URL=postgres://postgres:SuperSecurePasswordWithAtLeast14Characters@localhost:54312/digger?sslmode=disable
+        ```
+    </Step>
+
+    <Step title="Clone the repo">
+        If you are planning to contribute you would need to fork the repo and clone it locally:
+
+        ```
+        # replace diggerhq with your username
+        git clone https://github.com/diggerhq/digger.git
+        ```
+    </Step>
+
+    <Step title="Creating environment variables">
+        Create a `.env` file in the folder backend/ of the repo and add the following:
+        ```
+        GITHUB_ORG=your_github_org # this is your github org where an app will be installed, leave it out to install in your personal account
+        HOSTNAME=your_public_digger_hostname # the ngrok hostname (include https://)
+        DATABASE_URL=postgres://.....
+        HTTP_BASIC_AUTH=1
+        HTTP_BASIC_AUTH_USERNAME=mydiggerorg
+        HTTP_BASIC_AUTH_PASSWORD=$(openssl rand -base64 12)
+        ALLOW_DIRTY=false # set to true if the database has already a schema configured
+        ```
+
+        note that you would need to source this file before running the backend service
+
+        ```
+        set -a
+        source .env
+        set +a
+        ```
+
+        And after that you can run the service with:
+
+        ```
+        go run backend/main.go
+        ```
+
+        You should see a message that the service is listening on port 3000. Visiting that url should show you a ui screen that digger is up and running.
+    </Step>
+
+    <Step title="Next steps">
+        From here on you can follow the steps in the self hosting binary guide [here](/ce/self-host/deploy-binary)
+    </Step>
+
+</Steps>
+
+## Setting up the cli
+
+The cli is mainly meant to be used and invoked in CI systems. So in order to test cli changes the easiest way is to push it to your digger branch and then update the step to point to the branch directly:
+
+```
+      - name: digger
+        uses: diggerhq/digger@feat/my-test-branch
+        with:
+            ....
+```
+
+Digger will then build the cli on your test runs and so you can test your changes from branch. It can be time consuming to build the cli on every run so we also added a way to use it from local
+via self-hosted runners on your machine. In order to achieve this you would need to create a self-hosted runner connected to your repo.
+
+Visit the repo with your test terraform and then click on "actions" -> "runners" -> "self-hosted runners" -> "new runner".
+Follow the instructions for your local machine and to set it up. Once set up you should see it in the list of runners.
+
+From here you will need to build a version of your cli locally.
+
+```
+cd cli
+go build -o digger ./cmd/digger
+chmod +x digger
+```
+
+Test run the local cli - it should display a message like "no CI detected". Now we can modify our workflow file to use our self-hosted runner and to invoke the local cli during processing:
+
+```
+      - name: digger
+        uses: diggerhq/digger@vLatest # this version doesn't matter when using local dev
+        with:
+          # ...
+          local-dev-mode: "true"
+          local-dev-cli-path: "/Users/myname/dev/digger/digger/cli"
+```
+
+The value of "local-dev-cli-path" should be an absolute path to the location compiled binary from the previous step (excluding the binary name). You should see this line when you try to run it:
+
+![](/images/contributing/self-hosted-cli-local-dev.png)
+
+> **Security Warning**: Self-hosted runners have significant security implications. When using self-hosted runners, be aware that:
+> - Code from pull requests can run on your self-hosted runner, potentially executing malicious code on your machine
+> - If your repository is public, anyone can fork it and submit a pull request that could run code on your runner
+> - Only use self-hosted runners in private repositories where you trust all contributors, or implement proper security controls
+> - For more information, see [GitHub's security considerations for self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#self-hosted-runner-security)
+
+From here onwards the cycle is to make a local change, rebuild the cli and then trigger in github to test that change. Its a much faster iterative cycle in comparison to building from a branch each time.

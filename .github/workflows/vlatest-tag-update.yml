@@ -1,0 +1,78 @@
+name: Recreate vLatest release from develop
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed to delete/create releases & tags
+
+jobs:
+  recreate-vlatest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete release "vLatest" if it exists
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag = 'vLatest';
+
+            // Try to fetch the release by tag
+            try {
+              const rel = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              core.info(`Found release for tag ${tag}: id=${rel.data.id}. Deleting...`);
+              await github.rest.repos.deleteRelease({ owner, repo, release_id: rel.data.id });
+              core.info(`Deleted release id=${rel.data.id}.`);
+            } catch (err) {
+              if (err.status === 404) {
+                core.info(`No release found for tag ${tag}; skipping delete.`);
+              } else {
+                throw err;
+              }
+            }
+
+      - name: Delete tag "vLatest" if it exists
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const ref = 'tags/vLatest';
+            try {
+              await github.rest.git.deleteRef({ owner, repo, ref });
+              core.info(`Deleted ref ${ref}.`);
+            } catch (err) {
+              if (err.status === 404) {
+                core.info(`Ref ${ref} not found; skipping.`);
+              } else {
+                // Some repos may return 422 if the ref doesn't exist in certain states
+                if (err.status === 422) {
+                  core.info(`Ref ${ref} not deletable/doesn't exist; skipping.`);
+                } else {
+                  throw err;
+                }
+              }
+            }
+
+      - name: Create release "vLatest" from develop
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag_name = 'vLatest';
+            const target_commitish = 'develop';
+
+            const res = await github.rest.repos.createRelease({
+              owner,
+              repo,
+              tag_name,
+              target_commitish,
+              name: tag_name,
+              body: 'Automated vLatest release from `develop`.',
+              draft: false,
+              prerelease: false,
+              make_latest: 'false'
+            });
+            core.info(`Created release ${res.data.html_url}`);

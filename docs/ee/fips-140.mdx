@@ -1,0 +1,19 @@
+---
+title: "FIPS 140 standard"
+---
+
+You can use digger binary with FIPS140 standard. FIPS 140 (Federal Information Processing Standard Publication 140) is a U.S. government standard that specifies security requirements for cryptographic modules protecting sensitive information.
+
+as of version v0.6.101 digger backend and cli are both compiled seperately with FIPS140 enabled. In order to enable it for github follow these steps:
+
+- For the backend you need to ensure you use the right docker image: `_backend_ee_fips` during the pull
+- For the cli you need to add the following argument in addition to `ee: true` :
+
+```
+    - diggerhq/digger@vLatest
+      with:
+         ee: 'true'
+         fips: 'true'
+```
+
+If you are using gitlab or other VCS then just ensure that you are downloading the fips enabled binary which is suffixed with '_fips'

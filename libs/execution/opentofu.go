@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -18,7 +18,7 @@ type OpenTofu struct {
 func (tf OpenTofu) Init(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "-input=false")
 	params = append(params, "-no-color")
-	stdout, stderr, _, err := tf.runOpentofuCommand("init", true, envs, params...)
+	stdout, stderr, _, err := tf.runOpentofuCommand("init", true, envs, nil, params...)
 	return stdout, stderr, err
 }
 
@@ -26,7 +26,9 @@ func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) 
 	if tf.Workspace != "default" {
 		err := tf.switchToWorkspace(envs)
 		if err != nil {
-			log.Printf("Fatal: Error terraform to workspace %v", err)
+			slog.Error("Error switching to workspace",
+				"workspace", tf.Workspace,
+				"error", err)
 			return "", "", err
 		}
 	}
@@ -35,15 +37,17 @@ func (tf OpenTofu) Apply(params []string, plan *string, envs map[string]string) 
 	if plan != nil {
 		params = append(params, *plan)
 	}
-	stdout, stderr, _, err := tf.runOpentofuCommand("apply", true, envs, params...)
+	stdout, stderr, _, err := tf.runOpentofuCommand("apply", true, envs, nil, params...)
 	return stdout, stderr, err
 }
 
-func (tf OpenTofu) Plan(params []string, envs map[string]string, planArtefactFilePath string) (bool, string, string, error) {
+func (tf OpenTofu) Plan(params []string, envs map[string]string, planArtefactFilePath string, filterRegex *string) (bool, string, string, error) {
 	if tf.Workspace != "default" {
 		err := tf.switchToWorkspace(envs)
 		if err != nil {
-			log.Printf("Fatal: Error terraform to workspace %v", err)
+			slog.Error("Error switching to workspace",
+				"workspace", tf.Workspace,
+				"error", err)
 			return false, "", "", err
 		}
 	}
@@ -52,16 +56,20 @@ func (tf OpenTofu) Plan(params []string, envs map[string]string, planArtefactFil
 	}
 	params = append(params, "-lock-timeout=3m")
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
-	stdout, stderr, statusCode, err := tf.runOpentofuCommand("plan", true, envs, params...)
+	stdout, stderr, statusCode, err := tf.runOpentofuCommand("plan", true, envs, filterRegex, params...)
 	if err != nil && statusCode != 2 {
 		return false, "", "", err
 	}
 	return statusCode == 2, stdout, stderr, nil
 }
 
-func (tf OpenTofu) Show(params []string, envs map[string]string, planArtefactFilePath string) (string, string, error) {
-	params = append(params, []string{"-no-color", "-json", planArtefactFilePath}...)
-	stdout, stderr, _, err := tf.runOpentofuCommand("show", false, envs, params...)
+func (tf OpenTofu) Show(params []string, envs map[string]string, planArtefactFilePath string, returnJson bool) (string, string, error) {
+	params = append(params, "-no-color")
+	if returnJson {
+		params = append(params, "-json")
+	}
+	params = append(params, planArtefactFilePath)
+	stdout, stderr, _, err := tf.runOpentofuCommand("show", false, envs, nil, params...)
 	if err != nil {
 		return "", "", err
 	}
@@ -72,28 +80,32 @@ func (tf OpenTofu) Destroy(params []string, envs map[string]string) (string, str
 	if tf.Workspace != "default" {
 		err := tf.switchToWorkspace(envs)
 		if err != nil {
-			log.Printf("Fatal: Error terraform to workspace %v", err)
+			slog.Error("Error switching to workspace",
+				"workspace", tf.Workspace,
+				"error", err)
 			return "", "", err
 		}
 	}
 	params = append(append(append(params, "-input=false"), "-no-color"), "-auto-approve")
-	stdout, stderr, _, err := tf.runOpentofuCommand("destroy", true, envs, params...)
+	stdout, stderr, _, err := tf.runOpentofuCommand("destroy", true, envs, nil, params...)
 	return stdout, stderr, err
 }
 
 func (tf OpenTofu) switchToWorkspace(envs map[string]string) error {
-	workspaces, _, _, err := tf.runOpentofuCommand("workspace", false, envs, "list")
+	workspaces, _, _, err := tf.runOpentofuCommand("workspace", false, envs, nil, "list")
 	if err != nil {
 		return err
 	}
 	workspaces = tf.formatOpentofuWorkspaces(workspaces)
 	if strings.Contains(workspaces, tf.Workspace) {
-		_, _, _, err := tf.runOpentofuCommand("workspace", true, envs, "select", tf.Workspace)
+		slog.Debug("Selecting existing workspace", "workspace", tf.Workspace)
+		_, _, _, err := tf.runOpentofuCommand("workspace", true, envs, nil, "select", tf.Workspace)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, _, _, err := tf.runOpentofuCommand("workspace", true, envs, "new", tf.Workspace)
+		slog.Debug("Creating new workspace", "workspace", tf.Workspace)
+		_, _, _, err := tf.runOpentofuCommand("workspace", true, envs, nil, "new", tf.Workspace)
 		if err != nil {
 			return err
 		}
@@ -101,7 +113,7 @@ func (tf OpenTofu) switchToWorkspace(envs map[string]string) error {
 	return nil
 }
 
-func (tf OpenTofu) runOpentofuCommand(command string, printOutputToStdout bool, envs map[string]string, arg ...string) (string, string, int, error) {
+func (tf OpenTofu) runOpentofuCommand(command string, printOutputToStdout bool, envs map[string]string, filterRegex *string, arg ...string) (string, string, int, error) {
 	args := []string{command}
 	args = append(args, arg...)
 
@@ -114,18 +126,30 @@ func (tf OpenTofu) runOpentofuCommand(command string, printOutputToStdout bool, 
 		}
 	}
 
+	regEx, err := stringToRegex(filterRegex)
+	if err != nil {
+		return "", "", 0, err
+	}
+
 	var mwout, mwerr io.Writer
 	var stdout, stderr bytes.Buffer
 	if printOutputToStdout {
-		mwout = io.MultiWriter(os.Stdout, &stdout)
-		mwerr = io.MultiWriter(os.Stderr, &stderr)
+		mwout = NewFilteringWriter(os.Stdout, &stdout, regEx)
+		mwerr = NewFilteringWriter(os.Stderr, &stderr, regEx)
 	} else {
-		mwout = io.Writer(&stdout)
-		mwerr = io.Writer(&stderr)
+		mwout = NewFilteringWriter(nil, &stdout, regEx)
+		mwerr = NewFilteringWriter(nil, &stderr, regEx)
 	}
 
 	cmd := exec.Command("tofu", expandedArgs...)
-	log.Printf("Running command: opentofu %v", expandedArgs)
+	slog.Info("Running OpenTofu command",
+		slog.Group("command",
+			"binary", "tofu",
+			"args", expandedArgs,
+			"workingDir", tf.WorkingDir,
+		),
+	)
+
 	cmd.Dir = tf.WorkingDir
 
 	env := os.Environ()
@@ -136,11 +160,16 @@ func (tf OpenTofu) runOpentofuCommand(command string, printOutputToStdout bool, 
 	cmd.Stdout = mwout
 	cmd.Stderr = mwerr
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	// terraform plan can return 2 if there are changes to be applied, so we don't want to fail in that case
 	if err != nil && cmd.ProcessState.ExitCode() != 2 {
-		log.Println("Error:", err)
+		slog.Error("Command execution failed",
+			"command", "tofu",
+			"args", expandedArgs,
+			"exitCode", cmd.ProcessState.ExitCode(),
+			"error", err,
+		)
 	}
 
 	return stdout.String(), stderr.String(), cmd.ProcessState.ExitCode(), err

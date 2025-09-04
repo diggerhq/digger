@@ -23,8 +23,7 @@ Digger runs Terraform natively in your CI. This is:
 - Open Policy Agent (OPA) support for RBAC
 - PR-level locks (on top of Terraform native state locks, similar to Atlantis) to avoid race conditions across multiple PRs
 - Terragrunt, Workspaces, multiple Terraform versions, static analysis via Checkov, plan persistence, ...
-- Drift detection 
-  
+- Drift detection
 
 ## Getting Started
 
@@ -34,6 +33,7 @@ Digger runs Terraform natively in your CI. This is:
 ## How it works
 
 Digger has 2 main components:
+
 - CLI that runs inside your CI and calls Terraform with the right arguments
 - Orchestrator - a minimal backend (that can also be self-hosted) that triggers CI jobs in response to events such as PR comments
 
@@ -49,7 +49,8 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 - Apply-after-merge workflows
 - Web UI (cloud-based)
 - Read more about differences with Atlantis in our [blog post](https://medium.com/@DiggerHQ/digger-and-atlantis-key-differences-c08029ffe112)
-​
+  ​
+
 ## Compared to Terraform Cloud and other TACOs
 
 - Open source; orchestrator can be self-hosted
@@ -59,6 +60,26 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 - No duplication of the CI/CD stack
 - Secrets not shared with a third party
 
+## How Digger is Used
+
+- [Production ready Terraform setup powered by Digger CI/CD](https://medium.com/converge-bio/production-ready-terraform-setup-powered-by-digger-ci-cd-47f18803cdd9) - authored by Amit Lavi from [Converge Bio](https://converge-bio.com/)
+
+- ["I like Digger more than Terraform Cloud and Atlantis"](https://zenn.dev/kiwamizamurai/articles/48594bcad234fb) (Translated from Japanese), includes an [example repo](https://github.com/kiwamizamurai/digger_tutorial)
+
+- How the data ops team at [Brevo](https://www.brevo.com/) uses Digger (a part of this [podcast](https://youtu.be/511RilKsQCY?si=FTPlehy3hVd7zXAM), french)
+
+- ["Use Digger to run Terraform in a different GCP project for each environment"](https://qiita.com/Takayoshi_Makabe/items/d0206cc5c356023c0561) (Japanese)
+
+- ["Automatically merging pull requests after terraform apply with Digger"](https://kakakakakku.hatenablog.com/entry/2025/03/10/143453) (Japanese)
+  
+
+
+
+
+
+
+
+
 ## Contributing
 
 We love contributions. Check out our [contributing guide](CONTRIBUTING.md) to get started.
@@ -67,7 +88,7 @@ Please pick an issue that already exists if you’re interested in contributing,
 
 Not sure where to get started? You can:
 
--   Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
+- Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
 
 ## Telemetry
 
@@ -76,7 +97,15 @@ Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq
 ## Running migrations
 
 ```
-atlas migrate apply --url $DATABASE_URL
+atlas migrate apply --url $DATABASE_URL --allow-dirty
+```
+
+## Local postgres
+
+Might need disabling ssl if running default docker image
+
+```
+export DATABASE_URL=postgres://postgres:root@localhost:5432/postgres?sslmode=disable
 ```
 
 ## Resources

@@ -2,7 +2,7 @@ package scheduler
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 )
 
 type DiggerBatchStatus int8
@@ -43,6 +43,17 @@ const (
 	DiggerJobStarted      DiggerJobStatus = 4
 	DiggerJobSucceeded    DiggerJobStatus = 5
 	DiggerJobQueuedForRun DiggerJobStatus = 6
+)
+
+type DiggerJobStatusString string
+
+const (
+	DiggerJobCreatedString      DiggerJobStatusString = "created"
+	DiggerJobTriggeredString    DiggerJobStatusString = "triggered"
+	DiggerJobFailedString       DiggerJobStatusString = "failed"
+	DiggerJobStartedString      DiggerJobStatusString = "started"
+	DiggerJobSucceededString    DiggerJobStatusString = "succeeded"
+	DiggerJobQueuedForRunString DiggerJobStatusString = "queued_for_run"
 )
 
 func (d *DiggerJobStatus) ToString() string {
@@ -87,6 +98,7 @@ type SerializedJob struct {
 	DiggerJobId      string          `json:"digger_job_id"`
 	Status           DiggerJobStatus `json:"status"`
 	ProjectName      string          `json:"project_name"`
+	ProjectAlias     string          `json:"project_alias"`
 	JobString        []byte          `json:"job_string"`
 	PlanFootprint    []byte          `json:"plan_footprint"`
 	PRCommentUrl     string          `json:"pr_comment_url"`
@@ -112,7 +124,10 @@ func (b *SerializedBatch) IsPlan() (bool, error) {
 	// TODO: Introduce a batch-level field to check for is plan or apply
 	jobSpecs, err := GetJobSpecs(b.Jobs)
 	if err != nil {
-		log.Printf("error while fetching job specs: %v", err)
+		slog.Error("Error fetching job specs",
+			"batchId", b.ID,
+			"prNumber", b.PrNumber,
+			"error", err)
 		return false, fmt.Errorf("error while fetching job specs: %v", err)
 	}
 	return IsPlanJobSpecs(jobSpecs), nil
@@ -121,7 +136,10 @@ func (b *SerializedBatch) IsPlan() (bool, error) {
 func (b *SerializedBatch) IsApply() (bool, error) {
 	jobSpecs, err := GetJobSpecs(b.Jobs)
 	if err != nil {
-		log.Printf("error while fetching job specs: %v", err)
+		slog.Error("Error fetching job specs",
+			"batchId", b.ID,
+			"prNumber", b.PrNumber,
+			"error", err)
 		return false, fmt.Errorf("error while fetching job specs: %v", err)
 	}
 	return IsPlanJobSpecs(jobSpecs), nil
@@ -152,4 +170,11 @@ func (s *SerializedJob) ResourcesSummaryString(isPlan bool) string {
 	} else {
 		return "..."
 	}
+}
+
+func GetProjectAlias(j SerializedJob) string {
+	if j.ProjectAlias != "" {
+		return j.ProjectAlias
+	}
+	return j.ProjectName
 }

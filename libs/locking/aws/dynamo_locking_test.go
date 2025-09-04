@@ -20,10 +20,10 @@ type mockDynamoDbClient struct {
 
 func (m *mockDynamoDbClient) DescribeTable(ctx context.Context, params *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error) {
 	if m.table == nil || m.table[aws.ToString(params.TableName)] == nil {
-		return nil, &types.TableNotFoundException{}
+		return nil, &types.ResourceNotFoundException{}
 	}
 	if m.table[aws.ToString(params.TableName)] != nil {
-		return &dynamodb.DescribeTableOutput{Table: &types.TableDescription{TableName: params.TableName}}, nil
+		return &dynamodb.DescribeTableOutput{Table: &types.TableDescription{TableName: params.TableName, TableStatus: "ACTIVE"}}, nil
 	}
 	return nil, nil
 }
@@ -59,7 +59,6 @@ func TestDynamoDbLock_Lock(t *testing.T) {
 	dynamodbLock := DynamoDbLock{
 		DynamoDb: &client,
 	}
-	dynamodbLock.DynamoDb.CreateTable(context.Background(), &dynamodb.CreateTableInput{TableName: aws.String(TABLE_NAME)})
 
 	// Set up the input parameters for the Lock method
 	transactionId := 123
@@ -79,7 +78,6 @@ func TestDynamoDbLock_GetLock(t *testing.T) {
 	dynamodbLock := DynamoDbLock{
 		DynamoDb: &client,
 	}
-	dynamodbLock.DynamoDb.CreateTable(context.Background(), &dynamodb.CreateTableInput{TableName: aws.String(TABLE_NAME)})
 
 	id, err := dynamodbLock.GetLock("example-resource")
 	if err != nil {

@@ -4,17 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/backend/models"
+	utils2 "github.com/diggerhq/digger/next/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/slack-go/slack"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
-
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
-	"github.com/diggerhq/digger/ee/drift/model"
-	utils2 "github.com/diggerhq/digger/next/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/slack-go/slack"
 )
 
 func sendTestSlackWebhook(webhookURL string) error {
@@ -31,7 +29,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": "<https://driftapp.digger.dev|Dev environment>"},
+					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Dev environment>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":large_yellow_circle: Drift detected"},
 				},
 			},
@@ -39,7 +37,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": "<https://driftapp.digger.dev|Staging environment>"},
+					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Staging environment>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":white_circle: Acknowledged drift"},
 				},
 			},
@@ -47,7 +45,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": "<https://driftapp.digger.dev|Prod environment>"},
+					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Prod environment>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":large_green_circle: No drift"},
 				},
 			},
@@ -80,29 +78,19 @@ func sendTestSlackWebhook(webhookURL string) error {
 	return nil
 }
 
-type TestSlackNotificationForOrgRequest struct {
-	OrgId string `json:"org_id"`
+type TestSlackNotificationForUrl struct {
+	SlackNotificationUrl string `json:"notification_url"`
 }
 
-func (mc MainController) SendTestSlackNotificationForOrg(c *gin.Context) {
-	var request TestSlackNotificationForOrgRequest
+func (mc MainController) SendTestSlackNotificationForUrl(c *gin.Context) {
+	var request TestSlackNotificationForUrl
 	err := c.BindJSON(&request)
 	if err != nil {
 		log.Printf("Error binding JSON: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error binding JSON"})
 		return
 	}
-	orgId := request.OrgId
-
-	os := dbmodels.DB.Query.OrgSetting
-	orgSettings, err := dbmodels.DB.Query.OrgSetting.Where(os.OrgID.Eq(orgId)).First()
-	if err != nil {
-		log.Printf("Error reading org: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error reading org"})
-		return
-	}
-
-	slackNotificationUrl := orgSettings.SlackNotificationURL
+	slackNotificationUrl := request.SlackNotificationUrl
 
 	err = sendTestSlackWebhook(slackNotificationUrl)
 	if err != nil {
@@ -114,33 +102,33 @@ func (mc MainController) SendTestSlackNotificationForOrg(c *gin.Context) {
 	c.String(200, "ok")
 }
 
-func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) {
+func sectionBlockForProject(project models.Project) (*slack.SectionBlock, error) {
 	switch project.DriftStatus {
-	case dbmodels.DriftStatusNoDrift:
+	case models.DriftStatusNoDrift:
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":large_green_circle: No Drift", false, false),
 			},
 			nil,
 		)
 		return sectionBlock, nil
-	case dbmodels.DriftStatusAcknowledgeDrift:
+	case models.DriftStatusAcknowledgeDrift:
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":white_circle: Acknowledged Drift", false, false),
 			},
 			nil,
 		)
 		return sectionBlock, nil
-	case dbmodels.DriftStatusNewDrift:
+	case models.DriftStatusNewDrift:
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/project/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":large_yellow_circle: Drift detected", false, false),
 			},
 			nil,
@@ -152,7 +140,7 @@ func sectionBlockForProject(project model.Project) (*slack.SectionBlock, error) 
 }
 
 type RealSlackNotificationForOrgRequest struct {
-	OrgId string `json:"org_id"`
+	OrgId uint `json:"org_id"`
 }
 
 func (mc MainController) SendRealSlackNotificationForOrg(c *gin.Context) {
@@ -165,15 +153,19 @@ func (mc MainController) SendRealSlackNotificationForOrg(c *gin.Context) {
 	}
 	orgId := request.OrgId
 
-	os := dbmodels.DB.Query.OrgSetting
-	orgSettings, err := dbmodels.DB.Query.OrgSetting.Where(os.OrgID.Eq(orgId)).First()
+	org, err := models.DB.GetOrganisationById(orgId)
+	if err != nil {
+		log.Printf("could not get org %v err: %v", orgId, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Could not get org %v", orgId)})
+		return
+	}
 
-	slackNotificationUrl := orgSettings.SlackNotificationURL
+	slackNotificationUrl := org.DriftWebhookUrl
 
-	projects, err := dbmodels.DB.LoadProjectsForOrg(orgId)
+	projects, err := models.DB.LoadProjectsForOrg(orgId)
 	if err != nil {
 		log.Printf("could not load projects for org %v err: %v", orgId, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not load projects for org " + orgId})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Could not load projects for org %v", orgId)})
 		return
 	}
 
@@ -228,7 +220,8 @@ func (mc MainController) SendRealSlackNotificationForOrg(c *gin.Context) {
 func (mc MainController) ProcessAllNotifications(c *gin.Context) {
 	diggerHostname := os.Getenv("DIGGER_HOSTNAME")
 	webhookSecret := os.Getenv("DIGGER_WEBHOOK_SECRET")
-	orgSettings, err := dbmodels.DB.Query.OrgSetting.Find()
+	var orgs []*models.Organisation
+	err := models.DB.GormDB.Find(&orgs).Error
 	if err != nil {
 		log.Printf("could not select all orgs: %v", err)
 	}
@@ -240,17 +233,20 @@ func (mc MainController) ProcessAllNotifications(c *gin.Context) {
 		return
 	}
 
-	for _, orgSetting := range orgSettings {
-		cron := orgSetting.Schedule
+	for _, org := range orgs {
+		if org.DriftEnabled == false {
+			continue
+		}
+		cron := org.DriftCronTab
 		matches, err := utils2.MatchesCrontab(cron, time.Now().Add((-7 * time.Minute)))
 		if err != nil {
-			log.Printf("could not check matching crontab for org: %v %v", orgSetting.OrgID, err)
+			log.Printf("could not check matching crontab for org: %v %v", org.ID, err)
 			continue
 		}
 
 		if matches {
-			fmt.Println("Matching org ID: ", orgSetting.OrgID)
-			payload := RealSlackNotificationForOrgRequest{OrgId: orgSetting.OrgID}
+			fmt.Println("Matching org ID: ", org.ID)
+			payload := RealSlackNotificationForOrgRequest{OrgId: org.ID}
 
 			// Convert payload to JSON
 			jsonPayload, err := json.Marshal(payload)
@@ -282,7 +278,7 @@ func (mc MainController) ProcessAllNotifications(c *gin.Context) {
 			// Get the status code
 			statusCode := resp.StatusCode
 			if statusCode != 200 {
-				log.Printf("send slack notification got unexpected status for org: %v - status: %v", orgSetting.OrgID, statusCode)
+				log.Printf("send slack notification got unexpected status for org: %v - status: %v", org.ID, statusCode)
 			}
 		}
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/fips140"
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/cli/pkg/digger"
@@ -10,6 +11,7 @@ import (
 	"github.com/diggerhq/digger/ee/cli/pkg/comment_updater"
 	"github.com/diggerhq/digger/ee/cli/pkg/drift"
 	github2 "github.com/diggerhq/digger/ee/cli/pkg/github"
+	"github.com/diggerhq/digger/ee/cli/pkg/gitlab"
 	"github.com/diggerhq/digger/ee/cli/pkg/policy"
 	"github.com/diggerhq/digger/ee/cli/pkg/vcs"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
@@ -23,8 +25,8 @@ import (
 var defaultCmd = &cobra.Command{
 	Use: "default",
 	Run: func(cmd *cobra.Command, args []string) {
-
 		specStr := os.Getenv("DIGGER_RUN_SPEC")
+		log.Printf("Fips140 enabled in build: %v", fips140.Enabled())
 		if specStr != "" {
 			var spec lib_spec.Spec
 			err := json.Unmarshal([]byte(specStr), &spec)
@@ -67,6 +69,9 @@ var defaultCmd = &cobra.Command{
 		case digger.GitHub:
 			logLeader = os.Getenv("GITHUB_ACTOR")
 			github.GitHubCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, comment_updater.CommentUpdaterProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
+		case digger.GitLab:
+			log.Printf("gitlab CI detected")
+			gitlab.GitLabCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, comment_updater.CommentUpdaterProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
 		case digger.None:
 			print("No CI detected.")
 			os.Exit(10)
@@ -74,7 +79,7 @@ var defaultCmd = &cobra.Command{
 
 		defer func() {
 			if r := recover(); r != nil {
-				log.Println(fmt.Sprintf("stacktrace from panic: \n" + string(debug.Stack())))
+				log.Println("stacktrace from panic: \n" + string(debug.Stack()))
 				err := usage.SendLogRecord(logLeader, fmt.Sprintf("Panic occurred. %s", r))
 				if err != nil {
 					log.Printf("Failed to send log record. %s\n", err)

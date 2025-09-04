@@ -9,20 +9,22 @@ import (
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/google/uuid"
-	"log"
+	"log/slog"
 )
 
 func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *models.DiggerJob, repoFullName string, repoOwner string, repoName string, workflowFileName string, gh utils.GithubClientProvider) error {
-	log.Printf("DiggerJobCompleted parentJobId: %v", parentJob.DiggerJobID)
+	slog.Info("Job completed", "parentJobId", parentJob.DiggerJobID)
 
 	jobLinksForParent, err := models.DB.GetDiggerJobParentLinksByParentId(&parentJob.DiggerJobID)
 	if err != nil {
+		slog.Error("Failed to get parent job links", "parentJobId", parentJob.DiggerJobID, "error", err)
 		return err
 	}
 
 	for _, jobLink := range jobLinksForParent {
 		jobLinksForChild, err := models.DB.GetDiggerJobParentLinksChildId(&jobLink.DiggerJobId)
 		if err != nil {
+			slog.Error("Failed to get child job links", "childJobId", jobLink.DiggerJobId, "error", err)
 			return err
 		}
 		allParentJobsAreComplete := true
@@ -30,6 +32,7 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 		for _, jobLinkForChild := range jobLinksForChild {
 			parentJob, err := models.DB.GetDiggerJob(jobLinkForChild.ParentDiggerJobId)
 			if err != nil {
+				slog.Error("Failed to get parent job", "parentJobId", jobLinkForChild.ParentDiggerJobId, "error", err)
 				return err
 			}
 
@@ -37,52 +40,73 @@ func DiggerJobCompleted(client *github.Client, batchId *uuid.UUID, parentJob *mo
 				allParentJobsAreComplete = false
 				break
 			}
-
 		}
 
 		if allParentJobsAreComplete {
 			job, err := models.DB.GetDiggerJob(jobLink.DiggerJobId)
 			if err != nil {
+				slog.Error("Failed to get job", "jobId", jobLink.DiggerJobId, "error", err)
 				return err
 			}
+
+			slog.Info("All parent jobs completed, scheduling job",
+				"jobId", job.DiggerJobID,
+				slog.Group("repository",
+					slog.String("fullName", repoFullName),
+					slog.String("owner", repoOwner),
+					slog.String("name", repoName),
+				),
+			)
+
 			ciBackend := ci_backends.GithubActionCi{Client: client}
 			ScheduleJob(ciBackend, repoFullName, repoOwner, repoName, batchId, job, gh)
 		}
-
 	}
 	return nil
 }
 
 func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob, gh utils.GithubClientProvider) error {
 	maxConcurrencyForBatch := config.DiggerConfig.GetInt("max_concurrency_per_batch")
+
 	if maxConcurrencyForBatch == 0 {
 		// concurrency limits not set
+		slog.Info("Scheduling job without concurrency limit", "jobId", job.DiggerJobID, "batchId", batchId)
 		err := TriggerJob(gh, ciBackend, repoFullname, repoOwner, repoName, batchId, job)
 		if err != nil {
-			log.Printf("Could not trigger job: %v", err)
+			slog.Error("Could not trigger job", "jobId", job.DiggerJobID, "error", err)
 			return err
 		}
 	} else {
 		// concurrency limits set
-		log.Printf("Scheduling job with concurrency limit: %v per batch", maxConcurrencyForBatch)
+		slog.Info("Scheduling job with concurrency limit",
+			"jobId", job.DiggerJobID,
+			"batchId", batchId,
+			"maxConcurrency", maxConcurrencyForBatch)
+
 		jobs, err := models.DB.GetDiggerJobsForBatchWithStatus(*batchId, []orchestrator_scheduler.DiggerJobStatus{
 			orchestrator_scheduler.DiggerJobTriggered,
 			orchestrator_scheduler.DiggerJobStarted,
 		})
 		if err != nil {
-			log.Printf("GetDiggerJobsForBatchWithStatus err: %v\n", err)
+			slog.Error("Failed to get jobs for batch", "batchId", batchId, "error", err)
 			return err
 		}
-		log.Printf("Length of jobs: %v", len(jobs))
+
+		slog.Debug("Current running jobs for batch", "count", len(jobs), "batchId", batchId)
+
 		if len(jobs) >= maxConcurrencyForBatch {
-			log.Printf("max concurrency for jobs reached: %v, queuing until more jobs succeed", len(jobs))
+			slog.Info("Maximum concurrency reached, queueing job",
+				"jobId", job.DiggerJobID,
+				"currentJobCount", len(jobs),
+				"maxConcurrency", maxConcurrencyForBatch)
+
 			job.Status = orchestrator_scheduler.DiggerJobQueuedForRun
 			models.DB.UpdateDiggerJob(job)
 			return nil
 		} else {
 			err := TriggerJob(gh, ciBackend, repoFullname, repoOwner, repoName, batchId, job)
 			if err != nil {
-				log.Printf("Could not trigger job: %v", err)
+				slog.Error("Could not trigger job", "jobId", job.DiggerJobID, "error", err)
 				return err
 			}
 		}
@@ -91,45 +115,55 @@ func ScheduleJob(ciBackend ci_backends.CiBackend, repoFullname string, repoOwner
 }
 
 func TriggerJob(gh utils.GithubClientProvider, ciBackend ci_backends.CiBackend, repoFullname string, repoOwner string, repoName string, batchId *uuid.UUID, job *models.DiggerJob) error {
-	log.Printf("TriggerJob jobId: %v", job.DiggerJobID)
+	slog.Info("Triggering job",
+		"jobId", job.DiggerJobID,
+		slog.Group("repository",
+			slog.String("fullName", repoFullname),
+			slog.String("owner", repoOwner),
+			slog.String("name", repoName),
+		),
+	)
 
 	if job.SerializedJobSpec == nil {
-		log.Printf("Jobspec can't be nil")
+		slog.Error("Job spec is nil", "jobId", job.DiggerJobID)
 		return fmt.Errorf("JobSpec is nil, skipping")
 	}
+
 	jobString := string(job.SerializedJobSpec)
-	log.Printf("jobString: %v \n", jobString)
+	slog.Debug("Job specification", "jobId", job.DiggerJobID, "jobSpec", jobString)
 
 	runName, err := GetRunNameFromJob(*job)
 	if err != nil {
-		log.Printf("could not get run name: %v", err)
+		slog.Error("Could not get run name", "jobId", job.DiggerJobID, "error", err)
 		return fmt.Errorf("could not get run name %v", err)
 	}
 
 	spec, err := GetSpecFromJob(*job)
 	if err != nil {
-		log.Printf("could not get spec: %v", err)
+		slog.Error("Could not get spec", "jobId", job.DiggerJobID, "error", err)
 		return fmt.Errorf("could not get spec %v", err)
 	}
 
 	vcsToken, err := GetVCSTokenFromJob(*job, gh)
 	if err != nil {
-		log.Printf("could not get vcs token: %v", err)
+		slog.Error("Could not get VCS token", "jobId", job.DiggerJobID, "error", err)
 		return fmt.Errorf("could not get vcs token: %v", err)
 	}
 
 	err = ciBackend.TriggerWorkflow(*spec, *runName, *vcsToken)
 	if err != nil {
-		log.Printf("TriggerJob err: %v\n", err)
+		slog.Error("Failed to trigger workflow", "jobId", job.DiggerJobID, "error", err)
 		return err
 	}
 
 	job.Status = orchestrator_scheduler.DiggerJobTriggered
 	err = models.DB.UpdateDiggerJob(job)
 	if err != nil {
-		log.Printf("failed to Update digger job state: %v\n", err)
+		slog.Error("Failed to update job status", "jobId", job.DiggerJobID, "error", err)
 		return err
 	}
+
+	slog.Info("Job successfully triggered", "jobId", job.DiggerJobID, "status", job.Status)
 
 	return nil
 }

@@ -3,10 +3,13 @@ package ci_backends
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log/slog"
+
+	"github.com/diggerhq/digger/backend/utils"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/google/go-github/v61/github"
-	"log"
 )
 
 type GithubActionCi struct {
@@ -14,7 +17,7 @@ type GithubActionCi struct {
 }
 
 func (g GithubActionCi) TriggerWorkflow(spec spec.Spec, runName string, vcsToken string) error {
-	log.Printf("TriggerGithubWorkflow: repoOwner: %v, repoName: %v, commentId: %v", spec.VCS.RepoOwner, spec.VCS.RepoName, spec.CommentId)
+	slog.Info("TriggerGithubWorkflow", "repoOwner", spec.VCS.RepoOwner, "repoName", spec.VCS.RepoName, "commentId", spec.CommentId)
 	client := g.Client
 	specBytes, err := json.Marshal(spec)
 
@@ -29,4 +32,18 @@ func (g GithubActionCi) TriggerWorkflow(spec spec.Spec, runName string, vcsToken
 	})
 
 	return err
+}
+
+func (g GithubActionCi) GetWorkflowUrl(spec spec.Spec) (string, error) {
+	if spec.JobId == "" {
+		slog.Error("Cannot get workflow URL: JobId is empty")
+		return "", fmt.Errorf("job ID is required to fetch workflow URL")
+	}
+
+	_, workflowRunUrl, err := utils.GetWorkflowIdAndUrlFromDiggerJobId(g.Client, spec.VCS.RepoOwner, spec.VCS.RepoName, spec.JobId)
+	if err != nil {
+		return "", err
+	} else {
+		return workflowRunUrl, nil
+	}
 }

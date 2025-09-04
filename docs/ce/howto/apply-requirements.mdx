@@ -8,3 +8,77 @@ Digger currently does not support `apply_requirements` (like in Atlantis). Comin
 
 You can use mergeability requirements together with Status Checks to achieve the same.
 Digger will not apply if the pull request is not in a “mergeable” state as specified by GitHub api. This means that if you have a separate status check and you have this check as “required” by branch protection rules then an attempt of digger apply will not go ahead.
+
+Note: there is a [known issue](https://github.com/diggerhq/digger/issues/1180) that would
+ cause the "mergability" check to conflict if you set the digger/apply check as required on github. We are working on a fix and in the meantime you have an option to turn off the mergability check if you want to have this digger/apply check as required. You can turn it off in the workflow configuration
+  by setting the `skip_merge_check` flag as follows (we have to set the other configurations since they are currently required):
+
+```
+projects:
+- name: dev
+  dir: dev
+  workflow: mydev
+
+workflows:
+  mydev:
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger unlock"]
+      skip_merge_check: true
+```
+
+## Requiring undiverged branches in PRs
+
+While PR locks prevent you from PRs stepping on eachother in parallel, they still do not protect you from a stale branch
+that is behind the current main head. In order to safeguard against this you have a few options:
+
+Force your repo to always have rebased branches from main. In github this is done by adding the branch protection rule:
+
+Under settings > branch protection rules >  Require branches to be up to date before merging → check this
+
+Since digger will always query github api for mergability status, this protects you from any stale apply from PRs being performed.
+
+![](/images/howto/force-refactor-into-main.png)
+
+Understandably this may not be feasible to mark especially for monorepos that mix code and terraform. In such cases you can achieve a similar effect by using a custom workflow like below (digger.yml):
+
+```
+projects:
+- name: gcp-infra
+  dir: cloud/terraform/gcp
+  workflow: terraform-strict
+
+workflows:
+  terraform-strict:
+    plan:
+      steps:
+        - run: |
+            echo "Checking if branch is up-to-date with main..."
+            git fetch --unshallow origin main || git fetch origin main
+            git fetch --unshallow origin HEAD || git fetch origin HEAD
+            if ! git merge-base --is-ancestor origin/main HEAD; then
+              echo "❌ Branch is not up-to-date with main. Please rebase or merge main into your branch."
+              echo "Run: git fetch origin && git rebase origin/main"
+              exit 1
+            fi
+            echo "✅ Branch is up-to-date with main"
+        - init
+        - plan
+    apply:
+      steps:
+        - run: |
+            echo "Checking if branch is up-to-date with main..."
+            git fetch --unshallow origin main || git fetch origin main
+            git fetch --unshallow origin HEAD || git fetch origin HEAD
+            if ! git merge-base --is-ancestor origin/main HEAD; then
+              echo "❌ Branch is not up-to-date with main. Please rebase or merge main into your branch."
+              echo "Run: git fetch origin && git rebase origin/main"
+              exit 1
+            fi
+            echo "✅ Branch is up-to-date with main"
+        - init
+        - apply
+```
+
+We plan to eventually support this natively as a flag in digger

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/diggerhq/digger/backend/models"
+	utils2 "github.com/diggerhq/digger/backend/utils"
 	"log"
 	"log/slog"
 	"net/http"
@@ -9,9 +11,7 @@ import (
 
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/drift/controllers"
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
 	"github.com/diggerhq/digger/ee/drift/middleware"
-	next_utils "github.com/diggerhq/digger/next/utils"
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
@@ -19,9 +19,24 @@ import (
 )
 
 func init() {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	log.Println("Initialized the logger successfully")
+	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
+	var level slog.Leveler
+
+	if logLevel == "DEBUG" {
+		level = slog.LevelDebug
+	} else if logLevel == "WARN" {
+		level = slog.LevelWarn
+	} else if logLevel == "ERROR" {
+		level = slog.LevelError
+	} else {
+		level = slog.LevelInfo
+	}
+
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	})
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
 }
 
 var Version = "dev"
@@ -46,7 +61,7 @@ func main() {
 	}
 
 	// initialize the database
-	dbmodels.ConnectDatabase()
+	models.ConnectDatabase()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
@@ -58,7 +73,7 @@ func main() {
 	}
 
 	controller := controllers.MainController{
-		GithubClientProvider: next_utils.DiggerGithubRealClientProvider{},
+		GithubClientProvider: utils2.DiggerGithubRealClientProvider{},
 		CiBackendProvider:    ci_backends.DefaultBackendProvider{},
 	}
 
@@ -72,16 +87,13 @@ func main() {
 	//authorized := r.Group("/")
 	//authorized.Use(middleware.GetApiMiddleware(), middleware.AccessLevel(dbmodels.CliJobAccessType, dbmodels.AccessPolicyType, models.AdminPolicyType))
 
-	r.POST("github-app-webhook", controller.GithubAppWebHook)
-	r.GET("/github/callback_fe", middleware.WebhookAuth(), controller.GithubAppCallbackPage)
-
 	r.POST("/repos/:repo/projects/:projectName/jobs/:jobId/set-status", middleware.JobTokenAuth(), controller.SetJobStatusForProject)
 
 	r.POST("/_internal/process_notifications", middleware.WebhookAuth(), controller.ProcessAllNotifications)
 	r.POST("/_internal/send_slack_notification_for_org", middleware.WebhookAuth(), controller.SendRealSlackNotificationForOrg)
-	r.POST("/_internal/send_test_slack_notification_for_org", middleware.WebhookAuth(), controller.SendTestSlackNotificationForOrg)
+	r.POST("/_internal/send_test_slack_notification_for_url", middleware.WebhookAuth(), controller.SendTestSlackNotificationForUrl)
 
-  r.POST("/_internal/process_drift", middleware.WebhookAuth(), controller.ProcessAllDrift)
+	r.POST("/_internal/process_drift", middleware.WebhookAuth(), controller.ProcessAllDrift)
 	r.POST("/_internal/process_drift_for_org", middleware.WebhookAuth(), controller.ProcessDriftForOrg)
 	r.POST("/_internal/trigger_drift_for_project", middleware.WebhookAuth(), controller.TriggerDriftRunForProject)
 

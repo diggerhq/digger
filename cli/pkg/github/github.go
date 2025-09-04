@@ -3,6 +3,10 @@ package github
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"os"
+	"strings"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
@@ -19,14 +23,28 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"github.com/google/go-github/v61/github"
+	"github.com/samber/lo"
 	"gopkg.in/yaml.v3"
-	"log"
-	"os"
-	"strings"
 )
 
+func initLogger() {
+	logLevel := os.Getenv("DIGGER_LOG_LEVEL")
+	var level slog.Leveler
+	if logLevel == "DEBUG" {
+		level = slog.LevelDebug
+	} else {
+		level = slog.LevelInfo
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	}))
+
+	slog.SetDefault(logger)
+}
+
 func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCheckerProvider, backendApi core_backend.Api, reportingStrategy reporting.ReportStrategy, githubServiceProvider dg_github.GithubServiceProvider, commentUpdaterProvider comment_updater.CommentUpdaterProvider, driftNotificationProvider drift.DriftNotificationProvider) {
-	log.Printf("Using GitHub.\n")
+	initLogger()
+	slog.Info("Using GitHub (backendless)")
 	githubActor := os.Getenv("GITHUB_ACTOR")
 	if githubActor != "" {
 		usage.SendUsageRecord(githubActor, "log", "initialize")
@@ -47,7 +65,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 	diggerGitHubToken := os.Getenv("DIGGER_GITHUB_TOKEN")
 	if diggerGitHubToken != "" {
-		log.Println("GITHUB_TOKEN has been overridden with DIGGER_GITHUB_TOKEN")
+		slog.Info("GITHUB_TOKEN has been overridden with DIGGER_GITHUB_TOKEN")
 		ghToken = diggerGitHubToken
 	}
 
@@ -69,7 +87,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	if err != nil {
 		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to parse GitHub context. %s", err), 3)
 	}
-	log.Printf("GitHub context parsed successfully\n")
+	slog.Info("GitHub context parsed successfully")
 
 	ghEvent := parsedGhContext.Event
 
@@ -90,20 +108,21 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to get current dir. %s", err), 4)
 	}
 
-	diggerConfig, diggerConfigYaml, dependencyGraph, err := digger_config.LoadDiggerConfig("./", true, nil)
+	diggerConfig, diggerConfigYaml, dependencyGraph, _, err := digger_config.LoadDiggerConfig("./", true, nil, nil)
 	if err != nil {
 		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
-	log.Printf("Digger digger_config read successfully\n")
+	slog.Info("Digger digger_config read successfully")
 
 	if diggerConfig.PrLocks == false {
-		log.Printf("info: Using noop lock as configured in digger.yml")
+		slog.Info("Using noop lock as configured in digger.yml")
 		lock = core_locking.NoOpLock{}
 	}
 
 	yamlData, err := yaml.Marshal(diggerConfigYaml)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		slog.Error("error while marshalling yaml", "error", err)
+		os.Exit(1)
 	}
 
 	// Convert to string
@@ -113,7 +132,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	for _, p := range diggerConfig.Projects {
 		err = backendApi.ReportProject(repo, p.Name, yamlStr)
 		if err != nil {
-			log.Printf("Failed to report project %s. %s\n", p.Name, err)
+			slog.Error("Failed to report project", "projectName", p.Name, "error", err)
 		}
 	}
 
@@ -127,13 +146,25 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
 		}
 
-		var projectConfig digger_config.Project
-		for _, projectConfig = range diggerConfig.Projects {
-			if projectConfig.Name == project {
-				break
+		projectConfig, projectFound := findProjectInConfig(diggerConfig.Projects, project)
+
+		if !projectFound {
+			// Log available projects to help with debugging
+			var availableProjects []string
+			for _, p := range diggerConfig.Projects {
+				availableProjects = append(availableProjects, p.Name)
 			}
+			slog.Error("Project not found in digger configuration",
+				"requestedProject", project,
+				"availableProjects", availableProjects)
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Project '%s' not found in digger configuration. Available projects: %v", project, availableProjects), 1)
 		}
-		workflow := diggerConfig.Workflows[projectConfig.Workflow]
+
+		slog.Info("Found project configuration", "projectName", projectConfig.Name, "projectDir", projectConfig.Dir)
+		workflow, ok := diggerConfig.Workflows[projectConfig.Workflow]
+		if !ok {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Workflow '%s' not found for project '%s'", projectConfig.Workflow, projectConfig.Name), 1)
+		}
 
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, true)
 
@@ -164,10 +195,25 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
 		}
 	} else if runningMode == "drift-detection" {
-
+		blockFiltersStr := os.Getenv("INPUT_DIGGER_BLOCK_FILTERS")
+		blockFilters := strings.Split(blockFiltersStr, ",")
+		notification, err := driftNotificationProvider.Get(githubPrService)
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get drift notification type: %v", err), 8)
+		}
 		for _, projectConfig := range diggerConfig.Projects {
 			if !projectConfig.DriftDetection {
 				continue
+			}
+			if blockFiltersStr != "" {
+				projectInBlock := false
+				if lo.Contains(blockFilters, projectConfig.BlockName) {
+					projectInBlock = true
+				}
+				slog.Debug("Project in block", "projectName", projectConfig.Name, "blockName", projectConfig.BlockName, "projectInBlock", projectInBlock, "blockFilters", blockFilters)
+				if !projectInBlock {
+					continue
+				}
 			}
 			workflow := diggerConfig.Workflows[projectConfig.Workflow]
 
@@ -175,17 +221,16 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 			StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(projectConfig)
 
-			stateArn, cmdArn := "",""
-			if(projectConfig.AwsRoleToAssume != nil) {
+			stateArn, cmdArn := "", ""
+			if projectConfig.AwsRoleToAssume != nil {
 				if projectConfig.AwsRoleToAssume.State != "" {
 					stateArn = projectConfig.AwsRoleToAssume.State
 				}
 
 				if projectConfig.AwsRoleToAssume.Command != "" {
-					cmdArn = projectConfig.AwsRoleToAssume.Command					
+					cmdArn = projectConfig.AwsRoleToAssume.Command
 				}
 			}
-
 
 			job := scheduler.Job{
 				ProjectName:        projectConfig.Name,
@@ -204,19 +249,22 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				EventName:          "drift-detect",
 				StateEnvProvider:   StateEnvProvider,
 				CommandEnvProvider: CommandEnvProvider,
-				StateRoleArn: 	 	stateArn,
-				CommandRoleArn: 	cmdArn,				
-			}
-
-			notification, err := driftNotificationProvider.Get(githubPrService)
-			if err != nil {
-				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("could not get drift notification type: %v", err), 8)
+				StateRoleArn:       stateArn,
+				CommandRoleArn:     cmdArn,
 			}
 
 			err = digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
-				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+				slog.Error("Failed to run commands", "repository", ghRepository, "project", projectConfig.Name, "error", err)
+				notificationErr := notification.SendErrorNotificationForProject(projectConfig.Name, ghRepository, err)
+				if notificationErr != nil {
+					slog.Error("Failed to send error notification", "repository", ghRepository, "project", projectConfig.Name, "error", notificationErr)
+				}
 			}
+		}
+		err = notification.Flush()
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to flush drift notification. %s", err), 8)
 		}
 	} else {
 
@@ -228,11 +276,11 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub event. %s", err), 6)
 			}
 		}
-		log.Printf("Following projects are impacted by pull request #%d\n", prNumber)
+		slog.Info("Following projects are impacted by pull request", "prNumber", prNumber)
 		for _, p := range impactedProjects {
-			log.Printf("- %s\n", p.Name)
+			slog.Info(fmt.Sprintf("- %s\n", p.Name))
 		}
-		log.Println("GitHub event processed successfully")
+		slog.Info("GitHub event processed successfully")
 
 		if dg_github.CheckIfHelpComment(ghEvent) {
 			reply := utils.GetCommands()
@@ -261,7 +309,14 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			repoFullName := *commentEvent.Repo.FullName
 			requestedBy := *commentEvent.Sender.Login
 			commentBody := *commentEvent.Comment.Body
-			jobs, coversAllImpactedProjects, err = generic.ConvertIssueCommentEventToJobs(repoFullName, requestedBy, prNumber, commentBody, impactedProjects, requestedProject, diggerConfig.Workflows, prBranchName, defaultBranch)
+
+			var impactedProjectsForEvent []digger_config.Project
+			if requestedProject != nil {
+				impactedProjectsForEvent = []digger_config.Project{*requestedProject}
+			} else {
+				impactedProjectsForEvent = impactedProjects
+			}
+			jobs, coversAllImpactedProjects, err = generic.ConvertIssueCommentEventToJobs(repoFullName, requestedBy, prNumber, commentBody, impactedProjectsForEvent, impactedProjects, diggerConfig.Workflows, prBranchName, defaultBranch)
 		} else {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Unsupported GitHub event type. %s", err), 6)
 		}
@@ -269,7 +324,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 		}
-		log.Println("GitHub event converted to commands successfully")
+		slog.Info("GitHub event converted to commands successfully")
 		logCommands(jobs)
 
 		err = githubPrService.SetOutput(prNumber, "DIGGER_PR_NUMBER", fmt.Sprintf("%v", prNumber))
@@ -303,8 +358,8 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		}
 
 		if diggerConfig.AutoMerge && allAppliesSuccessful && atLeastOneApply && coversAllImpactedProjects {
-			digger.MergePullRequest(&githubPrService, prNumber)
-			log.Println("PR merged successfully")
+			digger.MergePullRequest(&githubPrService, prNumber, diggerConfig.AutoMergeStrategy)
+			slog.Info("PR merged successfully")
 		}
 
 		if allAppliesSuccessful {
@@ -316,10 +371,20 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			}
 		}
 
-		log.Println("Commands executed successfully")
+		slog.Info("Commands executed successfully")
 	}
 
 	usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
+}
+
+// Helper function to search for a project in the configuration
+func findProjectInConfig(projects []digger_config.Project, projectName string) (digger_config.Project, bool) {
+	for _, config := range projects {
+		if config.Name == projectName {
+			return config, true
+		}
+	}
+	return digger_config.Project{}, false
 }
 
 func logCommands(projectCommands []scheduler.Job) {
@@ -331,5 +396,6 @@ func logCommands(projectCommands []scheduler.Job) {
 		}
 		logMessage += "\n"
 	}
-	log.Print(logMessage)
+	// TODO: improve the error message
+	slog.Info(logMessage)
 }

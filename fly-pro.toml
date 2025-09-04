@@ -1,0 +1,42 @@
+# fly.toml app configuration file generated for digger-pro on 2025-02-18T09:50:24+03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'digger-pro'
+primary_region = 'lhr'
+
+[env]
+  HOSTNAME = 'https://ui-backend.digger.dev'
+  DIGGER_HOSTNAME = 'https://ui-backend.digger.dev'
+  JWT_AUTH = 'true'
+  DIGGER_PROJECTS_SVC_APP_NAME = 'projects-refresh-service'
+  DIGGER_LOAD_PROJECTS_ON_PUSH = 'true'
+  DIGGER_MAX_PROJECTS_PER_CHANGE=100
+  DIGGER_LOG_LEVEL = 'DEBUG'
+[build]
+  dockerfile = 'Dockerfile_backend_ee'
+
+[[services]]
+  protocol = 'tcp'
+  internal_port = 3000
+  processes = ['app']
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
+  [services.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

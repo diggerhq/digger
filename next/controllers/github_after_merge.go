@@ -100,13 +100,13 @@ func handlePushEventApplyAfterMerge(gh nextutils.GithubClientProvider, payload *
 	// TODO: find a way to set the right PR branch
 	issueNumber := 0
 
-	planJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger plan", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, targetBranch, targetBranch)
+	planJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger plan", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, targetBranch, targetBranch, false)
 	if err != nil {
 		log.Printf("Error creating jobs: %v", err)
 		return fmt.Errorf("error creating jobs")
 	}
 
-	applyJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger apply", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, targetBranch, targetBranch)
+	applyJobs, err := generic.CreateJobsForProjects(impactedProjects, "digger apply", "push", repoFullName, requestedBy, config.Workflows, &issueNumber, &commitId, targetBranch, targetBranch, false)
 	if err != nil {
 		log.Printf("Error creating jobs: %v", err)
 		return fmt.Errorf("error creating jobs")

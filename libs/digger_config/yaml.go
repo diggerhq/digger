@@ -2,17 +2,21 @@ package digger_config
 
 import (
 	"errors"
+	"fmt"
 
 	"gopkg.in/yaml.v3"
 )
 
 type DiggerConfigYaml struct {
 	ApplyAfterMerge            *bool                        `yaml:"apply_after_merge"`
+	RespectLayers              *bool                        `yaml:"respect_layers"`
 	AllowDraftPRs              *bool                        `yaml:"allow_draft_prs"`
 	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
+	DeletePriorComments        *bool                        `yaml:"delete_prior_comments"`
 	PrLocks                    *bool                        `yaml:"pr_locks"`
 	Projects                   []*ProjectYaml               `yaml:"projects"`
 	AutoMerge                  *bool                        `yaml:"auto_merge"`
+	AutoMergeStrategy          *string                      `yaml:"auto_merge_strategy"`
 	CommentRenderMode          *string                      `yaml:"comment_render_mode"`
 	Workflows                  map[string]*WorkflowYaml     `yaml:"workflows"`
 	Telemetry                  *bool                        `yaml:"telemetry,omitempty"`
@@ -32,7 +36,9 @@ type DependencyConfigurationYaml struct {
 }
 
 type ProjectYaml struct {
+	BlockName            string                      `yaml:"block_name"`
 	Name                 string                      `yaml:"name"`
+	Alias                string                      `yaml:"alias,omitempty"`
 	Dir                  string                      `yaml:"dir"`
 	Workspace            string                      `yaml:"workspace"`
 	Terragrunt           bool                        `yaml:"terragrunt"`
@@ -41,6 +47,7 @@ type ProjectYaml struct {
 	Workflow             string                      `yaml:"workflow"`
 	WorkflowFile         string                      `yaml:"workflow_file"`
 	IncludePatterns      []string                    `yaml:"include_patterns,omitempty"`
+	Layer                *uint                       `yaml:"layer"`
 	ExcludePatterns      []string                    `yaml:"exclude_patterns,omitempty"`
 	DependencyProjects   []string                    `yaml:"depends_on,omitempty"`
 	DriftDetection       *bool                       `yaml:"drift_detection,omitempty"`
@@ -75,7 +82,8 @@ func (s *StageYaml) ToCoreStage() Stage {
 }
 
 type StageYaml struct {
-	Steps []StepYaml `yaml:"steps"`
+	FilterRegex *string    `yaml:"filter_regex,omitempty"`
+	Steps       []StepYaml `yaml:"steps"`
 }
 
 type StepYaml struct {
@@ -104,8 +112,9 @@ type BlockYaml struct {
 	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
 
 	// these flags are only for terragrunt
-	Terragrunt bool    `yaml:"terragrunt"`
-	RootDir    *string `yaml:"root_dir"`
+	Terragrunt              bool                     `yaml:"terragrunt"`
+	RootDir                 *string                  `yaml:"root_dir"`
+	TerragruntParsingConfig *TerragruntParsingConfig `yaml:"terragrunt_parsing,omitempty"`
 
 	// these flags are only for opentofu
 	OpenTofu bool `yaml:"opentofu"`
@@ -153,9 +162,10 @@ type TerragruntParsingConfig struct {
 	Parallel                   *bool    `yaml:"parallel,omitempty"`
 	CreateWorkspace            bool     `yaml:"createWorkspace"`
 	CreateProjectName          bool     `yaml:"createProjectName"`
+	ProjectAliasDelimiter      string   `yaml:"projectAliasDelimiter"`
 	DefaultTerraformVersion    string   `yaml:"defaultTerraformVersion"`
 	DefaultWorkflow            string   `yaml:"defaultWorkflow"`
-	FilterPath                 string   `yaml:"filterPath"`
+	FilterPaths                []string `yaml:"filterPaths"`
 	OutputPath                 string   `yaml:"outputPath"`
 	PreserveWorkflows          *bool    `yaml:"preserveWorkflows,omitempty"`
 	PreserveProjects           bool     `yaml:"preserveProjects"`
@@ -170,6 +180,7 @@ type TerragruntParsingConfig struct {
 	WorkflowFile                   string                      `yaml:"workflow_file"`
 	AwsRoleToAssume                *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 	AwsCognitoOidcConfig           *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
+	DependsOnOrdering              *bool                       `yaml:"dependsOnOrdering,omitempty"`
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -258,9 +269,17 @@ func (s *StepYaml) UnmarshalYAML(value *yaml.Node) error {
 
 	if _, ok := stepMap["run"]; ok {
 		s.Action = "run"
-		s.Value = stepMap["run"].(string)
+		v, ok := stepMap["run"].(string)
+		if !ok {
+			return fmt.Errorf("step.run must be a string, but got %T", stepMap["run"])
+		}
+		s.Value = v
 		if _, ok := stepMap["shell"]; ok {
-			s.Shell = stepMap["shell"].(string)
+			shell, ok := stepMap["shell"].(string)
+			if !ok {
+				return fmt.Errorf("step.run.shell must be a string, but got %T", stepMap["shell"])
+			}
+			s.Shell = shell
 		}
 		return nil
 	}

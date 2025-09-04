@@ -47,7 +47,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetCombinedPul
 	return "", nil
 }
 
-func (mockGithubPullrequestManager *MockGithubPullrequestManager) MergePullRequest(prNumber int) error {
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) MergePullRequest(prNumber int, mergeStrategy string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "MergePullRequest")
 	return nil
 }
@@ -84,6 +84,10 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) GetApprovals(p
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) EditComment(prNumber int, id string, comment string) error {
 	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "EditComment")
+	return nil
+}
+
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) DeleteComment(id string) error {
 	return nil
 }
 

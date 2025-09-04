@@ -2,39 +2,40 @@ package middleware
 
 import (
 	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"log"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
 )
 
 func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) error {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		if claims.Valid() != nil {
-			log.Printf("Token's claim is invalid")
+			slog.Warn("Token's claim is invalid")
 			return fmt.Errorf("token is invalid")
 		}
 		var org *models.Organisation
 		tenantId := claims["tenantId"]
 		if tenantId == nil {
-			log.Printf("claim's tenantId is nil")
+			slog.Warn("Claim's tenantId is nil")
 			return fmt.Errorf("token is invalid")
 		}
 		tenantId = tenantId.(string)
-		log.Printf("tenantId: %s", tenantId)
+		slog.Debug("Processing tenant ID", "tenantId", tenantId)
 
 		org, err := models.DB.GetOrganisation(tenantId)
 		if err != nil {
-			log.Printf("Error while fetching organisation: %v", err)
+			slog.Error("Error while fetching organisation", "tenantId", tenantId, "error", err)
 			return err
 		} else if org == nil {
-			log.Printf("No organisation found for tenantId %s", tenantId)
+			slog.Warn("No organisation found for tenantId", "tenantId", tenantId)
 			return fmt.Errorf("token is invalid")
 		}
 
@@ -43,7 +44,7 @@ func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) 
 		segment.GetClient()
 		segment.IdentifyClient(strconv.Itoa(int(org.ID)), org.Name, org.Name, org.Name, org.Name, strconv.Itoa(int(org.ID)), "")
 
-		log.Printf("set org id %v\n", org.ID)
+		slog.Debug("Set organisation ID in context", "orgId", org.ID)
 
 		tokenType := claims["type"].(string)
 
@@ -51,14 +52,14 @@ func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) 
 		if tokenType == "tenantAccessToken" {
 			permission, err := auth.FetchTokenPermissions(claims["sub"].(string))
 			if err != nil {
-				log.Printf("Error while fetching permissions: %v", err)
+				slog.Error("Error while fetching permissions", "subject", claims["sub"].(string), "error", err)
 				return fmt.Errorf("token is invalid")
 			}
 			permissions = permission
 		} else {
 			permissionsClaims := claims["permissions"]
 			if permissionsClaims == nil {
-				log.Printf("claim's permissions is nil")
+				slog.Warn("Claim's permissions is nil")
 				return fmt.Errorf("token is invalid")
 			}
 			for _, permissionClaim := range permissionsClaims.([]interface{}) {
@@ -67,18 +68,20 @@ func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) 
 		}
 		for _, permission := range permissions {
 			if permission == "digger.all.*" {
+				slog.Debug("Setting admin access level", "permission", permission)
 				c.Set(ACCESS_LEVEL_KEY, models.AdminPolicyType)
 				return nil
 			}
 		}
 		for _, permission := range permissions {
 			if permission == "digger.all.read.*" {
+				slog.Debug("Setting read access level", "permission", permission)
 				c.Set(ACCESS_LEVEL_KEY, models.AccessPolicyType)
 				return nil
 			}
 		}
 	} else {
-		log.Printf("Token's claim is invalid")
+		slog.Warn("Token's claim is invalid")
 		return fmt.Errorf("token is invalid")
 	}
 	return nil
@@ -89,20 +92,20 @@ func JWTWebAuth(auth services.Auth) gin.HandlerFunc {
 		var tokenString string
 		tokenString, err := c.Cookie("token")
 		if err != nil {
-			log.Printf("can't get a cookie token, %v\n", err)
+			slog.Warn("Can't get a cookie token", "error", err)
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
 
 		if tokenString == "" {
-			log.Println("auth token is empty")
+			slog.Warn("Auth token is empty")
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
 
 		jwtPublicKey := os.Getenv("JWT_PUBLIC_KEY")
 		if jwtPublicKey == "" {
-			log.Printf("No JWT_PUBLIC_KEY environment variable provided")
+			slog.Error("No JWT_PUBLIC_KEY environment variable provided")
 			c.String(http.StatusInternalServerError, "Error occurred while reading public key")
 			c.Abort()
 			return
@@ -111,7 +114,7 @@ func JWTWebAuth(auth services.Auth) gin.HandlerFunc {
 
 		publicKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKeyData)
 		if err != nil {
-			log.Printf("Error while parsing public key: %v", err.Error())
+			slog.Error("Error while parsing public key", "error", err)
 			c.String(http.StatusInternalServerError, "Error occurred while parsing public key")
 			c.Abort()
 			return
@@ -125,7 +128,7 @@ func JWTWebAuth(auth services.Auth) gin.HandlerFunc {
 			return publicKey, nil
 		})
 		if err != nil {
-			log.Printf("can't parse a token, %v\n", err)
+			slog.Warn("Can't parse a token", "error", err)
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
@@ -133,7 +136,7 @@ func JWTWebAuth(auth services.Auth) gin.HandlerFunc {
 		if token.Valid {
 			err = SetContextParameters(c, auth, token)
 			if err != nil {
-				log.Printf("Error while setting context parameters: %v", err)
+				slog.Error("Error while setting context parameters", "error", err)
 				c.String(http.StatusForbidden, "Failed to parse token")
 				c.Abort()
 				return
@@ -143,14 +146,14 @@ func JWTWebAuth(auth services.Auth) gin.HandlerFunc {
 			return
 		} else if ve, ok := err.(*jwt.ValidationError); ok {
 			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				log.Println("That's not even a token")
+				slog.Warn("That's not even a token")
 			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-				log.Println("Token is either expired or not active yet")
+				slog.Warn("Token is either expired or not active yet")
 			} else {
-				log.Println("Couldn't handle this token:", err)
+				slog.Warn("Couldn't handle this token", "error", err)
 			}
 		} else {
-			log.Println("Couldn't handle this token:", err)
+			slog.Warn("Couldn't handle this token", "error", err)
 		}
 
 		c.AbortWithStatus(http.StatusForbidden)
@@ -161,7 +164,7 @@ func SecretCodeAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		secret := c.Request.Header.Get("x-webhook-secret")
 		if secret == "" {
-			log.Printf("No x-webhook-secret header provided")
+			slog.Warn("No x-webhook-secret header provided")
 			c.String(http.StatusForbidden, "No x-webhook-secret header provided")
 			c.Abort()
 			return
@@ -174,11 +177,12 @@ func SecretCodeAuth() gin.HandlerFunc {
 		})
 
 		if err != nil {
-			log.Printf("Error parsing secret: %v", err.Error())
+			slog.Error("Error parsing webhook secret", "error", err)
 			c.String(http.StatusForbidden, "Invalid x-webhook-secret header provided")
 			c.Abort()
 			return
 		}
+		slog.Debug("Webhook secret verified successfully")
 		c.Next()
 	}
 }
@@ -187,48 +191,57 @@ func JWTBearerTokenAuth(auth services.Auth) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader == "" {
+			slog.Warn("No Authorization header provided")
 			c.String(http.StatusForbidden, "No Authorization header provided")
 			c.Abort()
 			return
 		}
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		if token == authHeader {
+			slog.Warn("Could not find bearer token in Authorization header")
 			c.String(http.StatusForbidden, "Could not find bearer token in Authorization header")
 			c.Abort()
 			return
 		}
 
 		if strings.HasPrefix(token, "cli:") {
+			slog.Debug("Processing CLI token")
 			if jobToken, err := CheckJobToken(c, token); err != nil {
+				slog.Warn("Invalid job token", "error", err)
 				c.String(http.StatusForbidden, err.Error())
 				c.Abort()
 				return
 			} else {
 				c.Set(ORGANISATION_ID_KEY, jobToken.OrganisationID)
 				c.Set(ACCESS_LEVEL_KEY, jobToken.Type)
+				slog.Debug("Job token verified", "organisationId", jobToken.OrganisationID, "accessLevel", jobToken.Type)
 			}
 		} else if strings.HasPrefix(token, "t:") {
+			slog.Debug("Processing API token")
 			var dbToken models.Token
 
-			token, err := models.DB.GetToken(token)
-			if token == nil {
+			tokenObj, err := models.DB.GetToken(token)
+			if tokenObj == nil {
+				slog.Warn("Invalid bearer token", "token", token)
 				c.String(http.StatusForbidden, "Invalid bearer token")
 				c.Abort()
 				return
 			}
 
 			if err != nil {
-				log.Printf("Error while fetching token from database: %v", err)
+				slog.Error("Error while fetching token from database", "error", err)
 				c.String(http.StatusInternalServerError, "Error occurred while fetching database")
 				c.Abort()
 				return
 			}
 			c.Set(ORGANISATION_ID_KEY, dbToken.OrganisationID)
 			c.Set(ACCESS_LEVEL_KEY, dbToken.Type)
+			slog.Debug("API token verified", "organisationId", dbToken.OrganisationID, "accessLevel", dbToken.Type)
 		} else {
+			slog.Debug("Processing JWT token")
 			jwtPublicKey := os.Getenv("JWT_PUBLIC_KEY")
 			if jwtPublicKey == "" {
-				log.Printf("No JWT_PUBLIC_KEY environment variable provided")
+				slog.Error("No JWT_PUBLIC_KEY environment variable provided")
 				c.String(http.StatusInternalServerError, "Error occurred while reading public key")
 				c.Abort()
 				return
@@ -237,13 +250,13 @@ func JWTBearerTokenAuth(auth services.Auth) gin.HandlerFunc {
 
 			publicKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKeyData)
 			if err != nil {
-				log.Printf("Error while parsing public key: %v", err.Error())
+				slog.Error("Error while parsing public key", "error", err)
 				c.String(http.StatusInternalServerError, "Error occurred while parsing public key")
 				c.Abort()
 				return
 			}
 
-			token, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+			parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 				}
@@ -251,26 +264,27 @@ func JWTBearerTokenAuth(auth services.Auth) gin.HandlerFunc {
 			})
 
 			if err != nil {
-				log.Printf("Error while parsing token: %v", err.Error())
+				slog.Error("Error while parsing token", "error", err)
 				c.String(http.StatusForbidden, "Authorization header is invalid")
 				c.Abort()
 				return
 			}
 
-			if !token.Valid {
-				log.Printf("Token is invalid")
+			if !parsedToken.Valid {
+				slog.Warn("Token is invalid")
 				c.String(http.StatusForbidden, "Authorization header is invalid")
 				c.Abort()
 				return
 			}
 
-			err = SetContextParameters(c, auth, token)
+			err = SetContextParameters(c, auth, parsedToken)
 			if err != nil {
-				log.Printf("Error while setting context parameters: %v", err)
+				slog.Error("Error while setting context parameters", "error", err)
 				c.String(http.StatusForbidden, "Failed to parse token")
 				c.Abort()
 				return
 			}
+			slog.Debug("JWT token verified successfully")
 		}
 
 		c.Next()
@@ -282,10 +296,12 @@ func AccessLevel(allowedAccessLevels ...string) gin.HandlerFunc {
 		accessLevel := c.GetString(ACCESS_LEVEL_KEY)
 		for _, allowedAccessLevel := range allowedAccessLevels {
 			if accessLevel == allowedAccessLevel {
+				slog.Debug("Access level authorized", "accessLevel", accessLevel, "allowedLevel", allowedAccessLevel)
 				c.Next()
 				return
 			}
 		}
+		slog.Warn("Access level not allowed", "accessLevel", accessLevel, "allowedLevels", allowedAccessLevels)
 		c.String(http.StatusForbidden, "Not allowed to access this resource with this access level")
 		c.Abort()
 	}
@@ -308,5 +324,7 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 const ORGANISATION_ID_KEY = "organisation_ID"
+const ORGANISATION_SOURCE_KEY = "organisation_Source"
+const USER_ID_KEY = "user_ID"
 const ACCESS_LEVEL_KEY = "access_level"
 const JOB_TOKEN_KEY = "job_token"

@@ -2,13 +2,12 @@ package execution
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/iac_utils"
 	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
 	"github.com/samber/lo"
-	"log"
+	"log/slog"
 	"os"
 	"path"
 	"regexp"
@@ -37,7 +36,7 @@ func (l LockingExecutorWrapper) Plan() (*iac_utils.IacSummary, bool, bool, strin
 	if err != nil {
 		return nil, false, false, "", "", fmt.Errorf("digger plan, error locking project: %v", err)
 	}
-	log.Printf("Lock result: %t\n", locked)
+	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Plan()
 	} else {
@@ -49,9 +48,9 @@ func (l LockingExecutorWrapper) Apply() (*iac_utils.IacSummary, bool, string, er
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
 		msg := fmt.Sprintf("digger apply, error locking project: %v", err)
-		return nil, false, msg, fmt.Errorf(msg)
+		return nil, false, msg, fmt.Errorf("%s", msg)
 	}
-	log.Printf("Lock result: %t\n", locked)
+	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Apply()
 	} else {
@@ -64,7 +63,7 @@ func (l LockingExecutorWrapper) Destroy() (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("digger destroy, error locking project: %v", err)
 	}
-	log.Printf("Lock result: %t\n", locked)
+	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Destroy()
 	} else {
@@ -176,7 +175,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 		return "", fmt.Errorf("failed to check if stored plan exists. %v", err)
 	}
 	if storedPlanExists {
-		log.Printf("Pre-apply plan retrieval: stored plan exists in artefact, retrieving")
+		slog.Info("Pre-apply plan retrieval: stored plan exists in artefact, retrieving")
 		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName(), planPathProvider.StoredPlanFilePath())
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
@@ -191,7 +190,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 		}
 
 		showArgs := make([]string, 0)
-		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars, *storedPlanPath)
+		terraformPlanOutput, _, _ := executor.TerraformExecutor.Show(showArgs, executor.CommandEnvVars, *storedPlanPath, true)
 		return terraformPlanOutput, nil
 
 	} else {
@@ -201,7 +200,7 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 
 func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, string, error) {
 	plan := ""
-	terraformPlanOutput := ""
+	terraformPlanOutputJsonString := ""
 	planSummary := &iac_utils.IacSummary{}
 	isEmptyPlan := true
 	var planSteps []scheduler.Step
@@ -218,8 +217,18 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			},
 		}
 	}
+
+	hasPlanStep := lo.ContainsBy(planSteps, func(step scheduler.Step) bool {
+		return step.Action == "plan"
+	})
+
+	// setting additional env vars for run step
+	if d.RunEnvVars == nil {
+		d.RunEnvVars = make(map[string]string)
+	}
+
 	for _, step := range planSteps {
-		log.Printf(" Running step: %v\n", step.Action)
+		slog.Info("Running step", "action", step.Action)
 		if step.Action == "init" {
 			_, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
@@ -233,46 +242,24 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			// TODO remove those only for pulumi project
 			planArgs = append(planArgs, step.ExtraArgs...)
 
-			_, stdout, stderr, err := d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath())
+			var err error
+			var stdout, stderr string
+			isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
 			if err != nil {
-				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v", err)
+				reportTerraformError(d.Reporter, stderr)
+				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v, stdout: %v, stderr: %v", err, stdout, stderr)
 			}
-			showArgs := make([]string, 0)
-			terraformPlanOutput, _, _ = d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath())
 
-			isEmptyPlan, planSummary, err = d.IacUtils.GetSummaryFromPlanJson(terraformPlanOutput)
+			plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(stdout)
 			if err != nil {
-				return nil, false, false, "", "", fmt.Errorf("error checking for empty plan: %v", err)
-			}
-
-			if !isEmptyPlan {
-				nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
-				file, err := os.Create(nonEmptyPlanFilepath)
-				if err != nil {
-					return nil, false, false, "", "", fmt.Errorf("unable to create file: %v", err)
-				}
-				defer file.Close()
-			}
-
-			if d.PlanStorage != nil {
-
-				fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
-				if err != nil {
-					fmt.Println("Error reading file:", err)
-					return nil, false, false, "", "", fmt.Errorf("error reading file bytes: %v", err)
-				}
-
-				err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
-				if err != nil {
-					fmt.Println("Error storing artifact file:", err)
-					return nil, false, false, "", "", fmt.Errorf("error storing artifact file: %v", err)
-				}
-			}
-
-			// TODO: move this function to iacUtils interface and implement for pulumi
-			plan = cleanupTerraformPlan(!isEmptyPlan, err, stdout, stderr)
-			if err != nil {
-				log.Printf("error publishing comment: %v", err)
+				reportError(d.Reporter, err.Error())
+				slog.Debug("error post processing plan",
+					"error", err,
+					"plan", plan,
+					"planSummary", planSummary,
+					"isEmptyPlan", isEmptyPlan,
+				)
+				return nil, false, false, "", "", fmt.Errorf("error post processing plan: %v", err) //nolint:wrapcheck // err
 			}
 		}
 		if step.Action == "run" {
@@ -281,27 +268,94 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 			}
 			commands = append(commands, step.Value)
-			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
+			slog.Info("Running command",
+				"command", step.Value,
+				"project", d.ProjectNamespace+"#"+d.ProjectName)
+
+			slog.Debug("adding plan file path to environment", "DIGGER_PLANFILE", d.PlanPathProvider.LocalPlanFilePath())
+			d.RunEnvVars["DIGGER_PLANFILE"] = d.PlanPathProvider.LocalPlanFilePath()
 			_, _, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
+				reportError(d.Reporter, err.Error())
 				return nil, false, false, "", "", fmt.Errorf("error running command: %v", err)
 			}
 		}
 	}
+
+	if !hasPlanStep {
+		rawPlan, _, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
+		if err != nil {
+			reportTerraformError(d.Reporter, err.Error())
+			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
+		}
+		plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
+		if err != nil {
+			reportError(d.Reporter, err.Error())
+			slog.Debug("error post processing plan",
+				"error", err,
+				"plan", plan,
+				"planSummary", planSummary,
+				"isEmptyPlan", isEmptyPlan,
+			)
+			return nil, false, false, "", "", fmt.Errorf("error post processing plan: %v", err) //nolint:wrapcheck // err
+		}
+	}
+
 	reportAdditionalOutput(d.Reporter, d.projectId())
-	return planSummary, true, !isEmptyPlan, plan, terraformPlanOutput, nil
+	return planSummary, true, !isEmptyPlan, plan, terraformPlanOutputJsonString, nil
+}
+
+func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_utils.IacSummary, bool, error) {
+	showArgs := make([]string, 0)
+	terraformPlanJsonOutputString, _, err := d.TerraformExecutor.Show(showArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), true)
+	if err != nil {
+		return "", "", nil, false, fmt.Errorf("error running terraform show: %v", err)
+	}
+
+	isEmptyPlan, planSummary, err := d.IacUtils.GetSummaryFromPlanJson(terraformPlanJsonOutputString)
+	if err != nil {
+		return "", "", nil, false, fmt.Errorf("error checking for empty plan: %v", err)
+	}
+
+	if !isEmptyPlan {
+		nonEmptyPlanFilepath := strings.Replace(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.StoredPlanFilePath(), "isNonEmptyPlan.txt", 1)
+		file, err := os.Create(nonEmptyPlanFilepath)
+		if err != nil {
+			return "", "", nil, false, fmt.Errorf("unable to create file: %v", err)
+		}
+		defer file.Close()
+	}
+
+	if d.PlanStorage != nil {
+		fileBytes, err := os.ReadFile(d.PlanPathProvider.LocalPlanFilePath())
+		if err != nil {
+			fmt.Println("Error reading file:", err)
+			return "", "", nil, false, fmt.Errorf("error reading file bytes: %v", err)
+		}
+
+		err = d.PlanStorage.StorePlanFile(fileBytes, d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
+		if err != nil {
+			fmt.Println("Error storing artifact file:", err)
+			return "", "", nil, false, fmt.Errorf("error storing artifact file: %v", err)
+
+		}
+	}
+
+	// TODO: move this function to iacUtils interface and implement for pulumi
+	cleanedUpPlan := cleanupTerraformPlan(stdout)
+	return cleanedUpPlan, terraformPlanJsonOutputString, planSummary, isEmptyPlan, nil
 }
 
 func reportError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(stderr, utils.AsCollapsibleComment("Error during init.", false))
+		_, _, commentErr := r.Report(stderr, reporting.AsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", commentErr)
+			slog.Error("error publishing comment", "error", commentErr)
 		}
 	} else {
-		_, _, commentErr := r.Report(stderr, utils.AsComment("Error during init."))
+		_, _, commentErr := r.Report(stderr, reporting.AsComment("Error during init."))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", commentErr)
+			slog.Error("error publishing comment", "error", commentErr)
 		}
 	}
 }
@@ -333,6 +387,11 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 		}
 	}
 
+	if d.RunEnvVars == nil {
+		slog.Debug("RunEnvVars is nil, creating new map")
+		d.RunEnvVars = make(map[string]string)
+	}
+
 	for _, step := range applySteps {
 		if step.Action == "init" {
 			stdout, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
@@ -354,7 +413,7 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 
 			summary, err = d.IacUtils.GetSummaryFromApplyOutput(stdout)
 			if err != nil {
-				log.Printf("Warning: get summary from apply output failed: %v", err)
+				slog.Warn("warning: get summary from apply output failed", "error", err)
 			}
 		}
 		if step.Action == "run" {
@@ -362,8 +421,15 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 			if os.Getenv("ACTIVATE_VENV") == "true" {
 				commands = append(commands, fmt.Sprintf("source %v/.venv/bin/activate", os.Getenv("GITHUB_WORKSPACE")))
 			}
+
+			if plansFilename != nil {
+				slog.Debug("adding plan file path to environment", "DIGGER_PLANFILE", *plansFilename)
+				d.RunEnvVars["DIGGER_PLANFILE"] = *plansFilename
+			}
 			commands = append(commands, step.Value)
-			log.Printf("Running %v for **%v**\n", step.Value, d.ProjectNamespace+"#"+d.ProjectName)
+			slog.Info("Running command",
+				"command", step.Value,
+				"project", d.ProjectNamespace+"#"+d.ProjectName)
 			_, stderr, err := d.CommandRunner.Run(d.ProjectPath, step.Shell, commands, d.RunEnvVars)
 			if err != nil {
 				return nil, false, stderr, fmt.Errorf("error running command: %v", err)
@@ -376,14 +442,14 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 
 func reportApplyError(r reporting.Reporter, err error) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(err.Error(), utils.AsCollapsibleComment("Error during applying.", false))
+		_, _, commentErr := r.Report(err.Error(), reporting.AsCollapsibleComment("Error during applying.", false))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", err)
+			slog.Error("error publishing comment", "error", err)
 		}
 	} else {
-		_, _, commentErr := r.Report(err.Error(), utils.AsComment("Error during applying."))
+		_, _, commentErr := r.Report(err.Error(), reporting.AsComment("Error during applying."))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", err)
+			slog.Error("error publishing comment", "error", err)
 		}
 	}
 }
@@ -391,27 +457,27 @@ func reportApplyError(r reporting.Reporter, err error) {
 func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOutput string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = utils.GetTerraformOutputAsCollapsibleComment("Apply output", false)
+		formatter = reporting.GetTerraformOutputAsCollapsibleComment("Apply output", false)
 	} else {
-		formatter = utils.GetTerraformOutputAsComment("Apply output")
+		formatter = reporting.GetTerraformOutputAsComment("Apply output")
 	}
 
 	_, _, commentErr := r.Report(applyOutput, formatter)
 	if commentErr != nil {
-		log.Printf("error publishing comment: %v", commentErr)
+		slog.Error("error publishing comment", "error", commentErr)
 	}
 }
 
 func reportTerraformError(r reporting.Reporter, stderr string) {
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
+		_, _, commentErr := r.Report(stderr, reporting.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", commentErr)
+			slog.Error("error publishing comment", "error", commentErr)
 		}
 	} else {
-		_, _, commentErr := r.Report(stderr, utils.GetTerraformOutputAsComment("Error during init."))
+		_, _, commentErr := r.Report(stderr, reporting.GetTerraformOutputAsComment("Error during init."))
 		if commentErr != nil {
-			log.Printf("error publishing comment: %v", commentErr)
+			slog.Error("error publishing comment", "error", commentErr)
 		}
 	}
 }
@@ -419,9 +485,9 @@ func reportTerraformError(r reporting.Reporter, stderr string) {
 func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = utils.GetTerraformOutputAsCollapsibleComment("Additional output for <b>"+projectId+"</b>", false)
+		formatter = reporting.GetTerraformOutputAsCollapsibleComment("Additional output for <b>"+projectId+"</b>", false)
 	} else {
-		formatter = utils.GetTerraformOutputAsComment("Additional output for " + projectId)
+		formatter = reporting.GetTerraformOutputAsComment("Additional output for " + projectId)
 	}
 	diggerOutPath := os.Getenv("DIGGER_OUT")
 	if _, err := os.Stat(diggerOutPath); err == nil {
@@ -430,17 +496,17 @@ func reportAdditionalOutput(r reporting.Reporter, projectId string) {
 		if len(outputStr) > 0 {
 			_, _, commentErr := r.Report(outputStr, formatter)
 			if commentErr != nil {
-				log.Printf("error publishing comment: %v", commentErr)
+				slog.Error("error publishing comment", "error", commentErr)
 			}
 		} else {
-			log.Printf("empty $DIGGER_OUT file at: %v", diggerOutPath)
+			slog.Debug("empty $DIGGER_OUT file", "path", diggerOutPath)
 		}
 		err = os.Remove(diggerOutPath)
 		if err != nil {
-			log.Printf("error removing $DIGGER_OUT file at: %v, %v", diggerOutPath, err)
+			slog.Error("error removing $DIGGER_OUT file", "path", diggerOutPath, "error", err)
 		}
 	} else {
-		log.Printf("no $DIGGER_OUT file at: %v", diggerOutPath)
+		slog.Debug("no $DIGGER_OUT file", "path", diggerOutPath)
 	}
 }
 
@@ -472,24 +538,13 @@ func (d DiggerExecutor) Destroy() (bool, error) {
 	return true, nil
 }
 
-func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string, stderr string, regexStr *string) string {
-	var errorStr string
-
+func cleanupTerraformOutput(stdout string, regexStr *string) string {
 	// removes output of terraform -version command that terraform-exec executes on every run
 	i := strings.Index(stdout, "Initializing the backend...")
 	if i != -1 {
 		stdout = stdout[i:]
 	}
 	endPos := len(stdout)
-
-	if planError != nil {
-		if stderr != "" {
-			errorStr = stderr
-		} else if stdout != "" {
-			errorStr = stdout
-		}
-		return errorStr
-	}
 
 	delimiters := []string{
 		"Terraform will perform the following actions:",
@@ -524,12 +579,12 @@ func cleanupTerraformOutput(nonEmptyOutput bool, planError error, stdout string,
 }
 
 func cleanupTerraformApply(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
-	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, nil)
+	return cleanupTerraformOutput(stdout, nil)
 }
 
-func cleanupTerraformPlan(nonEmptyPlan bool, planError error, stdout string, stderr string) string {
+func cleanupTerraformPlan(stdout string) string {
 	regex := `───────────.+`
-	return cleanupTerraformOutput(nonEmptyPlan, planError, stdout, stderr, &regex)
+	return cleanupTerraformOutput(stdout, &regex)
 }
 
 func (d DiggerExecutor) projectId() string {
@@ -538,12 +593,16 @@ func (d DiggerExecutor) projectId() string {
 
 // this will log an exit code and error based on the executor of the executor drivers are by filename
 func logCommandFail(exitCode int, err error) {
-
 	_, filename, _, ok := runtime.Caller(1)
 	if ok {
 		executor := strings.TrimSuffix(path.Base(filename), path.Ext(filename))
-		log.Printf("Command failed in %v with exit code %v and error %v", executor, exitCode, err)
+		slog.Error("command failed",
+			"executor", executor,
+			"exitCode", exitCode,
+			"error", err)
 	} else {
-		log.Printf("Command failed in unknown executor with exit code %v and error %v", exitCode, err)
+		slog.Error("command failed in unknown executor",
+			"exitCode", exitCode,
+			"error", err)
 	}
 }

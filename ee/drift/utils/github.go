@@ -5,32 +5,36 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	utils2 "github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/ee/drift/dbmodels"
+	"github.com/diggerhq/digger/backend/models"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	utils2 "github.com/diggerhq/digger/libs/git_utils"
 	"github.com/diggerhq/digger/next/utils"
 	"github.com/dominikbraun/graph"
 	"github.com/google/go-github/v61/github"
 	"log"
+	"log/slog"
 	net "net/http"
 	"os"
 	"path"
-	"strconv"
 )
 
 func GetGithubClient(gh utils.GithubClientProvider, installationId int64, repoFullName string) (*github.Client, *string, error) {
-	repo, err := dbmodels.DB.GetRepoByInstllationIdAndRepoFullName(strconv.FormatInt(installationId, 10), repoFullName)
+	slog.Debug("Getting GitHub client",
+		"installationId", installationId,
+		"repoFullName", repoFullName)
+	repo, err := models.DB.GetRepoByInstallationIdAndRepoFullName(installationId, repoFullName)
 	if err != nil {
 		log.Printf("Error getting repo: %v", err)
 		return nil, nil, fmt.Errorf("Error getting repo: %v", err)
 	}
 
-	ghClient, token, err := gh.Get(repo.GithubAppID, installationId)
+	ghClient, token, err := gh.Get(repo.GithubAppId, installationId)
 	return ghClient, token, err
 }
 
 func GetGithubService(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
+	slog.Debug("getting github client", "installationId", installationId, "repoFullName", repoFullName)
 	ghClient, token, err := GetGithubClient(gh, installationId, repoFullName)
 	if err != nil {
 		log.Printf("Error creating github app client: %v", err)
@@ -103,10 +107,10 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 
 	var changedFiles []string = nil
 
-	err = utils2.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, func(dir string) error {
+	err = utils2.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
 		diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 		diggerYmlStr = string(diggerYmlBytes)
-		config, _, dependencyGraph, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles)
+		config, _, dependencyGraph, _, err = dg_configuration.LoadDiggerConfig(dir, true, changedFiles, nil)
 		if err != nil {
 			log.Printf("Error loading digger config: %v", err)
 			return err

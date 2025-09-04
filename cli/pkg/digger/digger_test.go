@@ -2,16 +2,17 @@ package digger
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/execution"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/execution"
+	"github.com/diggerhq/digger/libs/iac_utils"
+	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
@@ -56,13 +57,13 @@ func (m *MockTerraformExecutor) Destroy(params []string, envs map[string]string)
 	return "", "", nil
 }
 
-func (m *MockTerraformExecutor) Show(params []string, envs map[string]string, planJsonFilePath string) (string, string, error) {
+func (m *MockTerraformExecutor) Show(params []string, envs map[string]string, planJsonFilePath string, b bool) (string, string, error) {
 	nonEmptyTerraformPlanJson := "{\"format_version\":\"1.1\",\"terraform_version\":\"1.4.6\",\"planned_values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"triggers\":null},\"sensitive_values\":{}}]}},\"resource_changes\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"no-op\"],\"before\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after_unknown\":{},\"before_sensitive\":{},\"after_sensitive\":{}}},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"create\"],\"before\":null,\"after\":{\"triggers\":null},\"after_unknown\":{\"id\":true},\"before_sensitive\":false,\"after_sensitive\":{}}}],\"prior_state\":{\"format_version\":\"1.0\",\"terraform_version\":\"1.4.6\",\"values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}}]}}},\"configuration\":{\"provider_config\":{\"null\":{\"name\":\"null\",\"full_name\":\"registry.terraform.io/hashicorp/null\"}},\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_config_key\":\"null\",\"schema_version\":0},{\"address\":\"null_resource.testx\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"testx\",\"provider_config_key\":\"null\",\"schema_version\":0}]}}}\n"
 	m.Commands = append(m.Commands, RunInfo{"Show", strings.Join(params, " "), time.Now()})
 	return nonEmptyTerraformPlanJson, "", nil
 }
 
-func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string, planJsonFilePath string) (bool, string, string, error) {
+func (m *MockTerraformExecutor) Plan(params []string, envs map[string]string, planJsonFilePath string, s *string) (bool, string, string, error) {
 	m.Commands = append(m.Commands, RunInfo{"Plan", strings.Join(params, " "), time.Now()})
 	return true, "", "", nil
 }
@@ -86,7 +87,13 @@ func (m *MockPRManager) GetApprovals(prNumber int) ([]string, error) {
 
 func (m *MockPRManager) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"PublishComment", strconv.Itoa(prNumber) + " " + comment, time.Now()})
-	return nil, nil
+	id := "mock-comment-id"
+	url := "http://example.com/comment/1"
+	return &ci.Comment{
+		Id:   id,
+		Url:  url,
+		Body: &comment,
+	}, nil
 }
 
 func (m *MockPRManager) ListIssues() ([]*ci.Issue, error) {
@@ -113,7 +120,7 @@ func (m *MockPRManager) GetCombinedPullRequestStatus(prNumber int) (string, erro
 	return "", nil
 }
 
-func (m *MockPRManager) MergePullRequest(prNumber int) error {
+func (m *MockPRManager) MergePullRequest(prNumber int, mergeStrategy string) error {
 	m.Commands = append(m.Commands, RunInfo{"MergePullRequest", strconv.Itoa(prNumber), time.Now()})
 	return nil
 }
@@ -145,6 +152,10 @@ func (m *MockPRManager) GetComments(prNumber int) ([]ci.Comment, error) {
 
 func (m *MockPRManager) EditComment(prNumber int, id string, comment string) error {
 	m.Commands = append(m.Commands, RunInfo{"EditComment", id + " " + comment, time.Now()})
+	return nil
+}
+
+func (m *MockPRManager) DeleteComment(id string) error {
 	return nil
 }
 

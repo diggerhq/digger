@@ -1,37 +1,512 @@
 ---
-title: 'Digger Helm Chart'
+title: "Kubernetes via Helm"
+description: "Learn how to use Helm chart to install Digger on your Kubernetes cluster."
 ---
 
-## Installation steps
+**Prerequisites**
+- You have extensive understanding of [Kubernetes](https://kubernetes.io/)
+- Installed [Helm package manager](https://helm.sh/) version v3.11.3 or greater
+- You have [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/) installed and connected to your kubernetes cluster
+- A domain name for ingress configuration
+- A GitHub organization where you'll install the GitHub App
+
+<Steps>
+  <Step title="Create Helm values">
+    Create a `values.yaml` file. This will be used to configure settings for the Digger Helm chart.
+    To explore all configurable properties for your values file, visit the [values.yaml reference](https://github.com/diggerhq/digger/blob/develop/helm-charts/digger-backend/values.yaml).
+  </Step>
+
+  <Step title="Select Digger version">
+    By default, the Digger version set in your helm chart will likely be outdated.
+    Choose the latest Digger docker image tag from the [releases page](https://github.com/diggerhq/digger/releases).
+    
+    ```yaml values.yaml
+    digger:
+      image:
+        repository: registry.digger.dev/diggerhq/digger_backend
+        tag: "v0.6.110" # Select tag from GitHub releases
+        pullPolicy: IfNotPresent
+    ```
+    
+    <Warning>
+      Do not use the latest docker image tag in production deployments as they can introduce unexpected changes
+    </Warning>
+  </Step>
 
 
-1. Install the `digger-backend` helm chart from https://diggerhq.github.io/helm-charts/, leaving empty all the data related to the GitHub App
-2. Go to `your_digger_hostname/github/setup` to install and configure the GitHub App
-3. Configure in the helm values or in the external secret all the data related to the new GitHub app and upgrade the helm installation to reload the Digger application with the new configuration
+  <Step title="Configure database">
+    Choose your database configuration based on your environment:
+    
+    <Tabs>
+      <Tab title="External PostgreSQL (Production)">
+        For production environments, use an external PostgreSQL database:
+        
+        ```yaml values.yaml
+        digger:
+          postgres:
+            user: "digger"
+            database: "digger"
+            host: "postgresql.example.com"
+            password: "secure-password"
+            sslmode: "require"  # or "disable"
+        ```
+      </Tab>
+      
+      <Tab title="Built-in PostgreSQL (Testing Only)">
+        For test or proof-of-concept purposes, you can use the built-in PostgreSQL:
+        
+        ```yaml values.yaml
+        postgres:
+          enabled: true
+          secret:
+            useExistingSecret: false  # Important: set to false
+            password: "<test-password>"
+        ```
+        
+        <Warning>
+          Built-in PostgreSQL is only recommended for testing purposes
+        </Warning>
+      </Tab>
+    </Tabs>
+  </Step>
 
-## Configuration Details
+  <Step title="Configure ingress">
+    Configure ingress to route traffic to Digger (required for GitHub App setup):
+    
+    ```yaml values.yaml
+    digger:
+      ingress:
+        enabled: true
+        host: "digger.example.com"  # Your domain
+        annotations:
+          # Add annotations based on your ingress controller
+          # Example for nginx:
+          # kubernetes.io/ingress.class: "nginx"
+          # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    ```
+  </Step>
 
-To configure the Digger backend deployment with the Helm chart, you'll need to set several values in the `values.yaml` file. Below are the key configurations to consider:
+  <Step title="Configure initial secrets">
+    Configure the authentication and hostname settings:
+    
+    ```yaml values.yaml
+    digger:
+      secret:
+        httpBasicAuthUsername: "admin"
+        httpBasicAuthPassword: "<strong-password>"  # CHANGE THIS
+        bearerAuthToken: "<strong-token>"          # CHANGE THIS
+        hostname: "https://digger.example.com"     # Include https:// prefix!
+        githubOrg: "your-github-org"               # Your GitHub organization name
+        
+        # GitHub App credentials - leave empty for now
+        githubAppID: ""
+        githubAppClientID: ""
+        githubAppClientSecret: ""
+        githubAppKeyFile: ""
+        githubWebhookSecret: ""
+    ```
+    
+    <Note>
+      **Hostname configuration is different from ingress:**
+      - Ingress host: `digger.example.com` (no protocol)
+      - Secret hostname: `https://digger.example.com` (requires https:// prefix)
+      
+      For example:
+      - If your ingress host is `digger.35.232.52.175.nip.io`
+      - Your secret hostname should be `https://digger.35.232.52.175.nip.io`
+    </Note>
+    
+    <Warning>
+      **Important**: 
+      - The `githubOrg` must be your actual GitHub organization name where you'll install the app
+      - Change all default passwords and tokens
+    </Warning>
+  </Step>
 
-- `digger.image.repository`: The Docker image repository for the Digger backend (e.g., `registry.digger.dev/diggerhq/digger_backend`).
-- `digger.image.tag`: The specific version tag of the Docker image to deploy (e.g., `"v0.4.2"`).
+  <Step title="Install the Helm chart">
+    Once you are done configuring your `values.yaml` file, run the command below to install Digger:
+    
+    ```bash
+    helm install digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
+      --namespace digger \
+      --create-namespace \
+      --values values.yaml
+    ```
+    
+    Wait for all pods to reach a running state:
+    
+    ```bash
+    kubectl get pods -n digger
+    ```
+  </Step>
 
-- `digger.service.type`: The type of Kubernetes service to create, such as `ClusterIP`, `NodePort`, or `LoadBalancer`.
-- `digger.service.port`: The port number that the service will expose (e.g., `3000`).
+  <Step title="Create GitHub App">
+    Navigate to your Digger hostname to create the GitHub App:
+    
+    1. Go to `https://your-digger-hostname/github/setup`
+    2. Follow the web interface to create your GitHub App
+    3. The page will display your app credentials
+    
+    ![Digger GitHub App Setup Success](/images/digger-github-app-wizard.png)
+    
+    <Note>
+      **Don't close this tab yet!** You'll need these credentials in the next steps.
+    </Note>
+  </Step>
 
-- `digger.ingress.enabled`: Set to `true` to create an Ingress for the service.
-- `digger.annotations`: Add the needed annotations based on your ingress controller configuration.
-- `digger.ingress.host`: The hostname to use for the Ingress resource (e.g., `digger-backend.test`).
-- `digger.ingress.path`: The path for the Ingress resource (e.g., `/`).
-- `digger.ingress.tls.secretName`: The name of the TLS secret to use for Ingress encryption (e.g., `digger-backend-tls`).
+  <Step title="Update configuration with GitHub App credentials">
+    Add the GitHub App credentials to your `values.yaml` file:
+    
+    ```yaml values.yaml
+    digger:
+      secret:
+        # ... existing configuration ...
+        githubOrg: "your-github-org"
+        githubAppID: "123456"
+        githubAppClientID: "Iv1.abc123def456"
+        githubAppClientSecret: "github_app_client_secret"
+        githubAppKeyFile: "LS0tLS1CRUdJTi..."  # base64 encoded private key
+        githubWebhookSecret: "webhook_secret"
+    ```
+    
+    Then upgrade the Helm release:
+    
+    ```bash
+    helm upgrade digger-backend oci://ghcr.io/diggerhq/helm-charts/digger-backend \
+      --namespace digger \
+      --values values.yaml
+    ```
+  </Step>
 
-- `digger.secret.*`: Various secrets needed for the application, such as `HTTP_BASIC_AUTH_PASSWORD` and `BEARER_AUTH_TOKEN`. You can provide them directly or reference an existing Kubernetes secret by setting `useExistingSecret` to `true` and specifying `existingSecretName`.
+  <Step title="Install GitHub App">
+    Click the installation link shown in the GitHub App creation wizard:
+    
+    - The link will look like: `https://github.com/apps/your-digger-app-name/installations/new`
+    - Install the app in your GitHub organization
+    - Select which repositories the app can access
+  </Step>
 
-- `digger.postgres.*`: If you're using an external Postgres database, configure the `user`, `database`, and `host` accordingly. Ensure you provide the `password` either directly or through an existing secret in the `secret.*` section.
+  <Step title="Create Action Secrets with cloud credentials">
+    In GitHub repository settings, go to Secrets and Variables - Actions. Create the following secrets:
 
-Remember to replace placeholders and default values with your specific, sensitive information before deploying the chart. For example, it's essential to generate a strong `bearerAuthToken` and `postgresPassword` rather than using the defaults for security reasons.
+    <Tabs>
+      <Tab title="AWS">
+        - `AWS_ACCESS_KEY_ID`
+        - `AWS_SECRET_ACCESS_KEY`
+        
+        You can also [use OIDC](/ce/cloud-providers/authenticating-with-oidc-on-aws) for AWS authentication.
+      </Tab>
+      <Tab title="GCP">
+        - `GCP_CREDENTIALS` - contents of your GCP Service Account Key json file
+        
+        You can also [use OIDC](/gcp/federated-oidc-access/) for GCP authentication.
+      </Tab>
+      <Tab title="Azure">
+        - `AZURE_CLIENT_ID` - Your Azure App Registration Client ID
+        - `AZURE_TENANT_ID` - Your Azure Tenant ID
+        - `AZURE_SUBSCRIPTION_ID` - Your Azure Subscription ID
+        
+        You'll need to configure OIDC authentication by setting up federated credentials in your Azure App Registration. See [Azure OIDC setup](/ce/azure-specific/azure) for details.
+      </Tab>
+    </Tabs>
+  </Step>
 
-You can also deploy a PostgreSQL database ONLY FOR TEST PURPOSES configuring the `postgres.*` section:
+  <Step title="Create digger.yml">
+    This file contains Digger configuration and needs to be placed at the root level of your repository:
+    
+    <Tabs>
+      <Tab title="Terraform / OpenTofu">
+        Assuming your terraform code is in the `prod` directory:
+        
+        ```
+        projects:
+        - name: production
+          dir: prod
+        ```
+      </Tab>
+      <Tab title="Terragrunt Generated">
+        For Terragrunt monorepos with many modules, use the blocks syntax to automatically generate projects:
+        
+        ```yaml
+        generate_projects:
+          blocks:
+            - block_name: dev
+              terragrunt: true
+              root_dir: "dev/"
+              workflow: default
+            - block_name: staging
+              terragrunt: true
+              root_dir: "staging/"
+              workflow: default
+            - block_name: prod
+              terragrunt: true
+              root_dir: "prod/"
+              workflow: default
 
-- `postgres.enabled`: Set to `true` if you want to deploy a postgres database
-- `postgres.secret.*`: As for the digger secret, you can pass the `postgres` user password directly or through an existing secret
+        workflows:
+          default:
+            plan:
+              steps:
+                - init
+                - plan
+            apply:
+              steps:
+                - init
+                - apply
+        ```
+        
+        This approach automatically discovers all Terragrunt modules under each directory and creates projects for them.
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Create Github Actions workflow file">
+    Place it at `.github/workflows/digger_workflow.yml` (name is important!)
+    
+    <Tabs>
+      <Tab title="AWS">
+        ```yaml
+        name: Digger Workflow
+
+        on:
+          workflow_dispatch:
+            inputs:
+              spec:
+                required: true
+              run_name:
+                required: false
+
+        run-name: '${{inputs.run_name}}'
+
+        jobs:
+          digger-job:
+            runs-on: ubuntu-latest
+            permissions:
+              contents: write      # required to merge PRs
+              actions: write       # required for plan persistence
+              id-token: write      # required for workload-identity-federation
+              pull-requests: write # required to post PR comments
+              issues: read         # required to check if PR number is an issue or not
+              statuses: write      # required to validate combined PR status
+
+            steps:
+              - uses: actions/checkout@v4
+              - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+                run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+              - uses: diggerhq/digger@vLatest
+                with:
+                  digger-spec: ${{ inputs.spec }}
+                  setup-aws: true
+                  setup-terraform: true
+                  terraform-version: 1.5.5
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                env:
+                  GITHUB_CONTEXT: ${{ toJson(github) }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ```
+      </Tab>
+      <Tab title="GCP">
+        ```yaml
+        name: Digger
+
+        on:
+          workflow_dispatch:
+            inputs:
+              spec:
+                required: true
+              run_name:
+                required: false
+
+        run-name: '${{inputs.run_name}}'
+
+        jobs:
+          digger-job:
+            name: Digger
+            runs-on: ubuntu-latest
+            permissions:
+              contents: write      # required to merge PRs
+              actions: write       # required for plan persistence
+              id-token: write      # required for workload-identity-federation
+              pull-requests: write # required to post PR comments
+              issues: read         # required to check if PR number is an issue or not
+              statuses: write      # required to validate combined PR status
+            steps:
+            - uses: actions/checkout@v4
+            - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+              run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+            - id: 'auth'
+              uses: 'google-github-actions/auth@v1'
+              with:
+                credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+                create_credentials_file: true
+            - name: 'Set up Cloud SDK'
+              uses: 'google-github-actions/setup-gcloud@v1'
+            - name: 'Use gcloud CLI'
+              run: 'gcloud info'
+            - name: digger run
+                uses: diggerhq/digger@vLatest
+                with:
+                  digger-spec: ${{ inputs.spec }}
+                  setup-aws: false
+                  setup-terraform: true
+                  terraform-version: 1.5.5
+                env:
+                  GITHUB_CONTEXT: ${{ toJson(github) }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ```
+      </Tab>
+      <Tab title="Azure">
+        ```yaml
+        name: Digger Workflow
+
+        on:
+          workflow_dispatch:
+            inputs:
+              spec:
+                required: true
+              run_name:
+                required: false
+
+        run-name: '${{inputs.run_name}}'
+
+        jobs:
+          digger-job:
+            runs-on: ubuntu-latest
+            permissions:
+              contents: write      # required to merge PRs
+              actions: write       # required for plan persistence
+              id-token: write      # required for workload-identity-federation
+              pull-requests: write # required to post PR comments
+              issues: read         # required to check if PR number is an issue or not
+              statuses: write      # required to validate combined PR status
+
+            steps:
+              - uses: actions/checkout@v4
+              - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+                run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+              - uses: diggerhq/digger@vLatest
+                with:
+                  digger-spec: ${{ inputs.spec }}
+                  setup-azure: true
+                  azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+                  azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+                  azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+                  setup-terraform: true
+                  terraform-version: 1.5.5
+                env:
+                  GITHUB_CONTEXT: ${{ toJson(github) }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        ```
+      </Tab>
+    </Tabs>
+    
+    <Note>
+      The workflow above uses Terraform. For other tools:
+      - **OpenTofu**: Replace `setup-terraform: true` with `setup-opentofu: true` and `terraform-version: 1.5.5` with `opentofu-version: 1.10.3`
+      - **Terragrunt**: Replace `setup-terraform: true` with `setup-terragrunt: true` and `terraform-version: 1.5.5` with `terragrunt-version: 0.44.1`
+      
+      For complete examples, see:
+      - [Terraform quickstart](/ce/getting-started/with-terraform)
+      - [OpenTofu quickstart](/ce/getting-started/with-opentofu)
+      - [Terragrunt quickstart](/ce/getting-started/with-terragrunt)
+    </Note>
+  </Step>
+
+  <Step title="Verify installation">
+    Test that your Digger installation is working correctly:
+    
+    1. **Create a test pull request** in one of your repositories with Terraform/OpenTofu files
+    2. **Digger will automatically start planning** - You should immediately see:
+    
+    **GitHub status checks appearing as pending:**
+    
+    ![GitHub Checks Pending](/images/digger-plan-checks.png)
+    
+    **Digger bot comment with affected projects table:**
+    
+    ![Digger Plan Jobs Table](/images/digger-plan-jobs.png)
+    
+    <Note>
+      **What you should see:**
+      - GitHub checks appear as "pending" while jobs are running
+      - Digger bot comments with a table showing each affected project
+      - Project status updates from "pending..." to completion status
+      
+      You can re-run planning anytime by commenting `digger plan` on the pull request.
+      
+      If you don't see these responses, check the [troubleshooting section](#troubleshooting) below.
+    </Note>
+  </Step>
+
+</Steps>
+
+## Troubleshooting
+
+<Accordion title="Failed to validate installation_id error">
+  If you see "Failed to validate installation_id" after GitHub App installation:
+  
+  1. **Check GitHub App credentials in your values.yaml:**
+     ```yaml
+     digger:
+       secret:
+         githubAppClientID: "Iv1.abc123def456"    # Should not be empty
+         githubAppClientSecret: "github_secret"    # Should not be empty
+     ```
+  
+  2. **Verify environment variables are set in the pod:**
+     ```bash
+     # Get pod name
+     kubectl get pods -n digger
+     
+     # Check environment variables in the pod
+     kubectl exec -n digger deployment/digger-backend -- printenv | grep GITHUB_APP_CLIENT
+     ```
+  
+  3. **Restart the deployment to pick up new environment variables:**
+     ```bash
+     kubectl rollout restart deployment/digger-backend -n digger
+     ```
+</Accordion>
+
+<Accordion title="No response after creating pull request">
+  If Digger doesn't respond when you create a pull request:
+  
+  1. **Check backend logs for errors:**
+     ```bash
+     kubectl logs -n digger deployment/digger-backend --tail=100 -f
+     ```
+  
+  2. **Verify webhook deliveries in GitHub:**
+     - Go to your GitHub App settings: `https://github.com/settings/apps/your-app-name`
+     - Click on "Advanced" tab
+     - Check "Recent Deliveries" for failed webhook attempts
+     - Look for 4xx/5xx HTTP status codes or connection timeouts
+  
+  3. **Common webhook issues:**
+     - Ensure your hostname is accessible from GitHub
+     - Check that your ingress is properly configured
+     - Verify SSL certificates are valid
+</Accordion>
+
+<Accordion title="Invalid URL error when creating GitHub App">
+  If you get an "Invalid URL" error when creating the GitHub App from manifest:
+  
+  1. **Check URL format in your values.yaml:**
+     ```yaml
+     digger:
+       ingress:
+         host: "digger.example.com"        # NO https:// prefix
+       secret:
+         hostname: "https://digger.example.com"  # REQUIRES https:// prefix
+     ```
+  
+  2. **Restart deployment after fixing URLs:**
+     ```bash
+     kubectl rollout restart deployment/digger-backend -n digger
+     ```
+</Accordion>
+

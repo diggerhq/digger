@@ -1,10 +1,11 @@
 package digger_config
 
 import (
-	"github.com/bmatcuk/doublestar/v4"
-	"log"
+	"log/slog"
 	"path"
 	"path/filepath"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 func GetPatternsRelativeToRepo(projectPath string, patterns []string) ([]string, error) {
@@ -18,17 +19,30 @@ func GetPatternsRelativeToRepo(projectPath string, patterns []string) ([]string,
 func NormalizeFileName(fileName string) string {
 	res, err := filepath.Abs(path.Join("/", fileName))
 	if err != nil {
-		log.Fatalf("Failed to convert path to absolute: %v", err)
+		slog.Error("failed to convert path to absolute", "fileName", fileName, "error", err)
+		panic(err)
+	}
+	return res
+}
+
+func GetDirNameFromPath(filePath string) string {
+	return filepath.Dir(filePath)
+}
+
+func GetDirNamesFromPaths(filePaths []string) []string {
+	res := make([]string, 0)
+	for _, filePath := range filePaths {
+		res = append(res, GetDirNameFromPath(filePath))
 	}
 	return res
 }
 
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
 	fileToMatch = NormalizeFileName(fileToMatch)
-	for i, _ := range includePatterns {
+	for i := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])
 	}
-	for i, _ := range excludePatterns {
+	for i := range excludePatterns {
 		excludePatterns[i] = NormalizeFileName(excludePatterns[i])
 	}
 
@@ -36,7 +50,11 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 	for _, ipattern := range includePatterns {
 		isMatched, err := doublestar.PathMatch(ipattern, fileToMatch)
 		if err != nil {
-			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, ipattern, err)
+			slog.Error("failed to match modified files with include pattern",
+				"file", fileToMatch,
+				"pattern", ipattern,
+				"error", err)
+			panic(err)
 		}
 		if isMatched {
 			matching = true
@@ -47,7 +65,11 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 	for _, epattern := range excludePatterns {
 		excluded, err := doublestar.PathMatch(epattern, fileToMatch)
 		if err != nil {
-			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, epattern, err)
+			slog.Error("failed to match modified files with exclude pattern",
+				"file", fileToMatch,
+				"pattern", epattern,
+				"error", err)
+			panic(err)
 		}
 		if excluded {
 			matching = false

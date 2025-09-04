@@ -20,9 +20,13 @@ func copyProjects(projects []*ProjectYaml) []Project {
 	result := make([]Project, len(projects))
 	for i, p := range projects {
 		driftDetection := true
-
 		if p.DriftDetection != nil {
 			driftDetection = *p.DriftDetection
+		}
+
+		layer := uint(0)
+		if p.Layer != nil {
+			layer = *p.Layer
 		}
 
 		var roleToAssume *AssumeRoleForProject = nil
@@ -69,10 +73,14 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			workspace = p.Workspace
 		}
 
-		item := Project{p.Name,
+		item := Project{
+			p.BlockName,
+			p.Name,
+			p.Alias,
 			p.Dir,
 			workspace,
 			p.Terragrunt,
+			layer,
 			p.OpenTofu,
 			p.Pulumi,
 			p.Workflow,
@@ -120,7 +128,9 @@ func copyTerraformEnvConfig(terraformEnvConfig *TerraformEnvConfigYaml) *Terrafo
 }
 
 func copyStage(stage *StageYaml) *Stage {
-	result := Stage{}
+	result := Stage{
+		FilterRegex: stage.FilterRegex,
+	}
 	result.Steps = make([]Step, len(stage.Steps))
 
 	for i, s := range stage.Steps {
@@ -207,6 +217,28 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.AutoMerge = *diggerYaml.AutoMerge
 	} else {
 		diggerConfig.AutoMerge = false
+	}
+
+	if diggerYaml.RespectLayers != nil {
+		diggerConfig.RespectLayers = *diggerYaml.RespectLayers
+	} else {
+		diggerConfig.RespectLayers = false
+	}
+
+	if diggerYaml.DeletePriorComments != nil {
+		diggerConfig.DeletePriorComments = *diggerYaml.DeletePriorComments
+	} else {
+		diggerConfig.DeletePriorComments = false
+	}
+
+	if diggerYaml.AutoMergeStrategy != nil {
+		err := ValidateAutomergeStrategy(*diggerYaml.AutoMergeStrategy)
+		if err != nil {
+			return nil, nil, err
+		}
+		diggerConfig.AutoMergeStrategy = AutomergeStrategy(*diggerYaml.AutoMergeStrategy)
+	} else {
+		diggerConfig.AutoMergeStrategy = AutomergeStrategySquash
 	}
 
 	if diggerYaml.ApplyAfterMerge != nil {

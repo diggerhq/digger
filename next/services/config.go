@@ -2,8 +2,8 @@ package services
 
 import (
 	"fmt"
-	utils3 "github.com/diggerhq/digger/backend/utils"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
+	utils3 "github.com/diggerhq/digger/libs/git_utils"
 	"github.com/diggerhq/digger/next/dbmodels"
 	"github.com/diggerhq/digger/next/utils"
 	"log"
@@ -39,14 +39,14 @@ func GetWorkflowsForRepoAndBranch(gh utils.GithubClientProvider, repoId int64, b
 
 	var config *dg_configuration.DiggerConfig
 
-	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, commitHash, *token, func(dir string) error {
+	err = utils3.CloneGitRepoAndDoAction(cloneUrl, branch, commitHash, *token, "", func(dir string) error {
 		// we create a blank file if it does not exist
 		err := dg_configuration.CheckOrCreateDiggerFile(dir)
 		if err != nil {
 			log.Printf("Error creating blank digger.yml if not exists: %v", err)
 			return err
 		}
-		config, _, _, err = dg_configuration.LoadDiggerConfig(dir, false, nil)
+		config, _, _, _, err = dg_configuration.LoadDiggerConfig(dir, false, nil, nil)
 		if err != nil {
 			log.Printf("Error loading digger config: %v", err)
 			return err

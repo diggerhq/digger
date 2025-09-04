@@ -1,0 +1,45 @@
+---
+title: Comment Args
+---
+
+Digger comments such as `digger plan` and `digger apply` accept the following flags:
+
+```
+-d value
+    	directory (short form)
+  -directory value
+    	directory (long form)
+  -p value
+    	project (short form)
+  -project value
+    	project (long form)
+  -layer value (only for layering)
+    	layer to plan or apply (default -1)
+```
+
+The -p and -d flags can be specified multiple times. In the case of projects they will select the projects from the flags.
+Same goes for directories. Some example comments with flags:
+
+```
+digger plan -p dev_vpc
+```
+
+```
+digger plan --project dev_vpc
+```
+
+```
+digger plan -d dev/vpc
+```
+
+```
+digger plan --directory dev/vpc
+```
+
+```
+digger plan -p dev_vpc -p staging_vpc
+```
+
+```
+digger plan -p dev_vpc -d staging/vpc
+```

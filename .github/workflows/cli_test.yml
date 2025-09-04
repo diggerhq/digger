@@ -14,7 +14,7 @@ jobs:
       - name: Download Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21.1
+          go-version: 1.24.0
         id: go
 
       - name: Setup Opentofu
@@ -38,6 +38,5 @@ jobs:
       - name: Test
         shell: bash
         run: |
-          go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
-          go test -json ./... | gotestfmt 
+          go test ./...
         working-directory: cli

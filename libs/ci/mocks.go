@@ -43,7 +43,7 @@ func (t MockPullRequestManager) GetApprovals(prNumber int) ([]string, error) {
 	return t.Approvals, nil
 }
 
-func (t MockPullRequestManager) MergePullRequest(prNumber int) error {
+func (t MockPullRequestManager) MergePullRequest(prNumber int, mergeStrategy string) error {
 	return nil
 }
 
@@ -68,6 +68,10 @@ func (t MockPullRequestManager) GetComments(prNumber int) ([]Comment, error) {
 }
 
 func (t MockPullRequestManager) EditComment(prNumber int, id string, comment string) error {
+	return nil
+}
+
+func (t MockPullRequestManager) DeleteComment(id string) error {
 	return nil
 }
 

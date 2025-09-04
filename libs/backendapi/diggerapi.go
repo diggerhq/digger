@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/libs/iac_utils"
-	"github.com/diggerhq/digger/libs/scheduler"
+	"github.com/diggerhq/digger/libs/comment_utils"
 	"io"
-	"log"
+	"log/slog"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -17,6 +16,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/diggerhq/digger/libs/iac_utils"
+	"github.com/diggerhq/digger/libs/scheduler"
 )
 
 type NoopApi struct {
@@ -26,11 +28,7 @@ func (n NoopApi) ReportProject(namespace string, projectName string, configurati
 	return nil
 }
 
-func (n NoopApi) ReportProjectRun(namespace string, projectName string, startedAt time.Time, endedAt time.Time, status string, command string, output string) error {
-	return nil
-}
-
-func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+func (n NoopApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, PrCommentId string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
 	return nil, nil
 }
 
@@ -51,7 +49,8 @@ type DiggerApi struct {
 func (d DiggerApi) ReportProject(namespace string, projectName string, configurationYaml string) error {
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
-		log.Fatalf("Not able to parse digger cloud url: %v", err)
+		slog.Error("not able to parse digger cloud url", "error", err)
+		return fmt.Errorf("not able to parse digger cloud url: %v", err)
 	}
 	u.Path = filepath.Join(u.Path, "repos", namespace, "report-projects")
 
@@ -62,7 +61,8 @@ func (d DiggerApi) ReportProject(namespace string, projectName string, configura
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
-		log.Fatalf("Not able to marshal request: %v", err)
+		slog.Error("not able to marshal request", "error", err)
+		return fmt.Errorf("not able to marshal request: %v", err)
 	}
 
 	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
@@ -87,60 +87,18 @@ func (d DiggerApi) ReportProject(namespace string, projectName string, configura
 	return nil
 }
 
-func (d DiggerApi) ReportProjectRun(namespace string, projectName string, startedAt time.Time, endedAt time.Time, status string, command string, output string) error {
+func (d DiggerApi) ReportProjectJobStatus(repo string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, PrCommentId string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
+	repoNameForBackendReporting := strings.ReplaceAll(repo, "/", "-")
 	u, err := url.Parse(d.DiggerHost)
 	if err != nil {
-		log.Fatalf("Not able to parse digger cloud url: %v", err)
-	}
-
-	u.Path = filepath.Join(u.Path, "repos", namespace, "projects", projectName, "runs")
-
-	request := map[string]interface{}{
-		"startedAt": startedAt,
-		"endedAt":   endedAt,
-		"status":    status,
-		"command":   command,
-		"output":    output,
-	}
-
-	jsonData, err := json.Marshal(request)
-	if err != nil {
-		log.Fatalf("Not able to marshal request: %v", err)
-	}
-
-	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
-
-	if err != nil {
-		return fmt.Errorf("error while creating request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", d.AuthToken))
-
-	resp, err := d.HttpClient.Do(req)
-
-	if err != nil {
-		return fmt.Errorf("error while sending request: %v", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status when reporting a project run: %v", resp.StatusCode)
-	}
-
-	return nil
-}
-
-func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName string, jobId string, status string, timestamp time.Time, summary *iac_utils.IacSummary, planJson string, PrCommentUrl string, terraformOutput string, iacUtils iac_utils.IacUtils) (*scheduler.SerializedBatch, error) {
-	repoNameForBackendReporting := strings.ReplaceAll(repoFullName, "/", "-")
-	u, err := url.Parse(d.DiggerHost)
-	if err != nil {
-		log.Fatalf("Not able to parse digger cloud url: %v", err)
+		slog.Error("not able to parse digger cloud url", "error", err)
+		return nil, fmt.Errorf("not able to parse digger cloud url: %v", err)
 	}
 
 	var planSummaryJson interface{}
 	var planFootprint = &iac_utils.IacPlanFootprint{}
 	if summary == nil {
-		log.Printf("Warning: nil passed to plan result, sending empty")
+		slog.Warn("warning: nil passed to plan result, sending empty")
 		planSummaryJson = nil
 		planFootprint = nil
 	} else {
@@ -149,11 +107,12 @@ func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName strin
 		if planJson != "" {
 			planFootprint, err = iacUtils.GetPlanFootprint(planJson)
 			if err != nil {
-				log.Printf("Error, could not get footprint from json plan: %v", err)
+				slog.Error("error, could not get footprint from json plan", "error", err)
 			}
 		}
 	}
 
+	workflowUrl := comment_utils.GetWorkflowUrl()
 	u.Path = filepath.Join(u.Path, "repos", repoNameForBackendReporting, "projects", projectName, "jobs", jobId, "set-status")
 	request := map[string]interface{}{
 		"status":             status,
@@ -161,12 +120,15 @@ func (d DiggerApi) ReportProjectJobStatus(repoFullName string, projectName strin
 		"job_summary":        planSummaryJson,
 		"job_plan_footprint": planFootprint.ToJson(),
 		"pr_comment_url":     PrCommentUrl,
+		"pr_comment_id":      PrCommentId,
 		"terraform_output":   terraformOutput,
+		"workflow_url":       workflowUrl,
 	}
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
-		log.Fatalf("Not able to marshal request: %v", err)
+		slog.Error("not able to marshal request", "error", err)
+		return nil, fmt.Errorf("not able to marshal request: %v", err)
 	}
 
 	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(jsonData))
@@ -211,7 +173,7 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	// Open the file
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("error opening file:", err)
+		slog.Error("error opening file", "error", err)
 		return nil, nil, fmt.Errorf("error opening file: %v", err)
 	}
 	defer file.Close()
@@ -225,14 +187,14 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	// Create a form file writer for our file field
 	fileWriter, err := multipartWriter.CreateFormFile("file", filepath.Base(filePath))
 	if err != nil {
-		fmt.Println("Error creating form file:", err)
+		slog.Error("error creating form file", "error", err)
 		return nil, nil, fmt.Errorf("error creating form file: %v", err)
 	}
 
 	// Copy the file content to the form file writer
 	_, err = io.Copy(fileWriter, file)
 	if err != nil {
-		fmt.Println("Error copying file content:", err)
+		slog.Error("error copying file content", "error", err)
 		return nil, nil, fmt.Errorf("error copying file content: %v", err)
 	}
 
@@ -242,7 +204,7 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	// Create a new HTTP request
 	req, err := http.NewRequest("PUT", uploadUrl, &requestBody)
 	if err != nil {
-		fmt.Println("Error creating request:", err)
+		slog.Error("error creating request", "error", err)
 		return nil, nil, fmt.Errorf("error creating request: %v", err)
 	}
 
@@ -254,7 +216,7 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending request:", err)
+		slog.Error("error sending request", "error", err)
 		return nil, nil, fmt.Errorf("error sending request: %v", err)
 	}
 	defer resp.Body.Close()
@@ -262,7 +224,7 @@ func (d DiggerApi) UploadJobArtefact(zipLocation string) (*int, *string, error) 
 	// Read and print the response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading response:", err)
+		slog.Error("error reading response", "error", err)
 		return nil, nil, fmt.Errorf("error reading response: %v", err)
 	}
 
@@ -287,14 +249,14 @@ func (d DiggerApi) DownloadJobArtefact(downloadTo string) (*string, error) {
 	// Download the zip file
 	downloadUrl, err := url.JoinPath(d.DiggerHost, "job_artefacts")
 	if err != nil {
-		log.Printf("failed to create url: %v", err)
+		slog.Error("failed to create url", "error", err)
 		return nil, err
 	}
 
 	// Create a new HTTP request
 	req, err := http.NewRequest("GET", downloadUrl, nil)
 	if err != nil {
-		fmt.Println("Error creating request:", err)
+		slog.Error("error creating request", "error", err)
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 
@@ -325,13 +287,12 @@ func (d DiggerApi) DownloadJobArtefact(downloadTo string) (*string, error) {
 	// note that fileName include absolute path to the zip file
 	fileName := tempZipFile.Name()
 	return &fileName, nil
-
 }
 
 func NewBackendApi(hostName string, authToken string) Api {
 	var backendApi Api
 	if os.Getenv("NO_BACKEND") == "true" {
-		log.Println("WARNING: running in 'backendless' mode. Features that require backend will not be available.")
+		slog.Warn("running in 'backendless' mode - features that require backend will not be available")
 		backendApi = NoopApi{}
 	} else {
 		backendApi = DiggerApi{

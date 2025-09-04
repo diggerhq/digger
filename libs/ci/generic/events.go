@@ -18,12 +18,20 @@ func GetRunEnvVars(defaultBranch string, prBranch string, projectName string, pr
 	}
 }
 
-func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, *digger_config.Project, int, error) {
+type ProcessIssueCommentEventResult struct {
+	// this represents the projects that need to be planned/ applied for this comment
+	ImpactedProjectsSourceMapping map[string]digger_config.ProjectToSourceMapping
+	PRNumber                      int
+	// this represents all projects impacted by the PR based on changed files
+	AllImpactedProjects []digger_config.Project
+}
+
+func ProcessIssueCommentEvent(prNumber int, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) (*ProcessIssueCommentEventResult, error) {
 	var impactedProjects []digger_config.Project
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 	if err != nil {
-		return nil, nil, nil, 0, fmt.Errorf("could not get changed files")
+		return &ProcessIssueCommentEventResult{}, fmt.Errorf("could not get changed files")
 	}
 
 	impactedProjects, impactedProjectsSourceMapping := diggerConfig.GetModifiedProjects(changedFiles)
@@ -31,22 +39,16 @@ func ProcessIssueCommentEvent(prNumber int, commentBody string, diggerConfig *di
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
 		impactedProjects, err = FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
 		if err != nil {
-			return nil, nil, nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
+			return &ProcessIssueCommentEventResult{}, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}
 	}
 
-	requestedProject := scheduler.ParseProjectName(commentBody)
+	return &ProcessIssueCommentEventResult{
+		impactedProjectsSourceMapping,
+		prNumber,
+		impactedProjects,
+	}, nil
 
-	if requestedProject == "" {
-		return impactedProjects, impactedProjectsSourceMapping, nil, prNumber, nil
-	}
-
-	for _, project := range impactedProjects {
-		if project.Name == requestedProject {
-			return impactedProjects, impactedProjectsSourceMapping, &project, prNumber, nil
-		}
-	}
-	return nil, nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
 }
 
 func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config.Project, dependencyGraph graph.Graph[string, digger_config.Project]) ([]digger_config.Project, error) {
@@ -87,7 +89,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 						}
 					}
 				}
-				return true
+				return false
 			})
 			if err != nil {
 				return nil, err
@@ -97,7 +99,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 	return impactedProjectsWithDependantProjects, nil
 }
 
-func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prNumber int, commentBody string, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string, defaultBranch string) ([]scheduler.Job, bool, error) {
+func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prNumber int, commentBody string, impactedProjectsForComment []digger_config.Project, allImpactedProjects []digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string, defaultBranch string) ([]scheduler.Job, bool, error) {
 	jobs := make([]scheduler.Job, 0)
 	prBranch := prBranchName
 
@@ -105,16 +107,10 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 
 	coversAllImpactedProjects := true
 
-	runForProjects := impactedProjects
+	runForProjects := impactedProjectsForComment
 
-	if requestedProject != nil {
-		if len(impactedProjects) > 1 {
-			coversAllImpactedProjects = false
-			runForProjects = []digger_config.Project{*requestedProject}
-		} else if len(impactedProjects) == 1 && impactedProjects[0].Name != requestedProject.Name {
-			return jobs, false, fmt.Errorf("requested project %v is not impacted by this PR", requestedProject.Name)
-		}
-	}
+	coversAllImpactedProjects = len(impactedProjectsForComment) == len(allImpactedProjects)
+
 	diggerCommand := strings.ToLower(commentBody)
 	diggerCommand = strings.TrimSpace(diggerCommand)
 	var commandToRun string
@@ -129,7 +125,7 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 		return nil, false, fmt.Errorf("command is not supported: %v", diggerCommand)
 	}
 
-	jobs, err := CreateJobsForProjects(runForProjects, commandToRun, "issue_comment", repoFullName, requestedBy, workflows, &prNumber, nil, defaultBranch, prBranch)
+	jobs, err := CreateJobsForProjects(runForProjects, commandToRun, "issue_comment", repoFullName, requestedBy, workflows, &prNumber, nil, defaultBranch, prBranch, true)
 	if err != nil {
 		return nil, false, err
 	}
@@ -138,7 +134,7 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 
 }
 
-func CreateJobsForProjects(projects []digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string) ([]scheduler.Job, error) {
+func CreateJobsForProjects(projects []digger_config.Project, command string, event string, repoFullName string, requestedBy string, workflows map[string]digger_config.Workflow, issueNumber *int, commitSha *string, defaultBranch string, prBranch string, performEnvVarsInterpolations bool) ([]scheduler.Job, error) {
 	jobs := make([]scheduler.Job, 0)
 
 	for _, project := range projects {
@@ -166,11 +162,12 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 		}
 
 		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
-		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, false)
+		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, performEnvVarsInterpolations)
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 		workspace := project.Workspace
 		jobs = append(jobs, scheduler.Job{
 			ProjectName:        project.Name,
+			ProjectAlias:       project.Alias,
 			ProjectDir:         project.Dir,
 			ProjectWorkspace:   workspace,
 			ProjectWorkflow:    project.Workflow,
@@ -189,8 +186,8 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			RequestedBy:        requestedBy,
 			StateEnvProvider:   StateEnvProvider,
 			CommandEnvProvider: CommandEnvProvider,
-			CommandRoleArn:    	cmdRole,
-			StateRoleArn:     	stateRole,
+			CommandRoleArn:     cmdRole,
+			StateRoleArn:       stateRole,
 			CognitoOidcConfig:  project.AwsCognitoOidcConfig,
 			SkipMergeCheck:     skipMerge,
 		})

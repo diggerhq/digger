@@ -12,7 +12,7 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
 	"github.com/diggerhq/digger/libs/storage"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 )
@@ -66,7 +66,7 @@ func RunSpecManualCommand(
 	// download zip artefact, git init and prepare for job execution
 	tempDir, err := os.MkdirTemp("", "downloaded-zip-")
 	if err != nil {
-		log.Printf("failed to create temp dir: %v", err)
+		slog.Error("failed to create temp dir", "error", err)
 		os.Exit(1)
 	}
 
@@ -78,7 +78,7 @@ func RunSpecManualCommand(
 	zipPath := *absoluteFileName
 	err = utils.ExtractZip(zipPath, tempDir)
 	if err != nil {
-		log.Printf("ExtractZip err: %v", err)
+		slog.Error("ExtractZip err", "error", err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("artefact zip extraction err: %v", err), 1)
 
 	}
@@ -86,14 +86,14 @@ func RunSpecManualCommand(
 	// remove the zipPath
 	err = os.Remove(zipPath)
 	if err != nil {
-		log.Printf("os.Remove err: %v", err)
+		slog.Error("os.Remove error", "error", err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("zip path removal err: %v", err), 1)
 	}
 
 	// Navigating to our diractory
 	err = os.Chdir(tempDir)
 	if err != nil {
-		log.Printf("Chdir err: %v", err)
+		slog.Error("Chdir err", "error", err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("Chdir err: %v", err), 1)
 	}
 
@@ -102,7 +102,7 @@ func RunSpecManualCommand(
 	cmd.Stderr = os.Stderr
 	cmd.Run()
 
-	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken)
+	policyChecker, err := policyProvider.GetPolicyProvider(spec.Policy, spec.Backend.BackendHostname, spec.Backend.BackendOrganisationName, spec.Backend.BackendJobToken, spec.VCS.VcsType)
 	if err != nil {
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get policy provider: %v", err), 1)
 	}
@@ -135,9 +135,9 @@ func RunSpecManualCommand(
 
 	commentUpdater := comment_summary.NoopCommentUpdater{}
 	// do not change these placeholders as they are parsed by dgctl to stream logs
-	log.Printf("<========= DIGGER RUNNING IN MANUAL MODE =========>")
+	slog.Info("<========= DIGGER RUNNING IN MANUAL MODE =========>")
 	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, noopBackendApi, spec.JobId, false, false, commentId, currentDir)
-	log.Printf("<========= DIGGER COMPLETED =========>")
+	slog.Info("<========= DIGGER COMPLETED =========>")
 	if err != nil || allAppliesSuccess == false {
 		usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Terraform execution failed", 1)
 	}

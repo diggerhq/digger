@@ -14,7 +14,8 @@ type StepJson struct {
 }
 
 type StageJson struct {
-	Steps []StepJson `json:"steps"`
+	Steps       []StepJson `json:"steps"`
+	FilterRegex *string    `json:"filter_regex"`
 }
 
 type cognitoConfig = digger_config.AwsCognitoOidcConfig
@@ -22,6 +23,7 @@ type cognitoConfig = digger_config.AwsCognitoOidcConfig
 type JobJson struct {
 	JobType                 string            `json:"job_type"`
 	ProjectName             string            `json:"projectName"`
+	ProjectAlias            string            `json:"projectAlias"`
 	ProjectDir              string            `json:"projectDir"`
 	ProjectWorkspace        string            `json:"projectWorkspace"`
 	Terragrunt              bool              `json:"terragrunt"`
@@ -48,7 +50,7 @@ type JobJson struct {
 	SkipMergeCheck          bool              `json:"skip_merge_check"`
 	CommandRoleArn          string            `json:"command_role_arn"`
 	StateRoleArn            string            `json:"state_role_arn"`
-	CognitoOidcConfig       *cognitoConfig	  `json:"aws_cognito_oidc"` 
+	CognitoOidcConfig       *cognitoConfig    `json:"aws_cognito_oidc"`
 }
 
 func (j *JobJson) IsPlan() bool {
@@ -70,6 +72,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 	return JobJson{
 		JobType:                 string(jobType),
 		ProjectName:             job.ProjectName,
+		ProjectAlias:            job.ProjectAlias,
 		ProjectDir:              job.ProjectDir,
 		ProjectWorkspace:        job.ProjectWorkspace,
 		OpenTofu:                job.OpenTofu,
@@ -103,6 +106,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 func JsonToJob(jobJson JobJson) Job {
 	return Job{
 		ProjectName:        jobJson.ProjectName,
+		ProjectAlias:       jobJson.ProjectAlias,
 		ProjectDir:         jobJson.ProjectDir,
 		ProjectWorkspace:   jobJson.ProjectWorkspace,
 		OpenTofu:           jobJson.OpenTofu,
@@ -141,7 +145,8 @@ func jsonToStage(stageJson StageJson) *Stage {
 		}
 	}
 	return &Stage{
-		Steps: steps,
+		Steps:       steps,
+		FilterRegex: stageJson.FilterRegex,
 	}
 }
 
@@ -159,7 +164,8 @@ func stageToJson(stage *Stage) StageJson {
 		}
 	}
 	return StageJson{
-		Steps: steps,
+		Steps:       steps,
+		FilterRegex: stage.FilterRegex,
 	}
 }
 

@@ -9,13 +9,14 @@ type PullRequestService interface {
 	PublishIssue(title string, body string, labels *[]string) (int64, error)
 	UpdateIssue(ID int64, title string, body string) (int64, error)
 	EditComment(prNumber int, id string, comment string) error
+	DeleteComment(id string) error
 	CreateCommentReaction(id string, reaction string) error
 	GetComments(prNumber int) ([]Comment, error)
 	GetApprovals(prNumber int) ([]string, error)
 	// SetStatus set status of specified pull/merge request, status could be: "pending", "failure", "success"
 	SetStatus(prNumber int, status string, statusContext string) error
 	GetCombinedPullRequestStatus(prNumber int) (string, error)
-	MergePullRequest(prNumber int) error
+	MergePullRequest(prNumber int, mergeStrategy string) error
 	// IsMergeable is still open and ready to be merged
 	IsMergeable(prNumber int) (bool, error)
 	// IsMerged merged and closed

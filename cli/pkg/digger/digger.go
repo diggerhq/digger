@@ -3,20 +3,21 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"log"
+	"log/slog"
+	"os"
+	"path"
+	"strings"
+	"time"
+
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
-	coreutils "github.com/diggerhq/digger/libs/comment_utils/utils"
 	"github.com/diggerhq/digger/libs/execution"
 	locking2 "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/policy"
 	orchestrator "github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/storage"
-	"log"
-	"os"
-	"path"
-	"strings"
-	"time"
 
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
 	"github.com/diggerhq/digger/cli/pkg/usage"
@@ -65,10 +66,11 @@ func DetectCI() CIName {
 }
 
 func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
-
 	defer reporter.Flush()
 
-	runStartedAt := time.Now()
+	slog.Debug("Variable info", "TF_PLUGIN_CACHE_DIR", os.Getenv("TF_PLUGIN_CACHE_DIR"))
+	slog.Debug("Variable info", "TG_PROVIDER_CACHE_DIR", os.Getenv("TG_PROVIDER_CACHE_DIR"))
+	slog.Debug("Variable info", "TERRAGRUNT_PROVIDER_CACHE_DIR", os.Getenv("TERRAGRUNT_PROVIDER_CACHE_DIR"))
 
 	exectorResults := make([]execution.DiggerExecutorResult, len(jobs))
 	appliesPerProject := make(map[string]bool)
@@ -87,32 +89,24 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 
 			if !allowedToPerformCommand {
 				msg := reportPolicyError(job.ProjectName, command, job.RequestedBy, reporter)
-				log.Printf("Skipping command ... %v for project %v", command, job.ProjectName)
-				log.Println(msg)
+				slog.Warn("Skipping command ... %v for project %v", command, job.ProjectName)
+				slog.Warn("Received policy error", "message", msg)
 				appliesPerProject[job.ProjectName] = false
 				continue
 			}
 
-			executorResult, output, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.PullRequestNumber, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
+			executorResult, _, err := run(command, job, policyChecker, orgService, SCMOrganisation, SCMrepository, job.PullRequestNumber, job.RequestedBy, reporter, lock, prService, job.Namespace, workingDir, planStorage, appliesPerProject)
 			if err != nil {
-				log.Printf("error while running command %v for project %v: %v", command, job.ProjectName, err)
-				reportErr := backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, output)
-				if reportErr != nil {
-					log.Printf("error reporting project Run err: %v.\n", reportErr)
-				}
+				slog.Error("error while running command for project", "command", command, "projectname", job.ProjectName, "error", err)
 				appliesPerProject[job.ProjectName] = false
 				if executorResult != nil {
 					exectorResults[i] = *executorResult
 				}
-				log.Printf("Project %v command %v failed, skipping job", job.ProjectName, command)
+				slog.Error("Project command failed, skipping job", "project name", job.ProjectName, "command", command)
 				break
 			}
 			exectorResults[i] = *executorResult
 
-			err = backendApi.ReportProjectRun(SCMOrganisation+"-"+SCMrepository, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
-			if err != nil {
-				log.Printf("Error reporting project Run: %v", err)
-			}
 		}
 	}
 
@@ -124,13 +118,19 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 	}
 
 	if allAppliesSuccess == true && reportFinalStatusToBackend == true {
-		_, jobPrCommentUrl, err := reporter.Flush()
+		currentJob := jobs[0]
+
+		jobPrCommentId, jobPrCommentUrl, err := reporter.Flush()
 		if err != nil {
-			log.Printf("error while sending job comments %v", err)
-			return false, false, fmt.Errorf("error while sending job comments %v", err)
+			slog.Error("error while sending job comments", "error", err)
+			cmt, cmt_err := prService.PublishComment(*currentJob.PullRequestNumber, fmt.Sprintf(":yellow_circle: Warning: failed to post report for project %v, received error: %v.\n\n you may review details in the job logs", currentJob.ProjectName, err))
+			if cmt_err != nil {
+				slog.Error("Error while posting error comment", "error", err)
+				return false, false, fmt.Errorf("failed to post reporter error comment, aborting. Error: %v", err)
+			}
+			jobPrCommentUrl = cmt.Url
 		}
 
-		currentJob := jobs[0]
 		projectNameForBackendReporting := currentJob.ProjectName
 		// TODO: handle the apply result summary as well to report it to backend. Possibly reporting changed resources as well
 		// Some kind of generic terraform operation summary might need to be introduced
@@ -142,20 +142,20 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		prNumber := *currentJob.PullRequestNumber
 
 		iacUtils := iac_utils.GetIacUtilsIacType(currentJob.IacType())
-		batchResult, err := backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, terraformOutput, iacUtils)
+		batchResult, err := backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, jobPrCommentId, terraformOutput, iacUtils)
 		if err != nil {
-			log.Printf("error reporting Job status: %v.\n", err)
+			slog.Error("error reporting Job status", "error", err)
 			return false, false, fmt.Errorf("error while running command: %v", err)
 		}
 
 		err = commentUpdater.UpdateComment(batchResult.Jobs, prNumber, prService, prCommentId)
 		if err != nil {
-			log.Printf("error Updating status comment: %v.\n", err)
+			slog.Error("error Updating status comment", "error", err)
 			return false, false, err
 		}
 		err = UpdateAggregateStatus(batchResult, prService)
 		if err != nil {
-			log.Printf("error updating aggregate status check: %v.\n", err)
+			slog.Error("error updating aggregate status check", "error", err)
 			return false, false, err
 		}
 
@@ -169,21 +169,21 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 func reportPolicyError(projectName string, command string, requestedBy string, reporter reporting.Reporter) string {
 	msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:", requestedBy, command)
 	if reporter.SupportsMarkdown() {
-		_, _, err := reporter.Report(msg, coreutils.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command), false))
+		_, _, err := reporter.Report(msg, reporting.AsCollapsibleComment(fmt.Sprintf("Policy violation for <b>%v - %v</b>", projectName, command), false))
 		if err != nil {
-			log.Printf("Error publishing comment: %v", err)
+			slog.Error("Error publishing comment", "error", err)
 		}
 	} else {
-		_, _, err := reporter.Report(msg, coreutils.AsComment(fmt.Sprintf("Policy violation for %v - %v", projectName, command)))
+		_, _, err := reporter.Report(msg, reporting.AsComment(fmt.Sprintf("Policy violation for %v - %v", projectName, command)))
 		if err != nil {
-			log.Printf("Error publishing comment: %v", err)
+			slog.Error("Error publishing comment", "error", err)
 		}
 	}
 	return msg
 }
 
 func run(command string, job orchestrator.Job, policyChecker policy.Checker, orgService ci.OrgService, SCMOrganisation string, SCMrepository string, PRNumber *int, requestedBy string, reporter reporting.Reporter, lock locking2.Lock, prService ci.PullRequestService, projectNamespace string, workingDir string, planStorage storage.PlanStorage, appliesPerProject map[string]bool) (*execution.DiggerExecutorResult, string, error) {
-	log.Printf("Running '%s' for project '%s' (workflow: %s)\n", command, job.ProjectName, job.ProjectWorkflow)
+	slog.Info("Running command for project", "command", command, "project name", job.ProjectName, "project workflow", job.ProjectWorkflow)
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, []string{})
 
@@ -193,13 +193,14 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 	if !allowedToPerformCommand {
 		msg := reportPolicyError(job.ProjectName, command, requestedBy, reporter)
-		log.Println(msg)
+		slog.Error(msg)
 		return nil, msg, errors.New(msg)
 	}
 
 	err = job.PopulateAwsCredentialsEnvVarsForJob()
 	if err != nil {
-		log.Fatalf("failed to fetch AWS keys, %v", err)
+		slog.Error("failed to fetch AWS keys", "error", err)
+		os.Exit(1)
 	}
 
 	projectLock := &locking2.PullRequestLock{
@@ -262,45 +263,45 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	case "digger plan":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "plan")
 		if err != nil {
-			log.Printf("failed to send usage report. %v", err)
+			slog.Error("failed to send usage report", "error", err)
 		}
-		err = prService.SetStatus(*job.PullRequestNumber, "pending", job.ProjectName+"/plan")
+		err = prService.SetStatus(*job.PullRequestNumber, "pending", job.GetProjectAlias()+"/plan")
 		if err != nil {
 			msg := fmt.Sprintf("Failed to set PR status. %v", err)
-			return nil, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf("%s", msg)
 		}
 		planSummary, planPerformed, isNonEmptyPlan, plan, planJsonOutput, err := diggerExecutor.Plan()
 
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Run digger plan command. %v", err)
-			log.Printf(msg)
-			err := prService.SetStatus(*job.PullRequestNumber, "failure", job.ProjectName+"/plan")
+			slog.Error("Failed to Run digger plan command", "error", err)
+			err := prService.SetStatus(*job.PullRequestNumber, "failure", job.GetProjectAlias()+"/plan")
 			if err != nil {
 				msg := fmt.Sprintf("Failed to set PR status. %v", err)
-				return nil, msg, fmt.Errorf(msg)
+				return nil, msg, fmt.Errorf("%s", msg)
 			}
 
-			return nil, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf("%s", msg)
 		} else if planPerformed {
 			if isNonEmptyPlan {
 				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, planJsonOutput)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to validate plan. %v", err)
-					log.Printf(msg)
-					return nil, msg, fmt.Errorf(msg)
+					slog.Error("Failed to validate plan.", "error", err)
+					return nil, msg, fmt.Errorf("%s", msg)
 				}
 				var planPolicyFormatter func(report string) string
 				summary := fmt.Sprintf("Terraform plan validation check (%v)", job.ProjectName)
 				if reporter.SupportsMarkdown() {
-					planPolicyFormatter = coreutils.AsCollapsibleComment(summary, false)
+					planPolicyFormatter = reporting.AsCollapsibleComment(summary, false)
 				} else {
-					planPolicyFormatter = coreutils.AsComment(summary)
+					planPolicyFormatter = reporting.AsComment(summary)
 				}
 
 				planSummary, err := iacUtils.GetSummarizePlan(planJsonOutput)
 				if err != nil {
-					log.Printf("Failed to summarize plan. %v", err)
+					slog.Error("Failed to summarize plan", "error", err)
 				}
 
 				if !planIsAllowed {
@@ -313,25 +314,29 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					_, _, err = reporter.Report(planReportMessage, planPolicyFormatter)
 
 					if err != nil {
-						log.Printf("Failed to report plan. %v", err)
+						slog.Error("Failed to report plan.", "error", err)
 					}
 					msg := fmt.Sprintf("Plan is not allowed")
-					log.Printf(msg)
-					return nil, msg, fmt.Errorf(msg)
+					slog.Error(msg)
+					return nil, msg, fmt.Errorf("%s", msg)
 				} else {
 					_, _, err := reporter.Report("Terraform plan validation checks succeeded :white_check_mark:", planPolicyFormatter)
 					if err != nil {
-						log.Printf("Failed to report plan. %v", err)
+						slog.Error("Failed to report plan.", "error", err)
 					}
 					reportPlanSummary(reporter, planSummary)
+
+					if err := reporting.FormatAndReportExampleCommands(job.ProjectName, reporter); err != nil {
+						slog.Error("Failed to report example commands.", "error", err)
+					}
 				}
 			} else {
 				reportEmptyPlanOutput(reporter, projectLock.LockId())
 			}
-			err := prService.SetStatus(*job.PullRequestNumber, "success", job.ProjectName+"/plan")
+			err := prService.SetStatus(*job.PullRequestNumber, "success", job.GetProjectAlias()+"/plan")
 			if err != nil {
 				msg := fmt.Sprintf("Failed to set PR status. %v", err)
-				return nil, msg, fmt.Errorf(msg)
+				return nil, msg, fmt.Errorf("%s", msg)
 			}
 			result := execution.DiggerExecutorResult{
 				OperationType:   execution.DiggerOparationTypePlan,
@@ -347,32 +352,32 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		appliesPerProject[job.ProjectName] = false
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "apply")
 		if err != nil {
-			log.Printf("failed to send usage report. %v", err)
+			slog.Error("failed to send usage report.", "error", err)
 		}
-		err = prService.SetStatus(*job.PullRequestNumber, "pending", job.ProjectName+"/apply")
+		err = prService.SetStatus(*job.PullRequestNumber, "pending", job.GetProjectAlias()+"/apply")
 		if err != nil {
 			msg := fmt.Sprintf("Failed to set PR status. %v", err)
-			return nil, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf("%s", msg)
 		}
 
 		isMerged, err := prService.IsMerged(*job.PullRequestNumber)
 		if err != nil {
 			msg := fmt.Sprintf("Failed to check if PR is merged. %v", err)
-			return nil, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf("%s", msg)
 		}
 
 		// this might go into some sort of "appliability" plugin later
 		isMergeable, err := prService.IsMergeable(*job.PullRequestNumber)
 		if err != nil {
 			msg := fmt.Sprintf("Failed to check if PR is mergeable. %v", err)
-			return nil, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf("%s", msg)
 		}
-		log.Printf("PR status, mergeable: %v, merged: %v and skipMergeCheck %v\n", isMergeable, isMerged, job.SkipMergeCheck)
+		slog.Info("PR status Information", "mergeable", isMergeable, "merged", isMerged, "skipMergeCheck", job.SkipMergeCheck)
 		if !isMergeable && !isMerged && !job.SkipMergeCheck {
 			comment := reportApplyMergeabilityError(reporter)
-			prService.SetStatus(*job.PullRequestNumber, "failure", job.ProjectName+"/apply")
+			prService.SetStatus(*job.PullRequestNumber, "failure", job.GetProjectAlias()+"/apply")
 
-			return nil, comment, fmt.Errorf(comment)
+			return nil, comment, fmt.Errorf("%s", comment)
 		} else {
 
 			// checking policies (plan, access)
@@ -382,31 +387,31 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				terraformPlanJsonStr, err := executor.RetrievePlanJson()
 				if err != nil {
 					msg := fmt.Sprintf("Failed to retrieve stored plan. %v", err)
-					log.Printf(msg)
-					return nil, msg, fmt.Errorf(msg)
+					slog.Error("Failed to retrieve stored plan.", "error", err)
+					return nil, msg, fmt.Errorf("%s", msg)
 				}
 
 				_, violations, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, terraformPlanJsonStr)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to check plan policy. %v", err)
-					log.Printf(msg)
-					return nil, msg, fmt.Errorf(msg)
+					slog.Error("Failed to check plan policy.", "error", err)
+					return nil, msg, fmt.Errorf("%s", msg)
 				}
 				planPolicyViolations = violations
 			} else {
-				log.Printf("Skipping plan policy checks because plan storage is not configured.")
+				slog.Info("Skipping plan policy checks because plan storage is not configured.")
 				planPolicyViolations = []string{}
 			}
 
 			allowedToApply, err := policyChecker.CheckAccessPolicy(orgService, &prService, SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, planPolicyViolations)
 			if err != nil {
 				msg := fmt.Sprintf("Failed to run plan policy check before apply. %v", err)
-				log.Printf(msg)
-				return nil, msg, fmt.Errorf(msg)
+				slog.Error("Failed to run plan policy check before apply", "error", err)
+				return nil, msg, fmt.Errorf("%s", msg)
 			}
 			if !allowedToApply {
 				msg := reportPolicyError(job.ProjectName, command, requestedBy, reporter)
-				log.Println(msg)
+				slog.Error(msg)
 				return nil, msg, errors.New(msg)
 			}
 
@@ -415,19 +420,19 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			applySummary, applyPerformed, output, err := diggerExecutor.Apply()
 			if err != nil {
 				//TODO reuse executor error handling
-				log.Printf("Failed to Run digger apply command. %v", err)
-				err := prService.SetStatus(*job.PullRequestNumber, "failure", job.ProjectName+"/apply")
+				slog.Error("Failed to Run digger apply command.", "error", err)
+				err := prService.SetStatus(*job.PullRequestNumber, "failure", job.GetProjectAlias()+"/apply")
 				if err != nil {
 					msg := fmt.Sprintf("Failed to set PR status. %v", err)
-					return nil, msg, fmt.Errorf(msg)
+					return nil, msg, fmt.Errorf("%s", msg)
 				}
 				msg := fmt.Sprintf("Failed to run digger apply command. %v", err)
-				return nil, msg, fmt.Errorf(msg)
+				return nil, msg, fmt.Errorf("%s", msg)
 			} else if applyPerformed {
-				err := prService.SetStatus(*job.PullRequestNumber, "success", job.ProjectName+"/apply")
+				err := prService.SetStatus(*job.PullRequestNumber, "success", job.GetProjectAlias()+"/apply")
 				if err != nil {
 					msg := fmt.Sprintf("Failed to set PR status. %v", err)
-					return nil, msg, fmt.Errorf(msg)
+					return nil, msg, fmt.Errorf("%s", msg)
 				}
 				appliesPerProject[job.ProjectName] = true
 			}
@@ -443,12 +448,12 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	case "digger destroy":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "destroy")
 		if err != nil {
-			log.Printf("Failed to send usage report. %v", err)
+			slog.Error("Failed to send usage report.", "error", err)
 		}
 		_, err = diggerExecutor.Destroy()
 
 		if err != nil {
-			log.Printf("Failed to Run digger destroy command. %v", err)
+			slog.Error("Failed to Run digger destroy command.", "error", err)
 			msg := fmt.Sprintf("failed to run digger destroy command: %v", err)
 			return nil, msg, fmt.Errorf("failed to Run digger apply command. %v", err)
 		}
@@ -458,51 +463,51 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	case "digger unlock":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "unlock")
 		if err != nil {
-			log.Printf("failed to send usage report. %v", err)
+			slog.Error("failed to send usage report.", "error", err)
 		}
 		err = diggerExecutor.Unlock()
 		if err != nil {
 			msg := fmt.Sprintf("Failed to unlock project. %v", err)
-			return nil, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf("%s", msg)
 		}
 
 		if planStorage != nil {
 			err = planStorage.DeleteStoredPlan(planPathProvider.ArtifactName(), planPathProvider.StoredPlanFilePath())
 			if err != nil {
-				log.Printf("failed to delete stored plan file '%v':  %v", planPathProvider.StoredPlanFilePath(), err)
+				slog.Error("failed to delete stored plan file", "stored plan file path", planPathProvider.StoredPlanFilePath(), "error", err)
 			}
 		}
 	case "digger lock":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "lock")
 		if err != nil {
-			log.Printf("failed to send usage report. %v", err)
+			slog.Error("failed to send usage report.", "error", err)
 		}
 		err = diggerExecutor.Lock()
 		if err != nil {
 			msg := fmt.Sprintf("Failed to lock project. %v", err)
-			return nil, msg, fmt.Errorf(msg)
+			return nil, msg, fmt.Errorf("%s", msg)
 		}
 
 	default:
 		msg := fmt.Sprintf("Command '%s' is not supported", command)
-		return nil, msg, fmt.Errorf(msg)
+		return nil, msg, fmt.Errorf("%s", msg)
 	}
 	return &execution.DiggerExecutorResult{}, "", nil
 }
 
 func reportApplyMergeabilityError(reporter reporting.Reporter) string {
 	comment := "cannot perform Apply since the PR is not currently mergeable"
-	log.Println(comment)
+	slog.Error(comment)
 
 	if reporter.SupportsMarkdown() {
-		_, _, err := reporter.Report(comment, coreutils.AsCollapsibleComment("Apply error", false))
+		_, _, err := reporter.Report(comment, reporting.AsCollapsibleComment("Apply error", false))
 		if err != nil {
-			log.Printf("error publishing comment: %v\n", err)
+			slog.Error("error publishing comment", "error", err)
 		}
 	} else {
-		_, _, err := reporter.Report(comment, coreutils.AsComment("Apply error"))
+		_, _, err := reporter.Report(comment, reporting.AsComment("Apply error"))
 		if err != nil {
-			log.Printf("error publishing comment: %v\n", err)
+			slog.Error("error publishing comment", "error", err)
 		}
 	}
 	return comment
@@ -512,14 +517,14 @@ func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, pl
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
-		formatter = coreutils.GetTerraformOutputAsCollapsibleComment("Plan output", true)
+		formatter = reporting.GetTerraformOutputAsCollapsibleComment("Plan output", true)
 	} else {
-		formatter = coreutils.GetTerraformOutputAsComment("Plan output")
+		formatter = reporting.GetTerraformOutputAsComment("Plan output")
 	}
 
 	_, _, err := reporter.Report(plan, formatter)
 	if err != nil {
-		log.Printf("Failed to report plan. %v", err)
+		slog.Error("Failed to report plan.", "error", err)
 	}
 }
 
@@ -527,14 +532,14 @@ func reportPlanSummary(reporter reporting.Reporter, summary string) {
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
-		formatter = coreutils.AsCollapsibleComment("Plan summary", false)
+		formatter = reporting.AsCollapsibleComment("Plan summary", false)
 	} else {
-		formatter = coreutils.AsComment("Plan summary")
+		formatter = reporting.AsComment("Plan summary")
 	}
 
 	_, _, err := reporter.Report("\n"+summary, formatter)
 	if err != nil {
-		log.Printf("Failed to report plan summary. %v", err)
+		slog.Error("Failed to report plan summary.", "error", err)
 	}
 }
 
@@ -546,7 +551,7 @@ func reportEmptyPlanOutput(reporter reporting.Reporter, projectId string) {
 	// suppress the comment (if reporter is suppressible)
 	reporter.Suppress()
 	if err != nil {
-		log.Printf("Failed to report plan. %v", err)
+		slog.Error("Failed to report plan.", "error", err)
 	}
 }
 
@@ -561,9 +566,8 @@ func RunJob(
 	driftNotification *core_drift.Notification,
 	workingDir string,
 ) error {
-	runStartedAt := time.Now()
 	SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(repo)
-	log.Printf("Running '%s' for project '%s'\n", job.Commands, job.ProjectName)
+	slog.Info("Running commands for project", "commands", job.Commands, "project name", job.ProjectName)
 
 	for _, command := range job.Commands {
 
@@ -576,13 +580,9 @@ func RunJob(
 		if !allowedToPerformCommand {
 			msg := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies", requestedBy, command)
 			if err != nil {
-				log.Printf("Error publishing comment: %v", err)
+				slog.Error("Error publishing comment.", "error", err)
 			}
-			log.Println(msg)
-			err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FORBIDDEN", command, msg)
-			if err != nil {
-				log.Printf("Error reporting Run: %v", err)
-			}
+			slog.Error(msg)
 			return errors.New(msg)
 		}
 
@@ -638,82 +638,54 @@ func RunJob(
 		case "digger plan":
 			err := usage.SendUsageRecord(requestedBy, job.EventName, "plan")
 			if err != nil {
-				log.Printf("Failed to send usage report. %v", err)
+				slog.Error("Failed to send usage report.", "error", err)
 			}
-			_, _, _, plan, planJsonOutput, err := diggerExecutor.Plan()
+			_, _, _, _, planJsonOutput, err := diggerExecutor.Plan()
 			if err != nil {
 				msg := fmt.Sprintf("Failed to Run digger plan command. %v", err)
-				log.Printf(msg)
-				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
-				if err != nil {
-					log.Printf("Error reporting Run: %v", err)
-				}
-				return fmt.Errorf(msg)
+				slog.Error(msg)
+				return fmt.Errorf("%s", msg)
 			}
 			planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, planJsonOutput)
-			log.Print(strings.Join(messages, "\n"))
+			slog.Info(strings.Join(messages, "\n"))
 			if err != nil {
 				msg := fmt.Sprintf("Failed to validate plan %v", err)
-				log.Printf(msg)
-				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
-				if err != nil {
-					log.Printf("Error reporting Run: %v", err)
-				}
-				return fmt.Errorf(msg)
+				slog.Error(msg)
+				return fmt.Errorf("%s", msg)
 			}
 			if !planIsAllowed {
 				msg := fmt.Sprintf("Plan is not allowed")
-				log.Printf(msg)
-				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
-				if err != nil {
-					log.Printf("Error reporting Run: %v", err)
-				}
-				return fmt.Errorf(msg)
+				slog.Error(msg)
+				return fmt.Errorf("%s", msg)
 			} else {
-				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, plan)
-				if err != nil {
-					log.Printf("Error reporting Run: %v", err)
-				}
 			}
 
 		case "digger apply":
 			err := usage.SendUsageRecord(requestedBy, job.EventName, "apply")
 			if err != nil {
-				log.Printf("Failed to send usage report. %v", err)
+				slog.Error("Failed to send usage report.", "error", err)
 			}
-			_, _, output, err := diggerExecutor.Apply()
+			_, _, _, err = diggerExecutor.Apply()
 			if err != nil {
 				msg := fmt.Sprintf("Failed to Run digger apply command. %v", err)
-				log.Printf(msg)
-				err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "FAILED", command, msg)
-				if err != nil {
-					log.Printf("Error reporting Run: %v", err)
-				}
-				return fmt.Errorf(msg)
-			}
-			err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
-			if err != nil {
-				log.Printf("Error reporting Run: %v", err)
+				slog.Error(msg)
+				return fmt.Errorf("%s", msg)
 			}
 		case "digger destroy":
 			err := usage.SendUsageRecord(requestedBy, job.EventName, "destroy")
 			if err != nil {
-				log.Printf("Failed to send usage report. %v", err)
+				slog.Error("Failed to send usage report.", "error", err)
 			}
 			_, err = diggerExecutor.Destroy()
 			if err != nil {
-				log.Printf("Failed to Run digger destroy command. %v", err)
+				slog.Error("Failed to Run digger destroy command.", "error", err)
 				return fmt.Errorf("failed to Run digger apply command. %v", err)
 			}
 
 		case "digger drift-detect":
-			output, err := runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor, driftNotification)
+			_, err = runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor, driftNotification)
 			if err != nil {
 				return fmt.Errorf("failed to Run digger drift-detect command. %v", err)
-			}
-			err = backendApi.ReportProjectRun(repo, job.ProjectName, runStartedAt, time.Now(), "SUCCESS", command, output)
-			if err != nil {
-				log.Printf("Error reporting Run: %v", err)
 			}
 		}
 
@@ -724,40 +696,42 @@ func RunJob(
 func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
 	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
 	if err != nil {
-		log.Printf("Failed to send usage report. %v", err)
+		slog.Error("Failed to send usage report.", "error", err)
 	}
 	policyEnabled, err := policyChecker.CheckDriftPolicy(SCMOrganisation, SCMrepository, projectName)
 	if err != nil {
 		msg := fmt.Sprintf("failed to check drift policy. %v", err)
-		log.Printf(msg)
-		return msg, fmt.Errorf(msg)
+		slog.Error(msg)
+		return msg, fmt.Errorf("%s", msg)
 	}
 
 	if !policyEnabled {
 		msg := "skipping this drift application since it is not enabled for this project"
-		log.Printf(msg)
+		slog.Info(msg)
 		return msg, nil
 	}
 	_, planPerformed, nonEmptyPlan, plan, _, err := diggerExecutor.Plan()
 	if err != nil {
 		msg := fmt.Sprintf("failed to Run digger plan command. %v", err)
-		log.Printf(msg)
-		return msg, fmt.Errorf(msg)
+		slog.Error(msg)
+		return msg, fmt.Errorf("%s", msg)
 	}
 
 	if planPerformed && nonEmptyPlan {
 		if notification == nil {
-			log.Print("Warning: no notification configured, not sending any notifications")
+			slog.Warn("Warning: no notification configured, not sending any notifications")
 			return plan, nil
 		}
-		err := (*notification).Send(projectName, plan)
+		repoFullName := fmt.Sprintf("%s/%s", SCMOrganisation, SCMrepository)
+		err := (*notification).SendNotificationForProject(projectName, repoFullName, plan)
 		if err != nil {
-			log.Printf("Error sending drift drift: %v", err)
+			slog.Error("Error sending drift drift.", "error", err)
+			return plan, fmt.Errorf("failed to send drift. %v", err)
 		}
 	} else if planPerformed && !nonEmptyPlan {
-		log.Printf("No drift detected")
+		slog.Info("No drift detected")
 	} else {
-		log.Printf("No plan performed")
+		slog.Info("No plan performed")
 	}
 	return plan, nil
 }
@@ -768,8 +742,9 @@ func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *gra
 		return s < s2
 	})
 	if err != nil {
-		log.Printf("dependencyGraph: %v", dependencyGraph)
-		log.Fatalf("failed to sort commands by dependency, %v", err)
+		slog.Error("failed to sort commands by dependency", "error", err)
+		slog.Debug("Dependency Graph Debug", "DependencyGraph", dependencyGraph)
+		os.Exit(1)
 	}
 	for _, node := range sortedGraph {
 		for _, command := range project {
@@ -781,7 +756,7 @@ func SortedCommandsByDependency(project []orchestrator.Job, dependencyGraph *gra
 	return sortedCommands
 }
 
-func MergePullRequest(ciService ci.PullRequestService, prNumber int) {
+func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrategy config.AutomergeStrategy) {
 	time.Sleep(5 * time.Second)
 
 	// CheckAccessPolicy if it was manually merged
@@ -811,11 +786,11 @@ func MergePullRequest(ciService ci.PullRequestService, prNumber int) {
 			log.Fatalf("PR is not mergeable")
 		}
 
-		err = ciService.MergePullRequest(prNumber)
+		err = ciService.MergePullRequest(prNumber, string(mergeStrategy))
 		if err != nil {
 			log.Fatalf("failed to merge PR, %v", err)
 		}
 	} else {
-		log.Printf("PR is already merged, skipping merge step")
+		slog.Info("PR is already merged, skipping merge step")
 	}
 }

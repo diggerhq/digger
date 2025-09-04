@@ -1,4 +1,4 @@
-FROM golang:1.22 as builder
+FROM golang:1.24.0 as builder
 ARG COMMIT_SHA
 RUN echo "commit sha: ${COMMIT_SHA}"
 
@@ -20,8 +20,16 @@ RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o backend_exe ./ee/back
 
 # Multi-stage build will just copy the binary to an alpine image.
 FROM ubuntu:24.04 as runner
-ENV ATLAS_VERSION v0.28.0
+
 ARG COMMIT_SHA
+ARG GODEBUG_VALUE=off
+ARG GOFIPS140_VALUE=off
+
+# Set environment variables using the build arguments
+ENV GODEBUG=$GODEBUG_VALUE
+ENV GOFIPS140=$GOFIPS140_VALUE
+ENV ATLAS_VERSION v0.31.0
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y ca-certificates curl && apt-get install -y git && apt-get clean all

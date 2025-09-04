@@ -1,14 +1,13 @@
 package execution
 
 import (
-	"log"
 	"os"
 )
 
 func CreateTestTerraformProject() string {
 	file, err := os.MkdirTemp("", "digger-test-*")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return file
 }
@@ -16,7 +15,7 @@ func CreateTestTerraformProject() string {
 func CreateInvalidTerraformTestFile(dir string) {
 	f, err := os.Create(dir + "/main.tf")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	defer func(f *os.File) {
@@ -28,14 +27,14 @@ func CreateInvalidTerraformTestFile(dir string) {
 
 	_, err2 := f.WriteString("resource \"null_resource\" \"test\" {\n}\n")
 	if err2 != nil {
-		log.Fatal(err2)
+		panic(err2)
 	}
 }
 
 func CreateValidTerraformTestFile(dir string) {
 	f, err := os.Create(dir + "/main.tf")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	defer func(f *os.File) {
@@ -47,14 +46,14 @@ func CreateValidTerraformTestFile(dir string) {
 
 	_, err2 := f.WriteString("resource \"null_resource\" \"test\" {\n}\n")
 	if err2 != nil {
-		log.Fatal(err2)
+		panic(err2)
 	}
 }
 
 func CreateMultiEnvDiggerYmlFile(dir string) {
 	f, err := os.Create(dir + "/digger.yml")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	defer func(f *os.File) {
@@ -78,14 +77,14 @@ projects:
 
 	_, err2 := f.WriteString(digger_yml)
 	if err2 != nil {
-		log.Fatal(err2)
+		panic(err2)
 	}
 }
 
 func CreateSingleEnvDiggerYmlFile(dir string) {
 	f, err := os.Create(dir + "/digger.yml")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	defer func(f *os.File) {
@@ -123,14 +122,14 @@ workflows:
 `
 	_, err2 := f.WriteString(digger_yml)
 	if err2 != nil {
-		log.Fatal(err2)
+		panic(err2)
 	}
 }
 
 func CreateCustomDiggerYmlFile(dir string, diggerYaml string) {
 	f, err := os.Create(dir + "/digger.yml")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	defer func(f *os.File) {
@@ -142,6 +141,6 @@ func CreateCustomDiggerYmlFile(dir string, diggerYaml string) {
 
 	_, err2 := f.WriteString(diggerYaml)
 	if err2 != nil {
-		log.Fatal(err2)
+		panic(err2)
 	}
 }

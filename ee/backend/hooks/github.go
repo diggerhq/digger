@@ -2,6 +2,11 @@ package hooks
 
 import (
 	"fmt"
+	"log"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	ce_controllers "github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/locking"
@@ -15,10 +20,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
-	"log"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error {
@@ -70,7 +71,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 		return nil
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, err := ce_controllers.GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch, nil)
+	diggerYmlStr, ghService, config, projectsGraph, err := ce_controllers.GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch, nil, nil)
 	if err != nil {
 		log.Printf("Error loading digger.yml: %v", err)
 		return fmt.Errorf("error loading digger.yml")
@@ -120,7 +121,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 	}
 
 	impactedProjects := config.GetProjects(projectName)
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, nil, config.Workflows, defaultBranch, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, nil, config.Workflows, defaultBranch, defaultBranch)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))
@@ -151,7 +152,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, defaultBranch, issueNumber, repoOwner, repoName, repoFullName, "", reporterCommentId, diggerYmlStr, 0, "", false)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, defaultBranch, issueNumber, repoOwner, repoName, repoFullName, "", reporterCommentId, diggerYmlStr, 0, "", false, coverAllImpactedProjects, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

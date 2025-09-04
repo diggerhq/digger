@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM golang:1.22.4 AS builder
+FROM golang:1.24.0 AS builder
 
 # Build arguments
 ARG COMMIT_SHA
@@ -18,7 +18,7 @@ RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o next_exe ./next/
 
 # Stage 2: Runner
 FROM ubuntu:24.04 AS runner
-ENV ATLAS_VERSION v0.28.0
+ENV ATLAS_VERSION v0.31.0
 ARG COMMIT_SHA
 WORKDIR /app
 

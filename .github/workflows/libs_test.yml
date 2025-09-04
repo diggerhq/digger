@@ -13,14 +13,20 @@ jobs:
 
     steps:
       - name: Setup Opentofu
-        uses: opentofu/setup-opentofu@v1.0.4
+        uses: opentofu/setup-opentofu@v1.0.5
         with:
           tofu_version: 1.8.5
+          
+      - name: Setup terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+          terraform_version: "1.5.5"
 
       - name: Download Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21.1
+          go-version: 1.24.0
         id: go
 
       - name: Check out code into the Go module directory
@@ -53,11 +59,10 @@ jobs:
 
       - name: Test
         run: |
-          go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
           if [ "${{ steps.pr_check.outputs.is_external }}" = "true" ]; then
-            go test -json -tags=external ./... | gotestfmt
+            go test ./... 
           else
-            go test -json ./... | gotestfmt
+            go test ./...
           fi
         env:
           DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY}}

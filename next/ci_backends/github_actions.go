@@ -30,3 +30,7 @@ func (g GithubActionCi) TriggerWorkflow(spec spec.Spec, runName string, vcsToken
 
 	return err
 }
+
+func (g GithubActionCi) GetWorkflowUrl(spec spec.Spec) (string, error) {
+	return "", nil
+}

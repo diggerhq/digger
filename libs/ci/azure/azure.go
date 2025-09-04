@@ -273,7 +273,7 @@ func (a *AzureReposService) GetCombinedPullRequestStatus(prNumber int) (string, 
 	return "pending", nil
 }
 
-func (a *AzureReposService) MergePullRequest(prNumber int) error {
+func (a *AzureReposService) MergePullRequest(prNumber int, mergeStrategy string) error {
 	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
 		Project:       &a.ProjectName,
 		PullRequestId: &prNumber,
@@ -345,6 +345,10 @@ func (a *AzureReposService) EditComment(prNumber int, id string, comment string)
 		},
 	})
 	return err
+}
+
+func (a *AzureReposService) DeleteComment(id string) error {
+	return nil
 }
 
 func (a *AzureReposService) CreateCommentReaction(id string, reaction string) error {

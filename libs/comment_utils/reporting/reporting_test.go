@@ -59,7 +59,7 @@ func (t MockCiService) GetCombinedPullRequestStatus(prNumber int) (string, error
 	return "", nil
 }
 
-func (t MockCiService) MergePullRequest(prNumber int) error {
+func (t MockCiService) MergePullRequest(prNumber int, mergeStrategy string) error {
 	return nil
 }
 
@@ -96,6 +96,10 @@ func (t MockCiService) EditComment(prNumber int, id string, comment string) erro
 			}
 		}
 	}
+	return nil
+}
+
+func (svc MockCiService) DeleteComment(id string) error {
 	return nil
 }
 

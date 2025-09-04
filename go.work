@@ -1,18 +1,18 @@
-go 1.22.4
+go 1.24.0
 
 use (
 	./backend
+	./background/projects-refresh-service
 	./cli
 	./cli_e2e
 	./dgctl
-	./next
-	./next/dbgen
-	
+
 	./ee/backend
 	./ee/cli
 	./ee/drift
 
 	./libs
-
+	./next
+	./next/dbgen
 
 )
