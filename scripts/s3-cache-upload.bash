@@ -56,7 +56,7 @@ fi
 echo "Saving cache to S3 bucket: $BUCKET (region: $REGION)"
 echo "Uploading $ARTIFACT_COUNT files"
 
-if aws s3 sync "$CACHE_DIR" "s3://$BUCKET" --region "$REGION" --quiet 2>/dev/null; then
+if aws s3 sync "$CACHE_DIR" "s3://$BUCKET" --region "$REGION" --only-show-errors; then
   echo "Cache saved successfully"
 else
   echo "Warning: Failed to save cache (this won't fail the build)"
