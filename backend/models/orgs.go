@@ -26,6 +26,7 @@ type Organisation struct {
 	DriftCronTab                string      `gorm:"default:'0 0 * * *'"`
 	BillingPlan                 BillingPlan `gorm:"default:'free'"`
 	BillingStripeSubscriptionId string
+	SlackConnectChannelName     *string
 }
 
 type Repo struct {
