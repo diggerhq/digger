@@ -40,6 +40,7 @@ func BillingStatusApi(c *gin.Context) {
 		"remaining_free_projects":        remainingFreeProjects,
 		"monitored_projects_count":       monitoredProjectsCount,
 		"billable_projects_count":        billableProjectsCount,
+		"slack_connect_channel":          org.SlackConnectChannelName,
 		"monitored_projects_limit":       models.MaxFreePlanProjectsPerOrg,
 	})
 }

@@ -68,6 +68,7 @@ func UpdateOrgSettingsApi(c *gin.Context) {
 		DriftWebhookUrl             *string `json:"drift_webhook_url,omitempty"`
 		BillingPlan                 *string `json:"billing_plan,omitempty"`
 		BillingStripeSubscriptionId *string `json:"billing_stripe_subscription_id,omitempty"`
+		SlackChannelName            *string `json:"slack_channel_name,omitempty"`
 	}
 	err = json.NewDecoder(c.Request.Body).Decode(&reqBody)
 	if err != nil {
@@ -94,6 +95,10 @@ func UpdateOrgSettingsApi(c *gin.Context) {
 
 	if reqBody.BillingStripeSubscriptionId != nil {
 		org.BillingStripeSubscriptionId = *reqBody.BillingStripeSubscriptionId
+	}
+
+	if reqBody.SlackChannelName != nil {
+		org.SlackConnectChannelName = reqBody.SlackChannelName
 	}
 
 	err = models.DB.GormDB.Save(&org).Error
