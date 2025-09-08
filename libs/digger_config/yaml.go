@@ -13,6 +13,7 @@ type DiggerConfigYaml struct {
 	AllowDraftPRs              *bool                        `yaml:"allow_draft_prs"`
 	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
 	DeletePriorComments        *bool                        `yaml:"delete_prior_comments"`
+	DisableDiggerApplyComment  *bool                        `yaml:"disable_digger_apply_comment"`
 	PrLocks                    *bool                        `yaml:"pr_locks"`
 	Projects                   []*ProjectYaml               `yaml:"projects"`
 	AutoMerge                  *bool                        `yaml:"auto_merge"`

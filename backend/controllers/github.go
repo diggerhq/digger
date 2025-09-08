@@ -1358,7 +1358,8 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return nil
 	}
 
-	if !strings.HasPrefix(commentBody, "digger") {
+	cleanedComment := strings.TrimSpace(strings.ToLower(commentBody))
+	if !strings.HasPrefix(cleanedComment, "digger") {
 		slog.Info("Comment is not a Digger command, ignoring",
 			"issueNumber", issueNumber,
 			"commentBody", commentBody,
@@ -1403,6 +1404,14 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		)
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not load digger config, error: %v", err))
 		return fmt.Errorf("error getting digger config")
+	}
+
+	if config.DisableDiggerApplyComment && strings.HasPrefix(cleanedComment, "digger apply") {
+		slog.Info("Digger configured to disable apply comment in PRs, ignoring comment", "DisableDiggerApplyComment", config.DisableDiggerApplyComment)
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			commentReporterManager.UpdateComment("Digger configured to disable apply comment in PRs, ignoring comment")
+		}
+		return nil
 	}
 
 	// terraform code generator
