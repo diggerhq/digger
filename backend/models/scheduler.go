@@ -198,5 +198,5 @@ func GetStatusCheckForJob(job *DiggerJob) (string, error) {
 	case orchestrator_scheduler.DiggerJobFailed:
 		return "failed", nil
 	}
-	return "", fmt.Errorf("unknown job status: %s", job.Status)
+	return "", fmt.Errorf("unknown job status: %v", job.Status)
 }
