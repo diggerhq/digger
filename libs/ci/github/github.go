@@ -186,12 +186,12 @@ func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 			if comment.ID != nil {
 				commentId = strconv.FormatInt(*comment.ID, 10)
 			}
-			
+
 			var commentUrl string
 			if comment.HTMLURL != nil {
 				commentUrl = *comment.HTMLURL
 			}
-			
+
 			var commentBody *string
 			if comment.Body != nil {
 				commentBody = comment.Body
@@ -199,7 +199,7 @@ func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
 
 			allComments = append(allComments, ci.Comment{
 				Id:   commentId,
-				Body: commentBody,  
+				Body: commentBody,
 				Url:  commentUrl,
 			})
 		}
@@ -533,7 +533,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				Terragrunt:         project.Terragrunt,
 				OpenTofu:           project.OpenTofu,
 				Pulumi:             project.Pulumi,
-				Commands:           workflow.Configuration.OnCommitToDefault,
+				Commands:           workflow.Configuration. /**/ OnCommitToDefault,
 				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
 				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
 				RunEnvVars:         runEnvVars,
