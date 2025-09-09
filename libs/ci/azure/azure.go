@@ -356,9 +356,9 @@ func (a *AzureReposService) CreateCommentReaction(id string, reaction string) er
 	return nil
 }
 
-func (a *AzureReposService) GetBranchName(prNumber int) (string, string, error) {
+func (a *AzureReposService) GetBranchName(prNumber int) (string, string, string, string, error) {
 	//TODO implement me
-	return "", "", nil
+	return "", "", "", "", nil
 }
 
 func (svc *AzureReposService) SetOutput(prNumber int, key string, value string) error {

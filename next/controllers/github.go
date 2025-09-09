@@ -567,7 +567,7 @@ func getDiggerConfigForPR(gh next_utils.GithubClientProvider, installationId int
 	}
 
 	var prBranch string
-	prBranch, prCommitSha, err := ghService.GetBranchName(prNumber)
+	prBranch, prCommitSha, _, _, err := ghService.GetBranchName(prNumber)
 	if err != nil {
 		log.Printf("Error getting branch name: %v", err)
 		return "", nil, nil, nil, nil, nil, fmt.Errorf("error getting branch name")

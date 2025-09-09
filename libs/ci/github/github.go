@@ -442,14 +442,16 @@ func (svc GithubService) SetOutput(prNumber int, key string, value string) error
 	return nil
 }
 
-func (svc GithubService) GetBranchName(prNumber int) (string, string, error) {
+func (svc GithubService) GetBranchName(prNumber int) (string, string, string, string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
-		return "", "", fmt.Errorf("error getting pull request: %v", err)
+		return "", "", "", "", fmt.Errorf("error getting pull request: %v", err)
 	}
 
-	return pr.Head.GetRef(), pr.Head.GetSHA(), nil
+	targetBranch := pr.Base.GetRef()
+	targetSha := pr.Base.GetSHA()
+	return pr.Head.GetRef(), pr.Head.GetSHA(), targetBranch, targetSha, nil
 }
 
 func (svc GithubService) GetHeadCommitFromBranch(branch string) (string, string, error) {
@@ -737,6 +739,8 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 	var impactedProjects []digger_config.Project
 	var prNumber int
 	prNumber = *payload.PullRequest.Number
+	defaultBranch := *payload.Repo.DefaultBranch
+	targetBranch := payload.PullRequest.Base.GetRef()
 
 	slog.Info("processing GitHub pull request event",
 		"prNumber", prNumber,
@@ -753,6 +757,8 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 	slog.Info("identified directly impacted projects",
 		"count", len(impactedProjects),
 		"prNumber", prNumber)
+
+	impactedProjects = generic.FilterTargetBranchForImpactedProjects(impactedProjects, defaultBranch, targetBranch)
 
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
 		slog.Debug("using hard dependency mode, finding all dependent projects", "prNumber", prNumber)

@@ -142,7 +142,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 	// here we check if pr was merged and automatic deletion is enabled, to avoid errors when
 	// pr is merged and the branch does not exist we handle that gracefully
 	if action == "merge" {
-		sourceBranch, _, err := glService.GetBranchName(prNumber)
+		sourceBranch, _, _, _, err := glService.GetBranchName(prNumber)
 		if err != nil {
 			utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Could not retrieve PR details, error: %v", err))
 			log.Printf("Could not retrieve PR details error: %v", err)
@@ -393,7 +393,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
 
-	prBranchName, _, err := glService.GetBranchName(issueNumber)
+	prBranchName, _, _, _, err := glService.GetBranchName(issueNumber)
 	if err != nil {
 		log.Printf("GetBranchName error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: GetBranchName error: %v", err))
