@@ -43,6 +43,7 @@ type ProjectYaml struct {
 	Dir                  string                      `yaml:"dir"`
 	Workspace            string                      `yaml:"workspace"`
 	Terragrunt           bool                        `yaml:"terragrunt"`
+	Branch               *string                     `yaml:"branch,omitempty"`
 	OpenTofu             bool                        `yaml:"opentofu"`
 	Pulumi               bool                        `yaml:"pulumi"`
 	Workflow             string                      `yaml:"workflow"`

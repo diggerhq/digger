@@ -349,7 +349,7 @@ func (gitlabService GitLabService) GetApprovals(prNumber int) ([]string, error) 
 	return approvals, nil
 }
 
-func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, error) {
+func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, string, string, error) {
 	//TODO implement me
 	projectId := *gitlabService.Context.ProjectId
 	slog.Debug("getting branch name", "prNumber", prNumber, "projectId", projectId)
@@ -358,9 +358,9 @@ func (gitlabService GitLabService) GetBranchName(prNumber int) (string, string, 
 	pr, _, err := gitlabService.Client.MergeRequests.GetMergeRequest(projectId, prNumber, &options)
 	if err != nil {
 		slog.Error("error getting branch name for PR", "error", err, "prNumber", prNumber)
-		return "", "", err
+		return "", "", "", "", err
 	}
-	return pr.SourceBranch, pr.SHA, nil
+	return pr.SourceBranch, pr.SHA, "", "", nil
 }
 
 func (gitlabService GitLabService) CheckBranchExists(branchName string) (bool, error) {

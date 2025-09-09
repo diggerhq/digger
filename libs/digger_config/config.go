@@ -9,6 +9,8 @@ const AutomergeStrategySquash AutomergeStrategy = "squash"
 const AutomergeStrategyMerge AutomergeStrategy = "merge"
 const AutomergeStrategyRebase AutomergeStrategy = "rebase"
 
+const DefaultBranchName = "__default__"
+
 type DiggerConfig struct {
 	ApplyAfterMerge            bool
 	AllowDraftPRs              bool
@@ -46,6 +48,7 @@ type AssumeRoleForProject struct {
 type Project struct {
 	BlockName            string // the block name if this is a generated project
 	Name                 string
+	Branch               string
 	Alias                string
 	Dir                  string
 	Workspace            string
