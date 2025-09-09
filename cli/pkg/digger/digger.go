@@ -153,11 +153,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			slog.Error("error Updating status comment", "error", err)
 			return false, false, err
 		}
-		err = UpdateAggregateStatus(batchResult, prService)
-		if err != nil {
-			slog.Error("error updating aggregate status check", "error", err)
-			return false, false, err
-		}
 
 	}
 

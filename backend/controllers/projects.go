@@ -970,6 +970,44 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
+	refreshedBatch, err := models.DB.GetDiggerBatch(&batch.ID)
+	if err != nil {
+		slog.Error("Error getting refreshed batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting refreshed batch"})
+		return
+	}
+	err = UpdateCheckStatusForBatch(d.GithubClientProvider, refreshedBatch)
+	if err != nil {
+		slog.Error("Error updating check status",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating aggregate status check"})
+		return
+	}
+
+	refreshedJob, err := models.DB.GetDiggerJob(jobId)
+	if err != nil {
+		slog.Error("Error getting refreshed job",
+			"jobId", jobId,
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting refreshed job"})
+		return
+	}
+	err = UpdateCheckStatusForJob(d.GithubClientProvider, refreshedJob)
+	if err != nil {
+		slog.Error("Error updating check status",
+			"jobId", jobId,
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating aggregate status check"})
+		return
+	}
+
 	if batch.ReportTerraformOutputs {
 		slog.Info("Generating Terraform outputs summary", "batchId", batch.ID)
 		err = CreateTerraformOutputsSummary(d.GithubClientProvider, batch)
