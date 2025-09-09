@@ -8,7 +8,7 @@ import (
 
 // FilterTargetBranchForImpactedProjects filters out all projects that do not meet the target branch requirement
 func FilterTargetBranchForImpactedProjects(impactedProjects []digger_config.Project, defaultBranch string, targetBranch string) []digger_config.Project {
-	// filter our projects that don't meet targetBranch
+	// filter out projects that don't meet targetBranch
 	impactedProjects = lo.Filter(impactedProjects, func(item digger_config.Project, index int) bool {
 		var projectTargetBranch string
 		if item.Branch == digger_config.DefaultBranchName {
