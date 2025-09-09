@@ -41,7 +41,7 @@ func UpdateCheckStatusForBatch(gh utils.GithubClientProvider, batch *models.Digg
 		"newStatus", serializedBatch.ToStatusCheck())
 	if isPlanBatch {
 		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/plan")
-		prService.SetStatus(batch.PrNumber, "neutral", "digger/apply")
+		prService.SetStatus(batch.PrNumber, "pending", "digger/apply")
 	} else {
 		prService.SetStatus(batch.PrNumber, "success", "digger/plan")
 		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/apply")
