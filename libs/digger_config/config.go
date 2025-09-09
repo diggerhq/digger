@@ -15,6 +15,7 @@ type DiggerConfig struct {
 	CommentRenderMode          string
 	DependencyConfiguration    DependencyConfiguration
 	DeletePriorComments        bool
+	DisableDiggerApplyComment  bool
 	RespectLayers              bool
 	PrLocks                    bool
 	Projects                   []Project
