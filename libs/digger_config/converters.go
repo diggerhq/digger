@@ -29,6 +29,11 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			layer = *p.Layer
 		}
 
+		branch := DefaultBranchName
+		if p.Branch != nil {
+			branch = *p.Branch
+		}
+
 		var roleToAssume *AssumeRoleForProject = nil
 		if p.AwsRoleToAssume != nil {
 
@@ -76,6 +81,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 		item := Project{
 			p.BlockName,
 			p.Name,
+			branch,
 			p.Alias,
 			p.Dir,
 			workspace,

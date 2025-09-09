@@ -95,7 +95,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		// we sleep for 1 second to give github time to delete the branch
 		time.Sleep(1 * time.Second)
 
-		branchName, _, err := ghService.GetBranchName(prNumber)
+		branchName, _, _, _, err := ghService.GetBranchName(prNumber)
 		if err != nil {
 			slog.Error("Could not retrieve PR details", "prNumber", prNumber, "error", err)
 			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not retrieve PR details, error: %v", err))

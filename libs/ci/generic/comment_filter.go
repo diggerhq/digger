@@ -6,6 +6,21 @@ import (
 	"github.com/samber/lo"
 )
 
+// FilterTargetBranchForImpactedProjects filters out all projects that do not meet the target branch requirement
+func FilterTargetBranchForImpactedProjects(impactedProjects []digger_config.Project, defaultBranch string, targetBranch string) []digger_config.Project {
+	// filter our projects that don't meet targetBranch
+	impactedProjects = lo.Filter(impactedProjects, func(item digger_config.Project, index int) bool {
+		var projectTargetBranch string
+		if item.Branch == digger_config.DefaultBranchName {
+			projectTargetBranch = defaultBranch
+		} else {
+			projectTargetBranch = item.Branch
+		}
+		return projectTargetBranch == targetBranch
+	})
+	return impactedProjects
+}
+
 func FilterOutProjectsFromComment(impactedProjects []digger_config.Project, comment string) ([]digger_config.Project, error) {
 	var filteredProjects []digger_config.Project
 	commentParts, valid, err := ParseDiggerCommentFlags(comment)

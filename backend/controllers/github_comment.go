@@ -210,7 +210,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"command", *diggerCommand,
 	)
 
-	prBranchName, _, err := ghService.GetBranchName(issueNumber)
+	prBranchName, _, targetBranch, _, err := ghService.GetBranchName(issueNumber)
 	if err != nil {
 		slog.Error("Error getting branch name",
 			"issueNumber", issueNumber,
@@ -246,6 +246,8 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error filtering out projects from comment: %v", err))
 		return fmt.Errorf("error filtering out projects from comment")
 	}
+
+	impactedProjectsForComment = generic.FilterTargetBranchForImpactedProjects(impactedProjectsForComment, defaultBranch, targetBranch)
 
 	slog.Info("Issue comment event processed successfully",
 		"issueNumber", issueNumber,

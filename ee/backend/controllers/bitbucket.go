@@ -208,7 +208,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
 
-	prBranchName, _, err := bbService.GetBranchName(issueNumber)
+	prBranchName, _, _, _, err := bbService.GetBranchName(issueNumber)
 	if err != nil {
 		log.Printf("GetBranchName error: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: GetBranchName error: %v", err))

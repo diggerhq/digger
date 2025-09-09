@@ -26,6 +26,7 @@ pr_locks: true
 projects:
   - name: prod
     dir: prod
+    branch: main
     workspace: default
     terragrunt: false
     workflow: prod
@@ -33,6 +34,7 @@ projects:
     exclude_patterns: []
   - name: staging
     dir: staging
+    branch: main
     workflow: staging
     include_patterns: ["../modules/**"]
     exclude_patterns: []    
@@ -115,6 +117,7 @@ workflows:
 | Key                      | Type                                                 | Default | Required | Description                                                        | Notes                                                                                                     |
 | ------------------------ | ---------------------------------------------------- | ------- | -------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
 | name                     | string                                               |        | yes      | name of the project                                                | must be unique                                                                                             |
+| branch                   | string                                               |        | yes      | the target branch to match this project on                                                | must be unique                                                                      |
 | dir                      | string                                               |        | yes      | directory containing the project                                   |                                                                                                            |
 | workspace                | string                                               | default | no       | terraform workspace to use                                         |                                                                                                           |
 | opentofu                 | boolean                                              | false   | no       | whether to use opentofu                                            |                                                                                                           |

@@ -616,7 +616,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	}
 
 	var prBranch string
-	prBranch, prCommitSha, err := ghService.GetBranchName(prNumber)
+	prBranch, prCommitSha, _, _, err := ghService.GetBranchName(prNumber)
 	if err != nil {
 		slog.Error("Error getting branch name for PR",
 			"prNumber", prNumber,
