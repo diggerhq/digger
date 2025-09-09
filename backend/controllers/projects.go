@@ -983,6 +983,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	if err != nil {
 		slog.Error("Error updating check status",
 			"batchId", batch.ID,
+			"batchId", batch.ID,
 			"error", err,
 		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating aggregate status check"})
