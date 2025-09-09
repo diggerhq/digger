@@ -71,7 +71,7 @@ func UpdateCheckStatusForJob(gh utils.GithubClientProvider, job *models.DiggerJo
 	err = json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
 	if err != nil {
 		slog.Error("Could not unmarshal job spec", "jobId", job.DiggerJobID, "error", err)
-		return fmt.Errorf("could not marshal json string: %v", err)
+		return fmt.Errorf("could not unmarshal json string: %v", err)
 	}
 
 	isPlan := jobSpec.IsPlan()
