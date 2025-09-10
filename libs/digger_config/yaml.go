@@ -8,24 +8,25 @@ import (
 )
 
 type DiggerConfigYaml struct {
-	ApplyAfterMerge            *bool                        `yaml:"apply_after_merge"`
-	RespectLayers              *bool                        `yaml:"respect_layers"`
-	AllowDraftPRs              *bool                        `yaml:"allow_draft_prs"`
-	DependencyConfiguration    *DependencyConfigurationYaml `yaml:"dependency_configuration"`
-	DeletePriorComments        *bool                        `yaml:"delete_prior_comments"`
-	DisableDiggerApplyComment  *bool                        `yaml:"disable_digger_apply_comment"`
-	PrLocks                    *bool                        `yaml:"pr_locks"`
-	Projects                   []*ProjectYaml               `yaml:"projects"`
-	AutoMerge                  *bool                        `yaml:"auto_merge"`
-	AutoMergeStrategy          *string                      `yaml:"auto_merge_strategy"`
-	CommentRenderMode          *string                      `yaml:"comment_render_mode"`
-	Workflows                  map[string]*WorkflowYaml     `yaml:"workflows"`
-	Telemetry                  *bool                        `yaml:"telemetry,omitempty"`
-	GenerateProjectsConfig     *GenerateProjectsConfigYaml  `yaml:"generate_projects"`
-	TraverseToNestedProjects   *bool                        `yaml:"traverse_to_nested_projects"`
-	MentionDriftedProjectsInPR *bool                        `yaml:"mention_drifted_projects_in_pr"`
-	ReportTerraformOutputs     *bool                        `yaml:"report_terraform_outputs"`
-	Reporting                  *ReportingConfigYaml         `yaml:"reporting"`
+	ApplyAfterMerge               *bool                        `yaml:"apply_after_merge"`
+	RespectLayers                 *bool                        `yaml:"respect_layers"`
+	AllowDraftPRs                 *bool                        `yaml:"allow_draft_prs"`
+	DependencyConfiguration       *DependencyConfigurationYaml `yaml:"dependency_configuration"`
+	DeletePriorComments           *bool                        `yaml:"delete_prior_comments"`
+	DisableDiggerApplyComment     *bool                        `yaml:"disable_digger_apply_comment"`
+	DisableDiggerApplyStatusCheck *bool                        `yaml:"disable_digger_apply_status_check,omitempty"`
+	PrLocks                       *bool                        `yaml:"pr_locks"`
+	Projects                      []*ProjectYaml               `yaml:"projects"`
+	AutoMerge                     *bool                        `yaml:"auto_merge"`
+	AutoMergeStrategy             *string                      `yaml:"auto_merge_strategy"`
+	CommentRenderMode             *string                      `yaml:"comment_render_mode"`
+	Workflows                     map[string]*WorkflowYaml     `yaml:"workflows"`
+	Telemetry                     *bool                        `yaml:"telemetry,omitempty"`
+	GenerateProjectsConfig        *GenerateProjectsConfigYaml  `yaml:"generate_projects"`
+	TraverseToNestedProjects      *bool                        `yaml:"traverse_to_nested_projects"`
+	MentionDriftedProjectsInPR    *bool                        `yaml:"mention_drifted_projects_in_pr"`
+	ReportTerraformOutputs        *bool                        `yaml:"report_terraform_outputs"`
+	Reporting                     *ReportingConfigYaml         `yaml:"reporting"`
 }
 
 type ReportingConfigYaml struct {
