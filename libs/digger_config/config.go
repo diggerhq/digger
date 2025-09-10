@@ -12,23 +12,24 @@ const AutomergeStrategyRebase AutomergeStrategy = "rebase"
 const DefaultBranchName = "__default__"
 
 type DiggerConfig struct {
-	ApplyAfterMerge            bool
-	AllowDraftPRs              bool
-	CommentRenderMode          string
-	DependencyConfiguration    DependencyConfiguration
-	DeletePriorComments        bool
-	DisableDiggerApplyComment  bool
-	RespectLayers              bool
-	PrLocks                    bool
-	Projects                   []Project
-	AutoMerge                  bool
-	AutoMergeStrategy          AutomergeStrategy
-	Telemetry                  bool
-	Workflows                  map[string]Workflow
-	MentionDriftedProjectsInPR bool
-	TraverseToNestedProjects   bool
-	Reporting                  ReporterConfig
-	ReportTerraformOutputs     bool
+	ApplyAfterMerge               bool
+	AllowDraftPRs                 bool
+	CommentRenderMode             string
+	DependencyConfiguration       DependencyConfiguration
+	DeletePriorComments           bool
+	DisableDiggerApplyComment     bool
+	DisableDiggerApplyStatusCheck bool
+	RespectLayers                 bool
+	PrLocks                       bool
+	Projects                      []Project
+	AutoMerge                     bool
+	AutoMergeStrategy             AutomergeStrategy
+	Telemetry                     bool
+	Workflows                     map[string]Workflow
+	MentionDriftedProjectsInPR    bool
+	TraverseToNestedProjects      bool
+	Reporting                     ReporterConfig
+	ReportTerraformOutputs        bool
 }
 
 type ReporterConfig struct {
