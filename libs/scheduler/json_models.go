@@ -61,6 +61,13 @@ func (j *JobJson) IsApply() bool {
 	return slices.Contains(j.Commands, "digger apply")
 }
 
+func (j *JobJson) GetProjectAlias() string {
+	if j.ProjectAlias != "" {
+		return j.ProjectAlias
+	}
+	return j.ProjectName
+}
+
 func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch string, commitSha string, jobToken string, backendHostname string, project digger_config.Project) JobJson {
 	stateRole, commandRole, region := "", "", ""
 

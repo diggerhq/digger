@@ -153,11 +153,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			slog.Error("error Updating status comment", "error", err)
 			return false, false, err
 		}
-		err = UpdateAggregateStatus(batchResult, prService)
-		if err != nil {
-			slog.Error("error updating aggregate status check", "error", err)
-			return false, false, err
-		}
 
 	}
 
@@ -265,21 +260,11 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		if err != nil {
 			slog.Error("failed to send usage report", "error", err)
 		}
-		err = prService.SetStatus(*job.PullRequestNumber, "pending", job.GetProjectAlias()+"/plan")
-		if err != nil {
-			msg := fmt.Sprintf("Failed to set PR status. %v", err)
-			return nil, msg, fmt.Errorf("%s", msg)
-		}
 		planSummary, planPerformed, isNonEmptyPlan, plan, planJsonOutput, err := diggerExecutor.Plan()
 
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Run digger plan command. %v", err)
 			slog.Error("Failed to Run digger plan command", "error", err)
-			err := prService.SetStatus(*job.PullRequestNumber, "failure", job.GetProjectAlias()+"/plan")
-			if err != nil {
-				msg := fmt.Sprintf("Failed to set PR status. %v", err)
-				return nil, msg, fmt.Errorf("%s", msg)
-			}
 
 			return nil, msg, fmt.Errorf("%s", msg)
 		} else if planPerformed {
@@ -333,11 +318,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			} else {
 				reportEmptyPlanOutput(reporter, projectLock.LockId())
 			}
-			err := prService.SetStatus(*job.PullRequestNumber, "success", job.GetProjectAlias()+"/plan")
-			if err != nil {
-				msg := fmt.Sprintf("Failed to set PR status. %v", err)
-				return nil, msg, fmt.Errorf("%s", msg)
-			}
+
 			result := execution.DiggerExecutorResult{
 				OperationType:   execution.DiggerOparationTypePlan,
 				TerraformOutput: plan,
@@ -353,11 +334,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "apply")
 		if err != nil {
 			slog.Error("failed to send usage report.", "error", err)
-		}
-		err = prService.SetStatus(*job.PullRequestNumber, "pending", job.GetProjectAlias()+"/apply")
-		if err != nil {
-			msg := fmt.Sprintf("Failed to set PR status. %v", err)
-			return nil, msg, fmt.Errorf("%s", msg)
 		}
 
 		isMerged, err := prService.IsMerged(*job.PullRequestNumber)
@@ -375,7 +351,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		slog.Info("PR status Information", "mergeable", isMergeable, "merged", isMerged, "skipMergeCheck", job.SkipMergeCheck)
 		if !isMergeable && !isMerged && !job.SkipMergeCheck {
 			comment := reportApplyMergeabilityError(reporter)
-			prService.SetStatus(*job.PullRequestNumber, "failure", job.GetProjectAlias()+"/apply")
 
 			return nil, comment, fmt.Errorf("%s", comment)
 		} else {
@@ -421,19 +396,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			if err != nil {
 				//TODO reuse executor error handling
 				slog.Error("Failed to Run digger apply command.", "error", err)
-				err := prService.SetStatus(*job.PullRequestNumber, "failure", job.GetProjectAlias()+"/apply")
-				if err != nil {
-					msg := fmt.Sprintf("Failed to set PR status. %v", err)
-					return nil, msg, fmt.Errorf("%s", msg)
-				}
+
 				msg := fmt.Sprintf("Failed to run digger apply command. %v", err)
 				return nil, msg, fmt.Errorf("%s", msg)
 			} else if applyPerformed {
-				err := prService.SetStatus(*job.PullRequestNumber, "success", job.GetProjectAlias()+"/apply")
-				if err != nil {
-					msg := fmt.Sprintf("Failed to set PR status. %v", err)
-					return nil, msg, fmt.Errorf("%s", msg)
-				}
 				appliesPerProject[job.ProjectName] = true
 			}
 			result := execution.DiggerExecutorResult{
