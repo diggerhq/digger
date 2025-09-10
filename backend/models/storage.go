@@ -856,6 +856,10 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 	}
 	if allJobsSucceeded == true {
 		batch.Status = scheduler.BatchJobSucceeded
+		result := db.GormDB.Save(batch)
+		if result.Error != nil {
+			slog.Error("failed to update batch status", "batchId", batchId, "error", result.Error)
+		}
 		slog.Info("all jobs succeeded, marking batch as succeeded",
 			"batchId", batchId,
 			"jobCount", len(diggerJobs))
