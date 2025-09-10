@@ -50,8 +50,8 @@ type DiggerBatch struct {
 
 type DiggerJob struct {
 	gorm.Model
-	DiggerJobID                  string `gorm:"size:50,index:idx_digger_job_id"`
-	Status                       orchestrator_scheduler.DiggerJobStatus
+	DiggerJobID                  string                                 `gorm:"size:50,index:idx_digger_job_id"`
+	Status                       orchestrator_scheduler.DiggerJobStatus `gorm:"index:idx_digger_jobs_status"`
 	RunName                      string
 	ProjectName                  string
 	Batch                        *DiggerBatch
