@@ -217,6 +217,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.DisableDiggerApplyComment = false
 	}
 
+	if diggerYaml.DisableDiggerApplyStatusCheck != nil {
+		diggerConfig.DisableDiggerApplyStatusCheck = *diggerYaml.DisableDiggerApplyStatusCheck
+	} else {
+		diggerConfig.DisableDiggerApplyStatusCheck = false
+	}
+
 	if diggerYaml.ReportTerraformOutputs != nil {
 		diggerConfig.ReportTerraformOutputs = *diggerYaml.ReportTerraformOutputs
 	} else {

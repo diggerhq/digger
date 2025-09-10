@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"log/slog"
 )
@@ -26,6 +27,27 @@ func UpdateCheckStatusForBatch(gh utils.GithubClientProvider, batch *models.Digg
 		return fmt.Errorf("error getting github service: %v", err)
 	}
 
+	diggerYmlString := batch.DiggerConfig
+	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
+	if err != nil {
+		slog.Error("Error loading Digger config from batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error loading digger config from batch: %v", err)
+	}
+
+	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	if err != nil {
+		slog.Error("Error converting Digger YAML to config",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error converting Digger YAML to config: %v", err)
+	}
+
+	disableDiggerApplyStatusCheck := config.DisableDiggerApplyStatusCheck
+
 	isPlanBatch := batch.BatchType == orchestrator_scheduler.DiggerCommandPlan
 
 	serializedBatch, err := batch.MapToJsonStruct()
@@ -41,10 +63,15 @@ func UpdateCheckStatusForBatch(gh utils.GithubClientProvider, batch *models.Digg
 		"newStatus", serializedBatch.ToStatusCheck())
 	if isPlanBatch {
 		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/plan")
-		prService.SetStatus(batch.PrNumber, "pending", "digger/apply")
+		if disableDiggerApplyStatusCheck == false {
+			prService.SetStatus(batch.PrNumber, "pending", "digger/apply")
+		}
+
 	} else {
 		prService.SetStatus(batch.PrNumber, "success", "digger/plan")
-		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/apply")
+		if disableDiggerApplyStatusCheck == false {
+			prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/apply")
+		}
 	}
 	return nil
 }
