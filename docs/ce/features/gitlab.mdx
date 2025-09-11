@@ -96,3 +96,13 @@ Your Gitlab should also trigger and also perform a plan. If successful the job w
 ![](/images/ee/gitlab-1.png)
 
 ![](/images/ee/gitlab-2.png)
+
+
+## Repo allowlist
+
+You can set `DIGGER_REPO_ALLOW_LIST` env variable on the server to define a whitelist of repositories allowed to trigger Digger workflows in Gitlab. This is needed because unlike GitHub, there's no concept of "apps" in Gitlab to allow granular control of per-repo access.
+
+```
+DIGGER_REPO_ALLOW_LIST=gitlab.com/diggerdev/digger-demo,gitlab.com/diggerdev/alsoallowed
+```
+
