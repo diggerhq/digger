@@ -3,7 +3,7 @@ title: "Multi Tenant Github Connections"
 ---
 
 
-In CE version of digger during onboarding you can use a wizard to create [a github app](/ce/self-host/deploy-docker#create-github-app) and inject it using environment variables.
+In the main onboarding flow you can use a wizard to create [a github app](/ce/self-host/deploy-docker#create-github-app) and inject it using environment variables.
 In larger orgs there could be a requirement that there are multiple orgs representing department. The github app created is installable on a single org only unless it is published.
 For enterprise usecases publishing to github marketplace is not feasible. For this reason we introduced multi-tenant github app via connections. Not only does this allow multiple app
 connections per org but it also makes it fully ui-based and there is no need to set environment variables. The way it works is as follows:
@@ -25,7 +25,7 @@ openssl rand -base64 24
 
 In your backend you can visit /github/connections and it will show you a screen like below
 
-![](images/ee/multi-tenant-github.png)
+![](/images/ee/multi-tenant-github.png)
 
 Within this screen you can see your current connections and also create your connections to an org. Type in your github org in the
 text box and click on "set up github app" to follow the wizard for creation in your org. Ensure that the button on github side says "create in diggerhq"

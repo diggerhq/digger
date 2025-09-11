@@ -27,8 +27,20 @@ This way you can implement custom logic, for example allowing to apply a PR that
 
 In Digger there are 3 ways to use OPA policies:
 
-- via Management Repo (EE)
-- via (unofficial) Orchestrator API (CE)
-- inline via Conftest (CE)
+- via Management Repo
+- via (unofficial) Orchestrator API
+- inline via Conftest
 
-See [OPA policies](/ee/opa) for more detail
+
+## Management repository
+
+OPA policies can be stored in a dedicated repository ([example](https://github.com/diggerhq/mgmt-repo-one/tree/main/policies)) that is separate from repositories that it controls
+In this management repo, policies can be structured using 3 levels:
+
+- organisation level (applies to all repos and projects)
+- repo level (applies to all project within a specific repo; overrides org-level)
+- project level (applies only to specific project; overrides repo-level and org-level)
+
+## Inline policies via custom commands
+The most basic way to use OPA policies with Digger is via [custom commands](/ce/howto/using-opa-conftest) - you can have a script that downloads policies from your storage of choice, and then invoke Conftest CLI directly as a custom workflow step in Digger. This is also a free feature of Digger Community Edition.
+The most basic way use OPA policies with Digger is via [custom commands](/ce/howto/using-opa-conftest) - you can have a script that downloads policies from your storage of choice, and then invoke Conftest CLI directly as a custom workflow step in Digger. This is also a free feature of Digger Community Edition.

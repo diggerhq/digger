@@ -36,8 +36,6 @@
       "pages": [
         "readme/introduction",
         "readme/howitworks",
-        "readme/pricing",
-        "readme/faq",
         "readme/feedback"
       ]
     },
@@ -50,22 +48,6 @@
       ]
     },
     {
-      "group": "Digger Enterprise",
-      "pages": [
-        "ee/ee-setup",
-        "ee/drift-detection",
-        "ee/rbac",
-        "ee/opa",
-        "ee/multi-github",
-        "ee/gitlab",
-        "ee/buildkite",
-        "ee/fips-140",
-        "ee/ai-summaries",
-        "ee/remote-jobs",
-        "ee/saas"
-      ]
-    },
-    {
       "group": "Features",
       "pages": [
         "ce/features/plan-preview",
@@ -75,7 +57,13 @@
         "ce/features/layering",
         "ce/features/pr-level-locks",
         "ce/features/plan-persistence",
-        "ce/features/private-runners"
+        "ce/features/private-runners",
+        "ce/features/drift-detection",
+        "ce/features/rbac",
+        "ce/features/multi-github",
+        "ce/features/fips-140",
+        "ce/features/ai-summaries",
+        "ce/features/remote-jobs"
       ]
     },
     {
