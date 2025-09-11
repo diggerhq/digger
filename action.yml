@@ -219,7 +219,7 @@ inputs:
     description: "S3 bucket name for caching without the leading s3 (e.g. mybucket)"
     required: false
     default: ''
-  cache-depencies-s3-bucket-prefix:
+  cache-dependencies-s3-bucket-prefix:
     description: "S3 bucket prefix for caching (e.g. cache)"
     required: false
     default: ''
