@@ -5,8 +5,9 @@ set -e
 # Downloads terraform/terragrunt provider cache from S3
 
 BUCKET="$1"
-REGION="$2"
-CACHE_DIR="$3"
+PREFIX="$2"
+REGION="$3"
+CACHE_DIR="$4"
 
 # Validation
 if [ -z "$BUCKET" ]; then
@@ -29,8 +30,8 @@ mkdir -p "$CACHE_DIR"
 echo "Ensuring cache directory exists: $CACHE_DIR"
 
 # Download cache from S3
-echo "Restoring cache from S3 bucket: $BUCKET (region: $REGION)"
-if aws s3 sync "s3://$BUCKET" "$CACHE_DIR" --region "$REGION" --only-show-errors; then
+echo "Restoring cache from S3 bucket: $BUCKET (prefix: $PREFIX, region: $REGION)"
+if aws s3 sync "s3://$BUCKET/$PREFIX" "$CACHE_DIR" --region "$REGION"; then
   CACHED_FILES=$(find "$CACHE_DIR" -type f 2>/dev/null | wc -l)
   echo "Cache restored successfully ($CACHED_FILES files)"
   

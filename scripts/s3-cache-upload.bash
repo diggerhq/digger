@@ -5,12 +5,23 @@ set -e
 # Uploads terraform/terragrunt provider cache to S3
 
 BUCKET="$1"
-REGION="$2"
-CACHE_DIR="$3"
+PREFIX="$2"
+REGION="$3"
+CACHE_DIR="$4"
 
 # Validation
 if [ -z "$BUCKET" ]; then
   echo "Error: S3 bucket name is required"
+  exit 1
+fi
+
+if [ -z "$PREFIX" ]; then
+  echo "Error: S3 bucket prefix is required"
+  exit 1
+fi
+
+if [[ "$PREFIX" == /* ]]; then
+  echo "Error: S3 bucket prefix should not start with a leading slash"
   exit 1
 fi
 
@@ -53,10 +64,10 @@ if ! aws sts get-caller-identity --region "$REGION" &> /dev/null; then
 fi
 
 # Upload cache to S3
-echo "Saving cache to S3 bucket: $BUCKET (region: $REGION)"
+echo "Saving cache to S3 bucket: $BUCKET (prefix: $PREFIX, region: $REGION)"
 echo "Uploading $ARTIFACT_COUNT files"
 
-if aws s3 sync "$CACHE_DIR" "s3://$BUCKET" --region "$REGION" --only-show-errors; then
+if aws s3 sync "$CACHE_DIR" "s3://$BUCKET/$PREFIX" --region "$REGION"; then
   echo "Cache saved successfully"
 else
   echo "Warning: Failed to save cache (this won't fail the build)"
