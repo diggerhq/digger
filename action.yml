@@ -216,7 +216,11 @@ inputs:
     required: false
     default: 'false'
   cache-dependencies-s3-bucket:
-    description: "S3 bucket URL for caching (e.g., s3://mybucket/cache)"
+    description: "S3 bucket name for caching without the leading s3 (e.g. mybucket)"
+    required: false
+    default: ''
+  cache-dependencies-s3-bucket-prefix:
+    description: "S3 bucket prefix for caching (e.g. cache)"
     required: false
     default: ''
   cache-dependencies-s3-region:
@@ -332,8 +336,9 @@ runs:
     - name: restore-s3-cache
       shell: bash
       run: |
-        BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
+        BUCKET="${{ inputs.cache-dependencies-s3-bucket }}"
         REGION="${{ inputs.cache-dependencies-s3-region }}"
+        PREFIX="${{ inputs.cache-dependencies-s3-bucket-prefix }}"
         
         SCRIPT_PATH="${{ github.action_path }}/scripts/s3-cache-download.bash"
         if [ ! -f "$SCRIPT_PATH" ]; then
@@ -343,7 +348,7 @@ runs:
         fi
         
         chmod +x "$SCRIPT_PATH"
-        "$SCRIPT_PATH" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
+        "$SCRIPT_PATH" "$BUCKET" "$PREFIX" "$REGION" "$TF_PLUGIN_CACHE_DIR"
       if: ${{ inputs.cache-dependencies-s3 == 'true' }}
 
     # Then terraform setup happens...
@@ -641,8 +646,9 @@ runs:
     - name: save-s3-cache
       shell: bash
       run: |
-        BUCKET=$(echo "${{ inputs.cache-dependencies-s3-bucket }}" | sed 's|^s3://||')
+        BUCKET="${{ inputs.cache-dependencies-s3-bucket }}"
         REGION="${{ inputs.cache-dependencies-s3-region }}"
+        PREFIX="${{ inputs.cache-dependencies-s3-bucket-prefix }}"
         
         SCRIPT_PATH="${{ github.action_path }}/scripts/s3-cache-upload.bash"
         if [ ! -f "$SCRIPT_PATH" ]; then
@@ -652,7 +658,7 @@ runs:
         fi
         
         chmod +x "$SCRIPT_PATH"
-        "$SCRIPT_PATH" "$BUCKET" "$REGION" "$TF_PLUGIN_CACHE_DIR"
+        "$SCRIPT_PATH" "$BUCKET" "$PREFIX" "$REGION" "$TF_PLUGIN_CACHE_DIR"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' }}
 
 branding:
