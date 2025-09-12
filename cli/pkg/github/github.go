@@ -316,7 +316,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			} else {
 				impactedProjectsForEvent = impactedProjects
 			}
-			jobs, coversAllImpactedProjects, err = generic.ConvertIssueCommentEventToJobs(repoFullName, requestedBy, prNumber, commentBody, impactedProjectsForEvent, impactedProjects, diggerConfig.Workflows, prBranchName, defaultBranch)
+			jobs, coversAllImpactedProjects, err = generic.ConvertIssueCommentEventToJobs(repoFullName, requestedBy, prNumber, commentBody, impactedProjectsForEvent, impactedProjects, diggerConfig.Workflows, prBranchName, defaultBranch, true)
 		} else {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Unsupported GitHub event type. %s", err), 6)
 		}
