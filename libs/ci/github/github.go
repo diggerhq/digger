@@ -519,12 +519,15 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 		}
 
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
-		if *payload.Action == "closed" && *payload.PullRequest.Merged && *(payload.PullRequest.Base).Ref == *(payload.Repo).DefaultBranch {
-			slog.Info("processing merged PR to default branch",
+
+		defaultBranch = *(payload.Repo).DefaultBranch
+		projectTargetBranch := generic.GetProjectTargetBranch(project, defaultBranch)
+		if *payload.Action == "closed" && *payload.PullRequest.Merged && *(payload.PullRequest.Base).Ref == projectTargetBranch {
+			slog.Info("processing merged PR to project target branch",
 				"prNumber", *pullRequestNumber,
 				"project", project.Name,
-				"action", *payload.Action)
-
+				"action", *payload.Action,
+				"targetBranch", projectTargetBranch)
 			jobs = append(jobs, scheduler.Job{
 				ProjectName:        project.Name,
 				ProjectAlias:       project.Alias,
