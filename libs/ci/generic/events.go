@@ -99,7 +99,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 	return impactedProjectsWithDependantProjects, nil
 }
 
-func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prNumber int, commentBody string, impactedProjectsForComment []digger_config.Project, allImpactedProjects []digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string, defaultBranch string) ([]scheduler.Job, bool, error) {
+func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prNumber int, commentBody string, impactedProjectsForComment []digger_config.Project, allImpactedProjects []digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string, defaultBranch string, performEnvVarInterpolation bool) ([]scheduler.Job, bool, error) {
 	jobs := make([]scheduler.Job, 0)
 	prBranch := prBranchName
 
@@ -125,7 +125,7 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 		return nil, false, fmt.Errorf("command is not supported: %v", diggerCommand)
 	}
 
-	jobs, err := CreateJobsForProjects(runForProjects, commandToRun, "issue_comment", repoFullName, requestedBy, workflows, &prNumber, nil, defaultBranch, prBranch, true)
+	jobs, err := CreateJobsForProjects(runForProjects, commandToRun, "issue_comment", repoFullName, requestedBy, workflows, &prNumber, nil, defaultBranch, prBranch, performEnvVarInterpolation)
 	if err != nil {
 		return nil, false, err
 	}

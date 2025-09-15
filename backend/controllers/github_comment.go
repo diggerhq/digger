@@ -255,7 +255,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"allImpactedProjectsCount", len(allImpactedProjects),
 	)
 
-	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch, false)
 	if err != nil {
 		slog.Error("Error converting event to jobs",
 			"issueNumber", issueNumber,
