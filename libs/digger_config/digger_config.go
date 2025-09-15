@@ -727,7 +727,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 		}
 		err = validateApplyRequirements(p.ApplyRequirements)
 		if err != nil {
-			return fmt.Errorf("apply requirements are invalid for project %v, error: :%v", p.Name, err)
+			return fmt.Errorf("apply requirements are invalid for project %v, error: %v", p.Name, err)
 		}
 	}
 
