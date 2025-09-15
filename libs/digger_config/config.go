@@ -51,6 +51,7 @@ type Project struct {
 	Name                 string
 	Branch               string
 	Alias                string
+	ApplyRequirements    []string
 	Dir                  string
 	Workspace            string
 	Terragrunt           bool

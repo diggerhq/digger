@@ -83,6 +83,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.Name,
 			branch,
 			p.Alias,
+			p.ApplyRequirements,
 			p.Dir,
 			workspace,
 			p.Terragrunt,

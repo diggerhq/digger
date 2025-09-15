@@ -37,10 +37,15 @@ type DependencyConfigurationYaml struct {
 	Mode string `yaml:"mode"`
 }
 
+const ApplyRequirementsApproved = "approved"
+const ApplyRequirementsMergeable = "mergeable"
+const ApplyRequirementsUndiverged = "undiverged"
+
 type ProjectYaml struct {
 	BlockName            string                      `yaml:"block_name"`
 	Name                 string                      `yaml:"name"`
 	Alias                string                      `yaml:"alias,omitempty"`
+	ApplyRequirements    []string                    `yaml:"apply_requirements,omitempty"`
 	Dir                  string                      `yaml:"dir"`
 	Workspace            string                      `yaml:"workspace"`
 	Terragrunt           bool                        `yaml:"terragrunt"`
