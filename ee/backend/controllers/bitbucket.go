@@ -261,7 +261,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		return nil
 	}
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch)
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch, false)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))

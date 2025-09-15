@@ -121,7 +121,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 	}
 
 	impactedProjects := config.GetProjects(projectName)
-	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, nil, config.Workflows, defaultBranch, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjects, nil, config.Workflows, defaultBranch, defaultBranch, false)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))

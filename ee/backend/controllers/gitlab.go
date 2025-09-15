@@ -446,7 +446,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return nil
 	}
 
-	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch)
+	jobs, coverAllImpactedProjects, err := generic.ConvertIssueCommentEventToJobs(repoFullName, actor, issueNumber, commentBody, impactedProjectsForComment, allImpactedProjects, config.Workflows, prBranchName, defaultBranch, false)
 	if err != nil {
 		log.Printf("Error converting event to jobs: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Error converting event to jobs: %v", err))

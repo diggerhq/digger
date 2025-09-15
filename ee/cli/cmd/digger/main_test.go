@@ -935,7 +935,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	policyChecker := policy.MockPolicyChecker{}
 	backendApi := backendapi.MockBackendApi{}
 
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "digger plan", impactedProjects, impactedProjects, map[string]configuration.Workflow{}, "prbranch", "main")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "digger plan", impactedProjects, impactedProjects, map[string]configuration.Workflow{}, "prbranch", "main", false)
 	assert.NoError(t, err)
 	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
 	assert.NoError(t, err)
@@ -1031,7 +1031,7 @@ func TestGitHubTestPRCommandCaseInsensitivity(t *testing.T) {
 	impactedProjects[0] = project
 	workflows := make(map[string]configuration.Workflow, 1)
 	workflows["default"] = configuration.Workflow{}
-	jobs, _, err := generic.ConvertIssueCommentEventToJobs(*repo.FullName, *user.Login, *issue.Number, "digger plan", impactedProjects, impactedProjects, workflows, "prbranch", "main")
+	jobs, _, err := generic.ConvertIssueCommentEventToJobs(*repo.FullName, *user.Login, *issue.Number, "digger plan", impactedProjects, impactedProjects, workflows, "prbranch", "main", false)
 
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "digger plan", jobs[0].Commands[0])
