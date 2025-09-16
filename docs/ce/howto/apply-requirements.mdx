@@ -62,7 +62,7 @@ projects:
 
 While PR locks prevent you from PRs stepping on eachother in parallel, they still do not protect you from a stale branch
 that is behind the current main head. The undiverged requirement helps enforce this by preventing applies if there are any changes on the base branch
-since the PR was opened. It can be resolved by merging main into the PR branch or rebasing the PR branch on top of main. In the case of github this is done by quering the comparecommits api on github side.
+since the PR was opened. It can be resolved by merging main into the PR branch or rebasing the PR branch on top of main. In the case of github this is done by querying the comparecommits api on github side.
 
 ### Usage
 
