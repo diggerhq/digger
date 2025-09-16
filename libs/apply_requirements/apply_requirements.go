@@ -10,7 +10,7 @@ import (
 func CheckApplyRequirements(ghService ci.PullRequestService, impactedProjects []digger_config.Project, prNumber int, sourceBranch string, targetBranch string) error {
 	isMergeable, err := ghService.IsMergeable(prNumber)
 	if err != nil {
-		slog.Error("Error checking if PR is mergeable", "issueNumber", prNumber)
+		slog.Error("Error checking if PR is mergeable", "prNumber", prNumber)
 		return fmt.Errorf("error checking if PR is mergeable")
 	}
 	approvals, err := ghService.GetApprovals(prNumber)
