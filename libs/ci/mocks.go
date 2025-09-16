@@ -63,6 +63,11 @@ func (t MockPullRequestManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
+// TODO implement me
+func (t MockPullRequestManager) IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error) {
+	return false, nil
+}
+
 func (t MockPullRequestManager) GetComments(prNumber int) ([]Comment, error) {
 	return []Comment{}, nil
 }

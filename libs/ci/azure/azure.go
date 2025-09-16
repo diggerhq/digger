@@ -315,6 +315,11 @@ func (a *AzureReposService) IsClosed(prNumber int) (bool, error) {
 	return *pullRequest.Status == git.PullRequestStatusValues.Abandoned, nil
 }
 
+// TODO implement me
+func (a *AzureReposService) IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error) {
+	return false, nil
+}
+
 func (a *AzureReposService) IsMerged(prNumber int) (bool, error) {
 	pullRequest, err := a.Client.GetPullRequestById(context.Background(), git.GetPullRequestByIdArgs{
 		Project:       &a.ProjectName,

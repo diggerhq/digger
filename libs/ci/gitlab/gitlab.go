@@ -291,6 +291,11 @@ func (gitlabService GitLabService) IsClosed(mergeRequestIID int) (bool, error) {
 	return false, nil
 }
 
+// TODO implement me
+func (gitlabService GitLabService) IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error) {
+	return false, nil
+}
+
 func (gitlabService GitLabService) IsMerged(mergeRequestIID int) (bool, error) {
 	mergeRequest := getMergeRequest(gitlabService, mergeRequestIID)
 	slog.Debug("checking if merge request is merged",

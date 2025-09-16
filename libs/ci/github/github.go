@@ -415,6 +415,25 @@ func (svc GithubService) IsMerged(prNumber int) (bool, error) {
 	return *pr.Merged, nil
 }
 
+// IsDivergedFromBranch checks whether sourceBranch has diverged from targetBranch.
+// Diverged = both ahead and behind.
+func (svc GithubService) IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error) {
+	ctx := context.Background()
+
+	// Compare the commits between the two branches
+	comp, _, err := svc.Client.Repositories.CompareCommits(ctx, svc.Owner, svc.RepoName, targetBranch, sourceBranch, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to compare %s..%s: %w", targetBranch, sourceBranch, err)
+	}
+
+	// Diverged means both sides have unique commits
+	if comp.GetAheadBy() > 0 && comp.GetBehindBy() > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (svc GithubService) IsClosed(prNumber int) (bool, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {

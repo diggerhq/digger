@@ -67,8 +67,14 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsClosed(prNum
 	return false, nil
 }
 
+// TODO implement me
+func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error) {
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsDivergedFromBranch")
+	return false, nil
+}
+
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMerged(prNumber int) (bool, error) {
-	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsClosed")
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsMerged")
 	return false, nil
 }
 

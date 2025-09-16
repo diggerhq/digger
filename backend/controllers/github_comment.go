@@ -9,6 +9,7 @@ import (
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/apply_requirements"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -124,7 +125,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"orgId", orgId,
 	)
 
-	diggerYmlStr, ghService, config, projectsGraph, branch, commitSha, changedFiles, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
+	diggerYmlStr, ghService, config, projectsGraph, prSourceBranch, commitSha, changedFiles, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
 		slog.Error("Error getting Digger config for PR",
 			"issueNumber", issueNumber,
@@ -150,7 +151,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			"repoFullName", repoFullName,
 		)
 
-		err = GenerateTerraformFromCode(payload, commentReporterManager, config, defaultBranch, ghService, repoOwner, repoName, commitSha, issueNumber, branch)
+		err = GenerateTerraformFromCode(payload, commentReporterManager, config, defaultBranch, ghService, repoOwner, repoName, commitSha, issueNumber, prSourceBranch)
 		if err != nil {
 			slog.Error("Terraform generation failed",
 				"issueNumber", issueNumber,
@@ -373,6 +374,15 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return nil
 	}
 
+	// Check for apply requirements
+	if *diggerCommand == scheduler.DiggerCommandApply {
+		err = apply_requirements.CheckApplyRequirements(ghService, impactedProjectsForComment, issueNumber, *prSourceBranch, targetBranch)
+		if err != nil {
+			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not proceed with apply since apply requirements checks have failed: %v", err))
+			return nil
+		}
+	}
+
 	err = utils.ReportInitialJobsStatus(commentReporter, jobs)
 	if err != nil {
 		slog.Error("Failed to comment initial status for jobs",
@@ -460,7 +470,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		impactedProjectsMap,
 		projectsGraph,
 		installationId,
-		*branch,
+		*prSourceBranch,
 		issueNumber,
 		repoOwner,
 		repoName,

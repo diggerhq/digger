@@ -23,6 +23,7 @@ type PullRequestService interface {
 	IsMerged(prNumber int) (bool, error)
 	// IsClosed closed without merging
 	IsClosed(prNumber int) (bool, error)
+	IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error)
 	GetBranchName(prNumber int) (string, string, string, string, error)
 	SetOutput(prNumber int, key string, value string) error
 }

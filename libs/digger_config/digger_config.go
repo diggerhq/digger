@@ -670,6 +670,36 @@ func ValidateProjects(config *DiggerConfig) error {
 	return nil
 }
 
+func findInvalid(values []string, validSet map[string]struct{}) []string {
+	var invalid []string
+	for _, v := range values {
+		if _, ok := validSet[v]; !ok {
+			invalid = append(invalid, v)
+		}
+	}
+	return invalid
+}
+
+func validateApplyRequirements(applyRequirements []string) error {
+	dups := lo.FindDuplicates(applyRequirements)
+	if len(dups) != 0 {
+		return fmt.Errorf("found duplicate element: %v", dups)
+	}
+	validValues := []string{ApplyRequirementsApproved, ApplyRequirementsMergeable, ApplyRequirementsUndiverged}
+	var validSet = func() map[string]struct{} {
+		m := make(map[string]struct{}, len(validValues))
+		for _, v := range validValues {
+			m[v] = struct{}{}
+		}
+		return m
+	}()
+	invalidValues := findInvalid(applyRequirements, validSet)
+	if len(invalidValues) > 0 {
+		return fmt.Errorf("invalid values found: %v", invalidValues)
+	}
+	return nil
+}
+
 func ValidateDiggerConfig(config *DiggerConfig) error {
 	slog.Info("validating digger configuration",
 		"projectCount", len(config.Projects),
@@ -694,6 +724,10 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 				"projectName", p.Name,
 				"workflow", p.Workflow)
 			return fmt.Errorf("failed to find workflow digger_config '%s' for project '%s'", p.Workflow, p.Name)
+		}
+		err = validateApplyRequirements(p.ApplyRequirements)
+		if err != nil {
+			return fmt.Errorf("apply requirements are invalid for project %v, error: %v", p.Name, err)
 		}
 	}
 
