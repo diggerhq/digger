@@ -21,7 +21,7 @@ func CheckApplyRequirements(ghService ci.PullRequestService, impactedProjects []
 	isApproved := len(approvals) > 0
 	isDiverged, err := ghService.IsDivergedFromBranch(sourceBranch, targetBranch)
 	if err != nil {
-		slog.Error("Error checking if PR is diverged", "issueNumber", prNumber)
+		slog.Error("Error checking if PR is diverged", "prNumber", prNumber)
 		return fmt.Errorf("error checking if PR is diverged")
 	}
 	for _, proj := range impactedProjects {
