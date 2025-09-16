@@ -12,7 +12,5 @@ use (
 	./ee/drift
 
 	./libs
-	./next
-	./next/dbgen
 
 )
