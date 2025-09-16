@@ -15,7 +15,7 @@ func CheckApplyRequirements(ghService ci.PullRequestService, impactedProjects []
 	}
 	approvals, err := ghService.GetApprovals(prNumber)
 	if err != nil {
-		slog.Error("Error getting approvals", "issueNumber", prNumber)
+		slog.Error("Error getting approvals", "prNumber", prNumber)
 		return fmt.Errorf("error getting approvals")
 	}
 	isApproved := len(approvals) > 0
