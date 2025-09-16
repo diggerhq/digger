@@ -2,16 +2,92 @@
 title: "Apply Requirements"
 ---
 
-Digger currently does not support `apply_requirements` (like in Atlantis). Coming soon - ([#1252](https://github.com/diggerhq/digger/issues/1252))
+Digger supports apply_requirements on the project level to enforce certain conditions are met before an apply action occurs.
 
-## Workaround
+The following apply conditions are supported:
 
-You can use mergeability requirements together with Status Checks to achieve the same.
-Digger will not apply if the pull request is not in a “mergeable” state as specified by GitHub api. This means that if you have a separate status check and you have this check as “required” by branch protection rules then an attempt of digger apply will not go ahead.
+```
+projects:
+   - name: dev
+     dir: dev
+     apply_requirements: []
+  - name: prod
+    dir: prod
+    apply_requirements: [mergeable, undiverged, approved]
+```
 
-Note: there is a [known issue](https://github.com/diggerhq/digger/issues/1180) that would
- cause the "mergability" check to conflict if you set the digger/apply check as required on github. We are working on a fix and in the meantime you have an option to turn off the mergability check if you want to have this digger/apply check as required. You can turn it off in the workflow configuration
-  by setting the `skip_merge_check` flag as follows (we have to set the other configurations since they are currently required):
+Digger supports *mergeable*, *undiverged* and *approved* conditions. The default value for apply_requirements is [mergeable] if not set.
+Here is an explanation of each:
+
+## Mergeable
+
+The mergeable requirement will prevent applies unless a pull request is able to be merged.
+In GitHub, if you're not using Protected Branches then all pull requests are mergeable unless there is a conflict.
+
+<Note>
+    There is a [known issue](https://github.com/diggerhq/digger/issues/1180) that would
+    cause the "mergability" check to conflict if you set the digger/apply check as required on github. We are working on a fix and in the meantime you have an option to turn off the mergability check if you want to have this digger/apply check as required. You can turn it off in the workflow configuration
+    by setting the `skip_merge_check` flag as follows (we have to set the other configurations since they are currently required):
+
+</Note>
+
+### Usage
+
+You can enable the mergeable requirement on the project level:
+
+```
+projects:
+   - name: dev
+     dir: dev
+     apply_requirements: [mergeable]
+```
+
+Note that it is set by default so it would be enforced even if you don't specify it.
+
+## Approved
+The approved requirement will prevent applies unless the pull request is approved by at least one person other than the author.
+
+### Usage
+
+You can set enable the usage requirement on the project level:
+
+```
+projects:
+   - name: dev
+     dir: dev
+     apply_requirements: [approved]
+```
+
+## Undiverged
+
+While PR locks prevent you from PRs stepping on eachother in parallel, they still do not protect you from a stale branch
+that is behind the current main head. The undivereged requirement helps enforce this by preventing applies if there are any changes on the base branch
+since the PR was opened. It can be resolved by merging main into the PR branch or rebasing the PR branch on top of main. In the case of github this is done by quering the comparecommits api on github side.
+
+### Usage
+
+You can enable the undiverged requirement on the project level:
+
+```
+projects:
+   - name: dev
+     dir: dev
+     apply_requirements: [undiverged]
+```
+
+## Skipping mergeability check
+
+The default behaviour of digger is to perform a mergeability check before applying a PR. In order to skip the
+mergeability check you can specify an empty list of apply requirements on the project level
+
+```
+  - projects:
+      - name: dev
+        dir: dev
+        apply_requirements: []
+```
+
+Alternatively, you can also skip the mergeability check on the workflow level:
 
 ```
 projects:
@@ -27,58 +103,3 @@ workflows:
       on_commit_to_default: ["digger unlock"]
       skip_merge_check: true
 ```
-
-## Requiring undiverged branches in PRs
-
-While PR locks prevent you from PRs stepping on eachother in parallel, they still do not protect you from a stale branch
-that is behind the current main head. In order to safeguard against this you have a few options:
-
-Force your repo to always have rebased branches from main. In github this is done by adding the branch protection rule:
-
-Under settings > branch protection rules >  Require branches to be up to date before merging → check this
-
-Since digger will always query github api for mergability status, this protects you from any stale apply from PRs being performed.
-
-![](/images/howto/force-refactor-into-main.png)
-
-Understandably this may not be feasible to mark especially for monorepos that mix code and terraform. In such cases you can achieve a similar effect by using a custom workflow like below (digger.yml):
-
-```
-projects:
-- name: gcp-infra
-  dir: cloud/terraform/gcp
-  workflow: terraform-strict
-
-workflows:
-  terraform-strict:
-    plan:
-      steps:
-        - run: |
-            echo "Checking if branch is up-to-date with main..."
-            git fetch --unshallow origin main || git fetch origin main
-            git fetch --unshallow origin HEAD || git fetch origin HEAD
-            if ! git merge-base --is-ancestor origin/main HEAD; then
-              echo "❌ Branch is not up-to-date with main. Please rebase or merge main into your branch."
-              echo "Run: git fetch origin && git rebase origin/main"
-              exit 1
-            fi
-            echo "✅ Branch is up-to-date with main"
-        - init
-        - plan
-    apply:
-      steps:
-        - run: |
-            echo "Checking if branch is up-to-date with main..."
-            git fetch --unshallow origin main || git fetch origin main
-            git fetch --unshallow origin HEAD || git fetch origin HEAD
-            if ! git merge-base --is-ancestor origin/main HEAD; then
-              echo "❌ Branch is not up-to-date with main. Please rebase or merge main into your branch."
-              echo "Run: git fetch origin && git rebase origin/main"
-              exit 1
-            fi
-            echo "✅ Branch is up-to-date with main"
-        - init
-        - apply
-```
-
-We plan to eventually support this natively as a flag in digger
