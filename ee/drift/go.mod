@@ -10,7 +10,7 @@ require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
 	github.com/diggerhq/digger/backend v0.0.0-20241111113338-9a40639ab83c
 	github.com/diggerhq/digger/libs v0.4.15
-	github.com/diggerhq/digger/next v0.0.0-20241111115930-58349692eece
+	github.com/diggerhq/digger/next v0.0.0-20250916130440-949b1e67b99a
 	github.com/dominikbraun/graph v0.23.0
 	github.com/getsentry/sentry-go v0.29.0
 	github.com/gin-gonic/gin v1.10.0
