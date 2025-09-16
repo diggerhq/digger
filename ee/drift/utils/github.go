@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/diggerhq/digger/backend/models"
+	github3 "github.com/diggerhq/digger/ee/backend/providers/github"
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	utils2 "github.com/diggerhq/digger/libs/git_utils"
-	"github.com/diggerhq/digger/next/utils"
 	"github.com/dominikbraun/graph"
 	"github.com/google/go-github/v61/github"
 	"log"
@@ -19,7 +19,7 @@ import (
 	"path"
 )
 
-func GetGithubClient(gh utils.GithubClientProvider, installationId int64, repoFullName string) (*github.Client, *string, error) {
+func GetGithubClient(gh github3.DiggerGithubEEClientProvider, installationId int64, repoFullName string) (*github.Client, *string, error) {
 	slog.Debug("Getting GitHub client",
 		"installationId", installationId,
 		"repoFullName", repoFullName)
@@ -33,7 +33,7 @@ func GetGithubClient(gh utils.GithubClientProvider, installationId int64, repoFu
 	return ghClient, token, err
 }
 
-func GetGithubService(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
+func GetGithubService(gh github3.DiggerGithubEEClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string) (*github2.GithubService, *string, error) {
 	slog.Debug("getting github client", "installationId", installationId, "repoFullName", repoFullName)
 	ghClient, token, err := GetGithubClient(gh, installationId, repoFullName)
 	if err != nil {
@@ -94,7 +94,7 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 	return ghClient, &token, nil
 }
 
-func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) (string, *github2.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
+func GetDiggerConfigForBranch(gh github3.DiggerGithubEEClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) (string, *github2.GithubService, *dg_configuration.DiggerConfig, graph.Graph[string, dg_configuration.Project], error) {
 	ghService, token, err := GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		log.Printf("Error getting github service: %v", err)
