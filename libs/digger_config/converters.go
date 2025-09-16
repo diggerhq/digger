@@ -24,6 +24,10 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			driftDetection = *p.DriftDetection
 		}
 
+		applyRequirements := []string{ApplyRequirementsMergeable}
+		if p.ApplyRequirements != nil {
+			applyRequirements = p.ApplyRequirements
+		}
 		layer := uint(0)
 		if p.Layer != nil {
 			layer = *p.Layer
@@ -83,6 +87,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.Name,
 			branch,
 			p.Alias,
+			applyRequirements,
 			p.Dir,
 			workspace,
 			p.Terragrunt,

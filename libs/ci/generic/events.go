@@ -6,6 +6,7 @@ import (
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/dominikbraun/graph"
+	"github.com/samber/lo"
 	"strings"
 )
 
@@ -146,6 +147,9 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 		var skipMerge bool
 		if workflow.Configuration != nil {
 			skipMerge = workflow.Configuration.SkipMergeCheck
+		} else if !lo.Contains(project.ApplyRequirements, digger_config.ApplyRequirementsMergeable) {
+			// if mergeable isn't present in apply requirements we also skip merge check for it
+			skipMerge = true
 		} else {
 			skipMerge = false
 		}

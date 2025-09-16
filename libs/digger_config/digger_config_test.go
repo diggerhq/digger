@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/dominikbraun/graph"
@@ -1387,4 +1388,64 @@ projects:
 
 	assert.Equal(t, dg.Projects[0].AwsCognitoOidcConfig.CognitoPoolId, "us-east-1:00000000-0000-0000-0000-000000000000")
 	assert.Equal(t, dg.Projects[0].AwsCognitoOidcConfig.AwsAccountId, "000000000000")
+}
+
+func TestValidateApplyRequirements(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   []string
+		wantErr bool
+		errHas  string // substring we expect in the error (if any)
+	}{
+		{
+			name:    "nil slice -> OK (field missing in YAML)",
+			input:   nil,
+			wantErr: false,
+		},
+		{
+			name:    "empty slice -> OK (present but empty list)",
+			input:   []string{},
+			wantErr: false,
+		},
+		{
+			name:    "all valid values -> OK",
+			input:   []string{ApplyRequirementsApproved, ApplyRequirementsMergeable, ApplyRequirementsUndiverged},
+			wantErr: false,
+		},
+		{
+			name:    "duplicate values -> error",
+			input:   []string{ApplyRequirementsApproved, ApplyRequirementsApproved},
+			wantErr: true,
+			errHas:  "duplicate", // validateApplyRequirements checks duplicates first and uses this word
+		},
+		{
+			name:    "invalid values -> error",
+			input:   []string{"totally-unknown", ApplyRequirementsMergeable},
+			wantErr: true,
+			errHas:  "invalid", // error string includes "invalid values found"
+		},
+		{
+			name:    "duplicates and invalids -> duplicate error wins",
+			input:   []string{ApplyRequirementsApproved, ApplyRequirementsApproved, "bogus"},
+			wantErr: true,
+			errHas:  "duplicate", // ensures the first branch triggers before invalids
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateApplyRequirements(tt.input)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				if tt.errHas != "" && !strings.Contains(strings.ToLower(err.Error()), tt.errHas) {
+					t.Fatalf("error %q does not contain expected substring %q", err.Error(), tt.errHas)
+				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
 }
