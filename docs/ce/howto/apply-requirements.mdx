@@ -81,11 +81,10 @@ The default behaviour of digger is to perform a mergeability check before applyi
 mergeability check you can specify an empty list of apply requirements on the project level
 
 ```
-  - projects:
-      - name: dev
-        dir: dev
-        apply_requirements: []
-```
+projects:
+  - name: dev
+    dir: dev
+    apply_requirements: []
 
 Alternatively, you can also skip the mergeability check on the workflow level:
 
