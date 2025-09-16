@@ -145,6 +145,11 @@ func (m *MockPRManager) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
+// TODO implement me
+func (m *MockPRManager) IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error) {
+	return false, nil
+}
+
 func (m *MockPRManager) GetComments(prNumber int) ([]ci.Comment, error) {
 	m.Commands = append(m.Commands, RunInfo{"GetComments", strconv.Itoa(prNumber), time.Now()})
 	return []ci.Comment{}, nil

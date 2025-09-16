@@ -79,6 +79,11 @@ func (t MockCiService) IsClosed(prNumber int) (bool, error) {
 	return false, nil
 }
 
+// TODO implement me
+func (t MockCiService) IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error) {
+	return false, nil
+}
+
 func (t MockCiService) GetComments(prNumber int) ([]ci.Comment, error) {
 	comments := []ci.Comment{}
 	for _, c := range t.CommentsPerPr[prNumber] {

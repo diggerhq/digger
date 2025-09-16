@@ -477,6 +477,11 @@ func (b BitbucketAPI) IsClosed(prNumber int) (bool, error) {
 	return pullRequest.State != "OPEN", nil
 }
 
+// TODO implement me
+func (b BitbucketAPI) IsDivergedFromBranch(sourceBranch string, targetBranch string) (bool, error) {
+	return false, nil
+}
+
 func (b BitbucketAPI) GetBranchName(prNumber int) (string, string, string, string, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
