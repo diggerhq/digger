@@ -37,4 +37,5 @@ func CheckApplyRequirements(ghService ci.PullRequestService, impactedProjects []
 			}
 		}
 	}
+	return nil
 }
