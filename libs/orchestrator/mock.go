@@ -73,7 +73,7 @@ func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsDivergedFrom
 }
 
 func (mockGithubPullrequestManager *MockGithubPullrequestManager) IsMerged(prNumber int) (bool, error) {
-	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsClosed")
+	mockGithubPullrequestManager.commands = append(mockGithubPullrequestManager.commands, "IsMerged")
 	return false, nil
 }
 
