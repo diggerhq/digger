@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
-	utils2 "github.com/diggerhq/digger/next/utils"
+	"github.com/diggerhq/digger/ee/drift/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"log"
@@ -238,7 +238,7 @@ func (mc MainController) ProcessAllNotifications(c *gin.Context) {
 			continue
 		}
 		cron := org.DriftCronTab
-		matches, err := utils2.MatchesCrontab(cron, time.Now().Add((-7 * time.Minute)))
+		matches, err := utils.MatchesCrontab(cron, time.Now().Add((-7 * time.Minute)))
 		if err != nil {
 			log.Printf("could not check matching crontab for org: %v %v", org.ID, err)
 			continue

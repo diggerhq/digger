@@ -18,7 +18,6 @@ import (
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/diggerhq/digger/libs/spec"
-	utils2 "github.com/diggerhq/digger/next/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -208,7 +207,7 @@ func (mc MainController) ProcessAllDrift(c *gin.Context) {
 			continue
 		}
 		cron := org.DriftCronTab
-		matches, err := utils2.MatchesCrontab(cron, time.Now())
+		matches, err := utils.MatchesCrontab(cron, time.Now())
 		if err != nil {
 			log.Printf("could not check matching crontab for org: %v %v", org.ID, err)
 			continue

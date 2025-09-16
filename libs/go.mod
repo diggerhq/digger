@@ -19,6 +19,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.4
 	github.com/aws/smithy-go v1.22.0
 	github.com/bmatcuk/doublestar/v4 v4.6.1
+	github.com/bradleyfalzon/ghinstallation/v2 v2.16.0
 	github.com/caarlos0/env/v11 v11.1.0
 	github.com/dineshba/tf-summarize v0.3.14
 	github.com/dominikbraun/graph v0.23.0
@@ -124,14 +125,15 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-github/v35 v35.3.0 // indirect
+	github.com/google/go-github/v72 v72.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
