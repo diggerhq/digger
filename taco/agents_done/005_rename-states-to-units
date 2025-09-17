@@ -1,0 +1,165 @@
+Title: Big-bang rename of domain entity “state” → “unit” across APIs, CLI, SDK, provider, and docs (Terraform tfstate unchanged)
+
+Objective
+- Perform a single, breaking change that renames the domain entity from “state” to “unit” everywhere: service routes, handlers, types, SDK, CLI, provider, logs/metrics, docs. Do not alter Terraform semantics or filenames (terraform.tfstate), nor the Terraform HTTP backend route family. Adopt a new default system unit ID: __opentaco_system.
+
+Why
+- “Unit” better reflects the managed object and future RBAC scope. No users rely on the old naming yet, so we can avoid compatibility shims and ship a clean rename.
+
+Scope (rename targets)
+- Management API paths under /v1: replace /states/... with /units/...
+- Packages, types, funcs, and identifiers: State* → Unit* (handlers, domain types, storage interfaces, metrics/log fields, errors).
+- SDK (pkg/sdk): public types/methods State* → Unit*; update JSON shapes accordingly.
+- CLI (taco): command group state → unit with all subcommands renamed.
+- Terraform provider: resource/data source opentaco_state → opentaco_unit (remove old names).
+- Docs: all human-facing docs, README, AGENTS.md updated to “unit”. Keep “Terraform state” term only when referring to tfstate files/protocols.
+- System default ID: rename __opentaco_system_state → __opentaco_system (adopt immediately across service, CLI, provider, and docs).
+
+Must Not Change
+- Terraform tfstate semantics and filenames remain identical:
+  - terraform.tfstate and terraform.tfstate.lock (.tflock) unchanged.
+  - Terraform HTTP backend routes remain under /v1/backend/{id} (including LOCK/UNLOCK verbs) — no rename.
+  - S3-compatible endpoint (/s3) keeps object naming; only the variable portion {id} conceptually refers to a unit-id now.
+- S3 object layout stays the same (variable name changes only):
+  - <prefix>/<unit-id>/terraform.tfstate
+  - <prefix>/<unit-id>/terraform.tfstate.lock (and .tflock)
+- Do not rename the Terraform “state” concept in prose when it refers to tfstate files or the Terraform backend/machine behavior.
+
+Breaking Changes Summary
+- All former /v1/states/* routes are removed and replaced by /v1/units/*.
+- CLI top-level group taco state … is removed; use taco unit ….
+- SDK symbols and JSON fields change from State* to Unit*.
+- Provider resource/data source names change to opentaco_unit; opentaco_state is removed.
+- Default system ID changes to __opentaco_system.
+
+Rename Map (Old → New)
+- Package/directory:
+  - internal/state → internal/unit
+  - package name import paths state → unit
+- Domain types/interfaces:
+  - domain.StateID → domain.UnitID
+  - domain.StateMeta / StateMetadata → domain.UnitMeta / UnitMetadata
+  - storage.StateStore → storage.UnitStore
+  - Handler struct: StateHandler → UnitHandler
+  - Function helpers: encodeStateID → encodeUnitID; decodeStateID → decodeUnitID
+- HTTP Management API (JSON and routes):
+  - POST    /v1/states                → POST   /v1/units
+  - GET     /v1/states                → GET    /v1/units
+  - GET     /v1/states/{id}           → GET    /v1/units/{id}
+  - DELETE  /v1/states/{id}           → DELETE /v1/units/{id}
+  - GET     /v1/states/{id}/download  → GET    /v1/units/{id}/download
+  - POST    /v1/states/{id}/upload    → POST   /v1/units/{id}/upload
+  - POST    /v1/states/{id}/lock      → POST   /v1/units/{id}/lock
+  - DELETE  /v1/states/{id}/unlock    → DELETE /v1/units/{id}/unlock
+  - GET     /v1/states/{id}/versions  → GET    /v1/units/{id}/versions
+  - POST    /v1/states/{id}/restore   → POST   /v1/units/{id}/restore
+  - JSON field names: state_id → unit_id; states → units (and any nested field names accordingly).
+- SDK (pkg/sdk):
+  - Types: StateMetadata → UnitMetadata; request/response wrappers and list containers states → units.
+  - Methods: CreateState/ListStates/GetState/DeleteState/DownloadState/UploadState/LockState/UnlockState/ListVersions/RestoreVersion → CreateUnit/ListUnits/GetUnit/DeleteUnit/DownloadUnit/UploadUnit/LockUnit/UnlockUnit/ListUnitVersions/RestoreUnit.
+  - Helper funcs/consts follow the same rename.
+- CLI (cmd/taco/commands):
+  - Group: taco state → taco unit.
+  - Subcommands: create, ls, rm, pull, push, lock, unlock, acquire, release, versions, restore → the same under unit.
+  - Flags/UX: keep flag semantics; rename occurrences of “state” in flag names/usage to “unit” (do not change flags referring to tfstate files).
+- Provider (providers/terraform/opentaco):
+  - Resource: opentaco_state → opentaco_unit (schema unchanged: id, labels).
+  - Data source: opentaco_state → opentaco_unit (input id).
+  - Examples: update to opentaco_unit exclusively.
+- Observability:
+  - Log/metric labels: state_id → unit_id; counters/gauges rename from opentaco_state_* → opentaco_unit_* where applicable.
+- System default identifier:
+  - __opentaco_system_state → __opentaco_system (update constants, CLI defaults, provider-init scaffolding, docs, and examples).
+
+Grepping Guidance (avoid false positives)
+- Rename occurrences related to the domain entity only. Do NOT rename:
+  - terraform.tfstate, tfstate, terraform.tfstate.lock, .tflock
+  - /v1/backend/* routes or docs
+  - OAuth/OIDC “state” parameter naming in auth flows and docs
+  - English phrases not denoting the domain entity (e.g., “system state”, unless it’s the specific ID name being changed)
+- Useful queries:
+  - rg -n "\b(states?|States?)\b" --glob '!**/*tfstate*' --glob '!**/auth*' --glob '!**/oidc*'
+  - rg -n '/v1/states|StateID|StateMeta|StateStore|taco state|opentaco_state' 
+
+Key Files/Areas To Change
+- Router: internal/api/routes.go — replace /states wiring with /units wiring only.
+- Handlers: internal/state/handler.go → move/rename to internal/unit/handler.go; update symbol names; delete the old package.
+- Domain: internal/domain/* — introduce Unit* types; migrate all references; remove State* names.
+- Storage: internal/storage/* — rename StateStore → UnitStore and related method identifiers; preserve on-disk/object layout.
+- SDK: pkg/sdk/client.go and tests — rename types, methods, paths, and JSON fields; update tests accordingly.
+- CLI: cmd/taco/commands/state.go → new cmd/taco/commands/unit.go (all subcommands); delete state.go; update provider init defaults to __opentaco_system.
+- Provider: providers/terraform/opentaco/* — rename resource/data source to opentaco_unit; update provider code and examples; remove state-named files.
+- Docs: README.md and docs/*.md — update to “unit” everywhere except where “Terraform state” refers to tfstate. Update screenshots/snippets if needed.
+- AGENTS.md: update “API Surfaces to Freeze”, CLI commands, directory structure references to use unit naming.
+
+Docs Changes (high-level)
+- README: add a “Breaking rename” notice; explain that Terraform tfstate and /v1/backend are unchanged; call out the new default system unit ID __opentaco_system.
+- docs/reference/api.md: update all paths to /v1/units; update JSON fields to unit_id/units.
+- docs/reference/cli-commands.md and docs/cli.md: switch to taco unit … commands and flags; update examples.
+- docs/provider.md and examples: use opentaco_unit exclusively.
+- docs/service-backend.md and docs/s3-compat.md: clarify that the managed entity is “unit”, but filenames and backend routes remain unchanged.
+- docs/storage.md: rename “state-id” to “unit-id”; keep file names unchanged.
+- docs/demo.md and docs/getting-started.md: update walkthrough defaults to __opentaco_system and taco unit … commands.
+- docs/troubleshooting.md: update command references to taco unit ….
+
+RBAC/Auth, Logs, Metrics
+- RBAC: update any action/resource strings of the form state:* to unit:*; update code and tests. Ensure no collisions with OAuth “state” parameter names (untouched).
+- Logs/metrics: rename fields to unit_id; update metric names (if exposed externally, consider a brief note in the CHANGELOG).
+
+Testing Plan
+- Unit tests: update for new /v1/units routes, new SDK types/methods, and storage/locking/versioning flows.
+- CLI smoke: run create/ls/pull/push/lock/unlock/acquire/release/versions/restore using taco unit ….
+- Provider local acceptance: run examples with opentaco_unit against a running service.
+- Ensure golangci-lint passes across opentaco/.
+
+Implementation Steps (suggested order)
+1) Domain and storage: introduce Unit* types/interfaces, rename files/symbols, and remove State* names.
+2) Handlers: move internal/state → internal/unit; rename handler types and functions.
+3) Router: replace all /v1/states routes with /v1/units in internal/api/routes.go.
+4) SDK: rename types/methods and JSON shapes; update endpoints; fix tests.
+5) CLI: add unit command tree; remove state tree; update provider-init defaults to __opentaco_system.
+6) Provider: rename resource/datasource to opentaco_unit; update schema/handlers and examples; remove old names.
+7) Observability: rename log fields and metrics to unit_*.
+8) Docs: apply renames and add a brief breaking-change notice + unchanged-tfstate callouts.
+9) Verify: build, test, lint; run CLI against service; verify provider example.
+
+Migration Notes (if any artifacts exist locally)
+- If any local S3 objects were created with __opentaco_system_state, optionally rename the prefix folder to __opentaco_system; filenames remain terraform.tfstate and terraform.tfstate.lock. This is not required if the environment is fresh.
+
+Acceptance Criteria
+- Only /v1/units/* management routes exist and function; /v1/states/* no longer exist.
+- CLI exposes taco unit … commands; no taco state … commands remain.
+- SDK exports Unit* types/methods; no State* symbols remain; JSON uses unit_id/units.
+- Provider exports opentaco_unit resource/data source; no opentaco_state remains; examples updated.
+- Default system unit ID is __opentaco_system throughout the code and docs.
+- Terraform backend proxy (/v1/backend/*) and tfstate filenames are unchanged and fully functional.
+- golangci-lint passes; build and tests pass; docs updated.
+
+Out of Scope
+- Any functional change to storage backends, lock semantics, versioning, auth, or the Terraform backend/S3-compat endpoints beyond naming.
+
+Notes & Pointers (current code locations)
+- Router: internal/api/routes.go
+- Handlers: internal/state/handler.go (to become internal/unit/handler.go)
+- Domain: internal/domain/* (StateID/StateMeta → UnitID/UnitMeta)
+- Storage: internal/storage/* (StateStore → UnitStore)
+- SDK: pkg/sdk/client.go (+ tests)
+- CLI: cmd/taco/commands/state.go (new: unit.go), cmd/taco/commands/provider.go (system ID default)
+- Provider: providers/terraform/opentaco/* (resources, datasources, examples)
+- Docs: README.md, docs/reference/*, docs/*.md, AGENTS.md
+
+Release/Versioning
+- Treat as a breaking release (next minor/0.x or first 1.0 pre-release). Document the change succinctly in CHANGELOG with explicit note that tfstate and /v1/backend are unchanged.
+
+
+
+---
+Appended Notes (Sep 2025):
+- Completed rename: state → unit across domain, storage, API routes (/v1/units), SDK, CLI (taco unit ...), provider (opentaco_unit), and docs.
+- RBAC actions: state.* → unit.* (unit.read, unit.write, unit.lock, unit.delete).
+- Dependency fields: from_state_id/to_state_id → from_unit_id/to_unit_id (provider schema, API, SDK, docs).
+- System identifier: __opentaco_system (replaces __opentaco_system_state).
+- Provider init flag: --system-unit (replaces --system-state).
+- S3 and backend: kept Terraform tfstate semantics and /v1/backend/* unchanged.
+- Internal cleanups: memstore stateData → unitData; deps.ComputeUnitStatus JSON uses unit_id; S3-compat comments/vars use <unit-id>.
+- Repo builds: internal, CLI, service, provider compile after changes.
