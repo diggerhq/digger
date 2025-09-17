@@ -1,0 +1,29 @@
+# Example auth configuration (stub)
+server:
+  public_base_url: "http://localhost:8080"
+  cookie_domain: "localhost"
+auth:
+  issuer: "https://YOUR_OIDC_ISSUER"
+  client_id: "..."
+  client_secret: "..."
+  redirect_uris:
+    - "http://127.0.0.1:8585/callback"
+  device_code_enabled: true
+tokens:
+  alg: "EdDSA"
+  private_key_pem_path: "./.secrets/opentaco_ed25519.pem"
+  access_ttl: "1h"
+  refresh_ttl: "720h"
+sts:
+  kid: "k1"
+  hmac_secrets:
+    k1: "base64url-hmac-key"
+  ttl: "15m"
+rbac:
+  group_role_mapping:
+    tf-admins: ["admin"]
+    tf-writers: ["state_writer"]
+    tf-readers: ["state_reader"]
+  allow_prefixes:
+    - "org/"
+
