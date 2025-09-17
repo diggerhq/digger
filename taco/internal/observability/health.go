@@ -6,6 +6,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+var (
+	Version = "dev"
+	Commit  = "unknown"
+)
+
 // HealthHandler handles health check endpoints
 type HealthHandler struct{}
 
@@ -17,8 +22,10 @@ func NewHealthHandler() *HealthHandler {
 // Healthz handles liveness probe
 func (h *HealthHandler) Healthz(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
-		"status": "ok",
+		"status":  "ok",
 		"service": "opentaco",
+		"version": Version,
+		"commit":  Commit,
 	})
 }
 

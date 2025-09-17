@@ -12,6 +12,10 @@ var (
     serverURL string
     verbose   bool
 
+    // Version information (set by main package)
+    Version = "dev"
+    Commit  = "unknown"
+
     // rootCmd represents the base command
     rootCmd = &cobra.Command{
         Use:   "taco",

@@ -12,9 +12,15 @@ import (
 
 	"github.com/diggerhq/digger/opentaco/internal/analytics"
 	"github.com/diggerhq/digger/opentaco/internal/api"
+	"github.com/diggerhq/digger/opentaco/internal/observability"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+)
+
+var (
+	Version = "dev"
+	Commit  = "unknown"
 )
 
 func main() {
@@ -27,6 +33,10 @@ func main() {
 		s3Region    = flag.String("s3-region", os.Getenv("OPENTACO_S3_REGION"), "S3 region (optional; uses AWS defaults if empty)")
 	)
 	flag.Parse()
+
+	// Set version information in observability package
+	observability.Version = Version
+	observability.Commit = Commit
 
 	// Initialize storage
 	var store storage.UnitStore
