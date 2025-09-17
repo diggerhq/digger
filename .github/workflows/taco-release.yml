@@ -3,8 +3,8 @@ name: taco-release
 on:
   push:
     tags:
-      - 'taco/cmd/taco/v*'
-      - 'taco/cmd/statesman/v*'
+      - 'taco/cli/v*'
+      - 'taco/statesman/v*'
 
 permissions:
   contents: write
@@ -61,9 +61,15 @@ jobs:
           VERSION="${TAG##*/}"              # v1.2.3
           echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Map to actual directory paths
+          if [ "$APP_DIR" = "taco/cli" ]; then
+            echo "build_dir=taco/cmd/taco" >> $GITHUB_OUTPUT
+          elif [ "$APP_DIR" = "taco/statesman" ]; then
+            echo "build_dir=taco/cmd/statesman" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build CLI
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/taco')
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
         working-directory: taco/cmd/taco
         run: |
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
@@ -72,7 +78,7 @@ jobs:
           sha256sum taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}.sha256
 
       - name: Build Statesman
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/statesman')
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
         working-directory: taco/cmd/statesman
         run: |
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
@@ -81,21 +87,21 @@ jobs:
           sha256sum statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}.sha256
 
       - name: Upload CLI artifacts
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/taco')
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
         uses: actions/upload-artifact@v4
         with:
           name: taco-cli-${{ matrix.os }}-${{ matrix.arch }}
           path: taco/cmd/taco/taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
 
       - name: Upload Statesman artifacts
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/statesman')
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
         uses: actions/upload-artifact@v4
         with:
           name: taco-statesman-${{ matrix.os }}-${{ matrix.arch }}
           path: taco/cmd/statesman/statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
 
   build-docker:
-    if: startsWith(github.ref_name, 'taco/cmd/statesman/')
+    if: startsWith(github.ref_name, 'taco/statesman/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -167,11 +173,11 @@ jobs:
         uses: actions/download-artifact@v4
 
       - name: Create release for CLI
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/taco')
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          name: Taco CLI ${{ steps.meta.outputs.version }}
+          name: taco/cli/${{ steps.meta.outputs.version }}
           body: |
             ## Taco CLI ${{ steps.meta.outputs.version }}
             
@@ -196,11 +202,11 @@ jobs:
           prerelease: false
 
       - name: Create release for Statesman
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/statesman')
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          name: Taco Statesman ${{ steps.meta.outputs.version }}
+          name: taco/statesman/${{ steps.meta.outputs.version }}
           body: |
             ## Taco Statesman ${{ steps.meta.outputs.version }}
             
