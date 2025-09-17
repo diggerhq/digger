@@ -1,4 +1,4 @@
-.PHONY: all build test lint clean svc cli prov help
+.PHONY: all build test lint clean svc cli prov help docker-build-svc docker-run-svc docker-clean
 
 # Default goal
 .DEFAULT_GOAL := help
@@ -65,6 +65,25 @@ init: ## Initialize Go modules
 	cd cmd/taco && go mod init github.com/digger/opentaco/cmd/taco && go mod tidy  
 	cd pkg/sdk && go mod init github.com/digger/opentaco/pkg/sdk && go mod tidy
 	cd providers/terraform/opentaco && go mod init github.com/digger/opentaco/providers/terraform/opentaco && go mod tidy
+
+# Docker targets
+docker-build-svc: ## Build statesman Docker image
+	@echo "Building statesman Docker image..."
+	docker build -f Dockerfile_statesman -t statesman:latest --build-arg COMMIT_SHA=$(shell git rev-parse HEAD) .
+
+docker-run-svc: ## Run statesman in Docker container
+	@echo "Running statesman in Docker container..."
+	docker run -p 8080:8080 \
+		-e OPENTACO_STORAGE=memory \
+		-e OPENTACO_AUTH_DISABLE=true \
+		--name statesman-container \
+		statesman:latest
+
+docker-clean: ## Clean Docker images and containers
+	@echo "Cleaning Docker artifacts..."
+	docker stop statesman-container 2>/dev/null || true
+	docker rm statesman-container 2>/dev/null || true
+	docker rmi statesman:latest 2>/dev/null || true
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
