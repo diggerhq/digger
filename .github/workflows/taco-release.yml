@@ -24,6 +24,10 @@ jobs:
             arch: arm64
             goos: linux
             goarch: arm64
+          - os: linux
+            arch: 386
+            goos: linux
+            goarch: 386
           - os: darwin
             arch: amd64
             goos: darwin
@@ -36,6 +40,10 @@ jobs:
             arch: amd64
             goos: windows
             goarch: amd64
+          - os: windows
+            arch: 386
+            goos: windows
+            goarch: 386
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,6 +69,7 @@ jobs:
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
             -ldflags="-X 'main.Version=${{ steps.meta.outputs.version }}' -X 'main.Commit=${{ github.sha }}' -s -w" \
             -o taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} .
+          sha256sum taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}.sha256
 
       - name: Build Statesman
         if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/statesman')
@@ -69,20 +78,21 @@ jobs:
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
             -ldflags="-X 'main.Version=${{ steps.meta.outputs.version }}' -X 'main.Commit=${{ github.sha }}' -s -w" \
             -o statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} .
+          sha256sum statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}.sha256
 
       - name: Upload CLI artifacts
         if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/taco')
         uses: actions/upload-artifact@v4
         with:
           name: taco-cli-${{ matrix.os }}-${{ matrix.arch }}
-          path: taco/cmd/taco/taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+          path: taco/cmd/taco/taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
 
       - name: Upload Statesman artifacts
         if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/statesman')
         uses: actions/upload-artifact@v4
         with:
           name: taco-statesman-${{ matrix.os }}-${{ matrix.arch }}
-          path: taco/cmd/statesman/statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+          path: taco/cmd/statesman/statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
 
   build-docker:
     if: startsWith(github.ref_name, 'taco/cmd/statesman/')
@@ -122,7 +132,7 @@ jobs:
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -166,11 +176,13 @@ jobs:
             ## Taco CLI ${{ steps.meta.outputs.version }}
             
             ### Downloads
-            - **Linux AMD64**: [taco-linux-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-amd64)
-            - **Linux ARM64**: [taco-linux-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-arm64)
-            - **macOS AMD64**: [taco-darwin-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-amd64)
-            - **macOS ARM64**: [taco-darwin-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-arm64)
-            - **Windows AMD64**: [taco-windows-amd64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-amd64.exe)
+            - **Linux AMD64**: [taco-linux-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-amd64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-amd64.sha256))
+            - **Linux ARM64**: [taco-linux-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-arm64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-arm64.sha256))
+            - **Linux 386**: [taco-linux-386](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-386) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-386.sha256))
+            - **macOS AMD64**: [taco-darwin-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-amd64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-amd64.sha256))
+            - **macOS ARM64**: [taco-darwin-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-arm64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-arm64.sha256))
+            - **Windows AMD64**: [taco-windows-amd64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-amd64.exe) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-amd64.exe.sha256))
+            - **Windows 386**: [taco-windows-386.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-386.exe) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-386.exe.sha256))
             
             ### Installation
             Download the appropriate binary for your platform and make it executable:
@@ -179,7 +191,7 @@ jobs:
             sudo mv taco-<platform>-<arch> /usr/local/bin/taco
             ```
           files: |
-            taco-cli-*/taco-*
+            taco-cli-*/*
           draft: false
           prerelease: false
 
@@ -193,11 +205,13 @@ jobs:
             ## Taco Statesman ${{ steps.meta.outputs.version }}
             
             ### Downloads
-            - **Linux AMD64**: [statesman-linux-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-amd64)
-            - **Linux ARM64**: [statesman-linux-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-arm64)
-            - **macOS AMD64**: [statesman-darwin-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-amd64)
-            - **macOS ARM64**: [statesman-darwin-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-arm64)
-            - **Windows AMD64**: [statesman-windows-amd64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-amd64.exe)
+            - **Linux AMD64**: [statesman-linux-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-amd64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-amd64.sha256))
+            - **Linux ARM64**: [statesman-linux-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-arm64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-arm64.sha256))
+            - **Linux 386**: [statesman-linux-386](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-386) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-386.sha256))
+            - **macOS AMD64**: [statesman-darwin-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-amd64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-amd64.sha256))
+            - **macOS ARM64**: [statesman-darwin-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-arm64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-arm64.sha256))
+            - **Windows AMD64**: [statesman-windows-amd64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-amd64.exe) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-amd64.exe.sha256))
+            - **Windows 386**: [statesman-windows-386.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-386.exe) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-386.exe.sha256))
             
             ### Docker
             ```bash
@@ -211,6 +225,6 @@ jobs:
             sudo mv statesman-<platform>-<arch> /usr/local/bin/statesman
             ```
           files: |
-            taco-statesman-*/statesman-*
+            taco-statesman-*/*
           draft: false
           prerelease: false
