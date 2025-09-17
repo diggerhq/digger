@@ -1,0 +1,6 @@
+{
+  "bootstrap-sha": "",
+  "group-pull-request-title-pattern": "chore: release {{version}} (multi-module)",
+  "plugins": ["node-workspace"],
+  "release-type": "go"
+}
