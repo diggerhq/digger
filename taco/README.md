@@ -48,7 +48,7 @@ make svc
 Auth is enabled by default. To temporarily bypass it (e.g., provider dev):
 
 ```bash
-./opentacosvc -auth-disable -storage memory
+./statesman -auth-disable -storage memory
 ```
 
 ### Use the CLI
@@ -114,7 +114,7 @@ Configure OIDC so `taco login` works and protected endpoints require login.
 ```bash
 export OPENTACO_AUTH_ISSUER="https://api.workos.com/user_management"
 export OPENTACO_AUTH_CLIENT_ID="<WORKOS_CLIENT_ID>"
-./opentacosvc -storage memory
+./statesman -storage memory
 ```
 
 3) Login via CLI (PKCE)
@@ -135,7 +135,7 @@ Auth0 variant:
 ```bash
 export OPENTACO_AUTH_ISSUER="https://<TENANT>.auth0.com"     # or <region>.auth0.com
 export OPENTACO_AUTH_CLIENT_ID="<AUTH0_NATIVE_APP_CLIENT_ID>"
-./opentacosvc -storage memory
+./statesman -storage memory
 
 # No flags needed; CLI uses discovery via /v1/auth/config
 ./taco login --server http://localhost:8080
@@ -256,7 +256,7 @@ Steps:
 OPENTACO_S3_BUCKET=<bucket> \
 OPENTACO_S3_REGION=<region> \
 OPENTACO_S3_PREFIX=<prefix> \
-./opentacosvc
+./statesman
 
 # 2) Scaffold the provider workspace
 ./taco provider init opentaco-config --server http://localhost:8080
@@ -298,7 +298,7 @@ terraform {
 
 ### Components
 
-1. **Service** (`cmd/opentacosvc/`) - HTTP server with two surfaces:
+1. **Service** (`cmd/statesman/`) - HTTP server with two surfaces:
    - Management API (`/v1`) for CRUD operations on units
    - Terraform HTTP backend proxy (`/v1/backend/{id}`) for Terraform/OpenTofu
 
@@ -427,7 +427,7 @@ Note: Terraform lock coordination uses the `X-Terraform-Lock-ID` header; the ser
 ```
 opentaco/
 ├── cmd/
-│   ├── opentacosvc/    # Service binary
+│   ├── statesman/    # Service binary
 │   └── taco/           # CLI binary
 │       └── commands/   # Cobra commands package
 ├── internal/
@@ -497,16 +497,16 @@ make clean
 OPENTACO_S3_BUCKET=my-bucket \
 OPENTACO_S3_PREFIX=opentaco \
 OPENTACO_S3_REGION=us-east-1 \
-./opentacosvc
+./statesman
 
 # Explicit flags (optional)
-./opentacosvc -storage s3 \
+./statesman -storage s3 \
   -s3-bucket my-bucket \
   -s3-prefix opentaco \
   -s3-region us-east-1
 
 # Force in-memory storage
-./opentacosvc -storage memory
+./statesman -storage memory
 ```
 
 ## Troubleshooting

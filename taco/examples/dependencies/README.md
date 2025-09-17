@@ -24,7 +24,7 @@ Quick start
 
 ```
 make build
-./opentacosvc -auth-disable -storage memory
+./statesman -auth-disable -storage memory
 # Service on http://localhost:8080
 ```
 

@@ -31,7 +31,7 @@ opentaco/
 │  ├─ backend_profile_guide.md       # user-facing how-to (profile + backend block)
 │  └─ auth_config_examples.md        # issuer-specific samples (Okta/WorkOS/Keycloak/etc.)
 ├─ cmd/
-│  ├─ opentacosvc/                   # service main (Echo server)
+│  ├─ statesman/                   # service main (Echo server)
 │  └─ taco/                          # CLI main (Cobra: login, creds, state cmds)
 ├─ internal/
 │  ├─ api/                           # JSON management API handlers (CRUD states, locks, upload/download)

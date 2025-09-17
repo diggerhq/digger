@@ -16,7 +16,7 @@ This example demonstrates using OpenTaco as a Terraform Cloud-compatible backend
    OPENTACO_S3_BUCKET=your-bucket \
    OPENTACO_S3_REGION=us-east-1 \
    OPENTACO_S3_PREFIX=opentaco/ \
-   ./opentacosvc
+   ./statesman
    ```
 
 2. **Authenticate with OpenTaco**:
@@ -135,7 +135,7 @@ To migrate existing workspaces from Terraform Cloud:
 ### Custom Client ID
 Set a custom OAuth2 client ID:
 ```bash
-OPENTACO_AUTH_CLIENT_ID=my-terraform-app ./opentacosvc
+OPENTACO_AUTH_CLIENT_ID=my-terraform-app ./statesman
 ```
 
 ### RBAC Permissions

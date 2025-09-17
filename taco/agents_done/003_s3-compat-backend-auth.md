@@ -114,7 +114,7 @@ Expose an S3‑compatible HTTP surface that Terraform’s `backend "s3"` can use
    - `export OPENTACO_STS_KID="k1"`
    - `export OPENTACO_STS_HMAC_k1="<BASE64URL_SECRET_32B>"`
    - `export OPENTACO_STS_TTL="2m"`
-   - `./opentacosvc -storage memory`
+   - `./statesman -storage memory`
 
 2) Login & STS
    - `./taco login --server http://localhost:8080`

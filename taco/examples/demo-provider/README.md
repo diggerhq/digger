@@ -24,7 +24,7 @@ make build-svc build-cli build-prov
 OPENTACO_S3_BUCKET=<bucket> \
 OPENTACO_S3_REGION=<region> \
 OPENTACO_S3_PREFIX=<prefix> \
-./opentacosvc
+./statesman
 ```
 
 Notes:

@@ -11,7 +11,7 @@ This example shows how to use Terraform's native `s3` backend against OpenTaco's
 
 ## Prerequisites
 - OpenTaco service running locally on `:8080` (memory storage is fine for a quick test):
-  - `./opentacosvc -storage memory`
+  - `./statesman -storage memory`
 - CLI built and logged in (saves tokens under `~/.config/opentaco/credentials.json`):
   - `./taco login --server http://localhost:8080`
 - Terraform 1.13+ (for `use_lockfile = true`).
