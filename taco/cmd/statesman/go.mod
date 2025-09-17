@@ -1,4 +1,4 @@
-module github.com/diggerhq/digger/opentaco/cmd/opentacosvc
+module github.com/diggerhq/digger/opentaco/cmd/statesman
 
 go 1.25
 

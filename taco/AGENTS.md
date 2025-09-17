@@ -39,7 +39,7 @@ opentaco/
 ├─ Makefile                   # build/lint/test/svc/cli/prov targets
 ├─ .golangci.yml              # linters config
 ├─ cmd/
-│  ├─ opentacosvc/            # service entrypoint (Echo HTTP server)
+│  ├─ statesman/            # service entrypoint (Echo HTTP server)
 │  └─ taco/                   # CLI entrypoint (Cobra)
 │     └─ commands/            # CLI commands package (keeps root main thin)
 ├─ internal/
@@ -124,7 +124,7 @@ In this repo these commands are fully implemented and call the service. For M1-o
 - README.md: purpose, how to run service/CLI, where provider lives, constraints (no side effects outside opentaco/).
 - Makefile: build, lint, test, svc, cli, prov targets.
 - .golangci.yml: baseline linter configuration.
-- cmd/opentacosvc/: main.go bootstraps Echo; /healthz and /readyz → 200; wire API/backends.
+- cmd/statesman/: main.go bootstraps Echo; /healthz and /readyz → 200; wire API/backends.
 - internal/api/: routes registrar (only wiring).
 - internal/unit/: Management API handlers (CRUD, lock/unlock, upload/download).
 - internal/backend/: Terraform HTTP backend (GET/POST/PUT/LOCK/UNLOCK).
@@ -207,7 +207,7 @@ The repository includes working functionality beyond Milestone 1 for demos and i
   - Flags: `--dir`, `--system-unit`, `--force`, `--no-create`.
 
 - Suggested Demo Flow
-  1. Start service on S3: set `OPENTACO_S3_BUCKET`, `OPENTACO_S3_REGION`, `OPENTACO_S3_PREFIX`, run `./opentacosvc`.
+  1. Start service on S3: set `OPENTACO_S3_BUCKET`, `OPENTACO_S3_REGION`, `OPENTACO_S3_PREFIX`, run `./statesman`.
   2. Run `./taco provider init opentaco-config --server http://localhost:8080`.
   3. `cd opentaco-config && terraform init && terraform apply -auto-approve`.
   4. Verify via `taco unit ls` and S3 listing of `__opentaco_system/` and `myapp/prod/`.
