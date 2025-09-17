@@ -1,4 +1,4 @@
-name: app-release
+name: taco-release
 
 on:
   push:

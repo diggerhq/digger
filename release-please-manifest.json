@@ -1,4 +1,5 @@
 {
+  "backend": "0.0.0",
   "taco/cmd/taco": "0.0.0",
   "taco/cmd/statesman": "0.0.0"
 }
