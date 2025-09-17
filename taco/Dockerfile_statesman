@@ -1,0 +1,52 @@
+FROM golang:1.25 as builder
+ARG COMMIT_SHA
+RUN echo "commit sha: ${COMMIT_SHA}"
+
+# Set the working directory
+WORKDIR /go/src/github.com/diggerhq/digger/taco
+
+# Copy all source code
+COPY cmd/statesman/ ./cmd/statesman/
+COPY internal/ ./internal/
+COPY pkg/sdk/ ./pkg/sdk/
+
+# Download dependencies and build
+RUN cd cmd/statesman && \
+    go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-X 'main.Version=${COMMIT_SHA}' -s -w" \
+    -a -installsuffix cgo \
+    -o statesman .
+
+# Multi-stage build - use a minimal image for runtime
+FROM ubuntu:24.04 as runner
+ARG COMMIT_SHA
+WORKDIR /app
+
+# Install ca-certificates for HTTPS requests
+RUN apt-get update && \
+    apt-get install -y ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN echo "commit sha: ${COMMIT_SHA}"
+
+# Copy the binary from builder stage
+COPY --from=builder /go/src/github.com/diggerhq/digger/taco/cmd/statesman/statesman /app/statesman
+
+# Make the binary executable
+RUN chmod +x /app/statesman
+
+# Expose the port that statesman runs on
+EXPOSE 8080
+
+# Set environment variables with defaults
+ENV OPENTACO_PORT=8080
+ENV OPENTACO_STORAGE=memory
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/healthz || exit 1
+
+# Run the statesman binary
+ENTRYPOINT ["/app/statesman"]

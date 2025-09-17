@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+agents_*/
+
+# Examples
+examples/
+
+# Build artifacts
+statesman
+taco
+terraform-provider-opentaco
+*.test
+*.out
+
+# Development files
+.devdata/
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/

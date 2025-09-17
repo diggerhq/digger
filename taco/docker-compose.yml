@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  statesman:
+    build:
+      context: .
+      dockerfile: Dockerfile_statesman
+      args:
+        COMMIT_SHA: ${COMMIT_SHA:-latest}
+    ports:
+      - "8080:8080"
+    environment:
+      - OPENTACO_PORT=8080
+      - OPENTACO_STORAGE=memory
+      - OPENTACO_AUTH_DISABLE=true
+      # S3 configuration (uncomment and set if using S3 storage)
+      # - OPENTACO_S3_BUCKET=${OPENTACO_S3_BUCKET}
+      # - OPENTACO_S3_REGION=${OPENTACO_S3_REGION}
+      # - OPENTACO_S3_PREFIX=${OPENTACO_S3_PREFIX}
+      # Auth configuration (uncomment and set if using auth)
+      # - OPENTACO_AUTH_ISSUER=${OPENTACO_AUTH_ISSUER}
+      # - OPENTACO_AUTH_CLIENT_ID=${OPENTACO_AUTH_CLIENT_ID}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    container_name: statesman-container
