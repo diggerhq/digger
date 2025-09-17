@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"github.com/samber/lo"
 	"slices"
 
@@ -82,6 +83,19 @@ func (j *Job) GetProjectAlias() string {
 		return j.ProjectAlias
 	}
 	return j.ProjectName
+}
+
+func JobForProjectName(jobs []Job, projectName string) (*Job, error) {
+	filteredJobs := lo.Filter(jobs, func(item Job, index int) bool {
+		return item.ProjectName == projectName
+	})
+	if len(filteredJobs) == 0 {
+		return nil, fmt.Errorf("job not found for project name %v", projectName)
+	}
+	if len(filteredJobs) > 1 {
+		return nil, fmt.Errorf("more than one job found for project name, duplicate? %v", projectName)
+	}
+	return &filteredJobs[0], nil
 }
 
 func (j *Job) IsPlan() bool {

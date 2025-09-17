@@ -376,7 +376,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 
 	// Check for apply requirements
 	if *diggerCommand == scheduler.DiggerCommandApply {
-		err = apply_requirements.CheckApplyRequirements(ghService, impactedProjectsForComment, issueNumber, *prSourceBranch, targetBranch)
+		err = apply_requirements.CheckApplyRequirements(ghService, impactedProjectsForComment, jobs, issueNumber, *prSourceBranch, targetBranch)
 		if err != nil {
 			commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not proceed with apply since apply requirements checks have failed: %v", err))
 			return nil
