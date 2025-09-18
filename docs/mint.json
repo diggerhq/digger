@@ -48,6 +48,19 @@
       ]
     },
     {
+      "group": "Stage Management",
+      "pages": [
+        "ce/state-management/introduction",
+        "ce/state-management/quickstart",
+        "ce/state-management/architecture",
+        "ce/state-management/sso",
+        "ce/state-management/digger-integration",
+        "ce/state-management/api-reference",
+        "ce/state-management/cli-reference",
+        "ce/state-management/development"
+      ]
+    },
+    {
       "group": "Features",
       "pages": [
         "ce/features/plan-preview",
