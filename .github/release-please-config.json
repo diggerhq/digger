@@ -3,12 +3,14 @@
   "group-pull-request-title-pattern": "chore: release {{version}} (multi-module)",
   "packages": {
     "taco/cmd/taco": {
-      "release-type": "go-yoshi",
-      "component": "taco-cli"
+      "release-type": "go",
+      "component": "taco-cli",
+      "changelog-path": "CHANGELOG.md"
     },
     "taco/cmd/statesman": {
-      "release-type": "go-yoshi", 
-      "component": "taco-statesman"
+      "release-type": "go", 
+      "component": "taco-statesman",
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

@@ -5,7 +5,7 @@ package main
 // Version: 0.1.0
 // Ready for initial release
 // Bootstrap SHA configured for Release-Please
-// Using go-yoshi release type for better Go module handling
+// Using standard go release type with CHANGELOG.md
 
 import (
     "fmt"
