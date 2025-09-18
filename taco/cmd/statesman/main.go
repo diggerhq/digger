@@ -2,7 +2,7 @@ package main
 
 // OpenTaco Statesman Service
 // This service provides the backend API for OpenTaco infrastructure management
-// Version: Initial release
+// Version: 0.1.0
 
 import (
 	"context"
