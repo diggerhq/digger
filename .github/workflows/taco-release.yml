@@ -152,8 +152,9 @@ jobs:
             COMMIT_SHA=${{ github.sha }}
             VERSION=${{ steps.meta.outputs.version }}
 
-  create-release:
-    needs: [build, build-docker]
+  create-release-cli:
+    if: startsWith(github.ref_name, 'taco/cli/')
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -173,7 +174,6 @@ jobs:
         uses: actions/download-artifact@v4
 
       - name: Create release for CLI
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -201,8 +201,28 @@ jobs:
           draft: false
           prerelease: false
 
+  create-release-statesman:
+    if: startsWith(github.ref_name, 'taco/statesman/')
+    needs: [build, build-docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive app dir and version
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/statesman/v1.2.3
+          APP_DIR="${TAG%/v*}"              # taco/statesman
+          VERSION="${TAG##*/}"              # v1.2.3
+          echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
       - name: Create release for Statesman
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
