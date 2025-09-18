@@ -3,8 +3,8 @@ name: taco-release
 on:
   push:
     tags:
-      - 'taco/cmd/taco/v*'
-      - 'taco/cmd/statesman/v*'
+      - 'taco/cli/v*'
+      - 'taco/statesman/v*'
 
 permissions:
   contents: write
@@ -56,15 +56,21 @@ jobs:
       - name: Derive app dir and version
         id: meta
         run: |
-          TAG="${GITHUB_REF_NAME}"          # e.g. taco/cmd/taco/v1.2.3
-          APP_DIR="${TAG%/v*}"              # taco/cmd/taco
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/cli/v1.2.3
+          APP_DIR="${TAG%/v*}"              # taco/cli
           VERSION="${TAG##*/}"              # v1.2.3
           echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Map to actual directory paths
+          if [ "$APP_DIR" = "taco/cli" ]; then
+            echo "build_dir=taco/cmd/taco" >> $GITHUB_OUTPUT
+          elif [ "$APP_DIR" = "taco/statesman" ]; then
+            echo "build_dir=taco/cmd/statesman" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build CLI
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/taco')
-        working-directory: taco/cmd/taco
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
+        working-directory: ${{ steps.meta.outputs.build_dir }}
         run: |
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
             -ldflags="-X 'main.Version=${{ steps.meta.outputs.version }}' -X 'main.Commit=${{ github.sha }}' -s -w" \
@@ -72,8 +78,8 @@ jobs:
           sha256sum taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}.sha256
 
       - name: Build Statesman
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/statesman')
-        working-directory: taco/cmd/statesman
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
+        working-directory: ${{ steps.meta.outputs.build_dir }}
         run: |
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
             -ldflags="-X 'main.Version=${{ steps.meta.outputs.version }}' -X 'main.Commit=${{ github.sha }}' -s -w" \
@@ -81,21 +87,21 @@ jobs:
           sha256sum statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}.sha256
 
       - name: Upload CLI artifacts
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/taco')
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
         uses: actions/upload-artifact@v4
         with:
           name: taco-cli-${{ matrix.os }}-${{ matrix.arch }}
-          path: taco/cmd/taco/taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
+          path: ${{ steps.meta.outputs.build_dir }}/taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
 
       - name: Upload Statesman artifacts
-        if: startsWith(steps.meta.outputs.app_dir, 'taco/cmd/statesman')
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
         uses: actions/upload-artifact@v4
         with:
           name: taco-statesman-${{ matrix.os }}-${{ matrix.arch }}
-          path: taco/cmd/statesman/statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
+          path: ${{ steps.meta.outputs.build_dir }}/statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
 
   build-docker:
-    if: startsWith(github.ref_name, 'taco/cmd/statesman/')
+    if: startsWith(github.ref_name, 'taco/statesman/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -109,7 +115,7 @@ jobs:
       - name: Derive version
         id: meta
         run: |
-          TAG="${GITHUB_REF_NAME}"          # e.g. taco/cmd/statesman/v1.2.3
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/statesman/v1.2.3
           VERSION="${TAG##*/}"              # v1.2.3
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -147,7 +153,7 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
 
   create-release-cli:
-    if: startsWith(github.ref_name, 'taco/cmd/taco/')
+    if: startsWith(github.ref_name, 'taco/cli/')
     needs: [build]
     runs-on: ubuntu-latest
     steps:
@@ -158,8 +164,8 @@ jobs:
       - name: Derive app dir and version
         id: meta
         run: |
-          TAG="${GITHUB_REF_NAME}"          # e.g. taco/cmd/taco/v1.2.3
-          APP_DIR="${TAG%/v*}"              # taco/cmd/taco
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/cli/v1.2.3
+          APP_DIR="${TAG%/v*}"              # taco/cli
           VERSION="${TAG##*/}"              # v1.2.3
           echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -196,7 +202,7 @@ jobs:
           prerelease: false
 
   create-release-statesman:
-    if: startsWith(github.ref_name, 'taco/cmd/statesman/')
+    if: startsWith(github.ref_name, 'taco/statesman/')
     needs: [build, build-docker]
     runs-on: ubuntu-latest
     steps:
@@ -207,8 +213,8 @@ jobs:
       - name: Derive app dir and version
         id: meta
         run: |
-          TAG="${GITHUB_REF_NAME}"          # e.g. taco/cmd/statesman/v1.2.3
-          APP_DIR="${TAG%/v*}"              # taco/cmd/statesman
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/statesman/v1.2.3
+          APP_DIR="${TAG%/v*}"              # taco/statesman
           VERSION="${TAG##*/}"              # v1.2.3
           echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
