@@ -7,6 +7,7 @@ package main
 // Bootstrap SHA configured for Release-Please
 // Using standard go release type with CHANGELOG.md
 // Configured changelog sections to prevent duplicates
+// Conservative version bumping enabled for pre-1.0 releases
 
 import (
 	"context"
