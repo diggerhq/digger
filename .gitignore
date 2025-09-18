@@ -28,6 +28,9 @@ dist/
 build/
 bin/
 
+# Release-Please changelog files (ignored)
+.changelog-ignore/
+
 # IDE and editor files
 *.swp
 *.swo
