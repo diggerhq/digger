@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "bootstrap-sha": "86729acb9327a9f715914086ca96be8ff6a3c484",
   "group-pull-request-title-pattern": "chore: release taco components",
   "bump-minor-pre-major": true,
