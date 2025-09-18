@@ -2,6 +2,7 @@ package main
 
 // OpenTaco CLI
 // Command-line interface for OpenTaco infrastructure management
+// Version: Initial release
 
 import (
     "fmt"
