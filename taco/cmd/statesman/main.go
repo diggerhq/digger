@@ -1,5 +1,8 @@
 package main
 
+// OpenTaco Statesman Service
+// This service provides the backend API for OpenTaco infrastructure management
+
 import (
 	"context"
 	"flag"
