@@ -1,5 +1,14 @@
 {
   "bootstrap-sha": "86729acb9327a9f715914086ca96be8ff6a3c484",
   "group-pull-request-title-pattern": "chore: release {{version}} (multi-module)",
-  "release-type": "go"
+  "packages": {
+    "taco/cmd/taco": {
+      "release-type": "go-yoshi",
+      "component": "taco-cli"
+    },
+    "taco/cmd/statesman": {
+      "release-type": "go-yoshi", 
+      "component": "taco-statesman"
+    }
+  }
 }
