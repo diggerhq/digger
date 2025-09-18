@@ -6,6 +6,7 @@ package main
 // Ready for initial release
 // Bootstrap SHA configured for Release-Please
 // Using standard go release type with CHANGELOG.md
+// Configured changelog sections to prevent duplicates
 
 import (
 	"context"

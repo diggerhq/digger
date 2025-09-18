@@ -1,6 +1,13 @@
 {
   "bootstrap-sha": "86729acb9327a9f715914086ca96be8ff6a3c484",
-  "group-pull-request-title-pattern": "chore: release {{version}} (multi-module)",
+  "group-pull-request-title-pattern": "chore: release taco components",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "changelog-sections": [
+    {"type": "feat", "section": "Features"},
+    {"type": "fix", "section": "Bug Fixes"},
+    {"type": "chore", "section": "Miscellaneous", "hidden": false}
+  ],
   "packages": {
     "taco/cmd/taco": {
       "release-type": "go",
