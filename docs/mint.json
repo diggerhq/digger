@@ -48,7 +48,7 @@
       ]
     },
     {
-      "group": "Stage Management",
+      "group": "State Management",
       "pages": [
         "ce/state-management/introduction",
         "ce/state-management/quickstart",
