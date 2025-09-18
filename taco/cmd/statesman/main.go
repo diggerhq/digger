@@ -4,6 +4,7 @@ package main
 // This service provides the backend API for OpenTaco infrastructure management
 // Version: 0.1.0
 // Ready for initial release
+// Bootstrap SHA configured for Release-Please
 
 import (
 	"context"
