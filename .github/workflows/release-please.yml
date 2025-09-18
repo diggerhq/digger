@@ -2,7 +2,7 @@ name: release-please
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
 
 permissions:
   contents: write
