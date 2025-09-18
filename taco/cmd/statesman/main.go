@@ -8,6 +8,7 @@ package main
 // Using standard go release type with CHANGELOG.md
 // Configured changelog sections to prevent duplicates
 // Conservative version bumping enabled for pre-1.0 releases
+// Changelog generation disabled to avoid duplicate entries
 
 import (
 	"context"
