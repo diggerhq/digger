@@ -70,7 +70,7 @@ jobs:
 
       - name: Build CLI
         if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
-        working-directory: taco/cmd/taco
+        working-directory: ${{ steps.meta.outputs.build_dir }}
         run: |
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
             -ldflags="-X 'main.Version=${{ steps.meta.outputs.version }}' -X 'main.Commit=${{ github.sha }}' -s -w" \
@@ -79,7 +79,7 @@ jobs:
 
       - name: Build Statesman
         if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
-        working-directory: taco/cmd/statesman
+        working-directory: ${{ steps.meta.outputs.build_dir }}
         run: |
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
             -ldflags="-X 'main.Version=${{ steps.meta.outputs.version }}' -X 'main.Commit=${{ github.sha }}' -s -w" \
@@ -91,14 +91,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: taco-cli-${{ matrix.os }}-${{ matrix.arch }}
-          path: taco/cmd/taco/taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
+          path: ${{ steps.meta.outputs.build_dir }}/taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
 
       - name: Upload Statesman artifacts
         if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
         uses: actions/upload-artifact@v4
         with:
           name: taco-statesman-${{ matrix.os }}-${{ matrix.arch }}
-          path: taco/cmd/statesman/statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
+          path: ${{ steps.meta.outputs.build_dir }}/statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
 
   build-docker:
     if: startsWith(github.ref_name, 'taco/statesman/')
