@@ -1,0 +1,29 @@
+# values.yaml
+
+taco:
+  # Image configuration
+  image:
+    repository: ghcr.io/diggerhq/digger/taco-statesman
+    tag: "v0.1.0"
+
+  # Number of replicas
+  replicaCount: 1
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+
+  # Storage type: "memory" or "s3"
+  storage:
+    type: "memory"
+    # S3 configuration (if using S3 storage)
+    s3:
+      bucket: ""
+      region: "us-east-1"
+      # Use Kubernetes secrets for credentials
+      secretName: "taco-s3-credentials"
+
+  # Authentication
+  auth:
+    disable: false

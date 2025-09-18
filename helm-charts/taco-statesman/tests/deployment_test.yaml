@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "taco-statesman.fullname" . }}-test-connection"
+  labels:
+    {{- include "taco-statesman.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "taco-statesman.fullname" . }}:{{ .Values.taco.service.port }}']
