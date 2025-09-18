@@ -13,14 +13,12 @@
     "taco/cmd/taco": {
       "release-type": "go",
       "component": "taco-cli",
-      "skip-github-release": false,
-      "changelog": false
+      "changelog-path": ".changelog-ignore/CHANGELOG.md"
     },
     "taco/cmd/statesman": {
       "release-type": "go", 
       "component": "taco-statesman",
-      "skip-github-release": false,
-      "changelog": false
+      "changelog-path": ".changelog-ignore/CHANGELOG.md"
     }
   }
 }
