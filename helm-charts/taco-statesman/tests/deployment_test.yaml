@@ -12,4 +12,4 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "taco-statesman.fullname" . }}:{{ .Values.taco.service.port }}']
+      args: ['--spider', '--quiet', 'http://{{ include "taco-statesman.fullname" . }}:{{ .Values.taco.service.port }}/healthz']
