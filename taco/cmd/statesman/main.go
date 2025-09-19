@@ -4,6 +4,8 @@ package main
 // Verifying Release-Please workflow with PAT token
 // Expecting automatic tag creation on merge
 // Testing binary cleanup to prevent dgctl contamination
+// Added workflow exclusions to prevent release collisions
+// Testing isolated taco releases without interference
 import (
 	"context"
 	"flag"

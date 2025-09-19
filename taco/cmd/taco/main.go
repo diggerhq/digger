@@ -4,6 +4,8 @@ package main
 // Testing Release-Please with proper tag recognition
 // Should create version 0.1.2 for both components
 // Full end-to-end test with cleanup and proper tagging
+// Fixed tag collision with existing release workflows
+// Should now have clean releases without dgctl contamination
 import (
     "fmt"
     "os"

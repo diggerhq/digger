@@ -10,6 +10,7 @@ name: release dgctl
 
 jobs:
   binary:
+    if: "!startsWith(github.event.release.tag_name, 'taco/')"
     strategy:
       matrix:
         arch: [arm, arm64, amd64, "386"]
