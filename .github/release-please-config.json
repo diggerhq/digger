@@ -4,10 +4,14 @@
   "group-pull-request-title-pattern": "chore: release taco components",
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
+
+  "include-component-in-tag": true,
+  "tag-separator": "/",
+
   "changelog-sections": [
-    {"type": "feat", "section": "Features"},
-    {"type": "fix", "section": "Bug Fixes"},
-    {"type": "chore", "section": "Miscellaneous", "hidden": false}
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "chore", "section": "Miscellaneous", "hidden": false }
   ],
   "packages": {
     "taco/cmd/taco": {
@@ -16,7 +20,7 @@
       "changelog-path": ".changelog-ignore/CHANGELOG.md"
     },
     "taco/cmd/statesman": {
-      "release-type": "go", 
+      "release-type": "go",
       "component": "taco/statesman",
       "changelog-path": ".changelog-ignore/CHANGELOG.md"
     }
