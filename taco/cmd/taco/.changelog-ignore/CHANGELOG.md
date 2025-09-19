@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.5...taco/cli/v0.1.6) (2025-09-19)
+
+
+### Miscellaneous
+
+* non functional changes ([b12bcb8](https://github.com/diggerhq/digger/commit/b12bcb8e0491e588bb4050e8935ef290767be3fb))
+
 ## [0.1.5](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.4...taco/cli/v0.1.5) (2025-09-19)
 
 
