@@ -153,6 +153,7 @@ jobs:
           context: ./taco
           file: ./taco/Dockerfile_statesman
           push: true
+          platforms: linux/amd64,linux/arm64,linux/386
           tags: ${{ steps.docker-meta.outputs.tags }}
           labels: ${{ steps.docker-meta.outputs.labels }}
           build-args: |

@@ -6,6 +6,7 @@ package main
 // Full end-to-end test with cleanup and proper tagging
 // Fixed tag collision with existing release workflows
 // Should now have clean releases without dgctl contamination
+// Testing multi-arch Docker builds and Helm-compatible tags
 import (
     "fmt"
     "os"
