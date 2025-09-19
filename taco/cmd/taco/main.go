@@ -9,6 +9,8 @@ package main
 // Configured changelog sections to prevent duplicates
 // Conservative version bumping enabled for pre-1.0 releases
 // Changelog generation disabled to avoid duplicate entries
+// Testing Release-Please with PAT token for proper tag creation
+// This should trigger the release workflow correctly now
 
 import (
     "fmt"
