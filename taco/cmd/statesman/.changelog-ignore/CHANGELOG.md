@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.3...taco/statesman/v0.1.4) (2025-09-19)
+
+
+### Miscellaneous
+
+* adjust context, build folder management ([3fb7b60](https://github.com/diggerhq/digger/commit/3fb7b60d493c40f598057d9b7c69c33d16fc0bb6))
+* adjust context, build folder management ([ad0249c](https://github.com/diggerhq/digger/commit/ad0249c4fe8a130cf6bec65d4a3bc5f35b8a0c55))
+
 ## [0.1.3](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.2...taco/statesman/v0.1.3) (2025-09-19)
 
 
