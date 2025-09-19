@@ -1,5 +1,6 @@
 package main
 
+// Clean release test after fixing component names
 import (
 	"context"
 	"flag"
