@@ -3,6 +3,7 @@ package main
 // Clean release test after fixing component names
 // Testing Release-Please with proper tag recognition
 // Should create version 0.1.2 for both components
+// Full end-to-end test with cleanup and proper tagging
 import (
     "fmt"
     "os"

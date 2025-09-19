@@ -53,6 +53,13 @@ jobs:
         with:
           go-version: '1.24'
 
+      - name: Clean build directory
+        run: |
+          # Remove any existing binaries to prevent contamination
+          find . -name "dgctl*" -type f -delete || true
+          find . -name "taco*" -type f -executable -delete || true
+          find . -name "statesman*" -type f -executable -delete || true
+
       - name: Derive app dir and version
         id: meta
         run: |
