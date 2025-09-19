@@ -5,7 +5,8 @@ package main
 // Expecting automatic tag creation on merge
 // Testing binary cleanup to prevent dgctl contamination
 // Added workflow exclusions to prevent release collisions
-// Testing isolated taco releases without interference
+// Testing isolated taco releases without interference  
+// Testing multi-arch Docker builds with linux/amd64,arm64,386 support
 import (
 	"context"
 	"flag"
