@@ -30,15 +30,15 @@ spec:
             - name: OPENTACO_AUTH_DISABLE
               value: "true"
             {{- end }}
-            {{- if .Values.taco.storage.s3.bucket }}
+            {{- if and (eq .Values.taco.storage.type "s3") .Values.taco.storage.s3.bucket }}
             - name: OPENTACO_S3_BUCKET
               value: "{{ .Values.taco.storage.s3.bucket }}"
             {{- end }}
-            {{- if .Values.taco.storage.s3.region }}
+            {{- if and (eq .Values.taco.storage.type "s3") .Values.taco.storage.s3.region }}
             - name: OPENTACO_S3_REGION
               value: "{{ .Values.taco.storage.s3.region }}"
             {{- end }}
-            {{- if .Values.taco.storage.s3.secretName }}
+            {{- if and (eq .Values.taco.storage.type "s3") .Values.taco.storage.s3.secretName }}
             - name: OPENTACO_S3_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
