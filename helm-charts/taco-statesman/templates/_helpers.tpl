@@ -54,7 +54,5 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "taco-statesman.serviceAccountName" -}}
-{{- define "taco-statesman.serviceAccountName" -}}
-{{- default "default" .Values.taco.serviceAccount.name | default "default" }}
-{{- end }}
+{{- default "default" .Values.serviceAccount.name | default "default" }}
 {{- end }}
