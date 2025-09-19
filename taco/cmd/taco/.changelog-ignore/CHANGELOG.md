@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.5](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.4...taco/cli/v0.1.5) (2025-09-19)
+
+
+### Miscellaneous
+
+* adjust arch ([a88d875](https://github.com/diggerhq/digger/commit/a88d87589706cbf002b601624889fc06bb8e1336))
+* adjust arch ([36b38c5](https://github.com/diggerhq/digger/commit/36b38c583fd1c5c7116bd4317842dfefb1daa58c))
+
 ## [0.1.4](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.3...taco/cli/v0.1.4) (2025-09-19)
 
 
