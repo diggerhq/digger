@@ -1,17 +1,5 @@
 package main
 
-// OpenTaco Statesman Service
-// This service provides the backend API for OpenTaco infrastructure management
-// Version: 0.1.0
-// Ready for initial release
-// Bootstrap SHA configured for Release-Please
-// Using standard go release type with CHANGELOG.md
-// Configured changelog sections to prevent duplicates
-// Conservative version bumping enabled for pre-1.0 releases
-// Changelog generation disabled to avoid duplicate entries
-// Updated to use PAT token for Release-Please workflow
-// This ensures tags are created and taco-release workflow triggers
-
 import (
 	"context"
 	"flag"

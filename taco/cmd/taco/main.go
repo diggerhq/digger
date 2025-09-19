@@ -1,17 +1,5 @@
 package main
 
-// OpenTaco CLI
-// Command-line interface for OpenTaco infrastructure management
-// Version: 0.1.0
-// Ready for initial release
-// Bootstrap SHA configured for Release-Please
-// Using standard go release type with CHANGELOG.md
-// Configured changelog sections to prevent duplicates
-// Conservative version bumping enabled for pre-1.0 releases
-// Changelog generation disabled to avoid duplicate entries
-// Testing Release-Please with PAT token for proper tag creation
-// This should trigger the release workflow correctly now
-
 import (
     "fmt"
     "os"
