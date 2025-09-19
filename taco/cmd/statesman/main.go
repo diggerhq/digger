@@ -8,6 +8,7 @@ package main
 // Testing isolated taco releases without interference  
 // Testing multi-arch Docker builds with linux/amd64,arm64,386 support
 // Removed linux/386 due to Ubuntu 24.04 platform compatibility
+// Fixed semver pattern issue - using manual version for Docker tags
 import (
 	"context"
 	"flag"

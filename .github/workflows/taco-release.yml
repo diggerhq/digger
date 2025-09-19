@@ -142,9 +142,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/taco-statesman
           tags: |
+            type=raw,value=${{ steps.meta.outputs.version }}
             type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
       - name: Build and push Docker image
