@@ -13,6 +13,7 @@ import (
     "text/tabwriter"
     "time"
 
+    "github.com/diggerhq/digger/opentaco/internal/analytics"
     "github.com/diggerhq/digger/opentaco/pkg/sdk"
     "github.com/google/uuid"
     "github.com/spf13/cobra"
@@ -50,6 +51,8 @@ var unitCreateCmd = &cobra.Command{
     Short: "Create a new unit",
     Args:  cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
+        analytics.SendEssential("taco_unit_create_started")
+        
         client := newAuthedClient()
         unitID := args[0]
 
@@ -57,9 +60,11 @@ var unitCreateCmd = &cobra.Command{
 
         resp, err := client.CreateUnit(context.Background(), unitID)
         if err != nil {
+            analytics.SendEssential("taco_unit_create_failed")
             return fmt.Errorf("failed to create unit: %w", err)
         }
 
+        analytics.SendEssential("taco_unit_create_completed")
         fmt.Printf("Unit created: %s\n", resp.ID)
         return nil
     },
@@ -219,20 +224,27 @@ var unitPullCmd = &cobra.Command{
     Short: "Download unit data",
     Args:  cobra.RangeArgs(1, 2),
     RunE: func(cmd *cobra.Command, args []string) error {
+        analytics.SendEssential("taco_unit_pull_started")
+        
         client := newAuthedClient()
         unitID := args[0]
         printVerbose("Downloading unit: %s", unitID)
         data, err := client.DownloadUnit(context.Background(), unitID)
-        if err != nil { return fmt.Errorf("failed to download unit: %w", err) }
+        if err != nil { 
+            analytics.SendEssential("taco_unit_pull_failed")
+            return fmt.Errorf("failed to download unit: %w", err) 
+        }
         if len(args) > 1 {
             outputFile := args[1]
             if err := os.WriteFile(outputFile, data, 0o644); err != nil {
+                analytics.SendEssential("taco_unit_pull_failed")
                 return fmt.Errorf("failed to write file: %w", err)
             }
             fmt.Printf("Unit downloaded to: %s\n", outputFile)
         } else {
             fmt.Print(string(data))
         }
+        analytics.SendEssential("taco_unit_pull_completed")
         return nil
     },
 }
@@ -242,16 +254,23 @@ var unitPushCmd = &cobra.Command{
     Short: "Upload unit data",
     Args:  cobra.ExactArgs(2),
     RunE: func(cmd *cobra.Command, args []string) error {
+        analytics.SendEssential("taco_unit_push_started")
+        
         client := newAuthedClient()
         unitID := args[0]
         inputFile := args[1]
         printVerbose("Uploading unit: %s from %s", unitID, inputFile)
         data, err := os.ReadFile(inputFile)
-        if err != nil { return fmt.Errorf("failed to read file: %w", err) }
+        if err != nil { 
+            analytics.SendEssential("taco_unit_push_failed")
+            return fmt.Errorf("failed to read file: %w", err) 
+        }
         lockID := getLockID(unitID)
         if err := client.UploadUnit(context.Background(), unitID, data, lockID); err != nil {
+            analytics.SendEssential("taco_unit_push_failed")
             return fmt.Errorf("failed to upload unit: %w", err)
         }
+        analytics.SendEssential("taco_unit_push_completed")
         fmt.Printf("Unit uploaded: %s\n", unitID)
         return nil
     },
