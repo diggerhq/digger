@@ -7,6 +7,7 @@ package main
 // Fixed tag collision with existing release workflows
 // Should now have clean releases without dgctl contamination
 // Testing multi-arch Docker builds and Helm-compatible tags
+// Fixed linux/386 platform issue - now testing amd64,arm64 only
 import (
     "fmt"
     "os"

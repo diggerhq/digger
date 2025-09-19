@@ -7,6 +7,7 @@ package main
 // Added workflow exclusions to prevent release collisions
 // Testing isolated taco releases without interference  
 // Testing multi-arch Docker builds with linux/amd64,arm64,386 support
+// Removed linux/386 due to Ubuntu 24.04 platform compatibility
 import (
 	"context"
 	"flag"
