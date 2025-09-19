@@ -9,6 +9,8 @@ package main
 // Configured changelog sections to prevent duplicates
 // Conservative version bumping enabled for pre-1.0 releases
 // Changelog generation disabled to avoid duplicate entries
+// Updated to use PAT token for Release-Please workflow
+// This ensures tags are created and taco-release workflow triggers
 
 import (
 	"context"
