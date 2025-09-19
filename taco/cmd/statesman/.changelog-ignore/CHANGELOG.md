@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.2](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.1...taco/statesman/v0.1.2) (2025-09-19)
+
+
+### Miscellaneous
+
+* add non functional change to trigger release ([a4a6699](https://github.com/diggerhq/digger/commit/a4a669913cdc6f7a43eb0076f916a72d021e10cd))
+* check release ([3171f38](https://github.com/diggerhq/digger/commit/3171f38eebaf400f51f0ac4f4d1fdd76c5f1bf6c))
+* check release ([60abeef](https://github.com/diggerhq/digger/commit/60abeef1c17cdab8fe9c3d04348246d7418803ac))
+* cleanup main.go files ([15f2370](https://github.com/diggerhq/digger/commit/15f2370c133d02125431564111efd73f03fd434a))
+* cleanup main.go files ([56f9792](https://github.com/diggerhq/digger/commit/56f9792c737aac7bce20600d7c9d9519e8e58485))
+* release taco components ([54cacd2](https://github.com/diggerhq/digger/commit/54cacd21994ea3a13858cf1bcab022f237b63b68))
+* test release please with PAT ([f9de0f0](https://github.com/diggerhq/digger/commit/f9de0f074f2e182a7e7d674730e8b13c6b633f2c))
+* test release please with PAT ([13860f7](https://github.com/diggerhq/digger/commit/13860f7c8600aebb3ebdd98b86ad5030a8cfe3b5))
+
 ## [0.1.1](https://github.com/diggerhq/digger/compare/taco-statesman-v0.1.0...taco-statesman-v0.1.1) (2025-09-18)
 
 
