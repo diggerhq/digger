@@ -1,6 +1,8 @@
 package main
 
 // Clean release test after fixing component names
+// Verifying Release-Please workflow with PAT token
+// Expecting automatic tag creation on merge
 import (
 	"context"
 	"flag"
