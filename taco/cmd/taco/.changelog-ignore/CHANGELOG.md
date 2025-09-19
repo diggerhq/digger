@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.6...taco/cli/v0.1.7) (2025-09-19)
+
+
+### Miscellaneous
+
+* helm compat ([64e1427](https://github.com/diggerhq/digger/commit/64e14272497ee00164b21a9d3f01787cd783cf73))
+* helm compat ([edae6d2](https://github.com/diggerhq/digger/commit/edae6d2a64cf0ecaae42046f1a4825eddfaa5669))
+
 ## [0.1.6](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.5...taco/cli/v0.1.6) (2025-09-19)
 
 
