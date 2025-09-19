@@ -12,12 +12,12 @@
   "packages": {
     "taco/cmd/taco": {
       "release-type": "go",
-      "component": "taco-cli",
+      "component": "taco/cli",
       "changelog-path": ".changelog-ignore/CHANGELOG.md"
     },
     "taco/cmd/statesman": {
       "release-type": "go", 
-      "component": "taco-statesman",
+      "component": "taco/statesman",
       "changelog-path": ".changelog-ignore/CHANGELOG.md"
     }
   }
