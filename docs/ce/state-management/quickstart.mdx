@@ -1,3 +1,170 @@
 ---
 title: "Quickstart"
 ---
+
+Here's how to do a quickstart for OpenTaco with Auth0 and S3.
+
+## CLI Install (WIP)
+
+### On macOS 
+
+The first thing you'll want to do is visit our releases page here https://github.com/diggerhq/digger/releases and check the latest taco/cli release. Right now it is v0.1.7
+
+We can then do:
+
+```bash
+curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-darwin-arm64 -o taco 
+chmod +x taco 
+sudo mv taco /usr/local/bin
+```
+
+Confirm Taco CLI is available with:
+
+```bash
+taco --help
+```
+
+
+For the best experience in your shell you can configure the following environment vars for the CLI:
+
+```bash
+export OPENTACO_SERVER=https://my-opentaco.company.com
+export OPENTACO_AUTH_ISSUER=https://auth.company.com
+export OPENTACO_AUTH_CLIENT_ID=my-client-id
+```
+
+The first one is the address of your server which we'll get to setting up later.
+
+The last two are for OIDC setup. For now, let's setup Auth0.
+
+## Setting up Auth0 
+
+Navigate to https://auth0.com, create an account and sign in.
+
+You're going to want to create a native app. Once you do that it'll take you to a screen where you can select a technology - we don't need this. You can instead go to settings.
+
+For the CLI we need Domain and Client ID. For the OPENTACO_AUTH_ISSUER we want to use the Domain value. For the OPENTACO_AUTH_CLIENT_ID, we use the Client ID.
+
+Once we have these values we can export them in our `.zshrc`, `.bashrc`, `.profile`, `.zprofile` or whatever is applicable on your platform.
+
+## Setting up Statesman
+
+The next thing you'll want to do is to setup Statesman - the state management service. 
+
+First we'll want to make an env file for your service.
+
+### Required Environment Variables
+
+We'll need the values from the settings page of our Auth0 application:
+
+```bash
+OPENTACO_AUTH_ISSUER
+OPENTACO_AUTH_CLIENT_ID
+OPENTACO_AUTH_CLIENT_SECRET
+```
+
+Then we need to create two more:
+
+```bash
+OPENTACO_AUTH_AUTH_URL="https://{Your-Auth0-domain}/authorize"
+OPENTACO_AUTH_TOKEN_URL="https://{Your-Auth0-domain}/oauth/token"
+```
+
+Note that these are specific to Auth0, if you use another provider they may use different endpoints. That is why they are defined separately and not computed.
+
+The next values we need are from S3:
+
+```bash
+OPENTACO_S3_BUCKET=your-open-taco-bucket-name
+OPENTACO_S3_PREFIX=a-folder-within-that-bucket
+OPENTACO_S3_REGION=your-aws-region
+```
+
+And lastly the `OPENTACO_PUBLIC_BASE_URL` which is where you expect your service to be hosted that is public facing.
+
+If you are running a load balancer, it is the public side of that load balancer.
+
+If its a single server, it is the public endpoint.
+
+If you are running it through ngrok on your local machine it is the ngrok url, not localhost.
+
+### Complete Environment Configuration
+
+We should have these values in our `.env` now:
+
+```bash
+export OPENTACO_S3_BUCKET='your-bucket-name'  # not a uri, the name itself
+export OPENTACO_S3_REGION={aws region}  # like us-east-1
+export OPENTACO_S3_PREFIX='folder-name'
+export OPENTACO_AUTH_ISSUER={your auth0 app's domain}
+export OPENTACO_AUTH_CLIENT_ID={your auth0 app's client id}
+export OPENTACO_AUTH_CLIENT_SECRET={your auth0 app's client secret}
+export OPENTACO_AUTH_AUTH_URL={your auth0 app's domain}/authorize
+export OPENTACO_AUTH_TOKEN_URL={your auth0 app's domain}/oauth/token
+export OPENTACO_PUBLIC_BASE_URL='https://public.url/opentaco'
+```
+
+
+
+## Docker Compose
+
+Use the docker-compose.yml in examples:
+
+```yaml
+version: '3.8'
+
+services:
+  statesman:
+    image: ${STATESMAN_IMAGE:-ghcr.io/diggerhq/digger/taco-statesman:latest}
+    ports:
+      - "${OPENTACO_PORT:-8080}:8080"
+    env_file:
+      - .env  # Copy from .env.example and customize
+    volumes:
+      # Optional: persist data if using file-based storage later
+      - statesman-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    container_name: opentaco-statesman
+
+volumes:
+  statesman-data:
+    driver: local
+```
+
+Place your `.env` in the same directory.
+
+## Starting the Service
+
+Run docker-compose up:
+
+```bash
+docker-compose up -d
+```
+
+You can check if it is running with:
+
+```bash
+curl http://localhost:8080/healthz
+```
+
+If it is "OK" you will see:
+
+```json
+{"service":"opentaco","status":"ok"}
+```
+
+## Next Steps
+
+From here you can configure a reverse proxy if you are hosting this or if you want to test locally this is a good option as well.
+
+
+You want to set the public endpoint of Statesman as the OPENTACO_SERVER environment variable for the CLI. 
+
+
+
