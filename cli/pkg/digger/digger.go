@@ -148,10 +148,15 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			return false, false, fmt.Errorf("error while running command: %v", err)
 		}
 
-		err = commentUpdater.UpdateComment(batchResult.Jobs, prNumber, prService, prCommentId)
-		if err != nil {
-			slog.Error("error Updating status comment", "error", err)
-			return false, false, err
+		// Check if batchResult is nil (can happen with mock backend or when backend is not configured)
+		if batchResult == nil {
+			slog.Warn("batchResult is nil, skipping comment update", "jobId", jobId, "prNumber", prNumber)
+		} else {
+			err = commentUpdater.UpdateComment(batchResult.Jobs, prNumber, prService, prCommentId)
+			if err != nil {
+				slog.Error("error Updating status comment", "error", err, "prNumber", prNumber, "jobId", jobId)
+				return false, false, err
+			}
 		}
 
 	}

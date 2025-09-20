@@ -163,7 +163,12 @@ func RunSpec(
 			message := fmt.Sprintf("Failed run commands. %v", err)
 			reportError(spec, backendApi, message, err)
 		}
-		commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, prService, commentId)
+		// Check if serializedBatch is nil (can happen with mock backend or when backend is not configured)
+		if serializedBatch == nil {
+			slog.Warn("serializedBatch is nil, skipping comment update", "jobId", spec.JobId)
+		} else {
+			commentUpdater.UpdateComment(serializedBatch.Jobs, serializedBatch.PrNumber, prService, commentId)
+		}
 		reportError(spec, backendApi, fmt.Sprintf("failed to run commands %v", err), err)
 	}
 	usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Digger finished successfully", 0)
