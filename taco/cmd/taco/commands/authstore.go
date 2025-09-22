@@ -143,7 +143,9 @@ func newAuthedClient() *sdk.Client {
     resilientHTTPClient := createResilientHTTPClient()
     c := sdk.NewClientWithHTTPClient(base, resilientHTTPClient)
     
-    // Cache the base URL and load both credential sources
+    // Reset cached tokens to avoid stale values after logout
+    cachedOpenTacoToken = ""
+    cachedTerraformToken = ""
     cachedBaseURL = base
     
     // Load OpenTaco credentials
