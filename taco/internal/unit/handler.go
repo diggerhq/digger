@@ -43,12 +43,12 @@ type CreateUnitResponse struct {
 func (h *Handler) CreateUnit(c echo.Context) error {
     var req CreateUnitRequest
     if err := c.Bind(&req); err != nil {
-        analytics.SendDefault("unit_create_failed_invalid_request")
+        analytics.SendEssential("unit_create_failed_invalid_request")
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
     }
 
     if err := domain.ValidateUnitID(req.ID); err != nil {
-        analytics.SendDefault("unit_create_failed_invalid_id")
+        analytics.SendEssential("unit_create_failed_invalid_id")
         return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
     }
     id := domain.NormalizeUnitID(req.ID)
@@ -56,14 +56,14 @@ func (h *Handler) CreateUnit(c echo.Context) error {
     metadata, err := h.store.Create(c.Request().Context(), id)
     if err != nil {
         if err == storage.ErrAlreadyExists {
-            analytics.SendDefault("unit_create_failed_already_exists")
+            analytics.SendEssential("unit_create_failed_already_exists")
             return c.JSON(http.StatusConflict, map[string]string{"error": "Unit already exists"})
         }
-        analytics.SendDefault("unit_create_failed_storage_error")
+        analytics.SendEssential("unit_create_failed_storage_error")
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create unit"})
     }
 
-    analytics.SendDefault("unit_created")
+    analytics.SendEssential("unit_created")
     return c.JSON(http.StatusCreated, CreateUnitResponse{ID: metadata.ID, Created: metadata.Updated})
 }
 
@@ -146,33 +146,43 @@ func (h *Handler) DeleteUnit(c echo.Context) error {
 }
 
 func (h *Handler) DownloadUnit(c echo.Context) error {
+    analytics.SendEssential("taco_unit_pull_started")
+    
     encodedID := c.Param("id")
     id := domain.DecodeUnitID(encodedID)
     if err := domain.ValidateUnitID(id); err != nil {
+        analytics.SendEssential("taco_unit_pull_failed")
         return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
     }
     data, err := h.store.Download(c.Request().Context(), id)
     if err != nil {
+        analytics.SendEssential("taco_unit_pull_failed")
         if err == storage.ErrNotFound {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
         }
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to download unit"})
     }
+    analytics.SendEssential("taco_unit_pull_completed")
     return c.Blob(http.StatusOK, "application/json", data)
 }
 
 func (h *Handler) UploadUnit(c echo.Context) error {
+    analytics.SendEssential("taco_unit_push_started")
+    
     encodedID := c.Param("id")
     id := domain.DecodeUnitID(encodedID)
     if err := domain.ValidateUnitID(id); err != nil {
+        analytics.SendEssential("taco_unit_push_failed")
         return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
     }
     data, err := io.ReadAll(c.Request().Body)
     if err != nil {
+        analytics.SendEssential("taco_unit_push_failed")
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "Failed to read request body"})
     }
     lockID := c.QueryParam("if_locked_by")
     if err := h.store.Upload(c.Request().Context(), id, data, lockID); err != nil {
+        analytics.SendEssential("taco_unit_push_failed")
         if err == storage.ErrNotFound {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
         }
@@ -183,6 +193,7 @@ func (h *Handler) UploadUnit(c echo.Context) error {
     }
     // Best-effort dependency graph update
     go deps.UpdateGraphOnWrite(c.Request().Context(), h.store, id, data)
+    analytics.SendEssential("taco_unit_push_completed")
     return c.JSON(http.StatusOK, map[string]string{"message": "Unit uploaded successfully"})
 }
 
