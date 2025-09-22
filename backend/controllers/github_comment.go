@@ -78,6 +78,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		)
 		return fmt.Errorf("error getting github app link")
 	}
+	if link == nil {
+		slog.Error("GitHub app installation link not found",
+			"installationId", installationId,
+		)
+		return fmt.Errorf("github app installation link not found")
+	}
 	orgId := link.OrganisationId
 
 	if *payload.Action != "created" {
