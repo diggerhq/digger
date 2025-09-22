@@ -88,20 +88,41 @@ If its a single server, it is the public endpoint.
 
 If you are running it through ngrok on your local machine it is the ngrok url, not localhost.
 
+
+### AWS CLI Credentials 
+
+The final piece to have a working instalation is to get your AWS CLI credentials and set them as environment variables for Statesman. If you haven't set up the AWS CLI, you should do so before doing this step.
+
+We'll run these commands
+
+`aws configure get aws_access_key_id`<br />
+`aws configure get aws_secret_access_key`<br /> 
+`aws configure get region`<br />
+
+and set then under the environment variables: 
+`AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`,
+and `AWS_DEFAUlT_REGION` respectively
+
+
+
 ### Complete Environment Configuration
 
 We should have these values in our `.env` now:
 
 ```bash
-export OPENTACO_S3_BUCKET='your-bucket-name'  # not a uri, the name itself
-export OPENTACO_S3_REGION={aws region}  # like us-east-1
-export OPENTACO_S3_PREFIX='folder-name'
-export OPENTACO_AUTH_ISSUER={your auth0 app's domain}
-export OPENTACO_AUTH_CLIENT_ID={your auth0 app's client id}
-export OPENTACO_AUTH_CLIENT_SECRET={your auth0 app's client secret}
-export OPENTACO_AUTH_AUTH_URL={your auth0 app's domain}/authorize
-export OPENTACO_AUTH_TOKEN_URL={your auth0 app's domain}/oauth/token
-export OPENTACO_PUBLIC_BASE_URL='https://public.url/opentaco'
+OPENTACO_S3_BUCKET='your-bucket-name'  # not a uri, the name itself
+OPENTACO_S3_REGION='aws-region' # like us-east-1
+OPENTACO_S3_PREFIX='folder-name'
+OPENTACO_AUTH_ISSUER='your-auth0-app-domain'
+OPENTACO_AUTH_CLIENT_ID='your-auth0-app-clientid'
+OPENTACO_AUTH_CLIENT_SECRET='your-auth0-app-client-secret'
+OPENTACO_AUTH_AUTH_URL='{your-auth0-app-domain}/authorize'
+OPENTACO_AUTH_TOKEN_URL='{your-auth0-app-domain}/oauth/token'
+OPENTACO_PUBLIC_BASE_URL='https://public.url/opentaco'
+AWS_ACCESS_KEY_ID='your-aws-access-key-id'
+AWS_SECRET_ACCESS_KEY='your-aws-secret-access-key'
+AWS_DEFAULT_REGION='your-cli-region'
 ```
 
 
@@ -163,8 +184,132 @@ If it is "OK" you will see:
 
 From here you can configure a reverse proxy if you are hosting this or if you want to test locally this is a good option as well.
 
-
 You want to set the public endpoint of Statesman as the OPENTACO_SERVER environment variable for the CLI. 
+
+## Setting up Cloud Block Authentication
+
+Once your OpenTaco Statesman server is running, you can configure Terraform to use it as a cloud backend with authentication. This allows you to use the `cloud` block in your Terraform configuration instead of the traditional `backend` block.
+
+### Prerequisites
+
+1. OpenTaco server running on an https endpoint - locally you could write a simple proxy or use ngrok
+2. Auth0 or OIDC provider configured (from previous steps)
+3. Terraform CLI version 1.1+ (required for cloud block support)
+
+### Authentication 
+
+For cloud block authentication, you only need to authenticate once using Terraform's built-in login:
+
+```bash
+terraform login <your host> 
+```
+
+This command will:
+1. Open your browser to OpenTaco's OAuth authorization page
+2. Redirect you to your OIDC provider (Auth0, etc.) for authentication  
+3. Return authorization code to OpenTaco
+4. Store access/refresh tokens in `~/.terraform.d/credentials.tfrc.json`
+
+
+### Configuring Your Terraform Project
+
+Create a new Terraform configuration with the cloud block:
+
+```hcl
+terraform {
+  # Configure OpenTaco as Terraform Cloud backend
+  cloud {
+    hostname = "localhost:8443"  # Replace with your OpenTaco server
+    
+    workspaces {
+      name = "my-workspace"
+    }
+  }
+}
+
+# Example resource
+resource "random_string" "example" {
+  length  = 16
+  special = false
+}
+
+output "random_value" {
+  value = random_string.example.result
+}
+```
+
+### Initialize and Test
+
+Once configured, initialize your Terraform project:
+
+```bash
+terraform init
+```
+
+Terraform will:
+1. Query `/.well-known/terraform.json` for service discovery
+2. Use stored credentials for authentication
+3. Automatically create the workspace if it doesn't exist
+4. Configure the remote state backend
+
+Test that everything works:
+
+```bash
+terraform plan
+terraform apply
+```
+
+### Verifying Authentication
+
+After running `terraform login`, you can verify your authentication status with any of these commands:
+
+```bash
+# Check authentication with taco CLI 
+taco whoami --server http://localhost:8080
+
+# List available workspaces
+taco unit ls
+
+# Check workspace status
+taco unit status my-workspace
+```
+
+### Troubleshooting Authentication
+
+**Re-authenticate if needed:**
+```bash
+# Force re-authentication with Terraform 
+terraform login -force localhost:8080
+```
+
+**Check stored credentials:**
+```bash
+# View Terraform credentials (these are used by both Terraform and taco CLI)
+cat ~/.terraform.d/credentials.tfrc.json
+```
+
+### Advanced Cloud Block Options
+
+**Multiple workspaces with tags:**
+```hcl
+terraform {
+  cloud {
+    hostname = "localhost:8080"
+    organization = "my-org"  # Optional
+    
+    workspaces {
+      tags = ["app:web", "env:production"]
+    }
+  }
+}
+```
+
+**Environment-specific configuration:**
+```bash
+export TF_CLOUD_HOSTNAME=localhost:8080
+export TF_WORKSPACE=my-workspace
+terraform init
+```
 
 
 
