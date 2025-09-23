@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/opentaco/cmd/taco
 
-go 1.25
+go 1.24
 
 require (
 	github.com/diggerhq/digger/opentaco/pkg/sdk v0.0.0
@@ -15,3 +15,5 @@ require (
 )
 
 replace github.com/diggerhq/digger/opentaco/pkg/sdk => ../../pkg/sdk
+
+replace github.com/diggerhq/digger/opentaco/internal => ../../internal

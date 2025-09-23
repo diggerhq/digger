@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/opentaco/providers/terraform/opentaco
 
-go 1.25
+go 1.24
 
 require (
 	github.com/diggerhq/digger/opentaco/pkg/sdk v0.0.0
