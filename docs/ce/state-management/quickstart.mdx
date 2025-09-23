@@ -89,6 +89,7 @@ for all users and systems requiring access to state.
         If its a single server, it is the public endpoint.
 
         If you are running it through ngrok on your local machine it is the ngrok url, not localhost.
+        The reason for this is that the SSO providers expect an ssl termination to be present.
 
 
 
@@ -168,9 +169,6 @@ for all users and systems requiring access to state.
     ```json
     {"service":"opentaco","status":"ok"}
     ```
-    </Step>
-    <Step title="Configure service URL (optional)">
-
     </Step>
 
 </Steps>
@@ -559,132 +557,29 @@ Now that you have OpenTaco running and authentication configured, let's walk thr
     </Step>
 </Steps>
 
-## Setting up Cloud Block Authentication
+## Advanced Cloud Block Options
 
-Once your OpenTaco Statesman server is running, you can configure Terraform to use it as a cloud backend with authentication. This allows you to use the `cloud` block in your Terraform configuration instead of the traditional `backend` block.
-
-### Prerequisites
-
-1. OpenTaco server running on an https endpoint - locally you could write a simple proxy or use ngrok
-2. Auth0 or OIDC provider configured (from previous steps)
-3. Terraform CLI version 1.1+ (required for cloud block support)
-
-### Authentication 
-
-OpenTaco uses two separate authentication flows that serve different purposes and must be completed in sequence:
-
-#### Step 1: Taco CLI Authentication
-
-First, authenticate the taco CLI for management operations:
-
-```bash
-taco login --server https://your-opentaco-server.com
-```
-
-This command will:
-1. Open your browser to OpenTaco's OAuth authorization page
-2. Redirect you to your OIDC provider (Auth0, etc.) for authentication  
-3. Return authorization code to OpenTaco
-4. Store access/refresh tokens in `~/.config/opentaco/credentials.json`
-
-**What this enables:** Unit management commands (`taco unit ls`, `taco unit status`, etc.)
-
-#### Step 2: Terraform Cloud Block Authentication
-
-Next, authenticate Terraform for cloud block operations:
-
-```bash
-terraform login <your-opentaco-hostname>
-```
-
-This command will:
-1. Use the same OAuth flow as taco login
-2. Store Terraform-specific credentials in `~/.terraform.d/credentials.tfrc.json` 
-3. Enable cloud block functionality in your Terraform configurations
-
-**What this enables:** Terraform operations using the `cloud` block (`terraform init`, `terraform plan`, `terraform apply`)
-
-#### Why Two Separate Authentication Steps?
-
-- **Different credential stores**: Taco CLI and Terraform store credentials in separate files
-- **Different scopes**: Each authentication flow is optimized for its specific use case
-- **Independent operation**: You can use Terraform cloud block operations even if taco CLI authentication expires, and vice versa
-
-Both authentications use the same OIDC identity provider and will result in the same user context and permissions.
-
-
-### Configuring Your Terraform Project
-
-Create a new Terraform configuration with the cloud block:
-
+**Multiple workspaces with tags:**
 ```hcl
 terraform {
-  # Configure OpenTaco as Terraform Cloud backend
   cloud {
-    hostname = "localhost:8443"  # Replace with your OpenTaco server
+    hostname = "localhost:8080"
+    organization = "my-org"  # Optional
     
     workspaces {
-      name = "my-workspace"
+      tags = ["app:web", "env:production"]
     }
   }
 }
-
-# Example resource
-resource "random_string" "example" {
-  length  = 16
-  special = false
-}
-
-output "random_value" {
-  value = random_string.example.result
-}
 ```
 
-### Initialize and Test
-
-Once configured, initialize your Terraform project:
-
+**Environment-specific configuration:**
 ```bash
+export TF_CLOUD_HOSTNAME=localhost:8080
+export TF_WORKSPACE=my-workspace
 terraform init
 ```
 
-Terraform will:
-1. Query `/.well-known/terraform.json` for service discovery
-2. Use stored credentials for authentication
-3. Automatically create the workspace if it doesn't exist
-4. Configure the remote state backend
-
-Test that everything works:
-
-```bash
-terraform plan
-terraform apply
-```
-
-### Verifying Authentication
-
-After completing both authentication steps, you can verify each authentication separately:
-
-#### Verify Taco CLI Authentication
-```bash
-# Check taco CLI authentication status
-taco whoami
-
-# List available workspaces (requires taco login)
-taco unit ls
-
-# Check workspace status (requires taco login)
-taco unit status my-workspace
-```
-
-#### Verify Terraform Authentication
-```bash
-# Test Terraform cloud block functionality (requires terraform login)
-terraform init
-terraform plan
-```
-
-**Note:** The `taco unit` commands require `taco login` credentials, while `terraform` commands with cloud block require `terraform login` credentials.
 
 # Troubleshooting
 
@@ -710,34 +605,11 @@ cat ~/.terraform.d/credentials.tfrc.json
 
 **Common issues:**
 - If `taco unit ls` fails: Your taco CLI authentication may have expired, run `taco login`
-- If `terraform init/plan` fails: Your terraform authentication may have expired, run `terraform login` again  
+- If `terraform init/plan` fails: Your terraform authentication may have expired, run `terraform login` again
 - Both credentials are independent - one expiring doesn't affect the other
 
-### Advanced Cloud Block Options
 
-**Multiple workspaces with tags:**
-```hcl
-terraform {
-  cloud {
-    hostname = "localhost:8080"
-    organization = "my-org"  # Optional
-    
-    workspaces {
-      tags = ["app:web", "env:production"]
-    }
-  }
-}
-```
-
-**Environment-specific configuration:**
-```bash
-export TF_CLOUD_HOSTNAME=localhost:8080
-export TF_WORKSPACE=my-workspace
-terraform init
-```
-
-
-### Next Steps
+## Next Steps
 
 Now you can:
 - Set up RBAC to control who can access different units
