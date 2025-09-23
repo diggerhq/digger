@@ -1,0 +1,21 @@
+---
+title: "Analytics"
+---
+
+
+Digger collects analytics for OpenTaco to understand usage patterns. Analytics are optional and anonymized. You can configure an analytics admin email optionally which would allow us to understand your usage parttern in particular. There are four analytics levels. 
+
+1. Off - no analytics collected, all analytics are discarded 
+2. Essential - critical system events, basic usage patterns. 
+3. Reduced - Moderate analytics collection. More detailed usage patterns and operational metrics. 
+4. Default - Full telemetry.
+
+You can set your analytics level with the ANALYTICS_LEVEL environment variable like so: 
+
+
+```
+ANALYTICS_LEVEL="off"        # No analytics
+ANALYTICS_LEVEL="essential"  # Minimal
+ANALYTICS_LEVEL="reduced"    # Moderate  
+ANALYTICS_LEVEL="default"    # Full (default)
+```

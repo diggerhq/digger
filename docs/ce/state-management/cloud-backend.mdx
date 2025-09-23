@@ -1,0 +1,86 @@
+---
+title: "Terraform Cloud Backend"
+---
+
+OpenTaco provides full compatibility with Terraform's `cloud` backend configuration, offering a self-hosted alternative to Terraform Cloud. This enables teams to use the familiar cloud block syntax while maintaining control over their infrastructure state.
+
+Cloud Backend is a separate system from taco authentication, so you still need to do `taco login` to configure rbac for the units that terraform interacts with, for example. You can use the some authentication provider, but basically the sessions are scoped differently.
+
+
+## Overview
+
+The cloud backend support in OpenTaco includes:
+
+- **Terraform Cloud API compatibility** - Full `/tfe/api/v2` endpoint implementation
+- **OAuth2/PKCE authentication** - Secure login flow compatible with `terraform login`
+- **Workspace management** - Create, read, update, and manage workspaces
+- **State locking and versioning** - Advanced state management with atomic operations
+- **RBAC integration** - Fine-grained permissions for workspace access
+- **Service discovery** - Automatic configuration via `/.well-known/terraform.json`
+
+## Quick Start
+
+### 1. Configure Your Terraform Project
+
+Add a cloud block to your Terraform configuration:
+
+```hcl
+terraform {
+  cloud {
+    hostname = "localhost:8080"  # Your OpenTaco server
+    
+    workspaces {
+      name = "my-app-production"
+    }
+  }
+}
+```
+
+### 2. Login to OpenTaco
+
+Use the Terraform CLI to authenticate:
+
+```bash
+terraform login localhost:8080
+```
+
+This will:
+1. Open your browser to OpenTaco's OAuth2 flow
+2. Authenticate with your OIDC provider (if configured) 
+3. Store credentials in `~/.terraform.d/credentials.tfrc.json`
+
+
+### 3. Initialize and Apply
+
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+OpenTaco will automatically manage workspace creation, state storage, and locking.
+
+## Cloud Block Configuration
+
+### Single Workspace
+
+```hcl
+terraform {
+  cloud {
+    hostname = "your-opentaco-server.com"
+    
+    workspaces {
+      name = "my-workspace"
+    }
+  }
+}
+```
+
+### Workspace Tags 
+
+Workspace tags aren't supported currently, but will be added soon.
+
+
+### RBAC with Terraform workspaces 
+
+Terraform workspaces are reflected in storage (S3) like any other unit you make with the cli. You can see them when you do `unit ls` and can refer to them in permissions and roles as well. You don't need to explicitly create a unit for your workspace, it will be created during the first `terraform plan`. The unit created will have the same name as your workspace name.

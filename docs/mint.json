@@ -53,11 +53,14 @@
         "ce/state-management/introduction",
         "ce/state-management/quickstart",
         "ce/state-management/architecture",
+        "ce/state-management/cloud-backend",
+        "ce/state-management/rbac",
         "ce/state-management/sso",
         "ce/state-management/digger-integration",
         "ce/state-management/api-reference",
         "ce/state-management/cli-reference",
-        "ce/state-management/development"
+        "ce/state-management/development",
+        "ce/state-management/analytics"
       ]
     },
     {
