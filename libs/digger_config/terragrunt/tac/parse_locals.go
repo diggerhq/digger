@@ -26,7 +26,7 @@ type ResolvedLocals struct {
 	ApplyRequirements []string
 
 	// Extra dependencies that can be hardcoded in digger_config
-	ExtraAtlantisDependencies []string
+	ExtraDiggerDependencies []string
 
 	// If set, a single module will have autoplan turned to this setting
 	AutoPlan *bool
@@ -95,7 +95,7 @@ func mergeResolvedLocals(parent ResolvedLocals, child ResolvedLocals) ResolvedLo
 		parent.ApplyRequirements = child.ApplyRequirements
 	}
 
-	parent.ExtraAtlantisDependencies = append(parent.ExtraAtlantisDependencies, child.ExtraAtlantisDependencies...)
+	parent.ExtraDiggerDependencies = append(parent.ExtraDiggerDependencies, child.ExtraDiggerDependencies...)
 
 	return parent
 }
@@ -183,13 +183,13 @@ func resolveLocals(localsAsCty cty.Value) ResolvedLocals {
 		resolved.markedProject = &hasValue
 	}
 
-	extraDependenciesAsCty, ok := rawLocals["extra_atlantis_dependencies"]
+	extraDependenciesAsCty, ok := rawLocals["extra_digger_dependencies"]
 	if ok {
 		it := extraDependenciesAsCty.ElementIterator()
 		for it.Next() {
 			_, val := it.Element()
-			resolved.ExtraAtlantisDependencies = append(
-				resolved.ExtraAtlantisDependencies,
+			resolved.ExtraDiggerDependencies = append(
+				resolved.ExtraDiggerDependencies,
 				filepath.ToSlash(val.AsString()),
 			)
 		}

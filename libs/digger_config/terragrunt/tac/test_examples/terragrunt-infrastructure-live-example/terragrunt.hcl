@@ -5,7 +5,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 locals {
-  extra_atlantis_dependencies = [
+  extra_digger_dependencies = [
     find_in_parent_folders("account.hcl"),
     find_in_parent_folders("region.hcl"),
     find_in_parent_folders("env.hcl"),
