@@ -2,302 +2,562 @@
 title: "Quickstart"
 ---
 
-Here's how to do a quickstart for OpenTaco with Terraforn Cloud Block, Auth0, and S3.
+By the end of this guide we will setup the statesman backend for state management. We will also setup the cli and use it to
+create our first "unit". A unit is a versioned state in statesman. We will also configure our first terraform/opentofu resources
+to use the newly created unit and create a simple resource. Lets dig in!
 
-## CLI Install
 
-### On macOS 
+# Prerequisites
 
-The first thing you'll want to do is visit our releases page here https://github.com/diggerhq/digger/releases and check the latest taco/cli release. Right now it is v0.1.7
+<Steps>
+    <Step title="Setup Auth provider">
+        <Tabs>
+            <Tab title="Auth0">
 
-We can then do:
+                Navigate to https://auth0.com, create an account and sign in.
 
-```bash
-curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-darwin-arm64 -o taco 
-chmod +x taco 
-sudo mv taco /usr/local/bin
+                You're going to want to create a native app. Once you do that it'll take you to a screen where you can select a technology - we don't need this. You can instead go to settings.
+
+                For the CLI we need Domain and Client ID. For the OPENTACO_AUTH_ISSUER we want to use the Domain value. For the OPENTACO_AUTH_CLIENT_ID, we use the Client ID.
+
+                Once we have these values we can export them in our `.zshrc`, `.bashrc`, `.profile`, `.zprofile` or whatever is applicable on your platform.
+
+            </Tab>
+        </Tabs>
+    </Step>
+    <Step title="Setup Cloud provider">
+
+        <Tabs>
+            <Tab title="AWS">
+                Statesman relies on an S3 compatible storage, in case of AWS we will need to have an S3 Bucket. You can create
+                an S3 bucket using the AWS Console or using the AWS CLI. Take note of your bucket name as we will need it
+                in future steps.
+
+                In addition we will be needing aws cli credentials to be configured for Statesman to be able to access the S3 bucket.
+                Configure a set of credentials and make note of the following values:
+
+                - `AWS_ACCESS_KEY_ID`
+                - `AWS_SECRET_ACCESS_KEY`
+                - `AWS_DEFAUlT_REGION`
+
+            </Tab>
+        </Tabs>
+    </Step>
+
+</Steps>
+# Configure Statesman Backend
+
+The first component we want to configure is the statesman backend, this will be the main gatekeeper for all your state management, enforcing proper management
+for all users and systems requiring access to state.
+
+<Steps>
+    <Step title="Setup Env file">
+
+        The next thing you'll want to do is to setup Statesman - the state management service.
+
+        First we'll want to make an env file for your service.
+
+        We'll need the values from the settings page of our Auth0 application:
+
+        ```bash
+        OPENTACO_AUTH_ISSUER
+        OPENTACO_AUTH_CLIENT_ID
+        OPENTACO_AUTH_CLIENT_SECRET
+        ```
+
+        Then we need to create two more:
+
+        ```bash
+        OPENTACO_AUTH_AUTH_URL="https://{Your-Auth0-domain}/authorize"
+        OPENTACO_AUTH_TOKEN_URL="https://{Your-Auth0-domain}/oauth/token"
+        ```
+
+        Note that these are specific to Auth0, if you use another provider they may use different endpoints. That is why they are defined separately and not computed.
+
+        The next values we need are from S3:
+
+        ```bash
+        OPENTACO_S3_BUCKET=your-open-taco-bucket-name
+        OPENTACO_S3_PREFIX=a-folder-within-that-bucket
+        OPENTACO_S3_REGION=your-aws-region
+        ```
+
+        And lastly the `OPENTACO_PUBLIC_BASE_URL` which is where you expect your service to be hosted that is public facing.
+
+        If you are running a load balancer, it is the public side of that load balancer.
+
+        If its a single server, it is the public endpoint.
+
+        If you are running it through ngrok on your local machine it is the ngrok url, not localhost.
+
+
+
+        ### Complete Environment Configuration
+
+        We should have these values in our `.env` now:
+
+        ```bash
+        OPENTACO_S3_BUCKET='your-bucket-name'  # not a uri, the name itself
+        OPENTACO_S3_REGION='aws-region' # like us-east-1
+        OPENTACO_S3_PREFIX='folder-name'
+        OPENTACO_AUTH_ISSUER='your-auth0-app-domain'
+        OPENTACO_AUTH_CLIENT_ID='your-auth0-app-clientid'
+        OPENTACO_AUTH_CLIENT_SECRET='your-auth0-app-client-secret'
+        OPENTACO_AUTH_AUTH_URL='{your-auth0-app-domain}/authorize'
+        OPENTACO_AUTH_TOKEN_URL='{your-auth0-app-domain}/oauth/token'
+        OPENTACO_PUBLIC_BASE_URL='https://public.url/opentaco'
+        AWS_ACCESS_KEY_ID='your-aws-access-key-id'
+        AWS_SECRET_ACCESS_KEY='your-aws-secret-access-key'
+        AWS_DEFAULT_REGION='your-cli-region'
+        ```
+    </Step>
+    <Step title="Run Statesman">
+        <Tabs>
+            <Tab title="Docker Compose">
+            Use the docker-compose.yml in examples:
+
+            ```yaml
+            version: '3.8'
+
+            services:
+            statesman:
+            image: ${STATESMAN_IMAGE:-ghcr.io/diggerhq/digger/taco-statesman:latest}
+            ports:
+            - "${OPENTACO_PORT:-8080}:8080"
+            env_file:
+            - .env  # Copy from .env.example and customize
+            volumes:
+            # Optional: persist data if using file-based storage later
+            - statesman-data:/app/data
+            healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+            restart: unless-stopped
+            container_name: opentaco-statesman
+
+            volumes:
+            statesman-data:
+            driver: local
+            ```
+
+            Place your `.env` in the same directory.
+
+            ## Starting the Service
+
+            Run docker-compose up:
+
+            ```bash
+            docker-compose up -d
+            ```
+            </Tab>
+        </Tabs>
+
+    </Step>
+    <Step title="Verify Statesman is running">
+    You can verify statesman is running with:
+
+    ```bash
+    curl http://localhost:8080/healthz
+    ```
+
+    If all goes well you will see:
+
+    ```json
+    {"service":"opentaco","status":"ok"}
+    ```
+    </Step>
+    <Step title="Configure service URL (optional)">
+
+    </Step>
+
+</Steps>
+
+# Configure Taco CLI
+
+<Steps >
+    <Step title="Install Cli">
+        <Tabs>
+            <Tab title="Linux">
+                For Linux users, download the appropriate binary for your architecture:
+
+                ```bash
+                # For Linux AMD64 (most common)
+                curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-amd64 -o taco
+                chmod +x taco
+
+                # Move to a directory in your PATH
+                sudo mv taco /usr/local/bin
+
+                # Alternative: Install to user directory (no sudo required)
+                mkdir -p ~/.local/bin
+                mv taco ~/.local/bin
+                # Add to PATH in your shell profile if not already there
+                echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
+                source ~/.bashrc
+                ```
+
+                For other architectures:
+                ```bash
+                # For Linux ARM64
+                curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-arm64 -o taco
+
+                # For Linux 386
+                curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-386 -o taco
+                ```
+
+                Confirm Taco CLI is available with:
+
+                ```bash
+                taco --help
+                ```
+            </Tab>
+            <Tab title="MacOS">
+                The first thing you'll want to do is visit our releases page here https://github.com/diggerhq/digger/releases and check the latest taco/cli release. Right now it is v0.1.7
+
+                We can then do:
+
+                ```bash
+                curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-darwin-arm64 -o taco
+                chmod +x taco
+                sudo mv taco /usr/local/bin
+                ```
+
+                Confirm Taco CLI is available with:
+
+                ```bash
+                taco --help
+                ```
+            </Tab>
+            <Tab title="Windows (powershell)">
+                For Windows users, download the appropriate binary for your architecture:
+
+                #### Using PowerShell (Recommended)
+
+                ```powershell
+                # For Windows AMD64 (most common)
+                Invoke-WebRequest -Uri "https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-windows-amd64.exe" -OutFile "taco.exe"
+
+                # Move to a directory in your PATH (create directory if needed)
+                New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\bin"
+                Move-Item "taco.exe" "$env:USERPROFILE\bin\taco.exe"
+
+                # Add to PATH permanently (run as Administrator or current user)
+                $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+                if ($currentPath -notlike "*$env:USERPROFILE\bin*") {
+                [Environment]::SetEnvironmentVariable("Path", "$currentPath;$env:USERPROFILE\bin", "User")
+            }
+                ```
+
+                #### Confirm Installation
+
+                Open a **new** Command Prompt or PowerShell window and test:
+
+                ```cmd
+                taco --help
+                ```
+            </Tab>
+            <Tab title="Windows (cmd)">
+                #### Using Command Prompt
+
+                ```cmd
+                # Download (you may need to use a browser for this step)
+                # Save the file from: https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-windows-amd64.exe
+
+                # Create a bin directory in your user profile
+                mkdir "%USERPROFILE%\bin"
+
+                # Move the downloaded file
+                move "taco-windows-amd64.exe" "%USERPROFILE%\bin\taco.exe"
+
+                # Add to PATH (this adds for current session only)
+                set PATH=%PATH%;%USERPROFILE%\bin
+                ```
+
+                #### Confirm Installation
+
+                Open a **new** Command Prompt or PowerShell window and test:
+
+                ```cmd
+                taco --help
+                ```
+            </Tab>
+            <Tab title="Windows (manual)">
+                #### Alternative: Manual Installation
+
+                1. Download `taco-windows-amd64.exe` from the [releases page](https://github.com/diggerhq/digger/releases)
+                2. Rename it to `taco.exe`
+                3. Place it in a directory that's in your PATH (like `C:\Windows\System32` for system-wide access)
+                4. Or create a `bin` folder in your user directory and add it to your PATH
+
+                #### Confirm Installation
+
+                Open a **new** Command Prompt or PowerShell window and test:
+
+                ```cmd
+                taco --help
+                ```
+            </Tab>
+        </Tabs>
+
+    </Step>
+    <Step title="Configure CLI Environment Variables">
+        For the best experience in your shell you can configure the following environment vars for the CLI:
+
+        <Tabs>
+            <Tab title="Linux">
+            #### On macOS/Linux:
+            ```bash
+            export OPENTACO_SERVER=https://my-opentaco.company.com
+            export OPENTACO_AUTH_ISSUER=https://auth.company.com
+            export OPENTACO_AUTH_CLIENT_ID=my-client-id
+            ```
+            </Tab>
+            <Tab title="MacOS">
+            #### On macOS/Linux:
+            ```bash
+            export OPENTACO_SERVER=https://my-opentaco.company.com
+            export OPENTACO_AUTH_ISSUER=https://auth.company.com
+            export OPENTACO_AUTH_CLIENT_ID=my-client-id
+            ```
+            </Tab>
+            <Tab title="Windows (PowerShell)">
+            #### On Windows PowerShell:
+            ```powershell
+            $env:OPENTACO_SERVER="https://my-opentaco.company.com"
+            $env:OPENTACO_AUTH_ISSUER="https://auth.company.com"
+            $env:OPENTACO_AUTH_CLIENT_ID="my-client-id"
+
+            # To make permanent (optional):
+            [Environment]::SetEnvironmentVariable("OPENTACO_SERVER", "https://my-opentaco.company.com", "User")
+            [Environment]::SetEnvironmentVariable("OPENTACO_AUTH_ISSUER", "https://auth.company.com", "User")
+            [Environment]::SetEnvironmentVariable("OPENTACO_AUTH_CLIENT_ID", "my-client-id", "User")
+            ```
+            </Tab>
+            <Tab title="Windows (Command Prompt)">
+            #### On Windows Command Prompt:
+            ```cmd
+            set OPENTACO_SERVER=https://my-opentaco.company.com
+            set OPENTACO_AUTH_ISSUER=https://auth.company.com
+            set OPENTACO_AUTH_CLIENT_ID=my-client-id
+
+            # To make permanent (optional):
+            setx OPENTACO_SERVER "https://my-opentaco.company.com"
+            setx OPENTACO_AUTH_ISSUER "https://auth.company.com"
+            setx OPENTACO_AUTH_CLIENT_ID "my-client-id"
+            ```
+            </Tab>
+        </Tabs>
+
+        The env variable `OPENTACO_SERVER`  is the address of your server which we'll get to setting up later.
+
+    </Step>
+
+</Steps>
+
+
+# Create Your First Unit
+
+
+
+Now that you have OpenTaco running and authentication configured, let's walk through a complete example from creating a unit to running Terraform operations.
+
+<Steps>
+    <Step title="Authenticate Both Systems">
+    First, complete both authentication flows:
+
+    ```bash
+    # Authenticate taco CLI (for unit management)
+    taco login
+
+    # Authenticate Terraform (for cloud block operations)
+    terraform login localhost:8080
+    ```
+    </Step>
+    <Step title="Create a Unit">
+    Create a new unit to hold your Terraform state:
+
+    ```bash
+    # Create a unit named "demo-project"
+    taco unit create demo-project
+    ```
+
+    Verify the unit was created:
+
+    ```bash
+    # List all units
+    taco unit ls
+
+    # Check unit details
+    taco unit info demo-project
+    ```
+    </Step>
+    <Step title="Create a Terraform Configuration">
+
+    Create a new directory and Terraform configuration:
+
+    ```bash
+    # Create project directory
+    mkdir terraform-demo
+    cd terraform-demo
+    ```
+
+    Create a `main.tf` file with cloud block configuration:
+
+    ```hcl
+    terraform {
+        # Configure OpenTaco as cloud backend
+        cloud {
+            hostname = "localhost:8080"  # Replace with your OpenTaco server
+            workspaces {
+                name = "demo-project"
+            }
+        }
+    }
+
+    # Example resources
+    resource "random_string" "demo" {
+        length  = 16
+        special = false
+    }
+
+    resource "local_file" "demo_output" {
+        content  = "Generated string: ${random_string.demo.result}"
+        filename = "${path.module}/demo-output.txt"
+    }
+
+    # Outputs
+    output "random_value" {
+        value       = random_string.demo.result
+        description = "Generated random string"
+    }
+
+    output "file_path" {
+        value       = local_file.demo_output.filename
+        description = "Path to output file"
+    }
 ```
-
-Confirm Taco CLI is available with:
-
-```bash
-taco --help
-```
-
-### On Linux
-
-For Linux users, download the appropriate binary for your architecture:
-
-```bash
-# For Linux AMD64 (most common)
-curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-amd64 -o taco
-chmod +x taco
-
-# Move to a directory in your PATH
-sudo mv taco /usr/local/bin
-
-# Alternative: Install to user directory (no sudo required)
-mkdir -p ~/.local/bin
-mv taco ~/.local/bin
-# Add to PATH in your shell profile if not already there
-echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
-```
-
-For other architectures:
-```bash
-# For Linux ARM64
-curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-arm64 -o taco
-
-# For Linux 386
-curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-386 -o taco
-```
-
-Confirm Taco CLI is available with:
-
-```bash
-taco --help
-```
-
-### On Windows
-
-For Windows users, download the appropriate binary for your architecture:
-
-#### Using PowerShell (Recommended)
-
-```powershell
-# For Windows AMD64 (most common)
-Invoke-WebRequest -Uri "https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-windows-amd64.exe" -OutFile "taco.exe"
-
-# Move to a directory in your PATH (create directory if needed)
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\bin"
-Move-Item "taco.exe" "$env:USERPROFILE\bin\taco.exe"
-
-# Add to PATH permanently (run as Administrator or current user)
-$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($currentPath -notlike "*$env:USERPROFILE\bin*") {
-    [Environment]::SetEnvironmentVariable("Path", "$currentPath;$env:USERPROFILE\bin", "User")
-}
-```
-
-#### Using Command Prompt
-
-```cmd
-# Download (you may need to use a browser for this step)
-# Save the file from: https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-windows-amd64.exe
-
-# Create a bin directory in your user profile
-mkdir "%USERPROFILE%\bin" 
-
-# Move the downloaded file
-move "taco-windows-amd64.exe" "%USERPROFILE%\bin\taco.exe"
-
-# Add to PATH (this adds for current session only)
-set PATH=%PATH%;%USERPROFILE%\bin
-```
-
-#### Alternative: Manual Installation
-
-1. Download `taco-windows-amd64.exe` from the [releases page](https://github.com/diggerhq/digger/releases)
-2. Rename it to `taco.exe`
-3. Place it in a directory that's in your PATH (like `C:\Windows\System32` for system-wide access)
-4. Or create a `bin` folder in your user directory and add it to your PATH
-
-#### Confirm Installation
-
-Open a **new** Command Prompt or PowerShell window and test:
-
-```cmd
-taco --help
-```
-
-### Environment Configuration
-
-For the best experience in your shell you can configure the following environment vars for the CLI:
-
-#### On macOS/Linux:
-```bash
-export OPENTACO_SERVER=https://my-opentaco.company.com
-export OPENTACO_AUTH_ISSUER=https://auth.company.com
-export OPENTACO_AUTH_CLIENT_ID=my-client-id
-```
-
-#### On Windows PowerShell:
-```powershell
-$env:OPENTACO_SERVER="https://my-opentaco.company.com"
-$env:OPENTACO_AUTH_ISSUER="https://auth.company.com"  
-$env:OPENTACO_AUTH_CLIENT_ID="my-client-id"
-
-# To make permanent (optional):
-[Environment]::SetEnvironmentVariable("OPENTACO_SERVER", "https://my-opentaco.company.com", "User")
-[Environment]::SetEnvironmentVariable("OPENTACO_AUTH_ISSUER", "https://auth.company.com", "User")
-[Environment]::SetEnvironmentVariable("OPENTACO_AUTH_CLIENT_ID", "my-client-id", "User")
-```
-
-#### On Windows Command Prompt:
-```cmd
-set OPENTACO_SERVER=https://my-opentaco.company.com
-set OPENTACO_AUTH_ISSUER=https://auth.company.com
-set OPENTACO_AUTH_CLIENT_ID=my-client-id
-
-# To make permanent (optional):
-setx OPENTACO_SERVER "https://my-opentaco.company.com"
-setx OPENTACO_AUTH_ISSUER "https://auth.company.com"
-setx OPENTACO_AUTH_CLIENT_ID "my-client-id"
-```
-
-The first one is the address of your server which we'll get to setting up later.
-
-The last two are for OIDC setup. For now, let's setup Auth0.
-
-## Setting up Auth0 
-
-Navigate to https://auth0.com, create an account and sign in.
-
-You're going to want to create a native app. Once you do that it'll take you to a screen where you can select a technology - we don't need this. You can instead go to settings.
-
-For the CLI we need Domain and Client ID. For the OPENTACO_AUTH_ISSUER we want to use the Domain value. For the OPENTACO_AUTH_CLIENT_ID, we use the Client ID.
-
-Once we have these values we can export them in our `.zshrc`, `.bashrc`, `.profile`, `.zprofile` or whatever is applicable on your platform.
-
-## Setting up Statesman
-
-The next thing you'll want to do is to setup Statesman - the state management service. 
-
-First we'll want to make an env file for your service.
-
-### Required Environment Variables
-
-We'll need the values from the settings page of our Auth0 application:
-
-```bash
-OPENTACO_AUTH_ISSUER
-OPENTACO_AUTH_CLIENT_ID
-OPENTACO_AUTH_CLIENT_SECRET
-```
-
-Then we need to create two more:
-
-```bash
-OPENTACO_AUTH_AUTH_URL="https://{Your-Auth0-domain}/authorize"
-OPENTACO_AUTH_TOKEN_URL="https://{Your-Auth0-domain}/oauth/token"
-```
-
-Note that these are specific to Auth0, if you use another provider they may use different endpoints. That is why they are defined separately and not computed.
-
-The next values we need are from S3:
-
-```bash
-OPENTACO_S3_BUCKET=your-open-taco-bucket-name
-OPENTACO_S3_PREFIX=a-folder-within-that-bucket
-OPENTACO_S3_REGION=your-aws-region
-```
-
-And lastly the `OPENTACO_PUBLIC_BASE_URL` which is where you expect your service to be hosted that is public facing.
-
-If you are running a load balancer, it is the public side of that load balancer.
-
-If its a single server, it is the public endpoint.
-
-If you are running it through ngrok on your local machine it is the ngrok url, not localhost.
-
-
-### AWS CLI Credentials 
-
-The final piece to have a working instalation is to get your AWS CLI credentials and set them as environment variables for Statesman. If you haven't set up the AWS CLI, you should do so before doing this step.
-
-We'll run these commands
-
-`aws configure get aws_access_key_id`<br />
-`aws configure get aws_secret_access_key`<br /> 
-`aws configure get region`<br />
-
-and set then under the environment variables: 
-`AWS_ACCESS_KEY_ID`,
-`AWS_SECRET_ACCESS_KEY`,
-and `AWS_DEFAUlT_REGION` respectively
-
-
-
-### Complete Environment Configuration
-
-We should have these values in our `.env` now:
-
-```bash
-OPENTACO_S3_BUCKET='your-bucket-name'  # not a uri, the name itself
-OPENTACO_S3_REGION='aws-region' # like us-east-1
-OPENTACO_S3_PREFIX='folder-name'
-OPENTACO_AUTH_ISSUER='your-auth0-app-domain'
-OPENTACO_AUTH_CLIENT_ID='your-auth0-app-clientid'
-OPENTACO_AUTH_CLIENT_SECRET='your-auth0-app-client-secret'
-OPENTACO_AUTH_AUTH_URL='{your-auth0-app-domain}/authorize'
-OPENTACO_AUTH_TOKEN_URL='{your-auth0-app-domain}/oauth/token'
-OPENTACO_PUBLIC_BASE_URL='https://public.url/opentaco'
-AWS_ACCESS_KEY_ID='your-aws-access-key-id'
-AWS_SECRET_ACCESS_KEY='your-aws-secret-access-key'
-AWS_DEFAULT_REGION='your-cli-region'
-```
-
-
-
-## Docker Compose
-
-Use the docker-compose.yml in examples:
-
-```yaml
-version: '3.8'
-
-services:
-  statesman:
-    image: ${STATESMAN_IMAGE:-ghcr.io/diggerhq/digger/taco-statesman:latest}
-    ports:
-      - "${OPENTACO_PORT:-8080}:8080"
-    env_file:
-      - .env  # Copy from .env.example and customize
-    volumes:
-      # Optional: persist data if using file-based storage later
-      - statesman-data:/app/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    restart: unless-stopped
-    container_name: opentaco-statesman
-
-volumes:
-  statesman-data:
-    driver: local
-```
-
-Place your `.env` in the same directory.
-
-## Starting the Service
-
-Run docker-compose up:
-
-```bash
-docker-compose up -d
-```
-
-You can check if it is running with:
-
-```bash
-curl http://localhost:8080/healthz
-```
-
-If it is "OK" you will see:
-
-```json
-{"service":"opentaco","status":"ok"}
-```
-
-## Next Steps
-
-From here you can configure a reverse proxy if you are hosting this or if you want to test locally this is a good option as well.
-
-You want to set the public endpoint of Statesman as the OPENTACO_SERVER environment variable for the CLI. 
+    </Step>
+    <Step title="Initialize Terraform">
+    Initialize the Terraform project with the cloud backend:
+
+    ```bash
+    terraform init
+    ```
+
+    You should see output similar to:
+    ```
+    Initializing Terraform Cloud...
+    Initializing provider plugins...
+    Terraform Cloud has been successfully initialized!
+    ```
+    </Step>
+    <Step title="Plan your changes">
+    Run a Terraform plan to see what will be created:
+
+    ```bash
+    terraform plan
+    ```
+
+    This will:
+    1. Connect to OpenTaco using your stored credentials
+    2. Create or use the "demo-project" workspace
+    3. Show you the planned changes
+    </Step>
+    <Step title="Apply your configuration">
+    Apply the Terraform configuration:
+
+    ```bash
+    terraform apply
+    ```
+
+    Type `yes` when prompted. This will:
+    1. Create the random string resource
+    2. Create a local file with the output
+    3. Store the state remotely in OpenTaco
+    4. Display the outputs
+    </Step>
+    <Step title="Verify state management">
+    Check that your state is being managed by OpenTaco:
+
+    ```bash
+    # View unit status with taco CLI
+    taco unit info demo-project
+
+    # Check if unit is locked during operations
+    taco unit ls
+
+    # View unit status (shows dependencies if any)
+    taco unit status demo-project
+    ```
+
+    You can also check your local directory:
+    ```bash
+    # Should show the created output file
+    ls -la
+    cat demo-output.txt
+    ```
+    </Step>
+    <Step title="Make changes and update">
+
+    Edit your `main.tf` to add another resource:
+
+    ```hcl
+    # Add this resource to your main.tf
+    resource "random_password" "secure_demo" {
+        length  = 32
+        special = true
+    }
+
+    # Add this output
+    output "secure_value" {
+        value     = random_password.secure_demo.result
+        sensitive = true
+    }
+    ```
+
+    Plan and apply the changes:
+
+    ```bash
+    terraform plan
+    terraform apply
+    ```
+    </Step>
+    <Step title="Explore unit management">
+    Try some unit management operations:
+
+    ```bash
+    # Download the current state (if needed)
+    taco unit pull demo-project demo-state.json
+
+    # View the downloaded state
+    cat demo-state.json
+
+    # Check unit versions (if versioning is enabled)
+    taco unit versions demo-project
+
+    # View unit status and dependencies
+    taco unit status demo-project
+    ```
+
+    </Step>
+    <Step title="cleanup">
+    When you're done experimenting:
+
+    ```bash
+    # Destroy the Terraform resources
+    terraform destroy
+
+    # Delete the unit (optional)
+    taco unit rm demo-project
+
+    # Remove local files
+    rm -rf terraform-demo
+    ```
+    </Step>
+</Steps>
 
 ## Setting up Cloud Block Authentication
 
@@ -426,6 +686,8 @@ terraform plan
 
 **Note:** The `taco unit` commands require `taco login` credentials, while `terraform` commands with cloud block require `terraform login` credentials.
 
+# Troubleshooting
+
 ### Troubleshooting Authentication
 
 **Re-authenticate if needed:**
@@ -474,209 +736,6 @@ export TF_WORKSPACE=my-workspace
 terraform init
 ```
 
-## Complete Walkthrough Example
-
-Now that you have OpenTaco running and authentication configured, let's walk through a complete example from creating a unit to running Terraform operations.
-
-### Step 1: Authenticate Both Systems
-
-First, complete both authentication flows:
-
-```bash
-# Authenticate taco CLI (for unit management)
-taco login
-
-# Authenticate Terraform (for cloud block operations) 
-terraform login localhost:8080
-```
-
-### Step 2: Create a Unit
-
-Create a new unit to hold your Terraform state:
-
-```bash
-# Create a unit named "demo-project"
-taco unit create demo-project
-```
-
-Verify the unit was created:
-
-```bash
-# List all units
-taco unit ls
-
-# Check unit details
-taco unit info demo-project
-```
-
-### Step 3: Create a Terraform Configuration
-
-Create a new directory and Terraform configuration:
-
-```bash
-# Create project directory
-mkdir terraform-demo
-cd terraform-demo
-```
-
-Create a `main.tf` file with cloud block configuration:
-
-```hcl
-terraform {
-  # Configure OpenTaco as cloud backend
-  cloud {
-    hostname = "localhost:8080"  # Replace with your OpenTaco server
-    
-    workspaces {
-      name = "demo-project"
-    }
-  }
-}
-
-# Example resources
-resource "random_string" "demo" {
-  length  = 16
-  special = false
-}
-
-resource "local_file" "demo_output" {
-  content  = "Generated string: ${random_string.demo.result}"
-  filename = "${path.module}/demo-output.txt"
-}
-
-# Outputs
-output "random_value" {
-  value       = random_string.demo.result
-  description = "Generated random string"
-}
-
-output "file_path" {
-  value       = local_file.demo_output.filename
-  description = "Path to output file"
-}
-```
-
-### Step 4: Initialize Terraform
-
-Initialize the Terraform project with the cloud backend:
-
-```bash
-terraform init
-```
-
-You should see output similar to:
-```
-Initializing Terraform Cloud...
-Initializing provider plugins...
-Terraform Cloud has been successfully initialized!
-```
-
-### Step 5: Plan Your Changes
-
-Run a Terraform plan to see what will be created:
-
-```bash
-terraform plan
-```
-
-This will:
-1. Connect to OpenTaco using your stored credentials
-2. Create or use the "demo-project" workspace  
-3. Show you the planned changes
-
-### Step 6: Apply Your Configuration
-
-Apply the Terraform configuration:
-
-```bash
-terraform apply
-```
-
-Type `yes` when prompted. This will:
-1. Create the random string resource
-2. Create a local file with the output
-3. Store the state remotely in OpenTaco
-4. Display the outputs
-
-### Step 7: Verify State Management
-
-Check that your state is being managed by OpenTaco:
-
-```bash
-# View unit status with taco CLI
-taco unit info demo-project
-
-# Check if unit is locked during operations
-taco unit ls
-
-# View unit status (shows dependencies if any)
-taco unit status demo-project
-```
-
-You can also check your local directory:
-```bash
-# Should show the created output file
-ls -la
-cat demo-output.txt
-```
-
-### Step 8: Make Changes and Update
-
-Edit your `main.tf` to add another resource:
-
-```hcl
-# Add this resource to your main.tf
-resource "random_password" "secure_demo" {
-  length  = 32
-  special = true
-}
-
-# Add this output
-output "secure_value" {
-  value     = random_password.secure_demo.result
-  sensitive = true
-}
-```
-
-Plan and apply the changes:
-
-```bash
-terraform plan
-terraform apply
-```
-
-### Step 9: Explore Unit Management
-
-Try some unit management operations:
-
-```bash
-# Download the current state (if needed)
-taco unit pull demo-project demo-state.json
-
-# View the downloaded state
-cat demo-state.json
-
-# Check unit versions (if versioning is enabled)
-taco unit versions demo-project
-
-# View unit status and dependencies
-taco unit status demo-project
-```
-
-### Step 10: Cleanup
-
-When you're done experimenting:
-
-```bash
-# Destroy the Terraform resources
-terraform destroy
-
-# Delete the unit (optional)
-taco unit rm demo-project
-
-# Remove local files
-rm -rf terraform-demo
-```
 
 ### Next Steps
 
