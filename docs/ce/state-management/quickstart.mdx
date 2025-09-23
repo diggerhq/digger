@@ -18,7 +18,13 @@ to use the newly created unit and create a simple resource. Lets dig in!
 
                 You're going to want to create a native app. Once you do that it'll take you to a screen where you can select a technology - we don't need this. You can instead go to settings.
 
-                For the CLI we need Domain and Client ID. For the OPENTACO_AUTH_ISSUER we want to use the Domain value. For the OPENTACO_AUTH_CLIENT_ID, we use the Client ID.
+                In the settings tab take note of the domain, client id and client secret. Feel free to store them in environment variables as follows:
+
+                ```bash
+                OPENTACO_AUTH_ISSUER=[[auth0 domain]]
+                OPENTACO_AUTH_CLIENT_ID=[[auth0 client id]]
+                OPENTACO_AUTH_CLIENT_SECRET=[[auth0 client secret]]
+                ```
 
                 Once we have these values we can export them in our `.zshrc`, `.bashrc`, `.profile`, `.zprofile` or whatever is applicable on your platform.
 
