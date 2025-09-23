@@ -1,6 +1,7 @@
 package auth
 
 import (
+    "crypto/rand"
     "crypto/sha256"
     "encoding/base64"
     "encoding/json"
@@ -14,6 +15,7 @@ import (
     "time"
 
     "github.com/labstack/echo/v4"
+    "github.com/mr-tron/base58"
 )
 
 const (
@@ -42,10 +44,11 @@ type AuthCode struct {
 
 // OAuthSession represents OAuth session data encoded in encrypted state
 type OAuthSession struct {
-    ClientID      string `json:"client_id"`
-    RedirectURI   string `json:"redirect_uri"`
-    State         string `json:"state"`
-    CodeChallenge string `json:"code_challenge"`
+    ClientID            string `json:"client_id"`
+    RedirectURI         string `json:"redirect_uri"`
+    State               string `json:"state"`
+    CodeChallenge       string `json:"code_challenge"`        // Terraform's original challenge
+    ServerCodeVerifier  string `json:"server_code_verifier"`  // OpenTaco's code verifier for Okta
 }
 
 // TerraformServiceDiscovery handles /.well-known/terraform.json
@@ -226,7 +229,7 @@ func (h *Handler) OAuthLoginRedirect(c echo.Context) error {
     clientID := c.QueryParam("client_id")
     redirectURI := c.QueryParam("redirect_uri") 
     state := c.QueryParam("state")
-    codeChallenge := c.QueryParam("code_challenge")
+    terraformCodeChallenge := c.QueryParam("code_challenge") // Terraform's original challenge
     
     // Get OIDC configuration  
     serverConfig, err := h.getServerAuthConfig()
@@ -242,12 +245,17 @@ func (h *Handler) OAuthLoginRedirect(c echo.Context) error {
     baseURL := getBaseURL(c)
     callbackURL := baseURL + "/oauth/oidc-callback"
     
-    // Create OAuth session data
+    // Generate our own PKCE parameters for OpenTaco -> Okta flow
+    serverCodeVerifier := generateCodeVerifier()
+    serverCodeChallenge := generateCodeChallenge(serverCodeVerifier)
+    
+    // Create OAuth session data (store both Terraform's and server PKCE data)
     sessionData := &OAuthSession{
-        ClientID:      clientID,
-        RedirectURI:   redirectURI,
-        State:         state,
-        CodeChallenge: codeChallenge,
+        ClientID:            clientID,
+        RedirectURI:         redirectURI,
+        State:               state,
+        CodeChallenge:       terraformCodeChallenge, // Store Terraform's original challenge for final verification
+        ServerCodeVerifier:  serverCodeVerifier,     // Store server code verifier for Okta token exchange
     }
     
     // Encrypt the session data into the state parameter
@@ -270,11 +278,9 @@ func (h *Handler) OAuthLoginRedirect(c echo.Context) error {
     params.Set("scope", "openid profile email")
     params.Set("state", oauthState)
     
-    // Forward PKCE parameters to OIDC provider (required for Terraform OAuth flow)
-    if codeChallenge != "" {
-        params.Set("code_challenge", codeChallenge)
-        params.Set("code_challenge_method", "S256")
-    }
+    // Use our own PKCE parameters for OpenTaco -> Okta flow
+    params.Set("code_challenge", serverCodeChallenge)
+    params.Set("code_challenge_method", "S256")
     
     redirectURL := authURL + "?" + params.Encode()
     
@@ -315,7 +321,7 @@ func (h *Handler) OAuthOIDCCallback(c echo.Context) error {
     callbackURL := baseURL + "/oauth/oidc-callback"
     
     // Exchange code for ID token
-    tokenResp, err := h.exchangeOIDCCode(serverConfig, code, callbackURL)
+    tokenResp, err := h.exchangeOIDCCode(serverConfig, code, callbackURL, sessionData.ServerCodeVerifier)
     if err != nil {
         return c.String(http.StatusInternalServerError, fmt.Sprintf("Token exchange failed: %v", err))
     }
@@ -555,6 +561,18 @@ func verifyPKCE(verifier, challenge string) bool {
     return computed == challenge
 }
 
+// PKCE helper functions for server-side PKCE generation
+func generateCodeVerifier() string {
+    b := make([]byte, 32)
+    rand.Read(b)
+    return base58.Encode(b)
+}
+
+func generateCodeChallenge(verifier string) string {
+    h := sha256.Sum256([]byte(verifier))
+    return base64.RawURLEncoding.EncodeToString(h[:])
+}
+
 // isValidTerraformRedirectURI ensures redirect_uri is a loopback HTTP URL on approved ports and path
 func isValidTerraformRedirectURI(u string) bool {
     parsed, err := url.Parse(u)
@@ -694,7 +712,7 @@ type oidcTokenResponse struct {
     IDToken string `json:"id_token"`
 }
 
-func (h *Handler) exchangeOIDCCode(config *serverAuthConfig, code, redirectURI string) (*oidcTokenResponse, error) {
+func (h *Handler) exchangeOIDCCode(config *serverAuthConfig, code, redirectURI, codeVerifier string) (*oidcTokenResponse, error) {
     form := url.Values{}
     form.Set("grant_type", "authorization_code")
     form.Set("code", code)
@@ -702,6 +720,10 @@ func (h *Handler) exchangeOIDCCode(config *serverAuthConfig, code, redirectURI s
     form.Set("redirect_uri", redirectURI)
     if config.ClientSecret != "" {
         form.Set("client_secret", config.ClientSecret)
+    }
+    // Include PKCE code verifier if provided (required when PKCE is used)
+    if codeVerifier != "" {
+        form.Set("code_verifier", codeVerifier)
     }
     
     req, err := http.NewRequest("POST", config.TokenEndpoint, strings.NewReader(form.Encode()))
