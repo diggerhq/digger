@@ -183,7 +183,7 @@ func resolveLocals(localsAsCty cty.Value) ResolvedLocals {
 		resolved.markedProject = &hasValue
 	}
 
-	extraDependenciesAsCty, ok := rawLocals["extra_atlantis_dependencies"]
+	extraDependenciesAsCty, ok := rawLocals["extra_digger_dependencies"]
 	if ok {
 		it := extraDependenciesAsCty.ElementIterator()
 		for it.Next() {
