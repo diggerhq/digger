@@ -270,6 +270,12 @@ func (h *Handler) OAuthLoginRedirect(c echo.Context) error {
     params.Set("scope", "openid profile email")
     params.Set("state", oauthState)
     
+    // Forward PKCE parameters to OIDC provider (required for Terraform OAuth flow)
+    if codeChallenge != "" {
+        params.Set("code_challenge", codeChallenge)
+        params.Set("code_challenge_method", "S256")
+    }
+    
     redirectURL := authURL + "?" + params.Encode()
     
     // Debug: log the redirect URL (remove in production)
