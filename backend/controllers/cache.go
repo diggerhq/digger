@@ -47,6 +47,11 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 		c.String(http.StatusInternalServerError, fmt.Sprintf("could not find installation link %v %v", repoFullName, installationId))
 		return
 	}
+	if link == nil {
+		slog.Error("GitHub app installation link not found", "repoFullName", repoFullName, "installationId", installationId)
+		c.String(http.StatusInternalServerError, fmt.Sprintf("could not find installation link %v %v", repoFullName, installationId))
+		return
+	}
 	orgId := link.OrganisationId
 
 	slog.Info("Processing repo cache update", "orgId", orgId)

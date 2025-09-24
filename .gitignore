@@ -6,3 +6,32 @@
 venv/
 **/__pycache__/
 __azurite*
+
+# Go binaries and build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work.sum
+
+# Taco specific binaries
+taco
+statesman
+terraform-provider-opentaco
+opentacosvc
+
+# Build directories
+dist/
+build/
+bin/
+
+# Release-Please changelog files (ignored)
+.changelog-ignore/
+
+# IDE and editor files
+*.swp
+*.swo
+*~

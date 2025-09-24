@@ -1,0 +1,263 @@
+name: taco-release
+
+on:
+  push:
+    tags:
+      - 'taco/cli/v*'
+      - 'taco/statesman/v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            goos: linux
+            goarch: amd64
+          - os: linux
+            arch: arm64
+            goos: linux
+            goarch: arm64
+          - os: linux
+            arch: 386
+            goos: linux
+            goarch: 386
+          - os: darwin
+            arch: amd64
+            goos: darwin
+            goarch: amd64
+          - os: darwin
+            arch: arm64
+            goos: darwin
+            goarch: arm64
+          - os: windows
+            arch: amd64
+            goos: windows
+            goarch: amd64
+          - os: windows
+            arch: 386
+            goos: windows
+            goarch: 386
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Clean build directory
+        run: |
+          # Remove any existing binaries to prevent contamination
+          find . -name "dgctl*" -type f -delete || true
+          find . -name "taco*" -type f -executable -delete || true
+          find . -name "statesman*" -type f -executable -delete || true
+
+      - name: Derive app dir and version
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/cli/v1.2.3
+          APP_DIR="${TAG%/v*}"              # taco/cli
+          VERSION="${TAG##*/}"              # v1.2.3
+          echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Map to actual directory paths
+          if [ "$APP_DIR" = "taco/cli" ]; then
+            echo "build_dir=taco/cmd/taco" >> $GITHUB_OUTPUT
+          elif [ "$APP_DIR" = "taco/statesman" ]; then
+            echo "build_dir=taco/cmd/statesman" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build CLI
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
+        working-directory: ${{ steps.meta.outputs.build_dir }}
+        run: |
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
+            -ldflags="-X 'main.Version=${{ steps.meta.outputs.version }}' -X 'main.Commit=${{ github.sha }}' -s -w" \
+            -o taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} .
+          sha256sum taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}.sha256
+
+      - name: Build Statesman
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
+        working-directory: ${{ steps.meta.outputs.build_dir }}
+        run: |
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
+            -ldflags="-X 'main.Version=${{ steps.meta.outputs.version }}' -X 'main.Commit=${{ github.sha }}' -s -w" \
+            -o statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} .
+          sha256sum statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}.sha256
+
+      - name: Upload CLI artifacts
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/cli')
+        uses: actions/upload-artifact@v4
+        with:
+          name: taco-cli-${{ matrix.os }}-${{ matrix.arch }}
+          path: ${{ steps.meta.outputs.build_dir }}/taco-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
+
+      - name: Upload Statesman artifacts
+        if: startsWith(steps.meta.outputs.app_dir, 'taco/statesman')
+        uses: actions/upload-artifact@v4
+        with:
+          name: taco-statesman-${{ matrix.os }}-${{ matrix.arch }}
+          path: ${{ steps.meta.outputs.build_dir }}/statesman-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.goos == 'windows' && '.exe' || '' }}*
+
+  build-docker:
+    if: startsWith(github.ref_name, 'taco/statesman/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Derive version
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/statesman/v1.2.3
+          VERSION="${TAG##*/}"              # v1.2.3
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: docker-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/taco-statesman
+          tags: |
+            type=raw,value=${{ steps.meta.outputs.version }}
+            type=ref,event=tag
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./taco
+          file: ./taco/Dockerfile_statesman
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            VERSION=${{ steps.meta.outputs.version }}
+
+  create-release-cli:
+    if: startsWith(github.ref_name, 'taco/cli/')
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive app dir and version
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/cli/v1.2.3
+          APP_DIR="${TAG%/v*}"              # taco/cli
+          VERSION="${TAG##*/}"              # v1.2.3
+          echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release for CLI
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: taco/cli/${{ steps.meta.outputs.version }}
+          body: |
+            ## Taco CLI ${{ steps.meta.outputs.version }}
+            
+            ### Downloads
+            - **Linux AMD64**: [taco-linux-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-amd64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-amd64.sha256))
+            - **Linux ARM64**: [taco-linux-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-arm64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-arm64.sha256))
+            - **Linux 386**: [taco-linux-386](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-386) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-linux-386.sha256))
+            - **macOS AMD64**: [taco-darwin-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-amd64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-amd64.sha256))
+            - **macOS ARM64**: [taco-darwin-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-arm64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-darwin-arm64.sha256))
+            - **Windows AMD64**: [taco-windows-amd64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-amd64.exe) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-amd64.exe.sha256))
+            - **Windows 386**: [taco-windows-386.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-386.exe) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/taco-windows-386.exe.sha256))
+            
+            ### Installation
+            Download the appropriate binary for your platform and make it executable:
+            ```bash
+            chmod +x taco-<platform>-<arch>
+            sudo mv taco-<platform>-<arch> /usr/local/bin/taco
+            ```
+          files: |
+            taco-cli-*/*
+          draft: false
+          prerelease: false
+
+  create-release-statesman:
+    if: startsWith(github.ref_name, 'taco/statesman/')
+    needs: [build, build-docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive app dir and version
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. taco/statesman/v1.2.3
+          APP_DIR="${TAG%/v*}"              # taco/statesman
+          VERSION="${TAG##*/}"              # v1.2.3
+          echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release for Statesman
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: taco/statesman/${{ steps.meta.outputs.version }}
+          body: |
+            ## Taco Statesman ${{ steps.meta.outputs.version }}
+            
+            ### Downloads
+            - **Linux AMD64**: [statesman-linux-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-amd64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-amd64.sha256))
+            - **Linux ARM64**: [statesman-linux-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-arm64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-arm64.sha256))
+            - **Linux 386**: [statesman-linux-386](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-386) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-linux-386.sha256))
+            - **macOS AMD64**: [statesman-darwin-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-amd64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-amd64.sha256))
+            - **macOS ARM64**: [statesman-darwin-arm64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-arm64) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-darwin-arm64.sha256))
+            - **Windows AMD64**: [statesman-windows-amd64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-amd64.exe) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-amd64.exe.sha256))
+            - **Windows 386**: [statesman-windows-386.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-386.exe) ([checksum](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/statesman-windows-386.exe.sha256))
+            
+            ### Docker
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}/taco-statesman:${{ steps.meta.outputs.version }}
+            ```
+            
+            ### Installation
+            Download the appropriate binary for your platform and make it executable:
+            ```bash
+            chmod +x statesman-<platform>-<arch>
+            sudo mv statesman-<platform>-<arch> /usr/local/bin/statesman
+            ```
+          files: |
+            taco-statesman-*/*
+          draft: false
+          prerelease: false

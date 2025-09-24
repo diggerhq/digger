@@ -5,6 +5,7 @@ import (
     "crypto/sha256"
     "strings"
 
+    "github.com/diggerhq/digger/opentaco/internal/analytics"
     "github.com/hashicorp/terraform-plugin-framework/path"
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -79,10 +80,15 @@ func (r *dependencyResource) Schema(_ context.Context, _ resource.SchemaRequest,
 }
 
 func (r *dependencyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+    analytics.SendEssential("terraform_apply_started")
+    
     var plan dependencyModel
     diags := req.Plan.Get(ctx, &plan)
     resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() { return }
+    if resp.Diagnostics.HasError() { 
+        analytics.SendEssential("terraform_apply_failed")
+        return 
+    }
 
     // Default to_input to from_output if not set
     toInput := plan.ToInput.ValueString()
@@ -107,29 +113,48 @@ func (r *dependencyResource) Create(ctx context.Context, req resource.CreateRequ
 
     diags = resp.State.Set(ctx, plan)
     resp.Diagnostics.Append(diags...)
+    if !resp.Diagnostics.HasError() {
+        analytics.SendEssential("terraform_apply_completed")
+    }
 }
 
 func (r *dependencyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+    analytics.SendEssential("terraform_plan_started")
+    
     // No remote calls; state is source of truth (service may have edited it via state surgery)
     var state dependencyModel
     diags := req.State.Get(ctx, &state)
     resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() { return }
+    if resp.Diagnostics.HasError() { 
+        analytics.SendEssential("terraform_plan_failed")
+        return 
+    }
     diags = resp.State.Set(ctx, &state)
     resp.Diagnostics.Append(diags...)
+    if !resp.Diagnostics.HasError() {
+        analytics.SendEssential("terraform_plan_completed")
+    }
 }
 
 func (r *dependencyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+    analytics.SendEssential("terraform_apply_started")
+    
     // Carry over computed fields from current state to avoid Unknowns
     var state dependencyModel
     diags := req.State.Get(ctx, &state)
     resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() { return }
+    if resp.Diagnostics.HasError() { 
+        analytics.SendEssential("terraform_apply_failed")
+        return 
+    }
 
     var plan dependencyModel
     diags = req.Plan.Get(ctx, &plan)
     resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() { return }
+    if resp.Diagnostics.HasError() { 
+        analytics.SendEssential("terraform_apply_failed")
+        return 
+    }
 
     if plan.ToInput.ValueString() == "" {
         plan.ToInput = plan.FromOutput
@@ -147,10 +172,15 @@ func (r *dependencyResource) Update(ctx context.Context, req resource.UpdateRequ
 
     diags = resp.State.Set(ctx, plan)
     resp.Diagnostics.Append(diags...)
+    if !resp.Diagnostics.HasError() {
+        analytics.SendEssential("terraform_apply_completed")
+    }
 }
 
 func (r *dependencyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+    analytics.SendEssential("terraform_apply_started")
     // Nothing to do; remove from state
+    analytics.SendEssential("terraform_apply_completed")
 }
 
 func (r *dependencyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

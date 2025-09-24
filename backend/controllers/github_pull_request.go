@@ -76,6 +76,12 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		)
 		return fmt.Errorf("error getting github app link")
 	}
+	if link == nil {
+		slog.Error("GitHub app installation link not found",
+			"installationId", installationId,
+		)
+		return fmt.Errorf("github app installation link not found")
+	}
 	organisationId := link.OrganisationId
 
 	ghService, _, ghServiceErr := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)

@@ -1,5 +1,14 @@
 package main
 
+// Clean release test after fixing component names
+// Verifying Release-Please workflow with PAT token
+// Expecting automatic tag creation on merge
+// Testing binary cleanup to prevent dgctl contamination
+// Added workflow exclusions to prevent release collisions
+// Testing isolated taco releases without interference  
+// Testing multi-arch Docker builds with linux/amd64,arm64,386 support
+// Removed linux/386 due to Ubuntu 24.04 platform compatibility
+// Fixed semver pattern issue - using manual version for Docker tags
 import (
 	"context"
 	"flag"

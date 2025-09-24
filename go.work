@@ -13,4 +13,9 @@ use (
 
 	./libs
 
+	./taco/cmd/statesman
+	./taco/cmd/taco
+	./taco/internal
+	./taco/pkg/sdk
+
 )

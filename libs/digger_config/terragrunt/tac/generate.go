@@ -170,8 +170,8 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 		//locals := ResolvedLocals{}
 
 		// Get deps from locals
-		if locals.ExtraAtlantisDependencies != nil {
-			dependencies = sliceUnion(dependencies, locals.ExtraAtlantisDependencies)
+		if locals.ExtraDiggerDependencies != nil {
+			dependencies = sliceUnion(dependencies, locals.ExtraDiggerDependencies)
 		}
 
 		// Get deps from `dependencies` and `dependency` blocks
@@ -501,8 +501,8 @@ func createHclProject(defaultWorkflow string, defaultApplyRequirements []string,
 		return nil, nil
 	}
 
-	if locals.ExtraAtlantisDependencies != nil {
-		for _, dep := range locals.ExtraAtlantisDependencies {
+	if locals.ExtraDiggerDependencies != nil {
+		for _, dep := range locals.ExtraDiggerDependencies {
 			relDep, err := filepath.Rel(workingDir, dep)
 			if err != nil {
 				return nil, err

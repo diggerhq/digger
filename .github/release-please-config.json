@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "86729acb9327a9f715914086ca96be8ff6a3c484",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+
+  "include-component-in-tag": true,
+  "tag-separator": "/",
+  "separate-pull-requests": true,
+
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "chore", "section": "Miscellaneous", "hidden": false }
+  ],
+  "packages": {
+    "taco/cmd/taco": {
+      "release-type": "go",
+      "component": "taco/cli",
+      "changelog-path": ".changelog-ignore/CHANGELOG.md"
+    },
+    "taco/cmd/statesman": {
+      "release-type": "go",
+      "component": "taco/statesman",
+      "changelog-path": ".changelog-ignore/CHANGELOG.md"
+    }
+  }
+}
