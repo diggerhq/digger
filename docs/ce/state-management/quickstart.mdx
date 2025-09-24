@@ -12,6 +12,16 @@ to use the newly created unit and create a simple resource. Lets dig in!
 <Steps>
     <Step title="Setup Auth provider">
         <Tabs>
+            <Tab title="Configure publicly accessible URL">
+                Opentaco services expected to be publicly accessible for oauth flow to function correctly.
+                `OPENTACO_PUBLIC_BASE_URL` is the env variable where you expect your service to be hosted that is public facing.
+
+                If you are running a load balancer, it is the public side of that load balancer.
+
+                If its a single server, it is the public endpoint.
+
+                If you are running it through ngrok on your local machine it is the ngrok url, not localhost.
+            </Tab>
             <Tab title="Auth0">
 
                 Navigate to https://auth0.com, create an account and sign in.
@@ -26,7 +36,11 @@ to use the newly created unit and create a simple resource. Lets dig in!
                 OPENTACO_AUTH_CLIENT_SECRET=[[auth0 client secret]]
                 ```
 
-                In the settings tab scroll down to callback urls and add the following callback url: `http://127.0.0.1:8585/callback` and hit save changes
+                In the settings tab scroll down to callback urls and add the following callback url: `http://127.0.0.1:8585/callback`
+
+                You also need to set this value: https://OPENTACO_PUBLIC_BASE_URL/oauth/oidc-callback
+
+                Hit save changes
 
                 Once we have these values we can export them in our `.zshrc`, `.bashrc`, `.profile`, `.zprofile` or whatever is applicable on your platform.
 
@@ -419,6 +433,7 @@ Now that you have OpenTaco running and authentication configured, let's walk thr
     terraform {
         # Configure OpenTaco as cloud backend
         cloud {
+            organization = "opentaco"
             hostname = "localhost:8080"  # Replace with your OpenTaco server
             workspaces {
                 name = "demo-project"
