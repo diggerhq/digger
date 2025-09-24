@@ -82,7 +82,6 @@
     {
       "group": "How To",
       "pages": [
-        "ce/howto/managing-state",
         "ce/howto/specify-terraform-version",
         "ce/howto/caching-strategies",
         "ce/howto/apply-on-merge",
