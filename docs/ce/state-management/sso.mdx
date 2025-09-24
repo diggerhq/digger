@@ -1,0 +1,180 @@
+---
+title: "Configure SSO"
+---
+### Taco Client vs Statesman Environment Variables
+
+For SSO, the client should only need the `OPENTACO_AUTH_ISSUER`, `OPENTACO_AUTH_CLIENT_ID` and `OPENTACO_AUTH_CLIENT_SECRET` environment variables to function. These could be set and exported in .zprofile, .bashrc, etc
+
+The secret and the URL environment variables mentioned below need to be set in the server only.
+
+### Auth0 
+
+Auth0 is currently our most tested integration. As a first step go to their site and signup: https://auth0.com
+
+![Landing Page](/images/state-management/sso/auth0-landing.png)
+
+Once you sign up, go to applications: 
+
+![Getting Started Page](/images/state-management/sso/auth0-getting-started.png)
+
+Once you're in applications click create new application.
+
+![Application Page](/images/state-management/sso/auth0-applications.png)
+
+Select native application, and click create
+
+![Create Application](/images/state-management/sso/auth0-create-application.png)
+
+Click over to settings to see all the environment keys we need
+
+![Application Result](/images/state-management/sso/auth0-application-result.png)
+
+We place the value for `OPENTACO_AUTH_ISSUER` to be `https://Your-Auth0-domain.url/` (warning: trailing slash is IMPORTANT!)<br />
+We put the Auth0 client ID here `OPENTACO_AUTH_CLIENT_ID` <br /> 
+We put the Auth0 client secret `OPENTACO_AUTH_CLIENT_SECRET`<br /> 
+
+
+ 
+ For Auth0 we can configure our URLs like so: 
+
+`OPENTACO_AUTH_AUTH_URL="https://Your-Auth0-domain.url/authorize"` <br /> 
+`OPENTACO_AUTH_TOKEN_URL="https://Your-Auth0-domain.url/oauth/token"` <br /> 
+
+### Okta 
+First Sign up for Okta 
+![Landing Page](/images/state-management/sso/okta-landing-page.png)
+
+Once you're in, go to their applications tab and click "Create App Integration" 
+
+![Applications](/images/state-management/sso/okta-applications.png)
+
+Select "OIDC" and "Native Application" 
+
+![New Integration](/images/state-management/sso/okta-new-integration.png)
+
+After that you can see the ClientID: 
+
+![Client ID](/images/state-management/sso/okta-client-id.png)
+
+We can click edit in client credentials, and select "Client Secret." After we click save it will generate a client secret we can copy. We want to copy this value to use as our `OPENTACO_AUTH_CLIENT_SECRET`
+
+![Client Secret](/images/state-management/sso/okta-client-credentials.png)
+
+
+And if you click edit in the general settings area shown above, you can add the appropriate callback uris
+
+For taco login we only need http://127.0.0.1:8585/callback. If you plan to use cloud block with Okta you'll need to add the group of callback uris Terraform login can depend on here is a list:
+
+```
+   http://localhost:10000/callback
+   http://localhost:10001/callback
+   http://localhost:10002/callback
+   http://localhost:10003/callback
+   http://localhost:10004/callback
+   http://localhost:10005/callback
+   http://localhost:10006/callback
+   http://localhost:10007/callback
+   http://localhost:10008/callback
+   http://localhost:10009/callback
+   http://localhost:10010/callback
+    
+```
+
+![Client ID](/images/state-management/sso/okta-callback-uri.png)
+
+We should also visit assignments and add users we want to be able to sign in. 
+
+![Assignments](/images/state-management/sso/okta-assignments.png)
+
+In the top right menu we can also see our domain, for my user it is' https://trial-6850125.okta.com'
+
+![Domain](/images/state-management/sso/okta-domain.png)
+
+With these we can construct our env: 
+
+For auth issuer its [our domain]/oauth2/default
+
+`OPENTACO_AUTH_ISSUER="https://trial-6850125.okta.com/oauth2/default"`
+
+We take the client id from the general tab, which in this case was 0oavp3b0875RJX2IV697
+
+`OPENTACO_AUTH_CLIENT_ID="0oavp3b0875RJX2IV697"`
+
+Then our auth url and our token url are [our domain]/oauth2/default/v1/authorize or token, like so:
+
+`OPENTACO_AUTH_AUTH_URL="https://trial-6850125.okta.com/oauth2/default/v1/authorize"`
+`OPENTACO_AUTH_TOKEN_URL="https://trial-6850125.okta.com/oauth2/default/v1/token"`
+
+and we copied our `OPENTACO_AUTH_CLIENT_SECRET` from the client credentials screen earlier. 
+
+
+
+
+
+## High Availability Configuration
+
+There are several configuration options to enable OpenTaco to be deployed in a highly available environment. These are all default off for simplicity. 
+
+### JWT Signing Keys 
+
+You can set a common JWT signing key for every instance. 
+
+`OPENTACO_TOKENS_PRIVATE_KEY_PEM_PATH` - this is the path to your .pem 
+`OPENTACO_TOKENS_KID` - this is the key id to support rotation 
+
+some example values in your .env: 
+
+```
+export OPENTACO_TOKENS_PRIVATE_KEY_PEM_PATH="/etc/keys/opentaco-jwt-key.pem"
+export OPENTACO_TOKENS_KID="v1" 
+```
+
+You can generate a key like so: 
+```
+openssl genpkey -algorithm Ed25519 -out opentaco-jwt-key.pem
+```
+
+
+
+
+### OAuth State Encryption 
+
+`OPENTACO_OAUTH_STATE_KEY` is meant to be an AES-256 key for encrypting OAuth sessions state shared across all instances. 
+
+```
+export OPENTACO_OAUTH_STATE_KEY='your-32+-character-secure-random key' 
+```
+
+You can generate such a key like so: 
+```
+openssl rand -base64 32
+```
+
+### Base URL 
+
+`OPENTACO_PUBLIC_BASE_URL` is meant to be a configurable public URL for OAuth redirects that overrides the request host header. This is useful if you have a load balanced set of instances. 
+
+```
+export OPENTACO_PUBLIC_BASE_URL="https://opentaco.example.com"
+```
+
+
+### Token Lifetime Configuration 
+
+We included environment vars to allow configuration of token lifetimes
+
+JWT access token lifetime (default: 1h)
+```
+export OPENTACO_TOKENS_ACCESS_TTL="2h"
+```
+JWT refresh token lifetime (default: 720h/30 days)  
+```
+export OPENTACO_TOKENS_REFRESH_TTL="8760h"
+```
+Terraform OAuth token lifetime (default: 1h, recommend longer for CLI)
+
+```
+export OPENTACO_TERRAFORM_TOKEN_TTL="720h"
+```
+
+Note: Opaque TFE tokens never expire (manually revoked only)

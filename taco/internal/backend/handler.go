@@ -53,17 +53,17 @@ func (h *Handler) UpdateState(c echo.Context) error {
     
     id := extractID(c)
 
-	// Check if state exists, create if not
+	// Check if state exists - error if not found (no auto-creation)
 	_, err := h.store.Get(c.Request().Context(), id)
 	if err == storage.ErrNotFound {
-		// Create state
-		_, err = h.store.Create(c.Request().Context(), id)
-		if err != nil && err != storage.ErrAlreadyExists {
-			analytics.SendEssential("terraform_apply_failed")
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "Failed to create state",
-			})
-		}
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Unit not found. Please create the unit first using 'taco unit create " + id + "' or the opentaco_unit Terraform resource.",
+		})
+	}
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to check unit existence",
+		})
 	}
 
 	// Read state data
@@ -152,15 +152,9 @@ func (h *Handler) lock(c echo.Context) error {
 	err = h.store.Lock(c.Request().Context(), id, &lockInfo)
 	if err != nil {
 		if err == storage.ErrNotFound {
-			// Create state if it doesn't exist
-			_, createErr := h.store.Create(c.Request().Context(), id)
-			if createErr != nil && createErr != storage.ErrAlreadyExists {
-				return c.JSON(http.StatusInternalServerError, map[string]string{
-					"error": "Failed to create state",
-				})
-			}
-			// Retry lock
-			err = h.store.Lock(c.Request().Context(), id, &lockInfo)
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "Unit not found. Please create the unit first using 'taco unit create " + id + "' or the opentaco_unit Terraform resource.",
+			})
 		}
 
 		if err == storage.ErrLockConflict {

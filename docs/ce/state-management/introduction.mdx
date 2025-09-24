@@ -1,0 +1,31 @@
+---
+title: "Introduction"
+---
+
+By default digger does not take any opinions on how to manage state. Most users of digger bring their own
+state management such as an S3 bucket and use digger for the PR automation layer. This can be convinient but
+it does not come without challenges:
+
+- Harder to secure access to the bucket in a team setting
+- cross-account state access becomes tricky
+- Lots of terraform config maintenance to set access to the bucket
+- Error prone and no validation in case of s3
+- Lack of versioning and no ability to rollback easily
+
+We are introducing a state manager that is self-hostable and comes with RBAC built in to address these challenges.
+The advantages are controlling access to state, having a layer of validation and ease of access from any account.
+The state manager solution seeks to solve all the issues mentioned above:
+
+| Drawbacks of Using S3 for Terraform State                     | Mitigations / Best Practices                                                                                                |
+|---------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| Harder to secure access to the bucket in a team setting        | Using RBAC policies have fine-grained control on who has access to state in the team, integratable with SSO                 |
+| Cross-account state access becomes tricky                     | For CI jobs a token can be used regardless of where the terraform resources are provisioned                                                                                                              |
+| Lots of Terraform config maintenance to set access to the bucket | Supports cloud block so straightforward to integrate with all terraform/opentofu states                                 |
+| Error prone and no validation in case of S3                   | Cloud block comes with validations to protect from mistakes                                       |
+| Lack of versioning and no ability to rollback easily           | state manager supports versioning and rollbacks out of the box               |
+
+The state manager currently supports Amazon S3 as a backend with plans to support GCP buckets, Azure blob storage and more.
+
+Currently the state manager is self-hostable. There is no managed version of the state manager. Although it can be used in conjunction with digger
+
+

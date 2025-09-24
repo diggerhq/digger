@@ -4,9 +4,9 @@ go 1.24
 
 require (
 	github.com/diggerhq/digger/opentaco/pkg/sdk v0.0.0
-	github.com/google/uuid v1.6.0
+	github.com/google/uuid v1.5.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.8.0
 )
 
 require (
@@ -15,3 +15,5 @@ require (
 )
 
 replace github.com/diggerhq/digger/opentaco/pkg/sdk => ../../pkg/sdk
+
+replace github.com/diggerhq/digger/opentaco/internal => ../../internal

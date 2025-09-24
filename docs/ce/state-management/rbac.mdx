@@ -1,0 +1,234 @@
+---
+title: "RBAC"
+---
+
+Role Based Access Control 
+
+Notes
+- Available only when using bucket storage (not in-memory).
+
+OpenTaco includes a comprehensive RBAC system that allows you to control access to Terraform states based on user roles and permissions. The RBAC system is only available when using S3 storage (not in-memory storage).
+
+## Overview
+
+The RBAC system consists of three main components:
+
+1. **Permissions** - Define what actions are allowed on what resources
+2. **Roles** - Collections of permissions that can be assigned to users
+3. **Users** - Individuals who are assigned roles
+
+## Key Features
+
+- **Resource-specific permissions** - Use wildcards like `dev/*` to limit access to specific directories
+- **Permission-based access control** - Create reusable permissions with specific rules
+- **Permission testing** - Test what users can do without executing operations
+- **Email-based user management** - Use email addresses for user-friendly role assignments
+- **Wildcard support** - Use `*` for actions or resources to grant broad permissions
+- **Deny rules** - Explicitly deny access with `deny` effect rules
+
+## Quick Start
+
+### 1. Initialize RBAC
+
+```bash
+# Login first
+taco login
+
+# Initialize RBAC for your user
+taco rbac init
+```
+
+This creates default permissions and roles, and assigns admin and default roles to your user.
+
+### 2. Create Permissions
+
+```bash
+# Create a permission for developer access to dev environments
+taco rbac permission create dev-access "Developer Access" "Access to dev environments" \
+  --rule "allow:unit.read,unit.write,unit.lock:dev/*"
+
+# Create a permission for production read-only access
+taco rbac permission create prod-read "Production Read" "Read-only access to production" \
+  --rule "allow:unit.read:myapp/prod"
+
+# Create a permission for admin full access
+taco rbac permission create admin-full "Admin Full Access" "Full system access" \
+  --rule "allow:unit.read,unit.write,unit.lock,unit.delete:*" \
+  --rule "allow:rbac.manage:*"
+```
+
+### 3. Create Roles
+
+```bash
+# Create roles (initially with no permissions)
+taco rbac role create developer "Developer" "Can access dev environments"
+taco rbac role create viewer "Viewer" "Can view production units"
+taco rbac role create admin "Administrator" "Full system access"
+```
+
+### 4. Assign Permissions to Roles
+
+```bash
+# Assign the dev-access permission to the developer role
+taco rbac role assign-permission developer dev-access
+
+# Assign the prod-read permission to the viewer role
+taco rbac role assign-permission viewer prod-read
+
+# Assign the admin-full permission to the admin role
+taco rbac role assign-permission admin admin-full
+```
+
+### 5. Assign Roles to Users
+
+```bash
+# Assign roles to users (by email)
+taco rbac user assign john.doe@example.com developer
+taco rbac user assign jane.smith@example.com viewer
+taco rbac user assign admin@example.com admin
+```
+
+### 6. Test Permissions
+
+```bash
+# Test if a user can lock a specific unit
+taco rbac test john.doe@example.com lock dev/myapp
+
+# Test if a user can push to a unit
+taco rbac test john.doe@example.com unit push myapp/prod
+```
+
+## Permission Rules
+
+Permissions define access rights using rules in the format: `effect:actions:resources`
+
+### Effects
+- `allow` - Grant permission
+- `deny` - Explicitly deny permission (overrides allow rules)
+
+### Actions
+- `unit.read` - Read unit tfstate data
+- `unit.write` - Write unit tfstate data
+- `unit.lock` - Lock/unlock units
+- `unit.delete` - Delete units
+- `rbac.manage` - Manage RBAC (roles, policies, users)
+- `*` - All actions
+
+### Resources
+- `*` - All resources
+- `myapp/prod` - Specific unit
+- `dev/*` - All units under dev/ directory
+- `myapp/*` - All units under myapp/ directory
+
+### Examples
+
+```bash
+# Allow read/write access to all dev environments
+allow:unit.read,unit.write:dev/*
+
+# Allow full access to specific production unit
+allow:unit.read,unit.write,unit.lock,unit.delete:myapp/prod
+
+# Deny deletion of production units
+deny:unit.delete:myapp/prod
+
+# Allow RBAC management
+allow:rbac.manage:*
+```
+
+## Complete Example Workflow
+
+```bash
+# 1. Initialize RBAC
+taco rbac init
+
+# 2. Create permissions
+taco rbac permission create dev-access "Developer Access" "Access to dev environments" \
+  --rule "allow:unit.read,unit.write,unit.lock:dev/*"
+
+taco rbac permission create prod-read "Production Read" "Read-only access to production" \
+  --rule "allow:unit.read:myapp/prod"
+
+# 3. List permissions to verify
+taco rbac permission list
+
+# 4. Create roles
+taco rbac role create developer "Developer" "Can access dev environments"
+taco rbac role create viewer "Viewer" "Can view production states"
+
+# 5. Assign permissions to roles
+taco rbac role assign-permission developer dev-access
+taco rbac role assign-permission viewer prod-read
+
+# 6. List roles to verify permissions are assigned
+taco rbac role list
+
+# 7. Assign roles to users
+taco rbac user assign john.doe@example.com developer
+taco rbac user assign jane.smith@example.com viewer
+
+# 8. Test permissions
+taco rbac test john.doe@example.com lock dev/myapp
+taco rbac test john.doe@example.com lock myapp/prod
+taco rbac test jane.smith@example.com read myapp/prod
+taco rbac test jane.smith@example.com write myapp/prod
+```
+
+## Managing Role-Permission Relationships
+
+### Assign Additional Permissions to a Role
+
+```bash
+# Add more permissions to an existing role
+taco rbac permission create staging-access "Staging Access" "Access to staging" \
+  --rule "allow:unit.read,unit.write:myapp/staging"
+
+taco rbac role assign-permission developer staging-access
+```
+
+### Revoke Permissions from Roles
+
+```bash
+# Remove a permission from a role
+taco rbac role revoke-permission developer staging-access
+```
+
+### List Roles to See Assigned Permissions
+
+```bash
+# View all roles and their assigned permissions
+taco rbac role list
+```
+
+## Troubleshooting
+
+### RBAC Not Available
+
+If you get errors about RBAC not being available:
+
+1. Ensure you're using S3 storage (not in-memory)
+2. Make sure you've run `taco rbac init`
+3. Check that you're logged in with `taco whoami`
+
+### Permission Denied
+
+If you get permission denied errors:
+
+1. Check your roles with `taco rbac me`
+2. Test permissions with `taco rbac test <email> <operation>`
+3. Verify permissions are assigned to your roles
+4. Check that the permissions have the correct rules for the resource you're trying to access
+
+### User Not Found
+
+If you get "user not found" errors when testing permissions:
+
+1. Make sure the user has been assigned at least one role
+2. Check user assignments with `taco rbac user list`
+3. Ensure the email address is correct and matches what was used during login
+
+
+
+## RBAC in storage
+
+You can see the `rbac` folder in storage in your configured bucket. If you want to disable or remove rbac, simply delete the rbac folder. You can also manually edit role and permissions or upload new ones directly to the storage bucket. 
