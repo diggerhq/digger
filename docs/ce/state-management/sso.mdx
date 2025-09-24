@@ -3,7 +3,7 @@ title: "Configure SSO"
 ---
 ### Taco Client vs Statesman Environment Variables
 
-For SSO, the client should only need the `OPENTACO_AUTH_ISSUER` and `OPENTACO_AUTH_CLIENT_ID` environment variables to function. These could be set and exported in .zprofile, .bashrc, etc 
+For SSO, the client should only need the `OPENTACO_AUTH_ISSUER`, `OPENTACO_AUTH_CLIENT_ID` and `OPENTACO_AUTH_CLIENT_SECRET` environment variables to function. These could be set and exported in .zprofile, .bashrc, etc
 
 The secret and the URL environment variables mentioned below need to be set in the server only.
 
@@ -29,7 +29,7 @@ Click over to settings to see all the environment keys we need
 
 ![Application Result](/images/state-management/sso/auth0-application-result.png)
 
-We place the Auth0 domain as the `OPENTACO_AUTH_ISSUER` (with https:// prefix)<br />
+We place the value for `OPENTACO_AUTH_ISSUER` to be `https://Your-Auth0-domain.url/` (warning: trailing slash is IMPORTANT!)<br />
 We put the Auth0 client ID here `OPENTACO_AUTH_CLIENT_ID` <br /> 
 We put the Auth0 client secret `OPENTACO_AUTH_CLIENT_SECRET`<br /> 
 
