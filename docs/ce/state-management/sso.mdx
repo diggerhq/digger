@@ -29,7 +29,7 @@ Click over to settings to see all the environment keys we need
 
 ![Application Result](/images/state-management/sso/auth0-application-result.png)
 
-We place the Auth0 domain as the `OPENTACO_AUTH_ISSUER` <br /> 
+We place the Auth0 domain as the `OPENTACO_AUTH_ISSUER` (with https:// prefix)<br />
 We put the Auth0 client ID here `OPENTACO_AUTH_CLIENT_ID` <br /> 
 We put the Auth0 client secret `OPENTACO_AUTH_CLIENT_SECRET`<br /> 
 
@@ -63,7 +63,7 @@ We can click edit in client credentials, and select "Client Secret." After we cl
 
 And if you click edit in the general settings area shown above, you can add the appropriate callback uris
 
-For taco login we only need http://localhost:8585/callback. If you plan to use cloud block with Okta you'll need to add the group of callback uris Terraform login can depend on here is a list: 
+For taco login we only need http://127.0.0.1:8585/callback. If you plan to use cloud block with Okta you'll need to add the group of callback uris Terraform login can depend on here is a list:
 
 ```
    http://localhost:10000/callback
