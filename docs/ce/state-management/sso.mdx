@@ -109,3 +109,72 @@ and we copied our `OPENTACO_AUTH_CLIENT_SECRET` from the client credentials scre
 
 
 
+
+
+## High Availability Configuration
+
+There are several configuration options to enable OpenTaco to be deployed in a highly available environment. These are all default off for simplicity. 
+
+### JWT Signing Keys 
+
+You can set a common JWT signing key for every instance. 
+
+`OPENTACO_TOKENS_PRIVATE_KEY_PEM_PATH` - this is the path to your .pem 
+`OPENTACO_TOKENS_KID` - this is the key id to support rotation 
+
+some example values in your .env: 
+
+```
+export OPENTACO_TOKENS_PRIVATE_KEY_PEM_PATH="/etc/keys/opentaco-jwt-key.pem"
+export OPENTACO_TOKENS_KID="v1" 
+```
+
+You can generate a key like so: 
+```
+openssl genpkey -algorithm Ed25519 -out opentaco-jwt-key.pem
+```
+
+
+
+
+### OAuth State Encryption 
+
+`OPENTACO_OAUTH_STATE_KEY` is meant to be an AES-256 key for encrypting OAuth sessions state shared across all instances. 
+
+```
+export OPENTACO_OAUTH_STATE_KEY='your-32+-character-secure-random key' 
+```
+
+You can generate such a key like so: 
+```
+openssl rand -base64 32
+```
+
+### Base URL 
+
+`OPENTACO_PUBLIC_BASE_URL` is meant to be a configurable public URL for OAuth redirects that overrides the request host header. This is useful if you have a load balanced set of instances. 
+
+```
+export OPENTACO_PUBLIC_BASE_URL="https://opentaco.example.com"
+```
+
+
+### Token Lifetime Configuration 
+
+We included environment vars to allow configuration of token lifetimes
+
+JWT access token lifetime (default: 1h)
+```
+export OPENTACO_TOKENS_ACCESS_TTL="2h"
+```
+JWT refresh token lifetime (default: 720h/30 days)  
+```
+export OPENTACO_TOKENS_REFRESH_TTL="8760h"
+```
+Terraform OAuth token lifetime (default: 1h, recommend longer for CLI)
+
+```
+export OPENTACO_TERRAFORM_TOKEN_TTL="720h"
+```
+
+Note: Opaque TFE tokens never expire (manually revoked only)
