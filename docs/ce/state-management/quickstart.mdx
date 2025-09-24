@@ -10,18 +10,18 @@ to use the newly created unit and create a simple resource. Lets dig in!
 # Prerequisites
 
 <Steps>
+    <Step title="Configure publicly accessible URL">
+            Opentaco services expected to be publicly accessible for oauth flow to function correctly.
+            `OPENTACO_PUBLIC_BASE_URL` is the env variable where you expect your service to be hosted that is public facing.
+
+            If you are running a load balancer, it is the public side of that load balancer.
+
+            If its a single server, it is the public endpoint.
+
+            If you are running it through ngrok on your local machine it is the ngrok url, not localhost.
+    </Step>
     <Step title="Setup Auth provider">
         <Tabs>
-            <Tab title="Configure publicly accessible URL">
-                Opentaco services expected to be publicly accessible for oauth flow to function correctly.
-                `OPENTACO_PUBLIC_BASE_URL` is the env variable where you expect your service to be hosted that is public facing.
-
-                If you are running a load balancer, it is the public side of that load balancer.
-
-                If its a single server, it is the public endpoint.
-
-                If you are running it through ngrok on your local machine it is the ngrok url, not localhost.
-            </Tab>
             <Tab title="Auth0">
 
                 Navigate to https://auth0.com, create an account and sign in.
