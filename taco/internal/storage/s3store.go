@@ -191,6 +191,16 @@ func (s *s3Store) Get(ctx context.Context, id string) (*UnitMetadata, error) {
         meta.Locked = false
         meta.LockInfo = nil
     }
+    
+    // Try to load metadata (tags, description, org)
+    enrichedMeta, err := s.loadMetadata(ctx, id)
+    if err == nil {
+        // Copy metadata fields
+        meta.Tags = enrichedMeta.Tags
+        meta.Description = enrichedMeta.Description
+        meta.Organization = enrichedMeta.Organization
+    }
+    
     return &meta, nil
 }
 
@@ -586,6 +596,436 @@ func (s *s3Store) cleanupOldVersions(ctx context.Context, id string) error {
     }
     
     return nil
+}
+
+// CreateWithMetadata creates a unit with tags and metadata
+func (s *s3Store) CreateWithMetadata(ctx context.Context, id string, tags []string, description string, org string) (*UnitMetadata, error) {
+    // First create the unit normally
+    unitMeta, err := s.Create(ctx, id)
+    if err != nil && err != ErrAlreadyExists {
+        return nil, err
+    }
+    
+    // Add metadata to the unit
+    unitMeta.Tags = tags
+    unitMeta.Description = description
+    unitMeta.Organization = org
+    
+    // Store metadata as a separate S3 object
+    err = s.storeMetadata(ctx, id, unitMeta)
+    if err != nil {
+        return nil, fmt.Errorf("failed to store metadata: %w", err)
+    }
+    
+    return unitMeta, nil
+}
+
+// UpdateMetadata updates tags and metadata for an existing unit
+func (s *s3Store) UpdateMetadata(ctx context.Context, id string, tags []string, description string, org string) error {
+    // Get existing unit to verify it exists
+    unitMeta, err := s.Get(ctx, id)
+    if err != nil {
+        return err
+    }
+    
+    // Update metadata
+    unitMeta.Tags = tags
+    unitMeta.Description = description
+    unitMeta.Organization = org
+    unitMeta.Updated = time.Now()
+    
+    // Store updated metadata
+    return s.storeMetadata(ctx, id, unitMeta)
+}
+
+// ListByTags queries units by tags within an organization
+func (s *s3Store) ListByTags(ctx context.Context, org string, tags []string) ([]*UnitMetadata, error) {
+    // Get all units first
+    allUnits, err := s.List(ctx, "")
+    if err != nil {
+        return nil, err
+    }
+    
+    var matchingUnits []*UnitMetadata
+    
+    for _, unit := range allUnits {
+        // Load metadata for each unit
+        enrichedUnit, err := s.loadMetadata(ctx, unit.ID)
+        if err != nil {
+            // Skip units without metadata
+            continue
+        }
+        
+        // Filter by organization
+        if enrichedUnit.Organization != org {
+            continue
+        }
+        
+        // Check if unit has all required tags
+        if s.hasAllTags(enrichedUnit.Tags, tags) {
+            matchingUnits = append(matchingUnits, enrichedUnit)
+        }
+    }
+    
+    return matchingUnits, nil
+}
+
+
+// storeMetadata stores unit metadata in S3
+func (s *s3Store) storeMetadata(ctx context.Context, id string, meta *UnitMetadata) error {
+    metadataKey := s.metadataKey(id)
+    
+    metadataJSON, err := json.Marshal(meta)
+    if err != nil {
+        return err
+    }
+    
+    _, err = s.client.PutObject(ctx, &s3.PutObjectInput{
+        Bucket:      &s.bucket,
+        Key:         &metadataKey,
+        Body:        bytes.NewReader(metadataJSON),
+        ContentType: aws.String("application/json"),
+    })
+    
+    return err
+}
+
+// loadMetadata loads unit metadata from S3
+func (s *s3Store) loadMetadata(ctx context.Context, id string) (*UnitMetadata, error) {
+    metadataKey := s.metadataKey(id)
+    
+    result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+        Bucket: &s.bucket,
+        Key:    &metadataKey,
+    })
+    if err != nil {
+        if isNotFound(err) {
+            return nil, ErrNotFound
+        }
+        return nil, err
+    }
+    defer result.Body.Close()
+    
+    metadataBytes, err := io.ReadAll(result.Body)
+    if err != nil {
+        return nil, err
+    }
+    
+    var meta UnitMetadata
+    if err := json.Unmarshal(metadataBytes, &meta); err != nil {
+        return nil, err
+    }
+    
+    return &meta, nil
+}
+
+// metadataKey generates the S3 key for unit metadata
+func (s *s3Store) metadataKey(id string) string {
+    return s.Key("metadata", id+".json")
+}
+
+// hasAllTags checks if a unit has all required tags
+func (s *s3Store) hasAllTags(unitTags, requiredTags []string) bool {
+    for _, required := range requiredTags {
+        found := false
+        for _, unitTag := range unitTags {
+            if unitTag == required {
+                found = true
+                break
+            }
+        }
+        if !found {
+            return false
+        }
+    }
+    return true
+}
+
+//
+// Tag Management Implementation
+//
+
+// CreateTag creates a new tag with metadata
+func (s *s3Store) CreateTag(ctx context.Context, name string, description string) (*TagMetadata, error) {
+    // Check if tag already exists
+    _, err := s.GetTag(ctx, name)
+    if err == nil {
+        return nil, ErrAlreadyExists
+    }
+    if err != ErrNotFound {
+        return nil, err
+    }
+    
+    now := time.Now()
+    tag := &TagMetadata{
+        Name:        name,
+        Description: description,
+        CreatedAt:   now,
+        UpdatedAt:   now,
+        UnitCount:   0,
+    }
+    
+    // Store tag metadata
+    tagKey := s.tagMetadataKey(name)
+    tagJSON, err := json.Marshal(tag)
+    if err != nil {
+        return nil, err
+    }
+    
+    _, err = s.client.PutObject(ctx, &s3.PutObjectInput{
+        Bucket:      &s.bucket,
+        Key:         &tagKey,
+        Body:        bytes.NewReader(tagJSON),
+        ContentType: aws.String("application/json"),
+    })
+    
+    if err != nil {
+        return nil, err
+    }
+    
+    return tag, nil
+}
+
+// GetTag retrieves tag metadata
+func (s *s3Store) GetTag(ctx context.Context, name string) (*TagMetadata, error) {
+    tagKey := s.tagMetadataKey(name)
+    
+    result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+        Bucket: &s.bucket,
+        Key:    &tagKey,
+    })
+    if err != nil {
+        if isNotFound(err) {
+            return nil, ErrNotFound
+        }
+        return nil, err
+    }
+    defer result.Body.Close()
+    
+    tagBytes, err := io.ReadAll(result.Body)
+    if err != nil {
+        return nil, err
+    }
+    
+    var tag TagMetadata
+    if err := json.Unmarshal(tagBytes, &tag); err != nil {
+        return nil, err
+    }
+    
+    // Update unit count dynamically
+    count, err := s.getTagUnitCount(ctx, name)
+    if err == nil {
+        tag.UnitCount = count
+    }
+    
+    return &tag, nil
+}
+
+// ListTags lists all available tags
+func (s *s3Store) ListTags(ctx context.Context) ([]*TagMetadata, error) {
+    prefix := s.Key("tags") + "/"
+    
+    resp, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+        Bucket: &s.bucket,
+        Prefix: &prefix,
+    })
+    if err != nil {
+        return nil, err
+    }
+    
+    var tags []*TagMetadata
+    for _, obj := range resp.Contents {
+        if !strings.HasSuffix(*obj.Key, ".json") {
+            continue
+        }
+        
+        // Extract tag name from key
+        tagName := strings.TrimPrefix(*obj.Key, prefix)
+        tagName = strings.TrimSuffix(tagName, ".json")
+        
+        tag, err := s.GetTag(ctx, tagName)
+        if err != nil {
+            continue // Skip problematic tags
+        }
+        
+        tags = append(tags, tag)
+    }
+    
+    return tags, nil
+}
+
+// UpdateTag updates tag metadata
+func (s *s3Store) UpdateTag(ctx context.Context, name string, description string) error {
+    // Get existing tag
+    tag, err := s.GetTag(ctx, name)
+    if err != nil {
+        return err
+    }
+    
+    // Update description and timestamp
+    tag.Description = description
+    tag.UpdatedAt = time.Now()
+    
+    // Store updated tag
+    tagKey := s.tagMetadataKey(name)
+    tagJSON, err := json.Marshal(tag)
+    if err != nil {
+        return err
+    }
+    
+    _, err = s.client.PutObject(ctx, &s3.PutObjectInput{
+        Bucket:      &s.bucket,
+        Key:         &tagKey,
+        Body:        bytes.NewReader(tagJSON),
+        ContentType: aws.String("application/json"),
+    })
+    
+    return err
+}
+
+// DeleteTag deletes a tag and removes it from all units
+func (s *s3Store) DeleteTag(ctx context.Context, name string) error {
+    // First, remove the tag from all units that have it
+    units, err := s.GetUnitsByTag(ctx, name)
+    if err != nil && err != ErrNotFound {
+        return fmt.Errorf("failed to get units with tag %s: %w", name, err)
+    }
+    
+    // Remove tag from each unit
+    for _, unit := range units {
+        if err := s.RemoveTagFromUnit(ctx, unit.ID, name); err != nil {
+            return fmt.Errorf("failed to remove tag %s from unit %s: %w", name, unit.ID, err)
+        }
+    }
+    
+    // Delete the tag metadata
+    tagKey := s.tagMetadataKey(name)
+    _, err = s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+        Bucket: &s.bucket,
+        Key:    &tagKey,
+    })
+    
+    return err
+}
+
+// AddTagToUnit adds a tag to a unit
+func (s *s3Store) AddTagToUnit(ctx context.Context, unitID string, tagName string) error {
+    // Verify tag exists
+    _, err := s.GetTag(ctx, tagName)
+    if err != nil {
+        return fmt.Errorf("tag %s does not exist: %w", tagName, err)
+    }
+    
+    // Get unit metadata
+    unit, err := s.Get(ctx, unitID)
+    if err != nil {
+        return err
+    }
+    
+    // Check if tag already exists on unit
+    for _, existingTag := range unit.Tags {
+        if existingTag == tagName {
+            return nil // Already has the tag, no-op
+        }
+    }
+    
+    // Add tag to unit
+    unit.Tags = append(unit.Tags, tagName)
+    unit.Updated = time.Now()
+    
+    // Store updated metadata
+    return s.storeMetadata(ctx, unitID, unit)
+}
+
+// RemoveTagFromUnit removes a tag from a unit
+func (s *s3Store) RemoveTagFromUnit(ctx context.Context, unitID string, tagName string) error {
+    // Get unit metadata
+    unit, err := s.Get(ctx, unitID)
+    if err != nil {
+        return err
+    }
+    
+    // Remove tag from unit's tags list
+    var newTags []string
+    found := false
+    for _, existingTag := range unit.Tags {
+        if existingTag != tagName {
+            newTags = append(newTags, existingTag)
+        } else {
+            found = true
+        }
+    }
+    
+    if !found {
+        return nil // Tag wasn't on the unit, no-op
+    }
+    
+    // Update unit metadata
+    unit.Tags = newTags
+    unit.Updated = time.Now()
+    
+    // Store updated metadata
+    return s.storeMetadata(ctx, unitID, unit)
+}
+
+// GetUnitsByTag returns all units that have a specific tag
+func (s *s3Store) GetUnitsByTag(ctx context.Context, tagName string) ([]*UnitMetadata, error) {
+    // Get all units and filter by tag
+    allUnits, err := s.List(ctx, "")
+    if err != nil {
+        return nil, err
+    }
+    
+    var matchingUnits []*UnitMetadata
+    for _, unit := range allUnits {
+        // Load metadata to get tags
+        enrichedUnit, err := s.loadMetadata(ctx, unit.ID)
+        if err != nil {
+            continue // Skip units without metadata
+        }
+        
+        // Copy basic unit info to enriched version
+        enrichedUnit.Size = unit.Size
+        enrichedUnit.Updated = unit.Updated
+        enrichedUnit.Locked = unit.Locked
+        enrichedUnit.LockInfo = unit.LockInfo
+        
+        // Check if unit has the tag
+        for _, unitTag := range enrichedUnit.Tags {
+            if unitTag == tagName {
+                matchingUnits = append(matchingUnits, enrichedUnit)
+                break
+            }
+        }
+    }
+    
+    return matchingUnits, nil
+}
+
+// GetTagsForUnit returns all tags for a specific unit
+func (s *s3Store) GetTagsForUnit(ctx context.Context, unitID string) ([]string, error) {
+    unit, err := s.Get(ctx, unitID)
+    if err != nil {
+        return nil, err
+    }
+    
+    return unit.Tags, nil
+}
+
+// Helper methods for tag management
+
+// tagMetadataKey generates the S3 key for tag metadata
+func (s *s3Store) tagMetadataKey(tagName string) string {
+    return s.Key("tags", tagName+".json")
+}
+
+// getTagUnitCount counts how many units use a specific tag
+func (s *s3Store) getTagUnitCount(ctx context.Context, tagName string) (int, error) {
+    units, err := s.GetUnitsByTag(ctx, tagName)
+    if err != nil {
+        return 0, err
+    }
+    return len(units), nil
 }
 
 // generateLineage generates a unique UUID for Terraform state lineage

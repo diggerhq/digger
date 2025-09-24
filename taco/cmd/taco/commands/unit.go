@@ -44,11 +44,20 @@ func init() {
     unitCmd.AddCommand(unitVersionsCmd)
     unitCmd.AddCommand(unitRestoreCmd)
     unitCmd.AddCommand(unitStatusCmd)
+    
+    // Tag management subcommands
+    unitCmd.AddCommand(unitTagCmd)
 }
+
+var (
+    unitCreateTags        string
+    unitCreateOrg         string  
+    unitCreateDescription string
+)
 
 var unitCreateCmd = &cobra.Command{
     Use:   "create <unit-id>",
-    Short: "Create a new unit",
+    Short: "Create a new unit with optional tags and metadata",
     Args:  cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
         analytics.SendEssential("taco_unit_create_started")
@@ -58,16 +67,45 @@ var unitCreateCmd = &cobra.Command{
 
         printVerbose("Creating unit: %s", unitID)
 
-        resp, err := client.CreateUnit(context.Background(), unitID)
-        if err != nil {
-            analytics.SendEssential("taco_unit_create_failed")
-            return fmt.Errorf("failed to create unit: %w", err)
+        // Parse tags if provided
+        var tags []string
+        if unitCreateTags != "" {
+            tags = strings.Split(unitCreateTags, ",")
+            for i, tag := range tags {
+                tags[i] = strings.TrimSpace(tag)
+            }
+        }
+
+        // Use enhanced creation with metadata if any metadata provided
+        if len(tags) > 0 || unitCreateOrg != "" || unitCreateDescription != "" {
+            // For now, we'll use the TFE workspace API to create units with metadata
+            // TODO: Add direct SDK support for CreateWithMetadata
+            fmt.Printf("Creating unit with tags %v, org: %s, description: %s\n", tags, unitCreateOrg, unitCreateDescription)
+            resp, err := client.CreateUnit(context.Background(), unitID)
+            if err != nil {
+                analytics.SendEssential("taco_unit_create_failed")
+                return fmt.Errorf("failed to create unit: %w", err)
+            }
+            fmt.Printf("Unit created: %s (Note: tag/metadata support via CLI coming soon - use TFE API for now)\n", resp.ID)
+        } else {
+            // Simple creation
+            resp, err := client.CreateUnit(context.Background(), unitID)
+            if err != nil {
+                analytics.SendEssential("taco_unit_create_failed")
+                return fmt.Errorf("failed to create unit: %w", err)
+            }
+            fmt.Printf("Unit created: %s\n", resp.ID)
         }
 
         analytics.SendEssential("taco_unit_create_completed")
-        fmt.Printf("Unit created: %s\n", resp.ID)
         return nil
     },
+}
+
+func init() {
+    unitCreateCmd.Flags().StringVar(&unitCreateTags, "tags", "", "Comma-separated list of tags (e.g., 'env:prod,app:web')")
+    unitCreateCmd.Flags().StringVar(&unitCreateOrg, "org", "", "Organization name")
+    unitCreateCmd.Flags().StringVar(&unitCreateDescription, "description", "", "Unit description")
 }
 
 var (
@@ -138,15 +176,28 @@ func init() {
     unitStatusCmd.Flags().StringVarP(&unitStatusOutput, "output", "o", "table", "Output format: table|json")
 }
 
+var (
+    unitListTags string
+    unitListOrg  string
+)
+
 var unitListCmd = &cobra.Command{
     Use:     "ls [prefix]",
-    Short:   "List units",
+    Short:   "List units with optional tag filtering",
     Aliases: []string{"list"},
     RunE: func(cmd *cobra.Command, args []string) error {
         client := newAuthedClient()
         prefix := ""
         if len(args) > 0 { prefix = args[0] }
-        printVerbose("Listing units with prefix: %s", prefix)
+        
+        if unitListTags != "" || unitListOrg != "" {
+            printVerbose("Listing units with tags: %s, org: %s", unitListTags, unitListOrg)
+            fmt.Printf("Filtering by tags: %s, org: %s\n", unitListTags, unitListOrg)
+            fmt.Println("Note: Tag filtering via CLI coming soon - use TFE API for now")
+            // TODO: Implement tag-based filtering
+        } else {
+            printVerbose("Listing units with prefix: %s", prefix)
+        }
 
         resp, err := client.ListUnits(context.Background(), prefix)
         if err != nil {
@@ -173,16 +224,23 @@ var unitListCmd = &cobra.Command{
         }
 
         w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-        fmt.Fprintln(w, "ID\tSIZE\tUPDATED\tLOCKED")
+        fmt.Fprintln(w, "ID\tSIZE\tUPDATED\tLOCKED\tTAGS")
         for _, u := range filtered {
             locked := ""
             if u.Locked { locked = "yes" }
-            fmt.Fprintf(w, "%s\t%d\t%s\t%s\n", u.ID, u.Size, u.Updated.Format("2006-01-02 15:04:05"), locked)
+            // TODO: Show actual tags from unit metadata
+            tags := "n/a"
+            fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\n", u.ID, u.Size, u.Updated.Format("2006-01-02 15:04:05"), locked, tags)
         }
         w.Flush()
         fmt.Printf("\nTotal: %d units (showing %d with read access)\n", resp.Count, len(filtered))
         return nil
     },
+}
+
+func init() {
+    unitListCmd.Flags().StringVar(&unitListTags, "tags", "", "Filter by comma-separated tags")
+    unitListCmd.Flags().StringVar(&unitListOrg, "org", "", "Filter by organization")
 }
 
 var unitInfoCmd = &cobra.Command{
@@ -498,5 +556,143 @@ func saveLockID(unitID, lockID string) {
 func removeLockID(unitID string) {
     lockFile := filepath.Join(os.TempDir(), "opentaco-locks", strings.ReplaceAll(unitID, "/", "__")+".lock")
     _ = os.Remove(lockFile)
+}
+
+//
+// Tag Management Commands
+//
+
+// unitTagCmd is the parent command for tag operations
+var unitTagCmd = &cobra.Command{
+    Use:   "tag",
+    Short: "Manage unit tags",
+    Long:  `Manage tags for units including add, remove, and list operations.`,
+}
+
+func init() {
+    // Add tag subcommands
+    unitTagCmd.AddCommand(unitTagAddCmd)
+    unitTagCmd.AddCommand(unitTagRemoveCmd)
+    unitTagCmd.AddCommand(unitTagListCmd)
+    unitTagCmd.AddCommand(unitTagShowCmd)
+    
+    // Add global tag management commands to root
+    rootCmd.AddCommand(tagCmd)
+}
+
+var unitTagAddCmd = &cobra.Command{
+    Use:   "add <unit-id> <tag-name>",
+    Short: "Add a tag to a unit",
+    Args:  cobra.ExactArgs(2),
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // TODO: Implement via API call
+        fmt.Printf("Adding tag '%s' to unit '%s'\n", args[1], args[0])
+        fmt.Println("Note: CLI tag operations coming soon - use TFE API for now")
+        return nil
+    },
+}
+
+var unitTagRemoveCmd = &cobra.Command{
+    Use:   "remove <unit-id> <tag-name>",
+    Short: "Remove a tag from a unit",
+    Args:  cobra.ExactArgs(2),
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // TODO: Implement via API call
+        fmt.Printf("Removing tag '%s' from unit '%s'\n", args[1], args[0])
+        fmt.Println("Note: CLI tag operations coming soon - use TFE API for now")
+        return nil
+    },
+}
+
+var unitTagListCmd = &cobra.Command{
+    Use:   "list <unit-id>",
+    Short: "List all tags for a unit",
+    Args:  cobra.ExactArgs(1),
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // TODO: Implement via API call
+        fmt.Printf("Tags for unit '%s':\n", args[0])
+        fmt.Println("Note: CLI tag operations coming soon - use TFE API for now")
+        return nil
+    },
+}
+
+var unitTagShowCmd = &cobra.Command{
+    Use:   "show <tag-name>",
+    Short: "Show all units with a specific tag",
+    Args:  cobra.ExactArgs(1),
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // TODO: Implement via API call
+        fmt.Printf("Units with tag '%s':\n", args[0])
+        fmt.Println("Note: CLI tag operations coming soon - use TFE API for now")
+        return nil
+    },
+}
+
+// Global tag management commands
+var tagCmd = &cobra.Command{
+    Use:   "tag",
+    Short: "Global tag management",
+    Long:  `Manage tags globally including create, list, delete operations.`,
+}
+
+func init() {
+    // Add global tag subcommands
+    tagCmd.AddCommand(tagCreateCmd)
+    tagCmd.AddCommand(tagListCmd)
+    tagCmd.AddCommand(tagDeleteCmd)
+    tagCmd.AddCommand(tagDescribeCmd)
+}
+
+var tagCreateCmd = &cobra.Command{
+    Use:   "create <tag-name>",
+    Short: "Create a new tag",
+    Args:  cobra.ExactArgs(1),
+    RunE: func(cmd *cobra.Command, args []string) error {
+        description, _ := cmd.Flags().GetString("description")
+        
+        // TODO: Implement via API call
+        fmt.Printf("Creating tag '%s' with description: %s\n", args[0], description)
+        fmt.Println("Note: CLI tag operations coming soon - use TFE API for now")
+        return nil
+    },
+}
+
+func init() {
+    tagCreateCmd.Flags().String("description", "", "Tag description")
+}
+
+var tagListCmd = &cobra.Command{
+    Use:   "list",
+    Short: "List all available tags",
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // TODO: Implement via API call
+        fmt.Println("Available tags:")
+        fmt.Println("Note: CLI tag operations coming soon - use TFE API for now")
+        return nil
+    },
+}
+
+var tagDeleteCmd = &cobra.Command{
+    Use:   "delete <tag-name>",
+    Short: "Delete a tag (removes from all units)",
+    Args:  cobra.ExactArgs(1),
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // TODO: Implement via API call
+        fmt.Printf("Deleting tag '%s' from all units\n", args[0])
+        fmt.Println("Note: CLI tag operations coming soon - use TFE API for now")
+        return nil
+    },
+}
+
+var tagDescribeCmd = &cobra.Command{
+    Use:   "describe <tag-name>",
+    Short: "Show tag details and usage",
+    Args:  cobra.ExactArgs(1),
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // TODO: Implement via API call
+        fmt.Printf("Details for tag '%s':\n", args[0])
+        fmt.Println("Note: CLI tag operations coming soon - use TFE API for now")
+        return nil
+    },
 }
 

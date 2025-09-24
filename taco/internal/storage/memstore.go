@@ -16,6 +16,7 @@ import (
 type memStore struct {
     mu     sync.RWMutex
     units  map[string]*unitData
+    tags   map[string]*TagMetadata
 }
 
 type unitData struct {
@@ -33,6 +34,7 @@ type versionData struct {
 func NewMemStore() UnitStore {
     return &memStore{
         units: make(map[string]*unitData),
+        tags:  make(map[string]*TagMetadata),
     }
 }
 
@@ -45,10 +47,13 @@ func (m *memStore) Create(ctx context.Context, id string) (*UnitMetadata, error)
     }
 	
     metadata := &UnitMetadata{
-        ID:      id,
-        Size:    0,
-        Updated: time.Now(),
-        Locked:  false,
+        ID:           id,
+        Size:         0,
+        Updated:      time.Now(),
+        Locked:       false,
+        Tags:         []string{},
+        Description:  "",
+        Organization: "",
     }
 	
     m.units[id] = &unitData{
@@ -69,12 +74,18 @@ func (m *memStore) Get(ctx context.Context, id string) (*UnitMetadata, error) {
 	}
 	
 	// Return a copy to avoid mutations
+    tags := make([]string, len(state.metadata.Tags))
+    copy(tags, state.metadata.Tags)
+    
     return &UnitMetadata{
-        ID:       state.metadata.ID,
-        Size:     state.metadata.Size,
-        Updated:  state.metadata.Updated,
-        Locked:   state.metadata.Locked,
-        LockInfo: state.metadata.LockInfo,
+        ID:           state.metadata.ID,
+        Size:         state.metadata.Size,
+        Updated:      state.metadata.Updated,
+        Locked:       state.metadata.Locked,
+        LockInfo:     state.metadata.LockInfo,
+        Tags:         tags,
+        Description:  state.metadata.Description,
+        Organization: state.metadata.Organization,
     }, nil
 }
 
@@ -86,12 +97,18 @@ func (m *memStore) List(ctx context.Context, prefix string) ([]*UnitMetadata, er
     for id, unit := range m.units {
 		if prefix == "" || strings.HasPrefix(id, prefix) {
 			// Return copies
+            tags := make([]string, len(unit.metadata.Tags))
+            copy(tags, unit.metadata.Tags)
+            
             results = append(results, &UnitMetadata{
-                ID:       unit.metadata.ID,
-                Size:     unit.metadata.Size,
-                Updated:  unit.metadata.Updated,
-                Locked:   unit.metadata.Locked,
-                LockInfo: unit.metadata.LockInfo,
+                ID:           unit.metadata.ID,
+                Size:         unit.metadata.Size,
+                Updated:      unit.metadata.Updated,
+                Locked:       unit.metadata.Locked,
+                LockInfo:     unit.metadata.LockInfo,
+                Tags:         tags,
+                Description:  unit.metadata.Description,
+                Organization: unit.metadata.Organization,
             })
         }
     }
@@ -363,4 +380,338 @@ func (m *memStore) cleanupOldVersions(id string) error {
 	state.versions = state.versions[:maxVersions]
 	
 	return nil
+}
+
+//
+// Tag Management Implementation
+//
+
+// CreateWithMetadata creates a unit with tags and metadata
+func (m *memStore) CreateWithMetadata(ctx context.Context, id string, tags []string, description string, org string) (*UnitMetadata, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+    if _, exists := m.units[id]; exists {
+        return nil, ErrAlreadyExists
+    }
+	
+    tagsCopy := make([]string, len(tags))
+    copy(tagsCopy, tags)
+    
+    metadata := &UnitMetadata{
+        ID:           id,
+        Size:         0,
+        Updated:      time.Now(),
+        Locked:       false,
+        Tags:         tagsCopy,
+        Description:  description,
+        Organization: org,
+    }
+	
+    m.units[id] = &unitData{
+        metadata: metadata,
+        content:  []byte{},
+    }
+	
+    return metadata, nil
+}
+
+// UpdateMetadata updates tags and metadata for an existing unit
+func (m *memStore) UpdateMetadata(ctx context.Context, id string, tags []string, description string, org string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+    state, exists := m.units[id]
+	if !exists {
+		return ErrNotFound
+	}
+	
+    tagsCopy := make([]string, len(tags))
+    copy(tagsCopy, tags)
+    
+    state.metadata.Tags = tagsCopy
+    state.metadata.Description = description
+    state.metadata.Organization = org
+    state.metadata.Updated = time.Now()
+    
+    return nil
+}
+
+// ListByTags queries units by tags within an organization
+func (m *memStore) ListByTags(ctx context.Context, org string, tags []string) ([]*UnitMetadata, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+    var matchingUnits []*UnitMetadata
+    
+    for _, unit := range m.units {
+        // Filter by organization
+        if unit.metadata.Organization != org {
+            continue
+        }
+        
+        // Check if unit has all required tags
+        if m.hasAllTags(unit.metadata.Tags, tags) {
+            // Return a copy
+            tagsCopy := make([]string, len(unit.metadata.Tags))
+            copy(tagsCopy, unit.metadata.Tags)
+            
+            matchingUnits = append(matchingUnits, &UnitMetadata{
+                ID:           unit.metadata.ID,
+                Size:         unit.metadata.Size,
+                Updated:      unit.metadata.Updated,
+                Locked:       unit.metadata.Locked,
+                LockInfo:     unit.metadata.LockInfo,
+                Tags:         tagsCopy,
+                Description:  unit.metadata.Description,
+                Organization: unit.metadata.Organization,
+            })
+        }
+    }
+    
+    return matchingUnits, nil
+}
+
+// CreateTag creates a new tag with metadata
+func (m *memStore) CreateTag(ctx context.Context, name string, description string) (*TagMetadata, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+    if _, exists := m.tags[name]; exists {
+        return nil, ErrAlreadyExists
+    }
+    
+    now := time.Now()
+    tag := &TagMetadata{
+        Name:        name,
+        Description: description,
+        CreatedAt:   now,
+        UpdatedAt:   now,
+        UnitCount:   0,
+    }
+    
+    m.tags[name] = tag
+    return tag, nil
+}
+
+// GetTag retrieves tag metadata
+func (m *memStore) GetTag(ctx context.Context, name string) (*TagMetadata, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+    tag, exists := m.tags[name]
+    if !exists {
+        return nil, ErrNotFound
+    }
+    
+    // Update unit count dynamically
+    count := m.getTagUnitCount(name)
+    
+    return &TagMetadata{
+        Name:        tag.Name,
+        Description: tag.Description,
+        CreatedAt:   tag.CreatedAt,
+        UpdatedAt:   tag.UpdatedAt,
+        UnitCount:   count,
+    }, nil
+}
+
+// ListTags lists all available tags
+func (m *memStore) ListTags(ctx context.Context) ([]*TagMetadata, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+    var tags []*TagMetadata
+    for _, tag := range m.tags {
+        count := m.getTagUnitCount(tag.Name)
+        
+        tags = append(tags, &TagMetadata{
+            Name:        tag.Name,
+            Description: tag.Description,
+            CreatedAt:   tag.CreatedAt,
+            UpdatedAt:   tag.UpdatedAt,
+            UnitCount:   count,
+        })
+    }
+    
+    return tags, nil
+}
+
+// DeleteTag deletes a tag and removes it from all units
+func (m *memStore) DeleteTag(ctx context.Context, name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+    if _, exists := m.tags[name]; !exists {
+        return ErrNotFound
+    }
+    
+    // Remove tag from all units
+    for _, unit := range m.units {
+        unit.metadata.Tags = m.removeTagFromUnitTags(unit.metadata.Tags, name)
+        unit.metadata.Updated = time.Now()
+    }
+    
+    // Delete the tag metadata
+    delete(m.tags, name)
+    
+    return nil
+}
+
+// UpdateTag updates tag metadata
+func (m *memStore) UpdateTag(ctx context.Context, name string, description string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+    tag, exists := m.tags[name]
+    if !exists {
+        return ErrNotFound
+    }
+    
+    tag.Description = description
+    tag.UpdatedAt = time.Now()
+    
+    return nil
+}
+
+// AddTagToUnit adds a tag to a unit
+func (m *memStore) AddTagToUnit(ctx context.Context, unitID string, tagName string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+    // Verify tag exists
+    if _, exists := m.tags[tagName]; !exists {
+        return fmt.Errorf("tag %s does not exist: %w", tagName, ErrNotFound)
+    }
+    
+    // Get unit
+    unit, exists := m.units[unitID]
+    if !exists {
+        return ErrNotFound
+    }
+    
+    // Check if tag already exists on unit
+    for _, existingTag := range unit.metadata.Tags {
+        if existingTag == tagName {
+            return nil // Already has the tag, no-op
+        }
+    }
+    
+    // Add tag to unit
+    unit.metadata.Tags = append(unit.metadata.Tags, tagName)
+    unit.metadata.Updated = time.Now()
+    
+    return nil
+}
+
+// RemoveTagFromUnit removes a tag from a unit
+func (m *memStore) RemoveTagFromUnit(ctx context.Context, unitID string, tagName string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+    // Get unit
+    unit, exists := m.units[unitID]
+    if !exists {
+        return ErrNotFound
+    }
+    
+    // Remove tag from unit's tags list
+    unit.metadata.Tags = m.removeTagFromUnitTags(unit.metadata.Tags, tagName)
+    unit.metadata.Updated = time.Now()
+    
+    return nil
+}
+
+// GetUnitsByTag returns all units that have a specific tag
+func (m *memStore) GetUnitsByTag(ctx context.Context, tagName string) ([]*UnitMetadata, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+    var unitsWithTag []*UnitMetadata
+    
+    for _, unit := range m.units {
+        // Check if unit has the tag
+        for _, tag := range unit.metadata.Tags {
+            if tag == tagName {
+                // Return a copy
+                tagsCopy := make([]string, len(unit.metadata.Tags))
+                copy(tagsCopy, unit.metadata.Tags)
+                
+                unitsWithTag = append(unitsWithTag, &UnitMetadata{
+                    ID:           unit.metadata.ID,
+                    Size:         unit.metadata.Size,
+                    Updated:      unit.metadata.Updated,
+                    Locked:       unit.metadata.Locked,
+                    LockInfo:     unit.metadata.LockInfo,
+                    Tags:         tagsCopy,
+                    Description:  unit.metadata.Description,
+                    Organization: unit.metadata.Organization,
+                })
+                break
+            }
+        }
+    }
+    
+    return unitsWithTag, nil
+}
+
+// GetTagsForUnit returns all tags for a specific unit
+func (m *memStore) GetTagsForUnit(ctx context.Context, unitID string) ([]string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+    unit, exists := m.units[unitID]
+    if !exists {
+        return nil, ErrNotFound
+    }
+    
+    // Return a copy of the tags
+    tags := make([]string, len(unit.metadata.Tags))
+    copy(tags, unit.metadata.Tags)
+    
+    return tags, nil
+}
+
+// Helper methods
+
+// hasAllTags checks if a unit has all required tags
+func (m *memStore) hasAllTags(unitTags, requiredTags []string) bool {
+    for _, required := range requiredTags {
+        found := false
+        for _, unitTag := range unitTags {
+            if unitTag == required {
+                found = true
+                break
+            }
+        }
+        if !found {
+            return false
+        }
+    }
+    return true
+}
+
+// getTagUnitCount counts how many units use a specific tag (assumes lock is held)
+func (m *memStore) getTagUnitCount(tagName string) int {
+    count := 0
+    for _, unit := range m.units {
+        for _, tag := range unit.metadata.Tags {
+            if tag == tagName {
+                count++
+                break
+            }
+        }
+    }
+    return count
+}
+
+// removeTagFromUnitTags removes a tag from a tags slice and returns the new slice
+func (m *memStore) removeTagFromUnitTags(tags []string, tagToRemove string) []string {
+    var newTags []string
+    for _, tag := range tags {
+        if tag != tagToRemove {
+            newTags = append(newTags, tag)
+        }
+    }
+    return newTags
 }

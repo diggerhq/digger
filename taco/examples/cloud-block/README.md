@@ -72,6 +72,8 @@ terraform {
 }
 ```
 
+**NEW**: For a complete tag-based workspace example, see the [cloud-block-tags example](../cloud-block-tags/).
+
 ## Authentication Flow
 
 The authentication process follows OAuth2 with PKCE:

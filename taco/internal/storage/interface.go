@@ -15,11 +15,16 @@ var (
 )
 
 type UnitMetadata struct {
-    ID       string    `json:"id"`
-    Size     int64     `json:"size"`
-    Updated  time.Time `json:"updated"`
-    Locked   bool      `json:"locked"`
-    LockInfo *LockInfo `json:"lock,omitempty"`
+    ID           string    `json:"id"`
+    Size         int64     `json:"size"`
+    Updated      time.Time `json:"updated"`
+    Locked       bool      `json:"locked"`
+    LockInfo     *LockInfo `json:"lock,omitempty"`
+    
+    // Workspace metadata (units can act as workspaces)
+    Tags         []string  `json:"tags,omitempty"`
+    Description  string    `json:"description,omitempty"`
+    Organization string    `json:"organization,omitempty"`
 }
 
 type VersionInfo struct {
@@ -27,6 +32,14 @@ type VersionInfo struct {
 	Hash      string    `json:"hash"`
 	Size      int64     `json:"size"`
 	S3Key     string    `json:"s3_key"`
+}
+
+type TagMetadata struct {
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	UnitCount   int       `json:"unit_count"` // Number of units using this tag
 }
 
 type LockInfo struct {
@@ -39,9 +52,27 @@ type LockInfo struct {
 type UnitStore interface {
     // Unit operations
     Create(ctx context.Context, id string) (*UnitMetadata, error)
+    CreateWithMetadata(ctx context.Context, id string, tags []string, description string, org string) (*UnitMetadata, error)
     Get(ctx context.Context, id string) (*UnitMetadata, error)
     List(ctx context.Context, prefix string) ([]*UnitMetadata, error)
     Delete(ctx context.Context, id string) error
+    UpdateMetadata(ctx context.Context, id string, tags []string, description string, org string) error
+    
+    // Tag-based querying for workspace functionality
+    ListByTags(ctx context.Context, org string, tags []string) ([]*UnitMetadata, error)
+    
+    // Comprehensive tag management
+    CreateTag(ctx context.Context, name string, description string) (*TagMetadata, error)
+    GetTag(ctx context.Context, name string) (*TagMetadata, error)
+    ListTags(ctx context.Context) ([]*TagMetadata, error)
+    DeleteTag(ctx context.Context, name string) error
+    UpdateTag(ctx context.Context, name string, description string) error
+    
+    // Unit-tag relationship management
+    AddTagToUnit(ctx context.Context, unitID string, tagName string) error
+    RemoveTagFromUnit(ctx context.Context, unitID string, tagName string) error
+    GetUnitsByTag(ctx context.Context, tagName string) ([]*UnitMetadata, error)
+    GetTagsForUnit(ctx context.Context, unitID string) ([]string, error)
 	
 	// Data operations
 	Download(ctx context.Context, id string) ([]byte, error)

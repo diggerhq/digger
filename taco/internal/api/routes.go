@@ -274,7 +274,12 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	tfeGroup.GET("/ping", tfeHandler.Ping)
 	tfeGroup.GET("/organizations/:org_name/entitlement-set", tfeHandler.GetOrganizationEntitlements)
 	tfeGroup.GET("/account/details", tfeHandler.AccountDetails)
+	
+	// Workspace endpoints - list first for proper route matching
+	tfeGroup.GET("/organizations/:org_name/workspaces", tfeHandler.ListWorkspaces)
+	tfeGroup.POST("/organizations/:org_name/workspaces", tfeHandler.CreateWorkspace)
 	tfeGroup.GET("/organizations/:org_name/workspaces/:workspace_name", tfeHandler.GetWorkspace)
+	
 	tfeGroup.POST("/workspaces/:workspace_id/actions/lock", tfeHandler.LockWorkspace)
 	tfeGroup.POST("/workspaces/:workspace_id/actions/unlock", tfeHandler.UnlockWorkspace)
 	tfeGroup.POST("/workspaces/:workspace_id/actions/force-unlock", tfeHandler.ForceUnlockWorkspace)

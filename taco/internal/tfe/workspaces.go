@@ -1,6 +1,7 @@
 package tfe
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
@@ -18,6 +19,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/mr-tron/base58"
 )
+
 
 // isAllDigits checks if a string contains only digits
 func isAllDigits(s string) bool {
@@ -1122,4 +1124,271 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
         },
     }
     return c.JSON(http.StatusOK, resp)
+}
+
+// ListWorkspaces handles GET /tfe/api/v2/organizations/:org_name/workspaces
+// This is the key endpoint needed for cloud block tag support
+func (h *TfeHandler) ListWorkspaces(c echo.Context) error {
+	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
+	c.Response().Header().Set("Tfp-Api-Version", "2.5")
+	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
+
+	orgName := c.Param("org_name")
+	if orgName == "" {
+		return c.JSON(400, map[string]string{"error": "org_name required"})
+	}
+
+	// Parse query parameters for filtering
+	searchTags := c.QueryParam("search[tags]")
+	workspaceName := c.QueryParam("search[name]")
+
+	fmt.Printf("ListWorkspaces: org=%s, searchTags=%s, workspaceName=%s\n", orgName, searchTags, workspaceName)
+
+	// Get all workspace metadata from storage
+	workspaces, err := h.listWorkspacesFromStorage(c.Request().Context(), orgName, searchTags, workspaceName)
+	if err != nil {
+		fmt.Printf("ListWorkspaces: Error listing workspaces: %v\n", err)
+		return c.JSON(500, map[string]string{"error": "Failed to list workspaces"})
+	}
+
+	fmt.Printf("ListWorkspaces: Found %d workspaces\n", len(workspaces))
+
+	// Convert to TFE format
+	var tfeWorkspaces []*domain.TFEWorkspace
+	for _, ws := range workspaces {
+		tfeWs, err := ToTFE(ws)
+		if err != nil {
+			fmt.Printf("ListWorkspaces: Error converting workspace %s: %v\n", ws.Name.Name, err)
+			continue
+		}
+		tfeWorkspaces = append(tfeWorkspaces, tfeWs)
+	}
+
+	// Return workspaces in JSON:API format
+	return c.JSON(200, map[string]interface{}{
+		"data": tfeWorkspaces,
+		"meta": map[string]interface{}{
+			"pagination": map[string]interface{}{
+				"current-page": 1,
+				"page-size":    len(tfeWorkspaces),
+				"prev-page":    nil,
+				"next-page":    nil,
+				"total-pages":  1,
+				"total-count":  len(tfeWorkspaces),
+			},
+		},
+	})
+}
+
+// listWorkspacesFromStorage retrieves units as workspaces with tag filtering
+func (h *TfeHandler) listWorkspacesFromStorage(ctx context.Context, orgName string, searchTags string, workspaceName string) ([]*domain.Workspace, error) {
+	var workspaces []*domain.Workspace
+
+	if workspaceName != "" {
+		// Single workspace by name - just get the unit directly
+		unitMeta, err := h.stateStore.Get(ctx, workspaceName)
+		if err != nil {
+			// Unit doesn't exist, return empty list
+			return workspaces, nil
+		}
+		
+		// Convert unit to workspace
+		workspace := h.createWorkspaceFromUnit(unitMeta, orgName)
+		workspaces = append(workspaces, workspace)
+		return workspaces, nil
+	}
+
+	// Parse tags if provided
+	var tagFilters []string
+	if searchTags != "" {
+		tagFilters = strings.Split(searchTags, ",")
+		for i, tag := range tagFilters {
+			tagFilters[i] = strings.TrimSpace(tag)
+		}
+	}
+
+	var matchingUnits []*storage.UnitMetadata
+	var err error
+
+	if len(tagFilters) > 0 {
+		// Tag-based search: Query units directly by tags
+		matchingUnits, err = h.stateStore.ListByTags(ctx, orgName, tagFilters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query units by tags: %w", err)
+		}
+		fmt.Printf("listWorkspacesFromStorage: Found %d units matching tags %v\n", len(matchingUnits), tagFilters)
+	} else {
+		// No specific filters, list all units and filter by organization
+		allUnits, err := h.stateStore.List(ctx, "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to list units: %w", err)
+		}
+		
+		// Filter by organization
+		for _, unit := range allUnits {
+			if unit.Organization == orgName {
+				matchingUnits = append(matchingUnits, unit)
+			}
+		}
+		fmt.Printf("listWorkspacesFromStorage: Found %d units in org %s\n", len(matchingUnits), orgName)
+	}
+
+	// Convert units to workspaces
+	for _, unit := range matchingUnits {
+		workspace := h.createWorkspaceFromUnit(unit, orgName)
+		workspaces = append(workspaces, workspace)
+		fmt.Printf("listWorkspacesFromStorage: Including workspace %s with tags %v\n", unit.ID, unit.Tags)
+	}
+
+	return workspaces, nil
+}
+
+// createWorkspaceFromUnit creates a workspace domain object from unit metadata
+func (h *TfeHandler) createWorkspaceFromUnit(unit *storage.UnitMetadata, orgName string) *domain.Workspace {
+	return &domain.Workspace{
+		ID:                         domain.NewTfeIDWithVal(domain.WorkspaceKind, unit.ID).String(),
+		CreatedAt:                  unit.Updated.Add(-24 * time.Hour), // Mock creation time (could be stored in metadata)
+		UpdatedAt:                  unit.Updated,
+		AgentPoolID:                domain.NewTfeIDWithVal(domain.AgentPoolKind, "HzEaJWMP5YTatZaS").String(),
+		AllowDestroyPlan:           false,
+		AutoApply:                  false,
+		CanQueueDestroyPlan:        false,
+		Description:                unit.Description,
+		Environment:                unit.ID,
+		ExecutionMode:              "local",
+		GlobalRemoteState:          false,
+		MigrationEnvironment:       "",
+		Name:                       domain.NewName(unit.ID),
+		QueueAllRuns:               false,
+		SpeculativeEnabled:         false,
+		StructuredRunOutputEnabled: false,
+		SourceName:                 "",
+		SourceURL:                  "",
+		WorkingDirectory:           "",
+		Organization:               domain.NewName(unit.Organization),
+		LatestRun:                  nil,
+		Tags:                       unit.Tags,
+		Lock:                       nil,
+		Engine:                     "",
+		EngineVersion:              nil,
+		Connection:                 nil,
+		TriggerPatterns:            nil,
+		TriggerPrefixes:            nil,
+	}
+}
+
+// createWorkspaceFromStateName creates a workspace domain object from a state/workspace name (legacy)
+func (h *TfeHandler) createWorkspaceFromStateName(stateName, orgName string, tags []string) *domain.Workspace {
+	return &domain.Workspace{
+		ID:                         domain.NewTfeIDWithVal(domain.WorkspaceKind, stateName).String(),
+		CreatedAt:                  time.Now().Add(-24 * time.Hour), // Mock creation time
+		UpdatedAt:                  time.Now(),
+		AgentPoolID:                domain.NewTfeIDWithVal(domain.AgentPoolKind, "HzEaJWMP5YTatZaS").String(),
+		AllowDestroyPlan:           false,
+		AutoApply:                  false,
+		CanQueueDestroyPlan:        false,
+		Description:                fmt.Sprintf("Workspace for %s", stateName),
+		Environment:                stateName,
+		ExecutionMode:              "local",
+		GlobalRemoteState:          false,
+		MigrationEnvironment:       "",
+		Name:                       domain.NewName(stateName),
+		QueueAllRuns:               false,
+		SpeculativeEnabled:         false,
+		StructuredRunOutputEnabled: false,
+		SourceName:                 "",
+		SourceURL:                  "",
+		WorkingDirectory:           "",
+		Organization:               domain.NewName(orgName),
+		LatestRun:                  nil,
+		Tags:                       tags, // Use the provided tags
+		Lock:                       nil,
+		Engine:                     "",
+		EngineVersion:              nil,
+		Connection:                 nil,
+		TriggerPatterns:            nil,
+		TriggerPrefixes:            nil,
+	}
+}
+
+// CreateWorkspace handles POST /tfe/api/v2/organizations/:org_name/workspaces
+// This allows creation of workspaces with tags
+func (h *TfeHandler) CreateWorkspace(c echo.Context) error {
+	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
+	c.Response().Header().Set("Tfp-Api-Version", "2.5")
+	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
+
+	orgName := c.Param("org_name")
+	if orgName == "" {
+		return c.JSON(400, map[string]string{"error": "org_name required"})
+	}
+
+	// Parse request body
+	var request struct {
+		Data struct {
+			Type       string `json:"type"`
+			Attributes struct {
+				Name        string   `json:"name"`
+				Description string   `json:"description"`
+				TagNames    []string `json:"tag-names"`
+			} `json:"attributes"`
+		} `json:"data"`
+	}
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(400, map[string]string{"error": "Invalid request format"})
+	}
+
+	workspaceName := request.Data.Attributes.Name
+	if workspaceName == "" {
+		return c.JSON(400, map[string]string{"error": "workspace name required"})
+	}
+
+	fmt.Printf("CreateWorkspace: org=%s, name=%s, tags=%v\n", orgName, workspaceName, request.Data.Attributes.TagNames)
+
+	// Create unit with metadata (tags, description, organization) directly
+	unitMeta, err := h.stateStore.CreateWithMetadata(
+		c.Request().Context(), 
+		workspaceName, 
+		request.Data.Attributes.TagNames, 
+		request.Data.Attributes.Description, 
+		orgName,
+	)
+	if err != nil && err != storage.ErrAlreadyExists {
+		return c.JSON(500, map[string]string{"error": "Failed to create workspace"})
+	}
+
+	// If unit already exists, update its metadata
+	if err == storage.ErrAlreadyExists {
+		updateErr := h.stateStore.UpdateMetadata(
+			c.Request().Context(),
+			workspaceName,
+			request.Data.Attributes.TagNames,
+			request.Data.Attributes.Description,
+			orgName,
+		)
+		if updateErr != nil {
+			return c.JSON(500, map[string]string{"error": "Failed to update workspace metadata"})
+		}
+		// Get the updated metadata
+		unitMeta, err = h.stateStore.Get(c.Request().Context(), workspaceName)
+		if err != nil {
+			return c.JSON(500, map[string]string{"error": "Failed to get workspace metadata"})
+		}
+	}
+
+	fmt.Printf("CreateWorkspace: Created unit '%s' with tags %v in org '%s'\n", workspaceName, request.Data.Attributes.TagNames, orgName)
+
+	// Create workspace domain object from unit
+	workspace := h.createWorkspaceFromUnit(unitMeta, orgName)
+
+	// Convert to TFE format and return
+	tfeWorkspace, err := ToTFE(workspace)
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to create workspace"})
+	}
+
+	return c.JSON(201, map[string]interface{}{
+		"data": tfeWorkspace,
+	})
 }
