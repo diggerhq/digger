@@ -28,7 +28,7 @@ Add a cloud block to your Terraform configuration:
 terraform {
   cloud {
     hostname = "localhost:8080"  # Your OpenTaco server
-    
+    organization = "opentaco"
     workspaces {
       name = "my-app-production"
     }
@@ -68,7 +68,7 @@ OpenTaco will automatically manage workspace creation, state storage, and lockin
 terraform {
   cloud {
     hostname = "your-opentaco-server.com"
-    
+    organization = "opentaco"
     workspaces {
       name = "my-workspace"
     }
