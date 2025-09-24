@@ -181,11 +181,13 @@ func (h *Handler) putState(c echo.Context, id string) error {
     b, err := readAllAndReset(c.Request())
     if err != nil { return c.JSON(http.StatusBadRequest, map[string]string{"error":"read_failed"}) }
 
-    // Ensure state exists
+    // Check if state exists - error if not found (no auto-creation)
     if _, err := h.store.Get(c.Request().Context(), id); err == storage.ErrNotFound {
-        if _, err := h.store.Create(c.Request().Context(), id); err != nil && err != storage.ErrAlreadyExists {
-            return c.JSON(http.StatusInternalServerError, map[string]string{"error":"create_failed"})
-        }
+        return c.JSON(http.StatusNotFound, map[string]string{
+            "error": "Unit not found. Please create the unit first using 'taco unit create " + id + "' or the opentaco_unit Terraform resource.",
+        })
+    } else if err != nil {
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"check_failed"})
     }
 
     // Optional lock ID (HTTP backend style). For S3 lockfile mode Terraform won't send it,
@@ -241,14 +243,12 @@ func (h *Handler) putLock(c echo.Context, id string) error {
     if li.Version == "" { li.Version = "1.0.0" }
     if li.Created.IsZero() { li.Created = time.Now() }
 
-    // Ensure state exists then lock
+    // Attempt to lock (no auto-creation)
     if err := h.store.Lock(c.Request().Context(), id, &li); err != nil {
         if errors.Is(err, storage.ErrNotFound) {
-            if _, cerr := h.store.Create(c.Request().Context(), id); cerr == nil || cerr == storage.ErrAlreadyExists {
-                if err2 := h.store.Lock(c.Request().Context(), id, &li); err2 == nil {
-                    return c.JSON(http.StatusOK, li)
-                }
-            }
+            return c.JSON(http.StatusNotFound, map[string]string{
+                "error": "Unit not found. Please create the unit first using 'taco unit create " + id + "' or the opentaco_unit Terraform resource.",
+            })
         }
         if errors.Is(err, storage.ErrLockConflict) {
             if cur, _ := h.store.GetLock(c.Request().Context(), id); cur != nil {

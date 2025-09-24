@@ -387,20 +387,14 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 	stateID := convertWorkspaceToStateID(workspaceID)
 	fmt.Printf("LockWorkspace: stateID=%s\n", stateID)
 
-	// Check if state exists, create if not
+	// Check if state exists, enot
 	_, err := h.stateStore.Get(c.Request().Context(), stateID)
 	fmt.Printf("LockWorkspace: Get result, err=%v\n", err)
 	if err == storage.ErrNotFound {
-		fmt.Printf("LockWorkspace: Creating new state\n")
-		// Create state if it doesn't exist
-		_, createErr := h.stateStore.Create(c.Request().Context(), stateID)
-		fmt.Printf("LockWorkspace: Create result, err=%v\n", createErr)
-		if createErr != nil && createErr != storage.ErrAlreadyExists {
-			fmt.Printf("LockWorkspace: Failed to create state: %v\n", createErr)
-			return c.JSON(500, map[string]string{
-				"error": "Failed to create state for workspace",
-			})
-		}
+		fmt.Printf("LockWorkspace: Unit not found - no auto-creation\n")
+		return c.JSON(404, map[string]string{
+			"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
+		})
 	} else if err != nil {
 		// Handle other errors from Get()
 		fmt.Printf("LockWorkspace: Get failed with: %v\n", err)
@@ -624,25 +618,13 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 	fmt.Printf("GetCurrentStateVersion: Get result, err=%v\n", err)
 	if err != nil {
 		if err == storage.ErrNotFound {
-			fmt.Printf("GetCurrentStateVersion: State not found, creating empty state\n")
-			// For new workspaces with no state yet, create an empty state
-			_, createErr := h.stateStore.Create(c.Request().Context(), stateID)
-			fmt.Printf("GetCurrentStateVersion: Create result, err=%v\n", createErr)
-			if createErr != nil && createErr != storage.ErrAlreadyExists {
-				fmt.Printf("GetCurrentStateVersion: ERROR - Failed to create workspace state: %v\n", createErr)
-				return c.JSON(500, map[string]string{"error": "Failed to create workspace state"})
-			}
-			// Get the newly created empty state
-			stateMeta, err = h.stateStore.Get(c.Request().Context(), stateID)
-			fmt.Printf("GetCurrentStateVersion: Get after create result, err=%v\n", err)
-			if err != nil {
-				fmt.Printf("GetCurrentStateVersion: ERROR - Failed to get newly created state: %v\n", err)
-				return c.JSON(500, map[string]string{"error": "Failed to get newly created state"})
-			}
-		} else {
-			fmt.Printf("GetCurrentStateVersion: ERROR - Failed to get workspace state: %v\n", err)
-			return c.JSON(500, map[string]string{"error": "Failed to get workspace state"})
+			fmt.Printf("GetCurrentStateVersion: Unit not found - no auto-creation\n")
+			return c.JSON(404, map[string]string{
+				"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
+			})
 		}
+		fmt.Printf("GetCurrentStateVersion: ERROR - Failed to get workspace state: %v\n", err)
+		return c.JSON(500, map[string]string{"error": "Failed to get workspace state"})
 	}
 
 	// Generate a state version ID based on state ID and timestamp
@@ -748,18 +730,18 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 		}
 	}
 
-	// Do NOT upload state here. Terraform will PUT the raw state to the provided upload URL.
-	// Ensure the state exists so uploads have a target.
+	// Check that state exists (no auto-creation)
 	_, err = h.stateStore.Get(c.Request().Context(), stateID)
 	if err == storage.ErrNotFound {
-		fmt.Printf("CreateStateVersion: Creating new state holder\n")
-		_, createErr := h.stateStore.Create(c.Request().Context(), stateID)
-		if createErr != nil && createErr != storage.ErrAlreadyExists {
-			fmt.Printf("CreateStateVersion: ERROR - Failed to create state: %v\n", createErr)
-			return c.JSON(500, map[string]string{
-				"error": "Failed to create workspace state",
-			})
-		}
+		fmt.Printf("CreateStateVersion: Unit not found - no auto-creation\n")
+		return c.JSON(404, map[string]string{
+			"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
+		})
+	} else if err != nil {
+		fmt.Printf("CreateStateVersion: ERROR - Failed to check state existence: %v\n", err)
+		return c.JSON(500, map[string]string{
+			"error": "Failed to check state existence",
+		})
 	}
 	
 	// Generate a state version ID (before upload) based on state ID and current time
@@ -978,15 +960,18 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 		fmt.Printf("UploadStateVersion: Body preview: %s\n", string(stateData))
 	}
 
-	// Check if state exists, create if not
+	// Check if state exists (no auto-creation)
 	_, err = h.stateStore.Get(c.Request().Context(), stateID)
 	if err == storage.ErrNotFound {
-		_, createErr := h.stateStore.Create(c.Request().Context(), stateID)
-		if createErr != nil && createErr != storage.ErrAlreadyExists {
-			return c.JSON(500, map[string]string{
-				"error": "Failed to create workspace state",
-			})
-		}
+		fmt.Printf("UploadStateVersion: Unit not found - no auto-creation\n")
+		return c.JSON(404, map[string]string{
+			"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
+		})
+	} else if err != nil {
+		fmt.Printf("UploadStateVersion: ERROR - Failed to check state existence: %v\n", err)
+		return c.JSON(500, map[string]string{
+			"error": "Failed to check state existence",
+		})
 	}
 
 	// Get the current lock to extract lock ID for state upload
