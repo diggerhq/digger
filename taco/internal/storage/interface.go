@@ -36,7 +36,6 @@ type VersionInfo struct {
 
 type TagMetadata struct {
 	Name        string    `json:"name"`
-	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	UnitCount   int       `json:"unit_count"` // Number of units using this tag
@@ -62,11 +61,10 @@ type UnitStore interface {
     ListByTags(ctx context.Context, org string, tags []string) ([]*UnitMetadata, error)
     
     // Comprehensive tag management
-    CreateTag(ctx context.Context, name string, description string) (*TagMetadata, error)
-    GetTag(ctx context.Context, name string) (*TagMetadata, error)
-    ListTags(ctx context.Context) ([]*TagMetadata, error)
-    DeleteTag(ctx context.Context, name string) error
-    UpdateTag(ctx context.Context, name string, description string) error
+	CreateTag(ctx context.Context, name string) (*TagMetadata, error)
+	GetTag(ctx context.Context, name string) (*TagMetadata, error)
+	ListTags(ctx context.Context) ([]*TagMetadata, error)
+	DeleteTag(ctx context.Context, name string) error
     
     // Unit-tag relationship management
     AddTagToUnit(ctx context.Context, unitID string, tagName string) error

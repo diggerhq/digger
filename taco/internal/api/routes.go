@@ -9,6 +9,7 @@ import (
     
     "github.com/diggerhq/digger/opentaco/internal/analytics"
     "github.com/diggerhq/digger/opentaco/internal/tfe"
+    "github.com/diggerhq/digger/opentaco/internal/tags"
     
     "github.com/diggerhq/digger/opentaco/internal/backend"
     authpkg "github.com/diggerhq/digger/opentaco/internal/auth"
@@ -147,6 +148,9 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 
 	// Unit handlers (management API) - pass RBAC manager and signer for filtering
 	unitHandler := unithandlers.NewHandler(store, rbacManager, signer)
+	
+	// Tag handler for tag management API
+	tagHandler := tags.NewHandler(store)
 
 	// Management API (units) with RBAC middleware
 	if authEnabled && rbacManager != nil {
@@ -164,6 +168,18 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 		// Version operations
 		v1.GET("/units/:id/versions", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.ListVersions))
 		v1.POST("/units/:id/restore", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "{id}")(unitHandler.RestoreVersion))
+		
+		// Tag Management API - Public access (unit-centric permissions)
+		v1.POST("/tags", tagHandler.CreateTag)                    // No RBAC - anyone can create tags
+		v1.GET("/tags", tagHandler.ListTags)                      // No RBAC - anyone can list tags
+		v1.GET("/tags/:name", tagHandler.GetTag)                  // No RBAC - anyone can get tag info
+		v1.DELETE("/tags/:name", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(tagHandler.DeleteTag)) // Admin only - affects all units
+		v1.GET("/tags/:name/units", tagHandler.GetUnitsByTag)     // No RBAC - anyone can see which units use tags
+		
+		// Unit-Tag relationship endpoints with RBAC
+		v1.POST("/units/:id/tags", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "{id}")(tagHandler.AddTagToUnit))
+		v1.DELETE("/units/:id/tags/:tag_name", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "{id}")(tagHandler.RemoveTagFromUnit))
+		v1.GET("/units/:id/tags", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(tagHandler.GetTagsForUnit))
 	} else {
 		// Fallback without RBAC
 		v1.POST("/units", unitHandler.CreateUnit)
@@ -179,6 +195,18 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 		// Version operations
 		v1.GET("/units/:id/versions", unitHandler.ListVersions)
 		v1.POST("/units/:id/restore", unitHandler.RestoreVersion)
+		
+		// Tag Management API - Public access (no RBAC enabled)
+		v1.POST("/tags", tagHandler.CreateTag)
+		v1.GET("/tags", tagHandler.ListTags)
+		v1.GET("/tags/:name", tagHandler.GetTag)
+		v1.DELETE("/tags/:name", tagHandler.DeleteTag)
+		v1.GET("/tags/:name/units", tagHandler.GetUnitsByTag)
+		
+		// Unit-Tag relationship endpoints
+		v1.POST("/units/:id/tags", tagHandler.AddTagToUnit)
+		v1.DELETE("/units/:id/tags/:tag_name", tagHandler.RemoveTagFromUnit)
+		v1.GET("/units/:id/tags", tagHandler.GetTagsForUnit)
 	}
 
 	// Terraform HTTP backend proxy with RBAC middleware

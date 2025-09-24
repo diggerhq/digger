@@ -473,7 +473,7 @@ func (m *memStore) ListByTags(ctx context.Context, org string, tags []string) ([
 }
 
 // CreateTag creates a new tag with metadata
-func (m *memStore) CreateTag(ctx context.Context, name string, description string) (*TagMetadata, error) {
+func (m *memStore) CreateTag(ctx context.Context, name string) (*TagMetadata, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	
@@ -484,7 +484,6 @@ func (m *memStore) CreateTag(ctx context.Context, name string, description strin
     now := time.Now()
     tag := &TagMetadata{
         Name:        name,
-        Description: description,
         CreatedAt:   now,
         UpdatedAt:   now,
         UnitCount:   0,
@@ -509,7 +508,6 @@ func (m *memStore) GetTag(ctx context.Context, name string) (*TagMetadata, error
     
     return &TagMetadata{
         Name:        tag.Name,
-        Description: tag.Description,
         CreatedAt:   tag.CreatedAt,
         UpdatedAt:   tag.UpdatedAt,
         UnitCount:   count,
@@ -527,7 +525,6 @@ func (m *memStore) ListTags(ctx context.Context) ([]*TagMetadata, error) {
         
         tags = append(tags, &TagMetadata{
             Name:        tag.Name,
-            Description: tag.Description,
             CreatedAt:   tag.CreatedAt,
             UpdatedAt:   tag.UpdatedAt,
             UnitCount:   count,
@@ -558,21 +555,6 @@ func (m *memStore) DeleteTag(ctx context.Context, name string) error {
     return nil
 }
 
-// UpdateTag updates tag metadata
-func (m *memStore) UpdateTag(ctx context.Context, name string, description string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	
-    tag, exists := m.tags[name]
-    if !exists {
-        return ErrNotFound
-    }
-    
-    tag.Description = description
-    tag.UpdatedAt = time.Now()
-    
-    return nil
-}
 
 // AddTagToUnit adds a tag to a unit
 func (m *memStore) AddTagToUnit(ctx context.Context, unitID string, tagName string) error {

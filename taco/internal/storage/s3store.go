@@ -746,7 +746,7 @@ func (s *s3Store) hasAllTags(unitTags, requiredTags []string) bool {
 //
 
 // CreateTag creates a new tag with metadata
-func (s *s3Store) CreateTag(ctx context.Context, name string, description string) (*TagMetadata, error) {
+func (s *s3Store) CreateTag(ctx context.Context, name string) (*TagMetadata, error) {
     // Check if tag already exists
     _, err := s.GetTag(ctx, name)
     if err == nil {
@@ -759,7 +759,6 @@ func (s *s3Store) CreateTag(ctx context.Context, name string, description string
     now := time.Now()
     tag := &TagMetadata{
         Name:        name,
-        Description: description,
         CreatedAt:   now,
         UpdatedAt:   now,
         UnitCount:   0,
@@ -854,34 +853,6 @@ func (s *s3Store) ListTags(ctx context.Context) ([]*TagMetadata, error) {
     return tags, nil
 }
 
-// UpdateTag updates tag metadata
-func (s *s3Store) UpdateTag(ctx context.Context, name string, description string) error {
-    // Get existing tag
-    tag, err := s.GetTag(ctx, name)
-    if err != nil {
-        return err
-    }
-    
-    // Update description and timestamp
-    tag.Description = description
-    tag.UpdatedAt = time.Now()
-    
-    // Store updated tag
-    tagKey := s.tagMetadataKey(name)
-    tagJSON, err := json.Marshal(tag)
-    if err != nil {
-        return err
-    }
-    
-    _, err = s.client.PutObject(ctx, &s3.PutObjectInput{
-        Bucket:      &s.bucket,
-        Key:         &tagKey,
-        Body:        bytes.NewReader(tagJSON),
-        ContentType: aws.String("application/json"),
-    })
-    
-    return err
-}
 
 // DeleteTag deletes a tag and removes it from all units
 func (s *s3Store) DeleteTag(ctx context.Context, name string) error {

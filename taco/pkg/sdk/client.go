@@ -39,11 +39,14 @@ func NewClientWithHTTPClient(baseURL string, httpClient *http.Client) *Client {
 
 // UnitMetadata represents unit metadata
 type UnitMetadata struct {
-    ID       string    `json:"id"`
-    Size     int64     `json:"size"`
-    Updated  time.Time `json:"updated"`
-    Locked   bool      `json:"locked"`
-    LockInfo *LockInfo `json:"lock,omitempty"`
+    ID           string    `json:"id"`
+    Size         int64     `json:"size"`
+    Updated      time.Time `json:"updated"`
+    Locked       bool      `json:"locked"`
+    LockInfo     *LockInfo `json:"lock,omitempty"`
+    Tags         []string  `json:"tags,omitempty"`
+    Description  string    `json:"description,omitempty"`
+    Organization string    `json:"organization,omitempty"`
 }
 
 // LockInfo represents lock information
@@ -417,4 +420,327 @@ func (c *Client) Get(ctx context.Context, path string) (*http.Response, error) {
 // Delete makes a DELETE request
 func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error) {
 	return c.do(ctx, "DELETE", path, nil)
+}
+
+//
+// Tag Management Methods (using TFE API compatibility layer)
+//
+
+// CreateUnitWithMetadata creates a unit with tags and metadata using the TFE workspace API
+func (c *Client) CreateUnitWithMetadata(ctx context.Context, unitID string, tags []string, description, organization string) (*UnitMetadata, error) {
+	payload := map[string]interface{}{
+		"data": map[string]interface{}{
+			"type": "workspaces",
+			"attributes": map[string]interface{}{
+				"name":        unitID,
+				"description": description,
+				"tag-names":   tags,
+			},
+		},
+	}
+
+	resp, err := c.doJSON(ctx, "POST", fmt.Sprintf("/tfe/api/v2/organizations/%s/workspaces", organization), payload)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("failed to create unit with metadata: HTTP %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Data struct {
+			Attributes struct {
+				Name        string    `json:"name"`
+				Description string    `json:"description"`
+				TagNames    []string  `json:"tag-names"`
+				CreatedAt   time.Time `json:"created-at"`
+				UpdatedAt   time.Time `json:"updated-at"`
+			} `json:"attributes"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return &UnitMetadata{
+		ID:           result.Data.Attributes.Name,
+		Size:         0,
+		Updated:      result.Data.Attributes.UpdatedAt,
+		Locked:       false,
+		Tags:         result.Data.Attributes.TagNames,
+		Description:  result.Data.Attributes.Description,
+		Organization: organization,
+	}, nil
+}
+
+// ListUnitsByTags lists units filtered by tags and organization using TFE workspace API
+func (c *Client) ListUnitsByTags(ctx context.Context, organization string, tags []string) ([]*UnitMetadata, error) {
+	path := fmt.Sprintf("/tfe/api/v2/organizations/%s/workspaces", organization)
+	if len(tags) > 0 {
+		tagQuery := strings.Join(tags, ",")
+		path += "?search[tags]=" + url.QueryEscape(tagQuery)
+	}
+
+	resp, err := c.do(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to list units by tags: HTTP %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Data []struct {
+			Attributes struct {
+				Name        string    `json:"name"`
+				Description string    `json:"description"`
+				TagNames    []string  `json:"tag-names"`
+				CreatedAt   time.Time `json:"created-at"`
+				UpdatedAt   time.Time `json:"updated-at"`
+			} `json:"attributes"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	var units []*UnitMetadata
+	for _, item := range result.Data {
+		units = append(units, &UnitMetadata{
+			ID:           item.Attributes.Name,
+			Size:         0, // TFE API doesn't expose size
+			Updated:      item.Attributes.UpdatedAt,
+			Locked:       false,
+			Tags:         item.Attributes.TagNames,
+			Description:  item.Attributes.Description,
+			Organization: organization,
+		})
+	}
+
+	return units, nil
+}
+
+// TagManagement represents tag metadata
+type TagManagement struct {
+	Name        string    `json:"name"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	UnitCount   int       `json:"unit_count"`
+}
+
+// CreateTag creates a new tag via REST API
+func (c *Client) CreateTag(ctx context.Context, name string) (*TagManagement, error) {
+	payload := map[string]string{
+		"name": name,
+	}
+
+	resp, err := c.doJSON(ctx, "POST", "/v1/tags", payload)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusConflict {
+		return nil, fmt.Errorf("tag already exists")
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("failed to create tag: HTTP %d", resp.StatusCode)
+	}
+
+	var result TagManagement
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// ListTags lists all available tags via REST API
+func (c *Client) ListTags(ctx context.Context) ([]*TagManagement, error) {
+	resp, err := c.do(ctx, "GET", "/v1/tags", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to list tags: HTTP %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Tags []TagManagement `json:"tags"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	var tags []*TagManagement
+	for i := range result.Tags {
+		tags = append(tags, &result.Tags[i])
+	}
+
+	return tags, nil
+}
+
+// GetTag gets information about a specific tag via REST API
+func (c *Client) GetTag(ctx context.Context, tagName string) (*TagManagement, error) {
+	resp, err := c.do(ctx, "GET", fmt.Sprintf("/v1/tags/%s", tagName), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("tag not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get tag: HTTP %d", resp.StatusCode)
+	}
+
+	var result TagManagement
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DeleteTag deletes a tag via REST API  
+func (c *Client) DeleteTag(ctx context.Context, tagName string) error {
+	resp, err := c.do(ctx, "DELETE", fmt.Sprintf("/v1/tags/%s", tagName), nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("tag not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to delete tag: HTTP %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// GetUnitsByTag gets all units that have a specific tag via REST API
+func (c *Client) GetUnitsByTag(ctx context.Context, tagName string) ([]*UnitMetadata, error) {
+	resp, err := c.do(ctx, "GET", fmt.Sprintf("/v1/tags/%s/units", tagName), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get units by tag: HTTP %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Units []struct {
+			ID           string   `json:"id"`
+			Size         int64    `json:"size"`
+			Updated      string   `json:"updated"`
+			Locked       bool     `json:"locked"`
+			Tags         []string `json:"tags"`
+			Description  string   `json:"description"`
+			Organization string   `json:"organization"`
+		} `json:"units"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	var units []*UnitMetadata
+	for _, unit := range result.Units {
+		updated, _ := time.Parse("2006-01-02T15:04:05Z", unit.Updated)
+		units = append(units, &UnitMetadata{
+			ID:           unit.ID,
+			Size:         unit.Size,
+			Updated:      updated,
+			Locked:       unit.Locked,
+			Tags:         unit.Tags,
+			Description:  unit.Description,
+			Organization: unit.Organization,
+		})
+	}
+
+	return units, nil
+}
+
+// AddTagToUnit adds a tag to a unit via REST API
+func (c *Client) AddTagToUnit(ctx context.Context, unitID, tagName, organization string) error {
+	payload := map[string]string{
+		"tag_name": tagName,
+	}
+
+	resp, err := c.doJSON(ctx, "POST", fmt.Sprintf("/v1/units/%s/tags", unitID), payload)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("unit or tag not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to add tag to unit: HTTP %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// RemoveTagFromUnit removes a tag from a unit via REST API
+func (c *Client) RemoveTagFromUnit(ctx context.Context, unitID, tagName, organization string) error {
+	resp, err := c.do(ctx, "DELETE", fmt.Sprintf("/v1/units/%s/tags/%s", unitID, tagName), nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("unit or tag not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to remove tag from unit: HTTP %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// GetTagsForUnit returns all tags for a specific unit via REST API
+func (c *Client) GetTagsForUnit(ctx context.Context, unitID, organization string) ([]string, error) {
+	resp, err := c.do(ctx, "GET", fmt.Sprintf("/v1/units/%s/tags", unitID), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("unit not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get unit tags: HTTP %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Tags []string `json:"tags"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return result.Tags, nil
 }
