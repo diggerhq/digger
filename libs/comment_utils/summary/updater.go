@@ -24,6 +24,11 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 		return err
 	}
 
+	if len(jobSpecs) == 0 {
+		slog.Warn("no job specs found, cannot update comment", "jobCount", len(jobs))
+		return nil
+	}
+
 	firstJobSpec := jobSpecs[0]
 	jobType := firstJobSpec.JobType
 	jobTypeTitle := cases.Title(language.AmericanEnglish).String(string(jobType))
