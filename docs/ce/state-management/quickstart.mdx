@@ -21,7 +21,7 @@ to use the newly created unit and create a simple resource. Lets dig in!
                 In the settings tab take note of the domain, client id and client secret. Feel free to store them in environment variables as follows:
 
                 ```bash
-                OPENTACO_AUTH_ISSUER=[[auth0 domain]]
+                OPENTACO_AUTH_ISSUER=https://[[auth0 domain]]/ # trailing slash is IMPORTANT!
                 OPENTACO_AUTH_CLIENT_ID=[[auth0 client id]]
                 OPENTACO_AUTH_CLIENT_SECRET=[[auth0 client secret]]
                 ```
@@ -109,7 +109,7 @@ for all users and systems requiring access to state.
         OPENTACO_S3_BUCKET='your-bucket-name'  # not a uri, the name itself
         OPENTACO_S3_REGION='aws-region' # like us-east-1
         OPENTACO_S3_PREFIX='folder-name'
-        OPENTACO_AUTH_ISSUER='your-auth0-app-domain'
+        OPENTACO_AUTH_ISSUER='https://[[your-auth0-app-domain]]/' # trailing slash is IMPORTANT!
         OPENTACO_AUTH_CLIENT_ID='your-auth0-app-clientid'
         OPENTACO_AUTH_CLIENT_SECRET='your-auth0-app-client-secret'
         OPENTACO_AUTH_AUTH_URL='{your-auth0-app-domain}/authorize'
@@ -320,7 +320,7 @@ for all users and systems requiring access to state.
             #### On macOS/Linux:
             ```bash
             export OPENTACO_SERVER=https://my-opentaco.company.com
-            export OPENTACO_AUTH_ISSUER=[[auth0 domain]]
+            export OPENTACO_AUTH_ISSUER=https://[[auth0 domain]]/
             export OPENTACO_AUTH_CLIENT_ID=[[auth0 client id]]
             ```
             </Tab>
@@ -328,7 +328,7 @@ for all users and systems requiring access to state.
             #### On macOS/Linux:
             ```bash
             export OPENTACO_SERVER=https://my-opentaco.company.com
-            export OPENTACO_AUTH_ISSUER=https://auth.company.com
+            export OPENTACO_AUTH_ISSUER=https://[[auth0 domain]]/
             export OPENTACO_AUTH_CLIENT_ID=my-client-id
             ```
             </Tab>
@@ -336,12 +336,12 @@ for all users and systems requiring access to state.
             #### On Windows PowerShell:
             ```powershell
             $env:OPENTACO_SERVER="https://my-opentaco.company.com"
-            $env:OPENTACO_AUTH_ISSUER="https://auth.company.com"
+            $env:OPENTACO_AUTH_ISSUER="https://[[auth0 domain]]/"
             $env:OPENTACO_AUTH_CLIENT_ID="my-client-id"
 
             # To make permanent (optional):
             [Environment]::SetEnvironmentVariable("OPENTACO_SERVER", "https://my-opentaco.company.com", "User")
-            [Environment]::SetEnvironmentVariable("OPENTACO_AUTH_ISSUER", "https://auth.company.com", "User")
+            [Environment]::SetEnvironmentVariable("OPENTACO_AUTH_ISSUER", "https://[[auth0 domain]]/", "User")
             [Environment]::SetEnvironmentVariable("OPENTACO_AUTH_CLIENT_ID", "my-client-id", "User")
             ```
             </Tab>
@@ -349,12 +349,12 @@ for all users and systems requiring access to state.
             #### On Windows Command Prompt:
             ```cmd
             set OPENTACO_SERVER=https://my-opentaco.company.com
-            set OPENTACO_AUTH_ISSUER=https://auth.company.com
+            set OPENTACO_AUTH_ISSUER="https://[[auth0 domain]]/"
             set OPENTACO_AUTH_CLIENT_ID=my-client-id
 
             # To make permanent (optional):
             setx OPENTACO_SERVER "https://my-opentaco.company.com"
-            setx OPENTACO_AUTH_ISSUER "https://auth.company.com"
+            setx OPENTACO_AUTH_ISSUER "https://[[auth0 domain]]/"
             setx OPENTACO_AUTH_CLIENT_ID "my-client-id"
             ```
             </Tab>
