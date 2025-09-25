@@ -5,6 +5,7 @@ taco:
   image:
     repository: ghcr.io/diggerhq/digger/taco-statesman
     tag: "v0.1.0"
+    pullPolicy: "IfNotPresent"
 
   # Number of replicas
   replicaCount: 1
