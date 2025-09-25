@@ -182,18 +182,33 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		return nil
 	}
 	
-	// Verify the access token and extract claims
+	// Try to verify JWT token first
+	var principal rbac.Principal
 	claims, err := signer.VerifyAccess(token)
-	if err != nil {
-		return fmt.Errorf("invalid access token: %v", err)
-	}
-	
-	// Create principal from verified claims
-	principal := rbac.Principal{
-		Subject: claims.Subject,
-		Email:   claims.Email,
-		Roles:   claims.Roles,
-		Groups:  claims.Groups,
+	if err == nil {
+		// JWT verification successful
+		principal = rbac.Principal{
+			Subject: claims.Subject,
+			Email:   claims.Email,
+			Roles:   claims.Roles,
+			Groups:  claims.Groups,
+		}
+	} else {
+		// JWT failed, try opaque token
+		if h.apiTokens != nil {
+			if tokenRecord, opaqueErr := h.apiTokens.Verify(c.Request().Context(), token); opaqueErr == nil {
+				principal = rbac.Principal{
+					Subject: tokenRecord.Subject,
+					Email:   tokenRecord.Email,
+					Roles:   []string{}, // Opaque tokens don't have roles directly
+					Groups:  tokenRecord.Groups,
+				}
+			} else {
+				return fmt.Errorf("invalid access token (both JWT and opaque failed): jwt_err=%v, opaque_err=%v", err, opaqueErr)
+			}
+		} else {
+			return fmt.Errorf("invalid access token: %v", err)
+		}
 	}
 	var rbacAction rbac.Action
 	

@@ -34,7 +34,7 @@ func RequireAuth(verify AccessTokenVerifier) echo.MiddlewareFunc {
 }
 
 // RBACMiddleware creates middleware that checks RBAC permissions
-func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action rbac.Action, resourcePattern string) echo.MiddlewareFunc {
+func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, apiTokenMgr *auth.APITokenManager, action rbac.Action, resourcePattern string) echo.MiddlewareFunc {
     return func(next echo.HandlerFunc) echo.HandlerFunc {
         return func(c echo.Context) error {
             // If RBAC is not enabled, allow all
@@ -43,8 +43,8 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
                 return next(c)
             }
             
-            // Get user from token
-            principal, err := getPrincipalFromToken(c, signer)
+            // Get user from token (JWT or opaque)
+            principal, err := getPrincipalFromToken(c, signer, apiTokenMgr)
             if err != nil {
                 return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
             }
@@ -59,7 +59,10 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
             }
             
             if !can {
-                return c.JSON(http.StatusForbidden, map[string]string{"error": "insufficient permissions"})
+                return c.JSON(http.StatusForbidden, map[string]string{
+                    "error": "insufficient permissions to access workspace",
+                    "hint":  "contact your administrator to grant " + string(action) + " permission",
+                })
             }
             
             return next(c)
@@ -67,29 +70,40 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
     }
 }
 
-// getPrincipalFromToken extracts principal information from the bearer token
-func getPrincipalFromToken(c echo.Context, signer *auth.Signer) (rbac.Principal, error) {
+// getPrincipalFromToken extracts principal information from the bearer token (JWT or opaque)
+func getPrincipalFromToken(c echo.Context, signer *auth.Signer, apiTokenMgr *auth.APITokenManager) (rbac.Principal, error) {
     authz := c.Request().Header.Get("Authorization")
     if !strings.HasPrefix(authz, "Bearer ") {
         return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "missing bearer token")
     }
     
     token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
-    if signer == nil {
-        return rbac.Principal{}, echo.NewHTTPError(http.StatusInternalServerError, "auth not configured")
+    
+    // Try JWT token first
+    if signer != nil {
+        if claims, err := signer.VerifyAccess(token); err == nil {
+            return rbac.Principal{
+                Subject: claims.Subject,
+                Email:   claims.Email,
+                Roles:   claims.Roles,
+                Groups:  claims.Groups,
+            }, nil
+        }
     }
     
-    claims, err := signer.VerifyAccess(token)
-    if err != nil {
-        return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
+    // Fallback to opaque token
+    if apiTokenMgr != nil {
+        if tokenRecord, err := apiTokenMgr.Verify(c.Request().Context(), token); err == nil {
+            return rbac.Principal{
+                Subject: tokenRecord.Subject,
+                Email:   tokenRecord.Email,
+                Roles:   []string{}, // Opaque tokens don't have roles directly
+                Groups:  tokenRecord.Groups,
+            }, nil
+        }
     }
     
-    return rbac.Principal{
-        Subject: claims.Subject,
-        Email:   claims.Email,
-        Roles:   claims.Roles,
-        Groups:  claims.Groups,
-    }, nil
+    return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
 }
 
 // getResourceFromRequest determines the resource for the request based on the pattern
