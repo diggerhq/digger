@@ -34,21 +34,24 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		}
 	}()
 
-	if payload.Installation == nil {
-		issueNumber := int64(0)
-		if payload.Issue != nil && payload.Issue.Number != nil {
-			issueNumber = *payload.Issue.Number
-		}
-		slog.Error("Installation is nil in payload", "issueNumber", issueNumber)
-		return fmt.Errorf("installation is missing from payload")
-	}
-
 	installationId := *payload.Installation.ID
 	repoName := *payload.Repo.Name
 	repoOwner := *payload.Repo.Owner.Login
 	repoFullName := *payload.Repo.FullName
 	cloneURL := *payload.Repo.CloneURL
 	issueNumber := *payload.Issue.Number
+	
+	if payload.Installation == nil {
+		slog.Error("Installation is nil in payload", "issueNumber", issueNumber)
+		return fmt.Errorf("installation is missing from payload")
+	}
+
+	installationId = *payload.Installation.ID
+	repoName = *payload.Repo.Name
+	repoOwner = *payload.Repo.Owner.Login
+	repoFullName = *payload.Repo.FullName
+	cloneURL = *payload.Repo.CloneURL
+	issueNumber = *payload.Issue.Number
 	isDraft := payload.Issue.GetDraft()
 	userCommentId := *payload.GetComment().ID
 	actor := *payload.Sender.Login
