@@ -17,6 +17,7 @@ spec:
       containers:
           image: "{{ .Values.taco.image.repository }}:{{ .Values.taco.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.taco.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.taco.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - name: http
               containerPort: {{ .Values.taco.service.port }}
