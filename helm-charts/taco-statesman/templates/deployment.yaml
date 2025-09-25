@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "taco-statesman.fullname" . }}
+  labels:
+    {{- include "taco-statesman.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.taco.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "taco-statesman.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "taco-statesman.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+          image: "{{ .Values.taco.image.repository }}:{{ .Values.taco.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.taco.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.taco.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.taco.service.port }}
+              protocol: TCP
+          env:
+            - name: OPENTACO_PORT
+              value: "{{ .Values.taco.service.port }}"
+            - name: OPENTACO_STORAGE
+              value: "{{ .Values.taco.storage.type }}"
+            {{- if .Values.taco.auth.disable }}
+            - name: OPENTACO_AUTH_DISABLE
+              value: "true"
+            {{- end }}
+            {{- if and (eq .Values.taco.storage.type "s3") .Values.taco.storage.s3.bucket }}
+            - name: OPENTACO_S3_BUCKET
+              value: "{{ .Values.taco.storage.s3.bucket }}"
+            {{- end }}
+            {{- if and (eq .Values.taco.storage.type "s3") .Values.taco.storage.s3.region }}
+            - name: OPENTACO_S3_REGION
+              value: "{{ .Values.taco.storage.s3.region }}"
+            {{- end }}
+            {{- if and (eq .Values.taco.storage.type "s3") .Values.taco.storage.s3.secretName }}
+            - name: OPENTACO_S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.taco.storage.s3.secretName }}
+                  key: access-key-id
+            - name: OPENTACO_S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.taco.storage.s3.secretName }}
+                  key: secret-access-key
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5

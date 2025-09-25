@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "taco-statesman.fullname" . }}
+  labels:
+    {{- include "taco-statesman.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.taco.service.type }}
+  ports:
+    - port: {{ .Values.taco.service.port }}
+      targetPort: {{ .Values.taco.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "taco-statesman.selectorLabels" . | nindent 4 }}
