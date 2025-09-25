@@ -112,33 +112,11 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	e.GET("/oauth/debug", authHandler.DebugConfig)
 
 
-	// API v1 protected group
+	// API v1 protected group - JWT tokens only
 	v1 := e.Group("/v1")
-	var verifyFn middleware.AccessTokenVerifier
 	if authEnabled {
-		verifyFn = func(token string) error {
-			// Try JWT first
-			if signer != nil {
-				if _, err := signer.VerifyAccess(token); err == nil {
-					return nil
-				}
-			}
-			// Fallback to opaque tokens (same as TFE endpoints)
-			if apiTokenMgr != nil {
-				if _, err := apiTokenMgr.Verify(context.Background(), token); err == nil {
-					return nil
-				}
-			}
-			// Debug: log the verification failure
-			fmt.Printf("[AUTH DEBUG] Token verification failed for both JWT and opaque\n")
-			tokenPreview := token
-			if len(token) > 50 {
-				tokenPreview = token[:50] + "..."
-			}
-			fmt.Printf("[AUTH DEBUG] Token preview: %s\n", tokenPreview)
-			return echo.ErrUnauthorized
-		}
-		v1.Use(middleware.RequireAuth(verifyFn))
+		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
+		v1.Use(middleware.RequireAuth(jwtVerifyFn))
 	}
 
 	// Setup RBAC manager if available
@@ -153,22 +131,22 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	// Unit handlers (management API) - pass RBAC manager and signer for filtering
 	unitHandler := unithandlers.NewHandler(store, rbacManager, signer)
 
-	// Management API (units) with RBAC middleware
+	// Management API (units) with JWT-only RBAC middleware
 	if authEnabled && rbacManager != nil {
-		v1.POST("/units", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitWrite, "*")(unitHandler.CreateUnit))
+		v1.POST("/units", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(unitHandler.CreateUnit))
 		// ListUnits does its own RBAC filtering internally, no middleware needed
 		v1.GET("/units", unitHandler.ListUnits)
-		v1.GET("/units/:id", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnit))
-		v1.DELETE("/units/:id", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitDelete, "{id}")(unitHandler.DeleteUnit))
-		v1.GET("/units/:id/download", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitRead, "{id}")(unitHandler.DownloadUnit))
-		v1.POST("/units/:id/upload", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitWrite, "{id}")(unitHandler.UploadUnit))
-		v1.POST("/units/:id/lock", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitLock, "{id}")(unitHandler.LockUnit))
-		v1.DELETE("/units/:id/unlock", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitLock, "{id}")(unitHandler.UnlockUnit))
+		v1.GET("/units/:id", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnit))
+		v1.DELETE("/units/:id", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitDelete, "{id}")(unitHandler.DeleteUnit))
+		v1.GET("/units/:id/download", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.DownloadUnit))
+		v1.POST("/units/:id/upload", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "{id}")(unitHandler.UploadUnit))
+		v1.POST("/units/:id/lock", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "{id}")(unitHandler.LockUnit))
+		v1.DELETE("/units/:id/unlock", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "{id}")(unitHandler.UnlockUnit))
 		// Dependency/status
-		v1.GET("/units/:id/status", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnitStatus))
+		v1.GET("/units/:id/status", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnitStatus))
 		// Version operations
-		v1.GET("/units/:id/versions", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitRead, "{id}")(unitHandler.ListVersions))
-		v1.POST("/units/:id/restore", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitWrite, "{id}")(unitHandler.RestoreVersion))
+		v1.GET("/units/:id/versions", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.ListVersions))
+		v1.POST("/units/:id/restore", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "{id}")(unitHandler.RestoreVersion))
 	} else {
 		// Fallback without RBAC
 		v1.POST("/units", unitHandler.CreateUnit)
@@ -186,21 +164,23 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 		v1.POST("/units/:id/restore", unitHandler.RestoreVersion)
 	}
 
-	// Terraform HTTP backend proxy with RBAC middleware
+	// Terraform HTTP backend proxy with JWT-only RBAC middleware
 	backendHandler := backend.NewHandler(store)
 	if authEnabled && rbacManager != nil {
-		v1.GET("/backend/*", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitRead, "*")(backendHandler.GetState))
-		v1.POST("/backend/*", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
-		v1.PUT("/backend/*", middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
-		// Explicitly wire non-standard HTTP methods used by Terraform backend
-		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(verifyFn)(middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
-		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(verifyFn)(middleware.RBACMiddleware(rbacManager, signer, apiTokenMgr, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
+		v1.GET("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "*")(backendHandler.GetState))
+		v1.POST("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
+		v1.PUT("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
+		// Explicitly wire non-standard HTTP methods used by Terraform backend  
+		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
+		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
+		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
 	} else if authEnabled {
+		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
 		v1.GET("/backend/*", backendHandler.GetState)
 		v1.POST("/backend/*", backendHandler.UpdateState)
 		v1.PUT("/backend/*", backendHandler.UpdateState)
-		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(verifyFn)(backendHandler.HandleLockUnlock))
-		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(verifyFn)(backendHandler.HandleLockUnlock))
+		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(backendHandler.HandleLockUnlock))
+		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(backendHandler.HandleLockUnlock))
 	} else {
 		v1.GET("/backend/*", backendHandler.GetState)
 		v1.POST("/backend/*", backendHandler.UpdateState)
@@ -253,26 +233,11 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	// TFE api - inject auth handler, storage, and RBAC dependencies
 	tfeHandler := tfe.NewTFETokenHandler(authHandler, store, rbacManager)  // Pass rbacManager (may be nil)
 
-	// Create protected TFE group
+	// Create protected TFE group - opaque tokens only
 	tfeGroup := e.Group("/tfe/api/v2")
 	if authEnabled {
-		// Verifier for TFE: accept JWT or opaque TFE tokens
-		tfeVerify := func(token string) error {
-			// Try JWT first
-			if signer != nil {
-				if _, err := signer.VerifyAccess(token); err == nil {
-					return nil
-				}
-			}
-			// Fallback to opaque via S3-backed manager
-			if apiTokenMgr != nil {
-				if _, err := apiTokenMgr.Verify(context.Background(), token); err == nil {
-					return nil
-				}
-			}
-			return echo.ErrUnauthorized
-		}
-		tfeGroup.Use(middleware.RequireAuth(tfeVerify))
+		opaqueVerifyFn := middleware.OpaqueOnlyVerifier(apiTokenMgr)
+		tfeGroup.Use(middleware.RequireAuth(opaqueVerifyFn))
 	}
 
 	// Move TFE endpoints to protected group
