@@ -1,3 +1,119 @@
 ---
 title: "CI Integration"
 ---
+
+Using digger with statesman allows you to have a convinient way to manage your state files in a secure manner. It is especially handy in more complex
+multi account setups where it gets harder to configure terraform to access state in a centralised location. In this page we will guide you through the process
+of setting up digger with statesman. We will also show you how to use digger with an S3 bucket if you do not wish to install and configure statesman.
+
+### Using digger with statesman
+
+If you would like to use digger with statesman the first step is to generate a terraform enterprise token. You can do this by running:
+
+```
+terraform login <hostname> # (OPENTACO_PUBLIC_BASE_URL)
+cat ~/.terraform.d/credentials.tfrc.json
+```
+
+And copy the value of the token from the JSON file of your terraform credentials file. Store the token as a secret STATESMANE_TOKEN in your CI system.
+From there you would need to make some small tweaks to your digger workflow:
+
+```
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_hostname: '[[opentaco-public-base-hostname]]'
+          cli_config_credentials_token: ${{ secrets.STATESMAN_TOKEN }}
+
+      - uses: diggerhq/digger@vLatest
+        with:
+          digger-spec: ${{ inputs.spec }}
+          setup-aws: true
+          setup-terraform: false
+```
+
+In your terraform you need to specify the cloud block as specifed in the [docs](/ce/state-management/cloud-backend). Digger will then invoke terraform in an authenticated mode
+which means that it will be able to pull/push the state from statesman and perform the operations successfully.
+
+
+
+<Note>
+    In CI system we would expect a bit longer lived tokens so that rotation doesn't need to occur as often. For that you can temporarily set
+    `OPENTACO_TERRAFORM_TOKEN_TTL="720h"` as an environment variable in the statesman service so that it doesn't expire soon when you place it in CI
+</Note>
+
+### Using digger S3 bucket only
+
+You can connect digger directly to an S3 bucket if you do not wish to install and configure statesman. This would be useful in cases where you don't
+have usecases for fine-grained access control or the other upcoming features such as remote runs by your users. Or maybe you have your state hosted somehwere
+and are not yet ready to migrate to statesman.
+
+The example repo for this is here: https://github.com/diggerhq/states-test
+
+In this example we have the following directory structure:
+
+```
+dev/
+    main.tf
+    tf_backend.tfbackend
+staging/
+    main.tf
+    tf_backend.tfbackend
+prod/
+    main.tf
+    tf_backend.tfbackend
+```
+
+within each main.tf root module we define a backend block:
+```
+terraform {
+  backend "s3" {
+
+  }
+}
+```
+
+We ommit the backend state name, key and region on purpose since it is defined in the file tf_backend.tfbackend within the same directory:
+
+```
+bucket="digger-state-test"
+key="/dev/terraform.tfstate"
+region="us-east-1"
+```
+
+This is done in staging/ and prod/ as well. We consider it as a convention for all the root modules.
+
+With that in place, we can configure digger to pass this additional configuration while running terraform as follows:
+
+```
+projects:
+  - name: "dev"
+    dir: "dev"
+  - name: "staging"
+    dir: "staging"
+  - name: "prod"
+    dir: "prod"
+
+
+workflows:
+  default:
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger unlock"]
+
+    plan:
+      steps:
+      - init:
+        extra_args: ["-backend-config=tf_backend.tfbackend" ]
+      - plan:
+    apply:
+      steps:
+      - init:
+        extra_args: ["-backend-config=tf_backend.tfbackend" ]
+      - apply:
+```
+
+The key part here is that we override the default workflow and pass extra arguments of `-backend-config=tf_backend.tfbackend` to the `plan` and `apply` steps.
+In this way it is easy to add additional states simply by adding a record for them in digger.yml. Once a PR is created and applied we will end up with a bucket that has three state files:
+
+![](/images/configuration/state-bucket-example.png)
