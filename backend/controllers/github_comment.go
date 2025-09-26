@@ -40,6 +40,18 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	repoFullName := *payload.Repo.FullName
 	cloneURL := *payload.Repo.CloneURL
 	issueNumber := *payload.Issue.Number
+	
+	if payload.Installation == nil {
+		slog.Error("Installation is nil in payload", "issueNumber", issueNumber)
+		return fmt.Errorf("installation is missing from payload")
+	}
+
+	installationId = *payload.Installation.ID
+	repoName = *payload.Repo.Name
+	repoOwner = *payload.Repo.Owner.Login
+	repoFullName = *payload.Repo.FullName
+	cloneURL = *payload.Repo.CloneURL
+	issueNumber = *payload.Issue.Number
 	isDraft := payload.Issue.GetDraft()
 	userCommentId := *payload.GetComment().ID
 	actor := *payload.Sender.Login
@@ -81,8 +93,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	if link == nil {
 		slog.Error("GitHub app installation link not found",
 			"installationId", installationId,
+			"issueNumber", issueNumber,
 		)
-		return fmt.Errorf("github app installation link not found")
+		return fmt.Errorf("GitHub App installation not found for installation ID %d. Please ensure the GitHub App is properly installed on the repository and the installation process completed successfully", installationId)
 	}
 	orgId := link.OrganisationId
 
@@ -108,6 +121,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		slog.Error("Error getting GitHub service",
 			"installationId", installationId,
 			"repoFullName", repoFullName,
+			"issueNumber", issueNumber,
 			"error", ghServiceErr,
 		)
 		return fmt.Errorf("error getting ghService to post error comment")
