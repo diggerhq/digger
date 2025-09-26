@@ -2,12 +2,14 @@ package domain
 
 import "time"
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 var DefaultOrganizationPermissions = TFEOrganizationPermissions{
 	CanCreateWorkspace: true,
 	CanUpdate:          true,
 	CanDestroy:         true,
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TFEOrganizationPermissions struct {
 	CanCreateTeam               bool `json:"can-create-team"`
 	CanCreateWorkspace          bool `json:"can-create-workspace"`
@@ -30,6 +32,7 @@ func NewName(name string) Name {
 
 type TFEAuthPolicyType string
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TFEOrganization struct {
 	// Primary ID
 	Name string `jsonapi:"primary,organizations"`
@@ -58,6 +61,7 @@ type TFEOrganization struct {
 	// DefaultProject *Project `jsonapi:"relation,default-project"`
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TFEEntitlements struct {
 	ID                    string `jsonapi:"primary,entitlement-sets"`
 	Agents                bool   `jsonapi:"attr,agents" json:"agents"`

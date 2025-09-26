@@ -221,6 +221,7 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 	return nil
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 func ToTFE(from *domain.Workspace) (*domain.TFEWorkspace, error) {
 	perms := &domain.TFEWorkspacePermissions{
 		CanLock:           true,

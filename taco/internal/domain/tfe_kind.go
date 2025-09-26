@@ -6,6 +6,7 @@ func (k Kind) String() string {
 	return string(k)
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 const (
 	SiteKind                      Kind = "site"
 	OrganizationKind              Kind = "org"

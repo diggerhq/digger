@@ -635,3 +635,23 @@ terraform init -reconfigure && terraform apply -auto-approve
 ```
 
 More details in `docs/s3-compat.md`.
+
+
+## Attribution
+
+Portions of the state management piece that relate to TFE API compatability and domain models have been adopted from the OTF project: https://github.com/leg100/otf,
+it has really helped support the cloud{} block support in opentaco statesman without alot of reverse engineering the TFE API, so we are grateful for this work. The following
+is a detailed list of these items:
+
+| File                              | Adapted Elements                                                                                                       |
+|-----------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| internal/domain/tfe_id.go         | The `TFEID` struct and functions on it, including `MustHardcodeTfeID`, `ParseTfeID`, `NewTfeID`, and `NewTfeIDWithVal` |
+| internal/domain/tfe_kind.go       | All the constants that end in `Kind` within this file have been adapted as enums                                       |
+| internal/domain/tfe_org.go        | `DefaultOrganizationPermissions`, `TFEOrganizationPermissions`, `TFEOrganization`, and `TFEEntitleÒments` structs      |
+| internal/domain/tfe_workspace.go  | `Workspace`, `TFEWorkspace`, and all their embedded structs adapted to match the domain model                          |
+| internal/tfe/organizations.go     | `Entitlements`, `defaultEntitlements`, and `GetOranizationEntitlements` functions                                      |
+| internal/tfe/well_known.go        | Structs related to `DiscoverSpec` and the `GetWellKnownJson` function adapted for use with Opentaco                    |
+| internal/tfe_workspaces.go        | `ToTFE` and `GetWorkspace` adapted for use with current Opentaco endpoints                                             |
+
+
+
