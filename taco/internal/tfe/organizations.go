@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type Entitlements struct {
 	ID                    domain.TfeID
 	Agents                bool
@@ -24,6 +25,7 @@ type Entitlements struct {
 	VCSIntegrations       bool
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 func defaultEntitlements(organizationID domain.TfeID) Entitlements {
 	return Entitlements{
 		ID:                    organizationID,
@@ -40,6 +42,7 @@ func defaultEntitlements(organizationID domain.TfeID) Entitlements {
 	}
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 func (h *TfeHandler) GetOrganizationEntitlements(c echo.Context) error {
 	tfidStr := domain.NewTfeIDWithVal(domain.OrganizationKind, "RoiPNhWzpjaKhjcV")
 	domain.NewTfeID(domain.OrganizationKind)

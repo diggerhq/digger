@@ -21,6 +21,8 @@ const (
 	TokenRoute = "/tfe/oauth2/token"
 )
 
+// These Discovery structs have been
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 // login stuff, TODO: move to own package etc
 type DiscoverySpec struct {
 	Client     string   `json:"client"`

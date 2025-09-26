@@ -9,11 +9,13 @@ import (
 
 const base58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type ID interface {
 	fmt.Stringer
 	Kind() Kind
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 func GenerateRandomStringFromAlphabet(size int, alphabet string) string {
 	buf := make([]byte, size)
 	for i := 0; i < size; i++ {
@@ -28,6 +30,7 @@ func ConvertTfeID(id TfeID, to Kind) TfeID {
 	return TfeID{kind: to, id: id.id}
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 func MustHardcodeTfeID(kind Kind, suffix string) TfeID {
 	s := fmt.Sprintf("%s-%s", kind, suffix)
 	id, err := ParseTfeID(s)
@@ -37,6 +40,7 @@ func MustHardcodeTfeID(kind Kind, suffix string) TfeID {
 	return id
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 // ParseTfeID parses the ID from a string representation.
 func ParseTfeID(s string) (TfeID, error) {
 	parts := strings.Split(s, "-")
@@ -54,6 +58,8 @@ func ParseTfeID(s string) (TfeID, error) {
 	return TfeID{kind: Kind(kind), id: id}, nil
 }
 
+// The following struct and all struct methods have been
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TfeID struct {
 	kind Kind
 	id   string
@@ -107,10 +113,12 @@ func (id *TfeID) Value() (driver.Value, error) {
 	return id.String(), nil
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 func NewTfeID(kind Kind) TfeID {
 	return TfeID{kind: kind, id: GenerateRandomStringFromAlphabet(16, base58)}
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 func NewTfeIDWithVal(kind Kind, id string) TfeID {
 	return TfeID{kind: kind, id: id}
 }

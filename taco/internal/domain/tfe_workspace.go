@@ -16,6 +16,7 @@ type VCSRepo struct {
 	name  string
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type VCSConnection struct {
 	// Pushes to this VCS branch trigger runs. Empty string means the default
 	// branch is used. Ignored if TagsRegex is non-empty.
@@ -33,6 +34,7 @@ type VCSConnection struct {
 	AllowCLIApply bool
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type WorkspaceVersion struct {
 	// Latest if true means runs use the Latest available version at time of
 	// creation of the run.
@@ -44,6 +46,8 @@ type WorkspaceVersion struct {
 	semver string
 }
 
+// Following struct and its methods have been
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 // If you ever marshal this domain type via jsonapi (you currently don't),
 // its tags must also be valid. Fixing them anyway for completeness.
 type Workspace struct {
@@ -89,10 +93,12 @@ func (ws *Workspace) Locked() bool {
 
 // ---- JSON:API DTOs below ----
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TFEWorkspaceActions struct {
 	IsDestroyable bool `json:"is-destroyable"`
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TFEWorkspacePermissions struct {
 	CanDestroy        bool `json:"can-destroy"`
 	CanForceUnlock    bool `json:"can-force-unlock"`
@@ -106,6 +112,7 @@ type TFEWorkspacePermissions struct {
 	CanUpdateVariable bool `json:"can-update-variable"`
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 // TFEVCSRepo is carried as a single attribute object on the workspace.
 type TFEVCSRepo struct {
 	Branch            string  `json:"branch"`
@@ -118,10 +125,12 @@ type TFEVCSRepo struct {
 	ServiceProvider   string  `json:"service-provider"`
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TFERun struct {
 	ID string `jsonapi:"primary,runs"`
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TFEWorkspace struct {
 	ID                         string                   `jsonapi:"primary,workspaces"`
 	Actions                    *TFEWorkspaceActions     `jsonapi:"attr,actions" json:"actions"`
@@ -165,6 +174,7 @@ type TFEWorkspace struct {
 	Outputs      []*TFEWorkspaceOutput `jsonapi:"relation,outputs" json:"outputs"`
 }
 
+// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type TFEWorkspaceOutput struct {
 	ID        string `jsonapi:"primary,workspace-outputs"`
 	Name      string `jsonapi:"attr,Name" json:"Name"`
