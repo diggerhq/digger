@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/opentaco/internal/deps"
 	"io"
 	"net/http"
 	"strings"
@@ -38,9 +39,9 @@ func parseStateVersionID(stateVersionID string) (stateID string, err error) {
 	if !strings.HasPrefix(stateVersionID, "sv-") {
 		return "", fmt.Errorf("invalid state version ID format: missing sv- prefix")
 	}
-	
+
 	rest := stateVersionID[3:]
-	
+
 	// Find the timestamp part (should be all digits after last hyphen)
 	// We need to be careful since base58 does not contain hyphens (unlike base64url)
 	idx := -1
@@ -54,24 +55,24 @@ func parseStateVersionID(stateVersionID string) (stateID string, err error) {
 			}
 		}
 	}
-	
+
 	if idx <= 0 || idx >= len(rest)-1 {
 		return "", fmt.Errorf("invalid state version ID format: cannot find timestamp separator")
 	}
-	
+
 	encodedStateID := rest[:idx]
-	
+
 	// Decode the base58-encoded state ID
 	stateIDBytes, err := base58.Decode(encodedStateID)
 	if err != nil {
 		return "", fmt.Errorf("invalid state version ID encoding: %w", err)
 	}
-	
+
 	stateID = string(stateIDBytes)
 	if len(stateID) == 0 {
 		return "", fmt.Errorf("decoded state ID is empty")
 	}
-	
+
 	return stateID, nil
 }
 
@@ -89,7 +90,7 @@ func convertWorkspaceToStateID(workspaceID string) string {
 	if strings.TrimSpace(workspaceID) == "" {
 		return ""
 	}
-	
+
 	// If it's a TFE workspace ID (ws-something), extract just the workspace name
 	if strings.HasPrefix(workspaceID, "ws-") {
 		result := strings.TrimPrefix(workspaceID, "ws-")
@@ -137,7 +138,7 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 
 	// Scenario 3: RBAC is initialized → enforce permissions
 	stateID := convertWorkspaceToStateID(workspaceID)
-	
+
 	// Extract user subject from JWT token in Authorization header
 	authHeader := c.Request().Header.Get("Authorization")
 	if authHeader == "" {
@@ -147,10 +148,10 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 	if !strings.HasPrefix(authHeader, "Bearer ") {
 		return fmt.Errorf("invalid authorization header format")
 	}
-	
+
 	// Extract and verify JWT token to get user principal
 	token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
-	
+
 	// Get signer from auth handler to verify the token
 	signer := h.authHandler.GetSigner()
 	if signer == nil {
@@ -158,7 +159,7 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		principal := rbac.Principal{Subject: "unknown"}
 		// Continue with permission check using unknown subject
 		var rbacAction rbac.Action
-		
+
 		switch action {
 		case "unit:read":
 			rbacAction = rbac.ActionUnitRead
@@ -169,25 +170,25 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		default:
 			return fmt.Errorf("unknown action: %s", action)
 		}
-		
+
 		// Check permission using RBAC manager
 		allowed, err := h.rbacManager.Can(c.Request().Context(), principal, rbacAction, stateID)
 		if err != nil {
 			return fmt.Errorf("failed to check permissions: %v", err)
 		}
-		
+
 		if !allowed {
 			return fmt.Errorf("insufficient permissions")
 		}
 		return nil
 	}
-	
+
 	// Verify the access token and extract claims
 	claims, err := signer.VerifyAccess(token)
 	if err != nil {
 		return fmt.Errorf("invalid access token: %v", err)
 	}
-	
+
 	// Create principal from verified claims
 	principal := rbac.Principal{
 		Subject: claims.Subject,
@@ -196,7 +197,7 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		Groups:  claims.Groups,
 	}
 	var rbacAction rbac.Action
-	
+
 	switch action {
 	case "unit:read":
 		rbacAction = rbac.ActionUnitRead
@@ -347,9 +348,9 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 	}
 
 	// Debug: Log the workspace data being sent
-	fmt.Printf("GetWorkspace: Sending workspace with ExecutionMode=%s, Operations=%t\n", 
+	fmt.Printf("GetWorkspace: Sending workspace with ExecutionMode=%s, Operations=%t\n",
 		converted.ExecutionMode, converted.Operations)
-		
+
 	if err := jsonapi.MarshalPayload(c.Response().Writer, converted); err != nil {
 		fmt.Printf("error marshaling workspace payload: %v", err)
 		return err
@@ -367,7 +368,7 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 	if workspaceID == "" {
 		return c.JSON(400, map[string]string{"error": "workspace_id required"})
 	}
-	
+
 	// Debug logging
 	fmt.Printf("LockWorkspace: workspaceID=%s\n", workspaceID)
 
@@ -378,7 +379,7 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 			"hint":  "contact your administrator to grant unit:write permission",
 		})
 	}
-	
+
 	if h.stateStore == nil {
 		fmt.Printf("LockWorkspace: stateStore is nil!\n")
 		return c.JSON(500, map[string]string{"error": "State store not initialized"})
@@ -640,9 +641,9 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 			"id":   stateVersionID,
 			"type": "state-versions",
 			"attributes": map[string]interface{}{
-				"created-at":      stateMeta.Updated.UTC().Format(time.RFC3339),
-				"updated-at":      stateMeta.Updated.UTC().Format(time.RFC3339),
-				"size":            stateMeta.Size,
+				"created-at":                stateMeta.Updated.UTC().Format(time.RFC3339),
+				"updated-at":                stateMeta.Updated.UTC().Format(time.RFC3339),
+				"size":                      stateMeta.Size,
 				"hosted-state-download-url": downloadURL,
 			},
 			"relationships": map[string]interface{}{
@@ -743,49 +744,50 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 			"error": "Failed to check state existence",
 		})
 	}
-	
+
 	// Generate a state version ID (before upload) based on state ID and current time
 	stateVersionID := generateStateVersionID(stateID, time.Now().Unix())
 	fmt.Printf("CreateStateVersion: Returning pending stateVersionID=%s (awaiting upload)\n", stateVersionID)
-	
+
 	// Build URLs
 	baseURL := getBaseURL(c)
 	uploadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/upload", baseURL, stateVersionID)
 	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, stateVersionID)
 	jsonUploadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/json-upload", baseURL, stateVersionID)
-	
+
 	// Derive serial and lineage from existing state (if any)
 	serial := 0
 	lineage := ""
 	if stateBytes, dErr := h.stateStore.Download(c.Request().Context(), stateID); dErr == nil {
 		var st map[string]interface{}
 		if uErr := json.Unmarshal(stateBytes, &st); uErr == nil {
-			if v, ok := st["serial"].(float64); ok { serial = int(v) }
-			if v, ok := st["lineage"].(string); ok { lineage = v }
+			if v, ok := st["serial"].(float64); ok {
+				serial = int(v)
+			}
+			if v, ok := st["lineage"].(string); ok {
+				lineage = v
+			}
 		}
 	}
 
-
-	
-	
 	fmt.Printf("CreateStateVersion: baseURL='%s'\n", baseURL)
 	fmt.Printf("CreateStateVersion: uploadURL='%s'\n", uploadURL)
-	
+
 	// Build the response
 	response := map[string]interface{}{
 		"data": map[string]interface{}{
 			"id":   stateVersionID,
 			"type": "state-versions",
 			"attributes": map[string]interface{}{
-				"created-at": time.Now().UTC().Format(time.RFC3339),
-				"updated-at": time.Now().UTC().Format(time.RFC3339),
-				"size":       0,
-				"upload-url": uploadURL,
-				"hosted-state-upload-url":   uploadURL,
-				"hosted-state-download-url": downloadURL,
-				"hosted-json-state-upload-url": jsonUploadURL, 
-				"serial":  serial,
-				"lineage": lineage,
+				"created-at":                   time.Now().UTC().Format(time.RFC3339),
+				"updated-at":                   time.Now().UTC().Format(time.RFC3339),
+				"size":                         0,
+				"upload-url":                   uploadURL,
+				"hosted-state-upload-url":      uploadURL,
+				"hosted-state-download-url":    downloadURL,
+				"hosted-json-state-upload-url": jsonUploadURL,
+				"serial":                       serial,
+				"lineage":                      lineage,
 			},
 			"relationships": map[string]interface{}{
 				"workspace": map[string]interface{}{
@@ -797,7 +799,7 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 			},
 		},
 	}
-	
+
 	// Convert to actual JSON to see what gets sent to Terraform
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
@@ -805,7 +807,7 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 		return c.JSON(500, map[string]string{"error": "Failed to create response"})
 	}
 	fmt.Printf("CreateStateVersion: Actual JSON being sent: %s\n", string(jsonBytes))
-	
+
 	return c.JSON(201, response)
 }
 
@@ -829,13 +831,13 @@ func (h *TfeHandler) CreateStateVersionDirect(c echo.Context, workspaceID, state
 	if lockErr != nil && lockErr != storage.ErrNotFound {
 		return c.JSON(500, map[string]string{"error": "Failed to get lock status"})
 	}
-	
+
 	// Extract lock ID if state is locked
 	lockID := ""
 	if currentLock != nil {
 		lockID = currentLock.ID
 	}
-	
+
 	// Upload the state with proper lock ID
 	err = h.stateStore.Upload(c.Request().Context(), stateID, body, lockID)
 	if err != nil {
@@ -909,16 +911,16 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 // UploadStateVersion handles PUT /tfe/api/v2/state-versions/:id/upload
 func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	fmt.Printf("UploadStateVersion: START - Method=%s, URI=%s\n", c.Request().Method, c.Request().RequestURI)
-	
+
 	// Debug: Check if Authorization header is present
 	authHeader := c.Request().Header.Get("Authorization")
 	fmt.Printf("UploadStateVersion: Authorization header present: %t\n", authHeader != "")
 	if authHeader != "" {
 		// Don't log the full token for security, just whether it looks like a Bearer token
-		fmt.Printf("UploadStateVersion: Authorization header format: %s\n", 
+		fmt.Printf("UploadStateVersion: Authorization header format: %s\n",
 			strings.SplitN(authHeader, " ", 2)[0])
 	}
-	
+
 	stateVersionID := c.Param("id")
 	fmt.Printf("UploadStateVersion: stateVersionID=%s\n", stateVersionID)
 	if stateVersionID == "" {
@@ -932,7 +934,7 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "Invalid state version ID format"})
 	}
 	workspaceID := stateID // For TFE, workspace ID matches state ID
-	
+
 	// Check RBAC permission for uploading state (if auth available)
 	// Note: Upload endpoints are exempt from auth middleware since Terraform doesn't send headers
 	// Security relies on: valid upload URL + lock ownership + this RBAC check when possible
@@ -979,13 +981,13 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	if lockErr != nil && lockErr != storage.ErrNotFound {
 		return c.JSON(500, map[string]string{"error": "Failed to get lock status"})
 	}
-	
+
 	// Extract lock ID if state is locked
 	lockID := ""
 	if currentLock != nil {
 		lockID = currentLock.ID
 	}
-	
+
 	// Upload the state with proper lock ID
 	fmt.Printf("UploadStateVersion: Uploading to storage with lockID=%s\n", lockID)
 	err = h.stateStore.Upload(c.Request().Context(), stateID, stateData, lockID)
@@ -1003,123 +1005,126 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 		})
 	}
 
+	fmt.Printf("updating graph on write")
+	go deps.UpdateGraphOnWrite(c.Request().Context(), h.stateStore, stateID, stateData)
+
 	fmt.Printf("UploadStateVersion: SUCCESS - State uploaded successfully\n")
 	// Return 204 No Content as expected by Terraform
 	return c.NoContent(204)
 }
 
-
-
-
 func (h *TfeHandler) UploadJSONStateOutputs(c echo.Context) error {
-    id := c.Param("id")
-    fmt.Printf("UploadJSONStateOutputs: stateVersionID=%s\n", id)
-    
-    // Debug: Check if Authorization header is present
-    authHeader := c.Request().Header.Get("Authorization")
-    fmt.Printf("UploadJSONStateOutputs: Authorization header present: %t\n", authHeader != "")
-    if authHeader != "" {
-        fmt.Printf("UploadJSONStateOutputs: Authorization header format: %s\n", 
-            strings.SplitN(authHeader, " ", 2)[0])
-    }
-    
-    // Parse state version ID to get workspace ID for RBAC check
-    stateID, err := parseStateVersionID(id)
-    if err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid state version ID format"})
-    }
-    workspaceID := stateID // For TFE, workspace ID matches state ID
-    
-    // Check RBAC permission for uploading state outputs (if auth available)
-    // Note: Upload endpoints are exempt from auth middleware since Terraform doesn't send headers
-    // Security relies on: valid upload URL + lock ownership + this RBAC check when possible
-    if err := h.checkWorkspacePermission(c, "unit:write", workspaceID); err != nil {
-        // Only enforce RBAC if we have a real auth error, not just missing headers
-        if !strings.Contains(err.Error(), "no authorization header") {
-            fmt.Printf("UploadJSONStateOutputs: RBAC permission denied: %v\n", err)
-            return c.JSON(http.StatusForbidden, map[string]string{
-                "error": "insufficient permissions to upload state outputs",
-                "hint":  "contact your administrator to grant state:write permission",
-            })
-        }
-        // If no auth header, allow but log for security monitoring
-        fmt.Printf("UploadJSONStateOutputs: No auth header - allowing upload based on lock validation\n")
-    }
+	id := c.Param("id")
+	fmt.Printf("UploadJSONStateOutputs: stateVersionID=%s\n", id)
 
-    body, err := io.ReadAll(c.Request().Body)
-    if err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "Failed to read outputs"})
-    }
-    if len(body) > 0 {
-        fmt.Printf("UploadJSONStateOutputs: %d bytes (preview: %s)\n", len(body), string(body[:min(200, len(body))]))
-    }
-    return c.NoContent(http.StatusNoContent) //
+	// Debug: Check if Authorization header is present
+	authHeader := c.Request().Header.Get("Authorization")
+	fmt.Printf("UploadJSONStateOutputs: Authorization header present: %t\n", authHeader != "")
+	if authHeader != "" {
+		fmt.Printf("UploadJSONStateOutputs: Authorization header format: %s\n",
+			strings.SplitN(authHeader, " ", 2)[0])
+	}
+
+	// Parse state version ID to get workspace ID for RBAC check
+	stateID, err := parseStateVersionID(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid state version ID format"})
+	}
+	workspaceID := stateID // For TFE, workspace ID matches state ID
+
+	// Check RBAC permission for uploading state outputs (if auth available)
+	// Note: Upload endpoints are exempt from auth middleware since Terraform doesn't send headers
+	// Security relies on: valid upload URL + lock ownership + this RBAC check when possible
+	if err := h.checkWorkspacePermission(c, "unit:write", workspaceID); err != nil {
+		// Only enforce RBAC if we have a real auth error, not just missing headers
+		if !strings.Contains(err.Error(), "no authorization header") {
+			fmt.Printf("UploadJSONStateOutputs: RBAC permission denied: %v\n", err)
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"error": "insufficient permissions to upload state outputs",
+				"hint":  "contact your administrator to grant state:write permission",
+			})
+		}
+		// If no auth header, allow but log for security monitoring
+		fmt.Printf("UploadJSONStateOutputs: No auth header - allowing upload based on lock validation\n")
+	}
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Failed to read outputs"})
+	}
+	if len(body) > 0 {
+		fmt.Printf("UploadJSONStateOutputs: %d bytes (preview: %s)\n", len(body), string(body[:min(200, len(body))]))
+	}
+	return c.NoContent(http.StatusNoContent) //
 }
 
-
 func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
-    c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
-    id := c.Param("id")
-    if id == "" || !strings.HasPrefix(id, "sv-") {
-        return c.JSON(http.StatusNotFound, map[string]interface{}{
-            "errors": []map[string]string{{"status":"404","title":"not_found"}},
-        })
-    }
+	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
+	id := c.Param("id")
+	if id == "" || !strings.HasPrefix(id, "sv-") {
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"errors": []map[string]string{{"status": "404", "title": "not_found"}},
+		})
+	}
 
-    // Parse state version ID to extract state ID
-    stateID, err := parseStateVersionID(id)
-    if err != nil {
-        return c.JSON(http.StatusNotFound, map[string]interface{}{
-            "errors": []map[string]string{{"status":"404","title":"invalid_id"}},
-        })
-    }
+	// Parse state version ID to extract state ID
+	stateID, err := parseStateVersionID(id)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"errors": []map[string]string{{"status": "404", "title": "invalid_id"}},
+		})
+	}
 
-    // Load metadata (and optionally content)
-    meta, err := h.stateStore.Get(c.Request().Context(), stateID)
-    if err != nil {
-        if err == storage.ErrNotFound {
-            return c.JSON(http.StatusNotFound, map[string]interface{}{
-                "errors": []map[string]string{{"status":"404","title":"state_not_found"}},
-            })
-        }
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"state_meta_error"})
-    }
+	// Load metadata (and optionally content)
+	meta, err := h.stateStore.Get(c.Request().Context(), stateID)
+	if err != nil {
+		if err == storage.ErrNotFound {
+			return c.JSON(http.StatusNotFound, map[string]interface{}{
+				"errors": []map[string]string{{"status": "404", "title": "state_not_found"}},
+			})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "state_meta_error"})
+	}
 
-    // Optional: extract serial/lineage + md5
-    var serial int
-    var lineage, md5b64 string
-    if bytes, dErr := h.stateStore.Download(c.Request().Context(), stateID); dErr == nil && len(bytes) > 0 {
-        var st map[string]interface{}
-        if json.Unmarshal(bytes, &st) == nil {
-            if v, ok := st["serial"].(float64); ok { serial = int(v) }
-            if v, ok := st["lineage"].(string); ok { lineage = v }
-        }
-        sum := md5.Sum(bytes)
-        md5b64 = base64.StdEncoding.EncodeToString(sum[:])
-    }
+	// Optional: extract serial/lineage + md5
+	var serial int
+	var lineage, md5b64 string
+	if bytes, dErr := h.stateStore.Download(c.Request().Context(), stateID); dErr == nil && len(bytes) > 0 {
+		var st map[string]interface{}
+		if json.Unmarshal(bytes, &st) == nil {
+			if v, ok := st["serial"].(float64); ok {
+				serial = int(v)
+			}
+			if v, ok := st["lineage"].(string); ok {
+				lineage = v
+			}
+		}
+		sum := md5.Sum(bytes)
+		md5b64 = base64.StdEncoding.EncodeToString(sum[:])
+	}
 
-    baseURL := getBaseURL(c)
-    downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, id)
+	baseURL := getBaseURL(c)
+	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, id)
 
-    resp := map[string]interface{}{
-        "data": map[string]interface{}{
-            "id":   id,
-            "type": "state-versions",
-            "attributes": map[string]interface{}{
-                "created-at":                 meta.Updated.UTC().Format(time.RFC3339),
-                "updated-at":                 meta.Updated.UTC().Format(time.RFC3339),
-                "size":                       meta.Size,
-                "serial":                     serial,
-                "lineage":                    lineage,
-                "md5":                        md5b64, // optional
-                "hosted-state-download-url":  downloadURL,
-            },
-            "relationships": map[string]interface{}{
-                "workspace": map[string]interface{}{
-                    "data": map[string]interface{}{"id": stateID, "type": "workspaces"},
-                },
-            },
-        },
-    }
-    return c.JSON(http.StatusOK, resp)
+	resp := map[string]interface{}{
+		"data": map[string]interface{}{
+			"id":   id,
+			"type": "state-versions",
+			"attributes": map[string]interface{}{
+				"created-at":                meta.Updated.UTC().Format(time.RFC3339),
+				"updated-at":                meta.Updated.UTC().Format(time.RFC3339),
+				"size":                      meta.Size,
+				"serial":                    serial,
+				"lineage":                   lineage,
+				"md5":                       md5b64, // optional
+				"hosted-state-download-url": downloadURL,
+			},
+			"relationships": map[string]interface{}{
+				"workspace": map[string]interface{}{
+					"data": map[string]interface{}{"id": stateID, "type": "workspaces"},
+				},
+			},
+		},
+	}
+	return c.JSON(http.StatusOK, resp)
 }

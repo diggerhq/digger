@@ -9,17 +9,17 @@ import (
 )
 
 var (
-	ErrNotFound     = errors.New("not found")
+	ErrNotFound      = errors.New("not found")
 	ErrAlreadyExists = errors.New("already exists")
-	ErrLockConflict = errors.New("lock conflict")
+	ErrLockConflict  = errors.New("lock conflict")
 )
 
 type UnitMetadata struct {
-    ID       string    `json:"id"`
-    Size     int64     `json:"size"`
-    Updated  time.Time `json:"updated"`
-    Locked   bool      `json:"locked"`
-    LockInfo *LockInfo `json:"lock,omitempty"`
+	ID       string    `json:"id"`
+	Size     int64     `json:"size"`
+	Updated  time.Time `json:"updated"`
+	Locked   bool      `json:"locked"`
+	LockInfo *LockInfo `json:"lock,omitempty"`
 }
 
 type VersionInfo struct {
@@ -37,31 +37,31 @@ type LockInfo struct {
 }
 
 type UnitStore interface {
-    // Unit operations
-    Create(ctx context.Context, id string) (*UnitMetadata, error)
-    Get(ctx context.Context, id string) (*UnitMetadata, error)
-    List(ctx context.Context, prefix string) ([]*UnitMetadata, error)
-    Delete(ctx context.Context, id string) error
-	
+	// Unit operations
+	Create(ctx context.Context, id string) (*UnitMetadata, error)
+	Get(ctx context.Context, id string) (*UnitMetadata, error)
+	List(ctx context.Context, prefix string) ([]*UnitMetadata, error)
+	Delete(ctx context.Context, id string) error
+
 	// Data operations
 	Download(ctx context.Context, id string) ([]byte, error)
 	Upload(ctx context.Context, id string, data []byte, lockID string) error
-	
+
 	// Lock operations
 	Lock(ctx context.Context, id string, info *LockInfo) error
 	Unlock(ctx context.Context, id string, lockID string) error
 	GetLock(ctx context.Context, id string) (*LockInfo, error)
-	
+
 	// Version operations
-    ListVersions(ctx context.Context, id string) ([]*VersionInfo, error)
-    RestoreVersion(ctx context.Context, id string, versionTimestamp time.Time, lockID string) error
+	ListVersions(ctx context.Context, id string) ([]*VersionInfo, error)
+	RestoreVersion(ctx context.Context, id string, versionTimestamp time.Time, lockID string) error
 }
 
 // S3Store extends UnitStore with S3-specific methods for RBAC integration
 type S3Store interface {
-    UnitStore
-    GetS3Client() *s3.Client
-    GetS3Bucket() string
-    GetS3Prefix() string
-    Key(parts ...string) string
+	UnitStore
+	GetS3Client() *s3.Client
+	GetS3Bucket() string
+	GetS3Prefix() string
+	Key(parts ...string) string
 }

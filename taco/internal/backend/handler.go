@@ -1,35 +1,36 @@
 package backend
 
 import (
-    "context"
-    "encoding/json"
-    "io"
-    "net/http"
-    "strings"
-    "time"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
 
-    "github.com/diggerhq/digger/opentaco/internal/analytics"
-    "github.com/diggerhq/digger/opentaco/internal/storage"
-    "github.com/diggerhq/digger/opentaco/internal/deps"
-    "github.com/google/uuid"
-    "github.com/labstack/echo/v4"
+	"github.com/diggerhq/digger/opentaco/internal/analytics"
+	"github.com/diggerhq/digger/opentaco/internal/deps"
+	"github.com/diggerhq/digger/opentaco/internal/storage"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 )
 
 // Handler implements Terraform HTTP backend protocol
 type Handler struct {
-    store storage.UnitStore
+	store storage.UnitStore
 }
 
 func NewHandler(store storage.UnitStore) *Handler {
-    return &Handler{
-        store: store,
-    }
+	return &Handler{
+		store: store,
+	}
 }
 
 // GetState handles GET requests for state retrieval
 func (h *Handler) GetState(c echo.Context) error {
 	analytics.SendEssential("terraform_plan_started")
-	
+
 	id := extractID(c)
 
 	data, err := h.store.Download(c.Request().Context(), id)
@@ -49,9 +50,11 @@ func (h *Handler) GetState(c echo.Context) error {
 
 // UpdateState handles POST/PUT requests for state updates
 func (h *Handler) UpdateState(c echo.Context) error {
-    analytics.SendEssential("terraform_apply_started")
-    
-    id := extractID(c)
+	analytics.SendEssential("terraform_apply_started")
+
+	fmt.Println("updating states ... ")
+
+	id := extractID(c)
 
 	// Check if state exists - error if not found (no auto-creation)
 	_, err := h.store.Get(c.Request().Context(), id)
@@ -84,11 +87,11 @@ func (h *Handler) UpdateState(c echo.Context) error {
 		lockID = c.QueryParam("id")
 	}
 
-    // Upload state
-    err = h.store.Upload(c.Request().Context(), id, data, lockID)
-    if err != nil {
-        analytics.SendEssential("terraform_apply_failed")
-        if err == storage.ErrLockConflict {
+	// Upload state
+	err = h.store.Upload(c.Request().Context(), id, data, lockID)
+	if err != nil {
+		analytics.SendEssential("terraform_apply_failed")
+		if err == storage.ErrLockConflict {
 			// Get current lock for details
 			lock, _ := h.store.GetLock(c.Request().Context(), id)
 			if lock != nil {
@@ -97,17 +100,17 @@ func (h *Handler) UpdateState(c echo.Context) error {
 			return c.JSON(http.StatusConflict, map[string]string{
 				"error": "State is locked",
 			})
-        }
-        return c.JSON(http.StatusInternalServerError, map[string]string{
-            "error": "Failed to update state",
-        })
-    }
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to update state",
+		})
+	}
 
-    // Fire-and-forget graph update (best effort; never block/tank the write)
-    go deps.UpdateGraphOnWrite(contextWithBackground(c), h.store, id, data)
+	// Fire-and-forget graph update (best effort; never block/tank the write)
+	go deps.UpdateGraphOnWrite(contextForAsync(c), h.store, id, data)
 
-    analytics.SendEssential("terraform_apply_completed")
-    return c.NoContent(http.StatusOK)
+	analytics.SendEssential("terraform_apply_completed")
+	return c.NoContent(http.StatusOK)
 }
 
 // HandleLockUnlock handles LOCK and UNLOCK operations
@@ -233,9 +236,18 @@ func extractID(c echo.Context) string {
 
 // contextWithBackground returns a detached context for async operations
 func contextWithBackground(c echo.Context) context.Context {
-    // If request context is already done, use background
-    if c == nil || c.Request() == nil || c.Request().Context().Err() != nil {
-        return context.Background()
-    }
-    return c.Request().Context()
+	// If request context is already done, use background
+	if c == nil || c.Request() == nil || c.Request().Context().Err() != nil {
+		return context.Background()
+	}
+	return c.Request().Context()
+}
+
+func contextForAsync(c echo.Context) context.Context {
+	if c == nil || c.Request() == nil {
+		return context.Background()
+	}
+	// Keeps c.Request().Context() values, but removes its deadline/cancel.
+	ctx := context.WithoutCancel(c.Request().Context())
+	return ctx
 }
