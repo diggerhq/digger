@@ -1,0 +1,18 @@
+---
+title: "Versioning"
+---
+
+OpenTaco comes with built in versioning for units. Right now we do simple version history, keeping the whole version of each document rather than implementing a diff system. You can configure how many versions are kept with the configurable environment variable `OPENTACO_MAX_VERSIONS`. By default we store 10 versions. Version operations respect unit locks. 
+
+### List Versions 
+
+You can list the versions for a unit with the command `taco unit versions <unit-id>` 
+
+![List Versions](/images/state-management/versioning/taco-unit-versions.png)
+
+### Restore a past version
+
+You can then restore a version from this list by using the version number rather than the hash with `taco unit restore <unit-id> <version-number>`
+
+![List Versions](/images/state-management/versioning/taco-unit-restore.png)
+
