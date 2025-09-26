@@ -93,4 +93,10 @@ We expect all contributors to follow our [Code of Conduct](https://www.contribut
 
 ## License
 
-Digger is released under the [Apache License](LICENSE). By contributing to this project, you agree to license your contributions under the same license.
+Digger is released under the [MIT](LICENSE). By contributing to this project, you agree to license your contributions under the same license.
+
+## Attributions
+
+If you include code from other projects, you must retain the original copyright and license notices in those files.  
+Please also add a clear comment noting the source of the code (project name, license, and link).
+
