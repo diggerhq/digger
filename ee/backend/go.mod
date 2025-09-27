@@ -19,7 +19,6 @@ require (
 	github.com/robert-nix/ansihtml v1.0.1
 	github.com/samber/lo v1.46.0
 	github.com/xanzy/go-gitlab v0.106.0
-	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
 )
 
 require (
@@ -282,6 +281,7 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
