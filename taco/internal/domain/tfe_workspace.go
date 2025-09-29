@@ -2,93 +2,15 @@ package domain
 
 import "time"
 
-type ExecutionMode string
-
-type RunStatus string
-
-type LatestRun struct {
-	ID     string
-	Status RunStatus
-}
-
 type VCSRepo struct {
 	owner string
 	name  string
 }
 
 // Adapted from OTF (MPL License): https://github.com/leg100/otf
-type VCSConnection struct {
-	// Pushes to this VCS branch trigger runs. Empty string means the default
-	// branch is used. Ignored if TagsRegex is non-empty.
-	Branch string
-	// Pushed tags matching this regular expression trigger runs. Mutually
-	// exclusive with TriggerPatterns.
-	TagsRegex string
-
-	VCSProviderID string
-	Repo          VCSRepo
-
-	// By default, once a workspace is connected to a repo it is not
-	// possible to run a terraform apply via the CLI. Setting this to true
-	// overrides this behaviour.
-	AllowCLIApply bool
-}
-
-// Adapted from OTF (MPL License): https://github.com/leg100/otf
 type WorkspaceVersion struct {
-	// Latest if true means runs use the Latest available version at time of
-	// creation of the run.
-	Latest bool
-	// semver is the semantic version of the engine; must be non-empty if latest
-	// is false.
-	//
-	// TODO: use custom type
-	semver string
-}
-
-// Following struct and its methods have been
-// Adapted from OTF (MPL License): https://github.com/leg100/otf
-// If you ever marshal this domain type via jsonapi (you currently don't),
-// its tags must also be valid. Fixing them anyway for completeness.
-type Workspace struct {
-	ID                         string            `jsonapi:"primary,workspaces"`
-	CreatedAt                  time.Time         `jsonapi:"attr,created_at" json:"created_at"`
-	UpdatedAt                  time.Time         `jsonapi:"attr,updated_at" json:"updated_at"`
-	AgentPoolID                string            `jsonapi:"attr,agent-pool-id" json:"agent-pool-id"`
-	AllowDestroyPlan           bool              `jsonapi:"attr,allow_destroy_plan" json:"allow_destroy_plan"`
-	AutoApply                  bool              `jsonapi:"attr,auto_apply" json:"auto_apply"`
-	CanQueueDestroyPlan        bool              `jsonapi:"attr,can_queue_destroy_plan" json:"can_queue_destroy_plan"`
-	Description                string            `jsonapi:"attr,description" json:"description"`
-	Environment                string            `jsonapi:"attr,environment" json:"environment"`
-	ExecutionMode              ExecutionMode     `jsonapi:"attr,execution_mode" json:"execution_mode"`
-	GlobalRemoteState          bool              `jsonapi:"attr,global_remote_state" json:"global_remote_state"`
-	MigrationEnvironment       string            `jsonapi:"attr,migration_environment" json:"migration_environment"`
-	Name                       Name              `jsonapi:"attr,Name" json:"Name"`
-	QueueAllRuns               bool              `jsonapi:"attr,queue_all_runs" json:"queue_all_runs"`
-	SpeculativeEnabled         bool              `jsonapi:"attr,speculative_enabled" json:"speculative_enabled"`
-	StructuredRunOutputEnabled bool              `jsonapi:"attr,structured_run_output_enabled" json:"structured_run_output_enabled"`
-	SourceName                 string            `jsonapi:"attr,source_name" json:"source_name"`
-	SourceURL                  string            `jsonapi:"attr,source_url" json:"source_url"`
-	WorkingDirectory           string            `jsonapi:"attr,working_directory" json:"working_directory"`
-	Organization               Name              `jsonapi:"attr,organization" json:"organization"`
-	LatestRun                  *LatestRun        `jsonapi:"attr,latest_run" json:"latest_run"`
-	Tags                       []string          `jsonapi:"attr,tags" json:"tags"`
-	Lock                       ID                `json:"-"`
-	Engine                     string            `jsonapi:"attr,engine" json:"engine"`
-	EngineVersion              *WorkspaceVersion `jsonapi:"attr,engine_version" json:"engine_version"`
-
-	// VCS Connection; nil means the workspace is not connected.
-	Connection *VCSConnection
-
-	// TriggerPatterns is mutually exclusive with Connection.TagsRegex.
-	TriggerPatterns []string `jsonapi:"attr,trigger-patterns" json:"trigger_patterns"`
-
-	// Exists only to satisfy go-tfe tests.
-	TriggerPrefixes []string `jsonapi:"attr,trigger-prefixes" json:"trigger_prefixes"`
-}
-
-func (ws *Workspace) Locked() bool {
-	return ws.Lock != nil // assuming ID is a pointer-like alias; keep your original semantics
+	Latest bool   `json:"latest"`
+	semver string `json:"semver"`
 }
 
 // ---- JSON:API DTOs below ----

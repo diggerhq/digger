@@ -11,46 +11,13 @@ import (
 )
 
 // Adapted from OTF (MPL License): https://github.com/leg100/otf
-type Entitlements struct {
-	ID                    domain.TfeID
-	Agents                bool
-	AuditLogging          bool
-	CostEstimation        bool
-	Operations            bool
-	PrivateModuleRegistry bool
-	SSO                   bool
-	Sentinel              bool
-	StateStorage          bool
-	Teams                 bool
-	VCSIntegrations       bool
-}
-
-// Adapted from OTF (MPL License): https://github.com/leg100/otf
-func defaultEntitlements(organizationID domain.TfeID) Entitlements {
-	return Entitlements{
-		ID:                    organizationID,
-		Agents:                true,
-		AuditLogging:          true,
-		CostEstimation:        true,
-		Operations:            true,
-		PrivateModuleRegistry: true,
-		SSO:                   true,
-		Sentinel:              true,
-		StateStorage:          true,
-		Teams:                 true,
-		VCSIntegrations:       true,
-	}
-}
-
-// Adapted from OTF (MPL License): https://github.com/leg100/otf
 func (h *TfeHandler) GetOrganizationEntitlements(c echo.Context) error {
-	tfidStr := domain.NewTfeIDWithVal(domain.OrganizationKind, "RoiPNhWzpjaKhjcV")
-	domain.NewTfeID(domain.OrganizationKind)
-	ents := defaultEntitlements(tfidStr)
+	tfidStr := domain.NewTfeResourceIDWithVal(domain.OrganizationType, "RoiPNhWzpjaKhjcV")
+	ents := domain.DefaultEntitlements(tfidStr)
 
 	// map to the JSON:API DTO
 	payload := &domain.TFEEntitlements{
-		ID:                    ents.ID.String(), // same concrete type domain.TfeID
+		ID:                    ents.ID.String(), // same concrete type domain.TFEResourceID
 		Agents:                ents.Agents,
 		AuditLogging:          ents.AuditLogging,
 		CostEstimation:        ents.CostEstimation,
