@@ -199,20 +199,33 @@ func (h *Handler) OAuthToken(c echo.Context) error {
         })
     }
     
-    // Also issue an opaque API token for TFE API usage if manager is configured
+    // Issue an opaque API token for TFE compatibility (like real Terraform Cloud)
     if h.apiTokens != nil {
         if opaque, err2 := h.apiTokens.Issue(c.Request().Context(), authCode.Subject, authCode.Email, authCode.Groups); err2 == nil {
-            // Include opaque token for TFE API compatibility
+            // Return opaque token as access_token (matching TFE behavior)
+            // Calculate expiration based on TERRAFORM_TOKEN_TTL or default to very long
+            var expiresIn int
+            if ttlStr := getenv("OPENTACO_TERRAFORM_TOKEN_TTL", ""); ttlStr != "" {
+                if ttl, err := time.ParseDuration(ttlStr); err == nil {
+                    expiresIn = int(ttl.Seconds())
+                } else {
+                    expiresIn = 999999999 // Very long if TTL parse fails
+                }
+            } else {
+                expiresIn = 999999999 // Very long by default (like TFE)
+            }
+            
             response := map[string]interface{}{
-                "access_token": accessToken,
+                "access_token": opaque,  // Use opaque token as main token
                 "token_type":   "Bearer",
-                "expires_in":   int(exp.Sub(time.Now()).Seconds()),
+                "expires_in":   expiresIn,
                 "scope":        "api s3",
-                "token":        opaque,
             }
             return c.JSON(http.StatusOK, response)
         }
     }
+    
+    // Fallback: return JWT if opaque token creation fails
     response := map[string]interface{}{
         "access_token": accessToken,
         "token_type":   "Bearer",

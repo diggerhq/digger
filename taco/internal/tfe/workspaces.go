@@ -182,18 +182,21 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		return nil
 	}
 	
-	// Verify the access token and extract claims
-	claims, err := signer.VerifyAccess(token)
-	if err != nil {
-		return fmt.Errorf("invalid access token: %v", err)
-	}
-	
-	// Create principal from verified claims
-	principal := rbac.Principal{
-		Subject: claims.Subject,
-		Email:   claims.Email,
-		Roles:   claims.Roles,
-		Groups:  claims.Groups,
+	// TFE endpoints: verify opaque token only (for clear API boundaries)
+	var principal rbac.Principal
+	if h.apiTokens != nil {
+		if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), token); err == nil {
+			principal = rbac.Principal{
+				Subject: tokenRecord.Subject,
+				Email:   tokenRecord.Email,
+				Roles:   []string{}, // Opaque tokens don't have roles directly
+				Groups:  tokenRecord.Groups,
+			}
+		} else {
+			return fmt.Errorf("invalid opaque token for TFE endpoint: %v", err)
+		}
+	} else {
+		return fmt.Errorf("API token manager not available")
 	}
 	var rbacAction rbac.Action
 	

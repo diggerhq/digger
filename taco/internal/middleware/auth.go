@@ -1,6 +1,7 @@
 package middleware
 
 import (
+    "context"
     "net/http"
     "strings"
 
@@ -34,7 +35,7 @@ func RequireAuth(verify AccessTokenVerifier) echo.MiddlewareFunc {
 }
 
 // RBACMiddleware creates middleware that checks RBAC permissions
-func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action rbac.Action, resourcePattern string) echo.MiddlewareFunc {
+func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, apiTokenMgr *auth.APITokenManager, action rbac.Action, resourcePattern string) echo.MiddlewareFunc {
     return func(next echo.HandlerFunc) echo.HandlerFunc {
         return func(c echo.Context) error {
             // If RBAC is not enabled, allow all
@@ -43,8 +44,8 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
                 return next(c)
             }
             
-            // Get user from token
-            principal, err := getPrincipalFromToken(c, signer)
+            // Get user from token (JWT or opaque)
+            principal, err := getPrincipalFromToken(c, signer, apiTokenMgr)
             if err != nil {
                 return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
             }
@@ -59,7 +60,10 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
             }
             
             if !can {
-                return c.JSON(http.StatusForbidden, map[string]string{"error": "insufficient permissions"})
+                return c.JSON(http.StatusForbidden, map[string]string{
+                    "error": "insufficient permissions to access workspace",
+                    "hint":  "contact your administrator to grant " + string(action) + " permission",
+                })
             }
             
             return next(c)
@@ -67,29 +71,40 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
     }
 }
 
-// getPrincipalFromToken extracts principal information from the bearer token
-func getPrincipalFromToken(c echo.Context, signer *auth.Signer) (rbac.Principal, error) {
+// getPrincipalFromToken extracts principal information from the bearer token (JWT or opaque)
+func getPrincipalFromToken(c echo.Context, signer *auth.Signer, apiTokenMgr *auth.APITokenManager) (rbac.Principal, error) {
     authz := c.Request().Header.Get("Authorization")
     if !strings.HasPrefix(authz, "Bearer ") {
         return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "missing bearer token")
     }
     
     token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
-    if signer == nil {
-        return rbac.Principal{}, echo.NewHTTPError(http.StatusInternalServerError, "auth not configured")
+    
+    // Try JWT token first
+    if signer != nil {
+        if claims, err := signer.VerifyAccess(token); err == nil {
+            return rbac.Principal{
+                Subject: claims.Subject,
+                Email:   claims.Email,
+                Roles:   claims.Roles,
+                Groups:  claims.Groups,
+            }, nil
+        }
     }
     
-    claims, err := signer.VerifyAccess(token)
-    if err != nil {
-        return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
+    // Fallback to opaque token
+    if apiTokenMgr != nil {
+        if tokenRecord, err := apiTokenMgr.Verify(c.Request().Context(), token); err == nil {
+            return rbac.Principal{
+                Subject: tokenRecord.Subject,
+                Email:   tokenRecord.Email,
+                Roles:   []string{}, // Opaque tokens don't have roles directly
+                Groups:  tokenRecord.Groups,
+            }, nil
+        }
     }
     
-    return rbac.Principal{
-        Subject: claims.Subject,
-        Email:   claims.Email,
-        Roles:   claims.Roles,
-        Groups:  claims.Groups,
-    }, nil
+    return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
 }
 
 // getResourceFromRequest determines the resource for the request based on the pattern
@@ -133,6 +148,162 @@ func getResourceFromRequest(c echo.Context, pattern string) string {
     }
     
     return resource
+}
+
+// JWTOnlyVerifier creates a token verifier that only accepts JWT tokens
+func JWTOnlyVerifier(signer *auth.Signer) AccessTokenVerifier {
+    return func(token string) error {
+        if signer == nil {
+            return echo.NewHTTPError(http.StatusInternalServerError, "JWT signer not configured")
+        }
+        
+        if _, err := signer.VerifyAccess(token); err != nil {
+            return echo.ErrUnauthorized
+        }
+        
+        return nil
+    }
+}
+
+// OpaqueOnlyVerifier creates a token verifier that only accepts opaque tokens
+func OpaqueOnlyVerifier(apiTokenMgr *auth.APITokenManager) AccessTokenVerifier {
+    return func(token string) error {
+        if apiTokenMgr == nil {
+            return echo.NewHTTPError(http.StatusInternalServerError, "API token manager not configured")
+        }
+        
+        if _, err := apiTokenMgr.Verify(context.Background(), token); err != nil {
+            return echo.ErrUnauthorized
+        }
+        
+        return nil
+    }
+}
+
+// JWTOnlyRBACMiddleware creates RBAC middleware that works with JWT tokens only
+func JWTOnlyRBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action rbac.Action, resourcePattern string) echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            // If RBAC is not enabled, allow all
+            enabled, err := rbacManager.IsEnabled(c.Request().Context())
+            if err != nil || !enabled {
+                return next(c)
+            }
+            
+            // Get user from JWT token only
+            principal, err := getPrincipalFromJWT(c, signer)
+            if err != nil {
+                return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_jwt_token"})
+            }
+            
+            // Determine the resource for this request
+            resource := getResourceFromRequest(c, resourcePattern)
+            
+            // Check permission
+            can, err := rbacManager.Can(c.Request().Context(), principal, action, resource)
+            if err != nil {
+                return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to check permissions"})
+            }
+            
+            if !can {
+                return c.JSON(http.StatusForbidden, map[string]string{
+                    "error": "insufficient permissions to access resource",
+                    "hint":  "contact your administrator to grant " + string(action) + " permission",
+                })
+            }
+            
+            return next(c)
+        }
+    }
+}
+
+// OpaqueOnlyRBACMiddleware creates RBAC middleware that works with opaque tokens only
+func OpaqueOnlyRBACMiddleware(rbacManager *rbac.RBACManager, apiTokenMgr *auth.APITokenManager, action rbac.Action, resourcePattern string) echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            // If RBAC is not enabled, allow all
+            enabled, err := rbacManager.IsEnabled(c.Request().Context())
+            if err != nil || !enabled {
+                return next(c)
+            }
+            
+            // Get user from opaque token only
+            principal, err := getPrincipalFromOpaque(c, apiTokenMgr)
+            if err != nil {
+                return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_opaque_token"})
+            }
+            
+            // Determine the resource for this request
+            resource := getResourceFromRequest(c, resourcePattern)
+            
+            // Check permission
+            can, err := rbacManager.Can(c.Request().Context(), principal, action, resource)
+            if err != nil {
+                return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to check permissions"})
+            }
+            
+            if !can {
+                return c.JSON(http.StatusForbidden, map[string]string{
+                    "error": "insufficient permissions to access workspace",
+                    "hint":  "contact your administrator to grant " + string(action) + " permission",
+                })
+            }
+            
+            return next(c)
+        }
+    }
+}
+
+// getPrincipalFromJWT extracts principal information from JWT tokens only
+func getPrincipalFromJWT(c echo.Context, signer *auth.Signer) (rbac.Principal, error) {
+    authz := c.Request().Header.Get("Authorization")
+    if !strings.HasPrefix(authz, "Bearer ") {
+        return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "missing bearer token")
+    }
+    
+    token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
+    
+    if signer == nil {
+        return rbac.Principal{}, echo.NewHTTPError(http.StatusInternalServerError, "JWT signer not configured")
+    }
+    
+    claims, err := signer.VerifyAccess(token)
+    if err != nil {
+        return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid JWT token")
+    }
+    
+    return rbac.Principal{
+        Subject: claims.Subject,
+        Email:   claims.Email,
+        Roles:   claims.Roles,
+        Groups:  claims.Groups,
+    }, nil
+}
+
+// getPrincipalFromOpaque extracts principal information from opaque tokens only
+func getPrincipalFromOpaque(c echo.Context, apiTokenMgr *auth.APITokenManager) (rbac.Principal, error) {
+    authz := c.Request().Header.Get("Authorization")
+    if !strings.HasPrefix(authz, "Bearer ") {
+        return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "missing bearer token")
+    }
+    
+    token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
+    
+    if apiTokenMgr == nil {
+        return rbac.Principal{}, echo.NewHTTPError(http.StatusInternalServerError, "API token manager not configured")
+    }
+    
+    tokenRecord, err := apiTokenMgr.Verify(c.Request().Context(), token)
+    if err != nil {
+        return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid opaque token")
+    }
+    
+    return rbac.Principal{
+        Subject: tokenRecord.Subject,
+        Email:   tokenRecord.Email,
+        Roles:   []string{}, // Opaque tokens don't have roles directly
+        Groups:  tokenRecord.Groups,
+    }, nil
 }
 
 // NotImplemented sends a uniform 501 JSON error per stubs convention.
