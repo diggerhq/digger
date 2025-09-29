@@ -22,6 +22,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/analytics"
 	"github.com/diggerhq/digger/opentaco/internal/api"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
+	"github.com/diggerhq/digger/opentaco/internal/db"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -37,6 +38,7 @@ func main() {
 	)
 	flag.Parse()
 
+	database := db.OpenSQLite(db.DBConfig{}) // init db 
 	// Initialize storage
 	var store storage.UnitStore
 	switch *storageType {
@@ -55,7 +57,16 @@ func main() {
 		} else {
 			store = s
 			log.Printf("Using S3 storage: bucket=%s prefix=%s region=%s", *s3Bucket, *s3Prefix, *s3Region)
-		}
+
+
+			//put on thread thread / adjust seed so it accepts any store 
+			// To this:
+			if s3Store, ok := store.(storage.S3Store); ok {
+				db.Seed(context.Background(), s3Store, database) 
+			} else {
+				log.Println("Store is not S3Store, skipping seeding")
+			}
+ 		}
 	default:
 		store = storage.NewMemStore()
 		log.Printf("Using in-memory storage")
@@ -93,7 +104,7 @@ func main() {
 	e.Use(middleware.Secure())
 	e.Use(middleware.CORS())
 
-	api.RegisterRoutes(e, store, !*authDisable)
+	api.RegisterRoutes(e, store, !*authDisable, database)
 
 	// Start server
 	go func() {

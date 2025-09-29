@@ -21,10 +21,11 @@ import (
     "github.com/diggerhq/digger/opentaco/internal/sts"
     "github.com/diggerhq/digger/opentaco/internal/storage"
     "github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 // RegisterRoutes registers all API routes
-func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
+func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, db *gorm.DB) {
 	// Health checks
 	health := observability.NewHealthHandler()
 	e.GET("/healthz", health.Healthz)
@@ -146,13 +147,14 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	}
 
 	// Unit handlers (management API) - pass RBAC manager and signer for filtering
-	unitHandler := unithandlers.NewHandler(store, rbacManager, signer)
+	unitHandler := unithandlers.NewHandler(store, rbacManager, signer, db)
 
 	// Management API (units) with RBAC middleware
 	if authEnabled && rbacManager != nil {
 		v1.POST("/units", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(unitHandler.CreateUnit))
 		// ListUnits does its own RBAC filtering internally, no middleware needed
 		v1.GET("/units", unitHandler.ListUnits)
+		v1.GET("/units-fast", unitHandler.ListUnitsFast)
 		v1.GET("/units/:id", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnit))
 		v1.DELETE("/units/:id", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitDelete, "{id}")(unitHandler.DeleteUnit))
 		v1.GET("/units/:id/download", middleware.RBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.DownloadUnit))

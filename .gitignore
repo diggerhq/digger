@@ -18,7 +18,7 @@ __azurite*
 go.work.sum
 
 # Taco specific binaries
-taco
+
 statesman
 terraform-provider-opentaco
 opentacosvc
@@ -35,3 +35,6 @@ bin/
 *.swp
 *.swo
 *~
+
+#data 
+data/

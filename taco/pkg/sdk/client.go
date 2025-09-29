@@ -418,3 +418,37 @@ func (c *Client) Get(ctx context.Context, path string) (*http.Response, error) {
 func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error) {
 	return c.do(ctx, "DELETE", path, nil)
 }
+
+
+
+
+type ListUnitsFastResponse struct { 
+    Units []*UnitMetadata   `json:"units"`
+    Count int               `json:"count"`
+    Source string           `json:"source"`
+}
+
+// ListUnitsFast lists units using database (POC)
+func (c *Client) ListUnitsFast(ctx context.Context, prefix string) (*ListUnitsFastResponse, error) {
+    path := "/v1/units-fast"
+    if prefix != "" {
+        path += "?prefix=" + url.QueryEscape(prefix)
+    }
+
+    resp, err := c.do(ctx, "GET", path, nil)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return nil, parseError(resp)
+    }
+
+    var result ListUnitsFastResponse
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return nil, fmt.Errorf("failed to decode response: %w", err)
+    }
+
+    return &result, nil
+}
