@@ -44,6 +44,8 @@ through a simple CLI interface.`,
 
             globalConfig = config 
 
+            // Prioritize environment variables over config file 
+            // env > flags > config
             if !cmd.Flag("server").Changed && config.ServerUrl != "" {
                 serverURL = config.ServerUrl
             }
@@ -71,6 +73,7 @@ func configPath() (string, error) {
         return "", err
     }
     dir := filepath.Join(home, ".config", "opentaco")
+
     if err := os.MkdirAll(dir, 0o755); err != nil  {
         return "", err 
     }
@@ -172,7 +175,7 @@ func runSetupWizard() (*Config, error) {
 
     for {
 
-        fmt.Print("Enter OpenTaco server url [http://localhost:8080]:")
+        fmt.Print("Enter OpenTaco server url [http://localhost:8080]: ")
         serverURL, err := reader.ReadString('\n')
         if err != nil {
             return nil, err 
@@ -212,26 +215,6 @@ func runSetupWizard() (*Config, error) {
     }
 
 }
-
-
-func getConfigurationValue(flagValue, configValue, envKey, defaultValue string) string {
-    if envValue := os.Getenv(envKey); envValue != "" {
-        return envValue 
-    }
-    if flagValue != "" {
-        return flagValue
-
-    }
-
-    if configValue != "" {
-        return configValue
-    }
-
-    return defaultValue
-
-}
-
-
 
 // getEnvOrDefault gets an environment variable or returns a default value
 func getEnvOrDefault(key, defaultValue string) string {
