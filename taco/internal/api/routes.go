@@ -1,26 +1,26 @@
 package api
 
 import (
-    "context"
-    "fmt"
-    "log"
-    "net/http"
-    "time"
-    
-    "github.com/diggerhq/digger/opentaco/internal/analytics"
-    "github.com/diggerhq/digger/opentaco/internal/tfe"
-    
-    "github.com/diggerhq/digger/opentaco/internal/backend"
-    authpkg "github.com/diggerhq/digger/opentaco/internal/auth"
-    "github.com/diggerhq/digger/opentaco/internal/middleware"
-    "github.com/diggerhq/digger/opentaco/internal/rbac"
-    "github.com/diggerhq/digger/opentaco/internal/s3compat"
-    unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
-    "github.com/diggerhq/digger/opentaco/internal/observability"
-    "github.com/diggerhq/digger/opentaco/internal/oidc"
-    "github.com/diggerhq/digger/opentaco/internal/sts"
-    "github.com/diggerhq/digger/opentaco/internal/storage"
-    "github.com/labstack/echo/v4"
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/diggerhq/digger/opentaco/internal/analytics"
+	"github.com/diggerhq/digger/opentaco/internal/tfe"
+
+	authpkg "github.com/diggerhq/digger/opentaco/internal/auth"
+	"github.com/diggerhq/digger/opentaco/internal/backend"
+	"github.com/diggerhq/digger/opentaco/internal/middleware"
+	"github.com/diggerhq/digger/opentaco/internal/observability"
+	"github.com/diggerhq/digger/opentaco/internal/oidc"
+	"github.com/diggerhq/digger/opentaco/internal/rbac"
+	"github.com/diggerhq/digger/opentaco/internal/s3compat"
+	"github.com/diggerhq/digger/opentaco/internal/storage"
+	"github.com/diggerhq/digger/opentaco/internal/sts"
+	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
+	"github.com/labstack/echo/v4"
 )
 
 // RegisterRoutes registers all API routes
@@ -29,7 +29,7 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	health := observability.NewHealthHandler()
 	e.GET("/healthz", health.Healthz)
 	e.GET("/readyz", health.Readyz)
-	
+
 	// Info endpoint for CLI to detect storage type
 	e.GET("/v1/info", func(c echo.Context) error {
 		info := map[string]interface{}{
@@ -37,7 +37,7 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 				"type": "memory",
 			},
 		}
-		
+
 		// Check if we're using S3 storage
 		if s3Store, ok := store.(storage.S3Store); ok {
 			info["storage"] = map[string]interface{}{
@@ -46,10 +46,9 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 				"prefix": s3Store.GetS3Prefix(),
 			}
 		}
-		
+
 		return c.JSON(http.StatusOK, info)
 	})
-
 
 	// Prepare auth deps
 	signer, err := authpkg.NewSignerFromEnv()
@@ -84,7 +83,7 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 		}
 		return c.String(http.StatusOK, email)
 	})
-	
+
 	e.POST("/v1/system-id/user-email", func(c echo.Context) error {
 		var req struct {
 			Email string `json:"email"`
@@ -92,15 +91,15 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 		if err := c.Bind(&req); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 		}
-		
+
 		// Set user email in analytics system
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		
+
 		if err := analytics.SetUserEmail(ctx, req.Email); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to set email"})
 		}
-		
+
 		return c.JSON(http.StatusOK, map[string]string{"message": "Email set successfully"})
 	})
 
@@ -110,7 +109,6 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	e.GET("/oauth/login-redirect", authHandler.OAuthLoginRedirect)
 	e.GET("/oauth/oidc-callback", authHandler.OAuthOIDCCallback)
 	e.GET("/oauth/debug", authHandler.DebugConfig)
-
 
 	// API v1 protected group - JWT tokens only
 	v1 := e.Group("/v1")
@@ -170,7 +168,7 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 		v1.GET("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "*")(backendHandler.GetState))
 		v1.POST("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
 		v1.PUT("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
-		// Explicitly wire non-standard HTTP methods used by Terraform backend  
+		// Explicitly wire non-standard HTTP methods used by Terraform backend
 		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
 		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
 		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
@@ -200,13 +198,13 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	// RBAC routes (only available with S3 storage)
 	if rbacManager != nil {
 		rbacHandler := rbac.NewHandler(rbacManager, signer)
-		
+
 		// RBAC initialization (no auth required for init)
 		v1.POST("/rbac/init", rbacHandler.Init)
-		
+
 		// RBAC user info (handle auth gracefully in handler, like /v1/auth/me)
 		e.GET("/v1/rbac/me", rbacHandler.Me)
-		
+
 		// RBAC management routes (require RBAC manage permission)
 		v1.POST("/rbac/users/assign", rbacHandler.AssignRole)
 		v1.POST("/rbac/users/revoke", rbacHandler.RevokeRole)
@@ -224,14 +222,14 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 		// RBAC not available with memory storage - add catch-all route
 		v1.Any("/rbac/*", func(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "RBAC requires S3 storage",
+				"error":   "RBAC requires S3 storage",
 				"message": "RBAC is only available when using S3 storage. Please configure S3 storage to use RBAC features.",
 			})
 		})
 	}
 
 	// TFE api - inject auth handler, storage, and RBAC dependencies
-	tfeHandler := tfe.NewTFETokenHandler(authHandler, store, rbacManager)  // Pass rbacManager (may be nil)
+	tfeHandler := tfe.NewTFETokenHandler(authHandler, store, rbacManager) // Pass rbacManager (may be nil)
 
 	// Create protected TFE group - opaque tokens only
 	tfeGroup := e.Group("/tfe/api/v2")
@@ -261,6 +259,8 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 
 	// Keep discovery endpoints unprotected (needed for terraform login)
 	e.GET("/.well-known/terraform.json", tfeHandler.GetWellKnownJson)
+	e.GET("/tfe/api/v2/motd", tfeHandler.MessageOfTheDay)
+
 	e.GET("/tfe/app/oauth2/auth", tfeHandler.AuthLogin)
 	e.POST("/tfe/oauth2/token", tfeHandler.AuthTokenExchange)
 
