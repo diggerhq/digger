@@ -1,6 +1,9 @@
 ---
-title: "Store plans in a Bucket"
+title: "Plan artefacts"
 ---
+
+Digger can be used to store plan artefacts during the plan phase and make them available for use during the apply phase. Once plan artefacts is configured and uploaded during the plan phase
+it will automatically be used during the apply phase. Once one of the below artefacts is configured successfully there is no additional configuration needed on your end to achieve apply-time artefact reuse.
 
 ### Github 
 Digger can use Github Artifacts to store `terraform plan` outputs. In order to enable it you can set the following argument in digger_workflow.yml:
@@ -8,6 +11,14 @@ Digger can use Github Artifacts to store `terraform plan` outputs. In order to e
 ```
 upload-plan-destination: github
 ```
+
+<Warning>
+    Github plan artefacts as a destination is currently deprecated due to a change in Github API. For more information see [this issue](https://github.com/diggerhq/digger/issues/1702).
+</Warning>
+
+<Alert>
+    sadfasdf
+</Alert>
 
 ### GCP 
 You can also configure plan outputs to be uploaded to GCP Buckets instead. This is handy in case you want your plan outputs to stay within your organisation's approved storage providers for security or compliance reasons.

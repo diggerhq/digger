@@ -40,6 +40,11 @@ The value of `$DIGGER_OUT` defaults to `$RUNNER_TEMP/digger-out.log`; you can ch
 
 ## Overriding plan commands
 
+<Note>
+    This is an advanced usecase if you want to specify an entirely custom command during plan and apply phases. If you only want to use
+    plan artefacts the easiest way would be to simply configure [plan artefacts persistence](/ce/howto/plan-artefacts) and you would not need to perform
+    a complete override of the plan and apply commands.
+</Note>
 You can add extra arguments to the plan command by setting the `extra_args` key in the `steps` section of the `plan` command.
 
 However in some cases if you wish to override the plan command entirely you can do it by excluding the plan in the steps and having your command specified in the run like so:
