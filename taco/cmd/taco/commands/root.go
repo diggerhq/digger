@@ -3,15 +3,16 @@ package commands
 import (
     "fmt"
     "os"
-
+    "encoding/json"
+    "path/filepath"
+    "strings" 
+    "bufio"
     "github.com/spf13/cobra"
 )
 
 
 type Config struct {
     ServerUrl   string  `json:"server_url"`
-    Issuer      string  `json:"issuer"`
-    ClientID    string  `json:"client_id"`
 }
 
 
@@ -37,21 +38,18 @@ through a simple CLI interface.`,
 
             config, err := loadOrCreateConfig() 
 
-            if err != nil{
+            if err != nil {
                 return fmt.Errorf("Failed to load configuration: %w", err)
             }
 
             globalConfig = config 
 
             if !cmd.Flag("server").Changed && config.ServerUrl != "" {
-                serverUrl = config.ServerURL
+                serverURL = config.ServerUrl
             }
 
             return nil 
-        }
-
-
-
+        },
     }
 )
 
@@ -73,7 +71,7 @@ func configPath() (string, error) {
         return "", err
     }
     dir := filepath.Join(home, ".config", "opentaco")
-    if err := os. MkdirAll(dir, 0o755): err != nil  {
+    if err := os.MkdirAll(dir, 0o755); err != nil  {
         return "", err 
     }
     return filepath.Join(dir, "config.json"), nil 
@@ -83,7 +81,7 @@ func configPath() (string, error) {
 
 // loads and returns the config 
 func loadConfig() (*Config, error) { 
-    path, error := configPath()
+    path, err := configPath()
     
     if err != nil {
         return nil, err 
@@ -151,7 +149,7 @@ func loadOrCreateConfig() (*Config, error) {
         }
 
         if err := saveConfig(config); err != nil {
-            return nil, fmt.Error("Failed to save configuration: %w", err)
+            return nil, fmt.Errorf("Failed to save configuration: %w", err)
         }
 
         fmt.Println("Configuration saved successfully!")
@@ -168,7 +166,7 @@ func loadOrCreateConfig() (*Config, error) {
 
 func runSetupWizard() (*Config, error) { 
     reader := bufio.NewReader(os.Stdin)
-    config := &Config() 
+    config := &Config{} 
 
     // Get server url 
 
@@ -181,54 +179,18 @@ func runSetupWizard() (*Config, error) {
         }
 
         serverURL = strings.TrimSpace(serverURL) 
-        if serverURL = "" {
+        if serverURL == "" {
             serverURL = "http://localhost:8080"
         }
 
-        config.ServerURL = serverURL
+        config.ServerUrl = serverURL
 
         break
     }
 
-    // get OIDC issuer 
-
-    for {
-        fmt.Print("Enter OIDC issuer URL:")
-        issuer, err := reader.ReadString('\n')
-
-        if err != nil {
-            return nil, err
-        }
-        
-        config.Issuer = strings.TrimSpace(issuer)
-        break 
-    }
-
-    // get OIDC client ID 
-
-    for {
-        fmt.Print("Enter the OIDC client ID:")
-        clientID, err := reader.ReadString('\n')
-
-        if err != nil { 
-        
-            return nil, err
-        }
-
-        config.ClientID = strings.TrimSpace(clientID) 
-        break 
-    }
-
 
     fmt.Println("Configuration Summary:")
-    fmt.Printf("    Server URL: %s\n", config.ServerURL)
-    if config.Issuer != "" {
-        fmt.Printf("    OIDC Issuer: %s\n", config.Issuer) 
-    }
-
-    if config.ClientID != "" {
-        fmt.Printf("    OIDC Client ID: %s\n", config.ClientID)
-    }
+    fmt.Printf("    Server URL: %s\n", config.ServerUrl)
 
     for {
         fmt.Print("\nSave this configuration? [Y/n]: ")
@@ -237,12 +199,12 @@ func runSetupWizard() (*Config, error) {
             return nil, err 
         }
     
-        confirm = strings.ToLowr(strings.TrimSpace(confirm)) 
+        confirm = strings.ToLower(strings.TrimSpace(confirm)) 
 
         if confirm == "" || confirm == "y" || confirm == "yes"{
             return config, nil 
         } else if confirm == "n" || confirm == "no" {
-            fmt.Println("Configuratin cancelled")
+            fmt.Println("Configuration cancelled")
             os.Exit(0) 
         } else {
             fmt.Println("Please enter 'y' for yes or 'n' for no.")
@@ -252,6 +214,22 @@ func runSetupWizard() (*Config, error) {
 }
 
 
+func getConfigurationValue(flagValue, configValue, envKey, defaultValue string) string {
+    if envValue := os.Getenv(envKey); envValue != "" {
+        return envValue 
+    }
+    if flagValue != "" {
+        return flagValue
+
+    }
+
+    if configValue != "" {
+        return configValue
+    }
+
+    return defaultValue
+
+}
 
 
 
@@ -268,6 +246,12 @@ func printVerbose(format string, args ...interface{}) {
     if verbose {
         fmt.Printf("[DEBUG] "+format+"\n", args...)
     }
+}
+
+
+
+func GetGlobalConfig() *Config  {
+    return globalConfig 
 }
 
 
