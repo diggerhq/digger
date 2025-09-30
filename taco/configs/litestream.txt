@@ -1,0 +1,5 @@
+
+#restore command
+
+litestream restore -o /Users/brianreardon/development/digger/taco/data/taco.db \
+  s3://open-taco-brian/backups/taco.db

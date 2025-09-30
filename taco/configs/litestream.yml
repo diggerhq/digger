@@ -1,0 +1,6 @@
+dbs:
+  - path: /Users/brianreardon/development/digger/taco/data/taco.db
+    replicas:
+      - url: s3://open-taco-brian/backups/taco.db
+        region: us-east-2
+
