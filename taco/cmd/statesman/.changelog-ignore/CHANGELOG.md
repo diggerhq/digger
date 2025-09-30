@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.9](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.8...taco/statesman/v0.1.9) (2025-09-30)
+
+
+### Miscellaneous
+
+* make a release ([74f40bd](https://github.com/diggerhq/digger/commit/74f40bd469a5d8b4bc29da9ea6fbe3fcbfbd4857))
+* make a release ([d133744](https://github.com/diggerhq/digger/commit/d1337444e3b9b5a83772b3001a0ea60e74f6329e))
+
 ## [0.1.8](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.7...taco/statesman/v0.1.8) (2025-09-19)
 
 
