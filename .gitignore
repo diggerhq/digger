@@ -17,12 +17,6 @@ __azurite*
 *.out
 go.work.sum
 
-# Taco specific binaries
-taco
-statesman
-terraform-provider-opentaco
-opentacosvc
-
 # Build directories
 dist/
 build/
@@ -35,3 +29,6 @@ bin/
 *.swp
 *.swo
 *~
+
+# data 
+taco/data/

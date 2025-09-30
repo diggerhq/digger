@@ -67,7 +67,7 @@ var loginCmd = &cobra.Command{
                 }
             }
         }
-        if issuer == "" || clientID == "" { return fmt.Errorf("issuer/client-id missing; set flags or configure server /v1/auth/config") }
+        if issuer == "" || clientID == "" { return fmt.Errorf("OpenTaco could not discover your issuer/client-id, are you sure the server is running?; set flags or configure server /v1/auth/config") }
 
         // Discover endpoints or use overrides
         var authEp, tokenEp string
