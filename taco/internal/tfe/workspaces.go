@@ -5,12 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 	"github.com/google/jsonapi"
@@ -109,7 +109,7 @@ func extractWorkspaceIDFromParam(c echo.Context) string {
 		// Fallback to workspace_name for routes that use that parameter
 		workspaceName := c.Param("workspace_name")
 		if workspaceName != "" {
-			return domain.NewTfeResourceIDWithVal(domain.WorkspaceType, workspaceName).String()
+			return tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String()
 		}
 	}
 	return workspaceID
@@ -182,18 +182,21 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		return nil
 	}
 
-	// Verify the access token and extract claims
-	claims, err := signer.VerifyAccess(token)
-	if err != nil {
-		return fmt.Errorf("invalid access token: %v", err)
-	}
-
-	// Create principal from verified claims
-	principal := rbac.Principal{
-		Subject: claims.Subject,
-		Email:   claims.Email,
-		Roles:   claims.Roles,
-		Groups:  claims.Groups,
+	// TFE endpoints: verify opaque token only (for clear API boundaries)
+	var principal rbac.Principal
+	if h.apiTokens != nil {
+		if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), token); err == nil {
+			principal = rbac.Principal{
+				Subject: tokenRecord.Subject,
+				Email:   tokenRecord.Email,
+				Roles:   []string{}, // Opaque tokens don't have roles directly
+				Groups:  tokenRecord.Groups,
+			}
+		} else {
+			return fmt.Errorf("invalid opaque token for TFE endpoint: %v", err)
+		}
+	} else {
+		return fmt.Errorf("API token manager not available")
 	}
 	var rbacAction rbac.Action
 
@@ -231,10 +234,10 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "workspace_name invalid"})
 	}
 
-	workspace := domain.TFEWorkspace{
-		ID:                         domain.NewTfeResourceIDWithVal(domain.WorkspaceType, workspaceName).String(),
-		Actions:                    &domain.TFEWorkspaceActions{IsDestroyable: true},
-		AgentPoolID:                domain.NewTfeResourceIDWithVal(domain.AgentPoolType, "HzEaJWMP5YTatZaS").String(),
+	workspace := &tfe.TFEWorkspace{
+		ID:                         tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
+		Actions:                    &tfe.TFEWorkspaceActions{IsDestroyable: true},
+		AgentPoolID:                tfe.NewTfeResourceIdentifier(tfe.AgentPoolType, "HzEaJWMP5YTatZaS").String(),
 		AllowDestroyPlan:           false,
 		AutoApply:                  false,
 		CanQueueDestroyPlan:        false,
@@ -247,7 +250,7 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		GlobalRemoteState:          false,
 		Locked:                     false,
 		MigrationEnvironment:       "",
-		Name:                       domain.NewName(workspaceName).Name,
+		Name:                       workspaceName,
 		Operations:                 false,
 		Permissions:                nil,
 		QueueAllRuns:               false,
@@ -268,8 +271,8 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		RunsCount:                  0,
 		TagNames:                   nil,
 		CurrentRun:                 nil,
-		Organization: &domain.TFEOrganization{
-			Name: domain.NewName("opentaco").Name,
+		Organization: &tfe.TFEOrganization{
+			Name: "opentaco",
 		},
 		Outputs: nil,
 	}

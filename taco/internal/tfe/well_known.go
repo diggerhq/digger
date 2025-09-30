@@ -1,7 +1,7 @@
 package tfe
 
 import (
-	"github.com/diggerhq/digger/opentaco/internal/domain"
+	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"github.com/labstack/echo/v4"
 	"os"
 )
@@ -12,6 +12,15 @@ const (
 	// ModuleV1Prefix is the URL path prefix for module registry endpoints
 	ModuleV1Prefix = "/v1/modules/"
 )
+
+func (h *TfeHandler) MessageOfTheDay(c echo.Context) error {
+	c.Response().Header().Set(echo.HeaderContentType, "application/json")
+	c.Response().Header().Set("Tfp-Api-Version", "2.5")
+	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
+
+	res := tfe.MotdResponse{Msg: tfe.MotdMessage()}
+	return c.JSON(200, res)
+}
 
 // Update GetWellKnownJson to use real OAuth endpoints and client ID
 func (h *TfeHandler) GetWellKnownJson(c echo.Context) error {
@@ -28,14 +37,14 @@ func (h *TfeHandler) GetWellKnownJson(c echo.Context) error {
 	}
 
 	// Use the same OAuth endpoints as the main auth flow
-	discoveryPayload := domain.WellknownDef{
-		ModulesV1: ModuleV1Prefix,
-		MotdV1:    "/api/terraform/motd",
-		StateV2:   APIPrefixV2,
-		TfeV2:     APIPrefixV2,
-		TfeV21:    APIPrefixV2,
-		TfeV22:    APIPrefixV2,
-		LoginV1: domain.WellKnownSpec{
+	discoveryPayload := tfe.WellKnownSpec{
+		Modules:         ModuleV1Prefix,
+		MessageOfTheDay: "/tfe/api/v2/motd",
+		State:           APIPrefixV2,
+		TfeApiV2:        APIPrefixV2,
+		TfeApiV21:       APIPrefixV2,
+		TfeApiV22:       APIPrefixV2,
+		Login: tfe.LoginSpec{
 			Client:     clientID, // Use real client ID
 			GrantTypes: []string{"authz_code"},
 			Authz:      baseURL + "/oauth/authorization", // Real OAuth endpoint

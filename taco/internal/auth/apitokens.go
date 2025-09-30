@@ -5,6 +5,7 @@ import (
     "crypto/rand"
     "encoding/json"
     "fmt"
+    "log"
     "path"
     "strings"
     "sync"
@@ -18,14 +19,15 @@ import (
 
 // APIToken represents an opaque API token record stored in S3 or memory
 type APIToken struct {
-    Token      string    `json:"token"`
-    Subject    string    `json:"sub"`
-    Email      string    `json:"email,omitempty"`
-    Groups     []string  `json:"groups,omitempty"`
-    Scopes     []string  `json:"scopes,omitempty"`
-    CreatedAt  time.Time `json:"created_at"`
-    LastUsedAt time.Time `json:"last_used_at,omitempty"`
-    Status     string    `json:"status"` // active, revoked
+    Token      string     `json:"token"`
+    Subject    string     `json:"sub"`
+    Email      string     `json:"email,omitempty"`
+    Groups     []string   `json:"groups,omitempty"`
+    Scopes     []string   `json:"scopes,omitempty"`
+    CreatedAt  time.Time  `json:"created_at"`
+    LastUsedAt time.Time  `json:"last_used_at,omitempty"`
+    ExpiresAt  *time.Time `json:"expires_at,omitempty"` // nil means never expires
+    Status     string     `json:"status"` // active, revoked, expired
 }
 
 // APITokenManager issues and verifies opaque tokens for the TFE API surface
@@ -48,23 +50,51 @@ func NewAPITokenManagerFromStore(store storage.UnitStore) *APITokenManager {
     }
 }
 
-// Issue creates a new opaque API token and persists it
+// Issue creates a new opaque API token and persists it, or returns existing active token
 func (m *APITokenManager) Issue(ctx context.Context, subject, email string, groups []string) (string, error) {
-    token := "otc_tfe_" + randomBase58(32)
-    now := time.Now().UTC()
-    rec := &APIToken{
-        Token:     token,
-        Subject:   subject,
-        Email:     email,
-        Groups:    groups,
-        Scopes:    []string{"tfe"},
-        CreatedAt: now,
-        Status:    "active",
-    }
-    if err := m.save(ctx, rec); err != nil {
-        return "", err
-    }
-    return token, nil
+	// Check for existing active token for this user first
+	existingToken, err := m.findActiveTokenForUser(ctx, subject, email)
+	if err != nil {
+		return "", fmt.Errorf("failed to check for existing token: %w", err)
+	}
+	if existingToken != "" {
+		log.Printf("Reusing existing opaque token for user: %s", subject)
+		return existingToken, nil
+	}
+
+	// No existing token found, create a new one
+	token := "otc_tfe_" + randomBase58(32)
+	now := time.Now().UTC()
+	
+	// Set expiration based on TERRAFORM_TOKEN_TTL environment variable
+	var expiresAt *time.Time
+	if ttlStr := getenv("OPENTACO_TERRAFORM_TOKEN_TTL", ""); ttlStr != "" {
+		if ttl, err := time.ParseDuration(ttlStr); err == nil {
+			expTime := now.Add(ttl)
+			expiresAt = &expTime
+			log.Printf("Creating opaque token with TTL %s (expires at %s)", ttl, expTime.Format(time.RFC3339))
+		} else {
+			log.Printf("Warning: Invalid TERRAFORM_TOKEN_TTL format '%s', creating token without expiration", ttlStr)
+		}
+	} else {
+		log.Printf("Creating opaque token without expiration (no TTL configured)")
+	}
+	
+	rec := &APIToken{
+		Token:     token,
+		Subject:   subject,
+		Email:     email,
+		Groups:    groups,
+		Scopes:    []string{"tfe"},
+		CreatedAt: now,
+		ExpiresAt: expiresAt,
+		Status:    "active",
+	}
+	if err := m.save(ctx, rec); err != nil {
+		return "", err
+	}
+	log.Printf("Created new opaque token for user: %s", subject)
+	return token, nil
 }
 
 // Verify checks an opaque token and returns its record if valid
@@ -73,6 +103,13 @@ func (m *APITokenManager) Verify(ctx context.Context, token string) (*APIToken, 
     if err != nil { return nil, err }
     if rec == nil { return nil, fmt.Errorf("not found") }
     if rec.Status != "active" { return nil, fmt.Errorf("revoked") }
+    
+    // Check if token has expired
+    if rec.ExpiresAt != nil && time.Now().UTC().After(*rec.ExpiresAt) {
+        // Automatically mark as expired (but don't save to avoid race conditions)
+        return nil, fmt.Errorf("expired")
+    }
+    
     // update last used asynchronously; ignore errors
     now := time.Now().UTC()
     go func() {
@@ -131,11 +168,77 @@ func (m *APITokenManager) load(ctx context.Context, token string) (*APIToken, er
     return nil, storage.ErrNotFound
 }
 
+// findActiveTokenForUser searches for an existing active token for the given user
+func (m *APITokenManager) findActiveTokenForUser(ctx context.Context, subject, email string) (string, error) {
+	if m.s3store != nil {
+		// S3 implementation - list all tokens and check each one
+		return m.findActiveTokenForUserS3(ctx, subject, email)
+	}
+	
+	// Memory implementation - iterate through inmem map
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	now := time.Now().UTC()
+	for _, rec := range m.inmem {
+		if rec.Subject == subject && rec.Email == email && rec.Status == "active" {
+			// Check if token has expired
+			if rec.ExpiresAt != nil && now.After(*rec.ExpiresAt) {
+				continue // Skip expired tokens
+			}
+			return rec.Token, nil
+		}
+	}
+	return "", nil
+}
+
+func (m *APITokenManager) findActiveTokenForUserS3(ctx context.Context, subject, email string) (string, error) {
+	// List all objects in the _tfe_tokens prefix
+	prefix := path.Join(m.s3store.GetS3Prefix(), "_tfe_tokens") + "/"
+	listInput := &awsS3.ListObjectsV2Input{
+		Bucket: awsString(m.s3store.GetS3Bucket()),
+		Prefix: awsString(prefix),
+	}
+	
+	paginator := awsS3.NewListObjectsV2Paginator(m.s3store.GetS3Client(), listInput)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return "", fmt.Errorf("failed to list S3 objects: %w", err)
+		}
+		
+		for _, obj := range page.Contents {
+			// Extract token from key: prefix/_tfe_tokens/TOKEN.json -> TOKEN
+			key := *obj.Key
+			if !strings.HasSuffix(key, ".json") {
+				continue
+			}
+			tokenFromKey := strings.TrimSuffix(path.Base(key), ".json")
+			
+			// Load the token record
+			rec, err := m.load(ctx, tokenFromKey)
+			if err != nil {
+				continue // Skip tokens we can't load
+			}
+			
+			// Check if this token matches the user and is active and not expired
+			if rec != nil && rec.Subject == subject && rec.Email == email && rec.Status == "active" {
+				// Check if token has expired
+				if rec.ExpiresAt != nil && time.Now().UTC().After(*rec.ExpiresAt) {
+					continue // Skip expired tokens
+				}
+				return rec.Token, nil
+			}
+		}
+	}
+	
+	return "", nil
+}
+
 func (m *APITokenManager) s3Key(token string) string {
-    // store under <prefix>_tfe_tokens/<token>.json to avoid collisions with units
-    p := m.s3store.GetS3Prefix()
-    // path.Join will clean slashes appropriately
-    return path.Join(p, "_tfe_tokens", token+".json")
+	// store under <prefix>_tfe_tokens/<token>.json to avoid collisions with units
+	p := m.s3store.GetS3Prefix()
+	// path.Join will clean slashes appropriately
+	return path.Join(p, "_tfe_tokens", token+".json")
 }
 
 func randomBase58(n int) string {
