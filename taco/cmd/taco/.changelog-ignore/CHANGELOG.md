@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.8...taco/cli/v0.1.9) (2025-10-01)
+
+
+### Miscellaneous
+
+* taco art ([c3bd8b1](https://github.com/diggerhq/digger/commit/c3bd8b1b3336353ca2c5e826f0d755432e6d7f5e))
+
 ## [0.1.8](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.7...taco/cli/v0.1.8) (2025-09-30)
 
 
