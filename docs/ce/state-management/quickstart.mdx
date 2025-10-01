@@ -197,8 +197,7 @@ for all users and systems requiring access to state.
 
 # Configure Taco CLI
 
-<Steps >
-    <Step title="Install Cli">
+
         <Tabs>
             <Tab title="Linux">
                 The first thing you'll want to do is visit our releases page [here](https://github.com/diggerhq/digger/releases?q=taco%2Fcli&expanded=true) and check the latest taco/cli release. Right now it is v0.1.7
@@ -325,60 +324,7 @@ for all users and systems requiring access to state.
             </Tab>
         </Tabs>
 
-    </Step>
-    <Step title="Configure CLI Environment Variables">
-        For the best experience in your shell you can configure the following environment vars for the CLI:
 
-        <Tabs>
-            <Tab title="Linux">
-            #### On macOS/Linux:
-            ```bash
-            export OPENTACO_SERVER=https://my-opentaco.company.com
-            export OPENTACO_AUTH_ISSUER=https://[[auth0 domain]]/
-            export OPENTACO_AUTH_CLIENT_ID=[[auth0 client id]]
-            ```
-            </Tab>
-            <Tab title="MacOS">
-            #### On macOS/Linux:
-            ```bash
-            export OPENTACO_SERVER=https://my-opentaco.company.com
-            export OPENTACO_AUTH_ISSUER=https://[[auth0 domain]]/
-            export OPENTACO_AUTH_CLIENT_ID=my-client-id
-            ```
-            </Tab>
-            <Tab title="Windows (PowerShell)">
-            #### On Windows PowerShell:
-            ```powershell
-            $env:OPENTACO_SERVER="https://my-opentaco.company.com"
-            $env:OPENTACO_AUTH_ISSUER="https://[[auth0 domain]]/"
-            $env:OPENTACO_AUTH_CLIENT_ID="my-client-id"
-
-            # To make permanent (optional):
-            [Environment]::SetEnvironmentVariable("OPENTACO_SERVER", "https://my-opentaco.company.com", "User")
-            [Environment]::SetEnvironmentVariable("OPENTACO_AUTH_ISSUER", "https://[[auth0 domain]]/", "User")
-            [Environment]::SetEnvironmentVariable("OPENTACO_AUTH_CLIENT_ID", "my-client-id", "User")
-            ```
-            </Tab>
-            <Tab title="Windows (Command Prompt)">
-            #### On Windows Command Prompt:
-            ```cmd
-            set OPENTACO_SERVER=https://my-opentaco.company.com
-            set OPENTACO_AUTH_ISSUER="https://[[auth0 domain]]/"
-            set OPENTACO_AUTH_CLIENT_ID=my-client-id
-
-            # To make permanent (optional):
-            setx OPENTACO_SERVER "https://my-opentaco.company.com"
-            setx OPENTACO_AUTH_ISSUER "https://[[auth0 domain]]/"
-            setx OPENTACO_AUTH_CLIENT_ID "my-client-id"
-            ```
-            </Tab>
-        </Tabs>
-
-        The env variable `OPENTACO_SERVER`  is the address of your server which we'll get to setting up later.
-
-    </Step>
-
-</Steps>
 
 
 # Create Your First Unit
@@ -389,7 +335,7 @@ Now that you have OpenTaco running and authentication configured, let's walk thr
 
 <Steps>
     <Step title="Authenticate Both Systems">
-    First, complete both authentication flows:
+    First, complete both authentication flows. When you do taco login for the first time, it will ask for the server url. By default it is set to `http://localhost:8080`, which won't really work for authentication features. You'll want to host through a proxy at least. More likely, you will have a hosted system on a TLS endpoint. You'll want to place that endpoint here. You can reconfigure at any time by calling `taco setup`.
 
     ```bash
     # Authenticate taco CLI (for unit management)
