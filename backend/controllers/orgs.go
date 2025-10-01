@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/backend/middleware"
-	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
 type TenantCreatedEvent struct {
@@ -156,71 +156,47 @@ func AssociateTenantIdToDiggerOrg(c *gin.Context) {
 		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
+	if claims, ok := token.Claims.(jwt.MapClaims); token.Valid && ok {
+		name := claims["name"]
+		tenantId := claims["tenantId"]
 
-	if token.Valid {
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			if claims.Valid() != nil {
-				slog.Warn("Token's claim is invalid")
-				c.AbortWithStatus(http.StatusForbidden)
-				return
-			}
-
-			name := claims["name"]
-			tenantId := claims["tenantId"]
-
-			if name == nil {
-				slog.Warn("Token is invalid - name absent from claim")
-				c.AbortWithStatus(http.StatusForbidden)
-				return
-			}
-
-			if tenantId == nil {
-				slog.Warn("Token is invalid - tenantId absent from claim")
-				c.AbortWithStatus(http.StatusForbidden)
-				return
-			}
-
-			tenantIdStr := tenantId.(string)
-			nameStr := name.(string)
-			slog.Debug("Processing JWT claims", "name", nameStr, "tenantId", tenantIdStr)
-
-			org, err := models.DB.GetOrganisation(tenantId)
-
-			if err != nil {
-				slog.Error("Failed to get organisation by tenantId", "tenantId", tenantIdStr, "error", err)
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-
-			if org == nil {
-				newOrg, err := models.DB.CreateOrganisation(nameStr, "", tenantIdStr)
-				if err != nil {
-					slog.Error("Failed to create organisation", "tenantId", tenantIdStr, "name", nameStr, "error", err)
-					c.AbortWithStatus(http.StatusInternalServerError)
-					return
-				}
-				slog.Info("Created new organisation", "tenantId", tenantIdStr, "name", nameStr, "orgId", newOrg.ID)
-			} else {
-				slog.Info("Organisation already exists", "tenantId", tenantIdStr, "orgId", org.ID)
-			}
-
-			c.AbortWithStatus(http.StatusOK)
-			return
-		} else if ve, ok := err.(*jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				slog.Warn("That's not even a token")
-			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-				slog.Warn("Token is either expired or not active yet")
-			} else {
-				slog.Error("Couldn't handle token", "error", err)
-			}
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		} else {
-			slog.Error("Couldn't handle token", "error", err)
+		if name == nil {
+			slog.Warn("Token is invalid - name absent from claim")
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
+
+		if tenantId == nil {
+			slog.Warn("Token is invalid - tenantId absent from claim")
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
+		tenantIdStr := tenantId.(string)
+		nameStr := name.(string)
+		slog.Debug("Processing JWT claims", "name", nameStr, "tenantId", tenantIdStr)
+
+		org, err := models.DB.GetOrganisation(tenantId)
+		if err != nil {
+			slog.Error("Failed to get organisation by tenantId", "tenantId", tenantIdStr, "error", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		if org == nil {
+			newOrg, err := models.DB.CreateOrganisation(nameStr, "", tenantIdStr)
+			if err != nil {
+				slog.Error("Failed to create organisation", "tenantId", tenantIdStr, "name", nameStr, "error", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+			slog.Info("Created new organisation", "tenantId", tenantIdStr, "name", nameStr, "orgId", newOrg.ID)
+		} else {
+			slog.Info("Organisation already exists", "tenantId", tenantIdStr, "orgId", org.ID)
+		}
+
+		c.AbortWithStatus(http.StatusOK)
+		return
 	}
 
 	slog.Warn("Token is invalid")
