@@ -17,7 +17,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-// change this random number to bump version of statesman: 429
+// change this random number to bump version of statesman: 421
 func main() {
 	var (
 		port        = flag.String("port", "8080", "Server port")
