@@ -7,23 +7,23 @@ inputs:
   local-dev-mode:
     description: run digger for local development?
     required: false
-    default: 'false'
+    default: "false"
   local-dev-cli-path:
     description: The path to where the compiled digger cli on the self-hosted runner exists (absolute path)
     required: false
-    default: './digger'
+    default: "./digger"
   ee:
     description: use ee cli?
     required: false
-    default: 'false'
+    default: "false"
   fips:
     description: build with fips140 standard?
     required: false
-    default: 'false'
+    default: "false"
   setup-aws:
     description: Setup AWS
     required: false
-    default: 'false'
+    default: "false"
   aws-access-key-id:
     description: AWS access key id
     required: false
@@ -47,7 +47,7 @@ inputs:
   setup-google-cloud:
     description: Setup google cloud
     required: false
-    default: 'false'
+    default: "false"
   google-auth-credentials:
     description: Service account key used got Google auth (mutually exclusive with 'google-workload-identity-provider' input)
     required: false
@@ -66,7 +66,7 @@ inputs:
   setup-azure:
     description: Setup Azure
     required: false
-    default: 'false'
+    default: "false"
   azure-client-id:
     description: Azure Client ID to be used for Azure OIDC auth
     required: false
@@ -79,15 +79,15 @@ inputs:
   setup-terragrunt:
     description: Setup terragrunt
     required: false
-    default: 'false'
+    default: "false"
   setup-opentofu:
     description: Setup OpenToFu
     required: false
-    default: 'false'
+    default: "false"
   setup-pulumi:
     description: Setup Pulumi
     required: false
-    default: 'false'
+    default: "false"
   terragrunt-version:
     description: Terragrunt version
     required: false
@@ -104,7 +104,7 @@ inputs:
   setup-terraform:
     description: Setup terraform
     required: false
-    default: 'false'
+    default: "false"
   terraform-version:
     description: Terraform version
     required: false
@@ -112,7 +112,7 @@ inputs:
   configure-checkout:
     description: Configure checkout. Beware that this will overwrite any changes in the working directory
     required: false
-    default: 'true'
+    default: "true"
   upload-plan-destination:
     description: Destination to upload the plan to. azure, gcp, github and aws are currently supported.
     required: false
@@ -122,11 +122,11 @@ inputs:
   upload-plan-destination-s3-encryption-enabled:
     description: If encryption is to be enabled for s3 bucket
     required: false
-    default: 'false'
+    default: "false"
   upload-plan-destination-s3-encryption-type:
     description: the type of encryption to use for the S3 bucket, either AES256 or KMS
     required: false
-    default: 'AES256'
+    default: "AES256"
   upload-plan-destination-s3-encryption-kms-key-id:
     description: for encryption of type KMS you need to specify the KMS key ID to use
     required: false
@@ -142,15 +142,15 @@ inputs:
   setup-checkov:
     description: Setup Checkov
     required: false
-    default: 'false'
+    default: "false"
   checkov-version:
     description: Checkov version
     required: false
-    default: '3.2.22'
+    default: "3.2.22"
   disable-locking:
     description: Disable locking (deprecated, use pr_locks on digger.yml instead)
     required: false
-    default: 'false'
+    default: "false"
   digger-filename:
     description: Alternative Digger configuration file name
     required: false
@@ -163,75 +163,75 @@ inputs:
   digger-hostname:
     description: Digger hostname
     required: false
-    default: 'https://cloud.digger.dev'
+    default: "https://cloud.digger.dev"
   digger-organisation:
     description: The name of your digger organisation
     required: false
   setup-tfenv:
     description: Setup tfenv
     required: false
-    default: 'false'
+    default: "false"
   post-plans-as-one-comment:
     description: Post plans as one comment
     required: false
-    default: 'false'
+    default: "false"
   reporting-strategy:
-    description: 'comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments'
+    description: "comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments"
     required: false
-    default: 'comments_per_run'
+    default: "comments_per_run"
   mode:
-    description: 'manual, drift-detection or otherwise'
+    description: "manual, drift-detection or otherwise"
     required: false
-    default: ''
+    default: ""
   no-backend:
-    description: 'run cli-only, without an orchestrator backend'
+    description: "run cli-only, without an orchestrator backend"
     required: false
-    default: 'false'
+    default: "false"
   command:
-    description: 'digger plan or digger apply in case of manual mode'
+    description: "digger plan or digger apply in case of manual mode"
     required: false
-    default: ''
+    default: ""
   project:
-    description: 'project name for digger to run in case of manual mode'
+    description: "project name for digger to run in case of manual mode"
     required: false
-    default: ''
+    default: ""
   drift-detection-slack-notification-url:
-    description: 'drift-detection slack drift url'
+    description: "drift-detection slack drift url"
     required: false
-    default: ''
+    default: ""
   drift-detection-advanced-slack-notification-url:
-    description: 'drift-detection slack drift url (advanced mode, ee only)'
+    description: "drift-detection slack drift url (advanced mode, ee only)"
     required: false
-    default: ''
+    default: ""
   cache-dependencies:
-    description: 'Leverage actions/cache to cache dependencies to speed up execution'
+    description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
-    default: 'false'
+    default: "false"
   terraform-cache-dir:
-    description: 'allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache'
+    description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
     required: false
-    default: ''
+    default: ""
   cache-dependencies-s3:
-    description: 'Use S3 for caching terraform/terragrunt dependencies'
+    description: "Use S3 for caching terraform/terragrunt dependencies"
     required: false
-    default: 'false'
+    default: "false"
   cache-dependencies-s3-bucket:
-    description: 'S3 bucket name for caching without the leading s3 (e.g. mybucket)'
+    description: "S3 bucket name for caching without the leading s3 (e.g. mybucket)"
     required: false
-    default: ''
+    default: ""
   cache-dependencies-s3-bucket-prefix:
-    description: 'S3 bucket prefix for caching (e.g. cache)'
+    description: "S3 bucket prefix for caching (e.g. cache)"
     required: false
-    default: ''
+    default: ""
   cache-dependencies-s3-region:
-    description: 'AWS region for S3 cache bucket'
+    description: "AWS region for S3 cache bucket"
     required: false
-    default: 'us-east-1'
+    default: "us-east-1"
 
   digger-spec:
-    description: '(orchestrator only) the spec to pass onto digger cli'
+    description: "(orchestrator only) the spec to pass onto digger cli"
     required: false
-    default: ''
+    default: ""
 
 outputs:
   output:
@@ -269,7 +269,7 @@ runs:
     - name: Set up Google Auth Using A Service Account Key
       uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.13
       with:
-        credentials_json: '${{ inputs.google-auth-credentials }}'
+        credentials_json: "${{ inputs.google-auth-credentials }}"
       if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-auth-credentials != '' }}
 
     - name: Set up Google Auth Using Workload Identity Federation
@@ -394,7 +394,7 @@ runs:
     - name: setup go
       uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
       with:
-        go-version-file: '${{ github.action_path }}/cli/go.mod'
+        go-version-file: "${{ github.action_path }}/cli/go.mod"
         cache: false
       if: ${{ !startsWith(github.action_ref, 'v') }}
 
@@ -462,7 +462,7 @@ runs:
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
 
         NO_BACKEND: ${{ inputs.no-backend }}
-        DEBUG: 'true'
+        DEBUG: "true"
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
