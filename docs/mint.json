@@ -59,7 +59,8 @@
         "ce/state-management/digger-integration",
         "ce/state-management/development",
         "ce/state-management/analytics",
-        "ce/state-management/versioning"
+        "ce/state-management/versioning",
+        "ce/state-management/gcp-quickstart"
       ]
     },
     {
