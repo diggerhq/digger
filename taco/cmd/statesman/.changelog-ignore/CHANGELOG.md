@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.9...taco/statesman/v0.1.10) (2025-10-01)
+
+
+### Miscellaneous
+
+* bump statesman version ([008e82a](https://github.com/diggerhq/digger/commit/008e82a8d1f1ead12147b85c59af6f3fc100e451))
+
 ## [0.1.9](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.8...taco/statesman/v0.1.9) (2025-09-30)
 
 
