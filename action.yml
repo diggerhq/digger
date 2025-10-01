@@ -7,23 +7,23 @@ inputs:
   local-dev-mode:
     description: run digger for local development?
     required: false
-    default: false
+    default: "false"
   local-dev-cli-path:
     description: The path to where the compiled digger cli on the self-hosted runner exists (absolute path)
     required: false
-    default: './digger'
+    default: "./digger"
   ee:
     description: use ee cli?
     required: false
-    default: 'false'
+    default: "false"
   fips:
     description: build with fips140 standard?
     required: false
-    default: 'false'
+    default: "false"
   setup-aws:
     description: Setup AWS
     required: false
-    default: 'false'
+    default: "false"
   aws-access-key-id:
     description: AWS access key id
     required: false
@@ -47,7 +47,7 @@ inputs:
   setup-google-cloud:
     description: Setup google cloud
     required: false
-    default: 'false'
+    default: "false"
   google-auth-credentials:
     description: Service account key used got Google auth (mutually exclusive with 'google-workload-identity-provider' input)
     required: false
@@ -66,7 +66,7 @@ inputs:
   setup-azure:
     description: Setup Azure
     required: false
-    default: 'false'
+    default: "false"
   azure-client-id:
     description: Azure Client ID to be used for Azure OIDC auth
     required: false
@@ -79,15 +79,15 @@ inputs:
   setup-terragrunt:
     description: Setup terragrunt
     required: false
-    default: 'false'
+    default: "false"
   setup-opentofu:
     description: Setup OpenToFu
     required: false
-    default: 'false'
+    default: "false"
   setup-pulumi:
     description: Setup Pulumi
     required: false
-    default: 'false'
+    default: "false"
   terragrunt-version:
     description: Terragrunt version
     required: false
@@ -104,7 +104,7 @@ inputs:
   setup-terraform:
     description: Setup terraform
     required: false
-    default: 'false'
+    default: "false"
   terraform-version:
     description: Terraform version
     required: false
@@ -112,7 +112,7 @@ inputs:
   configure-checkout:
     description: Configure checkout. Beware that this will overwrite any changes in the working directory
     required: false
-    default: 'true'
+    default: "true"
   upload-plan-destination:
     description: Destination to upload the plan to. azure, gcp, github and aws are currently supported.
     required: false
@@ -142,15 +142,15 @@ inputs:
   setup-checkov:
     description: Setup Checkov
     required: false
-    default: 'false'
+    default: "false"
   checkov-version:
     description: Checkov version
     required: false
-    default: '3.2.22'
+    default: "3.2.22"
   disable-locking:
     description: Disable locking (deprecated, use pr_locks on digger.yml instead)
     required: false
-    default: 'false'
+    default: "false"
   digger-filename:
     description: Alternative Digger configuration file name
     required: false
@@ -163,76 +163,75 @@ inputs:
   digger-hostname:
     description: Digger hostname
     required: false
-    default: 'https://cloud.digger.dev'
+    default: "https://cloud.digger.dev"
   digger-organisation:
     description: The name of your digger organisation
     required: false
   setup-tfenv:
     description: Setup tfenv
     required: false
-    default: 'false'
+    default: "false"
   post-plans-as-one-comment:
     description: Post plans as one comment
     required: false
-    default: 'false'
+    default: "false"
   reporting-strategy:
-    description: 'comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments'
+    description: "comments_per_run or latest_run_comment, anything else will default to original behavior of multiple comments"
     required: false
-    default: 'comments_per_run'
+    default: "comments_per_run"
   mode:
-    description: 'manual, drift-detection or otherwise'
+    description: "manual, drift-detection or otherwise"
     required: false
-    default: ''
+    default: ""
   no-backend:
-    description: 'run cli-only, without an orchestrator backend'
+    description: "run cli-only, without an orchestrator backend"
     required: false
-    default: 'false'
+    default: "false"
   command:
-    description: 'digger plan or digger apply in case of manual mode'
+    description: "digger plan or digger apply in case of manual mode"
     required: false
-    default: ''
+    default: ""
   project:
-    description: 'project name for digger to run in case of manual mode'
+    description: "project name for digger to run in case of manual mode"
     required: false
-    default: ''
+    default: ""
   drift-detection-slack-notification-url:
-    description: 'drift-detection slack drift url'
+    description: "drift-detection slack drift url"
     required: false
-    default: ''
+    default: ""
   drift-detection-advanced-slack-notification-url:
-    description: 'drift-detection slack drift url (advanced mode, ee only)'
+    description: "drift-detection slack drift url (advanced mode, ee only)"
     required: false
-    default: ''
+    default: ""
   cache-dependencies:
     description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
-    default: 'false'
+    default: "false"
   terraform-cache-dir:
     description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
     required: false
-    default: ''
+    default: ""
   cache-dependencies-s3:
     description: "Use S3 for caching terraform/terragrunt dependencies"
     required: false
-    default: 'false'
+    default: "false"
   cache-dependencies-s3-bucket:
     description: "S3 bucket name for caching without the leading s3 (e.g. mybucket)"
     required: false
-    default: ''
+    default: ""
   cache-dependencies-s3-bucket-prefix:
     description: "S3 bucket prefix for caching (e.g. cache)"
     required: false
-    default: ''
+    default: ""
   cache-dependencies-s3-region:
     description: "AWS region for S3 cache bucket"
     required: false
-    default: 'us-east-1'
-
+    default: "us-east-1"
 
   digger-spec:
     description: "(orchestrator only) the spec to pass onto digger cli"
     required: false
-    default: ''
+    default: ""
 
 outputs:
   output:
@@ -270,7 +269,7 @@ runs:
     - name: Set up Google Auth Using A Service Account Key
       uses: google-github-actions/auth@v2
       with:
-        credentials_json: '${{ inputs.google-auth-credentials }}'
+        credentials_json: "${{ inputs.google-auth-credentials }}"
       if: ${{ inputs.setup-google-cloud == 'true' && inputs.google-auth-credentials != '' }}
 
     - name: Set up Google Auth Using Workload Identity Federation
@@ -339,14 +338,14 @@ runs:
         BUCKET="${{ inputs.cache-dependencies-s3-bucket }}"
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         PREFIX="${{ inputs.cache-dependencies-s3-bucket-prefix }}"
-        
+
         SCRIPT_PATH="${{ github.action_path }}/scripts/s3-cache-download.bash"
         if [ ! -f "$SCRIPT_PATH" ]; then
           echo "::error::S3 cache download script not found at $SCRIPT_PATH"
           echo "Please make sure the script exists and is properly installed."
           exit 1
         fi
-        
+
         chmod +x "$SCRIPT_PATH"
         "$SCRIPT_PATH" "$BUCKET" "$PREFIX" "$REGION" "$TF_PLUGIN_CACHE_DIR"
       if: ${{ inputs.cache-dependencies-s3 == 'true' }}
@@ -395,7 +394,7 @@ runs:
     - name: setup go
       uses: actions/setup-go@v5
       with:
-        go-version-file: '${{ github.action_path }}/cli/go.mod'
+        go-version-file: "${{ github.action_path }}/cli/go.mod"
         cache: false
       if: ${{ !startsWith(github.action_ref, 'v') }}
 
@@ -434,7 +433,6 @@ runs:
         mkdir -p $GITHUB_WORKSPACE/cache
       shell: bash
 
-
     - name: build and run digger
       if: ${{ !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       shell: bash
@@ -464,7 +462,7 @@ runs:
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
 
         NO_BACKEND: ${{ inputs.no-backend }}
-        DEBUG: 'true'
+        DEBUG: "true"
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
@@ -472,20 +470,20 @@ runs:
         TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
-          if [[ ${{ inputs.ee }} == "true" ]]; then
-            cd $GITHUB_ACTION_PATH/ee/cli
-          else
-            cd $GITHUB_ACTION_PATH/cli
-          fi
-          if [[ ${{ inputs.fips }} == "true" ]]; then
-            export GODEBUG=fips140=only
-            export GOFIPS140=v1.0.0
-          fi        
-          go build -o digger ./cmd/digger
-          chmod +x digger
-          PATH=$PATH:$(pwd)
-          cd $GITHUB_WORKSPACE
-          digger
+        if [[ ${{ inputs.ee }} == "true" ]]; then
+          cd $GITHUB_ACTION_PATH/ee/cli
+        else
+          cd $GITHUB_ACTION_PATH/cli
+        fi
+        if [[ ${{ inputs.fips }} == "true" ]]; then
+          export GODEBUG=fips140=only
+          export GOFIPS140=v1.0.0
+        fi        
+        go build -o digger ./cmd/digger
+        chmod +x digger
+        PATH=$PATH:$(pwd)
+        cd $GITHUB_WORKSPACE
+        digger
 
     - name: run digger
       if: ${{ startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
@@ -525,10 +523,10 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        
+
         echo "🔧 Downloading Digger CLI..."
         echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Action Ref: ${actionref}"
-        
+
         if [[ ${{ inputs.ee }} == "true" ]]; then
           if [[ ${{ inputs.fips }} == "true" ]]; then
             DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
@@ -538,9 +536,9 @@ runs:
         else
           DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
         fi
-        
+
         echo "Downloading from: $DOWNLOAD_URL"
-        
+
         if ! curl -sL --fail "$DOWNLOAD_URL" -o digger; then
           echo "Failed to download Digger CLI from $DOWNLOAD_URL"
           echo ""
@@ -555,26 +553,26 @@ runs:
           echo "- Try using a different release version"
           exit 1
         fi
-        
+
         if [[ ! -f digger || ! -s digger ]]; then
           echo "Downloaded file is empty or doesn't exist"
           exit 1
         fi
-        
+
         chmod +x digger
-        
+
         if [[ ! -x digger ]]; then
           echo "Failed to make digger executable"
           exit 1
         fi
-        
+
         echo "Successfully downloaded and prepared Digger CLI"
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
         digger
 
     - name: run digger in local dev mode
-      if:  ${{ inputs.local-dev-mode == 'true' }}
+      if: ${{ inputs.local-dev-mode == 'true' }}
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -613,10 +611,10 @@ runs:
         set -euo pipefail
 
         cd $GITHUB_WORKSPACE
-        
+
         echo "🚀 Running digger..."
         RAW="${{ inputs.local-dev-cli-path }}"
-        
+
         # Validate path to prevent command injection
         if [[ "$RAW" =~ [^a-zA-Z0-9_./-] ]]; then
           echo "❌ Invalid characters in local-dev-cli-path"
@@ -632,7 +630,7 @@ runs:
 
         BIN="$DIR/digger"
         [[ -x "$BIN" ]] || { echo "❌ digger not executable at $BIN"; exit 1; }        
-        
+
         $BIN
         echo "✅ digger completed"
 
@@ -649,14 +647,14 @@ runs:
         BUCKET="${{ inputs.cache-dependencies-s3-bucket }}"
         REGION="${{ inputs.cache-dependencies-s3-region }}"
         PREFIX="${{ inputs.cache-dependencies-s3-bucket-prefix }}"
-        
+
         SCRIPT_PATH="${{ github.action_path }}/scripts/s3-cache-upload.bash"
         if [ ! -f "$SCRIPT_PATH" ]; then
           echo "::error::S3 cache upload script not found at $SCRIPT_PATH"
           echo "Please make sure the script exists and is properly installed."
           exit 1
         fi
-        
+
         chmod +x "$SCRIPT_PATH"
         "$SCRIPT_PATH" "$BUCKET" "$PREFIX" "$REGION" "$TF_PLUGIN_CACHE_DIR"
       if: ${{ always() && inputs.cache-dependencies-s3 == 'true' }}
