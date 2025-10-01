@@ -17,7 +17,7 @@ spec:
         {{- toYaml $.Values.digger.nodeSelector | nindent 8 }}
       {{- end }}
       {{- if $.Values.digger.tolerations }}
-        tolerations:
+      tolerations:
         {{- toYaml $.Values.digger.tolerations | nindent 8 }}
       {{- end }}
       containers:
