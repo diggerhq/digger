@@ -233,7 +233,7 @@ inputs:
     required: false
     default: ""
   digger-version:
-    description: "Version of digger CLI to install. Overrides the version derived from the actionref"
+    description: "Version of digger CLI to install. Overrides the version derived from the github.action_ref."
     required: false
     default: ""
 
