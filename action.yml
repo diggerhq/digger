@@ -536,9 +536,7 @@ runs:
         cd $DIR
 
     - name: run digger
-      if: ${{ startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       env:
-        actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
@@ -563,6 +561,7 @@ runs:
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
+        DEBUG: ${{ !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
