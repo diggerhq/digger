@@ -400,7 +400,7 @@ runs:
       with:
         go-version-file: "${{ github.action_path }}/cli/go.mod"
         cache: false
-      if: ${{ !startsWith(github.action_ref, 'v') }}
+      if: ${{ inputs.digger-version == '' && !startsWith(github.action_ref, 'v') }}
 
     - name: Determine Golang cache paths
       id: golang-env
@@ -408,7 +408,7 @@ runs:
         echo "build-cache-path=$(go env GOCACHE)" >>"$GITHUB_OUTPUT"
         echo "module-cache-path=$(go env GOMODCACHE)" >>"$GITHUB_OUTPUT"
       shell: bash
-      if: ${{ !startsWith(github.action_ref, 'v') }}
+      if: ${{ inputs.digger-version == '' && !startsWith(github.action_ref, 'v') }}
 
     - name: Copy Digger CLI go.sum for cache key
       run: |
@@ -420,7 +420,7 @@ runs:
           cp "$GITHUB_ACTION_PATH/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
         fi
       shell: bash
-      if: ${{ !startsWith(github.action_ref, 'v') }}
+      if: ${{ inputs.digger-version == '' && !startsWith(github.action_ref, 'v') }}
 
     - name: Adding required env vars for next step
       uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
