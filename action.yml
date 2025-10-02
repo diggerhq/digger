@@ -257,11 +257,11 @@ runs:
         ACTION_REF: ${{ github.action_ref }}
       run: |
         if [[ "$LOCAL_DEV_MODE" == "true" ]]; then
-          BINARY_MODE="local"
+          BINARY_MODE="local"    # Use locally compiled binary (for development)
         elif [[ -n "$INPUT_DIGGER_VERSION" || "$ACTION_REF" == v* ]]; then
-          BINARY_MODE="prebuilt"
+          BINARY_MODE="prebuilt" # Install prebuilt binary from release
         else
-          BINARY_MODE="build"
+          BINARY_MODE="build"    # Build from source at runtime
         fi
         echo "binary-mode=${BINARY_MODE}" >> ${GITHUB_OUTPUT}
       shell: bash
