@@ -58,8 +58,6 @@ spec:
               name: {{ include "digger-backend.fullname" . }}-postgres-secret
               key: postgres-password
         {{- end }}
-        - name: HTTP_BASIC_AUTH
-          value: "1"
         - name: DATABASE_URL
         {{- if .Values.postgres.enabled }}
           value: "postgres://postgres:$(POSTGRES_PASSWORD)@{{ include "digger-backend.fullname" . }}-postgres:5432/postgres?sslmode={{ .Values.postgres.sslmode }}"
