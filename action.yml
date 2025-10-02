@@ -249,6 +249,23 @@ runs:
       run: echo digger run ${{ inputs.id }}
       shell: bash
 
+    - name: Determine binary mode (local, build, or pre-built)
+      id: determine-binary-mode
+      env:
+        LOCAL_DEV_MODE: ${{ inputs.local-dev-mode }}
+        INPUT_DIGGER_VERSION: ${{ inputs.digger-version }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        if [[ "$LOCAL_DEV_MODE" == "true" ]]; then
+          BINARY_MODE="local"
+        elif [[ -n "$INPUT_DIGGER_VERSION" || "$ACTION_REF" == v* ]]; then
+          BINARY_MODE="prebuilt"
+        else
+          BINARY_MODE="build"
+        fi
+        echo "binary-mode=${BINARY_MODE}" >> ${GITHUB_OUTPUT}
+      shell: bash
+
     - name: Validate Input Configuration for Google
       run: |
         if [[ -z ${{ toJSON(inputs.google-auth-credentials) }} && -z "${{ inputs.google-workload-identity-provider }}" ]]; then
@@ -400,7 +417,7 @@ runs:
       with:
         go-version-file: "${{ github.action_path }}/cli/go.mod"
         cache: false
-      if: ${{ inputs.digger-version == '' && !startsWith(github.action_ref, 'v') }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode != 'prebuilt' }}
 
     - name: Determine Golang cache paths
       id: golang-env
@@ -408,7 +425,7 @@ runs:
         echo "build-cache-path=$(go env GOCACHE)" >>"$GITHUB_OUTPUT"
         echo "module-cache-path=$(go env GOMODCACHE)" >>"$GITHUB_OUTPUT"
       shell: bash
-      if: ${{ inputs.digger-version == '' && !startsWith(github.action_ref, 'v') }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode != 'prebuilt' }}
 
     - name: Copy Digger CLI go.sum for cache key
       run: |
@@ -420,7 +437,7 @@ runs:
           cp "$GITHUB_ACTION_PATH/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
         fi
       shell: bash
-      if: ${{ inputs.digger-version == '' && !startsWith(github.action_ref, 'v') }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode != 'prebuilt' }}
 
     - name: Adding required env vars for next step
       uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
@@ -438,7 +455,7 @@ runs:
       shell: bash
 
     - name: build and run digger
-      if: ${{ inputs.digger-version == '' && !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'build' }}
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -489,8 +506,8 @@ runs:
         cd $GITHUB_WORKSPACE
         digger
 
-    - name: run digger
-      if: ${{( inputs.digger-version != '' || startsWith(github.action_ref, 'v')) && inputs.local-dev-mode == 'false' }}
+    - name: download, install, and run digger
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'prebuilt' }}
       env:
         DIGGER_VERSION: ${{ inputs.digger-version || github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -576,7 +593,7 @@ runs:
         digger
 
     - name: run digger in local dev mode
-      if: ${{ inputs.local-dev-mode == 'true' }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'local' }}
       env:
         DIGGER_VERSION: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
