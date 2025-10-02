@@ -320,6 +320,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"isDraft", isDraft,
 		)
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
+		}
 		return nil
 	}
 
