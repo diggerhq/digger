@@ -438,7 +438,7 @@ runs:
       shell: bash
 
     - name: build and run digger
-      if: ${{ inputs.digger-version == "" && !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
+      if: ${{ inputs.digger-version == '' && !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -490,7 +490,7 @@ runs:
         digger
 
     - name: run digger
-      if: ${{( inputs.digger-version != "" || startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
+      if: ${{( inputs.digger-version != '' || startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       env:
         DIGGER_VERSION: ${{ inputs.digger-version || github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
