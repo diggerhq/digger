@@ -235,7 +235,7 @@ inputs:
 
 outputs:
   output:
-    value: ${{ steps.digger.outputs.output }}
+    value: ${{ steps.run-digger.outputs.output }}
     description: The terraform output
 
 runs:
@@ -433,42 +433,10 @@ runs:
         mkdir -p $GITHUB_WORKSPACE/cache
       shell: bash
 
-    - name: build and run digger
+    - name: build digger from source
       if: ${{ !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       shell: bash
-      env:
-        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
-        PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
-        PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
-        PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
-        PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME: ${{ inputs.upload-plan-destination-azure-container }}
-        PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.upload-plan-destination-azure-storage-account }}
-        GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
-        GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
-        AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
-        ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
-        DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
-        DIGGER_PRIVATE_KEY: ${{ inputs.digger-private-key }}
-        DIGGER_TOKEN: ${{ inputs.digger-token }}
-        DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
-        DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
-        DIGGER_FILENAME: ${{ inputs.digger-filename }}
-        ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
-        REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
-        INPUT_DIGGER_PROJECT: ${{ inputs.project }}
-        INPUT_DIGGER_MODE: ${{ inputs.mode }}
-        INPUT_DIGGER_COMMAND: ${{ inputs.command }}
-        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
-        INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
 
-        NO_BACKEND: ${{ inputs.no-backend }}
-        DEBUG: "true"
-        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
-        TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
-        TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
-        DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
       run: |
         if [[ ${{ inputs.ee }} == "true" ]]; then
           cd $GITHUB_ACTION_PATH/ee/cli
@@ -483,43 +451,11 @@ runs:
         chmod +x digger
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
-        digger
 
-    - name: run digger
+    - name: download and install prebuilt digger
       if: ${{ startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       env:
         actionref: ${{ github.action_ref }}
-        PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
-        PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
-        PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
-        PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
-        PLAN_UPLOAD_AZURE_STORAGE_CONTAINER_NAME: ${{ inputs.upload-plan-destination-azure-container }}
-        PLAN_UPLOAD_AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.upload-plan-destination-azure-storage-account }}
-        GOOGLE_STORAGE_LOCK_BUCKET: ${{ inputs.google-lock-bucket }}
-        GOOGLE_STORAGE_PLAN_ARTEFACT_BUCKET: ${{ inputs.upload-plan-destination-gcp-bucket }}
-        AWS_S3_BUCKET: ${{ inputs.upload-plan-destination-s3-bucket }}
-        ACTIVATE_VENV: ${{ inputs.setup-checkov == 'true' }}
-        DISABLE_LOCKING: ${{ inputs.disable-locking == 'true' }}
-        DIGGER_PRIVATE_KEY: ${{ inputs.digger-private-key }}
-        DIGGER_TOKEN: ${{ inputs.digger-token }}
-        DIGGER_ORGANISATION: ${{ inputs.digger-organisation }}
-        DIGGER_HOSTNAME: ${{ inputs.digger-hostname }}
-        DIGGER_FILENAME: ${{ inputs.digger-filename }}
-        ACCUMULATE_PLANS: ${{ inputs.post-plans-as-one-comment == 'true' }}
-        REPORTING_STRATEGY: ${{ inputs.reporting-strategy }}
-        INPUT_DIGGER_PROJECT: ${{ inputs.project }}
-        INPUT_DIGGER_MODE: ${{ inputs.mode }}
-        INPUT_DIGGER_COMMAND: ${{ inputs.command }}
-        INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
-        INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
-        NO_BACKEND: ${{ inputs.no-backend }}
-        TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
-        TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
-        TF_PLUGIN_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
-        TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
-        TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
-        DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
-      id: digger
       shell: bash
       run: |
         set -euo pipefail
@@ -569,10 +505,38 @@ runs:
         echo "Successfully downloaded and prepared Digger CLI"
         PATH=$PATH:$(pwd)
         cd $GITHUB_WORKSPACE
-        digger
 
-    - name: run digger in local dev mode
+    - name: Validate local digger binary config
       if: ${{ inputs.local-dev-mode == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        cd $GITHUB_WORKSPACE
+
+        echo "🚀 Running digger..."
+        RAW="${{ inputs.local-dev-cli-path }}"
+
+        # Validate path to prevent command injection
+        if [[ "$RAW" =~ [^a-zA-Z0-9_./-] ]]; then
+          echo "❌ Invalid characters in local-dev-cli-path"
+          exit 1
+        fi
+
+        if [[ "$RAW"  =~ \.\. || "$RAW" == : || "$RAW" != /* ]]; then
+          echo "❌ traversal/colon/relative not allowed"; exit 1
+        fi        
+
+        DIR=$(realpath -- "$RAW") || { echo "❌ not found"; exit 1; }
+        [[ -d "$DIR" ]] || { echo "❌ not a dir"; exit 1; }        
+
+        BIN="$DIR/digger"
+        [[ -x "$BIN" ]] || { echo "❌ digger not executable at $BIN"; exit 1; }        
+        PATH=$PATH:$(DIR)
+        cd $DIR
+
+    - name: run digger
+      if: ${{ startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       env:
         actionref: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -605,34 +569,11 @@ runs:
         TG_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         TERRAGRUNT_PROVIDER_CACHE_DIR: ${{ env.TF_PLUGIN_CACHE_DIR }}
         DIGGER_RUN_SPEC: ${{inputs.digger-spec}}
-      id: digger-local-run
+      id: run-digger
       shell: bash
       run: |
-        set -euo pipefail
-
-        cd $GITHUB_WORKSPACE
-
-        echo "🚀 Running digger..."
-        RAW="${{ inputs.local-dev-cli-path }}"
-
-        # Validate path to prevent command injection
-        if [[ "$RAW" =~ [^a-zA-Z0-9_./-] ]]; then
-          echo "❌ Invalid characters in local-dev-cli-path"
-          exit 1
-        fi
-
-        if [[ "$RAW"  =~ \.\. || "$RAW" == : || "$RAW" != /* ]]; then
-          echo "❌ traversal/colon/relative not allowed"; exit 1
-        fi        
-
-        DIR=$(realpath -- "$RAW") || { echo "❌ not found"; exit 1; }
-        [[ -d "$DIR" ]] || { echo "❌ not a dir"; exit 1; }        
-
-        BIN="$DIR/digger"
-        [[ -x "$BIN" ]] || { echo "❌ digger not executable at $BIN"; exit 1; }        
-
-        $BIN
-        echo "✅ digger completed"
+        # Digger binary, path, etc... are confiured by previous steps
+        digger
 
     - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       name: cache-save
