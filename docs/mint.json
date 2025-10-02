@@ -61,9 +61,7 @@
         "ce/state-management/analytics",
         "ce/state-management/versioning",
         "ce/state-management/gcp-quickstart",
-        "ce/state-management/aws-apprunner-quickstart",
-        "ce/state-management/aws-ecs-quickstart",
-        "ce/state-management/aws-quickstart"
+        "ce/state-management/aws-fargate-ad-quickstart"
       ]
     },
     {

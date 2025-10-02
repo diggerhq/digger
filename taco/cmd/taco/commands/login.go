@@ -83,12 +83,12 @@ var loginCmd = &cobra.Command{
         verifier := randomB58(32)
         challenge := codeChallengeS256(verifier)
         state := randomB58(24)
-        redirectURI := fmt.Sprintf("http://127.0.0.1:%d/callback", cbPort)
+        redirectURI := fmt.Sprintf("http://localhost:%d/callback", cbPort)
 
         // Start local callback server (dedicated mux)
         codeCh := make(chan url.Values, 1)
         mux := http.NewServeMux()
-        srv := &http.Server{Addr: fmt.Sprintf("127.0.0.1:%d", cbPort), Handler: mux}
+        srv := &http.Server{Addr: fmt.Sprintf("localhost:%d", cbPort), Handler: mux}
         mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
             q := r.URL.Query()
             if q.Get("state") != state {
@@ -225,15 +225,34 @@ func exchangeCodeForTokens(tokenURL, clientID, redirectURI, code, verifier strin
     form.Set("client_id", clientID)
     form.Set("redirect_uri", redirectURI)
     form.Set("code_verifier", verifier)
+    
+    // DEBUG: Print the request details
+    fmt.Printf("DEBUG: Token URL: %s\n", tokenURL)
+    fmt.Printf("DEBUG: Client ID: %s\n", clientID)
+    fmt.Printf("DEBUG: Redirect URI: %s\n", redirectURI)
+    fmt.Printf("DEBUG: Code: %s\n", code)
+    fmt.Printf("DEBUG: Code Verifier: %s\n", verifier)
+    fmt.Printf("DEBUG: Form data: %s\n", form.Encode())
+    
     req, err := http.NewRequest("POST", tokenURL, strings.NewReader(form.Encode()))
     if err != nil { return nil, err }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+    
     resp, err := http.DefaultClient.Do(req)
     if err != nil { return nil, err }
     defer resp.Body.Close()
-    if resp.StatusCode != 200 { return nil, fmt.Errorf("token http %d", resp.StatusCode) }
+    
+    // DEBUG: Print response details
+    fmt.Printf("DEBUG: Response Status: %d\n", resp.StatusCode)
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Printf("DEBUG: Response Body: %s\n", string(body))
+    
+    if resp.StatusCode != 200 { 
+        return nil, fmt.Errorf("token http %d: %s", resp.StatusCode, string(body)) 
+    }
+    
     var out struct{ IDToken string `json:"id_token"` }
-    if err := json.NewDecoder(resp.Body).Decode(&out); err != nil { return nil, err }
+    if err := json.Unmarshal(body, &out); err != nil { return nil, err }
     return &out, nil
 }
 
