@@ -225,34 +225,15 @@ func exchangeCodeForTokens(tokenURL, clientID, redirectURI, code, verifier strin
     form.Set("client_id", clientID)
     form.Set("redirect_uri", redirectURI)
     form.Set("code_verifier", verifier)
-    
-    // DEBUG: Print the request details
-    fmt.Printf("DEBUG: Token URL: %s\n", tokenURL)
-    fmt.Printf("DEBUG: Client ID: %s\n", clientID)
-    fmt.Printf("DEBUG: Redirect URI: %s\n", redirectURI)
-    fmt.Printf("DEBUG: Code: %s\n", code)
-    fmt.Printf("DEBUG: Code Verifier: %s\n", verifier)
-    fmt.Printf("DEBUG: Form data: %s\n", form.Encode())
-    
     req, err := http.NewRequest("POST", tokenURL, strings.NewReader(form.Encode()))
     if err != nil { return nil, err }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    
     resp, err := http.DefaultClient.Do(req)
     if err != nil { return nil, err }
     defer resp.Body.Close()
-    
-    // DEBUG: Print response details
-    fmt.Printf("DEBUG: Response Status: %d\n", resp.StatusCode)
-    body, _ := io.ReadAll(resp.Body)
-    fmt.Printf("DEBUG: Response Body: %s\n", string(body))
-    
-    if resp.StatusCode != 200 { 
-        return nil, fmt.Errorf("token http %d: %s", resp.StatusCode, string(body)) 
-    }
-    
+    if resp.StatusCode != 200 { return nil, fmt.Errorf("token http %d", resp.StatusCode) }
     var out struct{ IDToken string `json:"id_token"` }
-    if err := json.Unmarshal(body, &out); err != nil { return nil, err }
+    if err := json.NewDecoder(resp.Body).Decode(&out); err != nil { return nil, err }
     return &out, nil
 }
 
