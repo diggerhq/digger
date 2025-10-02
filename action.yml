@@ -232,6 +232,10 @@ inputs:
     description: "(orchestrator only) the spec to pass onto digger cli"
     required: false
     default: ""
+  digger-version:
+    description: "Version of digger CLI to install. Overrides the version derived from the actionref"
+    required: false
+    default: ""
 
 outputs:
   output:
@@ -257,7 +261,7 @@ runs:
         exit 1
       shell: bash
       if: inputs.setup-google-cloud == 'true'
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       with:
         clean: false
         ref: refs/pull/${{ github.event.issue.number }}/merge
@@ -434,7 +438,7 @@ runs:
       shell: bash
 
     - name: build and run digger
-      if: ${{ !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
+      if: ${{ inputs.digger-version == "" && !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
@@ -486,9 +490,9 @@ runs:
         digger
 
     - name: run digger
-      if: ${{ startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
+      if: ${{( inputs.digger-version != "" || startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
       env:
-        actionref: ${{ github.action_ref }}
+        DIGGER_VERSION: ${{ inputs.digger-version || github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
@@ -525,16 +529,16 @@ runs:
         set -euo pipefail
 
         echo "🔧 Downloading Digger CLI..."
-        echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Action Ref: ${actionref}"
+        echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Digger Version: ${DIGGER_VERSION}"
 
         if [[ ${{ inputs.ee }} == "true" ]]; then
           if [[ ${{ inputs.fips }} == "true" ]]; then
-            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
           else
-            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}"
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}"
           fi
         else
-          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
+          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
         fi
 
         echo "Downloading from: $DOWNLOAD_URL"
@@ -543,12 +547,12 @@ runs:
           echo "Failed to download Digger CLI from $DOWNLOAD_URL"
           echo ""
           echo "Possible reasons:"
-          echo "1. The release ${actionref} might not exist"
+          echo "1. The release ${DIGGER_VERSION} might not exist"
           echo "2. Binary for ${{ runner.os }}-${{ runner.arch }} might not be available"
           echo "3. Network connectivity issues"
           echo ""
           echo "Suggestions:"
-          echo "- Check if release ${actionref} exists at: https://github.com/diggerhq/digger/releases"
+          echo "- Check if release ${DIGGER_VERSION} exists at: https://github.com/diggerhq/digger/releases"
           echo "- Verify the architecture combination is supported"
           echo "- Try using a different release version"
           exit 1
@@ -574,7 +578,7 @@ runs:
     - name: run digger in local dev mode
       if: ${{ inputs.local-dev-mode == 'true' }}
       env:
-        actionref: ${{ github.action_ref }}
+        DIGGER_VERSION: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
