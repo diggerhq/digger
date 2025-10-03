@@ -259,7 +259,7 @@ runs:
         set -euo pipefail
 
         if [[ ! ( -z "$INPUT_DIGGER_VERSION" || "$INPUT_DIGGER_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ) ]]; then
-          echo "::error::Invalid digger-version input: ${INPUT_DIGGER_VERSION}. Must be empty string or match vX.Y.Z"
+          echo "::error::Invalid digger-version input $INPUT_DIGGER_VERSION. Must be empty string or match vX.Y.Z"
           exit 1
         fi
 
