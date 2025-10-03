@@ -546,16 +546,16 @@ runs:
         set -euo pipefail
 
         echo "🔧 Downloading Digger CLI..."
-        echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Digger Version: ${{ env.DIGGER_VERSION }}"
+        echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Digger Version: ${DIGGER_VERSION}"
 
         if [[ ${{ inputs.ee }} == "true" ]]; then
           if [[ ${{ inputs.fips }} == "true" ]]; then
-            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${{ env.DIGGER_VERSION }}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
           else
-            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${{ env.DIGGER_VERSION }}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}"
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}"
           fi
         else
-          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${{ env.DIGGER_VERSION }}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
+          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
         fi
 
         echo "Downloading from: $DOWNLOAD_URL"
@@ -564,12 +564,12 @@ runs:
           echo "Failed to download Digger CLI from $DOWNLOAD_URL"
           echo ""
           echo "Possible reasons:"
-          echo "1. The release ${{ env.DIGGER_VERSION }} might not exist"
+          echo "1. The release ${DIGGER_VERSION} might not exist"
           echo "2. Binary for ${{ runner.os }}-${{ runner.arch }} might not be available"
           echo "3. Network connectivity issues"
           echo ""
           echo "Suggestions:"
-          echo "- Check if release ${{ env.DIGGER_VERSION }} exists at: https://github.com/diggerhq/digger/releases"
+          echo "- Check if release ${DIGGER_VERSION} exists at: https://github.com/diggerhq/digger/releases"
           echo "- Verify the architecture combination is supported"
           echo "- Try using a different release version"
           exit 1
