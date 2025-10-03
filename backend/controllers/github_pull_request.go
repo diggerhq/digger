@@ -257,7 +257,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	// special case for when a draft pull request is opened and ignore PRs is set to true we DO NOT want to lock the projects
-	if !config.AllowDraftPRs && isDraft && *diggerCommand == scheduler.DiggerCommandPlan {
+	if !config.AllowDraftPRs && isDraft && action == "opened" {
 		slog.Info("Draft PRs are disabled, skipping PR",
 			"prNumber", prNumber,
 			"isDraft", isDraft,
