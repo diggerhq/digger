@@ -83,12 +83,12 @@ var loginCmd = &cobra.Command{
         verifier := randomB58(32)
         challenge := codeChallengeS256(verifier)
         state := randomB58(24)
-        redirectURI := fmt.Sprintf("http://127.0.0.1:%d/callback", cbPort)
+        redirectURI := fmt.Sprintf("http://localhost:%d/callback", cbPort)
 
         // Start local callback server (dedicated mux)
         codeCh := make(chan url.Values, 1)
         mux := http.NewServeMux()
-        srv := &http.Server{Addr: fmt.Sprintf("127.0.0.1:%d", cbPort), Handler: mux}
+        srv := &http.Server{Addr: fmt.Sprintf("localhost:%d", cbPort), Handler: mux}
         mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
             q := r.URL.Query()
             if q.Get("state") != state {
