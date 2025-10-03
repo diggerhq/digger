@@ -332,6 +332,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			"issueNumber", issueNumber,
 			"isDraft", isDraft,
 		)
+
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
+		}
+
 		// special case to unlock all locks aquired by this PR
 		if *diggerCommand == scheduler.DiggerCommandUnlock {
 			err := models.DB.DeleteAllLocksAcquiredByPR(issueNumber, repoFullName, orgId)
@@ -344,11 +350,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 				commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to delete locks: %v", err))
 				return fmt.Errorf("failed to delete locks: %v", err)
 			}
+			commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
 		}
-		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
-			// This one is for aggregate reporting
-			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
-		}
+
 		return nil
 	}
 
