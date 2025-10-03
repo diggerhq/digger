@@ -193,18 +193,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		slog.Debug("Added eyes reaction to comment", "commentId", commentIdStr)
 	}
 
-	if !config.AllowDraftPRs && isDraft {
-		slog.Info("Draft PRs are disabled, skipping",
-			"issueNumber", issueNumber,
-			"isDraft", isDraft,
-		)
-		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
-			// This one is for aggregate reporting
-			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
-		}
-		return nil
-	}
-
 	commentReporter, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting.... config loaded successfully")
 	if err != nil {
 		slog.Error("Error initializing comment reporter",
@@ -337,6 +325,31 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			),
 		)
 		return fmt.Errorf("error processing event")
+	}
+
+	if !config.AllowDraftPRs && isDraft {
+		slog.Info("Draft PRs are disabled, skipping",
+			"issueNumber", issueNumber,
+			"isDraft", isDraft,
+		)
+		// special case to unlock all locks aquired by this PR
+		if *diggerCommand == scheduler.DiggerCommandUnlock {
+			err := models.DB.DeleteAllLocksAcquiredByPR(issueNumber, repoFullName, orgId)
+			if err != nil {
+				slog.Error("Failed to delete locks",
+					"prNumber", issueNumber,
+					"command", *diggerCommand,
+					"error", err,
+				)
+				commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to delete locks: %v", err))
+				return fmt.Errorf("failed to delete locks: %v", err)
+			}
+		}
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
+		}
+		return nil
 	}
 
 	// perform unlocking in backend
