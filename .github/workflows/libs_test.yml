@@ -60,6 +60,7 @@ jobs:
       - name: Test
         run: |
           if [ "${{ steps.pr_check.outputs.is_external }}" = "true" ]; then
+            export IS_EXTERNAL_PR="true"
             go test ./... 
           else
             go test ./...
