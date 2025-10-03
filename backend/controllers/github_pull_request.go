@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
@@ -101,7 +102,37 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	if !slices.Contains([]string{"closed", "opened", "reopened", "synchronize", "converted_to_draft"}, action) {
+	// here we check if pr was closed and automatic deletion is enabled, to avoid errors when
+	// pr is merged and the branch does not exist we handle that gracefully
+	if action == "closed" {
+		slog.Debug("Handling closed PR action", "prNumber", prNumber)
+		// we sleep for 1 second to give github time to delete the branch
+		time.Sleep(1 * time.Second)
+
+		branchName, _, _, _, err := ghService.GetBranchName(prNumber)
+		if err != nil {
+			slog.Error("Could not retrieve PR details", "prNumber", prNumber, "error", err)
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not retrieve PR details, error: %v", err))
+			return fmt.Errorf("Could not retrieve PR details: %v", err)
+		}
+
+		branchExists, err := ghService.CheckBranchExists(branchName)
+		if err != nil {
+			slog.Error("Could not check if branch exists", "prNumber", prNumber, "branchName", branchName, "error", err)
+			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not check if branch exists, error: %v", err))
+			return fmt.Errorf("Could not check if branch exists: %v", err)
+		}
+
+		if !branchExists {
+			slog.Info("Branch no longer exists, ignoring PR closed event",
+				"prNumber", prNumber,
+				"branchName", branchName,
+			)
+			return nil
+		}
+	}
+
+	if !slices.Contains([]string{"closed", "opened", "reopened", "synchronize", "converted_to_draft", "ready_for_review"}, action) {
 		slog.Info("Ignoring event with action not requiring processing", "action", action, "prNumber", prNumber)
 		return nil
 	}
