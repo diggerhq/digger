@@ -99,7 +99,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	if action == "closed" {
 		slog.Debug("Handling closed PR action", "prNumber", prNumber)
 		// we sleep for 1 second to give github time to delete the branch
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 
 		branchName, _, _, _, err := ghService.GetBranchName(prNumber)
 		if err != nil {
