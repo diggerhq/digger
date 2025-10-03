@@ -256,6 +256,13 @@ runs:
         INPUT_DIGGER_VERSION: ${{ inputs.digger-version }}
         ACTION_REF: ${{ github.action_ref }}
       run: |
+        set -euo pipefail
+
+        if [[ ! ( -z "$INPUT_DIGGER_VERSION" || "$INPUT_DIGGER_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ) ]]; then
+          echo "::error::Invalid digger-version input: ${INPUT_DIGGER_VERSION}. Must be empty string or match vX.Y.Z"
+          exit 1
+        fi
+
         if [[ "$LOCAL_DEV_MODE" == "true" ]]; then
           BINARY_MODE="local"    # Use locally compiled binary (for development)
         elif [[ -n "$INPUT_DIGGER_VERSION" || "$ACTION_REF" == v* ]]; then
