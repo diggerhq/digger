@@ -256,6 +256,19 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return nil
 	}
 
+	// special case for when a draft pull request is opened and ignore PRs is set to true we DO NOT want to lock the projects
+	if !config.AllowDraftPRs && isDraft && action == "opened" {
+		slog.Info("Draft PRs are disabled, skipping PR",
+			"prNumber", prNumber,
+			"isDraft", isDraft,
+		)
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
+		}
+		return nil
+	}
+
 	// perform locking/unlocking in backend
 	if config.PrLocks {
 		slog.Info("Processing PR locks for impacted projects",
