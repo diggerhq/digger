@@ -233,7 +233,7 @@ inputs:
     required: false
     default: ""
   digger-version:
-    description: "Version of digger CLI to install. Overrides the version derived from the github.action_ref."
+    description: "Pre-compiled version of digger CLI to install. Must correspond to a valid release tag (vX.Y.Z). This value overrides the version derived from the github.action_ref."
     required: false
     default: ""
 
