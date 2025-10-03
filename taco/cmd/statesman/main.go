@@ -38,7 +38,22 @@ func main() {
 	)
 	flag.Parse()
 
-	database := db.OpenSQLite(db.DBConfig{}) // init db 
+	//database := db.OpenSQLite(db.DBConfig{}) // init db 
+
+	queryStore, err := query.NewQueryStoreFromEnv() 
+	if err != nil { 
+		log.Fatalf("Failed to initialize query backend: %v", err)
+	}
+
+	defer queryStore.Close()
+
+	if queryStore.IsEnabled(){
+		log.Println("Query backend enabled successfully")
+	}else{
+		log.Println("Query backend disabled. You are in no-op mode.")
+	}
+
+
 	// Initialize storage
 	var store storage.UnitStore
 	switch *storageType {
@@ -61,11 +76,11 @@ func main() {
 
 			//put on thread thread / adjust seed so it accepts any store 
 			// To this:
-			if s3Store, ok := store.(storage.S3Store); ok {
-				db.Seed(context.Background(), s3Store, database) 
-			} else {
-				log.Println("Store is not S3Store, skipping seeding")
-			}
+			// if s3Store, ok := store.(storage.S3Store); ok {
+			// 	db.Seed(context.Background(), s3Store, database) 
+			// } else {
+			// 	log.Println("Store is not S3Store, skipping seeding")
+			// }
  		}
 	default:
 		store = storage.NewMemStore()
@@ -104,7 +119,7 @@ func main() {
 	e.Use(middleware.Secure())
 	e.Use(middleware.CORS())
 
-	api.RegisterRoutes(e, store, !*authDisable, database)
+	api.RegisterRoutes(e, store, !*authDisable, queryStore)
 
 	// Start server
 	go func() {
