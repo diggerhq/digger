@@ -72,7 +72,7 @@ func (RuleUnitTag) TableName() string { return "rule_unit_tags" }
 type User struct {
 	ID int64	`gorm:"primaryKey"`
 	Subject string	`gorm:"not null;uniqueIndex"`
-	Email string	`gorm:"not nulll;uniqueIndex"`
+	Email string	`gorm:"not null;uniqueIndex"`
 	Roles []Role	`gorm:"many2many:user_roles;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
 	CreatedAt time.Time
 	UpdatedAt time.Time

@@ -94,7 +94,20 @@ func openSQLite(cfg Config) (*gorm.DB, error){
 	}
 
 	if cfg.MaxIdleConns == 0 {
-		cfg.MaxIdleConns = 1 
+		cfg.MaxIdleConns = 1
+	}
+
+
+	if cfg.PragmaJournalMode == ""{
+		cfg.PragmaJournalMode = "WAL"
+	}
+
+	if cfg.PragmaForeignKeys == "" {
+		cfg.PragmaForeignKeys = "ON"
+	}
+
+	if cfg.PragmaBusyTimeout == "" {
+		cfg.PragmaBusyTimeout = "5000"
 	}
 
     // (ConnMaxLifeTime default to 0)
@@ -118,13 +131,17 @@ func openSQLite(cfg Config) (*gorm.DB, error){
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
-	// Helpful PRAGMAs
-	if err := db.Exec(`
-		PRAGMA journal_mode=WAL;
-		PRAGMA foreign_keys=ON;
-		PRAGMA busy_timeout=5000;
-	`).Error; err != nil {
-		return nil, fmt.Errorf("pragmas: %v", err)
+
+	if err := db.Exec(fmt.Sprintf("PRAGMA journal_mode = %s;", strings.ToUpper(cfg.PragmaJournalMode))).Error; err != nil {
+    	return nil, fmt.Errorf("apply journal_mode: %w", err)
+	}
+	
+	if err := db.Exec(fmt.Sprintf("PRAGMA foreign_keys = %s;", strings.ToUpper(cfg.PragmaForeignKeys))).Error; err != nil {
+    	return nil, fmt.Errorf("apply foreign_keys: %w", err)
+	}
+	
+	if err := db.Exec(fmt.Sprintf("PRAGMA busy_timeout = %s;", cfg.PragmaBusyTimeout)).Error; err != nil {
+    	return nil, fmt.Errorf("apply busy_timeout: %w", err)
 	}
 
 	return db, nil
@@ -149,57 +166,7 @@ func (s *SQLiteQueryStore) migrate() error {
 
 	return nil 
 }
-func (s *SQLiteQueryStore) createViews() error {
 
-	// cleaner way to abstract this ? 
-		    // Create the user-unit access view for fast lookups
-		if err := s.db.Exec(`
-        CREATE VIEW IF NOT EXISTS user_unit_access AS
-        WITH user_permissions AS (
-            SELECT DISTINCT 
-                u.subject as user_subject,
-                r.id as rule_id,
-                r.wildcard_resource,
-                r.effect
-            FROM users u
-            JOIN user_roles ur ON u.id = ur.user_id  
-            JOIN role_permissions rp ON ur.role_id = rp.role_id
-            JOIN rules r ON rp.permission_id = r.permission_id
-            LEFT JOIN rule_actions ra ON r.id = ra.rule_id
-            WHERE r.effect = 'allow'
-              AND (r.wildcard_action = 1 OR ra.action = 'unit.read' OR ra.action IS NULL)
-        ),
-        wildcard_access AS (
-            SELECT DISTINCT 
-                up.user_subject,
-                un.name as unit_name
-            FROM user_permissions up
-            CROSS JOIN units un
-            WHERE up.wildcard_resource = 1
-        ),
-        specific_access AS (
-            SELECT DISTINCT 
-                up.user_subject,
-                un.name as unit_name
-            FROM user_permissions up
-            JOIN rule_units ru ON up.rule_id = ru.rule_id
-            JOIN units un ON ru.unit_id = un.id
-            WHERE up.wildcard_resource = 0
-        )
-        SELECT user_subject, unit_name FROM wildcard_access
-        UNION 
-        SELECT user_subject, unit_name FROM specific_access;
-    `).Error; err != nil {
-        log.Printf("Warning: failed to create user_unit_access view: %v", err)
-    }
-    
-
-
-
-
-	
-	return nil 
-}
 
 // prefix is the location within the bucket like /prod/region1/etc 
 func (s *SQLiteQueryStore) ListUnits(ctx context.Context, prefix string) ([]types.Unit, error) {
@@ -237,12 +204,12 @@ func (s *SQLiteQueryStore) GetUnit(ctx context.Context, id string) (*types.Unit,
 
 
 
-func (s *SQLiteQueryStore) IsEnabled() bool{
+func (s *SQLiteQueryStore) IsEnabled() bool {
 	// not NOOP ? 
 	return true
 }
 
-func (s *SQLiteQueryStore) Close() error{
+func (s *SQLiteQueryStore) Close() error {
 	sqlDB, err := s.db.DB()
 	if err != nil {
 		return err
@@ -252,7 +219,7 @@ func (s *SQLiteQueryStore) Close() error{
 
 
 
-func (s *SQLiteQueryStore) SyncCreateUnit(ctx context.Context, unitName string) error {
+func (s *SQLiteQueryStore) SyncEnsureUnit(ctx context.Context, unitName string) error {
     unit := types.Unit{Name: unitName}
     return s.db.WithContext(ctx).FirstOrCreate(&unit, types.Unit{Name: unitName}).Error
 }
@@ -261,15 +228,12 @@ func (s *SQLiteQueryStore) SyncDeleteUnit(ctx context.Context, unitName string) 
     return s.db.WithContext(ctx).Where("name = ?", unitName).Delete(&types.Unit{}).Error
 }
 
-func (s *SQLiteQueryStore) SyncUnitExists(ctx context.Context, unitName string) error {
-    unit := types.Unit{Name: unitName}
-    return s.db.WithContext(ctx).FirstOrCreate(&unit, types.Unit{Name: unitName}).Error
-}
 
 
 
 
-func (s *SQLiteQueryStore) FilterUnitIDsByUser(ctx context.Context, userSubject string, unitIDs []string) ([]string, error){
+
+func (s *SQLiteQueryStore) FilterUnitIDsByUser(ctx context.Context, userSubject string, unitIDs []string) ([]string, error) {
 	
 // empty input?
 	if len(unitIDs) == 0  {
@@ -326,7 +290,81 @@ func (s *SQLiteQueryStore) ListUnitsForUser(ctx context.Context, userSubject str
 }
 
 
+type viewDefinition struct {
+    name string
+    sql  string
+}
+// CTE method for user_permissions - gets users with their permission rules
+func (s *SQLiteQueryStore) userPermissionsCTE() string {
+    return `
+        SELECT DISTINCT 
+            u.subject as user_subject,
+            r.id as rule_id,
+            r.wildcard_resource,
+            r.effect
+        FROM users u
+        JOIN user_roles ur ON u.id = ur.user_id  
+        JOIN role_permissions rp ON ur.role_id = rp.role_id
+        JOIN rules r ON rp.permission_id = r.permission_id
+        LEFT JOIN rule_actions ra ON r.id = ra.rule_id
+        WHERE r.effect = 'allow'
+          AND (r.wildcard_action = 1 OR ra.action = 'unit.read' OR ra.action IS NULL)`
+}
 
+// CTE method for wildcard_access - handles users with wildcard resource access
+func (s *SQLiteQueryStore) wildcardAccessCTE() string {
+    return `
+        SELECT DISTINCT 
+            up.user_subject,
+            un.name as unit_name
+        FROM user_permissions up
+        CROSS JOIN units un
+        WHERE up.wildcard_resource = 1`
+}
 
+// CTE method for specific_access - handles users with specific unit access
+func (s *SQLiteQueryStore) specificAccessCTE() string {
+    return `
+        SELECT DISTINCT 
+            up.user_subject,
+            un.name as unit_name
+        FROM user_permissions up
+        JOIN rule_units ru ON up.rule_id = ru.rule_id
+        JOIN units un ON ru.unit_id = un.id
+        WHERE up.wildcard_resource = 0`
+}
 
+// Helper method to create individual views
+func (s *SQLiteQueryStore) createView(name, sql string) error {
+    query := fmt.Sprintf("CREATE VIEW IF NOT EXISTS %s AS %s", name, sql)
+    return s.db.Exec(query).Error
+}
+
+// Refactored createViews method
+func (s *SQLiteQueryStore) createViews() error {
+    views := []viewDefinition{
+        {
+            name: "user_unit_access",
+            sql:  s.buildUserUnitAccessView(),
+        },
+    }
+    
+    for _, view := range views {
+        if err := s.createView(view.name, view.sql); err != nil {
+            return fmt.Errorf("failed to create view %s: %w", view.name, err)
+        }
+    }
+    return nil
+}
+
+// Refactored buildUserUnitAccessView method
+func (s *SQLiteQueryStore) buildUserUnitAccessView() string {
+    return `
+        WITH user_permissions AS (` + s.userPermissionsCTE() + `),
+             wildcard_access AS (` + s.wildcardAccessCTE() + `),
+             specific_access AS (` + s.specificAccessCTE() + `)
+        SELECT user_subject, unit_name FROM wildcard_access
+        UNION 
+        SELECT user_subject, unit_name FROM specific_access`
+}
 

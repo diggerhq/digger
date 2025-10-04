@@ -21,8 +21,9 @@ import (
 
 	"github.com/diggerhq/digger/opentaco/internal/analytics"
 	"github.com/diggerhq/digger/opentaco/internal/api"
+	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
-	"github.com/diggerhq/digger/opentaco/internal/db"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -38,10 +39,16 @@ func main() {
 	)
 	flag.Parse()
 
-	//database := db.OpenSQLite(db.DBConfig{}) // init db 
+	// Load configuration from environment variables into our struct.
+	var queryCfg query.Config
+	err := envconfig.Process("taco", &queryCfg) // The prefix "TACO" will be used for all vars.
+	if err != nil {
+		log.Fatalf("Failed to process configuration: %v", err)
+	}
 
-	queryStore, err := query.NewQueryStoreFromEnv() 
-	if err != nil { 
+	// Pass the populated config struct to the factory.
+	queryStore, err := query.NewQueryStore(queryCfg)
+	if err != nil {
 		log.Fatalf("Failed to initialize query backend: %v", err)
 	}
 

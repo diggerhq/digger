@@ -13,6 +13,7 @@ type Unit struct {
     Updated  time.Time `json:"updated"`
     Locked   bool      `json:"locked"`
     LockInfo *Lock     `json:"lock,omitempty"`
+    Tags     []string  `json:"tags,omitempty"` 
 }
 
 // Lock represents lock information for a unit

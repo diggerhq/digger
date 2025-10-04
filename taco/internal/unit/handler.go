@@ -12,9 +12,8 @@ import (
     "github.com/diggerhq/digger/opentaco/internal/deps"
     "github.com/diggerhq/digger/opentaco/internal/rbac"
     "github.com/diggerhq/digger/opentaco/internal/storage"
-    "github.com/diggerhq/digger/opentaco/internal/db"
     "github.com/diggerhq/digger/opentaco/internal/query"
-    "gorm.io/gorm"
+    "github.com/diggerhq/digger/opentaco/internal/query/types"
     "github.com/google/uuid"
     "github.com/labstack/echo/v4"
     "log"
@@ -27,15 +26,15 @@ type Handler struct {
     store       storage.UnitStore
     rbacManager *rbac.RBACManager
     signer      *auth.Signer
-    db          *gorm.DB
+    queryStore  query.Store
 }
 
-func NewHandler(store storage.UnitStore, rbacManager *rbac.RBACManager, signer *auth.Signer, db *gorm.DB) *Handler {
+func NewHandler(store storage.UnitStore, rbacManager *rbac.RBACManager, signer *auth.Signer, queryStore query.Store) *Handler {
     return &Handler{
         store:       store,
         rbacManager: rbacManager,
         signer:      signer,
-        db:          db, 
+        queryStore:  queryStore,
     }
 }
 
@@ -72,12 +71,12 @@ func (h *Handler) CreateUnit(c echo.Context) error {
     }
 
         // POC - write to db example 
-        if h.db != nil {
-            if err := db.SyncCreateUnit(h.db, id); err != nil {
-                log.Printf("Warning: failed to sync unit creation to database: %v", err)
-                // Don't fail the request if DB sync fails
-            }
-        }
+        // if h.db != nil {
+        //     if err := db.SyncCreateUnit(h.db, id); err != nil {
+        //         log.Printf("Warning: failed to sync unit creation to database: %v", err)
+        //         // Don't fail the request if DB sync fails
+        //     }
+        // }
 
     analytics.SendEssential("unit_created")
     return c.JSON(http.StatusCreated, CreateUnitResponse{ID: metadata.ID, Created: metadata.Updated})
@@ -88,20 +87,18 @@ func (h *Handler) ListUnits(c echo.Context) error {
     prefix := c.QueryParam("prefix")
 
     
-    if unitQuery, ok := SupportsUnitQuery(h.queryStore); ok {
-        rbacQuery, hasRBAC := SupportsRBACQuery(h.queryStore)
-
-        units, err := unitQuery.ListUnits(ctx, prefix)
+    if h.queryStore.IsEnabled() {
+        units, err := h.queryStore.ListUnits(ctx, prefix)
         if err == nil {
             // Index by ID
             unitIDs := make([]string, len(units))
-            unitMap := make(map[string]query.Unit, len(units))
+            unitMap := make(map[string]types.Unit, len(units))
             for i, u := range units {
                 unitIDs[i] = u.Name
                 unitMap[u.Name] = u
             }
 
-            if hasRBAC && h.rbacManager != nil && h.signer != nil {
+            if h.rbacManager != nil && h.signer != nil {
                 principal, perr := h.getPrincipalFromToken(c)
                 if perr != nil {
                     // If RBAC is enabled, return 401; otherwise skip RBAC
@@ -111,7 +108,7 @@ func (h *Handler) ListUnits(c echo.Context) error {
                         })
                     }
                 } else {
-                    filteredIDs, ferr := rbacQuery.FilterUnitIDsByUser(ctx, principal.Subject, unitIDs)
+                    filteredIDs, ferr := h.queryStore.FilterUnitIDsByUser(ctx, principal.Subject, unitIDs)
                     if ferr != nil {
                         log.Printf("RBAC filtering via query-store failed; falling back to storage: %v", ferr)
                         return h.listFromStorage(ctx, c, prefix)
@@ -237,13 +234,13 @@ func (h *Handler) DeleteUnit(c echo.Context) error {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete unit"})
     }
 
-    // POC - write to db example     
-    if h.db != nil {
-        if err := db.SyncDeleteUnit(h.db, id); err != nil {
-            log.Printf("Warning: failed to sync unit deletion to database: %v", err)
-            // Don't fail the request if DB sync fails
-        }
-    }
+    // // POC - write to db example     
+    // if h.db != nil {
+    //     if err := db.SyncDeleteUnit(h.db, id); err != nil {
+    //         log.Printf("Warning: failed to sync unit deletion to database: %v", err)
+    //         // Don't fail the request if DB sync fails
+    //     }
+    // }
 
 
     return c.NoContent(http.StatusNoContent)
@@ -296,11 +293,11 @@ func (h *Handler) UploadUnit(c echo.Context) error {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to upload unit"})
     }
     // POC - write to db 
-    if h.db != nil {
-        if err := db.SyncUnitExists(h.db, id); err != nil {
-            log.Printf("Warning: failed to sync unit to database: %v", err)
-        }
-    }
+    // if h.db != nil {
+    //     if err := db.SyncUnitExists(h.db, id); err != nil {
+    //         log.Printf("Warning: failed to sync unit to database: %v", err)
+    //     }
+    // }
     // Best-effort dependency graph update
     go deps.UpdateGraphOnWrite(c.Request().Context(), h.store, id, data)
     analytics.SendEssential("taco_unit_push_completed")
@@ -457,62 +454,62 @@ func (h *Handler) GetUnitStatus(c echo.Context) error {
 
 // POC 
 // Add this new method to the existing Handler struct
-func (h *Handler) ListUnitsFast(c echo.Context) error {
-    prefix := c.QueryParam("prefix")
+// func (h *Handler) ListUnitsFast(c echo.Context) error {
+//     prefix := c.QueryParam("prefix")
     
-    // 1. Get all units from DATABASE
-    allUnits, err := db.ListAllUnitsWithPrefix(h.db, prefix)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list units from database"})
-    }
+//     // 1. Get all units from DATABASE
+//     allUnits, err := db.ListAllUnitsWithPrefix(h.db, prefix)
+//     if err != nil {
+//         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list units from database"})
+//     }
 
-    // 2. Extract unit names and create map
-    unitNames := make([]string, 0, len(allUnits))
-    unitMap := make(map[string]db.Unit)
+//     // 2. Extract unit names and create map
+//     unitNames := make([]string, 0, len(allUnits))
+//     unitMap := make(map[string]db.Unit)
     
-    for _, unit := range allUnits {
-        unitNames = append(unitNames, unit.Name)
-        unitMap[unit.Name] = unit
-    }
+//     for _, unit := range allUnits {
+//         unitNames = append(unitNames, unit.Name)
+//         unitMap[unit.Name] = unit
+//     }
 
-    // 3. RBAC filter with DATABASE
-    if h.rbacManager != nil && h.signer != nil {
-        principal, err := h.getPrincipalFromToken(c)
-        if err != nil {
-            if enabled, _ := h.rbacManager.IsEnabled(c.Request().Context()); enabled {
-                return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Failed to authenticate user"})
-            }
-        } else {
-            // RBAC filtering
-            filteredNames, err := db.FilterUnitIDsByUser(h.db, principal.Subject, unitNames)
-            if err != nil {
-                return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check permissions via database"})
-            }
-            unitNames = filteredNames
-        }
-    }
+//     // 3. RBAC filter with DATABASE
+//     if h.rbacManager != nil && h.signer != nil {
+//         principal, err := h.getPrincipalFromToken(c)
+//         if err != nil {
+//             if enabled, _ := h.rbacManager.IsEnabled(c.Request().Context()); enabled {
+//                 return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Failed to authenticate user"})
+//             }
+//         } else {
+//             // RBAC filtering
+//             filteredNames, err := db.FilterUnitIDsByUser(h.db, principal.Subject, unitNames)
+//             if err != nil {
+//                 return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check permissions via database"})
+//             }
+//             unitNames = filteredNames
+//         }
+//     }
 
-    // 4. Build response
-    var responseUnits []*domain.Unit
-    for _, name := range unitNames {
-        if dbUnit, exists := unitMap[name]; exists {
-            // Convert db.Unit to domain.Unit
-            responseUnits = append(responseUnits, &domain.Unit{
-                ID:      dbUnit.Name,
-                Size:    0, // DB doesn't have size, could be calculated
-                Updated: time.Now(), // Could add timestamp to db.Unit
-                Locked:  false, // Could check locks in database
-            })
-        }
-    }
+//     // 4. Build response
+//     var responseUnits []*domain.Unit
+//     for _, name := range unitNames {
+//         if dbUnit, exists := unitMap[name]; exists {
+//             // Convert db.Unit to domain.Unit
+//             responseUnits = append(responseUnits, &domain.Unit{
+//                 ID:      dbUnit.Name,
+//                 Size:    0, // DB doesn't have size, could be calculated
+//                 Updated: time.Now(), // Could add timestamp to db.Unit
+//                 Locked:  false, // Could check locks in database
+//             })
+//         }
+//     }
     
-    domain.SortUnitsByID(responseUnits)
-    return c.JSON(http.StatusOK, map[string]interface{}{
-        "units": responseUnits, 
-        "count": len(responseUnits),
-        "source": "database", // POC identifier
-    })
-}
+//     domain.SortUnitsByID(responseUnits)
+//     return c.JSON(http.StatusOK, map[string]interface{}{
+//         "units": responseUnits, 
+//         "count": len(responseUnits),
+//         "source": "database", // POC identifier
+//     })
+// }
 
 
 // Helpers

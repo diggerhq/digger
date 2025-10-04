@@ -1,58 +1,34 @@
-package query 
+package query
 
-
-import ( 
-	"os"
+import (
+	"fmt"
 	"strings"
-	"time"
-	"github.com/diggerhq/digger/opentaco/internal/query/sqlite"
+
 	"github.com/diggerhq/digger/opentaco/internal/query/noop"
+	"github.com/diggerhq/digger/opentaco/internal/query/sqlite"
 )
 
-
-
-func NewQueryStoreFromEnv() (QueryStore, error) {
-
-	backend := os.Getenv("TACO_QUERY_BACKEND")
-	backend = strings.ToLower(backend) // lowercase everythign
-
+// NewQueryStore creates a new query.Store based on the provided configuration.
+func NewQueryStore(cfg Config) (Store, error) {
+	backend := strings.ToLower(cfg.Backend)
 
 	switch backend {
-		case "sqlite":
-			return newSQLiteFromEnv()
-		case "off":
-			return noop.NewNoOpQueryStore(), nil 
-		default: 
-			return newSQLiteFromEnv() 
+	case "sqlite", "":
+		// Map our config struct to the one sqlite's New function expects.
+		sqliteCfg := sqlite.Config{
+			Path:              cfg.SQLite.Path,
+			Cache:             cfg.SQLite.Cache,
+			BusyTimeout:       cfg.SQLite.BusyTimeout,
+			MaxOpenConns:      cfg.SQLite.MaxOpenConns,
+			MaxIdleConns:      cfg.SQLite.MaxIdleConns,
+			PragmaJournalMode: cfg.SQLite.PragmaJournalMode,
+			PragmaForeignKeys: cfg.SQLite.PragmaForeignKeys,
+			PragmaBusyTimeout: cfg.SQLite.PragmaBusyTimeout,
+		}
+		return sqlite.NewSQLiteQueryStore(sqliteCfg)
+	case "off":
+		return noop.NewNoOpQueryStore(), nil
+	default:
+		return nil, fmt.Errorf("unsupported TACO_QUERY_BACKEND value: %q", backend)
 	}
-}
-
-
-func newSQLiteFromEnv() (QueryStore, error) {
-    cfg := sqlite.Config{
-        Path:              getEnv("TACO_SQLITE_PATH", "./data/taco.db"),
-        Cache:             getEnv("TACO_SQLITE_CACHE", "shared"),
-        EnableForeignKeys: getEnvBool("TACO_SQLITE_FOREIGN_KEYS", true),
-        EnableWAL:         getEnvBool("TACO_SQLITE_WAL", true),
-        BusyTimeout:       5 * time.Second,
-        MaxOpenConns:      1,
-        MaxIdleConns:      1,
-        ConnMaxLifetime:   0,
-    }
-    
-    return sqlite.NewSQLiteQueryStore(cfg)
-}
-
-func getEnv(key, defaultVal string) string {
-    if val := os.Getenv(key); val != "" {
-        return val
-    }
-    return defaultVal
-}
-
-func getEnvBool(key string, defaultVal bool) bool {
-    if val := os.Getenv(key); val != "" {
-        return val == "true" || val == "1"
-    }
-    return defaultVal
 }
