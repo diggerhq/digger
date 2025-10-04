@@ -124,7 +124,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
-	if !slices.Contains([]string{"closed", "opened", "reopened", "synchronize", "converted_to_draft"}, action) {
+	if !slices.Contains([]string{"closed", "opened", "reopened", "synchronize", "converted_to_draft", "ready_for_review"}, action) {
 		slog.Info("Ignoring event with action not requiring processing", "action", action, "prNumber", prNumber)
 		return nil
 	}
