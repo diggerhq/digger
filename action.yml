@@ -257,12 +257,38 @@ runs:
       run: echo digger run ${{ inputs.id }}
       shell: bash
 
+    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      with:
+        clean: false
+        repository: ${{ env.ACTION_REPO }}
+        ref: ${{ env.ACTION_REF }}
+        path: digger-action-repo
+      env:
+        ACTION_REPO: ${{ github.action_repository }}
+        ACTION_REF: ${{ github.action_ref }}
+      if: ${{ inputs.digger-version == '' }}
+
+    - name: Get release tag
+      id: get_release_tag
+      shell: bash
+      working-directory: digger-action-repo
+      run: |
+        # Fetch tags
+        git fetch --prune --unshallow --tags
+        # Collect tags pointing exactly at this commit, sorted by version (highest first)
+        tags="$(git tag --points-at HEAD --sort=-v:refname || true)"
+        semvers="$(printf '%s\n' "$tags" | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$" || true)"
+        echo "SemVers: $semvers"
+        # Pick the first (highest) match if any
+        tag="$(printf '%s\n' "$semvers" | head -n 1)"
+        echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      if: ${{ inputs.digger-version == '' }}
+
     - name: Determine binary mode (local, build, or pre-built)
       id: determine-binary-mode
       env:
         LOCAL_DEV_MODE: ${{ inputs.local-dev-mode }}
-        INPUT_DIGGER_VERSION: ${{ inputs.digger-version }}
-        ACTION_REF: ${{ github.action_ref }}
+        INPUT_DIGGER_VERSION: ${{ inputs.digger-version || steps.get_release_tag.outputs.tag }}
       run: |
         set -euo pipefail
 
@@ -273,7 +299,7 @@ runs:
 
         if [[ "$LOCAL_DEV_MODE" == "true" ]]; then
           BINARY_MODE="local"    # Use locally compiled binary (for development)
-        elif [[ -n "$INPUT_DIGGER_VERSION" || "$ACTION_REF" == v* ]]; then
+        elif [[ -n "$INPUT_DIGGER_VERSION" ]]; then
           BINARY_MODE="prebuilt" # Install prebuilt binary from release
         else
           BINARY_MODE="build"    # Build from source at runtime
@@ -302,6 +328,7 @@ runs:
       with:
         clean: false
       if: ${{ github.event_name != 'issue_comment' && inputs.configure-checkout == 'true' }}
+ 
     - name: Set up Google Auth Using A Service Account Key
       uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.13
       with:
@@ -524,7 +551,7 @@ runs:
     - name: download, install, and run digger
       if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'prebuilt' }}
       env:
-        DIGGER_VERSION: ${{ inputs.digger-version || github.action_ref }}
+        DIGGER_VERSION: ${{ inputs.digger-version || steps.get_release_tag.outputs.tag }}
         DIGGER_OS: ${{ inputs.digger-os }}
         DIGGER_ARCH: ${{ inputs.digger-arch }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
