@@ -5,7 +5,7 @@ title: "With Terraform"
 In this tutorial, you will set up Digger to automate terraform pull requests using Github Actions
 
 **Prerequisites**
-- A GitHub repository with valid terraform code
+- A GitHub repository with valid terraform code, don't have one? see [here](#demo-repositories)
 - Your cloud provider credentials:
   - For AWS: [Hashicorp's AWS tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
   - For GCP: [Hashicorp's GCP tutorial](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
@@ -16,7 +16,11 @@ In this tutorial, you will set up Digger to automate terraform pull requests usi
 
 Head to [ui.digger.dev](https://ui.digger.dev) and sign up using your preferred method.
 
-You should see an empty dashboard after you sign up.
+Post sign up, your dashboard should look like this:
+
+![](/images/readme/ui.digger.dev.png) 
+
+
   </Step>
 
   <Step title="Install the Digger GitHub App">
@@ -40,10 +44,35 @@ In GitHub repository settings, go to Secrets and Variables - Actions. Create the
     - `AWS_ACCESS_KEY_ID` - `AWS_SECRET_ACCESS_KEY` You can also [use
     OIDC](/ce/cloud-providers/authenticating-with-oidc-on-aws) for AWS
     authentication.
+    
+    <Accordion title="Tip: Set GitHub Action secrets with gh CLI">
+      From the repository root (with GitHub CLI installed):
+      
+      ```bash
+      # Set AWS credentials as repository Action secrets
+      gh secret set AWS_ACCESS_KEY_ID --body "$AWS_ACCESS_KEY_ID"
+      gh secret set AWS_SECRET_ACCESS_KEY --body "$AWS_SECRET_ACCESS_KEY"
+      ```
+    </Accordion>
   </Tab>
   <Tab title="GCP">
     - `GCP_CREDENTIALS` - contents of your GCP Service Account Key json file You
     can also [use OIDC](/gcp/federated-oidc-access/) for GCP authentication.
+    
+    <Accordion title="Tip: Set GitHub Action secrets with gh CLI">
+      If your Service Account key is saved to a file, you can pipe it directly:
+      
+      ```bash
+      # Set GCP credentials secret from a JSON key file
+      gh secret set GCP_CREDENTIALS < path/to/service-account-key.json
+      ```
+      
+      Or set from an environment variable/string:
+      
+      ```bash
+      gh secret set GCP_CREDENTIALS --body "$(cat path/to/service-account-key.json)"
+      ```
+    </Accordion>
   </Tab>
   <Tab title="Azure">
     - `AZURE_CLIENT_ID` - Your Azure App Registration Client ID
@@ -51,6 +80,16 @@ In GitHub repository settings, go to Secrets and Variables - Actions. Create the
     - `AZURE_SUBSCRIPTION_ID` - Your Azure Subscription ID
     
     You'll need to configure OIDC authentication by setting up federated credentials in your Azure App Registration. See [Azure OIDC setup](/ce/azure-specific/azure) for details.
+    
+    <Accordion title="Tip: Set GitHub Action secrets with gh CLI">
+      From the repository root (with GitHub CLI installed):
+      
+      ```bash
+      gh secret set AZURE_CLIENT_ID --body "$AZURE_CLIENT_ID"
+      gh secret set AZURE_TENANT_ID --body "$AZURE_TENANT_ID"
+      gh secret set AZURE_SUBSCRIPTION_ID --body "$AZURE_SUBSCRIPTION_ID"
+      ```
+    </Accordion>
   </Tab>
 </Tabs>
   </Step>
@@ -230,6 +269,8 @@ Terraform will run an existing plan against your code.
 
 Make any change to your terraform code e.g. add a blank line. An action run should start (you can see log output in Actions). After some time you should see output of Terraform Plan added as a comment to your PR.
 
+
+<Info>If you forked one of the demo repositories you will need to enable Actions in your repository.</Info>
 Then you can add a comment like `digger apply` and shortly after apply output will be added as comment too.
   </Step>
 
