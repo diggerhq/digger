@@ -104,7 +104,7 @@ func (d DiggerController) CreateUserInternal(c *gin.Context) {
 		return
 	}
 
-	segment.IdentifyClient(userEmail, "", userEmail, userEmail, org.Name, org.ExternalId, string(org.BillingPlan))
+	segment.IdentifyClient(userEmail, userEmail, userEmail, userEmail, org.Name, org.ExternalId, string(org.BillingPlan))
 
 	slog.Info("Successfully created user", "userId", user.ID, "email", userEmail, "orgId", org.ID)
 	c.JSON(http.StatusOK, gin.H{"status": "success", "user_id": user.ID})
