@@ -5,14 +5,16 @@ import (
 	"net/http"
 
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/segment"
 	"github.com/gin-gonic/gin"
 )
 
 func (d DiggerController) UpsertOrgInternal(c *gin.Context) {
 	type OrgCreateRequest struct {
-		Name           string `json:"org_name"`
-		ExternalSource string `json:"external_source"`
-		ExternalId     string `json:"external_id"`
+		Name           string  `json:"org_name"`
+		ExternalSource string  `json:"external_source"`
+		ExternalId     string  `json:"external_id"`
+		AdminEmail     *string `json:"admin_email,omitempty"`
 	}
 
 	var request OrgCreateRequest
@@ -26,6 +28,7 @@ func (d DiggerController) UpsertOrgInternal(c *gin.Context) {
 	name := request.Name
 	externalSource := request.ExternalSource
 	externalId := request.ExternalId
+	adminEmail := request.AdminEmail
 
 	slog.Info("Creating or updating organization",
 		"name", name,
@@ -42,13 +45,12 @@ func (d DiggerController) UpsertOrgInternal(c *gin.Context) {
 
 	if org == nil {
 		slog.Info("Organization not found, creating new one", "externalId", externalId)
-		org, err = models.DB.CreateOrganisation(name, externalSource, externalId)
-	}
-
-	if err != nil {
-		slog.Error("Error creating org", "name", name, "externalId", externalId, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating org"})
-		return
+		org, err = models.DB.CreateOrganisation(name, externalSource, externalId, adminEmail)
+		if err != nil {
+			slog.Error("Error creating org", "name", name, "externalId", externalId, "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating org"})
+			return
+		}
 	}
 
 	slog.Info("Successfully upserted organization", "orgId", org.ID, "externalId", externalId)
@@ -101,6 +103,8 @@ func (d DiggerController) CreateUserInternal(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating user"})
 		return
 	}
+
+	segment.IdentifyClient(userEmail, "", userEmail, userEmail, org.Name, org.ExternalId, string(org.BillingPlan))
 
 	slog.Info("Successfully created user", "userId", user.ID, "email", userEmail, "orgId", org.ID)
 	c.JSON(http.StatusOK, gin.H{"status": "success", "user_id": user.ID})
