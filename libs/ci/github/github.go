@@ -498,6 +498,14 @@ func (svc GithubService) CheckBranchExists(branchName string) (bool, error) {
 	return true, nil
 }
 
+func (svc GithubService) GetDefaultBranch() (string, error) {
+	repo, _, err := svc.Client.Repositories.Get(context.Background(), svc.Owner, svc.RepoName)
+	if err != nil {
+		return "", fmt.Errorf("error getting repository: %v", err)
+	}
+	return repo.GetDefaultBranch(), nil
+}
+
 func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, config digger_config.DiggerConfig, performEnvVarInterpolation bool) ([]scheduler.Job, bool, error) {
 	workflows := config.Workflows
 	jobs := make([]scheduler.Job, 0)
@@ -859,4 +867,13 @@ func CheckIfShowProjectsComment(event interface{}) bool {
 		slog.Debug("show-projects comment detected")
 	}
 	return result
+}
+
+func (svc GithubService) GetBranchHeadSha(branch string) (string, error) {
+	ctx := context.Background()
+	ref, _, err := svc.Client.Git.GetRef(ctx, svc.Owner, svc.RepoName, "heads/"+branch)
+	if err != nil {
+		return "", fmt.Errorf("error getting branch ref: %v", err)
+	}
+	return ref.GetObject().GetSHA(), nil
 }
