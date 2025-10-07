@@ -109,10 +109,7 @@ func main() {
 		if err != nil {
 			log.Printf("Warning: Failed to list units from storage: %v", err)
 		} else {
-			log.Printf("DEBUG: Got %d units from storage", len(units))
 			for _, unit := range units {
-				log.Printf("DEBUG: Unit from storage: ID=%s, Size=%d, Updated=%v", unit.ID, unit.Size, unit.Updated)
-				
 				// Always ensure unit exists first
 				if err := queryStore.SyncEnsureUnit(context.Background(), unit.ID); err != nil {
 					log.Printf("Warning: Failed to sync unit %s: %v", unit.ID, err)
@@ -120,7 +117,6 @@ func main() {
 				}
 				
 				// Always sync metadata to update existing records
-				log.Printf("Syncing metadata for %s: size=%d, updated=%v", unit.ID, unit.Size, unit.Updated)
 				if err := queryStore.SyncUnitMetadata(context.Background(), unit.ID, unit.Size, unit.Updated); err != nil {
 					log.Printf("Warning: Failed to sync metadata for unit %s: %v", unit.ID, err)
 				}

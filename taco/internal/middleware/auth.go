@@ -74,11 +74,8 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
 func JWTAuthMiddleware(signer *auth.Signer) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			log.Printf("DEBUG JWTAuthMiddleware: Called for path: %s", c.Request().URL.Path)
-			
 			authz := c.Request().Header.Get("Authorization")
 			if !strings.HasPrefix(authz, "Bearer ") {
-				log.Printf("DEBUG JWTAuthMiddleware: No Bearer token found")
 				// No token, continue. The AuthorizingStore will block the request.
 				return next(c)
 			}
@@ -86,12 +83,9 @@ func JWTAuthMiddleware(signer *auth.Signer) echo.MiddlewareFunc {
 			token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
 			claims, err := signer.VerifyAccess(token)
 			if err != nil {
-				log.Printf("DEBUG JWTAuthMiddleware: Token verification failed: %v", err)
 				// Invalid token, continue. The AuthorizingStore will block the request.
 				return next(c)
 			}
-
-			log.Printf("DEBUG JWTAuthMiddleware: Token verified for subject: %s", claims.Subject)
 
 			p := principal.Principal{ 
 				Subject: claims.Subject,
@@ -103,8 +97,6 @@ func JWTAuthMiddleware(signer *auth.Signer) echo.MiddlewareFunc {
 			// Add the principal to the context for downstream stores and handlers.
 			ctx := storage.ContextWithPrincipal(c.Request().Context(), p)
 			c.SetRequest(c.Request().WithContext(ctx))
-			
-			log.Printf("DEBUG JWTAuthMiddleware: Principal set in context for subject: %s", claims.Subject)
 
 			return next(c)
 		}

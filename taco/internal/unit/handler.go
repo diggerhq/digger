@@ -404,65 +404,6 @@ func (h *Handler) GetUnitStatus(c echo.Context) error {
 }
 
 
-// POC 
-// Add this new method to the existing Handler struct
-// func (h *Handler) ListUnitsFast(c echo.Context) error {
-//     prefix := c.QueryParam("prefix")
-    
-//     // 1. Get all units from DATABASE
-//     allUnits, err := db.ListAllUnitsWithPrefix(h.db, prefix)
-//     if err != nil {
-//         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list units from database"})
-//     }
-
-//     // 2. Extract unit names and create map
-//     unitNames := make([]string, 0, len(allUnits))
-//     unitMap := make(map[string]db.Unit)
-    
-//     for _, unit := range allUnits {
-//         unitNames = append(unitNames, unit.Name)
-//         unitMap[unit.Name] = unit
-//     }
-
-//     // 3. RBAC filter with DATABASE
-//     if h.rbacManager != nil && h.signer != nil {
-//         principal, err := h.getPrincipalFromToken(c)
-//         if err != nil {
-//             if enabled, _ := h.rbacManager.IsEnabled(c.Request().Context()); enabled {
-//                 return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Failed to authenticate user"})
-//             }
-//         } else {
-//             // RBAC filtering
-//             filteredNames, err := db.FilterUnitIDsByUser(h.db, principal.Subject, unitNames)
-//             if err != nil {
-//                 return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check permissions via database"})
-//             }
-//             unitNames = filteredNames
-//         }
-//     }
-
-//     // 4. Build response
-//     var responseUnits []*domain.Unit
-//     for _, name := range unitNames {
-//         if dbUnit, exists := unitMap[name]; exists {
-//             // Convert db.Unit to domain.Unit
-//             responseUnits = append(responseUnits, &domain.Unit{
-//                 ID:      dbUnit.Name,
-//                 Size:    0, // DB doesn't have size, could be calculated
-//                 Updated: time.Now(), // Could add timestamp to db.Unit
-//                 Locked:  false, // Could check locks in database
-//             })
-//         }
-//     }
-    
-//     domain.SortUnitsByID(responseUnits)
-//     return c.JSON(http.StatusOK, map[string]interface{}{
-//         "units": responseUnits, 
-//         "count": len(responseUnits),
-//         "source": "database", // POC identifier
-//     })
-// }
-
 
 // Helpers
 func convertLockInfo(info *storage.LockInfo) *domain.Lock {

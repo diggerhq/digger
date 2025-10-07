@@ -186,38 +186,6 @@ var unitListCmd = &cobra.Command{
     },
 }
 
-var unitLsFastCmd = &cobra.Command{
-    Use:   "ls-fast [prefix]",
-    Short: "List units using database (POC)",
-    Long:  "List units using database lookups instead of S3 for RBAC resolution - proof of concept",
-    Args:  cobra.MaximumNArgs(1),
-    RunE: func(cmd *cobra.Command, args []string) error {
-        
-        
-        client := newAuthedClient()
-        
-        
-        prefix := ""
-        if len(args) > 0 {
-            prefix = args[0]
-        }
-        
-        result, err := client.ListUnitsFast(context.Background(), prefix)
-        if err != nil {
-            return fmt.Errorf("failed to list units: %w", err)
-        }
-
-        // Display results with POC indicator
-        fmt.Printf("Units (via %s): %d\n", result.Source, result.Count)
-        for _, unit := range result.Units {
-            fmt.Printf("  %s\n", unit.ID)
-        }
-
-        return nil
-    },
-}
-
-
 var unitInfoCmd = &cobra.Command{
     Use:     "info <unit-id>",
     Short:   "Show unit metadata information",

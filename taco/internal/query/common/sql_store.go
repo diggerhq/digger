@@ -162,14 +162,7 @@ func (s *SQLStore) ListUnitsForUser(ctx context.Context, userSubject string, pre
 		q = q.Where("units.name LIKE ?", prefix+"%")
 	}
 	
-	// DEBUG: Let's see what's being queried
-	log.Printf("DEBUG ListUnitsForUser: userSubject=%s, prefix=%s", userSubject, prefix)
-	
-	err := q.Find(&units).Error
-	
-	log.Printf("DEBUG ListUnitsForUser: found %d units, error: %v", len(units), err)
-	
-	return units, err
+	return units, q.Find(&units).Error
 }
 
 func (s *SQLStore) FilterUnitIDsByUser(ctx context.Context, userSubject string, unitIDs []string) ([]string, error) {

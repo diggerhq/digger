@@ -52,26 +52,17 @@ func NewAuthorizingStore(next UnitStore, qs query.Store) UnitStore {
 func (s *AuthorizingStore) List(ctx context.Context, prefix string) ([]*UnitMetadata, error) {
 	principal, err := principalFromContext(ctx)
 	if err != nil {
-		log.Printf("DEBUG AuthorizingStore.List: Failed to get principal from context: %v", err)
 		return nil, errors.New("unauthorized")
 	}
-	
-	log.Printf("DEBUG AuthorizingStore.List: Got principal: %+v", principal)
 
 	// Use the optimized query that fetches ONLY the units the user is allowed to see.
 	units, err := s.queryStore.ListUnitsForUser(ctx, principal.Subject, prefix)
 	if err != nil {
-		log.Printf("DEBUG AuthorizingStore.List: ListUnitsForUser failed: %v", err)
 		return nil, err
 	}
-	
-	log.Printf("DEBUG AuthorizingStore.List: Found %d units for user %s", len(units), principal.Subject)
-
 
 	metadata := make([]*UnitMetadata, len(units))
 	for i, u := range units {
-		log.Printf("DEBUG: DB Unit: Name=%s, Size=%d, UpdatedAt=%v, Locked=%v", u.Name, u.Size, u.UpdatedAt, u.Locked)
-		
 		var lockInfo *LockInfo
 		if u.Locked {
 			lockInfo = &LockInfo{
@@ -87,7 +78,6 @@ func (s *AuthorizingStore) List(ctx context.Context, prefix string) ([]*UnitMeta
 			Locked:   u.Locked,
 			LockInfo: lockInfo,
 		}
-		log.Printf("DEBUG: Mapped Metadata: ID=%s, Size=%d, Updated=%v", metadata[i].ID, metadata[i].Size, metadata[i].Updated)
 	}
 	
 	return metadata, nil
