@@ -44,7 +44,6 @@ func init() {
     unitCmd.AddCommand(unitVersionsCmd)
     unitCmd.AddCommand(unitRestoreCmd)
     unitCmd.AddCommand(unitStatusCmd)
-    unitCmd.AddCommand(unitLsFastCmd)
 }
 
 var unitCreateCmd = &cobra.Command{
