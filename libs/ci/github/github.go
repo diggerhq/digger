@@ -498,14 +498,6 @@ func (svc GithubService) CheckBranchExists(branchName string) (bool, error) {
 	return true, nil
 }
 
-func (svc GithubService) GetDefaultBranch() (string, error) {
-	repo, _, err := svc.Client.Repositories.Get(context.Background(), svc.Owner, svc.RepoName)
-	if err != nil {
-		return "", fmt.Errorf("error getting repository: %v", err)
-	}
-	return repo.GetDefaultBranch(), nil
-}
-
 func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, config digger_config.DiggerConfig, performEnvVarInterpolation bool) ([]scheduler.Job, bool, error) {
 	workflows := config.Workflows
 	jobs := make([]scheduler.Job, 0)
