@@ -201,7 +201,7 @@ func (h *Handler) Config(c echo.Context) error {
     if authURL != "" { cfg["authorization_endpoint"] = authURL }
     if tokenURL != "" { cfg["token_endpoint"] = tokenURL }
     // Provide a default loopback redirect for PKCE
-    cfg["redirect_uris"] = []string{"http://127.0.0.1:8585/callback"}
+    cfg["redirect_uris"] = []string{"http://localhost:8585/callback"}
     return c.JSON(http.StatusOK, cfg)
 }
 

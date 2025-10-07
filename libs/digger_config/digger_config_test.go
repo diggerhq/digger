@@ -68,7 +68,6 @@ func TestDiggerConfigWhenCustomFileName(t *testing.T) {
 	assert.Equal(t, configPath, path.Join(tempDir, "digger-custom.yml"))
 
 	os.Unsetenv("DIGGER_FILENAME")
-
 }
 
 func TestDiggerConfigWhenOnlyYamlExists(t *testing.T) {
@@ -579,7 +578,6 @@ workflows:
 	assert.NotNil(t, workflow)
 	assert.NotNil(t, workflow.Plan)
 	assert.NotNil(t, workflow.Apply)
-
 }
 
 func TestDiggerConfigMissingProjectsWorkflow(t *testing.T) {
@@ -603,7 +601,6 @@ workflows:
 
 	_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.Equal(t, "failed to find workflow digger_config 'my_custom_workflow' for project 'my-first-app'", err.Error())
-
 }
 
 func TestDiggerConfigWithEmptyInitBlock(t *testing.T) {
@@ -1309,7 +1306,7 @@ projects:
 func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T) {
 	changedFiles := []string{"prod/main.tf", "dev/test/main.tf"}
 	projects := []Project{
-		Project{
+		{
 			Name: "dev",
 			Dir:  ".",
 		},
@@ -1317,7 +1314,7 @@ func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T)
 	c := DiggerConfig{
 		Projects: projects,
 	}
-	//expectedImpactingLocations := map[string]ProjectToSourceMapping{}
+	// expectedImpactingLocations := map[string]ProjectToSourceMapping{}
 	// TODO: this behaviour doesn't make much sense, we should re-evaluate when we make it configurable
 	impactedProjects, _ := c.GetModifiedProjects(changedFiles)
 	assert.Equal(t, 1, len(impactedProjects))
@@ -1326,7 +1323,7 @@ func TestGetModifiedProjectsReturnsCorrectSourceMappingWithDotFile(t *testing.T)
 func TestShouldDetectNestedFilesAsImpacted(t *testing.T) {
 	changedFiles := []string{"services/backend/files/config.json"}
 	projects := []Project{
-		Project{
+		{
 			Name: "services_backend",
 			Dir:  "services/backend",
 		},
@@ -1341,12 +1338,12 @@ func TestShouldDetectNestedFilesAsImpacted(t *testing.T) {
 func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	changedFiles := []string{"modules/bucket/main.tf", "dev/main.tf"}
 	projects := []Project{
-		Project{
+		{
 			Name:            "dev",
 			Dir:             "dev",
 			IncludePatterns: []string{"modules/**"},
 		},
-		Project{
+		{
 			Name:            "prod",
 			Dir:             "prod",
 			IncludePatterns: []string{"modules/**"},
@@ -1367,7 +1364,37 @@ func TestGetModifiedProjectsReturnsCorrectSourceMapping(t *testing.T) {
 	assert.Equal(t, 1, len(projectSourceMapping["prod"].ImpactingLocations))
 	assert.Equal(t, expectedImpactingLocations["dev"].ImpactingLocations, projectSourceMapping["dev"].ImpactingLocations)
 	assert.Equal(t, expectedImpactingLocations["prod"].ImpactingLocations, projectSourceMapping["prod"].ImpactingLocations)
+}
 
+func TestGetModifiedProjectsReturnsCorrectSourceMappingWithRelativePaths(t *testing.T) {
+	changedFiles := []string{"terraform/modules/bucket/main.tf", "terraform/dev/main.tf"}
+	projects := []Project{
+		{
+			Name:            "dev",
+			Dir:             "terraform/dev",
+			IncludePatterns: []string{"../modules/**"},
+		},
+		{
+			Name:            "prod",
+			Dir:             "terraform/prod",
+			IncludePatterns: []string{"../modules/**"},
+		},
+	}
+	c := DiggerConfig{
+		Projects: projects,
+	}
+	expectedImpactingLocations := map[string]ProjectToSourceMapping{
+		"dev":  {ImpactingLocations: []string{"terraform/modules/bucket", "terraform/dev"}},
+		"prod": {ImpactingLocations: []string{"terraform/modules/bucket"}},
+	}
+
+	impactedProjects, projectSourceMapping := c.GetModifiedProjects(changedFiles)
+	assert.Equal(t, 2, len(impactedProjects))
+	assert.Equal(t, 2, len(projectSourceMapping))
+	assert.Equal(t, 2, len(projectSourceMapping["dev"].ImpactingLocations))
+	assert.Equal(t, 1, len(projectSourceMapping["prod"].ImpactingLocations))
+	assert.Equal(t, expectedImpactingLocations["dev"].ImpactingLocations, projectSourceMapping["dev"].ImpactingLocations)
+	assert.Equal(t, expectedImpactingLocations["prod"].ImpactingLocations, projectSourceMapping["prod"].ImpactingLocations)
 }
 
 func TestCognitoTokenSetFromMinConfig(t *testing.T) {

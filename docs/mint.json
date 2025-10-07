@@ -60,7 +60,8 @@
         "ce/state-management/development",
         "ce/state-management/analytics",
         "ce/state-management/versioning",
-        "ce/state-management/gcp-quickstart"
+        "ce/state-management/gcp-quickstart",
+        "ce/state-management/aws-fargate-ad-quickstart"
       ]
     },
     {

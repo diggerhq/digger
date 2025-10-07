@@ -16,6 +16,7 @@ import (
 	"github.com/diggerhq/digger/backend/logging"
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -655,6 +656,13 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 	batchId := *job.BatchID
 
+	org, err := models.DB.GetOrganisationById(orgId)
+	if err != nil || org == nil {
+		slog.Error("Error getting organisation", "jobId", jobId, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
+		return
+	}
+
 	slog.Info("Processing job status update",
 		"jobId", jobId,
 		"currentStatus", job.Status,
@@ -732,6 +740,8 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}(c.Request.Context())
 
 	case "succeeded":
+		batch := job.Batch
+		segment.Track(*org, "", "", "github", "ci_job_successful", map[string]string{"ci_job_type": string(batch.BatchType)})
 		job.Status = orchestrator_scheduler.DiggerJobSucceeded
 		job.TerraformOutput = request.TerraformOutput
 		if request.Footprint != nil {
@@ -896,6 +906,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}(c.Request.Context())
 
 	case "failed":
+		segment.Track(*org, "", "", "github", "ci_job_failed", nil)
 		job.Status = orchestrator_scheduler.DiggerJobFailed
 		job.TerraformOutput = request.TerraformOutput
 		err := models.DB.UpdateDiggerJob(job)

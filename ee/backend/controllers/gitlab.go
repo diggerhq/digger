@@ -15,7 +15,6 @@ import (
 	"github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/locking"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
@@ -296,8 +295,6 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		return fmt.Errorf("error converting jobs")
 	}
 
-	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
-
 	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{
 			RepoName:                 repoName,
@@ -527,8 +524,6 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 			return fmt.Errorf("error updating digger batch")
 		}
 	}
-
-	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
 
 	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{

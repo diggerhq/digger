@@ -7,7 +7,7 @@ auth:
   client_id: "..."
   client_secret: "..."
   redirect_uris:
-    - "http://127.0.0.1:8585/callback"
+    - "http://localhost:8585/callback"
   device_code_enabled: true
 tokens:
   alg: "EdDSA"

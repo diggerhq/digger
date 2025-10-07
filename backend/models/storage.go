@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 	"log/slog"
 	"math"
 	"net/http"
 	"time"
+
+	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 
 	"github.com/dchest/uniuri"
 	"github.com/diggerhq/digger/backend/queries"
@@ -1418,8 +1419,8 @@ func (db *Database) CreateUser(email string, externalSource string, externalId s
 	return user, nil
 }
 
-func (db *Database) CreateOrganisation(name string, externalSource string, tenantId string) (*Organisation, error) {
-	org := &Organisation{Name: name, ExternalSource: externalSource, ExternalId: tenantId}
+func (db *Database) CreateOrganisation(name string, externalSource string, tenantId string, adminEmail *string) (*Organisation, error) {
+	org := &Organisation{Name: name, ExternalSource: externalSource, ExternalId: tenantId, AdminEmail: adminEmail}
 	result := db.GormDB.Save(org)
 	if result.Error != nil {
 		slog.Error("failed to create organisation",

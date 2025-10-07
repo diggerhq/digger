@@ -22,14 +22,11 @@ type DirWalker interface {
 	GetDirs(workingDir string, config DiggerConfigYaml) ([]string, error)
 }
 
-type FileSystemTopLevelTerraformDirWalker struct {
-}
+type FileSystemTopLevelTerraformDirWalker struct{}
 
-type FileSystemTerragruntDirWalker struct {
-}
+type FileSystemTerragruntDirWalker struct{}
 
-type FileSystemModuleDirWalker struct {
-}
+type FileSystemModuleDirWalker struct{}
 
 func ReadDiggerYmlFileContents(dir string) (string, error) {
 	var diggerYmlBytes []byte
@@ -366,11 +363,10 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 		}
 		return newConfig, nil
 	} else if config.GenerateProjectsConfig != nil {
-		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
+		dirWalker := &FileSystemTopLevelTerraformDirWalker{}
 
 		slog.Info("finding terraform directories for project generation", "terraformDir", terraformDir)
 		dirs, err := dirWalker.GetDirs(terraformDir, config)
-
 		if err != nil {
 			slog.Error("error walking through directories", "error", err, "terraformDir", terraformDir)
 			return nil, fmt.Errorf("error while walking through directories: %v", err)
@@ -617,7 +613,6 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 }
 
 func checkThatOnlyOneIacSpecifiedPerProject(project *Project) error {
-
 	nOfIac := 0
 	if project.Terragrunt {
 		nOfIac++
@@ -686,7 +681,7 @@ func validateApplyRequirements(applyRequirements []string) error {
 		return fmt.Errorf("found duplicate element: %v", dups)
 	}
 	validValues := []string{ApplyRequirementsApproved, ApplyRequirementsMergeable, ApplyRequirementsUndiverged}
-	var validSet = func() map[string]struct{} {
+	validSet := func() map[string]struct{} {
 		m := make(map[string]struct{}, len(validValues))
 		for _, v := range validValues {
 			m[v] = struct{}{}
@@ -873,7 +868,6 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		// normalize paths
 		projectDir := path.Join(pathPrefix, atlantisProject.Dir)
 		atlantisProject.Autoplan.WhenModified, err = GetPatternsRelativeToRepo(projectDir, atlantisProject.Autoplan.WhenModified)
-
 		if err != nil {
 			slog.Error("could not normalize patterns",
 				"error", err,
@@ -957,16 +951,31 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) ([]Project, ma
 		sourceChangesForProject := make([]string, 0)
 		isProjectAdded := false
 
-		for _, changedFile := range changedFiles {
-			includePatterns := project.IncludePatterns
-			excludePatterns := project.ExcludePatterns
+		var includePatterns, excludePatterns []string
 
-			if !project.Terragrunt {
-				includePatterns = append(includePatterns, filepath.Join(project.Dir, "**", "*"))
+		// resolve relative paths from project dir
+		for _, pattern := range project.IncludePatterns {
+			if strings.HasPrefix(pattern, ".") {
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, pattern))
 			} else {
-				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*"))
+				includePatterns = append(includePatterns, pattern)
 			}
+		}
+		for _, pattern := range project.ExcludePatterns {
+			if strings.HasPrefix(pattern, ".") {
+				excludePatterns = append(excludePatterns, filepath.Join(project.Dir, pattern))
+			} else {
+				excludePatterns = append(excludePatterns, pattern)
+			}
+		}
 
+		if !project.Terragrunt {
+			includePatterns = append(includePatterns, filepath.Join(project.Dir, "**", "*"))
+		} else {
+			includePatterns = append(includePatterns, filepath.Join(project.Dir, "*"))
+		}
+
+		for _, changedFile := range changedFiles {
 			// all our patterns are the globale dir pattern + the include patterns specified by user
 			if MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
 				if !isProjectAdded {
