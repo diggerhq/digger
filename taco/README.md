@@ -102,7 +102,7 @@ Configure OIDC so `taco login` works and protected endpoints require login.
 
 1) WorkOS setup
 - Create a User Management project and a Native (PKCE) OAuth application.
-- Add redirect URI: `http://127.0.0.1:8585/callback`.
+- Add redirect URI: `http://localhost:8585/callback`.
 - Note values:
   - Client ID: `<WORKOS_CLIENT_ID>`
   - Issuer: `https://api.workos.com/user_management`

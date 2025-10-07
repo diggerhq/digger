@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.9...taco/cli/v0.1.10) (2025-10-03)
+
+
+### Features
+
+* Update CLI callback, docs for AD/Fargate  ([#2284](https://github.com/diggerhq/digger/issues/2284)) ([6c3c374](https://github.com/diggerhq/digger/commit/6c3c374a98f094825e52d39b5425f89a691246d9))
+
 ## [0.1.9](https://github.com/diggerhq/digger/compare/taco/cli/v0.1.8...taco/cli/v0.1.9) (2025-10-01)
 
 

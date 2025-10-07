@@ -6,9 +6,9 @@ import (
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"log/slog"
 	"os"
 	"time"
-	"log/slog"
 )
 
 type Database struct {
@@ -47,7 +47,7 @@ func ConnectDatabase() {
 	orgNumberOne, err := DB.GetOrganisation(DEFAULT_ORG_NAME)
 	if orgNumberOne == nil {
 		slog.Info("No default organization found, creating default organisation", "name", DEFAULT_ORG_NAME)
-		_, err := DB.CreateOrganisation("digger", "", DEFAULT_ORG_NAME)
+		_, err := DB.CreateOrganisation("digger", "", DEFAULT_ORG_NAME, nil)
 		if err != nil {
 			slog.Error("Failed to create default organization", "error", err)
 		}

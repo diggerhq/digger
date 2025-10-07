@@ -60,7 +60,7 @@ func setupSuite(tb testing.TB) (func(tb testing.TB), *models.Database) {
 	orgTenantId := "11111111-1111-1111-1111-111111111111"
 	externalSource := "test"
 	orgName := "testOrg"
-	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId)
+	org, err := database.CreateOrganisation(orgName, externalSource, orgTenantId, nil)
 	if err != nil {
 		panic(err)
 	}

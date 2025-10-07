@@ -184,7 +184,7 @@ func AssociateTenantIdToDiggerOrg(c *gin.Context) {
 		}
 
 		if org == nil {
-			newOrg, err := models.DB.CreateOrganisation(nameStr, "", tenantIdStr)
+			newOrg, err := models.DB.CreateOrganisation(nameStr, "", tenantIdStr, nil)
 			if err != nil {
 				slog.Error("Failed to create organisation", "tenantId", tenantIdStr, "name", nameStr, "error", err)
 				c.AbortWithStatus(http.StatusInternalServerError)

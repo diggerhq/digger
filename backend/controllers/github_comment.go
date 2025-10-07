@@ -3,6 +3,12 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+	"runtime/debug"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
 	locking2 "github.com/diggerhq/digger/backend/locking"
@@ -18,11 +24,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
-	"log/slog"
-	"os"
-	"runtime/debug"
-	"strconv"
-	"strings"
 )
 
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64, postCommentHooks []IssueCommentHook) error {
@@ -40,7 +41,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	repoFullName := *payload.Repo.FullName
 	cloneURL := *payload.Repo.CloneURL
 	issueNumber := *payload.Issue.Number
-	
+
 	if payload.Installation == nil {
 		slog.Error("Installation is nil in payload", "issueNumber", issueNumber)
 		return fmt.Errorf("installation is missing from payload")
@@ -55,6 +56,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	isDraft := payload.Issue.GetDraft()
 	userCommentId := *payload.GetComment().ID
 	actor := *payload.Sender.Login
+	var vcsActorID string = ""
+	if payload.Sender != nil && payload.Sender.Email != nil {
+		vcsActorID = *payload.Sender.Email
+	} else if payload.Sender != nil && payload.Sender.Login != nil {
+		vcsActorID = *payload.Sender.Login
+	}
 	commentBody := *payload.Comment.Body
 	defaultBranch := *payload.Repo.DefaultBranch
 	isPullRequest := payload.Issue.IsPullRequest()
@@ -145,6 +152,15 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"orgId", orgId,
 	)
 
+	org, err := models.DB.GetOrganisationById(orgId)
+	if err != nil || org == nil {
+		slog.Error("Error getting organisation",
+			"orgId", orgId,
+			"error", err)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to get organisation by ID"))
+		return fmt.Errorf("error getting organisation")
+	}
+
 	diggerYmlStr, ghService, config, projectsGraph, prSourceBranch, commitSha, changedFiles, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
 		slog.Error("Error getting Digger config for PR",
@@ -191,14 +207,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		)
 	} else {
 		slog.Debug("Added eyes reaction to comment", "commentId", commentIdStr)
-	}
-
-	if !config.AllowDraftPRs && isDraft {
-		slog.Info("Draft PRs are disabled, skipping",
-			"issueNumber", issueNumber,
-			"isDraft", isDraft,
-		)
-		return nil
 	}
 
 	commentReporter, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting.... config loaded successfully")
@@ -335,6 +343,35 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error processing event")
 	}
 
+	if !config.AllowDraftPRs && isDraft {
+		slog.Info("Draft PRs are disabled, skipping",
+			"issueNumber", issueNumber,
+			"isDraft", isDraft,
+		)
+
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
+		}
+
+		// special case to unlock all locks aquired by this PR
+		if *diggerCommand == scheduler.DiggerCommandUnlock {
+			err := models.DB.DeleteAllLocksAcquiredByPR(issueNumber, repoFullName, orgId)
+			if err != nil {
+				slog.Error("Failed to delete locks",
+					"prNumber", issueNumber,
+					"command", *diggerCommand,
+					"error", err,
+				)
+				commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to delete locks: %v", err))
+				return fmt.Errorf("failed to delete locks: %v", err)
+			}
+			commentReporterManager.UpdateComment(fmt.Sprintf(":white_check_mark: Command %v completed successfully", *diggerCommand))
+		}
+
+		return nil
+	}
+
 	// perform unlocking in backend
 	if config.PrLocks {
 		slog.Info("Processing PR locks for impacted projects",
@@ -423,6 +460,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
 		return nil
 	}
+
+	// If we reach here then we have created a comment that would have led to more events
+	segment.Track(*org, repoOwner, vcsActorID, "github", "issue_digger_comment", map[string]string{"comment": commentBody})
 
 	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
 	if err != nil {
@@ -562,11 +602,8 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			commentReporterManager.UpdateComment(fmt.Sprintf(":x: UpdateDiggerBatch error: %v", err))
 			return fmt.Errorf("error updating digger batch")
 		}
-
 		slog.Debug("Successfully updated batch with source details", "batchId", batchId)
 	}
-
-	segment.Track(strconv.Itoa(int(orgId)), "backend_trigger_job")
 
 	slog.Info("Getting CI backend",
 		"issueNumber", issueNumber,
@@ -592,6 +629,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: GetCiBackend error: %v", err))
 		return fmt.Errorf("error fetching ci backed %v", err)
 	}
+
+	segment.Track(*org, repoOwner, vcsActorID, "github", "backend_trigger_job", map[string]string{
+		"comment": commentBody,
+	})
 
 	slog.Info("Triggering Digger jobs",
 		"issueNumber", issueNumber,

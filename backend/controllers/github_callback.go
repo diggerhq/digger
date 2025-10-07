@@ -2,15 +2,17 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/ci/github"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/segment"
+	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/ci/github"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
@@ -111,7 +113,7 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 			"externalId", externalId,
 		)
 
-		org, err := models.DB.CreateOrganisation(name, "digger", externalId)
+		org, err := models.DB.CreateOrganisation(name, "digger", externalId, nil)
 		if err != nil {
 			slog.Error("Error creating organization",
 				"name", name,
@@ -150,6 +152,13 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 
 	org := link.Organisation
 	orgId := link.OrganisationId
+
+	var vcsOwner string = ""
+	if installation.Account.Login != nil {
+		vcsOwner = *installation.Account.Login
+	}
+	// we have multiple repos here, we don't really want to send an track event for each repo, so we just send the vcs owner
+	segment.Track(*org, vcsOwner, "", "github", "vcs_repo_installed", map[string]string{})
 
 	// create a github installation link (org ID matched to installation ID)
 	_, err = models.DB.CreateGithubInstallationLink(org, installationId64)

@@ -1,0 +1,239 @@
+---
+title: " AWS App Runner Quickstart"
+---
+
+## Overview
+
+Deploy OpenTaco Statesman on AWS App Runner for the fastest setup. App Runner provides a managed HTTPS URL automatically — no custom domain or ACM certificate required.
+
+Terraform example path: `taco/examples/aws-apprunner-quickstart`
+
+## Prerequisites
+
+- AWS CLI and Docker installed and logged in
+- Terraform >= 1.4
+- An existing S3 bucket and prefix for OpenTaco state
+- Optional: OIDC provider (e.g., Auth0)
+
+## 1) Mirror image to ECR (copy/paste)
+
+App Runner pulls images from ECR. Run these commands to mirror the public image (region: `us-east-1`, repo: `opentaco-statesman`):
+
+```bash
+aws ecr create-repository --repository-name opentaco-statesman --region us-east-1
+
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin \
+  $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
+
+docker pull --platform linux/amd64 ghcr.io/diggerhq/digger/taco-statesman:latest
+
+docker tag ghcr.io/diggerhq/digger/taco-statesman:latest \
+  $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/opentaco-statesman:latest
+
+docker push \
+  $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/opentaco-statesman:latest
+```
+
+Notes:
+- Terraform defaults use `ecr_repo_name = "opentaco-statesman"` and `image_tag = "latest"`, so no extra configuration is needed if you keep the commands as is.
+
+## 2) Configure variables
+
+Create `terraform.tfvars`:
+
+```hcl
+aws_region    = "us-east-1"
+bucket_name   = "your-s3-bucket"
+bucket_prefix = "opentaco"
+ecr_repo_name = "opentaco-statesman"
+image_tag     = "latest"
+
+# Start with auth disabled to get the service URL first
+opentaco_auth_disable = true
+```
+
+## 3) Deploy and get URL
+
+```bash
+terraform init
+terraform apply -auto-approve
+terraform output service_url  # HTTPS URL from App Runner
+```
+
+Health check:
+
+```bash
+curl $(terraform output -raw service_url)/readyz
+```
+
+Expected:
+
+```json
+{"service":"opentaco","status":"ok"}
+```
+
+## 4) Enable SSO
+
+Follow Configure SSO: ./sso for IdP setup details. Then update `terraform.tfvars` with your OIDC values and set `opentaco_public_base_url` to the `service_url`, and apply again:
+
+```hcl
+opentaco_public_base_url = "https://xxxxxxxx.awsapprunner.com"
+opentaco_auth_disable    = false
+opentaco_auth_issuer        = "https://your-tenant.auth0.com/"  # trailing slash required
+opentaco_auth_client_id     = "your_client_id"
+opentaco_auth_client_secret = "your_client_secret"
+opentaco_auth_auth_url      = "https://your-tenant.auth0.com/authorize"
+opentaco_auth_token_url     = "https://your-tenant.auth0.com/oauth/token"
+```
+
+Add the callback URL to your IdP:
+
+```
+[SERVICE_URL]/oauth/oidc-callback
+```
+
+## Notes
+
+- No custom domain or certificate needed; App Runner manages HTTPS for you.
+- The service uses an IAM instance role for S3 access, so no AWS access keys are required in the container.
+- You can later attach a custom domain to App Runner if desired (optional).
+
+## 5) Install Taco CLI
+
+Use the same install steps as in the main Quickstart.
+
+        <Tabs>
+            <Tab title="Linux">
+                The first thing you'll want to do is visit our releases page [here](https://github.com/diggerhq/digger/releases?q=taco%2Fcli&expanded=true) and check the latest taco/cli release. Right now it is v0.1.7
+
+                ```bash
+                # For Linux AMD64 (most common)
+                curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-amd64 -o taco
+                chmod +x taco
+
+                # Move to a directory in your PATH
+                sudo mv taco /usr/local/bin
+
+                # Alternative: Install to user directory (no sudo required)
+                mkdir -p ~/.local/bin
+                mv taco ~/.local/bin
+                # Add to PATH in your shell profile if not already there
+                echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
+                source ~/.bashrc
+                ```
+
+                For other architectures:
+                ```bash
+                # For Linux ARM64
+                curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-arm64 -o taco
+
+                # For Linux 386
+                curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-linux-386 -o taco
+                ```
+
+                Confirm Taco CLI is available with:
+
+                ```bash
+                taco --help
+                ```
+            </Tab>
+            <Tab title="MacOS">
+                The first thing you'll want to do is visit our releases page [here](https://github.com/diggerhq/digger/releases?q=taco%2Fcli&expanded=true) and check the latest taco/cli release. Right now it is v0.1.7
+
+                We can then do:
+
+                ```bash
+                curl -L https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-darwin-arm64 -o taco
+                chmod +x taco
+                sudo mv taco /usr/local/bin
+                ```
+
+                Confirm Taco CLI is available with:
+
+                ```bash
+                taco --help
+                ```
+            </Tab>
+            <Tab title="Windows (powershell)">
+                The first thing you'll want to do is visit our releases page [here](https://github.com/diggerhq/digger/releases?q=taco%2Fcli&expanded=true) and check the latest taco/cli release. Right now it is v0.1.7
+
+                #### Using PowerShell (Recommended)
+
+                ```powershell
+                # For Windows AMD64 (most common)
+                Invoke-WebRequest -Uri "https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-windows-amd64.exe" -OutFile "taco.exe"
+
+                # Move to a directory in your PATH (create directory if needed)
+                New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\bin"
+                Move-Item "taco.exe" "$env:USERPROFILE\bin\taco.exe"
+
+                # Add to PATH permanently (run as Administrator or current user)
+                $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+                if ($currentPath -notlike "*$env:USERPROFILE\bin*") {
+                [Environment]::SetEnvironmentVariable("Path", "$currentPath;$env:USERPROFILE\bin", "User")
+            }
+                ```
+
+                #### Confirm Installation
+
+                Open a **new** Command Prompt or PowerShell window and test:
+
+                ```cmd
+                taco --help
+                ```
+            </Tab>
+            <Tab title="Windows (cmd)">
+                The first thing you'll want to do is visit our releases page [here](https://github.com/diggerhq/digger/releases?q=taco%2Fcli&expanded=true) and check the latest taco/cli release. Right now it is v0.1.7
+
+                #### Using Command Prompt
+
+                ```cmd
+                # Download (you may need to use a browser for this step)
+                # Save the file from: https://github.com/diggerhq/digger/releases/download/taco/cli/v0.1.7/taco-windows-amd64.exe
+
+                # Create a bin directory in your user profile
+                mkdir "%USERPROFILE%\bin"
+
+                # Move the downloaded file
+                move "taco-windows-amd64.exe" "%USERPROFILE%\bin\taco.exe"
+
+                # Add to PATH (this adds for current session only)
+                set PATH=%PATH%;%USERPROFILE%\bin
+                ```
+
+                #### Confirm Installation
+
+                Open a **new** Command Prompt or PowerShell window and test:
+
+                ```cmd
+                taco --help
+                ```
+            </Tab>
+            <Tab title="Windows (manual)">
+                The first thing you'll want to do is visit our releases page [here](https://github.com/diggerhq/digger/releases?q=taco%2Fcli&expanded=true) and check the latest taco/cli release. Right now it is v0.1.7
+                #### Alternative: Manual Installation
+
+                1. Download `taco-windows-amd64.exe` from the [releases page](https://github.com/diggerhq/digger/releases?q=taco%2Fcli&expanded=true)
+                2. Rename it to `taco.exe`
+                3. Place it in a directory that's in your PATH (like `C:\Windows\System32` for system-wide access)
+                4. Or create a `bin` folder in your user directory and add it to your PATH
+
+                #### Confirm Installation
+
+                Open a **new** Command Prompt or PowerShell window and test:
+
+                ```cmd
+                taco --help
+                ```
+            </Tab>
+        </Tabs>
+
+## 6) Login with Taco
+
+Set the server URL to the App Runner `service_url` and log in:
+
+```bash
+taco setup    # set the server URL to the service_url output
+taco login    # runs the PKCE login flow
+```
