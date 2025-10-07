@@ -674,6 +674,7 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 	return diggerYmlStr, ghService, config, dependencyGraph, actualCommitSha, nil
 }
 
+// TODO: Refactor this func to receive ghService as input
 func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []string, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, prNumber int) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], *string, *string, []string, error) {
 	slog.Info("Getting Digger config for PR",
 		slog.Group("repository",
