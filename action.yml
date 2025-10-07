@@ -232,6 +232,10 @@ inputs:
     description: "(orchestrator only) the spec to pass onto digger cli"
     required: false
     default: ""
+  digger-version:
+    description: "Pre-compiled version of digger CLI to install. Must correspond to a valid release tag (vX.Y.Z). This value overrides the version derived from the github.action_ref."
+    required: false
+    default: ""
 
 outputs:
   output:
@@ -243,6 +247,30 @@ runs:
   steps:
     - name: digger run ${{github.event.inputs.id}}
       run: echo digger run ${{ inputs.id }}
+      shell: bash
+
+    - name: Determine binary mode (local, build, or pre-built)
+      id: determine-binary-mode
+      env:
+        LOCAL_DEV_MODE: ${{ inputs.local-dev-mode }}
+        INPUT_DIGGER_VERSION: ${{ inputs.digger-version }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        set -euo pipefail
+
+        if [[ ! ( -z "$INPUT_DIGGER_VERSION" || "$INPUT_DIGGER_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ) ]]; then
+          echo "::error::Invalid digger-version input $INPUT_DIGGER_VERSION. Must be empty string or match vX.Y.Z"
+          exit 1
+        fi
+
+        if [[ "$LOCAL_DEV_MODE" == "true" ]]; then
+          BINARY_MODE="local"    # Use locally compiled binary (for development)
+        elif [[ -n "$INPUT_DIGGER_VERSION" || "$ACTION_REF" == v* ]]; then
+          BINARY_MODE="prebuilt" # Install prebuilt binary from release
+        else
+          BINARY_MODE="build"    # Build from source at runtime
+        fi
+        echo "binary-mode=${BINARY_MODE}" >> ${GITHUB_OUTPUT}
       shell: bash
 
     - name: Validate Input Configuration for Google
@@ -257,7 +285,7 @@ runs:
         exit 1
       shell: bash
       if: inputs.setup-google-cloud == 'true'
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       with:
         clean: false
         ref: refs/pull/${{ github.event.issue.number }}/merge
@@ -396,7 +424,7 @@ runs:
       with:
         go-version-file: "${{ github.action_path }}/cli/go.mod"
         cache: false
-      if: ${{ !startsWith(github.action_ref, 'v') }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode != 'prebuilt' }}
 
     - name: Determine Golang cache paths
       id: golang-env
@@ -404,7 +432,7 @@ runs:
         echo "build-cache-path=$(go env GOCACHE)" >>"$GITHUB_OUTPUT"
         echo "module-cache-path=$(go env GOMODCACHE)" >>"$GITHUB_OUTPUT"
       shell: bash
-      if: ${{ !startsWith(github.action_ref, 'v') }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode != 'prebuilt' }}
 
     - name: Copy Digger CLI go.sum for cache key
       run: |
@@ -416,7 +444,7 @@ runs:
           cp "$GITHUB_ACTION_PATH/cli/go.sum" "$GITHUB_WORKSPACE/.digger.go.sum"
         fi
       shell: bash
-      if: ${{ !startsWith(github.action_ref, 'v') }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode != 'prebuilt' }}
 
     - name: Adding required env vars for next step
       uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
@@ -434,7 +462,7 @@ runs:
       shell: bash
 
     - name: build digger from source
-      if: ${{ !startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'build' }}
       shell: bash
 
       run: |
@@ -453,24 +481,24 @@ runs:
         cd $GITHUB_WORKSPACE
 
     - name: download and install prebuilt digger
-      if: ${{ startsWith(github.action_ref, 'v') && inputs.local-dev-mode == 'false' }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'prebuilt' }}
       env:
-        actionref: ${{ github.action_ref }}
+        DIGGER_VERSION: ${{ inputs.digger-version || github.action_ref }}
       shell: bash
       run: |
         set -euo pipefail
 
         echo "🔧 Downloading Digger CLI..."
-        echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Action Ref: ${actionref}"
+        echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Digger Version: ${DIGGER_VERSION}"
 
         if [[ ${{ inputs.ee }} == "true" ]]; then
           if [[ ${{ inputs.fips }} == "true" ]]; then
-            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
           else
-            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}"
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}"
           fi
         else
-          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${actionref}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
+          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
         fi
 
         echo "Downloading from: $DOWNLOAD_URL"
@@ -479,12 +507,12 @@ runs:
           echo "Failed to download Digger CLI from $DOWNLOAD_URL"
           echo ""
           echo "Possible reasons:"
-          echo "1. The release ${actionref} might not exist"
+          echo "1. The release ${DIGGER_VERSION} might not exist"
           echo "2. Binary for ${{ runner.os }}-${{ runner.arch }} might not be available"
           echo "3. Network connectivity issues"
           echo ""
           echo "Suggestions:"
-          echo "- Check if release ${actionref} exists at: https://github.com/diggerhq/digger/releases"
+          echo "- Check if release ${DIGGER_VERSION} exists at: https://github.com/diggerhq/digger/releases"
           echo "- Verify the architecture combination is supported"
           echo "- Try using a different release version"
           exit 1
@@ -507,7 +535,7 @@ runs:
         cd $GITHUB_WORKSPACE
 
     - name: Validate local digger binary config
-      if: ${{ inputs.local-dev-mode == 'true' }}
+      if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'local' }}
       shell: bash
       run: |
         set -euo pipefail
@@ -535,7 +563,7 @@ runs:
         PATH=$PATH:$(DIR)
         cd $DIR
 
-    - name: run digger
+    - name: Run Digger
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
@@ -571,7 +599,6 @@ runs:
       id: run-digger
       shell: bash
       run: |
-        # Digger binary, path, etc... are confiured by previous steps
         digger
 
     - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
