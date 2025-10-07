@@ -717,18 +717,13 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("error getting branch name")
 	}
 
-	// Fallback to repo default branch if target branch is empty
+	// Target branch must be available - no fallback to repo default
 	if targetBranch == "" {
-		defaultBranch, err := ghService.GetDefaultBranch()
-		if err != nil {
-			slog.Warn("Could not get default branch",
-				"repoFullName", repoFullName,
-				"error", err,
-			)
-			targetBranch = "main" // reasonable default
-		} else {
-			targetBranch = defaultBranch
-		}
+		slog.Error("PR target branch is empty",
+			"prNumber", prNumber,
+			"repoFullName", repoFullName,
+		)
+		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("PR target branch is empty for PR #%d", prNumber)
 	}
 
 	slog.Debug("Retrieved PR details",
