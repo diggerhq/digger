@@ -15,8 +15,8 @@ import (
 // It should return nil if valid, or an error if invalid.
 type AccessTokenVerifier func(token string) error
 
-// RequireAuth returns middleware that verifies Bearer access tokens using the provided verifier.
-func RequireAuth(verify AccessTokenVerifier) echo.MiddlewareFunc {
+// RequireAuth returns middleware that verifies Bearer access tokens and sets principal in context.
+func RequireAuth(verify AccessTokenVerifier, signer *auth.Signer) echo.MiddlewareFunc {
     return func(next echo.HandlerFunc) echo.HandlerFunc {
         return func(c echo.Context) error {
             if verify == nil {
@@ -27,9 +27,30 @@ func RequireAuth(verify AccessTokenVerifier) echo.MiddlewareFunc {
                 return c.JSON(http.StatusUnauthorized, map[string]string{"error":"missing_bearer"})
             }
             token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
-            if err := verify(token); err != nil {
-                return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_token"})
+            
+            // Verify token and get claims in one call
+            if signer != nil {
+                claims, err := signer.VerifyAccess(token)
+                if err != nil {
+                    return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_token"})
+                }
+                
+                // Set principal in context
+                p := principal.Principal{ 
+                    Subject: claims.Subject,
+                    Email:   claims.Email,
+                    Roles:   claims.Roles,
+                    Groups:  claims.Groups,
+                }
+                ctx := storage.ContextWithPrincipal(c.Request().Context(), p)
+                c.SetRequest(c.Request().WithContext(ctx))
+            } else {
+                // Fallback to generic verify function if no signer
+                if err := verify(token); err != nil {
+                    return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_token"})
+                }
             }
+            
             return next(c)
         }
     }
@@ -67,39 +88,6 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
             return next(c)
         }
     }
-}
-
-// JWTAuthMiddleware creates a middleware that verifies a JWT and injects the user principal into the request context.
-func JWTAuthMiddleware(signer *auth.Signer) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			authz := c.Request().Header.Get("Authorization")
-			if !strings.HasPrefix(authz, "Bearer ") {
-				// No token, continue. The AuthorizingStore will block the request.
-				return next(c)
-			}
-
-			token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
-			claims, err := signer.VerifyAccess(token)
-			if err != nil {
-				// Invalid token, continue. The AuthorizingStore will block the request.
-				return next(c)
-			}
-
-			p := principal.Principal{ 
-				Subject: claims.Subject,
-				Email:   claims.Email,
-				Roles:   claims.Roles,
-				Groups:  claims.Groups,
-			}
-
-			// Add the principal to the context for downstream stores and handlers.
-			ctx := storage.ContextWithPrincipal(c.Request().Context(), p)
-			c.SetRequest(c.Request().WithContext(ctx))
-
-			return next(c)
-		}
-	}
 }
 
 // getPrincipalFromToken extracts principal information from the bearer token

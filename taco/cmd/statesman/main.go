@@ -22,7 +22,6 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/analytics"
 	"github.com/diggerhq/digger/opentaco/internal/api"
 	"github.com/diggerhq/digger/opentaco/internal/auth"
-	"github.com/diggerhq/digger/opentaco/internal/middleware"
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/queryfactory"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
@@ -180,17 +179,12 @@ func main() {
 	e.Use(echomiddleware.CORS())
 
 
+	// Create a signer for JWTs (this may need to be configured from env vars)
 	signer, err := auth.NewSignerFromEnv()
 	if err != nil {
 		log.Fatalf("Failed to initialize JWT signer: %v", err)
 	}
 
-	// Conditionally apply the authentication middleware.
-	if !*authDisable {
-		e.Use(middleware.JWTAuthMiddleware(signer))
-	}
-
-	// Pass the same signer instance to routes
 	api.RegisterRoutes(e, finalStore, !*authDisable, queryStore, blobStore, signer)
 
 	// Start server
