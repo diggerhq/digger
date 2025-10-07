@@ -80,10 +80,15 @@ type User struct {
 }
 
 type Unit struct { 
-	ID int64	`gorm:"primaryKey"`
-	Name string		`gorm:"uniqueIndex"`
-	Tags []Tag  `gorm:"many2many:unit_tags;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
-
+	ID        int64     `gorm:"primaryKey"`
+	Name      string    `gorm:"uniqueIndex"`
+	Size      int64     `gorm:"default:0"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime"`
+	Locked    bool      `gorm:"default:false"`
+	LockID    string    `gorm:"default:''"`
+	LockWho   string    `gorm:"default:''"`
+	LockCreated time.Time
+	Tags      []Tag     `gorm:"many2many:unit_tags;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
 }
 
 type Tag struct {

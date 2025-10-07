@@ -3,10 +3,13 @@ package middleware
 import (
     "net/http"
     "strings"
+    "log"
 
     "github.com/diggerhq/digger/opentaco/internal/auth"
     "github.com/diggerhq/digger/opentaco/internal/rbac"
+    "github.com/diggerhq/digger/opentaco/internal/storage" 
     "github.com/labstack/echo/v4"
+    "github.com/diggerhq/digger/opentaco/internal/principal"
 )
 
 // AccessTokenVerifier is a function that validates an access token.
@@ -65,6 +68,47 @@ func RBACMiddleware(rbacManager *rbac.RBACManager, signer *auth.Signer, action r
             return next(c)
         }
     }
+}
+
+// JWTAuthMiddleware creates a middleware that verifies a JWT and injects the user principal into the request context.
+func JWTAuthMiddleware(signer *auth.Signer) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			log.Printf("DEBUG JWTAuthMiddleware: Called for path: %s", c.Request().URL.Path)
+			
+			authz := c.Request().Header.Get("Authorization")
+			if !strings.HasPrefix(authz, "Bearer ") {
+				log.Printf("DEBUG JWTAuthMiddleware: No Bearer token found")
+				// No token, continue. The AuthorizingStore will block the request.
+				return next(c)
+			}
+
+			token := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
+			claims, err := signer.VerifyAccess(token)
+			if err != nil {
+				log.Printf("DEBUG JWTAuthMiddleware: Token verification failed: %v", err)
+				// Invalid token, continue. The AuthorizingStore will block the request.
+				return next(c)
+			}
+
+			log.Printf("DEBUG JWTAuthMiddleware: Token verified for subject: %s", claims.Subject)
+
+			p := principal.Principal{ 
+				Subject: claims.Subject,
+				Email:   claims.Email,
+				Roles:   claims.Roles,
+				Groups:  claims.Groups,
+			}
+
+			// Add the principal to the context for downstream stores and handlers.
+			ctx := storage.ContextWithPrincipal(c.Request().Context(), p)
+			c.SetRequest(c.Request().WithContext(ctx))
+			
+			log.Printf("DEBUG JWTAuthMiddleware: Principal set in context for subject: %s", claims.Subject)
+
+			return next(c)
+		}
+	}
 }
 
 // getPrincipalFromToken extracts principal information from the bearer token

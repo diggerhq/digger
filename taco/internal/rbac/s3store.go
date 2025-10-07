@@ -15,15 +15,17 @@ import (
     "github.com/aws/smithy-go"
 )
 
-// s3RBACStore implements RBACStore backed by S3
+// s3RBACStore implements storage.RBACStore backed by S3
 type s3RBACStore struct {
     client *s3.Client
     bucket string
     prefix string
 }
 
-// NewS3RBACStore creates a new S3-backed RBAC store
-func NewS3RBACStore(client *s3.Client, bucket, prefix string) RBACStore {
+// NewS3RBACStore creates a new S3-backed RBAC store.
+// Returns the concrete type which implements both storage.RBACStore (read-only)
+// and rbac.RBACStore (full CRUD operations).
+func NewS3RBACStore(client *s3.Client, bucket, prefix string) *s3RBACStore {
     return &s3RBACStore{
         client: client,
         bucket: bucket,
@@ -165,45 +167,11 @@ func (s *s3RBACStore) GetPermission(ctx context.Context, id string) (*Permission
 }
 
 func (s *s3RBACStore) ListPermissions(ctx context.Context) ([]*Permission, error) {
-    permissionsPrefix := s.key("rbac", "permissions") + "/"
-    
-    var permissions []*Permission
-    var token *string
-    
-    for {
-        resp, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-            Bucket:            &s.bucket,
-            Prefix:            aws.String(permissionsPrefix),
-            ContinuationToken: token,
-        })
-        if err != nil {
-            return nil, err
-        }
-
-        for _, obj := range resp.Contents {
-            key := aws.ToString(obj.Key)
-            if !strings.HasSuffix(key, ".json") {
-                continue
-            }
-
-            // Extract permission ID from key
-            permissionID := strings.TrimSuffix(strings.TrimPrefix(key, permissionsPrefix), ".json")
-            
-            permission, err := s.GetPermission(ctx, permissionID)
-            if err != nil {
-                continue // Skip invalid permissions
-            }
-            permissions = append(permissions, permission)
-        }
-
-        if aws.ToBool(resp.IsTruncated) && resp.NextContinuationToken != nil {
-            token = resp.NextContinuationToken
-            continue
-        }
-        break
+    perms, err := s.listPermissionsTyped(ctx)
+    if err != nil {
+        return nil, err
     }
-
-    return permissions, nil
+    return perms, nil
 }
 
 func (s *s3RBACStore) DeletePermission(ctx context.Context, id string) error {
@@ -287,44 +255,10 @@ func (s *s3RBACStore) GetRole(ctx context.Context, id string) (*Role, error) {
 }
 
 func (s *s3RBACStore) ListRoles(ctx context.Context) ([]*Role, error) {
-    rolesPrefix := s.key("rbac", "roles") + "/"
-    
-    var roles []*Role
-    var token *string
-    
-    for {
-        resp, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-            Bucket:            &s.bucket,
-            Prefix:            aws.String(rolesPrefix),
-            ContinuationToken: token,
-        })
-        if err != nil {
-            return nil, err
-        }
-
-        for _, obj := range resp.Contents {
-            key := aws.ToString(obj.Key)
-            if !strings.HasSuffix(key, ".json") {
-                continue
-            }
-
-            // Extract role ID from key
-            roleID := strings.TrimSuffix(strings.TrimPrefix(key, rolesPrefix), ".json")
-            
-            role, err := s.GetRole(ctx, roleID)
-            if err != nil {
-                continue // Skip invalid roles
-            }
-            roles = append(roles, role)
-        }
-
-        if aws.ToBool(resp.IsTruncated) && resp.NextContinuationToken != nil {
-            token = resp.NextContinuationToken
-            continue
-        }
-        break
+    roles, err := s.listRolesTyped(ctx)
+    if err != nil {
+        return nil, err
     }
-
     return roles, nil
 }
 
@@ -487,8 +421,8 @@ func (s *s3RBACStore) GetUserAssignment(ctx context.Context, subject string) (*U
 
 // GetUserAssignmentByEmail finds a user assignment by email address
 func (s *s3RBACStore) GetUserAssignmentByEmail(ctx context.Context, email string) (*UserAssignment, error) {
-    // List all user assignments and find by email
-    assignments, err := s.ListUserAssignments(ctx)
+    // Use the typed internal method, not the interface{} wrapper
+    assignments, err := s.listUserAssignmentsTyped(ctx)
     if err != nil {
         return nil, err
     }
@@ -503,48 +437,11 @@ func (s *s3RBACStore) GetUserAssignmentByEmail(ctx context.Context, email string
 }
 
 func (s *s3RBACStore) ListUserAssignments(ctx context.Context) ([]*UserAssignment, error) {
-    usersPrefix := s.key("rbac", "users") + "/"
-    
-    var assignments []*UserAssignment
-    var token *string
-    
-    for {
-        resp, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-            Bucket:            &s.bucket,
-            Prefix:            aws.String(usersPrefix),
-            ContinuationToken: token,
-        })
-        if err != nil {
-            return nil, err
-        }
-
-        for _, obj := range resp.Contents {
-            key := aws.ToString(obj.Key)
-            if !strings.HasSuffix(key, ".json") {
-                continue
-            }
-
-            // Extract subject from key
-            subject := strings.TrimSuffix(strings.TrimPrefix(key, usersPrefix), ".json")
-            // Convert back from safe format
-            subject = strings.ReplaceAll(subject, "_", "/")
-            subject = strings.ReplaceAll(subject, "_", ":")
-            
-            assignment, err := s.GetUserAssignment(ctx, subject)
-            if err != nil {
-                continue // Skip invalid assignments
-            }
-            assignments = append(assignments, assignment)
-        }
-
-        if aws.ToBool(resp.IsTruncated) && resp.NextContinuationToken != nil {
-            token = resp.NextContinuationToken
-            continue
-        }
-        break
+    users, err := s.listUserAssignmentsTyped(ctx)
+    if err != nil {
+        return nil, err
     }
-
-    return assignments, nil
+    return users, nil
 }
 
 func (s *s3RBACStore) saveUserAssignment(ctx context.Context, assignment *UserAssignment) error {
@@ -589,4 +486,136 @@ func (s *s3RBACStore) saveUserAssignmentWithVersion(ctx context.Context, assignm
     }
     
     return err
+}
+
+// listPermissionsTyped is the internal typed implementation
+func (s *s3RBACStore) listPermissionsTyped(ctx context.Context) ([]*Permission, error) {
+    permissionsPrefix := s.key("rbac", "permissions") + "/"
+    
+    var permissions []*Permission
+    var token *string
+    
+    for {
+        resp, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+            Bucket:            &s.bucket,
+            Prefix:            aws.String(permissionsPrefix),
+            ContinuationToken: token,
+        })
+        if err != nil {
+            return nil, err
+        }
+
+        for _, obj := range resp.Contents {
+            key := aws.ToString(obj.Key)
+            if !strings.HasSuffix(key, ".json") {
+                continue
+            }
+
+            // Extract permission ID from key
+            permissionID := strings.TrimSuffix(strings.TrimPrefix(key, permissionsPrefix), ".json")
+            
+            permission, err := s.GetPermission(ctx, permissionID)
+            if err != nil {
+                continue // Skip invalid permissions
+            }
+            permissions = append(permissions, permission)
+        }
+
+        if aws.ToBool(resp.IsTruncated) && resp.NextContinuationToken != nil {
+            token = resp.NextContinuationToken
+            continue
+        }
+        break
+    }
+
+    return permissions, nil
+}
+
+// listRolesTyped is the internal typed implementation
+func (s *s3RBACStore) listRolesTyped(ctx context.Context) ([]*Role, error) {
+    rolesPrefix := s.key("rbac", "roles") + "/"
+    
+    var roles []*Role
+    var token *string
+    
+    for {
+        resp, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+            Bucket:            &s.bucket,
+            Prefix:            aws.String(rolesPrefix),
+            ContinuationToken: token,
+        })
+        if err != nil {
+            return nil, err
+        }
+
+        for _, obj := range resp.Contents {
+            key := aws.ToString(obj.Key)
+            if !strings.HasSuffix(key, ".json") {
+                continue
+            }
+
+            // Extract role ID from key
+            roleID := strings.TrimSuffix(strings.TrimPrefix(key, rolesPrefix), ".json")
+            
+            role, err := s.GetRole(ctx, roleID)
+            if err != nil {
+                continue // Skip invalid roles
+            }
+            roles = append(roles, role)
+        }
+
+        if aws.ToBool(resp.IsTruncated) && resp.NextContinuationToken != nil {
+            token = resp.NextContinuationToken
+            continue
+        }
+        break
+    }
+
+    return roles, nil
+}
+
+// listUserAssignmentsTyped is the internal typed implementation  
+func (s *s3RBACStore) listUserAssignmentsTyped(ctx context.Context) ([]*UserAssignment, error) {
+    usersPrefix := s.key("rbac", "users") + "/"
+    
+    var assignments []*UserAssignment
+    var token *string
+    
+    for {
+        resp, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+            Bucket:            &s.bucket,
+            Prefix:            aws.String(usersPrefix),
+            ContinuationToken: token,
+        })
+        if err != nil {
+            return nil, err
+        }
+
+        for _, obj := range resp.Contents {
+            key := aws.ToString(obj.Key)
+            if !strings.HasSuffix(key, ".json") {
+                continue
+            }
+
+            // Extract subject from key
+            subject := strings.TrimSuffix(strings.TrimPrefix(key, usersPrefix), ".json")
+            // Convert back from safe format
+            subject = strings.ReplaceAll(subject, "_", "/")
+            subject = strings.ReplaceAll(subject, "_", ":")
+            
+            assignment, err := s.GetUserAssignment(ctx, subject)
+            if err != nil {
+                continue // Skip invalid assignments
+            }
+            assignments = append(assignments, assignment)
+        }
+
+        if aws.ToBool(resp.IsTruncated) && resp.NextContinuationToken != nil {
+            token = resp.NextContinuationToken
+            continue
+        }
+        break
+    }
+
+    return assignments, nil
 }

@@ -2,14 +2,16 @@ package query
 
 import "time"
 
-// Config holds all configuration for the query store, loaded from environment variables.
+
 type Config struct {
-	Backend string       `envconfig:"QUERY_BACKEND" default:"sqlite"`
-	SQLite  SQLiteConfig `envconfig:"SQLITE"`
-	// Postgres PostgresConfig `envconfig:"POSTGRES"`
+	Backend  string         `envconfig:"QUERY_BACKEND" default:"sqlite"`
+	SQLite   SQLiteConfig   `envconfig:"SQLITE"`
+	Postgres PostgresConfig `envconfig:"POSTGRES"`
+	MSSQL    MSSQLConfig    `envconfig:"MSSQL"`
+	MySQL    MySQLConfig    `envconfig:"MYSQL"`
 }
 
-// SQLiteConfig holds all the specific settings for the SQLite backend.
+
 type SQLiteConfig struct {
 	Path              string        `envconfig:"PATH" default:"./data/taco.db"`
 	Cache             string        `envconfig:"CACHE" default:"shared"`
@@ -19,4 +21,30 @@ type SQLiteConfig struct {
 	PragmaJournalMode string        `envconfig:"PRAGMA_JOURNAL_MODE" default:"WAL"`
 	PragmaForeignKeys string        `envconfig:"PRAGMA_FOREIGN_KEYS" default:"ON"`
 	PragmaBusyTimeout string        `envconfig:"PRAGMA_BUSY_TIMEOUT" default:"5000"`
+}
+
+type PostgresConfig struct { 
+	Host string 	`envconfig:"HOST" default:"localhost"`
+	Port int 		`envconfig:"PORT" default:"5432"`
+	User string 	`envconfig:"USER" default:"postgres"`
+	Password string	`envconfig:"PASSWORD"`
+	DBName string 	`envconfig:"DBNAME" default:"taco"` 
+	SSLMode string	`envconfig:"SSLMODE" default:"disable"`
+}
+
+type MSSQLConfig struct {
+	Host     string `envconfig:"HOST" default:"localhost"`
+	Port     int    `envconfig:"PORT" default:"1433"`
+	User     string `envconfig:"USER"`
+	Password string `envconfig:"PASSWORD"`
+	DBName   string `envconfig:"DBNAME" default:"taco"`
+}
+
+type MySQLConfig struct {
+	Host     string `envconfig:"HOST" default:"localhost"`
+	Port     int    `envconfig:"PORT" default:"3306"`
+	User     string `envconfig:"USER" default:"root"`
+	Password string `envconfig:"PASSWORD"`
+	DBName   string `envconfig:"DBNAME" default:"taco"`
+	Charset  string `envconfig:"CHARSET" default:"utf8mb4"`
 }

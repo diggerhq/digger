@@ -13,7 +13,6 @@ import (
     "github.com/diggerhq/digger/opentaco/internal/rbac"
     "github.com/diggerhq/digger/opentaco/internal/storage"
     "github.com/diggerhq/digger/opentaco/internal/query"
-    "github.com/diggerhq/digger/opentaco/internal/query/types"
     "github.com/google/uuid"
     "github.com/labstack/echo/v4"
     "log"
@@ -70,80 +69,42 @@ func (h *Handler) CreateUnit(c echo.Context) error {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create unit"})
     }
 
-        // POC - write to db example 
-        // if h.db != nil {
-        //     if err := db.SyncCreateUnit(h.db, id); err != nil {
-        //         log.Printf("Warning: failed to sync unit creation to database: %v", err)
-        //         // Don't fail the request if DB sync fails
-        //     }
-        // }
-
     analytics.SendEssential("unit_created")
     return c.JSON(http.StatusCreated, CreateUnitResponse{ID: metadata.ID, Created: metadata.Updated})
 }
 
 func (h *Handler) ListUnits(c echo.Context) error {
-    ctx := c.Request().Context()
-    prefix := c.QueryParam("prefix")
+	ctx := c.Request().Context()
+	prefix := c.QueryParam("prefix")
 
-    
-    if h.queryStore.IsEnabled() {
-        units, err := h.queryStore.ListUnits(ctx, prefix)
-        if err == nil {
-            // Index by ID
-            unitIDs := make([]string, len(units))
-            unitMap := make(map[string]types.Unit, len(units))
-            for i, u := range units {
-                unitIDs[i] = u.Name
-                unitMap[u.Name] = u
-            }
+	// The RBAC logic is GONE. We just call the store.
+	// The store (AuthorizingStore) returns a pre-filtered list or an error.
+	unitsMetadata, err := h.store.List(ctx, prefix)
+	if err != nil {
+		if err.Error() == "unauthorized" || err.Error() == "forbidden" {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+		}
+		log.Printf("Error listing units: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list units"})
+	}
 
-            if h.rbacManager != nil && h.signer != nil {
-                principal, perr := h.getPrincipalFromToken(c)
-                if perr != nil {
-                    // If RBAC is enabled, return 401; otherwise skip RBAC
-                    if enabled, _ := h.rbacManager.IsEnabled(ctx); enabled {
-                        return c.JSON(http.StatusUnauthorized, map[string]string{
-                            "error": "Failed to authenticate user",
-                        })
-                    }
-                } else {
-                    filteredIDs, ferr := h.queryStore.FilterUnitIDsByUser(ctx, principal.Subject, unitIDs)
-                    if ferr != nil {
-                        log.Printf("RBAC filtering via query-store failed; falling back to storage: %v", ferr)
-                        return h.listFromStorage(ctx, c, prefix)
-                    }
-                    unitIDs = filteredIDs
-                }
-            }
+	// The list is already filtered and secure. We just build the response.
+	domainUnits := make([]*domain.Unit, 0, len(unitsMetadata))
+	for _, u := range unitsMetadata {
+		domainUnits = append(domainUnits, &domain.Unit{
+			ID:       u.ID,
+			Size:     u.Size,
+			Updated:  u.Updated,
+			Locked:   u.Locked,
+			LockInfo: convertLockInfo(u.LockInfo),
+		})
+	}
+	domain.SortUnitsByID(domainUnits)
 
-            // Build response from filtered IDs
-            domainUnits := make([]*domain.Unit, 0, len(unitIDs))
-            for _, id := range unitIDs {
-                if u, ok := unitMap[id]; ok {
-                    tagNames := make([]string, len(u.Tags))
-                    for i, t := range u.Tags {
-                        tagNames[i] = t.Name
-                    }
-                    domainUnits = append(domainUnits, &domain.Unit{
-                        ID:   u.Name,
-                        Tags: tagNames,
-                    })
-                }
-            }
-            domain.SortUnitsByID(domainUnits)
-
-            return c.JSON(http.StatusOK, map[string]interface{}{
-                "units":  domainUnits,
-                "count":  len(domainUnits),
-                "source": "query-store",
-            })
-        }
-
-        log.Printf("Query-store ListUnits failed; falling back to storage: %v", err)
-    }
-
-    return h.listFromStorage(ctx, c, prefix)
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"units": domainUnits,
+		"count": len(domainUnits),
+	})
 }
 
 // listFromStorage encapsulates the old storage-based path (including RBAC).
@@ -211,8 +172,12 @@ func (h *Handler) GetUnit(c echo.Context) error {
     if err := domain.ValidateUnitID(id); err != nil {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
     }
+    
     metadata, err := h.store.Get(c.Request().Context(), id)
     if err != nil {
+        if err.Error() == "forbidden" {
+            return c.JSON(http.StatusForbidden, map[string]string{"error": "Forbidden"})
+        }
         if err == storage.ErrNotFound {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
         }
@@ -233,14 +198,6 @@ func (h *Handler) DeleteUnit(c echo.Context) error {
         }
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete unit"})
     }
-
-    // // POC - write to db example     
-    // if h.db != nil {
-    //     if err := db.SyncDeleteUnit(h.db, id); err != nil {
-    //         log.Printf("Warning: failed to sync unit deletion to database: %v", err)
-    //         // Don't fail the request if DB sync fails
-    //     }
-    // }
 
 
     return c.NoContent(http.StatusNoContent)
@@ -292,12 +249,7 @@ func (h *Handler) UploadUnit(c echo.Context) error {
         }
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to upload unit"})
     }
-    // POC - write to db 
-    // if h.db != nil {
-    //     if err := db.SyncUnitExists(h.db, id); err != nil {
-    //         log.Printf("Warning: failed to sync unit to database: %v", err)
-    //     }
-    // }
+
     // Best-effort dependency graph update
     go deps.UpdateGraphOnWrite(c.Request().Context(), h.store, id, data)
     analytics.SendEssential("taco_unit_push_completed")

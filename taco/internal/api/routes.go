@@ -25,7 +25,7 @@ import (
 )
 
 // RegisterRoutes registers all API routes
-func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, queryStore query.QueryStore) {
+func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, queryStore query.Store, underlyingStore storage.UnitStore, signer *authpkg.Signer) {
 	// Health checks
 	health := observability.NewHealthHandler()
 	e.GET("/healthz", health.Healthz)
@@ -52,11 +52,7 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, que
 	})
 
 
-	// Prepare auth deps
-	signer, err := authpkg.NewSignerFromEnv()
-	if err != nil {
-		fmt.Printf("Failed to create JWT signer: %v\n", err)
-	}
+	// Prepare auth deps 
 	stsi, _ := sts.NewStatelessIssuerFromEnv()
 	ver, _ := oidc.NewFromEnv()
 
@@ -137,10 +133,10 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, que
 		v1.Use(middleware.RequireAuth(verifyFn))
 	}
 
-	// Setup RBAC manager if available
+	// Setup RBAC manager if available (use underlyingStore for type assertion)
 	var rbacManager *rbac.RBACManager
-	if store != nil {
-		if s3Store, ok := store.(storage.S3Store); ok {
+	if underlyingStore != nil {
+		if s3Store, ok := underlyingStore.(storage.S3Store); ok {
 			rbacStore := rbac.NewS3RBACStore(s3Store.GetS3Client(), s3Store.GetS3Bucket(), s3Store.GetS3Prefix())
 			rbacManager = rbac.NewRBACManager(rbacStore)
 		}

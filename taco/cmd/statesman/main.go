@@ -21,17 +21,21 @@ import (
 
 	"github.com/diggerhq/digger/opentaco/internal/analytics"
 	"github.com/diggerhq/digger/opentaco/internal/api"
+	"github.com/diggerhq/digger/opentaco/internal/auth"
+	"github.com/diggerhq/digger/opentaco/internal/middleware"
 	"github.com/diggerhq/digger/opentaco/internal/query"
+	"github.com/diggerhq/digger/opentaco/internal/queryfactory"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
+	"github.com/diggerhq/digger/opentaco/internal/wiring"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
 	var (
 		port        = flag.String("port", "8080", "Server port")
-		authDisable = flag.Bool("auth-disable", false, "Disable auth enforcement (default: false)")
+		authDisable = flag.Bool("auth-disable", os.Getenv("OPENTACO_AUTH_DISABLE") == "true", "Disable auth enforcement (default: false)")
 		storageType = flag.String("storage", "s3", "Storage type: s3 or memory (default: s3 with fallback to memory)")
 		s3Bucket    = flag.String("s3-bucket", os.Getenv("OPENTACO_S3_BUCKET"), "S3 bucket for state storage")
 		s3Prefix    = flag.String("s3-prefix", os.Getenv("OPENTACO_S3_PREFIX"), "S3 key prefix (optional)")
@@ -46,13 +50,16 @@ func main() {
 		log.Fatalf("Failed to process configuration: %v", err)
 	}
 
-	// Pass the populated config struct to the factory.
-	queryStore, err := query.NewQueryStore(queryCfg)
+	// --- Initialize Stores ---
+
+	// Create the database index store using the dedicated factory.
+	queryStore, err := queryfactory.NewQueryStore(queryCfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize query backend: %v", err)
 	}
-
 	defer queryStore.Close()
+
+	log.Printf("Query backend initialized: %s (enabled: %v)", queryCfg.Backend, queryStore.IsEnabled())
 
 	if queryStore.IsEnabled(){
 		log.Println("Query backend enabled successfully")
@@ -62,40 +69,90 @@ func main() {
 
 
 	// Initialize storage
-	var store storage.UnitStore
+	var blobStore storage.UnitStore
 	switch *storageType {
 	case "s3":
 		if *s3Bucket == "" {
 			log.Printf("WARNING: S3 storage selected but bucket not provided. Falling back to in-memory storage.")
-			store = storage.NewMemStore()
+			blobStore = storage.NewMemStore()
 			log.Printf("Using in-memory storage")
 			break
 		}
 		s, err := storage.NewS3Store(context.Background(), *s3Bucket, *s3Prefix, *s3Region)
 		if err != nil {
 			log.Printf("WARNING: failed to initialize S3 store: %v. Falling back to in-memory storage.", err)
-			store = storage.NewMemStore()
+			blobStore = storage.NewMemStore()
 			log.Printf("Using in-memory storage")
 		} else {
-			store = s
+			blobStore = s
 			log.Printf("Using S3 storage: bucket=%s prefix=%s region=%s", *s3Bucket, *s3Prefix, *s3Region)
 
-
-			//put on thread thread / adjust seed so it accepts any store 
-			// To this:
-			// if s3Store, ok := store.(storage.S3Store); ok {
-			// 	db.Seed(context.Background(), s3Store, database) 
-			// } else {
-			// 	log.Println("Store is not S3Store, skipping seeding")
-			// }
  		}
 	default:
-		store = storage.NewMemStore()
+		blobStore = storage.NewMemStore()
 		log.Printf("Using in-memory storage")
 	}
 
+
+	// 3. Create the base OrchestratingStore
+	orchestratingStore := storage.NewOrchestratingStore(blobStore, queryStore)
+
+	// --- Sync RBAC Data ---
+	if queryStore.IsEnabled() {
+		if err := wiring.SyncRBACFromStorage(context.Background(), blobStore, queryStore); err != nil {
+			log.Printf("Warning: Failed to sync RBAC data: %v", err)
+		}
+		
+		// Sync existing units from storage to database
+		log.Println("Syncing existing units from storage to database...")
+		units, err := blobStore.List(context.Background(), "")
+		if err != nil {
+			log.Printf("Warning: Failed to list units from storage: %v", err)
+		} else {
+			log.Printf("DEBUG: Got %d units from storage", len(units))
+			for _, unit := range units {
+				log.Printf("DEBUG: Unit from storage: ID=%s, Size=%d, Updated=%v", unit.ID, unit.Size, unit.Updated)
+				
+				// Always ensure unit exists first
+				if err := queryStore.SyncEnsureUnit(context.Background(), unit.ID); err != nil {
+					log.Printf("Warning: Failed to sync unit %s: %v", unit.ID, err)
+					continue
+				}
+				
+				// Always sync metadata to update existing records
+				log.Printf("Syncing metadata for %s: size=%d, updated=%v", unit.ID, unit.Size, unit.Updated)
+				if err := queryStore.SyncUnitMetadata(context.Background(), unit.ID, unit.Size, unit.Updated); err != nil {
+					log.Printf("Warning: Failed to sync metadata for unit %s: %v", unit.ID, err)
+				}
+			}
+			log.Printf("Synced %d units from storage to database", len(units))
+		}
+	}
+
+	// --- Conditionally Apply Authorization Layer with a SMART CHECK ---
+	var finalStore storage.UnitStore
+	
+	// Check if there are any RBAC roles defined in the database.
+	rbacIsConfigured, err := queryStore.HasRBACRoles(context.Background())
+	if err != nil {
+		log.Fatalf("Failed to check for RBAC configuration: %v", err)
+	}
+
+	// The condition is now two-part: Auth must be enabled AND RBAC roles must exist.
+	if !*authDisable && rbacIsConfigured {
+		log.Println("RBAC is ENABLED and CONFIGURED. Wrapping store with authorization layer.")
+		finalStore = storage.NewAuthorizingStore(orchestratingStore, queryStore)
+	} else {
+		if !*authDisable {
+			log.Println("RBAC is ENABLED but NOT CONFIGURED (no roles found). Authorization layer will be skipped.")
+		} else {
+			log.Println("RBAC is DISABLED via flag. Authorization layer will be skipped.")
+		}
+		finalStore = orchestratingStore
+	}
+
 	// Initialize analytics with system ID management (always create system ID)
-	analytics.InitGlobalWithSystemID("production", store)
+	analytics.InitGlobalWithSystemID("production", finalStore)
 	
 	// Initialize system ID synchronously during startup
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -119,14 +176,26 @@ func main() {
 	e.HideBanner = true
 
 	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.RequestID())
-	e.Use(middleware.Gzip())
-	e.Use(middleware.Secure())
-	e.Use(middleware.CORS())
+	e.Use(echomiddleware.Logger())
+	e.Use(echomiddleware.Recover())
+	e.Use(echomiddleware.RequestID())
+	e.Use(echomiddleware.Gzip())
+	e.Use(echomiddleware.Secure())
+	e.Use(echomiddleware.CORS())
 
-	api.RegisterRoutes(e, store, !*authDisable, queryStore)
+
+	signer, err := auth.NewSignerFromEnv()
+	if err != nil {
+		log.Fatalf("Failed to initialize JWT signer: %v", err)
+	}
+
+	// Conditionally apply the authentication middleware.
+	if !*authDisable {
+		e.Use(middleware.JWTAuthMiddleware(signer))
+	}
+
+	// Pass the same signer instance to routes
+	api.RegisterRoutes(e, finalStore, !*authDisable, queryStore, blobStore, signer)
 
 	// Start server
 	go func() {
@@ -157,3 +226,4 @@ func main() {
 	analytics.SendEssential("server_shutdown_complete")
 	log.Println("Server shutdown complete")
 }
+

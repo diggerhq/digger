@@ -55,9 +55,10 @@ type UnitStore interface {
 	// Version operations
     ListVersions(ctx context.Context, id string) ([]*VersionInfo, error)
     RestoreVersion(ctx context.Context, id string, versionTimestamp time.Time, lockID string) error
+	
 }
 
-// S3Store extends UnitStore with S3-specific methods for RBAC integration
+// S3Store extends UnitStore with S3-specific accessors for integration
 type S3Store interface {
     UnitStore
     GetS3Client() *s3.Client
