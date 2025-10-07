@@ -3,6 +3,13 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+	"runtime/debug"
+	"slices"
+	"strconv"
+	"time"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
 	locking2 "github.com/diggerhq/digger/backend/locking"
@@ -16,12 +23,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
-	"log/slog"
-	"os"
-	"runtime/debug"
-	"slices"
-	"strconv"
-	"time"
 )
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
@@ -49,6 +50,12 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	branch := payload.PullRequest.Head.GetRef()
 	action := *payload.Action
 	labels := payload.PullRequest.Labels
+	var vcsActorId string = ""
+	if payload.Sender != nil && payload.Sender.Email != nil {
+		vcsActorId = *payload.Sender.Email
+	} else if payload.Sender != nil && payload.Sender.Login != nil {
+		vcsActorId = *payload.Sender.Login
+	}
 	prLabelsStr := lo.Map(labels, func(label *github.Label, i int) string {
 		return *label.Name
 	})
@@ -139,6 +146,15 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			)
 			return fmt.Errorf("error initializing comment reporter")
 		}
+	}
+
+	org, err := models.DB.GetOrganisationById(organisationId)
+	if err != nil || org == nil {
+		slog.Error("Error getting organisation",
+			"orgId", organisationId,
+			"error", err)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to get organisation by ID"))
+		return fmt.Errorf("error getting organisation")
 	}
 
 	diggerYmlStr, ghService, config, projectsGraph, _, _, changedFiles, err := getDiggerConfigForPR(gh, organisationId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
@@ -244,6 +260,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"commands", jobsForImpactedProjects[0].Commands,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not determine digger command from job: %v", err))
 		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
@@ -340,12 +357,16 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return nil
 	}
 
+	// a pull request has led to jobs which would be triggered (ignoring closed event by here)
+	segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request", map[string]string{})
+
 	commentReporter, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting... Config loaded successfully")
 	if err != nil {
 		slog.Error("Error initializing comment reporter",
 			"prNumber", prNumber,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		return fmt.Errorf("error initializing comment reporter")
 	}
 
@@ -355,6 +376,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: error setting status for PR: %v", err))
 		return fmt.Errorf("error setting status for PR: %v", err)
 	}
@@ -415,6 +437,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"commentId", commentReporter.CommentId,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
@@ -427,6 +450,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 				"prNumber", prNumber,
 				"error", err,
 			)
+			segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 			commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not post ai comment summary comment id: %v", err))
 			return fmt.Errorf("could not post ai summary comment: %v", err)
 		}
@@ -470,6 +494,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
 		return fmt.Errorf("error converting jobs")
 	}
@@ -525,7 +550,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		slog.Debug("Successfully updated batch with source details", "batchId", batchId)
 	}
 
-	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
+	segment.Track(*org, repoOwner, vcsActorId, "github", "backend_trigger_job", map[string]string{})
 
 	slog.Info("Getting CI backend",
 		"prNumber", prNumber,
@@ -548,6 +573,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"repoFullName", repoFullName,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: GetCiBackend error: %v", err))
 		return fmt.Errorf("error fetching ci backed %v", err)
 	}
@@ -565,6 +591,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"batchId", batchId,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
 		return fmt.Errorf("error triggering Digger Jobs")
 	}

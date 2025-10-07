@@ -3,6 +3,12 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+	"runtime/debug"
+	"strconv"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
 	locking2 "github.com/diggerhq/digger/backend/locking"
@@ -18,11 +24,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
-	"log/slog"
-	"os"
-	"runtime/debug"
-	"strconv"
-	"strings"
 )
 
 func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64, postCommentHooks []IssueCommentHook) error {
@@ -55,6 +56,12 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	isDraft := payload.Issue.GetDraft()
 	userCommentId := *payload.GetComment().ID
 	actor := *payload.Sender.Login
+	var vcsActorID string = ""
+	if payload.Sender != nil && payload.Sender.Email != nil {
+		vcsActorID = *payload.Sender.Email
+	} else if payload.Sender != nil && payload.Sender.Login != nil {
+		vcsActorID = *payload.Sender.Login
+	}
 	commentBody := *payload.Comment.Body
 	defaultBranch := *payload.Repo.DefaultBranch
 	isPullRequest := payload.Issue.IsPullRequest()
@@ -144,6 +151,15 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"repoFullName", repoFullName,
 		"orgId", orgId,
 	)
+
+	org, err := models.DB.GetOrganisationById(orgId)
+	if err != nil || org == nil {
+		slog.Error("Error getting organisation",
+			"orgId", orgId,
+			"error", err)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to get organisation by ID"))
+		return fmt.Errorf("error getting organisation")
+	}
 
 	diggerYmlStr, ghService, config, projectsGraph, prSourceBranch, commitSha, changedFiles, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
 	if err != nil {
@@ -445,6 +461,9 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return nil
 	}
 
+	// If we reach here then we have created a comment that would have led to more events
+	segment.Track(*org, repoOwner, vcsActorID, "github", "issue_digger_comment", map[string]string{"comment": commentBody})
+
 	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
 	if err != nil {
 		slog.Error("Error setting status for PR",
@@ -583,11 +602,8 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			commentReporterManager.UpdateComment(fmt.Sprintf(":x: UpdateDiggerBatch error: %v", err))
 			return fmt.Errorf("error updating digger batch")
 		}
-
 		slog.Debug("Successfully updated batch with source details", "batchId", batchId)
 	}
-
-	segment.Track(strconv.Itoa(int(orgId)), "backend_trigger_job")
 
 	slog.Info("Getting CI backend",
 		"issueNumber", issueNumber,
@@ -613,6 +629,10 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: GetCiBackend error: %v", err))
 		return fmt.Errorf("error fetching ci backed %v", err)
 	}
+
+	segment.Track(*org, repoOwner, vcsActorID, "github", "backend_trigger_job", map[string]string{
+		"comment": commentBody,
+	})
 
 	slog.Info("Triggering Digger jobs",
 		"issueNumber", issueNumber,

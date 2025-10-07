@@ -18,7 +18,6 @@ import (
 	"github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/locking"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/utils"
 	ci_backends2 "github.com/diggerhq/digger/ee/backend/ci_backends"
 	"github.com/diggerhq/digger/libs/ci/generic"
@@ -342,8 +341,6 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 			return fmt.Errorf("error updating digger batch")
 		}
 	}
-
-	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
 
 	// hardcoded bitbucket ci backend for this controller
 	// TODO: making this configurable based on env variable and connection
