@@ -774,7 +774,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 		)
 	}
 
-	slog.Info("Loading config from repository with fallback support",
+	slog.Info("Loading config from repository",
 		"repoFullName", repoFullName,
 		"branch", prBranch,
 		"defaultBranch", defaultBranch,
@@ -787,7 +787,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 		prBranch, defaultBranch, changedFiles, taConfig,
 	)
 	if err != nil {
-		slog.Error("Error loading Digger config from repository (with fallback)",
+		slog.Error("Error loading Digger config from repository",
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,
 			"branch", prBranch,
