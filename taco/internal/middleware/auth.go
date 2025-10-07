@@ -3,7 +3,6 @@ package middleware
 import (
     "net/http"
     "strings"
-    "log"
 
     "github.com/diggerhq/digger/opentaco/internal/auth"
     "github.com/diggerhq/digger/opentaco/internal/rbac"

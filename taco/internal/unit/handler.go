@@ -16,7 +16,6 @@ import (
     "github.com/google/uuid"
     "github.com/labstack/echo/v4"
     "log"
-    "context"
 
 )
 
@@ -77,8 +76,7 @@ func (h *Handler) ListUnits(c echo.Context) error {
 	ctx := c.Request().Context()
 	prefix := c.QueryParam("prefix")
 
-	// The RBAC logic is GONE. We just call the store.
-	// The store (AuthorizingStore) returns a pre-filtered list or an error.
+
 	unitsMetadata, err := h.store.List(ctx, prefix)
 	if err != nil {
 		if err.Error() == "unauthorized" || err.Error() == "forbidden" {
@@ -106,65 +104,6 @@ func (h *Handler) ListUnits(c echo.Context) error {
 		"count": len(domainUnits),
 	})
 }
-
-// listFromStorage encapsulates the old storage-based path (including RBAC).
-func (h *Handler) listFromStorage(ctx context.Context, c echo.Context, prefix string) error {
-    items, err := h.store.List(ctx, prefix)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{
-            "error": "Failed to list units",
-        })
-    }
-
-    unitIDs := make([]string, 0, len(items))
-    unitMap := make(map[string]*storage.UnitMetadata, len(items))
-    for _, s := range items {
-        unitIDs = append(unitIDs, s.ID)
-        unitMap[s.ID] = s
-    }
-
-    // Storage-based RBAC (manager-driven)
-    if h.rbacManager != nil && h.signer != nil {
-        principal, perr := h.getPrincipalFromToken(c)
-        if perr != nil {
-            if enabled, _ := h.rbacManager.IsEnabled(ctx); enabled {
-                return c.JSON(http.StatusUnauthorized, map[string]string{
-                    "error": "Failed to authenticate user",
-                })
-            }
-            // RBAC not enabled -> show all units
-        } else {
-            filtered, ferr := h.rbacManager.FilterUnitsByReadAccess(ctx, principal, unitIDs)
-            if ferr != nil {
-                return c.JSON(http.StatusInternalServerError, map[string]string{
-                    "error": "Failed to check permissions",
-                })
-            }
-            unitIDs = filtered
-        }
-    }
-
-    // Build response
-    out := make([]*domain.Unit, 0, len(unitIDs))
-    for _, id := range unitIDs {
-        if s, ok := unitMap[id]; ok {
-            out = append(out, &domain.Unit{
-                ID:       s.ID,
-                Size:     s.Size,
-                Updated:  s.Updated,
-                Locked:   s.Locked,
-                LockInfo: convertLockInfo(s.LockInfo),
-            })
-        }
-    }
-    domain.SortUnitsByID(out)
-
-    return c.JSON(http.StatusOK, map[string]interface{}{
-        "units": out,
-        "count": len(out),
-    })
-}
-
 
 func (h *Handler) GetUnit(c echo.Context) error {
     encodedID := c.Param("id")
@@ -198,8 +137,6 @@ func (h *Handler) DeleteUnit(c echo.Context) error {
         }
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete unit"})
     }
-
-
     return c.NoContent(http.StatusNoContent)
 }
 
@@ -249,7 +186,6 @@ func (h *Handler) UploadUnit(c echo.Context) error {
         }
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to upload unit"})
     }
-
     // Best-effort dependency graph update
     go deps.UpdateGraphOnWrite(c.Request().Context(), h.store, id, data)
     analytics.SendEssential("taco_unit_push_completed")
@@ -402,8 +338,6 @@ func (h *Handler) GetUnitStatus(c echo.Context) error {
     }
     return c.JSON(http.StatusOK, st)
 }
-
-
 
 // Helpers
 func convertLockInfo(info *storage.LockInfo) *domain.Lock {
