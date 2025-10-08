@@ -860,12 +860,3 @@ func CheckIfShowProjectsComment(event interface{}) bool {
 	}
 	return result
 }
-
-func (svc GithubService) GetBranchHeadSha(branch string) (string, error) {
-	ctx := context.Background()
-	ref, _, err := svc.Client.Git.GetRef(ctx, svc.Owner, svc.RepoName, "heads/"+branch)
-	if err != nil {
-		return "", fmt.Errorf("error getting branch ref: %v", err)
-	}
-	return ref.GetObject().GetSHA(), nil
-}
