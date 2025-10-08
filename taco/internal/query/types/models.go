@@ -8,7 +8,7 @@ import (
 
 type Role struct {
 	ID int64 `gorm:"primaryKey"`
-	RoleId string	`gorm:"not null;uniqueIndex"`// like "admin"
+	RoleId string	`gorm:"type:varchar(255);not null;uniqueIndex"`// like "admin"
 	Name string //" admin role"
 	Description string // "Admin Role with full access"
 	Permissions []Permission  `gorm:"many2many:role_permissions;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
@@ -21,7 +21,7 @@ type Role struct {
 
 type Permission struct {
 	ID int64	`gorm:"primaryKey"`
-	PermissionId string	`gorm:"not null;uniqueIndex"`
+	PermissionId string	`gorm:"type:varchar(255);not null;uniqueIndex"`
 	Name string // "admin permission"
 	Description string // "Admin permission allowing all action"
 	Rules []Rule	`gorm:"constraint:OnDelete:CASCADE"`						// [{"actions":["unit.read","unit.write","unit.lock","unit.delete","rbac.manage"],"resources":["*"],"effect":"allow"}]  FK 
@@ -71,8 +71,8 @@ func (RuleUnitTag) TableName() string { return "rule_unit_tags" }
 
 type User struct {
 	ID int64	`gorm:"primaryKey"`
-	Subject string	`gorm:"not null;uniqueIndex"`
-	Email string	`gorm:"not null;uniqueIndex"`
+	Subject string	`gorm:"type:varchar(255);not null;uniqueIndex"`
+	Email string	`gorm:"type:varchar(255);not null;uniqueIndex"`
 	Roles []Role	`gorm:"many2many:user_roles;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -81,7 +81,7 @@ type User struct {
 
 type Unit struct { 
 	ID        int64     `gorm:"primaryKey"`
-	Name      string    `gorm:"uniqueIndex"`
+	Name      string    `gorm:"type:varchar(255);uniqueIndex"`
 	Size      int64     `gorm:"default:0"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 	Locked    bool      `gorm:"default:false"`
@@ -93,7 +93,7 @@ type Unit struct {
 
 type Tag struct {
 	ID int64	`gorm:"primaryKey"`
-	Name string `gorm:"uniqueIndex"`
+	Name string `gorm:"type:varchar(255);uniqueIndex"`
 
 } 
 

@@ -58,7 +58,8 @@
         "ce/state-management/sso",
         "ce/state-management/digger-integration",
         "ce/state-management/development",
-        "ce/state-management/analytics"
+        "ce/state-management/analytics",
+        "ce/state-management/query-backend"
       ]
     },
     {

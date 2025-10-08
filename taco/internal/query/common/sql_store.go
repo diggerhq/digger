@@ -39,30 +39,41 @@ func (s *SQLStore) migrate() error {
 
 // createViews now introspects the database dialect to use the correct SQL syntax.
 func (s *SQLStore) createViews() error {
-	// Define the body of the view once.
-	viewBody := `
+	dialect := s.db.Dialector.Name()
+	
+	// Define boolean literals based on dialect
+	var trueVal, falseVal string
+	if dialect == "sqlserver" {
+		trueVal = "1"
+		falseVal = "0"
+	} else {
+		trueVal = "true"
+		falseVal = "false"
+	}
+
+	// Define the body of the view with dialect-specific boolean values
+	viewBody := fmt.Sprintf(`
 	WITH user_permissions AS (
 		SELECT DISTINCT u.subject as user_subject, r.id as rule_id, r.wildcard_resource, r.effect FROM users u
 		JOIN user_roles ur ON u.id = ur.user_id JOIN role_permissions rp ON ur.role_id = rp.role_id
 		JOIN rules r ON rp.permission_id = r.permission_id LEFT JOIN rule_actions ra ON r.id = ra.rule_id
-		WHERE r.effect = 'allow' AND (r.wildcard_action = true OR ra.action = 'unit.read' OR ra.action IS NULL)
+		WHERE r.effect = 'allow' AND (r.wildcard_action = %s OR ra.action = 'unit.read' OR ra.action IS NULL)
 	),
 	wildcard_access AS (
 		SELECT DISTINCT up.user_subject, un.name as unit_name FROM user_permissions up CROSS JOIN units un
-		WHERE up.wildcard_resource = true
+		WHERE up.wildcard_resource = %s
 	),
 	specific_access AS (
 		SELECT DISTINCT up.user_subject, un.name as unit_name FROM user_permissions up
 		JOIN rule_units ru ON up.rule_id = ru.rule_id JOIN units un ON ru.unit_id = un.id
-		WHERE up.wildcard_resource = false
+		WHERE up.wildcard_resource = %s
 	)
 	SELECT user_subject, unit_name FROM wildcard_access
 	UNION
 	SELECT user_subject, unit_name FROM specific_access
-	`
+	`, trueVal, trueVal, falseVal)
 
 	var createViewSQL string
-	dialect := s.db.Dialector.Name()
 
 	// This switch statement is our "carve-out" for different SQL dialects.
 	switch dialect {
@@ -192,8 +203,7 @@ func (s *SQLStore) CanPerformAction(ctx context.Context, userSubject string, act
 
 func (s *SQLStore) HasRBACRoles(ctx context.Context) (bool, error) {
 	var count int64
-	// We don't need to count them all, we just need to know if at least one exists.
-	if err := s.db.WithContext(ctx).Model(&types.Role{}).Limit(1).Count(&count).Error; err != nil {
+	if err := s.db.WithContext(ctx).Model(&types.Role{}).Order("").Count(&count).Error; err != nil {
 		return false, err
 	}
 	return count > 0, nil

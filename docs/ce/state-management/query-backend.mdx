@@ -1,0 +1,183 @@
+---
+title: "Query Backend"
+---
+
+OpenTaco supports using a query backend to speed up the retrieval of objects from S3. By default SQLite will initialize, but other SQL databases can be configured if desired.
+
+## Configuration
+
+Set the backend type using:
+
+```bash
+QUERY_BACKEND=sqlite  # Options: sqlite, postgres, mssql, mysql
+```
+
+## SQLite (Default)
+
+SQLite is the default query backend and requires no external database server.
+
+### Environment Variables
+
+```bash
+# Backend selection
+QUERY_BACKEND=sqlite
+
+# SQLite-specific configuration
+SQLITE_PATH=./data/taco.db
+SQLITE_CACHE=shared
+SQLITE_BUSY_TIMEOUT=5s
+SQLITE_MAX_OPEN_CONNS=1
+SQLITE_MAX_IDLE_CONNS=1
+SQLITE_PRAGMA_JOURNAL_MODE=WAL
+SQLITE_PRAGMA_FOREIGN_KEYS=ON
+SQLITE_PRAGMA_BUSY_TIMEOUT=5000
+```
+
+### Defaults
+- **Path**: `./data/taco.db`
+- **Cache**: `shared`
+- **Busy Timeout**: `5s`
+- **Max Open Connections**: `1`
+- **Max Idle Connections**: `1`
+- **Journal Mode**: `WAL`
+- **Foreign Keys**: `ON`
+
+## PostgreSQL
+
+Use PostgreSQL for better concurrency and performance in production environments.
+
+### Environment Variables
+
+```bash
+# Backend selection
+QUERY_BACKEND=postgres
+
+# PostgreSQL-specific configuration
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+POSTGRES_DBNAME=taco
+POSTGRES_SSLMODE=disable
+```
+
+### Defaults
+- **Host**: `localhost`
+- **Port**: `5432`
+- **User**: `postgres`
+- **Database Name**: `taco`
+- **SSL Mode**: `disable`
+
+### Example Connection
+
+```bash
+export QUERY_BACKEND=postgres
+export POSTGRES_HOST=my-postgres-server.example.com
+export POSTGRES_PORT=5432
+export POSTGRES_USER=taco_user
+export POSTGRES_PASSWORD=secure_password
+export POSTGRES_DBNAME=taco_prod
+export POSTGRES_SSLMODE=require
+```
+
+## Microsoft SQL Server (MSSQL)
+
+Use MSSQL for enterprise environments with existing SQL Server infrastructure.
+
+### Environment Variables
+
+```bash
+# Backend selection
+QUERY_BACKEND=mssql
+
+# MSSQL-specific configuration
+MSSQL_HOST=localhost
+MSSQL_PORT=1433
+MSSQL_USER=sa
+MSSQL_PASSWORD=your_password
+MSSQL_DBNAME=taco
+```
+
+### Defaults
+- **Host**: `localhost`
+- **Port**: `1433`
+- **Database Name**: `taco`
+
+### Example Connection
+
+```bash
+export QUERY_BACKEND=mssql
+export MSSQL_HOST=sqlserver.example.com
+export MSSQL_PORT=1433
+export MSSQL_USER=taco_admin
+export MSSQL_PASSWORD=secure_password
+export MSSQL_DBNAME=taco_db
+```
+
+## MySQL
+
+Use MySQL for compatibility with existing MySQL infrastructure.
+
+### Environment Variables
+
+```bash
+# Backend selection
+QUERY_BACKEND=mysql
+
+# MySQL-specific configuration
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DBNAME=taco
+MYSQL_CHARSET=utf8mb4
+```
+
+### Defaults
+- **Host**: `localhost`
+- **Port**: `3306`
+- **User**: `root`
+- **Database Name**: `taco`
+- **Charset**: `utf8mb4`
+
+### Example Connection
+
+```bash
+export QUERY_BACKEND=mysql
+export MYSQL_HOST=mysql.example.com
+export MYSQL_PORT=3306
+export MYSQL_USER=taco_user
+export MYSQL_PASSWORD=secure_password
+export MYSQL_DBNAME=taco_production
+export MYSQL_CHARSET=utf8mb4
+```
+
+## Quick Start Examples
+
+### Development (SQLite)
+
+```bash
+# No configuration needed - SQLite is the default
+./taco
+```
+
+### Production (PostgreSQL)
+
+```bash
+export QUERY_BACKEND=postgres
+export POSTGRES_HOST=prod-db.example.com
+export POSTGRES_USER=taco_prod
+export POSTGRES_PASSWORD=$PROD_DB_PASSWORD
+export POSTGRES_DBNAME=taco
+export POSTGRES_SSLMODE=require
+
+./taco
+```
+
+## Notes
+
+- **SQLite** is best for local development and testing
+- **PostgreSQL** is recommended for production deployments
+- **MSSQL** and **MySQL** are available for enterprise compatibility
+- All passwords should be set via environment variables, never hardcoded
+- Database schemas are automatically initialized on first run 
