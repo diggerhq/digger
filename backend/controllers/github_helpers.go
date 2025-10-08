@@ -593,7 +593,7 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *digger_c
 
 // GetDiggerConfigForBranchWithFallback attempts to load config from the specified branch,
 // and falls back to the target branch if the branch doesn't exist and shouldFallback is true
-func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, targetBranch string, shouldFallback bool, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], string, error) {
+func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, targetBranch string, shouldFallback bool, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], error) {
 	slog.Info("Attempting to get Digger config for branch with fallback",
 		"repoFullName", repoFullName,
 		"primaryBranch", branch,
@@ -603,7 +603,7 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 
 	ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
-		return "", nil, nil, nil, "", fmt.Errorf("error getting github service")
+		return "", nil, nil, nil,fmt.Errorf("error getting github service")
 	}
 
 	// Try the primary branch first
@@ -640,7 +640,7 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 					"repoFullName", repoFullName,
 					"fallbackError", fallbackErr,
 				)
-				return "", nil, nil, nil, "", fmt.Errorf("failed to load config from branch '%s' (branch not found) and fallback to target branch '%s' also failed: %v", branch, targetBranch, fallbackErr)
+				return "", nil, nil, nil, fmt.Errorf("failed to load config from branch '%s' (branch not found) and fallback to target branch '%s' also failed: %v", branch, targetBranch, fallbackErr)
 			}
 
 			slog.Info("Successfully loaded config from target branch",
@@ -657,28 +657,16 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 					"repoFullName", repoFullName,
 				)
 			}
-			return "", nil, nil, nil, "", err
+			return "", nil, nil, nil, err
 		}
-	}
-
-	// Get the HEAD commit SHA of the branch we actually used
-	actualCommitSha, err := ghService.GetBranchHeadSha(actualBranchUsed)
-	if err != nil {
-		slog.Error("Could not get commit SHA for branch",
-			"branch", actualBranchUsed,
-			"repoFullName", repoFullName,
-			"error", err,
-		)
-		return "", nil, nil, nil, "", fmt.Errorf("could not get commit SHA for branch %s: %v", actualBranchUsed, err)
 	}
 
 	slog.Info("Config loaded successfully",
 		"repoFullName", repoFullName,
 		"branchUsed", actualBranchUsed,
-		"commitSha", actualCommitSha,
 	)
 
-	return diggerYmlStr, ghService, config, dependencyGraph, actualCommitSha, nil
+	return diggerYmlStr, ghService, config, dependencyGraph, nil
 }
 
 // TODO: Refactor this func to receive ghService as input
@@ -808,7 +796,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	}
 
 	// Use the fallback method with merge-based fallback logic
-	diggerYmlStr, ghService, config, dependencyGraph, actualCommitSha, err := GetDiggerConfigForBranchWithFallback(
+	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranchWithFallback(
 		gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, 
 		prBranch, targetBranch, shouldFallback, changedFiles, taConfig,
 	)
@@ -823,7 +811,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml: %v", err)
 	}
 
-	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &actualCommitSha, changedFiles, nil
+	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, changedFiles, nil
 }
 
 func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], error) {
