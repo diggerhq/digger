@@ -694,7 +694,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	}
 
 	var prBranch string
-	var targetBranch string // Use PR's actual target branch instead of repo default
+	var targetBranch string
 	prBranch, prCommitSha, targetBranch, _, err := ghService.GetBranchName(prNumber)
 	if err != nil {
 		slog.Error("Error getting branch name for PR",
