@@ -1,0 +1,10 @@
+{
+  "id": "viewer",
+  "name": "Viewer Role",
+  "description": "Read-only viewer role",
+  "permissions": ["reader"],
+  "created_at": "2024-01-01T00:00:00Z",
+  "created_by": "admin",
+  "version": 1
+}
+

@@ -1,0 +1,29 @@
+{
+  "version": 4,
+  "terraform_version": "1.5.0",
+  "serial": 1,
+  "lineage": "dev-app1-lineage",
+  "outputs": {},
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "dev_server",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "ami": "ami-12345678",
+            "instance_type": "t2.micro",
+            "tags": {
+              "Name": "dev-server",
+              "Environment": "development"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

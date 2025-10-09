@@ -52,6 +52,7 @@ func (s *SQLStore) createViews() error {
 	}
 
 	// Define the body of the view with dialect-specific boolean values
+	// Support pattern matching: units with '*' in their name are treated as patterns
 	viewBody := fmt.Sprintf(`
 	WITH user_permissions AS (
 		SELECT DISTINCT u.subject as user_subject, r.id as rule_id, r.wildcard_resource, r.effect FROM users u
@@ -62,31 +63,44 @@ func (s *SQLStore) createViews() error {
 	wildcard_access AS (
 		SELECT DISTINCT up.user_subject, un.name as unit_name FROM user_permissions up CROSS JOIN units un
 		WHERE up.wildcard_resource = %s
+		AND un.name NOT LIKE '%%*%%'
 	),
 	specific_access AS (
-		SELECT DISTINCT up.user_subject, un.name as unit_name FROM user_permissions up
-		JOIN rule_units ru ON up.rule_id = ru.rule_id JOIN units un ON ru.unit_id = un.id
+		SELECT DISTINCT up.user_subject, target_units.name as unit_name 
+		FROM user_permissions up
+		JOIN rule_units ru ON up.rule_id = ru.rule_id 
+		JOIN units pattern_units ON ru.unit_id = pattern_units.id
+		CROSS JOIN units target_units
 		WHERE up.wildcard_resource = %s
+		AND target_units.name NOT LIKE '%%*%%'
+		AND (
+			pattern_units.name = target_units.name 
+			OR (pattern_units.name LIKE '%%*%%' AND target_units.name LIKE REPLACE(pattern_units.name, '*', '%%'))
+		)
 	)
 	SELECT user_subject, unit_name FROM wildcard_access
 	UNION
 	SELECT user_subject, unit_name FROM specific_access
 	`, trueVal, trueVal, falseVal)
 
-	var createViewSQL string
-
 	// This switch statement is our "carve-out" for different SQL dialects.
 	switch dialect {
 	case "sqlserver":
-		createViewSQL = fmt.Sprintf("CREATE OR ALTER VIEW user_unit_access AS %s", viewBody)
-	case "sqlite", "postgres":
-		fallthrough // Use the same syntax for both
+		createViewSQL := fmt.Sprintf("CREATE OR ALTER VIEW user_unit_access AS %s", viewBody)
+		return s.db.Exec(createViewSQL).Error
+	case "sqlite":
+		// SQLite doesn't support CREATE OR REPLACE VIEW, so we need to drop first
+		s.db.Exec("DROP VIEW IF EXISTS user_unit_access")
+		createViewSQL := fmt.Sprintf("CREATE VIEW user_unit_access AS %s", viewBody)
+		return s.db.Exec(createViewSQL).Error
+	case "postgres":
+		createViewSQL := fmt.Sprintf("CREATE OR REPLACE VIEW user_unit_access AS %s", viewBody)
+		return s.db.Exec(createViewSQL).Error
 	default:
-		// Default to the most common syntax.
-		createViewSQL = fmt.Sprintf("CREATE OR REPLACE VIEW user_unit_access AS %s", viewBody)
+		// Default to the most common syntax for MySQL and others
+		createViewSQL := fmt.Sprintf("CREATE OR REPLACE VIEW user_unit_access AS %s", viewBody)
+		return s.db.Exec(createViewSQL).Error
 	}
-
-	return s.db.Exec(createViewSQL).Error
 }
 
 func (s *SQLStore) Close() error {
@@ -190,14 +204,24 @@ func (s *SQLStore) FilterUnitIDsByUser(ctx context.Context, userSubject string, 
 func (s *SQLStore) CanPerformAction(ctx context.Context, userSubject string, action string, resourceID string) (bool, error) {
 	var allowed int
 	// GORM's Raw SQL uses '?' and the dialect converts it to '$1', etc. for Postgres automatically.
+	// Use COALESCE to handle NULL when no rows match
+	// Support pattern matching: if unit name contains '*', treat it as a wildcard pattern
 	querySQL := `
-		SELECT MAX(CASE WHEN r.effect = 'allow' THEN 1 ELSE 0 END) FROM users u
+		SELECT COALESCE(MAX(CASE WHEN r.effect = 'allow' THEN 1 ELSE 0 END), 0) FROM users u
 		JOIN user_roles ur ON u.id = ur.user_id JOIN role_permissions rp ON ur.role_id = rp.role_id
 		JOIN rules r ON rp.permission_id = r.permission_id
 		WHERE u.subject = ? AND (r.wildcard_action = true OR EXISTS (SELECT 1 FROM rule_actions ra WHERE ra.rule_id = r.id AND ra.action = ?))
-		AND (r.wildcard_resource = true OR EXISTS (SELECT 1 FROM rule_units ru JOIN units un ON ru.unit_id = un.id WHERE ru.rule_id = r.id AND un.name = ?))
+		AND (r.wildcard_resource = true OR EXISTS (
+			SELECT 1 FROM rule_units ru 
+			JOIN units un ON ru.unit_id = un.id 
+			WHERE ru.rule_id = r.id 
+			AND (
+				un.name = ? 
+				OR (un.name LIKE '%*%' AND ? LIKE REPLACE(un.name, '*', '%'))
+			)
+		))
 	`
-	err := s.db.WithContext(ctx).Raw(querySQL, userSubject, action, resourceID).Scan(&allowed).Error
+	err := s.db.WithContext(ctx).Raw(querySQL, userSubject, action, resourceID, resourceID).Scan(&allowed).Error
 	return allowed == 1, err
 }
 

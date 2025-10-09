@@ -1,0 +1,21 @@
+{
+  "id": "admin",
+  "name": "Admin Permission",
+  "description": "Full administrative access to all resources",
+  "rules": [
+    {
+      "actions": [
+        "unit.read",
+        "unit.write",
+        "unit.lock",
+        "unit.delete",
+        "rbac.manage"
+      ],
+      "resources": ["*"],
+      "effect": "allow"
+    }
+  ],
+  "created_at": "2024-01-01T00:00:00Z",
+  "created_by": "system"
+}
+

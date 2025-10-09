@@ -17,7 +17,7 @@ import (
 
 // s3RBACStore implements storage.RBACStore backed by S3
 type s3RBACStore struct {
-    client *s3.Client
+    client S3API
     bucket string
     prefix string
 }
@@ -25,7 +25,10 @@ type s3RBACStore struct {
 // NewS3RBACStore creates a new S3-backed RBAC store.
 // Returns the concrete type which implements both storage.RBACStore (read-only)
 // and rbac.RBACStore (full CRUD operations).
-func NewS3RBACStore(client *s3.Client, bucket, prefix string) *s3RBACStore {
+//
+// The client parameter accepts any type implementing S3API, which includes
+// both *s3.Client (production) and mock implementations (testing).
+func NewS3RBACStore(client S3API, bucket, prefix string) *s3RBACStore {
     return &s3RBACStore{
         client: client,
         bucket: bucket,

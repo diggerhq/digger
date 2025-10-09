@@ -1,0 +1,15 @@
+{
+  "id": "prod-read",
+  "name": "Production Read Access",
+  "description": "Read-only access to production resources",
+  "rules": [
+    {
+      "actions": ["unit.read"],
+      "resources": ["prod/*"],
+      "effect": "allow"
+    }
+  ],
+  "created_at": "2024-01-01T00:00:00Z",
+  "created_by": "admin"
+}
+
