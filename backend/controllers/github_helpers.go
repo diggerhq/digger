@@ -621,34 +621,15 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 			strings.Contains(errMsg, "exit status 128")
 
 		if isBranchNotFound && branch != targetBranch && shouldFallback {
-			slog.Warn("Branch not found and fallback enabled, falling back to target branch",
+			// log the error but don't return it
+			slog.Warn("Branch not found - eating error to avoid client notification",
 				"missingBranch", branch,
 				"targetBranch", targetBranch,
 				"repoFullName", repoFullName,
 				"originalError", err,
 			)
 
-			// Try the target branch as fallback
-			var fallbackErr error
-			diggerYmlStr, ghService, config, dependencyGraph, fallbackErr = GetDiggerConfigForBranch(
-				gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, targetBranch, changedFiles, taConfig,
-			)
-
-			if fallbackErr != nil {
-				slog.Error("Fallback to target branch also failed",
-					"targetBranch", targetBranch,
-					"repoFullName", repoFullName,
-					"fallbackError", fallbackErr,
-				)
-				return "", nil, nil, nil, fmt.Errorf("failed to load config from branch '%s' (branch not found) and fallback to target branch '%s' also failed: %v", branch, targetBranch, fallbackErr)
-			}
-
-			slog.Info("Successfully loaded config from target branch",
-				"targetBranch", targetBranch,
-				"repoFullName", repoFullName,
-			)
-
-			actualBranchUsed = targetBranch
+			return "", ghService, nil, nil, nil
 		} else {
 			// Either not a branch-not-found error, or fallback is disabled
 			if isBranchNotFound && !shouldFallback {
