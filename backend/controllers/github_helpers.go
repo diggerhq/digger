@@ -744,7 +744,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 
 	// Check if PR is merged
 	isMerged := false
-	isMerged, err := ghService.IsMerged(prNumber)
+	isMerged, err = ghService.IsMerged(prNumber)
 	if err != nil {
 		slog.Warn("Could not check PR merge status",
 			"prNumber", prNumber,
