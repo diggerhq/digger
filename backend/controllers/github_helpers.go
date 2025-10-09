@@ -591,10 +591,11 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *digger_c
 	return repoCache.DiggerYmlStr, &config, &projectsGraph, &taConfig, nil
 }
 
-
+// Special error for when branch is not found after PR merge
+var ErrBranchNotFoundPostMerge = errors.New("branch not found after PR merge")
 
 // handles post-merge branch not found 
-func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, isMerged bool, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], error) {
+func GetDiggerConfigForBranchWithGracefulHandling(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, isMerged bool, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], error) {
 	slog.Info("Attempting to get Digger config for branch...",
 		"repoFullName", repoFullName,
 		"primaryBranch", branch,
@@ -605,39 +606,48 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 		return "", nil, nil, nil, fmt.Errorf("error getting github service")
 	}
 
+	// check if branch exists before attempting clone
+	if isMerged {
+		branchExists, err := ghService.CheckBranchExists(branch)
+		if err != nil {
+			slog.Warn("Could not check if branch exists, proceeding with clone attempt",
+				"branch", branch,
+				"repoFullName", repoFullName,
+				"error", err,
+			)
+		} else if !branchExists {
+			slog.Info("Branch already deleted post-merge, skipping clone",
+				"branch", branch,
+				"repoFullName", repoFullName,
+			)
+			return "", ghService, nil, nil, ErrBranchNotFoundPostMerge
+		}
+	}
+
 	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(
 		gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, branch, changedFiles, taConfig,
 	)
 
 	if err != nil {
-		// Check if it's a "branch not found" error
 		errMsg := err.Error()
 		isBranchNotFound := strings.Contains(errMsg, "Remote branch") && strings.Contains(errMsg, "not found") ||
 			strings.Contains(errMsg, "couldn't find remote ref") ||
 			strings.Contains(errMsg, "exit status 128")
 
 		if isBranchNotFound && isMerged {
-			slog.Warn("Branch not found, PR is merged - skipping",
+			slog.Warn("Branch not found post-merge",
 				"branch", branch,
 				"repoFullName", repoFullName,
 			)
-			// return empty/default config to signal "no work to do"
-			emptyConfig := &digger_config.DiggerConfig{Projects: []digger_config.Project{}}
-			projectHash := func(p digger_config.Project) string {
-				return p.Name
-			}
-			emptyGraph := graph.New(projectHash, graph.Directed())
-			return "", ghService, emptyConfig, emptyGraph, nil
-		} else {
-			// some other case 
-			slog.Error("There was a problem loading the config for the branch",
-					"branch", branch,
-					"repoFullName", repoFullName,
-					"error", err,
-			)
-		
-			return "", nil, nil, nil, err
+			return "", ghService, nil, nil, ErrBranchNotFoundPostMerge
 		}
+		
+		slog.Error("Problem loading config for branch",
+			"branch", branch,
+			"repoFullName", repoFullName,
+			"error", err,
+		)
+		return "", nil, nil, nil, err
 	}
 
 	slog.Info("Config loaded successfully",
@@ -762,11 +772,19 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	}
 
 	// get config 
-	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranchWithFallback(
+	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranchWithGracefulHandling(
 		gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, 
 		prBranch, isMerged, changedFiles, taConfig,
 	)
 	if err != nil {
+		if errors.Is(err, ErrBranchNotFoundPostMerge) {
+			slog.Info("Branch deleted post-merge, skipping",
+				"prNumber", prNumber,
+				"branch", prBranch,
+			)
+			return "", nil, nil, nil, nil, nil, nil, ErrBranchNotFoundPostMerge
+		}
+		
 		slog.Error("Error loading Digger config from repository",
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,
@@ -916,3 +934,4 @@ generate_projects:
 	slog.Info("Created Digger repo", "repoId", repo.ID, "diggerRepoName", diggerRepoName)
 	return repo, org, nil
 }
+

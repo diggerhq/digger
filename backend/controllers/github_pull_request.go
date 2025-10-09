@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -128,6 +129,14 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	diggerYmlStr, ghService, config, projectsGraph, _, _, changedFiles, err := getDiggerConfigForPR(gh, organisationId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
+		if errors.Is(err, ErrBranchNotFoundPostMerge) {
+			slog.Info("Branch deleted post-merge, no action needed",
+				"prNumber", prNumber,
+				"repoFullName", repoFullName,
+			)
+			return nil
+		}
+		
 		slog.Error("Error getting Digger config for PR",
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,
