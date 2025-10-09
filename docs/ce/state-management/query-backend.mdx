@@ -2,7 +2,7 @@
 title: "Query Backend"
 ---
 
-OpenTaco supports using a query backend to speed up the retrieval of objects from S3. By default SQLite will initialize, but other SQL databases can be configured if desired.
+OpenTaco supports using a query backend to speed up the retrieval of objects from S3. By default SQLite will initialize, but other SQL databases can be configured if desired. If the backend is not SQLite you need to setup the database first before attempting to run statesman and populate the correct environment variables.
 
 ## Configuration
 
@@ -14,7 +14,7 @@ QUERY_BACKEND=sqlite  # Options: sqlite, postgres, mssql, mysql
 
 ## SQLite (Default)
 
-SQLite is the default query backend and requires no external database server.
+SQLite is the default query backend and requires no external database server and no configuration. We expose settings for convenience but you should not need to configure SQLite in most circumstances. 
 
 ### Environment Variables
 
@@ -116,7 +116,9 @@ export MSSQL_DBNAME=taco_db
 
 ## MySQL
 
-Use MySQL for compatibility with existing MySQL infrastructure.
+Use MySQL for compatibility with existing MySQL infrastructure. 
+
+As an example I used `CREATE DATABASE taco CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;` when testing the MySQL setup. 
 
 ### Environment Variables
 
@@ -179,5 +181,4 @@ export POSTGRES_SSLMODE=require
 - **SQLite** is best for local development and testing
 - **PostgreSQL** is recommended for production deployments
 - **MSSQL** and **MySQL** are available for enterprise compatibility
-- All passwords should be set via environment variables, never hardcoded
 - Database schemas are automatically initialized on first run 
