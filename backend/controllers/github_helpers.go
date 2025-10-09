@@ -617,20 +617,23 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 			strings.Contains(errMsg, "exit status 128")
 
 		if isBranchNotFound && isMerged {
-			// branch doesn't exist 
-			// log the error but don't return it if we've merged already
-			slog.Warn("Branch not found, PR is merged...",
-				"missingBranch", branch,
+			slog.Warn("Branch not found, PR is merged - skipping",
+				"branch", branch,
 				"repoFullName", repoFullName,
-				"originalError", err,
 			)
-
-			return "", ghService, nil, nil, nil
+			// return empty/default config to signal "no work to do"
+			emptyConfig := &digger_config.DiggerConfig{Projects: []digger_config.Project{}}
+			projectHash := func(p digger_config.Project) string {
+				return p.Name
+			}
+			emptyGraph := graph.New(projectHash, graph.Directed())
+			return "", ghService, emptyConfig, emptyGraph, nil
 		} else {
 			// some other case 
 			slog.Error("There was a problem loading the config for the branch.",
 					"missingBranch", branch,
 					"repoFullName", repoFullName,
+					"error", err,
 			)
 		
 			return "", nil, nil, nil, err
