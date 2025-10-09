@@ -87,7 +87,7 @@ type Unit struct {
 	Locked    bool      `gorm:"default:false"`
 	LockID    string    `gorm:"default:''"`
 	LockWho   string    `gorm:"default:''"`
-	LockCreated time.Time
+	LockCreated *time.Time
 	Tags      []Tag     `gorm:"many2many:unit_tags;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
 }
 

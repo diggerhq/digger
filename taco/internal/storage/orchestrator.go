@@ -87,11 +87,11 @@ func (s *OrchestratingStore) List(ctx context.Context, prefix string) ([]*UnitMe
 	metadata := make([]*UnitMetadata, len(units))
 	for i, u := range units {
 		var lockInfo *LockInfo
-		if u.Locked {
+		if u.Locked && u.LockCreated != nil {
 			lockInfo = &LockInfo{
 				ID:      u.LockID,
 				Who:     u.LockWho,
-				Created: u.LockCreated,
+				Created: *u.LockCreated,
 			}
 		}
 		metadata[i] = &UnitMetadata{
