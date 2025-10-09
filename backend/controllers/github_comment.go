@@ -162,7 +162,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	diggerYmlStr, ghService, config, projectsGraph, prSourceBranch, commitSha, changedFiles, err := getDiggerConfigForPR(gh, orgId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, issueNumber)
-	if err != nil {
+	if err != nil {		
 		slog.Error("Error getting Digger config for PR",
 			"issueNumber", issueNumber,
 			"repoFullName", repoFullName,
