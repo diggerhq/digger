@@ -236,6 +236,14 @@ inputs:
     description: "Pre-compiled version of digger CLI to install. Must correspond to a valid release tag (vX.Y.Z). This value overrides the version derived from the github.action_ref."
     required: false
     default: ""
+  digger-os: 
+    description: "OS variant of the digger CLI to install. Valid configurable values are: windows, linux, darwin, freebsd."
+    required: false
+    default: "Linux"
+  digger-arch: 
+    description: "Architecture of the digger CLI to install. Valid configurable values are: amd64, arm64, 386."
+    required: false
+    default: "X64"
 
 outputs:
   output:
@@ -517,6 +525,8 @@ runs:
       if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'prebuilt' }}
       env:
         DIGGER_VERSION: ${{ inputs.digger-version || github.action_ref }}
+        DIGGER_OS: ${{ inputs.digger-os }}
+        DIGGER_ARCH: ${{ inputs.digger-arch }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
@@ -557,12 +567,12 @@ runs:
 
         if [[ ${{ inputs.ee }} == "true" ]]; then
           if [[ ${{ inputs.fips }} == "true" ]]; then
-            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}-fips"
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${DIGGER_OS}-${DIGGER_ARCH}-fips"
           else
-            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${{ runner.os }}-${{ runner.arch }}"
+            DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-ee-cli-${DIGGER_OS}-${DIGGER_ARCH}"
           fi
         else
-          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-cli-${{ runner.os }}-${{ runner.arch }}"
+          DOWNLOAD_URL="https://github.com/diggerhq/digger/releases/download/${DIGGER_VERSION}/digger-cli-${DIGGER_OS}-${DIGGER_ARCH}"
         fi
 
         echo "Downloading from: $DOWNLOAD_URL"
