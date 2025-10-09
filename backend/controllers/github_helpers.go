@@ -591,27 +591,23 @@ func retrieveConfigFromCache(orgId uint, repoFullName string) (string, *digger_c
 	return repoCache.DiggerYmlStr, &config, &projectsGraph, &taConfig, nil
 }
 
-// GetDiggerConfigForBranchWithFallback attempts to load config from the specified branch,
-// and falls back to the target branch if the branch doesn't exist and shouldFallback is true
-func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, targetBranch string, shouldFallback bool, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], error) {
-	slog.Info("Attempting to get Digger config for branch with fallback",
+
+
+// handles post-merge branch not found 
+func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, isMerged bool, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], error) {
+	slog.Info("Attempting to get Digger config for branch...",
 		"repoFullName", repoFullName,
 		"primaryBranch", branch,
-		"targetBranch", targetBranch,
-		"shouldFallback", shouldFallback,
 	)
 
 	ghService, _, err := utils.GetGithubService(gh, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
-		return "", nil, nil, nil,fmt.Errorf("error getting github service")
+		return "", nil, nil, nil, fmt.Errorf("error getting github service")
 	}
 
-	// Try the primary branch first
 	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(
 		gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, branch, changedFiles, taConfig,
 	)
-
-	actualBranchUsed := branch
 
 	if err != nil {
 		// Check if it's a "branch not found" error
@@ -620,31 +616,30 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 			strings.Contains(errMsg, "couldn't find remote ref") ||
 			strings.Contains(errMsg, "exit status 128")
 
-		if isBranchNotFound && branch != targetBranch && shouldFallback {
-			// log the error but don't return it
-			slog.Warn("Branch not found - eating error to avoid client notification",
+		if isBranchNotFound && isMerged {
+			// branch doesn't exist 
+			// log the error but don't return it if we've merged already
+			slog.Warn("Branch not found, PR is merged...",
 				"missingBranch", branch,
-				"targetBranch", targetBranch,
 				"repoFullName", repoFullName,
 				"originalError", err,
 			)
 
 			return "", ghService, nil, nil, nil
 		} else {
-			// Either not a branch-not-found error, or fallback is disabled
-			if isBranchNotFound && !shouldFallback {
-				slog.Info("Branch not found but fallback is disabled",
+			// some other case 
+			slog.Error("There was a problem loading the config for the branch.",
 					"missingBranch", branch,
 					"repoFullName", repoFullName,
-				)
-			}
+			)
+		
 			return "", nil, nil, nil, err
 		}
 	}
 
 	slog.Info("Config loaded successfully",
 		"repoFullName", repoFullName,
-		"branchUsed", actualBranchUsed,
+		"branch", branch,
 	)
 
 	return diggerYmlStr, ghService, config, dependencyGraph, nil
@@ -675,8 +670,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	}
 
 	var prBranch string
-	var targetBranch string
-	prBranch, prCommitSha, targetBranch, _, err := ghService.GetBranchName(prNumber)
+	prBranch, prCommitSha, _, _, err := ghService.GetBranchName(prNumber)
 	if err != nil {
 		slog.Error("Error getting branch name for PR",
 			"prNumber", prNumber,
@@ -686,20 +680,11 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("error getting branch name")
 	}
 
-	// Target branch must be available - no fallback to repo default
-	if targetBranch == "" {
-		slog.Error("PR target branch is empty",
-			"prNumber", prNumber,
-			"repoFullName", repoFullName,
-		)
-		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("PR target branch is empty for PR #%d", prNumber)
-	}
 
 	slog.Debug("Retrieved PR details",
 		"prNumber", prNumber,
 		"branch", prBranch,
 		"commitSha", prCommitSha,
-		"targetBranch", targetBranch,
 	)
 
 	changedFiles, err := ghService.GetChangedFiles(prNumber)
@@ -754,39 +739,35 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	slog.Info("Loading config from repository",
 		"repoFullName", repoFullName,
 		"branch", prBranch,
-		"targetBranch", targetBranch,
 		"prNumber", prNumber,
 	)
 
-	// Check if PR is merged to determine if we should fallback
-	shouldFallback := false
+	// Check if PR is merged
+	isMerged := false
 	isMerged, err := ghService.IsMerged(prNumber)
 	if err != nil {
-		slog.Warn("Could not check PR merge status, will not enable fallback",
+		slog.Warn("Could not check PR merge status",
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,
 			"error", err,
 		)
 	} else {
-		shouldFallback = isMerged
 		slog.Debug("PR merge status checked",
 			"prNumber", prNumber,
 			"isMerged", isMerged,
-			"shouldFallback", shouldFallback,
 		)
 	}
 
-	// Use the fallback method with merge-based fallback logic
+	// get config 
 	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranchWithFallback(
 		gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, 
-		prBranch, targetBranch, shouldFallback, changedFiles, taConfig,
+		prBranch, isMerged, changedFiles, taConfig,
 	)
 	if err != nil {
 		slog.Error("Error loading Digger config from repository",
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,
 			"branch", prBranch,
-			"targetBranch", targetBranch,
 			"error", err,
 		)
 		return "", nil, nil, nil, nil, nil, nil, fmt.Errorf("error loading digger.yml: %v", err)
