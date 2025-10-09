@@ -630,8 +630,8 @@ func GetDiggerConfigForBranchWithFallback(gh utils.GithubClientProvider, install
 			return "", ghService, emptyConfig, emptyGraph, nil
 		} else {
 			// some other case 
-			slog.Error("There was a problem loading the config for the branch.",
-					"missingBranch", branch,
+			slog.Error("There was a problem loading the config for the branch",
+					"branch", branch,
 					"repoFullName", repoFullName,
 					"error", err,
 			)
