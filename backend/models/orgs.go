@@ -27,6 +27,7 @@ type Organisation struct {
 	BillingPlan                 BillingPlan `gorm:"default:'free'"`
 	BillingStripeSubscriptionId string
 	SlackConnectChannelName     *string
+	AdminEmail                  *string
 }
 
 type Repo struct {

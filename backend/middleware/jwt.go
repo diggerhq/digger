@@ -5,84 +5,70 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/segment"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-func SetContextParameters(c *gin.Context, auth services.Auth, token *jwt.Token) error {
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		if claims.Valid() != nil {
-			slog.Warn("Token's claim is invalid")
-			return fmt.Errorf("token is invalid")
-		}
-		var org *models.Organisation
-		tenantId := claims["tenantId"]
-		if tenantId == nil {
-			slog.Warn("Claim's tenantId is nil")
-			return fmt.Errorf("token is invalid")
-		}
-		tenantId = tenantId.(string)
-		slog.Debug("Processing tenant ID", "tenantId", tenantId)
-
-		org, err := models.DB.GetOrganisation(tenantId)
-		if err != nil {
-			slog.Error("Error while fetching organisation", "tenantId", tenantId, "error", err)
-			return err
-		} else if org == nil {
-			slog.Warn("No organisation found for tenantId", "tenantId", tenantId)
-			return fmt.Errorf("token is invalid")
-		}
-
-		c.Set(ORGANISATION_ID_KEY, org.ID)
-
-		segment.GetClient()
-		segment.IdentifyClient(strconv.Itoa(int(org.ID)), org.Name, org.Name, org.Name, org.Name, strconv.Itoa(int(org.ID)), "")
-
-		slog.Debug("Set organisation ID in context", "orgId", org.ID)
-
-		tokenType := claims["type"].(string)
-
-		permissions := make([]string, 0)
-		if tokenType == "tenantAccessToken" {
-			permission, err := auth.FetchTokenPermissions(claims["sub"].(string))
-			if err != nil {
-				slog.Error("Error while fetching permissions", "subject", claims["sub"].(string), "error", err)
-				return fmt.Errorf("token is invalid")
-			}
-			permissions = permission
-		} else {
-			permissionsClaims := claims["permissions"]
-			if permissionsClaims == nil {
-				slog.Warn("Claim's permissions is nil")
-				return fmt.Errorf("token is invalid")
-			}
-			for _, permissionClaim := range permissionsClaims.([]interface{}) {
-				permissions = append(permissions, permissionClaim.(string))
-			}
-		}
-		for _, permission := range permissions {
-			if permission == "digger.all.*" {
-				slog.Debug("Setting admin access level", "permission", permission)
-				c.Set(ACCESS_LEVEL_KEY, models.AdminPolicyType)
-				return nil
-			}
-		}
-		for _, permission := range permissions {
-			if permission == "digger.all.read.*" {
-				slog.Debug("Setting read access level", "permission", permission)
-				c.Set(ACCESS_LEVEL_KEY, models.AccessPolicyType)
-				return nil
-			}
-		}
-	} else {
-		slog.Warn("Token's claim is invalid")
+func SetContextParameters(c *gin.Context, auth services.Auth, claims jwt.MapClaims) error {
+	var org *models.Organisation
+	tenantId := claims["tenantId"]
+	if tenantId == nil {
+		slog.Warn("Claim's tenantId is nil")
 		return fmt.Errorf("token is invalid")
+	}
+	tenantId = tenantId.(string)
+	slog.Debug("Processing tenant ID", "tenantId", tenantId)
+
+	org, err := models.DB.GetOrganisation(tenantId)
+	if err != nil {
+		slog.Error("Error while fetching organisation", "tenantId", tenantId, "error", err)
+		return err
+	} else if org == nil {
+		slog.Warn("No organisation found for tenantId", "tenantId", tenantId)
+		return fmt.Errorf("token is invalid")
+	}
+
+	c.Set(ORGANISATION_ID_KEY, org.ID)
+
+	slog.Debug("Set organisation ID in context", "orgId", org.ID)
+
+	tokenType := claims["type"].(string)
+
+	permissions := make([]string, 0)
+	if tokenType == "tenantAccessToken" {
+		permission, err := auth.FetchTokenPermissions(claims["sub"].(string))
+		if err != nil {
+			slog.Error("Error while fetching permissions", "subject", claims["sub"].(string), "error", err)
+			return fmt.Errorf("token is invalid")
+		}
+		permissions = permission
+	} else {
+		permissionsClaims := claims["permissions"]
+		if permissionsClaims == nil {
+			slog.Warn("Claim's permissions is nil")
+			return fmt.Errorf("token is invalid")
+		}
+		for _, permissionClaim := range permissionsClaims.([]interface{}) {
+			permissions = append(permissions, permissionClaim.(string))
+		}
+	}
+	for _, permission := range permissions {
+		if permission == "digger.all.*" {
+			slog.Debug("Setting admin access level", "permission", permission)
+			c.Set(ACCESS_LEVEL_KEY, models.AdminPolicyType)
+			return nil
+		}
+	}
+	for _, permission := range permissions {
+		if permission == "digger.all.read.*" {
+			slog.Debug("Setting read access level", "permission", permission)
+			c.Set(ACCESS_LEVEL_KEY, models.AccessPolicyType)
+			return nil
+		}
 	}
 	return nil
 }
@@ -133,8 +119,8 @@ func JWTWebAuth(auth services.Auth) gin.HandlerFunc {
 			return
 		}
 
-		if token.Valid {
-			err = SetContextParameters(c, auth, token)
+		if claims, ok := token.Claims.(jwt.MapClaims); token.Valid && ok {
+			err = SetContextParameters(c, auth, claims)
 			if err != nil {
 				slog.Error("Error while setting context parameters", "error", err)
 				c.String(http.StatusForbidden, "Failed to parse token")
@@ -144,14 +130,6 @@ func JWTWebAuth(auth services.Auth) gin.HandlerFunc {
 
 			c.Next()
 			return
-		} else if ve, ok := err.(*jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				slog.Warn("That's not even a token")
-			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-				slog.Warn("Token is either expired or not active yet")
-			} else {
-				slog.Warn("Couldn't handle this token", "error", err)
-			}
 		} else {
 			slog.Warn("Couldn't handle this token", "error", err)
 		}
@@ -270,14 +248,15 @@ func JWTBearerTokenAuth(auth services.Auth) gin.HandlerFunc {
 				return
 			}
 
-			if !parsedToken.Valid {
+			claims, ok := parsedToken.Claims.(jwt.MapClaims)
+			if !parsedToken.Valid || !ok {
 				slog.Warn("Token is invalid")
 				c.String(http.StatusForbidden, "Authorization header is invalid")
 				c.Abort()
 				return
 			}
 
-			err = SetContextParameters(c, auth, parsedToken)
+			err = SetContextParameters(c, auth, claims)
 			if err != nil {
 				slog.Error("Error while setting context parameters", "error", err)
 				c.String(http.StatusForbidden, "Failed to parse token")

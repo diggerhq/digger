@@ -1,0 +1,128 @@
+---
+title: " GCP Quickstart"
+---
+
+
+
+
+
+
+
+## Prerequisites
+
+Before starting, ensure you have the following:
+
+### 1. Google Cloud Setup
+- **gcloud CLI installed**: [Install the gcloud CLI](https://cloud.google.com/sdk/docs/install)
+- **Authenticated with Google Cloud**: Run `gcloud auth login` to authenticate
+- **Project ID configured**: Set your project with `gcloud config set project YOUR_PROJECT_ID`
+- **Billing enabled**: Ensure billing is enabled for your GCP project
+
+### 2. Docker
+- **Docker daemon running**: Ensure Docker is installed and running on your machine
+- **Docker authenticated**: You'll need to authenticate with both Docker Hub and Google Artifact Registry
+
+### 3. AWS Resources
+- **S3 bucket created**: Create an S3 bucket for storing Terraform state and artifacts
+- **AWS credentials**: Have your AWS Access Key ID and Secret Access Key ready
+- **IAM permissions**: Ensure your AWS credentials have permissions to read/write to the S3 bucket
+
+### 4. Auth0 Setup
+- **Auth0 application**: Create an Auth0 application and note your domain, client ID, and client secret. You should follow the guide in [Configure SSO](./sso), you won't have the server url until the server is up but you don't need to set that right away.
+
+
+## Configuration
+
+For GCP, you'll need to set up environment variables and then deploy to Cloud Run.
+
+First, create a `cloud-run.env.yaml` file with your configuration:
+
+```yaml
+# S3 Storage Configuration
+OPENTACO_S3_BUCKET: "your-s3-bucket-name"
+OPENTACO_S3_REGION: "us-east-1"
+OPENTACO_S3_PREFIX: "your-prefix"
+
+# Auth0 Authentication Configuration
+OPENTACO_AUTH_ISSUER: "https://your-auth0-domain.auth0.com/"
+OPENTACO_AUTH_CLIENT_ID: "your_auth0_client_id"
+OPENTACO_AUTH_CLIENT_SECRET: "your_auth0_client_secret"
+OPENTACO_AUTH_AUTH_URL: "https://your-auth0-domain.auth0.com/authorize"
+OPENTACO_AUTH_TOKEN_URL: "https://your-auth0-domain.auth0.com/oauth/token"
+
+# AWS Credentials
+AWS_ACCESS_KEY_ID: "your_aws_access_key_id"
+AWS_SECRET_ACCESS_KEY: "your_aws_secret_access_key"
+AWS_REGION: "us-east-1"
+
+# Additional Statesman Configuration
+OPENTACO_PORT: "8080"
+OPENTACO_STORAGE: "s3"
+OPENTACO_AUTH_DISABLE: "false"
+```
+
+Then, use the following script to set up Artifact Registry and deploy to Cloud Run from the same directory as your cloud-run.env.yaml
+
+```bash
+#!/bin/bash
+set -e
+
+# Set your project ID
+PROJECT_ID="YOUR_GCP_REPO"
+GCP_REPO_NAME="STATESMAN_ARTEFACT_NAME"
+GCP_REGION="us-central1"
+
+echo "Setting up Artifact Registry for Statesman..."
+
+# Enable all required APIs
+echo "Enabling required GCP APIs..."
+gcloud services enable artifactregistry.googleapis.com
+gcloud services enable run.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable containerregistry.googleapis.com
+
+# Check if repository exists, create if it doesn't
+if ! gcloud artifacts repositories describe $GCP_REPO_NAME --location=$GCP_REGION >/dev/null 2>&1; then
+  echo "Creating repository..."
+  gcloud artifacts repositories create $GCP_REPO_NAME \
+    --repository-format=docker \
+    --location=$GCP_REGION \
+    --description="Repository for OpenTaco Statesman images"
+else
+  echo "Repository already exists $GCP_REPO_NAME, skipping creation..."
+fi
+
+# Configure Docker auth
+gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
+
+# Pull, tag, and push image
+docker pull --platform linux/amd64 ghcr.io/diggerhq/digger/taco-statesman:latest
+docker tag ghcr.io/diggerhq/digger/taco-statesman:latest \
+  $GCP_REGION-docker.pkg.dev/$PROJECT_ID/$GCP_REPO_NAME/taco-statesman:latest
+docker push $GCP_REGION-docker.pkg.dev/$PROJECT_ID/$GCP_REPO_NAME/taco-statesman:latest
+
+echo "Deploying to Cloud Run..."
+gcloud run deploy statesman \
+  --image $GCP_REGION-docker.pkg.dev/$PROJECT_ID/$GCP_REPO_NAME/taco-statesman:latest \
+  --region $GCP_REGION \
+  --platform managed \
+  --allow-unauthenticated \
+  --env-vars-file cloud-run.env.yaml
+
+echo "Artifact Registry and Cloud Run setup complete!"
+echo "Your image is now at: $GCP_REGION-docker.pkg.dev/$PROJECT_ID/$GCP_REPO_NAME/taco-statesman:latest"
+SERVICE_URL=$(gcloud run services describe statesman --region $GCP_REGION --format="value(status.url)")
+echo "Service URL: $SERVICE_URL"
+echo "Health check: $SERVICE_URL/readyz"
+```
+
+
+Once this service is up you can configure Auth0 with its cloud run url. Go to your application, and add the GCP url like so: `[GCP URL]/oauth/oidc-callback`. 
+
+Mine looks like this: https://statesman-1234567890.us-central1.run.app/oauth/oidc-callback
+
+![Allowed Callbacks](/images/state-management/allowed_callbacks.png)
+
+Then run `taco login`. If you have not setup taco before it will prompt you for a server url. If you have run taco login before, you can do `taco setup` to configure the server url. In either case you would set the cloud run url as the server url. 
+
+When the CLI asked me to enter my OpenTaco server url I pasted in: https://statesman-1234567890.us-central1.run.app

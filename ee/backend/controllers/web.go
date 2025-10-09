@@ -3,6 +3,7 @@ package controllers
 import (
 	"html/template"
 	"log"
+	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/gin-gonic/gin"
 	"github.com/robert-nix/ansihtml"
-	"golang.org/x/exp/maps"
 )
 
 type WebController struct {

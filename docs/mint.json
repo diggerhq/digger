@@ -59,7 +59,10 @@
         "ce/state-management/digger-integration",
         "ce/state-management/development",
         "ce/state-management/analytics",
-        "ce/state-management/query-backend"
+        "ce/state-management/query-backend",
+        "ce/state-management/versioning",
+        "ce/state-management/gcp-quickstart",
+        "ce/state-management/aws-fargate-ad-quickstart"
       ]
     },
     {
@@ -71,7 +74,6 @@
         "ce/features/concurrency",
         "ce/features/layering",
         "ce/features/pr-level-locks",
-        "ce/features/plan-persistence",
         "ce/features/private-runners",
         "ce/features/drift-detection",
         "ce/features/rbac",
@@ -104,7 +106,7 @@
         "ce/howto/policy-overrides",
         "ce/howto/project-level-roles",
         "ce/howto/segregate-cloud-accounts",
-        "ce/howto/store-plans-in-a-bucket",
+        "ce/howto/plan-artefacts",
         "ce/howto/trigger-directly",
         "ce/howto/using-checkov",
         "ce/howto/using-infracost",

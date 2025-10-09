@@ -67,7 +67,7 @@ var loginCmd = &cobra.Command{
                 }
             }
         }
-        if issuer == "" || clientID == "" { return fmt.Errorf("issuer/client-id missing; set flags or configure server /v1/auth/config") }
+        if issuer == "" || clientID == "" { return fmt.Errorf("OpenTaco could not discover your issuer/client-id, are you sure the server is running?; set flags or configure server /v1/auth/config") }
 
         // Discover endpoints or use overrides
         var authEp, tokenEp string
@@ -83,12 +83,12 @@ var loginCmd = &cobra.Command{
         verifier := randomB58(32)
         challenge := codeChallengeS256(verifier)
         state := randomB58(24)
-        redirectURI := fmt.Sprintf("http://127.0.0.1:%d/callback", cbPort)
+        redirectURI := fmt.Sprintf("http://localhost:%d/callback", cbPort)
 
         // Start local callback server (dedicated mux)
         codeCh := make(chan url.Values, 1)
         mux := http.NewServeMux()
-        srv := &http.Server{Addr: fmt.Sprintf("127.0.0.1:%d", cbPort), Handler: mux}
+        srv := &http.Server{Addr: fmt.Sprintf("localhost:%d", cbPort), Handler: mux}
         mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
             q := r.URL.Query()
             if q.Get("state") != state {

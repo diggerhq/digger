@@ -1,0 +1,54 @@
+---
+title: "Plan artefacts"
+---
+
+Digger can be used to store plan artefacts during the plan phase and make them available for use during the apply phase. Once plan artefacts is configured and uploaded during the plan phase
+it will automatically be used during the apply phase. Once one of the below artefacts is configured successfully there is no additional configuration needed on your end to achieve apply-time artefact reuse.
+
+### Github 
+Digger can use Github Artifacts to store `terraform plan` outputs. In order to enable it you can set the following argument in digger_workflow.yml:
+
+```
+upload-plan-destination: github
+```
+
+<Warning>
+    Github plan artefacts as a destination is currently deprecated due to a change in Github API. For more information see [this issue](https://github.com/diggerhq/digger/issues/1702).
+</Warning>
+
+<Alert>
+    sadfasdf
+</Alert>
+
+### GCP 
+You can also configure plan outputs to be uploaded to GCP Buckets instead. This is handy in case you want your plan outputs to stay within your organisation's approved storage providers for security or compliance reasons.
+
+To change digger to upload the plan to GCP set the follow argument in the digger_workflow.yml file
+
+```
+with:
+    google-lock-bucket: 'gcp'
+    upload-plan-destination-gcp-bucket: 'terraform-plan-output-1239123'
+```
+
+### AWS 
+You can also use AWS S3 buckets to store plan outputs.  
+
+To change digger to upload the plan to AWS S3 set the following arguments in the digger_workflow.yaml
+
+```
+with:
+    upload-plan-destination: 'aws'
+    upload-plan-destination-s3-bucket: 'terraform-plan-output-1239123'
+```
+
+### Azure 
+You can also use Azure storage accounts to store plan outputs.  
+
+To change digger to upload the plan to Azure storage account set the following arguments in the digger_workflow.yaml
+
+```
+with:
+    upload-plan-destination: 'azure'
+    upload-plan-destination-azure-storage-account: 'account_name'
+    upload-plan-destination-azure-container: 'container_name'

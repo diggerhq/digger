@@ -2,7 +2,14 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
+	"os"
+	"runtime/debug"
+	"slices"
+	"strconv"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	config2 "github.com/diggerhq/digger/backend/config"
 	locking2 "github.com/diggerhq/digger/backend/locking"
@@ -16,12 +23,6 @@ import (
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
-	"log/slog"
-	"os"
-	"runtime/debug"
-	"slices"
-	"strconv"
-	"time"
 )
 
 func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullRequestEvent, ciBackendProvider ci_backends.CiBackendProvider, appId int64) error {
@@ -49,6 +50,12 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	branch := payload.PullRequest.Head.GetRef()
 	action := *payload.Action
 	labels := payload.PullRequest.Labels
+	var vcsActorId string = ""
+	if payload.Sender != nil && payload.Sender.Email != nil {
+		vcsActorId = *payload.Sender.Email
+	} else if payload.Sender != nil && payload.Sender.Login != nil {
+		vcsActorId = *payload.Sender.Login
+	}
 	prLabelsStr := lo.Map(labels, func(label *github.Label, i int) string {
 		return *label.Name
 	})
@@ -94,36 +101,6 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	// here we check if pr was closed and automatic deletion is enabled, to avoid errors when
-	// pr is merged and the branch does not exist we handle that gracefully
-	if action == "closed" {
-		slog.Debug("Handling closed PR action", "prNumber", prNumber)
-		// we sleep for 1 second to give github time to delete the branch
-		time.Sleep(1 * time.Second)
-
-		branchName, _, _, _, err := ghService.GetBranchName(prNumber)
-		if err != nil {
-			slog.Error("Could not retrieve PR details", "prNumber", prNumber, "error", err)
-			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not retrieve PR details, error: %v", err))
-			return fmt.Errorf("Could not retrieve PR details: %v", err)
-		}
-
-		branchExists, err := ghService.CheckBranchExists(branchName)
-		if err != nil {
-			slog.Error("Could not check if branch exists", "prNumber", prNumber, "branchName", branchName, "error", err)
-			utils.InitCommentReporter(ghService, prNumber, fmt.Sprintf(":x: Could not check if branch exists, error: %v", err))
-			return fmt.Errorf("Could not check if branch exists: %v", err)
-		}
-
-		if !branchExists {
-			slog.Info("Branch no longer exists, ignoring PR closed event",
-				"prNumber", prNumber,
-				"branchName", branchName,
-			)
-			return nil
-		}
-	}
-
 	if !slices.Contains([]string{"closed", "opened", "reopened", "synchronize", "converted_to_draft"}, action) {
 		slog.Info("Ignoring event with action not requiring processing", "action", action, "prNumber", prNumber)
 		return nil
@@ -141,8 +118,25 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		}
 	}
 
+	org, err := models.DB.GetOrganisationById(organisationId)
+	if err != nil || org == nil {
+		slog.Error("Error getting organisation",
+			"orgId", organisationId,
+			"error", err)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed to get organisation by ID"))
+		return fmt.Errorf("error getting organisation")
+	}
+
 	diggerYmlStr, ghService, config, projectsGraph, _, _, changedFiles, err := getDiggerConfigForPR(gh, organisationId, prLabelsStr, installationId, repoFullName, repoOwner, repoName, cloneURL, prNumber)
 	if err != nil {
+		if errors.Is(err, ErrBranchNotFoundPostMerge) {
+			slog.Info("Branch deleted post-merge, no action needed",
+				"prNumber", prNumber,
+				"repoFullName", repoFullName,
+			)
+			return nil
+		}
+		
 		slog.Error("Error getting Digger config for PR",
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,
@@ -244,6 +238,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"commands", jobsForImpactedProjects[0].Commands,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not determine digger command from job: %v", err))
 		return fmt.Errorf("unknown digger command in comment %v", err)
 	}
@@ -253,6 +248,19 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"command", *diggerCommand,
 		)
+		return nil
+	}
+
+	// special case for when a draft pull request is opened and ignore PRs is set to true we DO NOT want to lock the projects
+	if !config.AllowDraftPRs && isDraft && action == "opened" {
+		slog.Info("Draft PRs are disabled, skipping PR",
+			"prNumber", prNumber,
+			"isDraft", isDraft,
+		)
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
+		}
 		return nil
 	}
 
@@ -320,8 +328,15 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"isDraft", isDraft,
 		)
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			// This one is for aggregate reporting
+			commentReporterManager.UpdateComment(":construction_worker: Ignoring event as it is a draft and draft PRs are configured to be ignored")
+		}
 		return nil
 	}
+
+	// a pull request has led to jobs which would be triggered (ignoring closed event by here)
+	segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request", map[string]string{})
 
 	commentReporter, err := commentReporterManager.UpdateComment(":construction_worker: Digger starting... Config loaded successfully")
 	if err != nil {
@@ -329,6 +344,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		return fmt.Errorf("error initializing comment reporter")
 	}
 
@@ -338,6 +354,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: error setting status for PR: %v", err))
 		return fmt.Errorf("error setting status for PR: %v", err)
 	}
@@ -398,6 +415,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"commentId", commentReporter.CommentId,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
@@ -410,6 +428,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 				"prNumber", prNumber,
 				"error", err,
 			)
+			segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 			commentReporterManager.UpdateComment(fmt.Sprintf(":x: could not post ai comment summary comment id: %v", err))
 			return fmt.Errorf("could not post ai summary comment: %v", err)
 		}
@@ -453,6 +472,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"prNumber", prNumber,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
 		return fmt.Errorf("error converting jobs")
 	}
@@ -508,7 +528,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		slog.Debug("Successfully updated batch with source details", "batchId", batchId)
 	}
 
-	segment.Track(strconv.Itoa(int(organisationId)), "backend_trigger_job")
+	segment.Track(*org, repoOwner, vcsActorId, "github", "backend_trigger_job", map[string]string{})
 
 	slog.Info("Getting CI backend",
 		"prNumber", prNumber,
@@ -531,6 +551,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"repoFullName", repoFullName,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: GetCiBackend error: %v", err))
 		return fmt.Errorf("error fetching ci backed %v", err)
 	}
@@ -548,6 +569,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			"batchId", batchId,
 			"error", err,
 		)
+		segment.Track(*org, repoOwner, vcsActorId, "github", "pull_request_ERROR", map[string]string{"error": err.Error()})
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: TriggerDiggerJobs error: %v", err))
 		return fmt.Errorf("error triggering Digger Jobs")
 	}

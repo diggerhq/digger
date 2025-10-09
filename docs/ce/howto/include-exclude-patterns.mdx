@@ -15,19 +15,35 @@ modules/
 ```
 
 <Note>
-    The path of include / exclude patterns is relative to the digger.yml location - NOT the project location
+    Patterns starting with `.` (e.g., `./modules/**` or `../modules/**`) are resolved relative to the **project directory**. All other patterns are resolved relative to the **digger.yml location**.
 </Note>
 
 If you wanted to trigger plans for all `modules/` folder in both dev and prod projects you would include them in the `include_patterns` key. Similarly you put anything which you want to ignore in the `exclude_patterns` key ( exclude takes precedence over includes).
+
+Example using patterns relative to project directory:
 
 ```yml
 projects:
   - name: dev
     dir: ./development
-    include_patterns: ["./modules/**"]
+    include_patterns: ["../modules/**"]  # Resolved from ./development/
     workflow: default_workflow
   - name: prod
     dir: ./production
-    include_patterns: ["./modules/**"]
-    exclude_patterns: ["./modules/dev_only_module/**"]
+    include_patterns: ["../modules/**"]  # Resolved from ./production/
+    exclude_patterns: ["../modules/dev_only_module/**"]
+```
+
+Example using patterns relative to digger.yml location:
+
+```yml
+projects:
+  - name: dev
+    dir: ./development
+    include_patterns: ["modules/**"]  # Resolved from digger.yml location
+    workflow: default_workflow
+  - name: prod
+    dir: ./production
+    include_patterns: ["modules/**"]
+    exclude_patterns: ["modules/dev_only_module/**"]
 ```

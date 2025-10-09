@@ -1,8 +1,9 @@
 package tfe
 
 import (
-	"os"
+	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"github.com/labstack/echo/v4"
+	"os"
 )
 
 const (
@@ -12,50 +13,13 @@ const (
 	ModuleV1Prefix = "/v1/modules/"
 )
 
-const (
-	// OAuth2 client ID - purely advisory according to:
-	// https://developer.hashicorp.com/terraform/internals/v1.3.x/login-protocol#client
-	ClientID = "terraform"
+func (h *TfeHandler) MessageOfTheDay(c echo.Context) error {
+	c.Response().Header().Set(echo.HeaderContentType, "application/json")
+	c.Response().Header().Set("Tfp-Api-Version", "2.5")
+	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
-	AuthRoute  = "/tfe/app/oauth2/auth"
-	TokenRoute = "/tfe/oauth2/token"
-)
-
-// login stuff, TODO: move to own package etc
-type DiscoverySpec struct {
-	Client     string   `json:"client"`
-	GrantTypes []string `json:"grant_types"`
-	Authz      string   `json:"authz"`
-	Token      string   `json:"token"`
-	Ports      []int    `json:"ports"`
-}
-
-var Discovery = DiscoverySpec{
-	Client:     ClientID,
-	GrantTypes: []string{"authz_code"},
-	Authz:      AuthRoute,
-	Token:      TokenRoute,
-	Ports:      []int{10000, 10010},
-}
-
-type DiscoveryDef struct {
-	ModulesV1 string        `json:"modules.v1"`
-	MotdV1    string        `json:"motd.v1"`
-	StateV2   string        `json:"state.v2"`
-	TfeV2     string        `json:"tfe.v2"`
-	TfeV21    string        `json:"tfe.v2.1"`
-	TfeV22    string        `json:"tfe.v2.2"`
-	LoginV1   DiscoverySpec `json:"login.v1"`
-}
-
-var discoveryPayload = DiscoveryDef{
-	ModulesV1: ModuleV1Prefix,
-	MotdV1:    "/api/terraform/motd",
-	StateV2:   APIPrefixV2,
-	TfeV2:     APIPrefixV2,
-	TfeV21:    APIPrefixV2,
-	TfeV22:    APIPrefixV2,
-	LoginV1:   Discovery,
+	res := tfe.MotdResponse{Msg: tfe.MotdMessage()}
+	return c.JSON(200, res)
 }
 
 // Update GetWellKnownJson to use real OAuth endpoints and client ID
@@ -65,26 +29,26 @@ func (h *TfeHandler) GetWellKnownJson(c echo.Context) error {
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
 	baseURL := getBaseURL(c)
-	
+
 	// Get the real client ID from environment (same as auth handler)
 	clientID := os.Getenv("OPENTACO_AUTH_CLIENT_ID")
 	if clientID == "" {
 		clientID = "terraform" // fallback for compatibility
 	}
-	
+
 	// Use the same OAuth endpoints as the main auth flow
-	discoveryPayload := DiscoveryDef{
-		ModulesV1: ModuleV1Prefix,
-		MotdV1:    "/api/terraform/motd",
-		StateV2:   APIPrefixV2,
-		TfeV2:     APIPrefixV2,
-		TfeV21:    APIPrefixV2,
-		TfeV22:    APIPrefixV2,
-		LoginV1: DiscoverySpec{
-			Client:     clientID,                          // Use real client ID
+	discoveryPayload := tfe.WellKnownSpec{
+		Modules:         ModuleV1Prefix,
+		MessageOfTheDay: "/tfe/api/v2/motd",
+		State:           APIPrefixV2,
+		TfeApiV2:        APIPrefixV2,
+		TfeApiV21:       APIPrefixV2,
+		TfeApiV22:       APIPrefixV2,
+		Login: tfe.LoginSpec{
+			Client:     clientID, // Use real client ID
 			GrantTypes: []string{"authz_code"},
-			Authz:      baseURL + "/oauth/authorization",  // Real OAuth endpoint
-			Token:      baseURL + "/oauth/token",          // Real OAuth endpoint  
+			Authz:      baseURL + "/oauth/authorization", // Real OAuth endpoint
+			Token:      baseURL + "/oauth/token",         // Real OAuth endpoint
 			Ports:      []int{10000, 10010},
 		},
 	}

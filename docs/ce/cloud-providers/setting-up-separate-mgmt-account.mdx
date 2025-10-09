@@ -1,9 +1,57 @@
 ---
-title: "Setting up separate mgmt account"
+title: "Setting up separate management account"
 ---
 
 You can use separate AWS accounts for Digger locks and target infrastructure.
 
+### Locks 
+
 * If you only pass `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` env vars, same account will be used for both
 
 * If in addition you also pass `DIGGER_AWS_ACCESS_KEY_ID` and `DIGGER_AWS_SECRET_ACCESS_KEY` vars then those will be used for Digger locks, and the first pair will be used as target account
+
+
+### State 
+
+In the digger.yml file, to use an alternate account for your state, you can pass the above credentials through `extra_args` and use the default AWS credentials as the `commands:` `env_vars`: 
+
+
+```bash
+# digger.yml
+
+
+projects: 
+  - name: DEV
+    dir: k8s_deployment
+    workflow: terraform
+    include_patterns: ["*.tf", "../_env_data/dev.json", "modules/**/*.tf", "modules/**/*.yaml"]
+    workspace: dev
+
+
+
+workflows:
+	terraform:
+	    env_vars: 
+	      commands:
+	      - name: AWS_ACCESS_KEY_ID
+	        value_from: AWS_ACCESS_KEY_ID
+	      - name: AWS_SECRET_ACCESS_KEY
+	        value_from: AWS_SECRET_ACCESS_KEY
+	    on_commit_to_default:
+	      - init
+	      - apply
+	    plan:
+	      steps:
+	        - init:
+	            extra_args: ["-backend-config=tf_backend.tfbackend","-backend-config=access_key=$DIGGER_AWS_ACCESS_KEY_ID","-backend-config=secret_key=$DIGGER_AWS_SECRET_ACCESS_KEY"]
+	        - plan
+	    apply:
+	      steps:
+	        - init:
+	            extra_args: ["-backend-config=tf_backend.tfbackend","-backend-config=access_key=$DIGGER_AWS_ACCESS_KEY_ID","-backend-config=secret_key=$DIGGER_AWS_SECRET_ACCESS_KEY"]
+	        - apply
+```	       
+
+<Note>
+In the past, setting only the evironment variables would allow this separation but the CLI is not honoring them currently. We're looking into why.
+</Note> 

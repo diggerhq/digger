@@ -1,50 +1,64 @@
 ---
-title: "Specifying version"
-description: "For serious usecases always use a pinned version which is of the form @vX.Y.Z since this will download a compiled binary. In addition to being faster to run, it is also more secure than using a commit from a branch"
+title: "Specifying Version"
 ---
 
 <Warning>
-  For serious usecases always use a pinned version which is of the form @vX.Y.Z
-  since this will download a compiled binary. In addition to being faster to run, it
-  is also more secure than using a commit from a branch
+  For production use cases it is best to pin the version of the action with the commit hash (e.g. `-uses: diggerhq/digger@<COMMIT_HASH>`) of the desired release 
+  AND specify the `digger-version` input to be a tagged release (`vX.Y.Z`). 
+
+  This provides the security of ensuring the same action code is executed each time with the performance of using a pre-compiled Digger binary.
 </Warning>
 
-## Use vLatest tag
+## Commit Hash + digger-version input (Production recommendation)
 
-The default and recommended way of versioning Digger is to use the vLatest tag, which always points to the latest release. The difference compared to just specifying "latest" is that it is a release with pre-built binaries, so it is faster than building from a branch, which using "latest" effectively does.
+For production usage, we recommend pinning the action to the commit hash of a released version AND specifying a Digger CLI version via the `digger-version` input.
+
+Specifying the action commit hash is the only way to ensure the same version of a GitHub Action is executed each time and helps protect against supply chain attacks such as [CVE-2025-30066](https://www.wiz.io/blog/github-action-tj-actions-changed-files-supply-chain-attack-cve-2025-30066).
+
+The `digger-version` input enables pinning to the hash while ALSO using a pre-built Digger cli binary.
+
+```
+- name: digger
+  uses: diggerhq/digger@<COMMIT_HASH_OF_TAGGED_RELEASE> # vX.Y.Z
+  with:
+    digger-version: vX.Y.Z
+```
+
+## vLatest (Convenient auto-upgrades)
+
+For non-production use cases, you can specify the `vLatest` tag to use the latest tagged release for the digger action and the Digger CLI.
+
+The difference compared to just specifying "latest" is that it is a release with pre-built binaries, so it is faster than building from a branch, which using "latest" effectively does.
+
+```
+- name: digger
+  uses: diggerhq/digger@vLatest
+```
+
+## vX.Y.Z (Simple and stable)
+
+If you aren't worried about supply chain attacks but want stability of using a specific release, you can pin the action to a specific release of Digger.
+
+This will infer the Digger cli version to use based on the version of the action using `github.action_ref` and install the corresponding pre-built binary.
 
 ```
 - name: digger
   uses: diggerhq/digger@vX.Y.Z
-  env:
-    ...
 ```
 
-## Use a pinned version
+## Commit Hash Only (Build a specific CLI version from source at runtime)
 
-To pin a specific release of Digger, you can use `@vX.Y.Z` tag in your workflow file:
-
-```
-- name: digger
-  uses: diggerhq/digger@vX.Y.Z
-  env:
-    ...
-```
-
-## Use latest commit from a branch
-
-You can also run latest commit from a specific branch
-
-Only use this at your own risk in non-production scenarios. This can break things!
+If you want to use an unreleased version of the Digger CLI (e.g. test something on a feature branch or a yet to be released commit from `develop`),
+you can specify the action with that commit hash AND omit the `digger-version` input.
 
 <Warning>
-  Only use this at your own risk in non-production scenarios. This can break
-  things!
+  Only use this at your own risk in non-production scenarios. This can break things!
 </Warning>
 
 ```
 - name: digger
-  uses: diggerhq/digger@yolo-lets-do-it
-  env:
-    ...
+  uses: diggerhq/digger@<YOLO_COMMIT_HASH>
+  with:
+    # OMIT THE digger-version INPUT
+    # digger-input: ""
 ```

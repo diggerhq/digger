@@ -2,12 +2,30 @@
 title: "PR-level locks"
 ---
 
-* For every pull request we perform a lock when the pull request is opened and unlocked when the pull request is merged, this is to avoid making a plan preview stale
+For every pull request we perform a lock when the pull request is opened and unlocked when the pull request is merged, this is to avoid making a single apply override another apply in a different PR.
+Since digger is primarily being used to apply while the PR is open this locking guarantees that no two PRs can wipe off eachother's changes due to human errors.
+When digger is using with a backend the locks are stored in the database directly in a table called digger_locks. No further configuration is needed.
 
-* For GCP locking is performed using buckets that are strongly consistent: [https://github.com/diggerhq/digger/blob/80289922227f225d887feb74749b4daef8b441f8/pkg/gcp/gcp\_lock.go#L13](https://github.com/diggerhq/digger/blob/80289922227f225d887feb74749b4daef8b441f8/pkg/gcp/gcp%5Flock.go#L13)
+## Disabling PR-level locks
 
-* These options are configured and the locking can be disabled entirely if it is not needed
+In order to disable locking repo wide you can add a top-level flag to your digger.yml:
 
-* The locking interface is very simple and is based on `Lock()` and `Unlock()` Operations [https://github.com/diggerhq/digger/blob/5815775095d7380281c71c7c3aa63ca1b374365f/pkg/locking/locking.go#L40](https://github.com/diggerhq/digger/blob/5815775095d7380281c71c7c3aa63ca1b374365f/pkg/locking/locking.go#L40)
+```
+pr_locks: false
 
-* A pull request acquires a lock for every project impacted by this PR and all dependant projects
+projects:
+   - name: dev
+     dir: dev/
+```
+
+## Backendless mode
+
+When using digger in backendless mode there is no backend or DB to store the locks information. In this case we have implemented integrations with several
+cloud provider resources to store the state of PR locks. The table below summarises the different locking methods available when using backendless mode:
+
+
+| Cloud Provider | Resource Type   | Configuration details Link |
+|----------------|-----------------|------|
+| AWS            | DynamoDB        | [here](/ce/cloud-providers/aws) |
+| GCP            | GCP Bucket      | [here](/ce/gcp/using-gcp-bucket-for-locks) |
+| Azure          | Storage Tables  | [here](/ce/azure-specific/azure-devops-locking-connection-methods) |

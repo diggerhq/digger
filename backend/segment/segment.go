@@ -4,12 +4,13 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/diggerhq/digger/backend/models"
 	"github.com/segmentio/analytics-go/v3"
 )
 
 var client analytics.Client = nil
 
-func GetClient() analytics.Client {
+func getClient() analytics.Client {
 	segmentApiKey := os.Getenv("SEGMENT_API_KEY")
 	if segmentApiKey == "" {
 		slog.Debug("Not initializing segment because SEGMENT_API_KEY is missing")
@@ -29,6 +30,7 @@ func CloseClient() {
 }
 
 func IdentifyClient(userId string, userFullName string, username string, email string, organisationName string, organisationId string, userPlan string) {
+	getClient()
 	if client == nil {
 		return
 	}
@@ -45,14 +47,34 @@ func IdentifyClient(userId string, userFullName string, username string, email s
 	})
 }
 
-func Track(userId string, action string) {
+func Track(orgnaisation models.Organisation, vcsOwner string, vcsUser string, vcsType string, action string, extraProps map[string]string) {
+	getClient()
 	if client == nil {
 		return
 	}
-	slog.Debug("Tracking client action", "userId", userId, "action", action)
+	externalOrgId := orgnaisation.ExternalId
+	var adminEmail string
+	if orgnaisation.AdminEmail != nil {
+		adminEmail = *orgnaisation.AdminEmail
+	} else {
+		adminEmail = "UNKNOWN"
+	}
+
+	props := analytics.NewProperties().
+		Set("org_id", externalOrgId).
+		Set("vcs_user", vcsUser).
+		Set("vcs_owner", vcsOwner).
+		Set("vcs_type", vcsType)
+
+	if extraProps != nil {
+		for k, v := range extraProps {
+			props.Set(k, v)
+		}
+	}
+	slog.Debug("Tracking client action", "userId", adminEmail, "action", action)
 	client.Enqueue(analytics.Track{
 		Event:      action,
-		UserId:     userId,
-		Properties: analytics.NewProperties(),
+		UserId:     adminEmail,
+		Properties: props,
 	})
 }

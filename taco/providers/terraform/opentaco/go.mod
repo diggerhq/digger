@@ -56,3 +56,5 @@ require (
 replace github.com/diggerhq/digger/opentaco/internal => ../../../internal
 
 replace github.com/diggerhq/digger/opentaco/pkg/sdk => ../../../pkg/sdk
+
+replace github.com/diggerhq/digger/opentaco/internal => ../../../internal
