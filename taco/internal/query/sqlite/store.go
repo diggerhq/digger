@@ -21,7 +21,7 @@ func NewSQLiteQueryStore(cfg query.SQLiteConfig) (query.Store, error) {
 
 	dsn := fmt.Sprintf("file:%s?cache=%s", cfg.Path, cfg.Cache)
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info), // Or Silent
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %v", err)

@@ -12,8 +12,8 @@ type Config struct {
 }
 
 
-type SQLiteConfig struct {
-	Path              string        `envconfig:"PATH" default:"./data/taco.db"`
+type SQLiteConfig struct { 
+	Path              string        `envconfig:"DB_PATH" default:"./data/taco.db"`// if we call it PATH at the struct level, it will pick up the terminal path 
 	Cache             string        `envconfig:"CACHE" default:"shared"`
 	BusyTimeout       time.Duration `envconfig:"BUSY_TIMEOUT" default:"5s"`
 	MaxOpenConns      int           `envconfig:"MAX_OPEN_CONNS" default:"1"`

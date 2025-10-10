@@ -90,29 +90,45 @@ func main() {
 
 	// --- Sync RBAC Data ---
 	if queryStore.IsEnabled() {
-		if err := wiring.SyncRBACFromStorage(context.Background(), blobStore, queryStore); err != nil {
-			log.Printf("Warning: Failed to sync RBAC data: %v", err)
+		hasRoles, err := queryStore.HasRBACRoles(context.Background())
+		if err != nil {
+			log.Printf("Warning: Failed to check for existing RBAC data: %v", err)
 		}
 		
-		// Sync existing units from storage to database
-		log.Println("Syncing existing units from storage to database...")
-		units, err := blobStore.List(context.Background(), "")
-		if err != nil {
-			log.Printf("Warning: Failed to list units from storage: %v", err)
-		} else {
-			for _, unit := range units {
-				// Always ensure unit exists first
-				if err := queryStore.SyncEnsureUnit(context.Background(), unit.ID); err != nil {
-					log.Printf("Warning: Failed to sync unit %s: %v", unit.ID, err)
-					continue
-				}
-				
-				// Always sync metadata to update existing records
-				if err := queryStore.SyncUnitMetadata(context.Background(), unit.ID, unit.Size, unit.Updated); err != nil {
-					log.Printf("Warning: Failed to sync metadata for unit %s: %v", unit.ID, err)
-				}
+		if !hasRoles {
+			log.Println("Query backend has no RBAC data, performing initial sync from S3...")
+			if err := wiring.SyncRBACFromStorage(context.Background(), blobStore, queryStore); err != nil {
+				log.Printf("Warning: Failed to sync RBAC data: %v", err)
 			}
-			log.Printf("Synced %d units from storage to database", len(units))
+		} else {
+			log.Println("Query backend already has RBAC data, skipping sync (using runtime sync instead)")
+		}
+		
+		existingUnits, err := queryStore.ListUnits(context.Background(), "")
+		if err != nil {
+			log.Printf("Warning: Failed to check for existing units: %v", err)
+		}
+		
+		if len(existingUnits) == 0 {
+			log.Println("Query backend has no units, syncing from storage...")
+			units, err := blobStore.List(context.Background(), "")
+			if err != nil {
+				log.Printf("Warning: Failed to list units from storage: %v", err)
+			} else {
+				for _, unit := range units {
+					if err := queryStore.SyncEnsureUnit(context.Background(), unit.ID); err != nil {
+						log.Printf("Warning: Failed to sync unit %s: %v", unit.ID, err)
+						continue
+					}
+					
+					if err := queryStore.SyncUnitMetadata(context.Background(), unit.ID, unit.Size, unit.Updated); err != nil {
+						log.Printf("Warning: Failed to sync metadata for unit %s: %v", unit.ID, err)
+					}
+				}
+				log.Printf("Synced %d units from storage to database", len(units))
+			}
+		} else {
+			log.Printf("Query backend already has %d units, skipping sync", len(existingUnits))
 		}
 	}
 

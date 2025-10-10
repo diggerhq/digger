@@ -18,7 +18,7 @@ func NewMySQLStore(cfg query.MySQLConfig) (query.Store, error) {
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.Charset)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info), // Or Silent
+		Logger: logger.Default.LogMode(logger.Silent), 	
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to mysql: %w", err)
