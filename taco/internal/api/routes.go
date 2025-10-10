@@ -194,7 +194,7 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, que
 
 	// RBAC routes (only available with S3 storage)
 	if rbacManager != nil {
-		rbacHandler := rbac.NewHandler(rbacManager, signer)
+		rbacHandler := rbac.NewHandler(rbacManager, signer, queryStore)
 
 		// RBAC initialization (no auth required for init)
 		v1.POST("/rbac/init", rbacHandler.Init)

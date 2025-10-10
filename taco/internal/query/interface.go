@@ -30,6 +30,9 @@ type RBACQuery interface {
 	SyncPermission(ctx context.Context, permission interface{}) error
 	SyncRole(ctx context.Context, role interface{}) error
 	SyncUser(ctx context.Context, user interface{}) error
+	SyncDeletePermission(ctx context.Context, permissionID string) error
+	SyncDeleteRole(ctx context.Context, roleID string) error
+	SyncDeleteUser(ctx context.Context, subject string) error
 }
 
 type Store interface {

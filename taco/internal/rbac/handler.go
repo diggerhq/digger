@@ -1,26 +1,31 @@
 package rbac
 
 import (
+    "context"
     "encoding/json"
     "fmt"
+    "log"
     "net/http"
     "strings"
 
     "github.com/diggerhq/digger/opentaco/internal/auth"
+    "github.com/diggerhq/digger/opentaco/internal/query"
     "github.com/labstack/echo/v4"
 )
 
 // Handler provides RBAC-related HTTP handlers
 type Handler struct {
-    manager *RBACManager
-    signer  *auth.Signer
+    manager    *RBACManager
+    signer     *auth.Signer
+    queryStore query.Store
 }
 
 // NewHandler creates a new RBAC handler
-func NewHandler(manager *RBACManager, signer *auth.Signer) *Handler {
+func NewHandler(manager *RBACManager, signer *auth.Signer, queryStore query.Store) *Handler {
     return &Handler{
-        manager: manager,
-        signer:  signer,
+        manager:    manager,
+        signer:     signer,
+        queryStore: queryStore,
     }
 }
 
@@ -60,6 +65,10 @@ func (h *Handler) Init(c echo.Context) error {
     // Initialize RBAC
     if err := h.manager.InitializeRBAC(c.Request().Context(), req.Subject, req.Email); err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to initialize RBAC"})
+    }
+    
+    if h.queryStore != nil && h.queryStore.IsEnabled() {
+        h.syncAllRBACData(c.Request().Context())
     }
     
     return c.JSON(http.StatusOK, map[string]string{"message": "RBAC initialized successfully"})
@@ -154,6 +163,20 @@ func (h *Handler) AssignRole(c echo.Context) error {
         }
     }
     
+    if h.queryStore != nil && h.queryStore.IsEnabled() {
+        subject := req.Subject
+        if subject == "" {
+            if assignment, _ := h.manager.store.GetUserAssignmentByEmail(c.Request().Context(), req.Email); assignment != nil {
+                subject = assignment.Subject
+            }
+        }
+        if subject != "" {
+            if assignment, err := h.manager.store.GetUserAssignment(c.Request().Context(), subject); err == nil {
+                h.queryStore.SyncUser(c.Request().Context(), assignment)
+            }
+        }
+    }
+    
     return c.JSON(http.StatusOK, map[string]string{"message": "role assigned successfully"})
 }
 
@@ -190,6 +213,20 @@ func (h *Handler) RevokeRole(c echo.Context) error {
     } else {
         if err := h.manager.RevokeRole(c.Request().Context(), req.Subject, req.RoleID); err != nil {
             return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to revoke role"})
+        }
+    }
+    
+    if h.queryStore != nil && h.queryStore.IsEnabled() {
+        subject := req.Subject
+        if subject == "" && req.Email != "" {
+            if assignment, _ := h.manager.store.GetUserAssignmentByEmail(c.Request().Context(), req.Email); assignment != nil {
+                subject = assignment.Subject
+            }
+        }
+        if subject != "" {
+            if assignment, err := h.manager.store.GetUserAssignment(c.Request().Context(), subject); err == nil {
+                h.queryStore.SyncUser(c.Request().Context(), assignment)
+            }
         }
     }
     
@@ -251,6 +288,12 @@ func (h *Handler) CreateRole(c echo.Context) error {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create role"})
     }
     
+    if h.queryStore != nil && h.queryStore.IsEnabled() {
+        if err := h.queryStore.SyncRole(c.Request().Context(), role); err != nil {
+            log.Printf("Warning: Failed to sync role to query backend: %v", err)
+        }
+    }
+    
     return c.JSON(http.StatusOK, map[string]string{"message": "role created successfully"})
 }
 
@@ -271,7 +314,6 @@ func (h *Handler) ListRoles(c echo.Context) error {
 
 // DeleteRole handles DELETE /v1/rbac/roles/:id
 func (h *Handler) DeleteRole(c echo.Context) error {
-    // Check if user has RBAC manage permission
     if err := h.requireRBACPermission(c, ActionRBACManage, "*"); err != nil {
         return err
     }
@@ -281,13 +323,21 @@ func (h *Handler) DeleteRole(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "role id required"})
     }
     
-    // Prevent deletion of default roles
     if roleID == "admin" || roleID == "default" {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "cannot delete default roles"})
     }
     
-    // TODO: Implement role deletion in RBACManager
-    return c.JSON(http.StatusNotImplemented, map[string]string{"error": "role deletion not yet implemented"})
+    if err := h.manager.store.DeleteRole(c.Request().Context(), roleID); err != nil {
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete role"})
+    }
+    
+    if h.queryStore != nil && h.queryStore.IsEnabled() {
+        if err := h.queryStore.SyncDeleteRole(c.Request().Context(), roleID); err != nil {
+            log.Printf("Warning: Failed to sync role deletion to query backend: %v", err)
+        }
+    }
+    
+    return c.NoContent(http.StatusNoContent)
 }
 
 // Helper functions
@@ -380,6 +430,12 @@ func (h *Handler) CreatePermission(c echo.Context) error {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create permission"})
     }
     
+    if h.queryStore != nil && h.queryStore.IsEnabled() {
+        if err := h.queryStore.SyncPermission(c.Request().Context(), &permission); err != nil {
+            log.Printf("Warning: Failed to sync permission to query backend: %v", err)
+        }
+    }
+    
     return c.JSON(http.StatusCreated, permission)
 }
 
@@ -409,6 +465,12 @@ func (h *Handler) DeletePermission(c echo.Context) error {
     
     if err := h.manager.DeletePermission(c.Request().Context(), id); err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete permission"})
+    }
+    
+    if h.queryStore != nil && h.queryStore.IsEnabled() {
+        if err := h.queryStore.SyncDeletePermission(c.Request().Context(), id); err != nil {
+            log.Printf("Warning: Failed to sync permission deletion to query backend: %v", err)
+        }
     }
     
     return c.NoContent(http.StatusNoContent)
@@ -563,6 +625,11 @@ func (h *Handler) AssignPermissionToRole(c echo.Context) error {
         // Update the role with optimistic locking
         err = h.manager.store.CreateRole(c.Request().Context(), role)
         if err == nil {
+            if h.queryStore != nil && h.queryStore.IsEnabled() {
+                if err := h.queryStore.SyncRole(c.Request().Context(), role); err != nil {
+                    log.Printf("Warning: Failed to sync role to query backend: %v", err)
+                }
+            }
             return c.JSON(http.StatusOK, map[string]string{"message": "permission assigned to role successfully"})
         }
         
@@ -617,6 +684,11 @@ func (h *Handler) RevokePermissionFromRole(c echo.Context) error {
         // Update the role with optimistic locking
         err = h.manager.store.CreateRole(c.Request().Context(), role)
         if err == nil {
+            if h.queryStore != nil && h.queryStore.IsEnabled() {
+                if err := h.queryStore.SyncRole(c.Request().Context(), role); err != nil {
+                    log.Printf("Warning: Failed to sync role to query backend: %v", err)
+                }
+            }
             return c.NoContent(http.StatusNoContent)
         }
         
@@ -629,4 +701,28 @@ func (h *Handler) RevokePermissionFromRole(c echo.Context) error {
     }
     
     return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to revoke permission after multiple attempts"})
+}
+
+func (h *Handler) syncAllRBACData(ctx context.Context) {
+    if h.queryStore == nil || !h.queryStore.IsEnabled() {
+        return
+    }
+    
+    if perms, err := h.manager.ListPermissions(ctx); err == nil {
+        for _, perm := range perms {
+            h.queryStore.SyncPermission(ctx, perm)
+        }
+    }
+    
+    if roles, err := h.manager.ListRoles(ctx); err == nil {
+        for _, role := range roles {
+            h.queryStore.SyncRole(ctx, role)
+        }
+    }
+    
+    if users, err := h.manager.ListUserAssignments(ctx); err == nil {
+        for _, user := range users {
+            h.queryStore.SyncUser(ctx, user)
+        }
+    }
 }

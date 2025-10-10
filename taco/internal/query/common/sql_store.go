@@ -447,6 +447,60 @@ func (s *SQLStore) SyncUser(ctx context.Context, userData interface{}) error {
 	})
 }
 
+func (s *SQLStore) SyncDeletePermission(ctx context.Context, permissionID string) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var perm types.Permission
+		if err := tx.Where("permission_id = ?", permissionID).First(&perm).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
+			return err
+		}
+		
+		if err := tx.Where("permission_id = ?", perm.ID).Delete(&types.Rule{}).Error; err != nil {
+			return err
+		}
+		
+		return tx.Delete(&perm).Error
+	})
+}
+
+func (s *SQLStore) SyncDeleteRole(ctx context.Context, roleID string) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var role types.Role
+		if err := tx.Where("role_id = ?", roleID).First(&role).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
+			return err
+		}
+		
+		if err := tx.Model(&role).Association("Permissions").Clear(); err != nil {
+			return err
+		}
+		
+		return tx.Delete(&role).Error
+	})
+}
+
+func (s *SQLStore) SyncDeleteUser(ctx context.Context, subject string) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var user types.User
+		if err := tx.Where("subject = ?", subject).First(&user).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
+			return err
+		}
+		
+		if err := tx.Model(&user).Association("Roles").Clear(); err != nil {
+			return err
+		}
+		
+		return tx.Delete(&user).Error
+	})
+}
+
 // Helper functions for checking wildcards
 func hasStarAction(actions []rbac.Action) bool {
 	for _, a := range actions {
