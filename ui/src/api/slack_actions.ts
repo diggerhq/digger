@@ -247,8 +247,7 @@ export async function createSlackChannel(email: string, channelName: string) {
     const channelId = await createChannel(channelName, true);
     console.log("Channel created:", channelId);
 
-    // 2) Internal team — put real internal emails here
-    // NOTE: your example had "mo_digger.dev" which is not a valid email.
+    // 2) Internal team — slack emails to ignore during the invite
     const internalEmails = process.env.SLACK_TEAM_INTERNAL_EMAILS_TO_INVITE?.split(";") || [];
     const internalIds = await Promise.all(internalEmails.map(userIdByEmail).map(p => p.catch(err => err)));
     const resolvedIds = internalIds.filter((x): x is string => typeof x === "string");

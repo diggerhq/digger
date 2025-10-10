@@ -51,11 +51,6 @@ function RouteComponent() {
                 }
             );
             
-            // setProjects(projects.map((p) => 
-            // p.id === project.id ? { ...p, drift_enabled: !p.drift_enabled } : p
-            // ));
-
-            
             toast({
             title: "Success",
             description: "Project drift enabled updated",
