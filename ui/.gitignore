@@ -8,6 +8,7 @@ yarn.lock
 .cache
 .env
 .env.local
+!.env.example
 .vercel
 .output
 
