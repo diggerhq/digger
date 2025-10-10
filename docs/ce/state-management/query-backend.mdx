@@ -9,7 +9,7 @@ OpenTaco supports using a query backend to speed up the retrieval of objects fro
 Set the backend type using:
 
 ```bash
-QUERY_BACKEND=sqlite  # Options: sqlite, postgres, mssql, mysql
+TACO_QUERY_BACKEND=sqlite  # Options: sqlite, postgres, mssql, mysql
 ```
 
 ## SQLite (Default)
@@ -20,17 +20,17 @@ SQLite is the default query backend and requires no external database server and
 
 ```bash
 # Backend selection
-QUERY_BACKEND=sqlite
+TACO_QUERY_BACKEND=sqlite
 
 # SQLite-specific configuration
-SQLITE_PATH=./data/taco.db
-SQLITE_CACHE=shared
-SQLITE_BUSY_TIMEOUT=5s
-SQLITE_MAX_OPEN_CONNS=1
-SQLITE_MAX_IDLE_CONNS=1
-SQLITE_PRAGMA_JOURNAL_MODE=WAL
-SQLITE_PRAGMA_FOREIGN_KEYS=ON
-SQLITE_PRAGMA_BUSY_TIMEOUT=5000
+TACO_SQLITE_DB_PATH=./data/taco.db
+TACO_SQLITE_CACHE=shared
+TACO_SQLITE_BUSY_TIMEOUT=5s
+TACO_SQLITE_MAX_OPEN_CONNS=1
+TACO_SQLITE_MAX_IDLE_CONNS=1
+TACO_SQLITE_PRAGMA_JOURNAL_MODE=WAL
+TACO_SQLITE_PRAGMA_FOREIGN_KEYS=ON
+TACO_SQLITE_PRAGMA_BUSY_TIMEOUT=5000
 ```
 
 ### Defaults
@@ -50,15 +50,15 @@ Use PostgreSQL for better concurrency and performance in production environments
 
 ```bash
 # Backend selection
-QUERY_BACKEND=postgres
+TACO_QUERY_BACKEND=postgres
 
 # PostgreSQL-specific configuration
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password
-POSTGRES_DBNAME=taco
-POSTGRES_SSLMODE=disable
+TACO_POSTGRES_HOST=localhost
+TACO_POSTGRES_PORT=5432
+TACO_POSTGRES_USER=postgres
+TACO_POSTGRES_PASSWORD=your_password
+TACO_POSTGRES_DBNAME=taco
+TACO_POSTGRES_SSLMODE=disable
 ```
 
 ### Defaults
@@ -71,13 +71,13 @@ POSTGRES_SSLMODE=disable
 ### Example Connection
 
 ```bash
-export QUERY_BACKEND=postgres
-export POSTGRES_HOST=my-postgres-server.example.com
-export POSTGRES_PORT=5432
-export POSTGRES_USER=taco_user
-export POSTGRES_PASSWORD=secure_password
-export POSTGRES_DBNAME=taco_prod
-export POSTGRES_SSLMODE=require
+export TACO_QUERY_BACKEND=postgres
+export TACO_POSTGRES_HOST=my-postgres-server.example.com
+export TACO_POSTGRES_PORT=5432
+export TACO_POSTGRES_USER=taco_user
+export TACO_POSTGRES_PASSWORD=secure_password
+export TACO_POSTGRES_DBNAME=taco_prod
+export TACO_POSTGRES_SSLMODE=require
 ```
 
 ## Microsoft SQL Server (MSSQL)
@@ -88,14 +88,14 @@ Use MSSQL for enterprise environments with existing SQL Server infrastructure.
 
 ```bash
 # Backend selection
-QUERY_BACKEND=mssql
+TACO_QUERY_BACKEND=mssql
 
 # MSSQL-specific configuration
-MSSQL_HOST=localhost
-MSSQL_PORT=1433
-MSSQL_USER=sa
-MSSQL_PASSWORD=your_password
-MSSQL_DBNAME=taco
+TACO_MSSQL_HOST=localhost
+TACO_MSSQL_PORT=1433
+TACO_MSSQL_USER=sa
+TACO_MSSQL_PASSWORD=your_password
+TACO_MSSQL_DBNAME=taco
 ```
 
 ### Defaults
@@ -106,12 +106,12 @@ MSSQL_DBNAME=taco
 ### Example Connection
 
 ```bash
-export QUERY_BACKEND=mssql
-export MSSQL_HOST=sqlserver.example.com
-export MSSQL_PORT=1433
-export MSSQL_USER=taco_admin
-export MSSQL_PASSWORD=secure_password
-export MSSQL_DBNAME=taco_db
+export TACO_QUERY_BACKEND=mssql
+export TACO_MSSQL_HOST=sqlserver.example.com
+export TACO_MSSQL_PORT=1433
+export TACO_MSSQL_USER=taco_admin
+export TACO_MSSQL_PASSWORD=secure_password
+export TACO_MSSQL_DBNAME=taco_db
 ```
 
 ## MySQL
@@ -124,15 +124,15 @@ As an example I used `CREATE DATABASE taco CHARACTER SET utf8mb4 COLLATE utf8mb4
 
 ```bash
 # Backend selection
-QUERY_BACKEND=mysql
+TACO_QUERY_BACKEND=mysql
 
 # MySQL-specific configuration
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PASSWORD=your_password
-MYSQL_DBNAME=taco
-MYSQL_CHARSET=utf8mb4
+TACO_MYSQL_HOST=localhost
+TACO_MYSQL_PORT=3306
+TACO_MYSQL_USER=root
+TACO_MYSQL_PASSWORD=your_password
+TACO_MYSQL_DBNAME=taco
+TACO_MYSQL_CHARSET=utf8mb4
 ```
 
 ### Defaults
@@ -145,13 +145,13 @@ MYSQL_CHARSET=utf8mb4
 ### Example Connection
 
 ```bash
-export QUERY_BACKEND=mysql
-export MYSQL_HOST=mysql.example.com
-export MYSQL_PORT=3306
-export MYSQL_USER=taco_user
-export MYSQL_PASSWORD=secure_password
-export MYSQL_DBNAME=taco_production
-export MYSQL_CHARSET=utf8mb4
+export TACO_QUERY_BACKEND=mysql
+export TACO_MYSQL_HOST=mysql.example.com
+export TACO_MYSQL_PORT=3306
+export TACO_MYSQL_USER=taco_user
+export TACO_MYSQL_PASSWORD=secure_password
+export TACO_MYSQL_DBNAME=taco_production
+export TACO_MYSQL_CHARSET=utf8mb4
 ```
 
 ## Quick Start Examples
@@ -166,12 +166,12 @@ export MYSQL_CHARSET=utf8mb4
 ### Production (PostgreSQL)
 
 ```bash
-export QUERY_BACKEND=postgres
-export POSTGRES_HOST=prod-db.example.com
-export POSTGRES_USER=taco_prod
-export POSTGRES_PASSWORD=$PROD_DB_PASSWORD
-export POSTGRES_DBNAME=taco
-export POSTGRES_SSLMODE=require
+export TACO_QUERY_BACKEND=postgres
+export TACO_POSTGRES_HOST=prod-db.example.com
+export TACO_POSTGRES_USER=taco_prod
+export TACO_POSTGRES_PASSWORD=$PROD_DB_PASSWORD
+export TACO_POSTGRES_DBNAME=taco
+export TACO_POSTGRES_SSLMODE=require
 
 ./taco
 ```
