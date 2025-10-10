@@ -1,0 +1,64 @@
+import { Card, DropdownMenu, Flex } from "@radix-ui/themes";
+// import { getApiProps } from "@repo/env";
+// import { UsersManagement, WorkOsWidgets } from "@workos-inc/widgets";
+// import { OrganizationSwitcher } from "@workos-inc/widgets/organization-switcher";
+// import { WorkOS } from '@workos-inc/node';
+// import { switchToOrganization } from "@/server-functions/switch-to-organization";
+import '@radix-ui/themes/styles.css';
+import '@workos-inc/widgets/styles.css';
+
+// export function getApiProps() {
+//     if (typeof process === "undefined") {
+//       throw new Error("getApiProps must be called in a Node.js environment");
+//     }
+  
+//     const props: {
+//       apiHostname?: string;
+//       https?: boolean;
+//       port?: number;
+//     } = {};
+  
+//     if (process.env.WORKOS_API_HOSTNAME) {
+//       props.apiHostname = process.env.WORKOS_API_HOSTNAME;
+//     }
+//     if (process.env.WORKOS_API_HTTPS) {
+//       props.https = process.env.WORKOS_API_HTTPS === "true";
+//     }
+//     if (process.env.WORKOS_API_PORT) {
+//       props.port = Number.parseInt(process.env.WORKOS_API_PORT, 10);
+//     }
+//     return props;
+//   }
+
+// const workos = new WorkOS(process.env.WORKOS_API_KEY!);
+
+export default async function OrgSelector(props: { user: any, organizationId: string | undefined }) {
+  const { user, organizationId }: { user: any, organizationId: string | undefined } = props;
+  if (!organizationId) {
+    return <p>User does not belong to an organization</p>;
+  }
+  // const authToken = await workos.widgets.getToken({
+  //   userId: user.id,
+  //   organizationId,
+  //   scopes: ["widgets:users-table:manage"],
+  // });
+  return (
+    <Flex gap="2" p="2" direction="column" align="start" width="100%">
+    {/* <WorkOsWidgets>
+        <OrganizationSwitcher
+          authToken={authToken}
+          organizationLabel="My Teams"
+          switchToOrganization={async ({ organizationId }) => {
+            "use server";
+
+            await switchToOrganization({
+              organizationId,
+              pathname: "/dashboard",
+            });
+          }}
+        >
+        </OrganizationSwitcher>
+    </WorkOsWidgets> */}
+    </Flex>
+  );
+}

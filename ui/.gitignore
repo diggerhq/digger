@@ -1,0 +1,17 @@
+.netlify/
+dist/
+node_modules/
+package-lock.json
+yarn.lock
+
+.DS_Store
+.cache
+.env
+.env.local
+.vercel
+.output
+
+/build/
+/api/
+/server/build
+/public/build
