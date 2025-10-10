@@ -1,9 +1,9 @@
 export async function syncOrgToBackend(orgId: string, orgName: string, adminEmail: string | null) {
-  const response = await fetch(`${process.env.BACKEND_URL}/_internal/api/upsert_org`, {
+  const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/_internal/api/upsert_org`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.BACKEND_SECRET}`
+      'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`
     },
     body: JSON.stringify({ 
         org_name: orgName,
@@ -21,11 +21,11 @@ export async function syncOrgToBackend(orgId: string, orgName: string, adminEmai
 }
 
 export async function syncUserToBackend(userId: string, userEmail: string, orgId: string) {
-    const response = await fetch(`${process.env.BACKEND_URL}/_internal/api/create_user`, {
+    const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/_internal/api/create_user`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.BACKEND_SECRET}`
+            'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`
         },
         body: JSON.stringify({ 
             external_id: userId,
@@ -43,10 +43,10 @@ export async function syncUserToBackend(userId: string, userEmail: string, orgId
 }
 
 export async function fetchRepos(organizationId: string, userId: string) {
-  const response = await fetch(`${process.env.BACKEND_URL}/api/repos/`, {
+  const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/repos/`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+      'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
       'DIGGER_ORG_ID': organizationId,
       'DIGGER_USER_ID': userId,
       'DIGGER_ORG_SOURCE': 'workos',
@@ -61,10 +61,10 @@ export async function fetchRepos(organizationId: string, userId: string) {
 }
 
 export async function fetchRepoDetails(repoId: string, organisationId: string, userId: string) {
-  const response = await fetch(`${process.env.BACKEND_URL}/api/repos/${repoId}`, {
+  const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/repos/${repoId}`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+      'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
       'DIGGER_ORG_ID': organisationId,
       'DIGGER_USER_ID': userId,
       'DIGGER_ORG_SOURCE': 'workos',

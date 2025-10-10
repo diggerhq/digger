@@ -42,10 +42,10 @@ export const getRepoDetailsFn = createServerFn({method: 'GET'})
       let allJobs: Job[] = [];
       let repo: Repo 
       try {
-        const response = await fetch(`${process.env.BACKEND_URL}/api/repos/${repoId}/jobs`, {
+        const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/repos/${repoId}/jobs`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+            'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
             'DIGGER_ORG_ID': organisationId,
             'DIGGER_USER_ID': userId,
             'DIGGER_ORG_SOURCE': 'workos',

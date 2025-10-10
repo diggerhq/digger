@@ -1,9 +1,9 @@
 
 export async function fetchProjects(organizationId: string, userId: string) {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/projects/`, {
+    const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/projects/`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+        'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
         'DIGGER_ORG_ID': organizationId,
         'DIGGER_USER_ID': userId,
         'DIGGER_ORG_SOURCE': 'workos',
@@ -18,10 +18,10 @@ export async function fetchProjects(organizationId: string, userId: string) {
   } 
 
 export async function updateProject(projectId: string, driftEnabled: boolean, organizationId: string, userId: string) {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/projects/${projectId}/`, {
+    const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/projects/${projectId}/`, {
         method: 'PUT',
         headers: {
-            'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+            'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
             'DIGGER_ORG_ID': organizationId,
             'DIGGER_USER_ID': userId,
             'DIGGER_ORG_SOURCE': 'workos',
@@ -40,10 +40,10 @@ export async function updateProject(projectId: string, driftEnabled: boolean, or
 
 export async function fetchBillingInfo(organizationId: string, userId: string) {
     try {
-      const response = await fetch(`${process.env.BACKEND_URL}/api/billing`, {
+      const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/billing`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+          'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
           'DIGGER_ORG_ID': organizationId,
           'DIGGER_USER_ID': userId,
           'DIGGER_ORG_SOURCE': 'workos',
@@ -72,10 +72,10 @@ export async function fetchBillingInfo(organizationId: string, userId: string) {
 }
 
 export async function fetchProject(projectId: string, organizationId: string, userId: string) {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/projects/${projectId}/`, {
+    const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/projects/${projectId}/`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+        'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
         'DIGGER_ORG_ID': organizationId,
         'DIGGER_USER_ID': userId,
         'DIGGER_ORG_SOURCE': 'workos',
@@ -94,10 +94,10 @@ export async function getOrgSettings(
     organizationId: string | null,
     userId: string | null
   ) {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/orgs/settings`, {
+    const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/orgs/settings`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+        'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
         'Content-Type': 'application/json',
         'DIGGER_ORG_ID': organizationId || '',
         'DIGGER_USER_ID': userId || '',
@@ -134,10 +134,10 @@ export async function updateOrgSettings(
       slack_channel_name?: string,
     }
   ) {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/orgs/settings`, {
+    const response = await fetch(`${process.env.ORCHESTRATOR_ORCHESTRATOR_BACKEND_URL}/api/orgs/settings`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${process.env.BACKEND_SECRET}`,
+        'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
         'Content-Type': 'application/json',
         'DIGGER_ORG_ID': organizationId || '',
         'DIGGER_USER_ID': userId || '',
