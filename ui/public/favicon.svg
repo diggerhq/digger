@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Taco">
+  <defs>
+    <linearGradient id="shellGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5C14E"/>
+      <stop offset="100%" stop-color="#E09A25"/>
+    </linearGradient>
+    <radialGradient id="gloss" cx="0.3" cy="0.2" r="0.6">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Soft background circle -->
+  <circle cx="128" cy="128" r="118" fill="#0F1729"/>
+
+  <!-- Taco group with shadow -->
+  <g filter="url(#shadow)">
+    <!-- Taco shell -->
+    <path d="M48 150c0-44 36-80 80-80s80 36 80 80v8c0 8.8-7.2 16-16 16H64c-8.8 0-16-7.2-16-16v-8z" fill="url(#shellGrad)" stroke="#C07C14" stroke-width="4" stroke-linejoin="round"/>
+
+    <!-- Shell texture dots -->
+    <g fill="#D9A63E" opacity="0.6">
+      <circle cx="92" cy="118" r="3"/>
+      <circle cx="118" cy="110" r="2.5"/>
+      <circle cx="144" cy="120" r="3"/>
+      <circle cx="170" cy="114" r="2.5"/>
+      <circle cx="106" cy="130" r="2.5"/>
+      <circle cx="156" cy="136" r="2.5"/>
+    </g>
+
+    <!-- Fillings: lettuce -->
+    <path d="M64 140c14-10 28-18 44-18 20 0 32 12 48 12 14 0 26-8 36-16 6 8 10 18 10 28v4H64v-10z" fill="#34D399" stroke="#199A6A" stroke-width="3"/>
+
+    <!-- Fillings: tomatoes -->
+    <g>
+      <circle cx="92" cy="136" r="8" fill="#EF4444" stroke="#B91C1C" stroke-width="3"/>
+      <circle cx="140" cy="134" r="7" fill="#EF4444" stroke="#B91C1C" stroke-width="3"/>
+      <circle cx="174" cy="128" r="6.5" fill="#EF4444" stroke="#B91C1C" stroke-width="3"/>
+    </g>
+
+    <!-- Fillings: cheese shreds -->
+    <g stroke="#F59E0B" stroke-width="4" stroke-linecap="round">
+      <path d="M84 148l16-10"/>
+      <path d="M116 150l18-12"/>
+      <path d="M146 148l14-10"/>
+      <path d="M168 146l12-8"/>
+    </g>
+
+    <!-- Gloss highlight on shell -->
+    <ellipse cx="120" cy="92" rx="58" ry="26" fill="url(#gloss)" transform="rotate(-12 120 92)"/>
+  </g>
+
+  <!-- subtle foreground sparkle -->
+  <g opacity="0.85">
+    <path d="M200 60l3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7z" fill="#fff" opacity="0.6"/>
+  </g>
+</svg>
+
