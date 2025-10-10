@@ -1,4 +1,4 @@
-FROM golang:1.24 as builder
+FROM golang:1.24 AS builder
 ARG COMMIT_SHA
 RUN echo "commit sha: ${COMMIT_SHA}"
 
@@ -19,7 +19,7 @@ RUN cd cmd/statesman && \
     -o statesman .
 
 # Multi-stage build - use a minimal image for runtime
-FROM ubuntu:24.04 as runner
+FROM ubuntu:24.04 AS runner
 ARG COMMIT_SHA
 WORKDIR /app
 

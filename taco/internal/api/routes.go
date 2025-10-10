@@ -111,7 +111,7 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, que
 	v1 := e.Group("/v1")
 	if authEnabled {
 		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
-		v1.Use(middleware.RequireAuth(jwtVerifyFn))
+		v1.Use(middleware.RequireAuth(jwtVerifyFn, signer))
 	}
 
 	// Setup RBAC manager if available (use underlyingStore for type assertion)
@@ -167,15 +167,15 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, que
 		v1.PUT("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
 		// Explicitly wire non-standard HTTP methods used by Terraform backend
 		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
-		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
-		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
+		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn, signer)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
+		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn, signer)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
 	} else if authEnabled {
 		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
 		v1.GET("/backend/*", backendHandler.GetState)
 		v1.POST("/backend/*", backendHandler.UpdateState)
 		v1.PUT("/backend/*", backendHandler.UpdateState)
-		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(backendHandler.HandleLockUnlock))
-		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(backendHandler.HandleLockUnlock))
+		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn, signer)(backendHandler.HandleLockUnlock))
+		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn, signer)(backendHandler.HandleLockUnlock))
 	} else {
 		v1.GET("/backend/*", backendHandler.GetState)
 		v1.POST("/backend/*", backendHandler.UpdateState)
@@ -232,7 +232,7 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool, que
 	tfeGroup := e.Group("/tfe/api/v2")
 	if authEnabled {
 		opaqueVerifyFn := middleware.OpaqueOnlyVerifier(apiTokenMgr)
-		tfeGroup.Use(middleware.RequireAuth(opaqueVerifyFn))
+		tfeGroup.Use(middleware.RequireAuth(opaqueVerifyFn, signer))
 	}
 
 	// Move TFE endpoints to protected group
