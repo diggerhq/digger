@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { Sidebar, SidebarMenuButton, SidebarGroupContent, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarTrigger, SidebarProvider, SidebarMenu, SidebarMenuItem } from '../components/ui/sidebar';
 import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut } from 'lucide-react';
 import globalCssUrl from '@/styles/global.css?url'
+import { Toaster } from '@/components/ui/toaster';
 
 
 export const Route = createRootRoute({
@@ -69,6 +70,7 @@ function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) 
       </head>
       <body>
         {children}
+        <Toaster />
         <Scripts />
       </body>
     </html>

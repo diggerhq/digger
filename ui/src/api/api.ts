@@ -134,7 +134,7 @@ export async function updateOrgSettings(
       slack_channel_name?: string,
     }
   ) {
-    const response = await fetch(`${process.env.ORCHESTRATOR_ORCHESTRATOR_BACKEND_URL}/api/orgs/settings`, {
+    const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/orgs/settings`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,

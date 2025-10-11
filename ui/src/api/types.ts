@@ -9,7 +9,11 @@ export interface Organisation {
     ExternalId: string
   }
 
-
+export interface OrgSettings {
+  drift_webhook_url: string
+  drift_enabled: boolean
+  drift_cron_tab: string
+}
 
 
 export interface Project {
@@ -19,8 +23,10 @@ export interface Project {
     repo_full_name: string
     drift_enabled: boolean
     drift_status: string
+    latest_drift_check: string | null
+    drift_terraform_plan: string | null
   }
-  
+
   
   export interface Repo {
     id: number

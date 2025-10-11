@@ -19,8 +19,14 @@ export const Route = createFileRoute(
   component: RouteComponent,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    const projects = await getProjectsFn({data: {userId: user?.id || '', organisationId: organisationId || ''}})
-    return { projects, user, organisationId }
+    try {
+      const projects = await getProjectsFn({data: {userId: user?.id || '', organisationId: organisationId || ''}})
+      return { projects, user, organisationId }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      throw error
+    }
+
   }
 })
 
