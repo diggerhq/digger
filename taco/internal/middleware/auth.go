@@ -7,9 +7,7 @@ import (
 
     "github.com/diggerhq/digger/opentaco/internal/auth"
     "github.com/diggerhq/digger/opentaco/internal/rbac"
-    "github.com/diggerhq/digger/opentaco/internal/storage" 
     "github.com/labstack/echo/v4"
-    "github.com/diggerhq/digger/opentaco/internal/principal"
 )
 
 // AccessTokenVerifier is a function that validates an access token.
@@ -37,13 +35,13 @@ func RequireAuth(verify AccessTokenVerifier, signer *auth.Signer) echo.Middlewar
                 }
                 
                 // Set principal in context
-                p := principal.Principal{ 
+                p := rbac.Principal{ 
                     Subject: claims.Subject,
                     Email:   claims.Email,
                     Roles:   claims.Roles,
                     Groups:  claims.Groups,
                 }
-                ctx := storage.ContextWithPrincipal(c.Request().Context(), p)
+                ctx := rbac.ContextWithPrincipal(c.Request().Context(), p)
                 c.SetRequest(c.Request().WithContext(ctx))
             } else {
                 // Fallback to generic verify function if no signer

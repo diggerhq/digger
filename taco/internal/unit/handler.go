@@ -2,32 +2,31 @@ package unit
 
 import (
     "io"
+    "log"
     "net/http"
     "strings"
     "time"
 
     "github.com/diggerhq/digger/opentaco/internal/analytics"
     "github.com/diggerhq/digger/opentaco/internal/auth"
-    "github.com/diggerhq/digger/opentaco/internal/domain"
     "github.com/diggerhq/digger/opentaco/internal/deps"
+    "github.com/diggerhq/digger/opentaco/internal/domain"
+    "github.com/diggerhq/digger/opentaco/internal/query"
     "github.com/diggerhq/digger/opentaco/internal/rbac"
     "github.com/diggerhq/digger/opentaco/internal/storage"
-    "github.com/diggerhq/digger/opentaco/internal/query"
     "github.com/google/uuid"
     "github.com/labstack/echo/v4"
-    "log"
-
 )
 
-// Handler serves the management API (unit CRUD and locking)
+// Handler serves the management API (unit CRUD and locking).
 type Handler struct {
-    store       storage.UnitStore
+    store       domain.UnitManagement 
     rbacManager *rbac.RBACManager
     signer      *auth.Signer
     queryStore  query.Store
 }
 
-func NewHandler(store storage.UnitStore, rbacManager *rbac.RBACManager, signer *auth.Signer, queryStore query.Store) *Handler {
+func NewHandler(store domain.UnitManagement, rbacManager *rbac.RBACManager, signer *auth.Signer, queryStore query.Store) *Handler {
     return &Handler{
         store:       store,
         rbacManager: rbacManager,

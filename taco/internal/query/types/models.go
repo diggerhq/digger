@@ -35,6 +35,7 @@ type Rule struct {
 	Effect           string `gorm:"size:8;not null;default:allow"` // "allow" | "deny"
 	WildcardAction   bool   `gorm:"not null;default:false"`
 	WildcardResource bool   `gorm:"not null;default:false"`
+	ResourcePatterns string `gorm:"type:text;default:''"` // JSON array of resource patterns like ["dev/*", "staging/*"]
 	Actions          []RuleAction   `gorm:"constraint:OnDelete:CASCADE"`
 	UnitTargets  	 []RuleUnit `gorm:"constraint:OnDelete:CASCADE"`
 	TagTargets       []RuleUnitTag `gorm:"constraint:OnDelete:CASCADE"`

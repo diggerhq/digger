@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -31,6 +32,12 @@ func NewSQLStore(db *gorm.DB) (*SQLStore, error) {
 	}
 
 	return store, nil
+}
+
+// GetDB returns the underlying GORM database connection
+// This is used by components that need direct DB access (e.g., RBAC querystore)
+func (s *SQLStore) GetDB() *gorm.DB {
+	return s.db
 }
 
 func (s *SQLStore) migrate() error {
@@ -265,11 +272,15 @@ func (s *SQLStore) SyncPermission(ctx context.Context, permissionData interface{
 
 		// 3) Insert new rules
 		for _, ruleData := range perm.Rules {
+			// Marshal resource patterns to JSON for storage
+			resourcePatternsJSON, _ := json.Marshal(ruleData.Resources)
+			
 			rule := types.Rule{
 				PermissionID:     p.ID,
 				Effect:           strings.ToLower(ruleData.Effect),
 				WildcardAction:   hasStarAction(ruleData.Actions),
 				WildcardResource: hasStarResource(ruleData.Resources),
+				ResourcePatterns: string(resourcePatternsJSON),
 			}
 
 			if err := tx.Create(&rule).Error; err != nil {

@@ -6,18 +6,14 @@ import (
     "encoding/json"
     "fmt"
     "log"
-    "path"
     "strings"
-    "sync"
     "time"
 
     "github.com/diggerhq/digger/opentaco/internal/storage"
-    awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
-    "github.com/aws/aws-sdk-go-v2/service/s3/types"
     "github.com/mr-tron/base58"
 )
 
-// APIToken represents an opaque API token record stored in S3 or memory
+// APIToken represents an opaque API token record stored as a unit
 type APIToken struct {
     Token      string     `json:"token"`
     Subject    string     `json:"sub"`
@@ -30,23 +26,15 @@ type APIToken struct {
     Status     string     `json:"status"` // active, revoked, expired
 }
 
-// APITokenManager issues and verifies opaque tokens for the TFE API surface
+// APITokenManager issues and verifies opaque tokens for the TFE API surface.
+// Tokens are stored as units with IDs like "_tfe_tokens/TOKEN_VALUE" for persistence.
 type APITokenManager struct {
-    // backing store (optional); if nil, memory fallback
-    s3store storage.S3Store
-    // memory fallback
-    mu     sync.RWMutex
-    inmem  map[string]*APIToken
+    store storage.UnitStore // Required - tokens stored as units in blob storage
 }
 
 func NewAPITokenManagerFromStore(store storage.UnitStore) *APITokenManager {
-    var s3s storage.S3Store
-    if ss, ok := store.(storage.S3Store); ok {
-        s3s = ss
-    }
     return &APITokenManager{
-        s3store: s3s,
-        inmem:   map[string]*APIToken{},
+        store: store,
     }
 }
 
@@ -129,58 +117,43 @@ func (m *APITokenManager) Revoke(ctx context.Context, token string) error {
 }
 
 func (m *APITokenManager) save(ctx context.Context, rec *APIToken) error {
-    if m.s3store != nil {
-        key := m.s3Key(rec.Token)
-        b, _ := json.Marshal(rec)
-        _, err := m.s3store.GetS3Client().PutObject(ctx, &awsS3.PutObjectInput{
-            Bucket: awsString(m.s3store.GetS3Bucket()),
-            Key:    awsString(key),
-            Body:   strings.NewReader(string(b)),
-            ContentType: awsString("application/json"),
-            ACL:    types.ObjectCannedACLPrivate,
-        })
-        return err
-    }
-    m.mu.Lock()
-    defer m.mu.Unlock()
-    m.inmem[rec.Token] = rec
-    return nil
+    // Store token as a unit with ID: _tfe_tokens/TOKEN
+    unitID := "_tfe_tokens/" + rec.Token
+    b, _ := json.Marshal(rec)
+    return m.store.Upload(ctx, unitID, b, "")
 }
 
 func (m *APITokenManager) load(ctx context.Context, token string) (*APIToken, error) {
-    if m.s3store != nil {
-        key := m.s3Key(token)
-        out, err := m.s3store.GetS3Client().GetObject(ctx, &awsS3.GetObjectInput{
-            Bucket: awsString(m.s3store.GetS3Bucket()),
-            Key:    awsString(key),
-        })
-        if err != nil { return nil, err }
-        defer out.Body.Close()
-        var rec APIToken
-        if err := json.NewDecoder(out.Body).Decode(&rec); err != nil { return nil, err }
-        return &rec, nil
-    }
-    m.mu.RLock()
-    defer m.mu.RUnlock()
-    if rec, ok := m.inmem[token]; ok {
-        return rec, nil
-    }
-    return nil, storage.ErrNotFound
+    // Load token from unit ID: _tfe_tokens/TOKEN
+    unitID := "_tfe_tokens/" + token
+    b, err := m.store.Download(ctx, unitID)
+    if err != nil { return nil, err }
+    var rec APIToken
+    if err := json.Unmarshal(b, &rec); err != nil { return nil, err }
+    return &rec, nil
 }
 
 // findActiveTokenForUser searches for an existing active token for the given user
 func (m *APITokenManager) findActiveTokenForUser(ctx context.Context, subject, email string) (string, error) {
-	if m.s3store != nil {
-		// S3 implementation - list all tokens and check each one
-		return m.findActiveTokenForUserS3(ctx, subject, email)
+	// List all tokens and check each one
+	units, err := m.store.List(ctx, "_tfe_tokens/")
+	if err != nil {
+		return "", fmt.Errorf("failed to list tokens: %w", err)
 	}
 	
-	// Memory implementation - iterate through inmem map
-	m.mu.RLock()
-	defer m.mu.RUnlock()
 	now := time.Now().UTC()
-	for _, rec := range m.inmem {
-		if rec.Subject == subject && rec.Email == email && rec.Status == "active" {
+	for _, unit := range units {
+		// Extract token from unit ID: _tfe_tokens/TOKEN
+		token := strings.TrimPrefix(unit.ID, "_tfe_tokens/")
+		
+		// Load the token record
+		rec, err := m.load(ctx, token)
+		if err != nil {
+			continue // Skip tokens we can't load
+		}
+		
+		// Check if this token matches the user and is active and not expired
+		if rec != nil && rec.Subject == subject && rec.Email == email && rec.Status == "active" {
 			// Check if token has expired
 			if rec.ExpiresAt != nil && now.After(*rec.ExpiresAt) {
 				continue // Skip expired tokens
@@ -191,62 +164,10 @@ func (m *APITokenManager) findActiveTokenForUser(ctx context.Context, subject, e
 	return "", nil
 }
 
-func (m *APITokenManager) findActiveTokenForUserS3(ctx context.Context, subject, email string) (string, error) {
-	// List all objects in the _tfe_tokens prefix
-	prefix := path.Join(m.s3store.GetS3Prefix(), "_tfe_tokens") + "/"
-	listInput := &awsS3.ListObjectsV2Input{
-		Bucket: awsString(m.s3store.GetS3Bucket()),
-		Prefix: awsString(prefix),
-	}
-	
-	paginator := awsS3.NewListObjectsV2Paginator(m.s3store.GetS3Client(), listInput)
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
-		if err != nil {
-			return "", fmt.Errorf("failed to list S3 objects: %w", err)
-		}
-		
-		for _, obj := range page.Contents {
-			// Extract token from key: prefix/_tfe_tokens/TOKEN.json -> TOKEN
-			key := *obj.Key
-			if !strings.HasSuffix(key, ".json") {
-				continue
-			}
-			tokenFromKey := strings.TrimSuffix(path.Base(key), ".json")
-			
-			// Load the token record
-			rec, err := m.load(ctx, tokenFromKey)
-			if err != nil {
-				continue // Skip tokens we can't load
-			}
-			
-			// Check if this token matches the user and is active and not expired
-			if rec != nil && rec.Subject == subject && rec.Email == email && rec.Status == "active" {
-				// Check if token has expired
-				if rec.ExpiresAt != nil && time.Now().UTC().After(*rec.ExpiresAt) {
-					continue // Skip expired tokens
-				}
-				return rec.Token, nil
-			}
-		}
-	}
-	
-	return "", nil
-}
-
-func (m *APITokenManager) s3Key(token string) string {
-	// store under <prefix>_tfe_tokens/<token>.json to avoid collisions with units
-	p := m.s3store.GetS3Prefix()
-	// path.Join will clean slashes appropriately
-	return path.Join(p, "_tfe_tokens", token+".json")
-}
-
 func randomBase58(n int) string {
     b := make([]byte, n)
     _, _ = rand.Read(b)
     return base58.Encode(b)
 }
-
-func awsString(s string) *string { return &s }
 
 

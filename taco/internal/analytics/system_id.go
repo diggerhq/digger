@@ -5,27 +5,24 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"sync"
-	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 )
 
-// SystemIDManager handles anonymous system identification via S3
+// SystemIDManager handles anonymous system identification using UnitStore.
+// System ID and user email are stored as units with special IDs.
 type SystemIDManager struct {
-	store     storage.S3Store
+	store     storage.UnitStore
 	systemID  string
 	userEmail string
 	loaded    bool
 	mu        sync.RWMutex
 }
 
-// SystemIDKey is the S3 key where we store the system identifier
-const SystemIDKey = "system_id/id"
-const UserEmailKey = "system_id/email"
+// SystemIDKey is the unit ID where we store the system identifier
+const SystemIDKey = "__system_id"
+const UserEmailKey = "__user_email"
 
 // SystemIDManagerInterface defines the interface for system ID management
 type SystemIDManagerInterface interface {
@@ -38,7 +35,7 @@ type SystemIDManagerInterface interface {
 }
 
 // NewSystemIDManager creates a new system ID manager
-func NewSystemIDManager(store storage.S3Store) *SystemIDManager {
+func NewSystemIDManager(store storage.UnitStore) *SystemIDManager {
 	return &SystemIDManager{
 		store: store,
 	}
@@ -143,94 +140,32 @@ func (m *SystemIDManager) GetUserEmail() string {
 	return m.userEmail
 }
 
-// readSystemID reads the system ID from S3
+// readSystemID reads the system ID from storage
 func (m *SystemIDManager) readSystemID(ctx context.Context) (string, error) {
-	client := m.store.GetS3Client()
-	bucket := m.store.GetS3Bucket()
-	key := m.store.Key(SystemIDKey)
-
-	result, err := client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
+	data, err := m.store.Download(ctx, SystemIDKey)
 	if err != nil {
 		return "", err
 	}
-	defer result.Body.Close()
-
-	// Read the system ID (should be a simple hex string)
-	buf := make([]byte, SystemIDBufferSize) // 16 bytes = 32 hex chars
-	n, err := result.Body.Read(buf)
-	if err != nil && n == 0 {
-		return "", err
-	}
-
-	return string(buf[:n]), nil
+	return string(data), nil
 }
 
-// writeSystemID writes the system ID to S3
+// writeSystemID writes the system ID to storage
 func (m *SystemIDManager) writeSystemID(ctx context.Context, systemID string) error {
-	client := m.store.GetS3Client()
-	bucket := m.store.GetS3Bucket()
-	key := m.store.Key(SystemIDKey)
-
-	_, err := client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(key),
-		Body:        strings.NewReader(systemID),
-		ContentType: aws.String("text/plain"),
-		Metadata: map[string]string{
-			"opentaco-system-id": "true",
-			"created-at":         time.Now().UTC().Format(time.RFC3339),
-		},
-	})
-
-	return err
+	return m.store.Upload(ctx, SystemIDKey, []byte(systemID), "")
 }
 
-// readUserEmail reads the user email from S3
+// readUserEmail reads the user email from storage
 func (m *SystemIDManager) readUserEmail(ctx context.Context) (string, error) {
-	client := m.store.GetS3Client()
-	bucket := m.store.GetS3Bucket()
-	key := m.store.Key(UserEmailKey)
-
-	result, err := client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
+	data, err := m.store.Download(ctx, UserEmailKey)
 	if err != nil {
 		return "", err
 	}
-	defer result.Body.Close()
-
-	// Read the user email
-	buf := make([]byte, EmailBufferSize) // Reasonable limit for email
-	n, err := result.Body.Read(buf)
-	if err != nil && n == 0 {
-		return "", err
-	}
-
-	return string(buf[:n]), nil
+	return string(data), nil
 }
 
-// writeUserEmail writes the user email to S3
+// writeUserEmail writes the user email to storage
 func (m *SystemIDManager) writeUserEmail(ctx context.Context, email string) error {
-	client := m.store.GetS3Client()
-	bucket := m.store.GetS3Bucket()
-	key := m.store.Key(UserEmailKey)
-
-	_, err := client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(key),
-		Body:        strings.NewReader(email),
-		ContentType: aws.String("text/plain"),
-		Metadata: map[string]string{
-			"opentaco-user-email": "true",
-			"created-at":          time.Now().UTC().Format(time.RFC3339),
-		},
-	})
-
-	return err
+	return m.store.Upload(ctx, UserEmailKey, []byte(email), "")
 }
 
 // generateSystemID creates a new anonymous system identifier
@@ -257,83 +192,3 @@ func IsSystemIDValid(systemID string) bool {
 	return err == nil
 }
 
-// FallbackSystemIDManager handles system ID without S3 persistence
-type FallbackSystemIDManager struct {
-	systemID  string
-	userEmail string
-	loaded    bool
-	mu        sync.RWMutex
-}
-
-// NewFallbackSystemIDManager creates a fallback system ID manager
-func NewFallbackSystemIDManager() *FallbackSystemIDManager {
-	return &FallbackSystemIDManager{}
-}
-
-// GetOrCreateSystemID creates a new system ID (no persistence)
-func (m *FallbackSystemIDManager) GetOrCreateSystemID(ctx context.Context) (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.loaded {
-		return m.systemID, nil
-	}
-
-	// Generate new system ID
-	newID, err := m.generateSystemID()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate system ID: %w", err)
-	}
-
-	m.systemID = newID
-	m.loaded = true
-	return m.systemID, nil
-}
-
-// GetSystemID returns the current system ID
-func (m *FallbackSystemIDManager) GetSystemID() string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.systemID
-}
-
-// IsLoaded returns true if the system ID has been loaded
-func (m *FallbackSystemIDManager) IsLoaded() bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.loaded
-}
-
-// PreloadSystemID is a no-op for fallback (always creates new)
-func (m *FallbackSystemIDManager) PreloadSystemID(ctx context.Context) error {
-	_, err := m.GetOrCreateSystemID(ctx)
-	return err
-}
-
-// SetUserEmail stores the user email in memory (no persistence)
-func (m *FallbackSystemIDManager) SetUserEmail(ctx context.Context, email string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.userEmail = email
-	return nil
-}
-
-// GetUserEmail returns the current user email
-func (m *FallbackSystemIDManager) GetUserEmail() string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.userEmail
-}
-
-// generateSystemID creates a new anonymous system identifier
-func (m *FallbackSystemIDManager) generateSystemID() (string, error) {
-	// Generate 16 random bytes (128 bits)
-	bytes := make([]byte, 16)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", err
-	}
-
-	// Convert to hex string (32 characters)
-	return hex.EncodeToString(bytes), nil
-}

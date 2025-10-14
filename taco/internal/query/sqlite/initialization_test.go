@@ -11,6 +11,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 // TestInitializationModes tests various initialization scenarios
@@ -66,8 +67,8 @@ func testFreshInitialization(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, hasRoles, "Fresh database should have no roles")
 
-	// Create RBAC store and manager
-	rbacStore := newMockS3RBACStore(tempDir)
+	// Create RBAC store and manager (uses queryStore database)
+	rbacStore := newQueryRBACStore(queryStore)
 	rbacMgr := rbac.NewRBACManager(rbacStore)
 
 	// Initialize RBAC
@@ -77,12 +78,10 @@ func testFreshInitialization(t *testing.T) {
 	err = rbacMgr.InitializeRBAC(ctx(), adminSubject, adminEmail)
 	require.NoError(t, err)
 
-	// Verify RBAC config was created
-	config, err := rbacStore.GetConfig(ctx())
+	// Verify RBAC is enabled (permissions exist)
+	enabled, err := rbacMgr.IsEnabled(ctx())
 	require.NoError(t, err)
-	assert.True(t, config.Enabled)
-	assert.True(t, config.Initialized)
-	assert.Equal(t, adminSubject, config.InitUser)
+	assert.True(t, enabled, "RBAC should be enabled after initialization")
 
 	// Sync to query store
 	adminPerm, err := rbacStore.GetPermission(ctx(), "admin")
@@ -135,7 +134,7 @@ func testIdempotentInitialization(t *testing.T) {
 	require.NoError(t, err)
 	defer queryStore.Close()
 
-	rbacStore := newMockS3RBACStore(tempDir)
+	rbacStore := newQueryRBACStore(queryStore)
 	rbacMgr := rbac.NewRBACManager(rbacStore)
 
 	adminSubject := "admin@idempotent.test"
@@ -199,7 +198,7 @@ func testInitializationWithExistingData(t *testing.T) {
 	require.NoError(t, err)
 	defer queryStore.Close()
 
-	rbacStore := newMockS3RBACStore(tempDir)
+	rbacStore := newQueryRBACStore(queryStore)
 	rbacMgr := rbac.NewRBACManager(rbacStore)
 
 	// Initialize RBAC with first admin
@@ -289,22 +288,23 @@ func testDatabaseMigration(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, hasRoles)
 
-	// Close first connection
-	queryStore1.Close()
-
-	// Step 2: Populate with data
-	rbacStore := newMockS3RBACStore(tempDir)
+	// Step 2: Populate with RBAC data
+	rbacStore := newQueryRBACStore(queryStore1)
 	rbacMgr := rbac.NewRBACManager(rbacStore)
 
 	err = rbacMgr.InitializeRBAC(ctx(), "admin@test.com", "admin@test.com")
 	require.NoError(t, err)
 
-	// Step 3: Reopen database and sync
+	// Close first connection
+	queryStore1.Close()
+
+	// Step 3: Reopen database and verify data persisted
 	queryStore2, err := NewSQLiteQueryStore(cfg)
 	require.NoError(t, err)
 	defer queryStore2.Close()
 
-	syncRBACData(t, rbacStore, queryStore2)
+	// RBAC data is now in the database, no sync needed
+	// Just verify it's there
 
 	// Verify data was persisted
 	hasRoles, err = queryStore2.HasRBACRoles(ctx())
@@ -336,7 +336,7 @@ func testQueryStoreSyncing(t *testing.T) {
 	require.NoError(t, err)
 	defer queryStore.Close()
 
-	rbacStore := newMockS3RBACStore(tempDir)
+	rbacStore := newQueryRBACStore(queryStore)
 
 	// Create permission in S3
 	perm := &rbac.Permission{
@@ -424,7 +424,7 @@ func testConcurrentInitialization(t *testing.T) {
 	require.NoError(t, err)
 	defer queryStore.Close()
 
-	rbacStore := newMockS3RBACStore(tempDir)
+	rbacStore := newQueryRBACStore(queryStore)
 
 	// Try concurrent RBAC initialization
 	done := make(chan error, 3)
@@ -489,3 +489,11 @@ func syncRBACData(t *testing.T, rbacStore rbac.RBACStore, queryStore query.Store
 	}
 }
 
+// newQueryRBACStore creates an RBAC store using the query database
+func newQueryRBACStore(queryStore query.Store) rbac.RBACStore {
+	sqlStore, ok := queryStore.(interface{ GetDB() *gorm.DB })
+	if !ok {
+		panic("queryStore does not expose GetDB()")
+	}
+	return rbac.NewQueryRBACStore(sqlStore.GetDB())
+}

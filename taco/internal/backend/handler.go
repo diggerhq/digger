@@ -9,18 +9,19 @@ import (
     "time"
 
     "github.com/diggerhq/digger/opentaco/internal/analytics"
-    "github.com/diggerhq/digger/opentaco/internal/storage"
     "github.com/diggerhq/digger/opentaco/internal/deps"
+    "github.com/diggerhq/digger/opentaco/internal/domain"
+    "github.com/diggerhq/digger/opentaco/internal/storage"
     "github.com/google/uuid"
     "github.com/labstack/echo/v4"
 )
 
-// Handler implements Terraform HTTP backend protocol
+// Handler implements Terraform HTTP backend protocol.
 type Handler struct {
-    store storage.UnitStore
+    store domain.StateOperations  
 }
 
-func NewHandler(store storage.UnitStore) *Handler {
+func NewHandler(store domain.StateOperations) *Handler {
     return &Handler{
         store: store,
     }

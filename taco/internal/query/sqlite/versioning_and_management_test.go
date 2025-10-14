@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/internal/principal"
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
@@ -89,12 +88,12 @@ func testVersionOperationsWithRBAC(t *testing.T) {
 		[]rbac.Action{rbac.ActionUnitRead})
 	
 	// Test: User can list versions
-	readerCtx := storage.ContextWithPrincipal(ctx, principal.Principal{
+	readerCtx := rbac.ContextWithPrincipal(ctx, rbac.Principal{
 		Subject: "reader@example.com",
 		Email:   "reader@example.com",
 	})
 	
-	versions, err := env.authStore.ListVersions(readerCtx, unitID)
+	versions, err := env.authRepo.ListVersions(readerCtx, unitID)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(versions), 2, "Should have at least 2 versions")
 	
@@ -125,13 +124,13 @@ func testListVersionsRequiresReadPermission(t *testing.T) {
 	setupUserWithPermission(t, env.queryStore, "noread@example.com", "other/*", 
 		[]rbac.Action{rbac.ActionUnitWrite})
 
-	noReadCtx := storage.ContextWithPrincipal(ctx, principal.Principal{
+	noReadCtx := rbac.ContextWithPrincipal(ctx, rbac.Principal{
 		Subject: "noread@example.com",
 		Email:   "noread@example.com",
 	})
 
 	// Test: Should get forbidden error
-	_, err = env.authStore.ListVersions(noReadCtx, unitID)
+	_, err = env.authRepo.ListVersions(noReadCtx, unitID)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 
@@ -139,13 +138,13 @@ func testListVersionsRequiresReadPermission(t *testing.T) {
 	setupUserWithPermission(t, env.queryStore, "reader@example.com", "read-test/*", 
 		[]rbac.Action{rbac.ActionUnitRead})
 
-	readerCtx := storage.ContextWithPrincipal(ctx, principal.Principal{
+	readerCtx := rbac.ContextWithPrincipal(ctx, rbac.Principal{
 		Subject: "reader@example.com",
 		Email:   "reader@example.com",
 	})
 
 	// Test: Should succeed
-	versions, err := env.authStore.ListVersions(readerCtx, unitID)
+	versions, err := env.authRepo.ListVersions(readerCtx, unitID)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(versions), 1)
 }
@@ -181,13 +180,13 @@ func testRestoreVersionRequiresWritePermission(t *testing.T) {
 	setupUserWithPermission(t, env.queryStore, "readonly@example.com", "restore-test/*", 
 		[]rbac.Action{rbac.ActionUnitRead})
 
-	readOnlyCtx := storage.ContextWithPrincipal(ctx, principal.Principal{
+	readOnlyCtx := rbac.ContextWithPrincipal(ctx, rbac.Principal{
 		Subject: "readonly@example.com",
 		Email:   "readonly@example.com",
 	})
 
 	// Test: Should get forbidden error
-	err = env.authStore.RestoreVersion(readOnlyCtx, unitID, oldVersion.Timestamp, "")
+	err = env.authRepo.RestoreVersion(readOnlyCtx, unitID, oldVersion.Timestamp, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 
@@ -195,13 +194,13 @@ func testRestoreVersionRequiresWritePermission(t *testing.T) {
 	setupUserWithPermission(t, env.queryStore, "writer@example.com", "restore-test/*", 
 		[]rbac.Action{rbac.ActionUnitRead, rbac.ActionUnitWrite})
 
-	writerCtx := storage.ContextWithPrincipal(ctx, principal.Principal{
+	writerCtx := rbac.ContextWithPrincipal(ctx, rbac.Principal{
 		Subject: "writer@example.com",
 		Email:   "writer@example.com",
 	})
 
 	// Test: Should succeed
-	err = env.authStore.RestoreVersion(writerCtx, unitID, oldVersion.Timestamp, "")
+	err = env.authRepo.RestoreVersion(writerCtx, unitID, oldVersion.Timestamp, "")
 	require.NoError(t, err)
 
 	// Verify restoration worked
@@ -234,24 +233,24 @@ func testVersionOperationsWithPatternPermissions(t *testing.T) {
 	setupUserWithPermission(t, env.queryStore, "dev-user@example.com", "dev/*", 
 		[]rbac.Action{rbac.ActionUnitRead, rbac.ActionUnitWrite})
 
-	devUserCtx := storage.ContextWithPrincipal(ctx, principal.Principal{
+	devUserCtx := rbac.ContextWithPrincipal(ctx, rbac.Principal{
 		Subject: "dev-user@example.com",
 		Email:   "dev-user@example.com",
 	})
 
 	// Test: Can list versions for dev unit
-	devVersions, err := env.authStore.ListVersions(devUserCtx, devUnit)
+	devVersions, err := env.authRepo.ListVersions(devUserCtx, devUnit)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(devVersions), 1)
 
 	// Test: Cannot list versions for prod unit
-	_, err = env.authStore.ListVersions(devUserCtx, prodUnit)
+	_, err = env.authRepo.ListVersions(devUserCtx, prodUnit)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 
 	// Test: Can restore dev unit version
 	if len(devVersions) > 0 {
-		err = env.authStore.RestoreVersion(devUserCtx, devUnit, devVersions[0].Timestamp, "")
+		err = env.authRepo.RestoreVersion(devUserCtx, devUnit, devVersions[0].Timestamp, "")
 		require.NoError(t, err)
 	}
 
@@ -259,7 +258,7 @@ func testVersionOperationsWithPatternPermissions(t *testing.T) {
 	prodVersions, err := env.blobStore.ListVersions(ctx, prodUnit)
 	require.NoError(t, err)
 	if len(prodVersions) > 0 {
-		err = env.authStore.RestoreVersion(devUserCtx, prodUnit, prodVersions[0].Timestamp, "")
+		err = env.authRepo.RestoreVersion(devUserCtx, prodUnit, prodVersions[0].Timestamp, "")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "forbidden")
 	}
@@ -306,23 +305,23 @@ func testVersionOperationsRespectLocks(t *testing.T) {
 	setupUserWithPermission(t, env.queryStore, "locker@example.com", "lock-test/*", 
 		[]rbac.Action{rbac.ActionUnitRead, rbac.ActionUnitWrite, rbac.ActionUnitLock})
 
-	lockerCtx := storage.ContextWithPrincipal(ctx, principal.Principal{
+	lockerCtx := rbac.ContextWithPrincipal(ctx, rbac.Principal{
 		Subject: "locker@example.com",
 		Email:   "locker@example.com",
 	})
 
 	// Test: Cannot restore without lock ID
-	err = env.authStore.RestoreVersion(lockerCtx, unitID, oldVersion.Timestamp, "")
+	err = env.authRepo.RestoreVersion(lockerCtx, unitID, oldVersion.Timestamp, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "lock")
 
 	// Test: Cannot restore with wrong lock ID
-	err = env.authStore.RestoreVersion(lockerCtx, unitID, oldVersion.Timestamp, "wrong-lock-id")
+	err = env.authRepo.RestoreVersion(lockerCtx, unitID, oldVersion.Timestamp, "wrong-lock-id")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "lock")
 
 	// Test: Can restore with correct lock ID
-	err = env.authStore.RestoreVersion(lockerCtx, unitID, oldVersion.Timestamp, lockID)
+	err = env.authRepo.RestoreVersion(lockerCtx, unitID, oldVersion.Timestamp, lockID)
 	require.NoError(t, err)
 
 	// Verify restoration worked

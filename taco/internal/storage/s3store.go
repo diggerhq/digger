@@ -31,22 +31,6 @@ type s3Store struct {
     prefix string
 }
 
-// S3Store interface methods
-func (s *s3Store) GetS3Client() *s3.Client {
-    return s.client
-}
-
-func (s *s3Store) GetS3Bucket() string {
-    return s.bucket
-}
-
-func (s *s3Store) GetS3Prefix() string {
-    return s.prefix
-}
-
-func (s *s3Store) Key(parts ...string) string {
-    return s.key(parts...)
-}
 
 // NewS3Store creates a new S3-backed unit store.
 // Region can be empty to use the default AWS config chain.

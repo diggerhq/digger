@@ -39,27 +39,25 @@ func getHostname() string {
     return "unknown"
 }
 
-// StorageInfo represents storage information from the server
-type StorageInfo struct {
-    Type string `json:"type"`
-    S3   *struct {
-        Bucket string `json:"bucket"`
-        Prefix string `json:"prefix"`
-        Region string `json:"region"`
-    } `json:"s3,omitempty"`
+// ServerCapabilities represents server capabilities
+type ServerCapabilities struct {
+    Features map[string]bool `json:"features"`
 }
 
-// CheckStorageAndPromptEmail checks if the server is using S3 storage and prompts for email if needed
-func CheckStorageAndPromptEmail(client *sdk.Client) error {
-    // Check if server is using S3 storage
-    storageInfo, err := getStorageInfo(client)
+// CheckCapabilitiesAndPromptEmail checks server capabilities and prompts for email if analytics are enabled
+func CheckCapabilitiesAndPromptEmail(client *sdk.Client) error {
+    // Check server capabilities
+    caps, err := getCapabilities(client)
     if err != nil {
-        // If we can't determine storage type, skip email prompt
+        // If we can't determine capabilities, skip email prompt
         return nil
     }
 
-    if storageInfo.Type != "s3" {
-        return nil // Not using S3, no need for email
+    // Only prompt for email if the server needs it (has persistent storage)
+    // We infer this from any capability being enabled (RBAC or query backend)
+    needsEmail := caps.Features["rbac"] || caps.Features["query"]
+    if !needsEmail {
+        return nil
     }
 
     // Check if user email is already set by trying to get it from server
@@ -92,9 +90,9 @@ func CheckStorageAndPromptEmail(client *sdk.Client) error {
     return nil
 }
 
-// getStorageInfo queries the server for storage information
-func getStorageInfo(client *sdk.Client) (*StorageInfo, error) {
-    resp, err := client.Get(context.Background(), "/v1/info")
+// getCapabilities queries the server for its capabilities
+func getCapabilities(client *sdk.Client) (*ServerCapabilities, error) {
+    resp, err := client.Get(context.Background(), "/v1/capabilities")
     if err != nil {
         return nil, err
     }
@@ -109,21 +107,18 @@ func getStorageInfo(client *sdk.Client) (*StorageInfo, error) {
         return nil, err
     }
 
-    var info struct {
-        Storage StorageInfo `json:"storage"`
-    }
-
-    if err := json.Unmarshal(body, &info); err != nil {
+    var caps ServerCapabilities
+    if err := json.Unmarshal(body, &caps); err != nil {
         return nil, err
     }
 
-    return &info.Storage, nil
+    return &caps, nil
 }
 
 // promptForEmail prompts the user for their email address
 func promptForEmail() (string, error) {
     fmt.Println("\n📊 OpenTaco Analytics")
-    fmt.Println("You're connecting to an OpenTaco server with S3 storage.")
+    fmt.Println("You're connecting to an OpenTaco server with persistent storage.")
     fmt.Println("To help improve OpenTaco and provide better support, we'd like to collect your email address.")
     fmt.Println("This is completely optional and separate from authentication.")
     fmt.Println("Your email will be stored securely with your system ID for analytics purposes only.")

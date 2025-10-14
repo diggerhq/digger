@@ -273,15 +273,17 @@ func fetchServerAuthConfig(base string) (*serverAuthConfig, error) {
 func promptForAnalyticsEmail(base string) error {
     client := sdk.NewClient(base)
     
-    // Check if server is using S3 storage
-    storageInfo, err := getStorageInfo(client)
+    // Check server capabilities
+    caps, err := getCapabilities(client)
     if err != nil {
-        // If we can't determine storage type, skip email prompt
+        // If we can't determine capabilities, skip email prompt
         return nil
     }
 
-    if storageInfo.Type != "s3" {
-        return nil // Not using S3, no need for email
+    // Only prompt for email if the server needs it (has persistent storage)
+    needsEmail := caps.Features["rbac"] || caps.Features["query"]
+    if !needsEmail {
+        return nil
     }
 
     // Check if user email is already set

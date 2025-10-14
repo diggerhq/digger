@@ -44,14 +44,6 @@ func (h *Handler) Init(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "subject and email required"})
     }
     
-    // Check if RBAC manager is available (only works with S3 storage)
-    if h.manager == nil {
-        return c.JSON(http.StatusBadRequest, map[string]string{
-            "error": "RBAC requires S3 storage", 
-            "message": "RBAC is only available when using S3 storage. Please configure S3 storage to use RBAC features.",
-        })
-    }
-    
     // Check if RBAC is already initialized
     enabled, err := h.manager.IsEnabled(c.Request().Context())
     if err != nil {

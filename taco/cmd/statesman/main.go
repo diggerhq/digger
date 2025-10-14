@@ -13,10 +13,12 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/analytics"
 	"github.com/diggerhq/digger/opentaco/internal/api"
 	"github.com/diggerhq/digger/opentaco/internal/auth"
+	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/queryfactory"
+	"github.com/diggerhq/digger/opentaco/internal/rbac"
+	"github.com/diggerhq/digger/opentaco/internal/repositories"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
-	"github.com/diggerhq/digger/opentaco/internal/wiring"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
@@ -50,13 +52,7 @@ func main() {
 	}
 	defer queryStore.Close()
 
-	log.Printf("Query backend initialized: %s (enabled: %v)", queryCfg.Backend, queryStore.IsEnabled())
-
-	if queryStore.IsEnabled(){
-		log.Println("Query backend enabled successfully")
-	}else{
-		log.Println("Query backend disabled. You are in no-op mode.")
-	}
+	log.Printf("Query backend initialized: %s", queryCfg.Backend)
 
 
 	// Initialize storage
@@ -85,77 +81,71 @@ func main() {
 	}
 
 
-	// 3. Create the base OrchestratingStore
-	orchestratingStore := storage.NewOrchestratingStore(blobStore, queryStore)
-
-	// --- Sync RBAC Data ---
-	if queryStore.IsEnabled() {
-		hasRoles, err := queryStore.HasRBACRoles(context.Background())
-		if err != nil {
-			log.Printf("Warning: Failed to check for existing RBAC data: %v", err)
-		}
-		
-		if !hasRoles {
-			log.Println("Query backend has no RBAC data, performing initial sync from S3...")
-			if err := wiring.SyncRBACFromStorage(context.Background(), blobStore, queryStore); err != nil {
-				log.Printf("Warning: Failed to sync RBAC data: %v", err)
-			}
-		} else {
-			log.Println("Query backend already has RBAC data, skipping sync (using runtime sync instead)")
-		}
-		
-		existingUnits, err := queryStore.ListUnits(context.Background(), "")
-		if err != nil {
-			log.Printf("Warning: Failed to check for existing units: %v", err)
-		}
-		
-		if len(existingUnits) == 0 {
-			log.Println("Query backend has no units, syncing from storage...")
-			units, err := blobStore.List(context.Background(), "")
-			if err != nil {
-				log.Printf("Warning: Failed to list units from storage: %v", err)
-			} else {
-				for _, unit := range units {
-					if err := queryStore.SyncEnsureUnit(context.Background(), unit.ID); err != nil {
-						log.Printf("Warning: Failed to sync unit %s: %v", unit.ID, err)
-						continue
-					}
-					
-					if err := queryStore.SyncUnitMetadata(context.Background(), unit.ID, unit.Size, unit.Updated); err != nil {
-						log.Printf("Warning: Failed to sync metadata for unit %s: %v", unit.ID, err)
-					}
-				}
-				log.Printf("Synced %d units from storage to database", len(units))
-			}
-		} else {
-			log.Printf("Query backend already has %d units, skipping sync", len(existingUnits))
-		}
-	}
-
-	// --- Conditionally Apply Authorization Layer with a SMART CHECK ---
-	var finalStore storage.UnitStore
-	
-	// Check if there are any RBAC roles defined in the database.
-	rbacIsConfigured, err := queryStore.HasRBACRoles(context.Background())
+	// sync units to query index 
+	existingUnits, err := queryStore.ListUnits(context.Background(), "")
 	if err != nil {
-		log.Fatalf("Failed to check for RBAC configuration: %v", err)
+		log.Printf("Warning: Failed to check for existing units: %v", err)
+	}
+	
+	if len(existingUnits) == 0 {
+		log.Println("Query backend has no units, syncing from storage...")
+		units, err := blobStore.List(context.Background(), "")
+		if err != nil {
+			log.Printf("Warning: Failed to list units from storage: %v", err)
+		} else {
+			for _, unit := range units {
+				if err := queryStore.SyncEnsureUnit(context.Background(), unit.ID); err != nil {
+					log.Printf("Warning: Failed to sync unit %s: %v", unit.ID, err)
+					continue
+				}
+				
+				if err := queryStore.SyncUnitMetadata(context.Background(), unit.ID, unit.Size, unit.Updated); err != nil {
+					log.Printf("Warning: Failed to sync metadata for unit %s: %v", unit.ID, err)
+				}
+			}
+			log.Printf("Synced %d units from storage to database", len(units))
+		}
+	} else {
+		log.Printf("Query backend already has %d units, skipping sync", len(existingUnits))
 	}
 
-	// The condition is now two-part: Auth must be enabled AND RBAC roles must exist.
-	if !*authDisable && rbacIsConfigured {
-		log.Println("RBAC is ENABLED and CONFIGURED. Wrapping store with authorization layer.")
-		finalStore = storage.NewAuthorizingStore(orchestratingStore, queryStore)
-	} else {
-		if !*authDisable {
-			log.Println("RBAC is ENABLED but NOT CONFIGURED (no roles found). Authorization layer will be skipped.")
-		} else {
-			log.Println("RBAC is DISABLED via flag. Authorization layer will be skipped.")
+	// create repository
+	// repository coordinates blob storage with query index internally
+	repo := repositories.NewUnitRepository(blobStore, queryStore)
+	log.Println("Repository initialized (coordinates blob + query)")
+	
+	// Create RBAC Manager
+	rbacManager, err := rbac.NewRBACManagerFromQueryStore(queryStore)
+	if err != nil {
+		log.Fatalf("Failed to create RBAC manager: %v", err)
+	}
+	
+	// --- Create Domain Interfaces with Optional Authorization ---
+	// These interfaces are what handlers will use
+	var fullRepo domain.UnitRepository = repo
+	
+	// Wrap with authorization if auth is enabled
+	if !*authDisable {
+		log.Println("Authorization is ENABLED. Wrapping repository with RBAC.")
+		
+		// Verify RBAC manager was created successfully (fail closed for security)
+		canInit, err := rbacManager.IsEnabled(context.Background())
+		if err != nil {
+			log.Fatalf("Failed to verify RBAC manager: %v", err)
 		}
-		finalStore = orchestratingStore
+		
+		if !canInit {
+			log.Println("RBAC is NOT initialized. System will operate in permissive mode until RBAC is initialized via /v1/rbac/init")
+		}
+		
+		fullRepo = repositories.NewAuthorizingRepository(repo, rbacManager)
+	} else {
+		log.Println("Authorization is DISABLED via flag. All operations allowed.")
 	}
 
 	// Initialize analytics with system ID management (always create system ID)
-	analytics.InitGlobalWithSystemID("production", finalStore)
+	// Analytics uses the full repository for storage operations
+	analytics.InitGlobalWithSystemID("production", fullRepo)
 	// Initialize system ID synchronously during startup
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -192,7 +182,14 @@ func main() {
 		log.Fatalf("Failed to initialize JWT signer: %v", err)
 	}
 
-	api.RegisterRoutes(e, finalStore, !*authDisable, queryStore, blobStore, signer)
+	// Register routes with interface-based dependencies
+	api.RegisterRoutes(e, api.Dependencies{
+		Repository:  fullRepo,      // Coordinated unit operations
+		QueryStore:  queryStore,    // Direct query access
+		RBACManager: rbacManager,   // RBAC management
+		Signer:      signer,        // JWT signing
+		AuthEnabled: !*authDisable, // Auth flag
+	})
 
 	// Start server
 	go func() {

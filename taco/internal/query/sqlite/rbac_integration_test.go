@@ -7,10 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/internal/principal"
+	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/query"
+	"github.com/diggerhq/digger/opentaco/internal/query/types"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
+	"github.com/diggerhq/digger/opentaco/internal/repositories"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
+	"gorm.io/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -74,8 +77,8 @@ func TestRBACIntegration(t *testing.T) {
 type testEnvironment struct {
 	queryStore query.Store
 	blobStore  storage.UnitStore
-	orchStore  storage.UnitStore
-	authStore  storage.UnitStore
+	repo       domain.UnitRepository      // Repository (no auth)
+	authRepo   domain.UnitRepository      // Repository (with auth)
 	rbacStore  rbac.RBACStore
 	rbacMgr    *rbac.RBACManager
 	tempDir    string
@@ -114,21 +117,28 @@ func setupTestEnvironment(t *testing.T) *testEnvironment {
 	// Create mock S3-backed blob store
 	blobStore := storage.NewMemStore() // Using memstore as a simple blob store for now
 
-	// Create RBAC store
-	rbacStore := newMockS3RBACStore(tempDir)
+	// Create RBAC store using queryStore (RBAC data is in database)
+	sqlStore, ok := queryStore.(interface{ GetDB() *gorm.DB })
+	require.True(t, ok, "queryStore should expose GetDB()")
+	
+	// Force re-migration of Rule table to ensure ResourcePatterns column exists
+	err = sqlStore.GetDB().AutoMigrate(&types.Rule{})
+	require.NoError(t, err, "failed to migrate Rule table")
+	
+	rbacStore := rbac.NewQueryRBACStore(sqlStore.GetDB())
 	rbacMgr := rbac.NewRBACManager(rbacStore)
 
-	// Create orchestrating store (coordinates blob + query)
-	orchStore := storage.NewOrchestratingStore(blobStore, queryStore)
+	// Create repository (coordinates blob + query)
+	repo := repositories.NewUnitRepository(blobStore, queryStore)
 
-	// Create authorizing store (enforces RBAC)
-	authStore := storage.NewAuthorizingStore(orchStore, queryStore)
+	// Create authorizing repository (enforces RBAC)
+	authRepo := repositories.NewAuthorizingRepository(repo, rbacMgr)
 
 	return &testEnvironment{
 		queryStore: queryStore,
 		blobStore:  blobStore,
-		orchStore:  orchStore,
-		authStore:  authStore,
+		repo:       repo,
+		authRepo:   authRepo,
 		rbacStore:  rbacStore,
 		rbacMgr:    rbacMgr,
 		tempDir:    tempDir,
@@ -188,24 +198,24 @@ func testAdminFullAccess(t *testing.T, env *testEnvironment) {
 	// Setup: Initialize RBAC and create test units
 	setupRBACWithUnits(t, env)
 
-	adminPrincipal := principal.Principal{
+	adminPrincipal := rbac.Principal{
 		Subject: "admin@example.com",
 		Email:   "admin@example.com",
 	}
-	ctx = storage.ContextWithPrincipal(ctx, adminPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, adminPrincipal)
 
 	// Admin should be able to list all units
-	units, err := env.authStore.List(ctx, "")
+	units, err := env.authRepo.List(ctx, "")
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(units), 3, "admin should see all units")
 
 	// Admin should be able to read
-	data, err := env.authStore.Download(ctx, "dev/app1")
+	data, err := env.authRepo.Download(ctx, "dev/app1")
 	require.NoError(t, err)
 	assert.NotNil(t, data)
 
 	// Admin should be able to write
-	err = env.authStore.Upload(ctx, "dev/app1", []byte("updated"), "")
+	err = env.authRepo.Upload(ctx, "dev/app1", []byte("updated"), "")
 	require.NoError(t, err)
 
 	// Admin should be able to lock
@@ -214,15 +224,15 @@ func testAdminFullAccess(t *testing.T, env *testEnvironment) {
 		Who:     "admin",
 		Created: time.Now(),
 	}
-	err = env.authStore.Lock(ctx, "dev/app1", lockInfo)
+	err = env.authRepo.Lock(ctx, "dev/app1", lockInfo)
 	require.NoError(t, err)
 
 	// Admin should be able to unlock
-	err = env.authStore.Unlock(ctx, "dev/app1", "lock-123")
+	err = env.authRepo.Unlock(ctx, "dev/app1", "lock-123")
 	require.NoError(t, err)
 
 	// Admin should be able to delete
-	err = env.authStore.Delete(ctx, "dev/app1")
+	err = env.authRepo.Delete(ctx, "dev/app1")
 	require.NoError(t, err)
 }
 
@@ -272,19 +282,19 @@ func testReaderAccess(t *testing.T, env *testEnvironment) {
 	err = env.queryStore.SyncUser(ctx, readerAssignment)
 	require.NoError(t, err)
 
-	readerPrincipal := principal.Principal{
+	readerPrincipal := rbac.Principal{
 		Subject: readerSubject,
 		Email:   readerSubject,
 	}
-	ctx = storage.ContextWithPrincipal(ctx, readerPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, readerPrincipal)
 
 	// Reader should be able to read
-	data, err := env.authStore.Download(ctx, "dev/app2")
+	data, err := env.authRepo.Download(ctx, "dev/app2")
 	require.NoError(t, err)
 	assert.NotNil(t, data)
 
 	// Reader should NOT be able to write
-	err = env.authStore.Upload(ctx, "dev/app2", []byte("updated"), "")
+	err = env.authRepo.Upload(ctx, "dev/app2", []byte("updated"), "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 
@@ -294,12 +304,12 @@ func testReaderAccess(t *testing.T, env *testEnvironment) {
 		Who:     "reader",
 		Created: time.Now(),
 	}
-	err = env.authStore.Lock(ctx, "dev/app2", lockInfo)
+	err = env.authRepo.Lock(ctx, "dev/app2", lockInfo)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 
 	// Reader should NOT be able to delete
-	err = env.authStore.Delete(ctx, "dev/app2")
+	err = env.authRepo.Delete(ctx, "dev/app2")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 }
@@ -350,19 +360,19 @@ func testWriterAccess(t *testing.T, env *testEnvironment) {
 	err = env.queryStore.SyncUser(ctx, writerAssignment)
 	require.NoError(t, err)
 
-	writerPrincipal := principal.Principal{
+	writerPrincipal := rbac.Principal{
 		Subject: writerSubject,
 		Email:   writerSubject,
 	}
-	ctx = storage.ContextWithPrincipal(ctx, writerPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, writerPrincipal)
 
 	// Writer should be able to read
-	data, err := env.authStore.Download(ctx, "prod/app1")
+	data, err := env.authRepo.Download(ctx, "prod/app1")
 	require.NoError(t, err)
 	assert.NotNil(t, data)
 
 	// Writer should be able to write
-	err = env.authStore.Upload(ctx, "prod/app1", []byte("updated"), "")
+	err = env.authRepo.Upload(ctx, "prod/app1", []byte("updated"), "")
 	require.NoError(t, err)
 
 	// Writer should be able to lock
@@ -371,15 +381,15 @@ func testWriterAccess(t *testing.T, env *testEnvironment) {
 		Who:     "writer",
 		Created: time.Now(),
 	}
-	err = env.authStore.Lock(ctx, "prod/app1", lockInfo)
+	err = env.authRepo.Lock(ctx, "prod/app1", lockInfo)
 	require.NoError(t, err)
 
 	// Unlock for cleanup
-	err = env.authStore.Unlock(ctx, "prod/app1", "lock-789")
+	err = env.authRepo.Unlock(ctx, "prod/app1", "lock-789")
 	require.NoError(t, err)
 
 	// Writer should NOT be able to delete
-	err = env.authStore.Delete(ctx, "prod/app1")
+	err = env.authRepo.Delete(ctx, "prod/app1")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 }
@@ -423,9 +433,9 @@ func testWildcardPermissions(t *testing.T, env *testEnvironment) {
 	require.NoError(t, err)
 
 	// Create staging unit
-	_, err = env.orchStore.Create(ctx, "staging/app1")
+	_, err = env.repo.Create(ctx, "staging/app1")
 	require.NoError(t, err)
-	err = env.orchStore.Upload(ctx, "staging/app1", []byte("staging data"), "")
+	err = env.repo.Upload(ctx, "staging/app1", []byte("staging data"), "")
 	require.NoError(t, err)
 
 	// Assign role to user
@@ -436,22 +446,22 @@ func testWildcardPermissions(t *testing.T, env *testEnvironment) {
 	err = env.queryStore.SyncUser(ctx, userAssignment)
 	require.NoError(t, err)
 
-	userPrincipal := principal.Principal{
+	userPrincipal := rbac.Principal{
 		Subject: userSubject,
 		Email:   userSubject,
 	}
-	ctx = storage.ContextWithPrincipal(ctx, userPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, userPrincipal)
 
 	// User should have all permissions on staging/*
-	data, err := env.authStore.Download(ctx, "staging/app1")
+	data, err := env.authRepo.Download(ctx, "staging/app1")
 	require.NoError(t, err)
 	assert.NotNil(t, data)
 
-	err = env.authStore.Upload(ctx, "staging/app1", []byte("updated"), "")
+	err = env.authRepo.Upload(ctx, "staging/app1", []byte("updated"), "")
 	require.NoError(t, err)
 
 	// User should NOT have access to dev/*
-	_, err = env.authStore.Download(ctx, "dev/app2")
+	_, err = env.authRepo.Download(ctx, "dev/app2")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 }
@@ -502,19 +512,19 @@ func testPrefixBasedPermissions(t *testing.T, env *testEnvironment) {
 	err = env.queryStore.SyncUser(ctx, devAssignment)
 	require.NoError(t, err)
 
-	devPrincipal := principal.Principal{
+	devPrincipal := rbac.Principal{
 		Subject: devSubject,
 		Email:   devSubject,
 	}
-	ctx = storage.ContextWithPrincipal(ctx, devPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, devPrincipal)
 
 	// User should have access to dev/*
-	data, err := env.authStore.Download(ctx, "dev/app2")
+	data, err := env.authRepo.Download(ctx, "dev/app2")
 	require.NoError(t, err)
 	assert.NotNil(t, data)
 
 	// User should NOT have access to prod/*
-	_, err = env.authStore.Download(ctx, "prod/app1")
+	_, err = env.authRepo.Download(ctx, "prod/app1")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 }
@@ -527,27 +537,29 @@ func testUnauthorizedAccess(t *testing.T, env *testEnvironment) {
 
 	// Create a user with no permissions
 	noAccessSubject := "noaccess@example.com"
-	noAccessPrincipal := principal.Principal{
+	noAccessPrincipal := rbac.Principal{
 		Subject: noAccessSubject,
 		Email:   noAccessSubject,
 	}
 
-	// Don't assign any roles - user exists but has no permissions
+	// Don't assign any roles - user doesn't exist in RBAC store
+	// This should return an error (user not found) which propagates as unauthorized
 
-	ctx = storage.ContextWithPrincipal(ctx, noAccessPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, noAccessPrincipal)
 
-	// All operations should be forbidden
-	_, err := env.authStore.Download(ctx, "dev/app2")
+	// All operations should fail with "not found" error (user not in RBAC store)
+	_, err := env.authRepo.Download(ctx, "dev/app2")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "forbidden")
+	// User doesn't exist in RBAC store, so GetUserAssignment returns "not found"
+	assert.Contains(t, err.Error(), "not found")
 
-	err = env.authStore.Upload(ctx, "dev/app2", []byte("data"), "")
+	err = env.authRepo.Upload(ctx, "dev/app2", []byte("data"), "")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "forbidden")
+	assert.Contains(t, err.Error(), "not found")
 
-	err = env.authStore.Delete(ctx, "dev/app2")
+	err = env.authRepo.Delete(ctx, "dev/app2")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "forbidden")
+	assert.Contains(t, err.Error(), "not found")
 }
 
 func testListFiltering(t *testing.T, env *testEnvironment) {
@@ -596,14 +608,14 @@ func testListFiltering(t *testing.T, env *testEnvironment) {
 	err = env.queryStore.SyncUser(ctx, userAssignment)
 	require.NoError(t, err)
 
-	userPrincipal := principal.Principal{
+	userPrincipal := rbac.Principal{
 		Subject: userSubject,
 		Email:   userSubject,
 	}
-	ctx = storage.ContextWithPrincipal(ctx, userPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, userPrincipal)
 
 	// List all units - should only see dev/*
-	units, err := env.authStore.List(ctx, "")
+	units, err := env.authRepo.List(ctx, "")
 	require.NoError(t, err)
 	
 	// Verify only dev units are returned
@@ -612,12 +624,12 @@ func testListFiltering(t *testing.T, env *testEnvironment) {
 	}
 
 	// List with dev prefix
-	devUnits, err := env.authStore.List(ctx, "dev/")
+	devUnits, err := env.authRepo.List(ctx, "dev/")
 	require.NoError(t, err)
 	assert.Greater(t, len(devUnits), 0, "Should see dev units")
 
 	// List with prod prefix - should see nothing
-	prodUnits, err := env.authStore.List(ctx, "prod/")
+	prodUnits, err := env.authRepo.List(ctx, "prod/")
 	require.NoError(t, err)
 	assert.Equal(t, 0, len(prodUnits), "Should not see prod units")
 }
@@ -702,23 +714,23 @@ func testMultipleRoles(t *testing.T, env *testEnvironment) {
 	err = env.queryStore.SyncUser(ctx, userAssignment)
 	require.NoError(t, err)
 
-	userPrincipal := principal.Principal{
+	userPrincipal := rbac.Principal{
 		Subject: userSubject,
 		Email:   userSubject,
 	}
-	ctx = storage.ContextWithPrincipal(ctx, userPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, userPrincipal)
 
 	// User should have write access to dev
-	err = env.authStore.Upload(ctx, "dev/app2", []byte("updated"), "")
+	err = env.authRepo.Upload(ctx, "dev/app2", []byte("updated"), "")
 	require.NoError(t, err)
 
 	// User should have read access to prod
-	data, err := env.authStore.Download(ctx, "prod/app1")
+	data, err := env.authRepo.Download(ctx, "prod/app1")
 	require.NoError(t, err)
 	assert.NotNil(t, data)
 
 	// User should NOT have write access to prod
-	err = env.authStore.Upload(ctx, "prod/app1", []byte("updated"), "")
+	err = env.authRepo.Upload(ctx, "prod/app1", []byte("updated"), "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 }
@@ -769,11 +781,11 @@ func testLockPermissions(t *testing.T, env *testEnvironment) {
 	err = env.queryStore.SyncUser(ctx, userAssignment)
 	require.NoError(t, err)
 
-	userPrincipal := principal.Principal{
+	userPrincipal := rbac.Principal{
 		Subject: userSubject,
 		Email:   userSubject,
 	}
-	ctx = storage.ContextWithPrincipal(ctx, userPrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, userPrincipal)
 
 	// User should be able to lock
 	lockInfo := &storage.LockInfo{
@@ -781,15 +793,15 @@ func testLockPermissions(t *testing.T, env *testEnvironment) {
 		Who:     "locker",
 		Created: time.Now(),
 	}
-	err = env.authStore.Lock(ctx, "dev/app2", lockInfo)
+	err = env.authRepo.Lock(ctx, "dev/app2", lockInfo)
 	require.NoError(t, err)
 
 	// User should be able to unlock
-	err = env.authStore.Unlock(ctx, "dev/app2", "lock-abc")
+	err = env.authRepo.Unlock(ctx, "dev/app2", "lock-abc")
 	require.NoError(t, err)
 
 	// User should NOT be able to write (no write permission)
-	err = env.authStore.Upload(ctx, "dev/app2", []byte("data"), "")
+	err = env.authRepo.Upload(ctx, "dev/app2", []byte("data"), "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 }
@@ -803,15 +815,15 @@ func testMissingPrincipal(t *testing.T, env *testEnvironment) {
 	// Don't add principal to context
 
 	// All operations should return unauthorized
-	_, err := env.authStore.List(ctx, "")
+	_, err := env.authRepo.List(ctx, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unauthorized")
 
-	_, err = env.authStore.Download(ctx, "dev/app2")
+	_, err = env.authRepo.Download(ctx, "dev/app2")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unauthorized")
 
-	err = env.authStore.Upload(ctx, "dev/app2", []byte("data"), "")
+	err = env.authRepo.Upload(ctx, "dev/app2", []byte("data"), "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unauthorized")
 }
@@ -822,41 +834,45 @@ func testNoRoles(t *testing.T, env *testEnvironment) {
 	// Setup test data
 	setupRBACWithUnits(t, env)
 
+	// Create a dummy role for testing
+	dummyRole := &rbac.Role{
+		ID:          "dummy",
+		Name:        "Dummy Role",
+		Permissions: []string{},
+		CreatedAt:   time.Now(),
+		CreatedBy:   "admin",
+	}
+	err := env.rbacStore.CreateRole(ctx, dummyRole)
+	require.NoError(t, err)
+	err = env.queryStore.SyncRole(ctx, dummyRole)
+	require.NoError(t, err)
+	
 	// Create user with no roles
 	noRoleSubject := "norole@example.com"
-	noRoleAssignment := &rbac.UserAssignment{
-		Subject:   noRoleSubject,
-		Email:     noRoleSubject,
-		Roles:     []string{}, // No roles
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Version:   1,
-	}
 	
-	// Save to RBAC store
-	err := env.rbacStore.AssignRole(ctx, noRoleSubject, noRoleSubject, "dummy")
+	// Assign and then revoke dummy role to create user in database
+	err = env.rbacStore.AssignRole(ctx, noRoleSubject, noRoleSubject, "dummy")
 	require.NoError(t, err)
-	// Revoke the dummy role so user has no roles
 	err = env.rbacStore.RevokeRole(ctx, noRoleSubject, "dummy")
 	require.NoError(t, err)
 	
-	noRoleAssignment, _ = env.rbacStore.GetUserAssignment(ctx, noRoleSubject)
+	noRoleAssignment, _ := env.rbacStore.GetUserAssignment(ctx, noRoleSubject)
 	err = env.queryStore.SyncUser(ctx, noRoleAssignment)
 	require.NoError(t, err)
 
-	noRolePrincipal := principal.Principal{
+	noRolePrincipal := rbac.Principal{
 		Subject: noRoleSubject,
 		Email:   noRoleSubject,
 	}
-	ctx = storage.ContextWithPrincipal(ctx, noRolePrincipal)
+	ctx = rbac.ContextWithPrincipal(ctx, noRolePrincipal)
 
 	// User should not have access to anything
-	_, err = env.authStore.Download(ctx, "dev/app2")
+	_, err = env.authRepo.Download(ctx, "dev/app2")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forbidden")
 
 	// List should return empty
-	units, err := env.authStore.List(ctx, "")
+	units, err := env.authRepo.List(ctx, "")
 	require.NoError(t, err)
 	assert.Equal(t, 0, len(units), "User with no roles should see no units")
 }
@@ -866,8 +882,8 @@ func setupRBACWithUnits(t *testing.T, env *testEnvironment) {
 	ctx := context.Background()
 
 	// Initialize RBAC if not already done
-	config, _ := env.rbacStore.GetConfig(ctx)
-	if config == nil || !config.Initialized {
+	enabled, _ := env.rbacMgr.IsEnabled(ctx)
+	if !enabled {
 		err := env.rbacMgr.InitializeRBAC(ctx, "admin@example.com", "admin@example.com")
 		require.NoError(t, err)
 
@@ -888,26 +904,14 @@ func setupRBACWithUnits(t *testing.T, env *testEnvironment) {
 	}
 
 	for _, unitName := range testUnits {
-		_, err := env.orchStore.Create(ctx, unitName)
+		_, err := env.repo.Create(ctx, unitName)
 		if err != nil && err != storage.ErrAlreadyExists {
 			require.NoError(t, err)
 		}
 		
 		// Upload some data
 		data := []byte(`{"terraform_version": "1.0.0", "unit": "` + unitName + `"}`)
-		err = env.orchStore.Upload(ctx, unitName, data, "")
+		err = env.repo.Upload(ctx, unitName, data, "")
 		require.NoError(t, err)
 	}
 }
-
-// newMockS3RBACStore creates a production rbac.s3RBACStore with a mock S3 client.
-// This ensures we test the actual production code including:
-// - Optimistic locking (version conflict detection)
-// - Retry logic (3 attempts on conflicts)
-// - Subject sanitization (special characters in user IDs)
-// - S3-specific error handling
-func newMockS3RBACStore(dataDir string) rbac.RBACStore {
-	mockS3 := newMockS3Client()
-	return rbac.NewS3RBACStore(mockS3, "test-bucket", "")
-}
-
