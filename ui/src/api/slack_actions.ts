@@ -1,7 +1,3 @@
-"use server";
-
-import { updateOrgSettings } from "./api";
-
 // helpers/slack.ts
 // ──────────────────────────────────────────────────────────────────────────────
 // CONFIG

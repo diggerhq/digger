@@ -3,19 +3,21 @@ import radixCssUrl from '@radix-ui/themes/styles.css?url';
 import { HeadContent, Link, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { Suspense } from 'react';
-import { getAuth, getSignInUrl, signOut } from '@/authkit/serverFunctions';
+import { getAuth, getOrganisationDetails, getSignInUrl, signOut } from '@/authkit/serverFunctions';
 import Footer from '@/components/footer';
 import SignInButton from '@/components/sign-in-button';
 import type { ReactNode } from 'react';
 import { Sidebar, SidebarMenuButton, SidebarGroupContent, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarTrigger, SidebarProvider, SidebarMenu, SidebarMenuItem } from '../components/ui/sidebar';
 import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut } from 'lucide-react';
 import globalCssUrl from '@/styles/global.css?url'
+import { Toaster } from '@/components/ui/toaster';
 
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
     const { auth, organisationId } = await getAuth();
-    return { user: auth.user, organisationId };
+    const organisationDetails = await getOrganisationDetails({data: {organizationId: organisationId}});
+    return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails.name  };
   },
   head: () => ({
     meta: [
@@ -69,6 +71,7 @@ function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) 
       </head>
       <body>
         {children}
+        <Toaster />
         <Scripts />
       </body>
     </html>
