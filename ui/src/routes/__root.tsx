@@ -16,8 +16,8 @@ import { Toaster } from '@/components/ui/toaster';
 export const Route = createRootRoute({
   beforeLoad: async () => {
     const { auth, organisationId } = await getAuth();
-    const organisationDetails = await getOrganisationDetails({data: {organizationId: organisationId}});
-    return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails.name  };
+    const organisationDetails = organisationId ? await getOrganisationDetails({data: {organizationId: organisationId}}) : null;
+    return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name  };
   },
   head: () => ({
     meta: [
