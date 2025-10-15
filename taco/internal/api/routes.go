@@ -274,4 +274,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 			}},
 		})
 	})
+
+	// Register webhook-authenticated internal routes (if OPENTACO_WEBHOOK_SECRET is set)
+	RegisterInternalRoutes(e, deps)
 }
