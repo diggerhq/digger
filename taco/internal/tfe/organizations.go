@@ -1,9 +1,9 @@
 package tfe
 
 import (
+	"fmt"
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"github.com/google/jsonapi"
-	"log/slog"
 	"github.com/labstack/echo/v4"
 )
 
@@ -16,7 +16,7 @@ func (h *TfeHandler) GetOrganizationEntitlements(c echo.Context) error {
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "OpenTaco")
 
 	if err := jsonapi.MarshalPayload(c.Response().Writer, payload); err != nil {
-		log.Error("an error occured in marshal payload %v", err)
+		fmt.Printf("an error occured in marshal payload %v", err)
 		return err
 	}
 	return nil

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"log/slog"
 	"crypto/subtle"
+	"errors"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
@@ -89,7 +90,7 @@ func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
 				ctx := c.Request().Context()
 				_, err := orgRepo.Get(ctx, orgID)
 				if err != nil {
-					if err == domain.ErrOrgNotFound {
+					if errors.Is(err, domain.ErrOrgNotFound) {
 						slog.Warn("Webhook request for non-existent organization",
 							"orgID", orgID,
 							"userID", userID,
