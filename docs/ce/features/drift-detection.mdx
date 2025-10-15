@@ -36,6 +36,10 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+<Note>
+To limit drift checks to only certain projects/environments, use a dedicated Digger config file and point the workflow to it via `digger-filename`. See: [Limit Drift Detection to Specific Projects](/ce/howto/scope-drift-detection).
+</Note>
+
 ## Configure Slack notification URL
 
 Note the `DRIFT_DETECTION_SLACK_NOTIFICATION` env var that the workflow above is using. This should be set to a Slack Incoming Webhook URL.
@@ -49,4 +53,3 @@ Coming soon to CE, here is an example of how to configure it: https://github.com
 Digger supports drift detection and automatic creation of issues in your ticketing system, e.g. GitHub Issues:
 
 <img height="400" src="/images/drift-issues.png" />
-
