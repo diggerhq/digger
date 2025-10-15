@@ -23,11 +23,11 @@ import (
 func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			webhookSecret := os.Getenv("OPENTACO_WEBHOOK_SECRET")
+			webhookSecret := os.Getenv("OPENTACO_ENABLE_INTERNAL_ENDPOINTS")
 			
 			// If no webhook secret is configured, deny access
 			if webhookSecret == "" {
-				slog.Error("Critical - webhook middleware called but OPENTACO_WEBHOOK_SECRET not configured")
+				slog.Error("Critical - webhook middleware called but OPENTACO_ENABLE_INTERNAL_ENDPOINTS not configured")
 				return c.JSON(http.StatusInternalServerError, map[string]string{
 					"error": "webhook authentication not configured",
 				})

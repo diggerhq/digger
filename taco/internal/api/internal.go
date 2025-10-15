@@ -15,9 +15,9 @@ import (
 
 
 func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
-	webhookSecret := os.Getenv("OPENTACO_WEBHOOK_SECRET")
+	webhookSecret := os.Getenv("OPENTACO_ENABLE_INTERNAL_ENDPOINTS")
 	if webhookSecret == "" {
-		log.Println("OPENTACO_WEBHOOK_SECRET not configured, skipping internal routes")
+		log.Println("OPENTACO_ENABLE_INTERNAL_ENDPOINTS not configured, skipping internal routes")
 		return
 	}
 
@@ -33,7 +33,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	}
 
 	// Create internal group with webhook auth (with orgRepo for existence check)
-	internal := e.Group("/internal")
+	internal := e.Group("/internal/api")
 	internal.Use(middleware.WebhookAuth(orgRepo))
 
 	// Organization and User management endpoints
@@ -51,8 +51,8 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 		internal.GET("/users/:subject", orgHandler.GetUser)
 		internal.GET("/users", orgHandler.ListUsers)
 		
-		log.Println("Organization management endpoints registered at /internal/orgs")
-		log.Println("User management endpoints registered at /internal/users")
+		log.Println("Organization management endpoints registered at /internal/api/orgs")
+		log.Println("User management endpoints registered at /internal/api/users")
 	} else {
 		log.Println("Warning: Could not create org/user repositories, endpoints disabled")
 	}
@@ -67,7 +67,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 		rbacGroup.GET("/permissions", rbacHandler.ListPermissions)
 		rbacGroup.POST("/assign", rbacHandler.AssignRole)
 		rbacGroup.POST("/revoke", rbacHandler.RevokeRole)
-		log.Println("RBAC management endpoints registered at /internal/rbac")
+		log.Println("RBAC management endpoints registered at /internal/api/rbac")
 	}
 
 	orgService := domain.NewOrgService()
@@ -151,7 +151,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 		return c.JSON(http.StatusOK, info)
 	})
 
-	log.Printf("Internal routes registered at /internal/* with webhook authentication")
+	log.Printf("Internal routes registered at /internal/api/* with webhook authentication")
 }
 
 // wrapWithWebhookRBAC wraps a handler with RBAC permission checking
