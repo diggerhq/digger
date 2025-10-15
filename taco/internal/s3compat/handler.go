@@ -21,6 +21,7 @@ import (
     v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
     authpkg "github.com/diggerhq/digger/opentaco/internal/auth"
     "github.com/diggerhq/digger/opentaco/internal/deps"
+    "github.com/diggerhq/digger/opentaco/internal/domain"
     "github.com/diggerhq/digger/opentaco/internal/rbac"
     "github.com/diggerhq/digger/opentaco/internal/sts"
     "github.com/diggerhq/digger/opentaco/internal/storage"
@@ -31,12 +32,12 @@ import (
 // Handler implements minimal S3-compatible endpoint under /s3 with SigV4 verification.
 // Supported keys: <bucket>/<unit-id>/terraform.tfstate(.lock|.tflock)
 type Handler struct {
-    store     storage.UnitStore
+    store     domain.StateOperations 
     signer    *authpkg.Signer
     stsIssuer sts.Issuer
 }
 
-func NewHandler(store storage.UnitStore, signer *authpkg.Signer, stsIssuer sts.Issuer) *Handler {
+func NewHandler(store domain.StateOperations, signer *authpkg.Signer, stsIssuer sts.Issuer) *Handler {
     return &Handler{store: store, signer: signer, stsIssuer: stsIssuer}
 }
 

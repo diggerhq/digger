@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 var (
-	ErrNotFound     = errors.New("not found")
+	ErrNotFound      = errors.New("not found")
 	ErrAlreadyExists = errors.New("already exists")
-	ErrLockConflict = errors.New("lock conflict")
+	ErrLockConflict  = errors.New("lock conflict")
+	ErrForbidden     = errors.New("forbidden")
+	ErrUnauthorized  = errors.New("unauthorized")
 )
 
 type UnitMetadata struct {
@@ -55,13 +55,4 @@ type UnitStore interface {
 	// Version operations
     ListVersions(ctx context.Context, id string) ([]*VersionInfo, error)
     RestoreVersion(ctx context.Context, id string, versionTimestamp time.Time, lockID string) error
-}
-
-// S3Store extends UnitStore with S3-specific methods for RBAC integration
-type S3Store interface {
-    UnitStore
-    GetS3Client() *s3.Client
-    GetS3Bucket() string
-    GetS3Prefix() string
-    Key(parts ...string) string
 }

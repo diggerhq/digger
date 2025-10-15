@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	
+	"gorm.io/gorm"
 )
 
 var (
@@ -105,21 +107,10 @@ type UserAssignment struct {
 	Version   int64     `json:"version"` // For optimistic locking
 }
 
-// RBACConfig tracks whether RBAC is enabled and initialized
-type RBACConfig struct {
-	Enabled     bool      `json:"enabled"`
-	Initialized bool      `json:"initialized"`
-	InitUser    string    `json:"init_user"`
-	InitEmail   string    `json:"init_email"`
-	InitTime    time.Time `json:"init_time"`
-}
-
-// RBACStore defines the interface for RBAC data storage
+// RBACStore defines the interface for RBAC data storage.
+// RBAC is considered "enabled" when permissions exist in the store.
+// No separate config/flag storage is needed.
 type RBACStore interface {
-	// Config management
-	GetConfig(ctx context.Context) (*RBACConfig, error)
-	SetConfig(ctx context.Context, config *RBACConfig) error
-
 	// Permission management
 	CreatePermission(ctx context.Context, permission *Permission) error
 	GetPermission(ctx context.Context, id string) (*Permission, error)
@@ -152,18 +143,43 @@ func NewRBACManager(store RBACStore) *RBACManager {
 	return &RBACManager{store: store}
 }
 
-// InitializeRBAC sets up RBAC for the first time
-func (m *RBACManager) InitializeRBAC(ctx context.Context, initUser, initEmail string) error {
-	config := &RBACConfig{
-		Enabled:     true,
-		Initialized: true,
-		InitUser:    initUser,
-		InitEmail:   initEmail,
-		InitTime:    time.Now(),
+// NewRBACManagerFromQueryStore creates an RBAC manager from a query store.
+// This constructor handles the type assertions needed to extract the database
+// connection and create a proper RBAC store.
+func NewRBACManagerFromQueryStore(queryStore interface{}) (*RBACManager, error) {
+	// Type assert to get underlying DB connection
+	type dbProvider interface {
+		GetDB() *gorm.DB
+	}
+	
+	sqlStore, ok := queryStore.(dbProvider)
+	if !ok {
+		return nil, fmt.Errorf("query store does not expose GetDB() method - RBAC requires database access")
 	}
 
-	if err := m.store.SetConfig(ctx, config); err != nil {
-		return fmt.Errorf("failed to set RBAC config: %w", err)
+	// Create RBAC store that writes directly to database
+	rbacStore := NewQueryRBACStore(sqlStore.GetDB())
+
+	// Return the configured manager
+	return NewRBACManager(rbacStore), nil
+}
+
+// InitializeRBAC sets up RBAC for the first time by creating default permissions and roles.
+// RBAC is considered "initialized" and "enabled" when permissions exist in the system.
+// This function is idempotent - it can be called multiple times safely.
+func (m *RBACManager) InitializeRBAC(ctx context.Context, initUser, initEmail string) error {
+	// Check if already initialized
+	enabled, err := m.IsEnabled(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check if RBAC is enabled: %w", err)
+	}
+	if enabled {
+		// Already initialized - just ensure the init user has admin role
+		if err := m.store.AssignRole(ctx, initUser, initEmail, "admin"); err != nil {
+			// Ignore duplicate assignment errors
+			return nil
+		}
+		return nil
 	}
 
 	// Create default permissions
@@ -240,13 +256,17 @@ func (m *RBACManager) InitializeRBAC(ctx context.Context, initUser, initEmail st
 	return nil
 }
 
-// IsEnabled checks if RBAC is enabled
+// IsEnabled checks if RBAC is enabled by checking if permissions exist.
+// RBAC is considered enabled if there are any permissions in the system.
+// This derives the state from actual data rather than maintaining a separate flag.
+// NOTE: This requires database access. If the database is unavailable, this returns an error,
+// causing RBAC checks to fail closed (deny all access) rather than fail open.
 func (m *RBACManager) IsEnabled(ctx context.Context) (bool, error) {
-	config, err := m.store.GetConfig(ctx)
+	perms, err := m.store.ListPermissions(ctx)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("RBAC database unavailable: %w", err)
 	}
-	return config != nil && config.Enabled && config.Initialized, nil
+	return len(perms) > 0, nil
 }
 
 // Can determines whether a principal is authorized to perform an action on a given unit key.

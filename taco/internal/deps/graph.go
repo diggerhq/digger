@@ -39,10 +39,18 @@ type TFOutputs struct {
     Outputs map[string]struct{ Value interface{} `json:"value"` } `json:"outputs"`
 }
 
+// GraphOperations defines the minimal interface for dependency graph updates.
+type GraphOperations interface {
+	Download(ctx context.Context, id string) ([]byte, error)
+	Upload(ctx context.Context, id string, data []byte, lockID string) error
+	Lock(ctx context.Context, id string, info *storage.LockInfo) error
+	Unlock(ctx context.Context, id string, lockID string) error
+}
+
 // UpdateGraphOnWrite updates dependency edges in the graph tfstate in response to a write
 // to unitID with content newTFState. It performs both outgoing (source refresh) and incoming
 // (target acknowledge) updates in a single locked read-modify-write cycle.
-func UpdateGraphOnWrite(ctx context.Context, store storage.UnitStore, unitID string, newTFState []byte) {
+func UpdateGraphOnWrite(ctx context.Context, store GraphOperations, unitID string, newTFState []byte) {
     // Fast exits: graph unit must exist and be lockable. Never fail the caller's write.
     // Acquire lock
     lock := &storage.LockInfo{ID: fmt.Sprintf("deps-%d", time.Now().UnixNano()), Who: "opentaco-deps", Version: "1.0.0", Created: time.Now()}

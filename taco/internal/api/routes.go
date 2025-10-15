@@ -12,56 +12,77 @@ import (
 
 	authpkg "github.com/diggerhq/digger/opentaco/internal/auth"
 	"github.com/diggerhq/digger/opentaco/internal/backend"
+	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/middleware"
 	"github.com/diggerhq/digger/opentaco/internal/observability"
 	"github.com/diggerhq/digger/opentaco/internal/oidc"
+	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/diggerhq/digger/opentaco/internal/s3compat"
-	"github.com/diggerhq/digger/opentaco/internal/storage"
 	"github.com/diggerhq/digger/opentaco/internal/sts"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
 	"github.com/labstack/echo/v4"
 )
 
-// RegisterRoutes registers all API routes
-func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
+// Dependencies holds all the interface-based dependencies for routes.
+// This uses interface segregation - each handler gets ONLY what it needs.
+type Dependencies struct {
+	Repository  domain.UnitRepository  // Full unit access (backend, TFE, unit handlers)
+	QueryStore  query.Store            // Direct query access (analytics, RBAC)
+	RBACManager *rbac.RBACManager      // RBAC management (RBAC routes only)
+	Signer      *authpkg.Signer        // JWT signing (auth, middleware)
+	AuthEnabled bool                   // Whether auth is enabled
+}
+
+// RegisterRoutes registers all API routes with interface-scoped dependencies.
+// - Backend: StateOperations (6 methods) - cannot create/list/delete/version
+// - S3-compat: StateOperations (6 methods) - cannot create/list/delete/version
+// - TFE: TFEOperations (6 methods) - read/write/lock only
+// - Unit: UnitManagement (11 methods) - full access for management API
+// - RBAC: RBACManager + QueryStore - NO unit access at all
+func RegisterRoutes(e *echo.Echo, deps Dependencies) {
+	queryStore := deps.QueryStore
+	
+	// Repository already implements all needed interfaces (UnitManagement embeds StateOperations & TFEOperations)
+	// We pass the same repository reference but with different interface types for scoping
+	stateOps := domain.StateOperations(deps.Repository)
+	unitMgmt := domain.UnitManagement(deps.Repository)
+	
 	// Health checks
 	health := observability.NewHealthHandler()
 	e.GET("/healthz", health.Healthz)
 	e.GET("/readyz", health.Readyz)
+	
+	// Sync health check (monitors blob/query synchronization)
+	syncHealth := observability.NewSyncHealthChecker(deps.Repository, deps.QueryStore)
+	e.GET("/healthz/sync", func(c echo.Context) error {
+		status := syncHealth.CheckSyncHealth(c.Request().Context())
+		if status.Healthy {
+			return c.JSON(200, status)
+		}
+		return c.JSON(503, status)
+	})
 
-	// Info endpoint for CLI to detect storage type
-	e.GET("/v1/info", func(c echo.Context) error {
-		info := map[string]interface{}{
-			"storage": map[string]interface{}{
-				"type": "memory",
+	// Capabilities endpoint - exposes what features the server supports
+	e.GET("/v1/capabilities", func(c echo.Context) error {
+		caps := map[string]interface{}{
+			"features": map[string]bool{
+				"versioning": true, // All stores support versioning
+				"rbac":       true, // RBAC available with all storage types
+				"query":      true, // Query backend always enabled
 			},
 		}
-
-		// Check if we're using S3 storage
-		if s3Store, ok := store.(storage.S3Store); ok {
-			info["storage"] = map[string]interface{}{
-				"type":   "s3",
-				"bucket": s3Store.GetS3Bucket(),
-				"prefix": s3Store.GetS3Prefix(),
-			}
-		}
-
-		return c.JSON(http.StatusOK, info)
+		return c.JSON(http.StatusOK, caps)
 	})
 
 	// Prepare auth deps
-	signer, err := authpkg.NewSignerFromEnv()
-	if err != nil {
-		fmt.Printf("Failed to create JWT signer: %v\n", err)
-	}
 	stsi, _ := sts.NewStatelessIssuerFromEnv()
 	ver, _ := oidc.NewFromEnv()
 
 	// Auth routes (no auth required)
-	authHandler := authpkg.NewHandler(signer, stsi, ver)
-	// Opaque API tokens for TFE surface (S3-backed if available)
-	apiTokenMgr := authpkg.NewAPITokenManagerFromStore(store)
+	authHandler := authpkg.NewHandler(deps.Signer, stsi, ver)
+	// Opaque API tokens for TFE surface (uses repository for storage)
+	apiTokenMgr := authpkg.NewAPITokenManagerFromStore(deps.Repository)
 	authHandler.SetAPITokenManager(apiTokenMgr)
 
 	e.POST("/v1/auth/exchange", authHandler.Exchange)
@@ -112,41 +133,32 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 
 	// API v1 protected group - JWT tokens only
 	v1 := e.Group("/v1")
-	if authEnabled {
-		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
-		v1.Use(middleware.RequireAuth(jwtVerifyFn))
+	if deps.AuthEnabled {
+		jwtVerifyFn := middleware.JWTOnlyVerifier(deps.Signer)
+		v1.Use(middleware.RequireAuth(jwtVerifyFn, deps.Signer))
 	}
 
-	// Setup RBAC manager if available
-	var rbacManager *rbac.RBACManager
-	if store != nil {
-		if s3Store, ok := store.(storage.S3Store); ok {
-			rbacStore := rbac.NewS3RBACStore(s3Store.GetS3Client(), s3Store.GetS3Bucket(), s3Store.GetS3Prefix())
-			rbacManager = rbac.NewRBACManager(rbacStore)
-		}
-	}
-
-	// Unit handlers (management API) - pass RBAC manager and signer for filtering
-	unitHandler := unithandlers.NewHandler(store, rbacManager, signer)
+	// Unit handlers (management API) - uses UnitManagement interface (11 methods)
+	unitHandler := unithandlers.NewHandler(unitMgmt, deps.RBACManager, deps.Signer, queryStore)
 
 	// Management API (units) with JWT-only RBAC middleware
-	if authEnabled && rbacManager != nil {
-		v1.POST("/units", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(unitHandler.CreateUnit))
+	if deps.AuthEnabled {
+		v1.POST("/units", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitWrite, "*")(unitHandler.CreateUnit))
 		// ListUnits does its own RBAC filtering internally, no middleware needed
 		v1.GET("/units", unitHandler.ListUnits)
-		v1.GET("/units/:id", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnit))
-		v1.DELETE("/units/:id", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitDelete, "{id}")(unitHandler.DeleteUnit))
-		v1.GET("/units/:id/download", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.DownloadUnit))
-		v1.POST("/units/:id/upload", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "{id}")(unitHandler.UploadUnit))
-		v1.POST("/units/:id/lock", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "{id}")(unitHandler.LockUnit))
-		v1.DELETE("/units/:id/unlock", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "{id}")(unitHandler.UnlockUnit))
+		v1.GET("/units/:id", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnit))
+		v1.DELETE("/units/:id", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitDelete, "{id}")(unitHandler.DeleteUnit))
+		v1.GET("/units/:id/download", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitRead, "{id}")(unitHandler.DownloadUnit))
+		v1.POST("/units/:id/upload", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitWrite, "{id}")(unitHandler.UploadUnit))
+		v1.POST("/units/:id/lock", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitLock, "{id}")(unitHandler.LockUnit))
+		v1.DELETE("/units/:id/unlock", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitLock, "{id}")(unitHandler.UnlockUnit))
 		// Dependency/status
-		v1.GET("/units/:id/status", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnitStatus))
+		v1.GET("/units/:id/status", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnitStatus))
 		// Version operations
-		v1.GET("/units/:id/versions", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "{id}")(unitHandler.ListVersions))
-		v1.POST("/units/:id/restore", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "{id}")(unitHandler.RestoreVersion))
+		v1.GET("/units/:id/versions", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitRead, "{id}")(unitHandler.ListVersions))
+		v1.POST("/units/:id/restore", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitWrite, "{id}")(unitHandler.RestoreVersion))
 	} else {
-		// Fallback without RBAC
+		// Fallback without auth
 		v1.POST("/units", unitHandler.CreateUnit)
 		v1.GET("/units", unitHandler.ListUnits)
 		v1.GET("/units/:id", unitHandler.GetUnit)
@@ -162,23 +174,17 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 		v1.POST("/units/:id/restore", unitHandler.RestoreVersion)
 	}
 
-	// Terraform HTTP backend proxy with JWT-only RBAC middleware
-	backendHandler := backend.NewHandler(store)
-	if authEnabled && rbacManager != nil {
-		v1.GET("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitRead, "*")(backendHandler.GetState))
-		v1.POST("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
-		v1.PUT("/backend/*", middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
+	// Terraform HTTP backend proxy
+	// Uses StateOperations interface (6 methods)
+	backendHandler := backend.NewHandler(stateOps)
+	if deps.AuthEnabled {
+		v1.GET("/backend/*", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitRead, "*")(backendHandler.GetState))
+		v1.POST("/backend/*", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
+		v1.PUT("/backend/*", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitWrite, "*")(backendHandler.UpdateState))
 		// Explicitly wire non-standard HTTP methods used by Terraform backend
-		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
-		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
-		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(middleware.JWTOnlyRBACMiddleware(rbacManager, signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
-	} else if authEnabled {
-		jwtVerifyFn := middleware.JWTOnlyVerifier(signer)
-		v1.GET("/backend/*", backendHandler.GetState)
-		v1.POST("/backend/*", backendHandler.UpdateState)
-		v1.PUT("/backend/*", backendHandler.UpdateState)
-		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(backendHandler.HandleLockUnlock))
-		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn)(backendHandler.HandleLockUnlock))
+		jwtVerifyFn := middleware.JWTOnlyVerifier(deps.Signer)
+		e.Add("LOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn, deps.Signer)(middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
+		e.Add("UNLOCK", "/v1/backend/*", middleware.RequireAuth(jwtVerifyFn, deps.Signer)(middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitLock, "*")(backendHandler.HandleLockUnlock)))
 	} else {
 		v1.GET("/backend/*", backendHandler.GetState)
 		v1.POST("/backend/*", backendHandler.UpdateState)
@@ -188,54 +194,46 @@ func RegisterRoutes(e *echo.Echo, store storage.UnitStore, authEnabled bool) {
 	}
 
 	// S3-compatible endpoint (SigV4, token in X-Amz-Security-Token)
-	s3h := s3compat.NewHandler(store, signer, stsi)
+	// Uses StateOperations interface (6 methods)
+	s3h := s3compat.NewHandler(stateOps, deps.Signer, stsi)
 	// Explicitly wire supported methods; verification handled inside handler
 	e.GET("/s3/*", s3h.Handle)
 	e.HEAD("/s3/*", s3h.Handle)
 	e.PUT("/s3/*", s3h.Handle)
 	e.DELETE("/s3/*", s3h.Handle)
 
-	// RBAC routes (only available with S3 storage)
-	if rbacManager != nil {
-		rbacHandler := rbac.NewHandler(rbacManager, signer)
+	// RBAC routes: uses RBAC manager only no unit repository access
+	rbacHandler := rbac.NewHandler(deps.RBACManager, deps.Signer, queryStore)
 
-		// RBAC initialization (no auth required for init)
-		v1.POST("/rbac/init", rbacHandler.Init)
+	// RBAC initialization (no auth required for init)
+	v1.POST("/rbac/init", rbacHandler.Init)
 
-		// RBAC user info (handle auth gracefully in handler, like /v1/auth/me)
-		e.GET("/v1/rbac/me", rbacHandler.Me)
+	// RBAC user info (handle auth gracefully in handler, like /v1/auth/me)
+	e.GET("/v1/rbac/me", rbacHandler.Me)
 
-		// RBAC management routes (require RBAC manage permission)
-		v1.POST("/rbac/users/assign", rbacHandler.AssignRole)
-		v1.POST("/rbac/users/revoke", rbacHandler.RevokeRole)
-		v1.GET("/rbac/users", rbacHandler.ListUserAssignments)
-		v1.POST("/rbac/roles", rbacHandler.CreateRole)
-		v1.GET("/rbac/roles", rbacHandler.ListRoles)
-		v1.DELETE("/rbac/roles/:id", rbacHandler.DeleteRole)
-		v1.POST("/rbac/roles/:id/permissions", rbacHandler.AssignPermissionToRole)
-		v1.DELETE("/rbac/roles/:id/permissions/:permissionId", rbacHandler.RevokePermissionFromRole)
-		v1.POST("/rbac/permissions", rbacHandler.CreatePermission)
-		v1.GET("/rbac/permissions", rbacHandler.ListPermissions)
-		v1.DELETE("/rbac/permissions/:id", rbacHandler.DeletePermission)
-		v1.POST("/rbac/test", rbacHandler.TestPermissions)
-	} else {
-		// RBAC not available with memory storage - add catch-all route
-		v1.Any("/rbac/*", func(c echo.Context) error {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error":   "RBAC requires S3 storage",
-				"message": "RBAC is only available when using S3 storage. Please configure S3 storage to use RBAC features.",
-			})
-		})
-	}
+	// RBAC management routes (require RBAC manage permission)
+	v1.POST("/rbac/users/assign", rbacHandler.AssignRole)
+	v1.POST("/rbac/users/revoke", rbacHandler.RevokeRole)
+	v1.GET("/rbac/users", rbacHandler.ListUserAssignments)
+	v1.POST("/rbac/roles", rbacHandler.CreateRole)
+	v1.GET("/rbac/roles", rbacHandler.ListRoles)
+	v1.DELETE("/rbac/roles/:id", rbacHandler.DeleteRole)
+	v1.POST("/rbac/roles/:id/permissions", rbacHandler.AssignPermissionToRole)
+	v1.DELETE("/rbac/roles/:id/permissions/:permissionId", rbacHandler.RevokePermissionFromRole)
+	v1.POST("/rbac/permissions", rbacHandler.CreatePermission)
+	v1.GET("/rbac/permissions", rbacHandler.ListPermissions)
+	v1.DELETE("/rbac/permissions/:id", rbacHandler.DeletePermission)
+	v1.POST("/rbac/test", rbacHandler.TestPermissions)
 
-	// TFE api - inject auth handler, storage, and RBAC dependencies
-	tfeHandler := tfe.NewTFETokenHandler(authHandler, store, rbacManager) // Pass rbacManager (may be nil)
+	// TFE api - inject auth handler, full repository, and RBAC dependencies
+	// TFE handler scopes to TFEOperations internally but needs full repo for API token storage
+	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.RBACManager)
 
 	// Create protected TFE group - opaque tokens only
 	tfeGroup := e.Group("/tfe/api/v2")
-	if authEnabled {
+	if deps.AuthEnabled {
 		opaqueVerifyFn := middleware.OpaqueOnlyVerifier(apiTokenMgr)
-		tfeGroup.Use(middleware.RequireAuth(opaqueVerifyFn))
+		tfeGroup.Use(middleware.RequireAuth(opaqueVerifyFn, deps.Signer))
 	}
 
 	// Move TFE endpoints to protected group

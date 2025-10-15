@@ -131,22 +131,13 @@ func InitGlobal(sink string) {
 	})
 }
 
-// InitGlobalWithSystemID initializes analytics with system ID management
-func InitGlobalWithSystemID(sink string, store interface{}) {
+// InitGlobalWithSystemID initializes analytics with system ID management.
+// The store parameter is required and used for persisting system ID and user email.
+func InitGlobalWithSystemID(sink string, store storage.UnitStore) {
 	once.Do(func() {
 		globalClient = New(parseAnalyticsLevel(), createSinks(sink)...)
-		
-		if store != nil {
-			if s3Store, ok := store.(storage.S3Store); ok {
-				systemIDManager = NewSystemIDManager(s3Store)
-			} else {
-				// Create a fallback system ID manager for non-S3 storage
-				systemIDManager = NewFallbackSystemIDManager()
-			}
-		} else {
-			// Create a fallback system ID manager when no storage is available
-			systemIDManager = NewFallbackSystemIDManager()
-		}
+		// Store is always provided (blobStore is required for the system to function)
+		systemIDManager = NewSystemIDManager(store)
 	})
 }
 

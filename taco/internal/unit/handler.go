@@ -2,32 +2,36 @@ package unit
 
 import (
     "io"
+    "log"
     "net/http"
     "strings"
     "time"
 
     "github.com/diggerhq/digger/opentaco/internal/analytics"
     "github.com/diggerhq/digger/opentaco/internal/auth"
-    "github.com/diggerhq/digger/opentaco/internal/domain"
     "github.com/diggerhq/digger/opentaco/internal/deps"
+    "github.com/diggerhq/digger/opentaco/internal/domain"
+    "github.com/diggerhq/digger/opentaco/internal/query"
     "github.com/diggerhq/digger/opentaco/internal/rbac"
     "github.com/diggerhq/digger/opentaco/internal/storage"
     "github.com/google/uuid"
     "github.com/labstack/echo/v4"
 )
 
-// Handler serves the management API (unit CRUD and locking)
+// Handler serves the management API (unit CRUD and locking).
 type Handler struct {
-    store       storage.UnitStore
+    store       domain.UnitManagement 
     rbacManager *rbac.RBACManager
     signer      *auth.Signer
+    queryStore  query.Store
 }
 
-func NewHandler(store storage.UnitStore, rbacManager *rbac.RBACManager, signer *auth.Signer) *Handler {
+func NewHandler(store domain.UnitManagement, rbacManager *rbac.RBACManager, signer *auth.Signer, queryStore query.Store) *Handler {
     return &Handler{
         store:       store,
         rbacManager: rbacManager,
         signer:      signer,
+        queryStore:  queryStore,
     }
 }
 
@@ -68,50 +72,36 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 }
 
 func (h *Handler) ListUnits(c echo.Context) error {
-    prefix := c.QueryParam("prefix")
-    items, err := h.store.List(c.Request().Context(), prefix)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list units"})
-    }
+	ctx := c.Request().Context()
+	prefix := c.QueryParam("prefix")
 
-    var units []*domain.Unit
-    unitIDs := make([]string, 0, len(items))
-    unitMap := make(map[string]*storage.UnitMetadata)
-    
-    // Collect all unit IDs and create a map for quick lookup
-    for _, s := range items {
-        unitIDs = append(unitIDs, s.ID)
-        unitMap[s.ID] = s
-    }
 
-    // Filter units by RBAC permissions if available
-    if h.rbacManager != nil && h.signer != nil {
-        principal, err := h.getPrincipalFromToken(c)
-        if err != nil {
-            // If we can't get principal, check if RBAC is enabled
-            if enabled, _ := h.rbacManager.IsEnabled(c.Request().Context()); enabled {
-                return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Failed to authenticate user"})
-            }
-            // RBAC not enabled, show all units
-        } else {
-            // Filter units based on read permissions
-            filteredIDs, err := h.rbacManager.FilterUnitsByReadAccess(c.Request().Context(), principal, unitIDs)
-            if err != nil {
-                return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check permissions"})
-            }
-            unitIDs = filteredIDs
-        }
-    }
+	unitsMetadata, err := h.store.List(ctx, prefix)
+	if err != nil {
+		if err.Error() == "unauthorized" || err.Error() == "forbidden" {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+		}
+		log.Printf("Error listing units: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list units"})
+	}
 
-    // Build response with filtered units
-    for _, id := range unitIDs {
-        if s, exists := unitMap[id]; exists {
-            units = append(units, &domain.Unit{ID: s.ID, Size: s.Size, Updated: s.Updated, Locked: s.Locked, LockInfo: convertLockInfo(s.LockInfo)})
-        }
-    }
-    
-    domain.SortUnitsByID(units)
-    return c.JSON(http.StatusOK, map[string]interface{}{"units": units, "count": len(units)})
+	// The list is already filtered and secure. We just build the response.
+	domainUnits := make([]*domain.Unit, 0, len(unitsMetadata))
+	for _, u := range unitsMetadata {
+		domainUnits = append(domainUnits, &domain.Unit{
+			ID:       u.ID,
+			Size:     u.Size,
+			Updated:  u.Updated,
+			Locked:   u.Locked,
+			LockInfo: convertLockInfo(u.LockInfo),
+		})
+	}
+	domain.SortUnitsByID(domainUnits)
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"units": domainUnits,
+		"count": len(domainUnits),
+	})
 }
 
 func (h *Handler) GetUnit(c echo.Context) error {
@@ -120,8 +110,12 @@ func (h *Handler) GetUnit(c echo.Context) error {
     if err := domain.ValidateUnitID(id); err != nil {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
     }
+    
     metadata, err := h.store.Get(c.Request().Context(), id)
     if err != nil {
+        if err.Error() == "forbidden" {
+            return c.JSON(http.StatusForbidden, map[string]string{"error": "Forbidden"})
+        }
         if err == storage.ErrNotFound {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
         }

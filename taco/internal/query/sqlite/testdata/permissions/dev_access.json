@@ -1,0 +1,19 @@
+{
+  "id": "dev-access",
+  "name": "Dev Environment Access",
+  "description": "Full access to development environment resources",
+  "rules": [
+    {
+      "actions": [
+        "unit.read",
+        "unit.write",
+        "unit.lock"
+      ],
+      "resources": ["dev/*"],
+      "effect": "allow"
+    }
+  ],
+  "created_at": "2024-01-01T00:00:00Z",
+  "created_by": "admin"
+}
+

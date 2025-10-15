@@ -1,0 +1,35 @@
+{
+  "version": 4,
+  "terraform_version": "1.5.0",
+  "serial": 5,
+  "lineage": "prod-app1-lineage",
+  "outputs": {
+    "instance_ip": {
+      "value": "10.0.1.100",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "prod_server",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "ami": "ami-87654321",
+            "instance_type": "t3.large",
+            "tags": {
+              "Name": "prod-server",
+              "Environment": "production",
+              "Critical": "true"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

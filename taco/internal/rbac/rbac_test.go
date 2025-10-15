@@ -11,7 +11,6 @@ import (
 
 // mockRBACStore implements RBACStore for testing
 type mockRBACStore struct {
-	config             *RBACConfig
 	permissions        map[string]*Permission
 	roles              map[string]*Role
 	userAssignments    map[string]*UserAssignment
@@ -25,15 +24,6 @@ func newMockRBACStore() *mockRBACStore {
 		userAssignments:       make(map[string]*UserAssignment),
 		userAssignmentsByEmail: make(map[string]*UserAssignment),
 	}
-}
-
-func (m *mockRBACStore) GetConfig(ctx context.Context) (*RBACConfig, error) {
-	return m.config, nil
-}
-
-func (m *mockRBACStore) SetConfig(ctx context.Context, config *RBACConfig) error {
-	m.config = config
-	return nil
 }
 
 func (m *mockRBACStore) CreatePermission(ctx context.Context, permission *Permission) error {
@@ -158,11 +148,10 @@ func TestRBACManager_InitializeRBAC(t *testing.T) {
 	err := manager.InitializeRBAC(context.Background(), subject, email)
 	require.NoError(t, err)
 
-	// Check that config was created
-	config, err := store.GetConfig(context.Background())
+	// Check that RBAC is now enabled (permissions exist)
+	enabled, err := manager.IsEnabled(context.Background())
 	require.NoError(t, err)
-	assert.True(t, config.Enabled)
-	assert.Equal(t, subject, config.InitUser)
+	assert.True(t, enabled, "RBAC should be enabled after initialization")
 
 	// Check that default permissions were created
 	adminPermission, err := store.GetPermission(context.Background(), "admin")
@@ -198,33 +187,38 @@ func TestRBACManager_IsEnabled(t *testing.T) {
 	store := newMockRBACStore()
 	manager := NewRBACManager(store)
 
-	// Initially disabled
+	// Initially disabled (no permissions)
 	enabled, err := manager.IsEnabled(context.Background())
 	require.NoError(t, err)
-	assert.False(t, enabled)
+	assert.False(t, enabled, "RBAC should be disabled when no permissions exist")
 
-	// Enable RBAC
-	config := &RBACConfig{
-		Enabled:     true,
-		Initialized: true,
-		InitUser:    "test-user",
-		InitTime:    time.Now(),
+	// Add a permission to enable RBAC
+	perm := &Permission{
+		ID:          "test-perm",
+		Name:        "Test Permission",
+		Description: "Test",
+		Rules: []PermissionRule{
+			{
+				Actions:   []Action{ActionUnitRead},
+				Resources: []string{"*"},
+				Effect:    "allow",
+			},
+		},
+		CreatedAt: time.Now(),
+		CreatedBy: "test",
 	}
-	err = store.SetConfig(context.Background(), config)
+	err = store.CreatePermission(context.Background(), perm)
 	require.NoError(t, err)
 
 	enabled, err = manager.IsEnabled(context.Background())
 	require.NoError(t, err)
-	assert.True(t, enabled)
+	assert.True(t, enabled, "RBAC should be enabled when permissions exist")
 }
 
 func TestRBACManager_Can(t *testing.T) {
 	store := newMockRBACStore()
 	manager := NewRBACManager(store)
 
-	// Set up RBAC
-	config := &RBACConfig{Enabled: true, Initialized: true}
-	store.SetConfig(context.Background(), config)
 	// Create a permission that allows state.read on dev/*
 	permission := &Permission{
 		ID:   "dev-access",
@@ -281,10 +275,6 @@ can, err = manager.Can(context.Background(), principal, ActionUnitDelete, "dev/m
 func TestRBACManager_CanWithDenyRule(t *testing.T) {
 	store := newMockRBACStore()
 	manager := NewRBACManager(store)
-
-	// Set up RBAC
-	config := &RBACConfig{Enabled: true, Initialized: true}
-	store.SetConfig(context.Background(), config)
 
 	// Create a permission with both allow and deny rules
 	permission := &Permission{
@@ -491,10 +481,6 @@ func TestRBACManager_ListUserAssignments(t *testing.T) {
 func TestRBACManager_FilterUnitsByReadAccess(t *testing.T) {
 	store := newMockRBACStore()
 	manager := NewRBACManager(store)
-
-	// Set up RBAC
-	config := &RBACConfig{Enabled: true, Initialized: true}
-	store.SetConfig(context.Background(), config)
 
 	// Create a permission that allows read access to dev/*
 	permission := &Permission{

@@ -1,0 +1,10 @@
+{
+  "id": "developer",
+  "name": "Developer Role",
+  "description": "Developer role with access to dev environment and read access to prod",
+  "permissions": ["dev-access", "prod-read"],
+  "created_at": "2024-01-01T00:00:00Z",
+  "created_by": "admin",
+  "version": 1
+}
+

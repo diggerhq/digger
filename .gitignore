@@ -17,6 +17,7 @@ __azurite*
 *.out
 go.work.sum
 
+
 # Build directories
 dist/
 build/
@@ -30,5 +31,9 @@ bin/
 *.swo
 *~
 
-# data 
+
+#data 
+data/
+
+
 taco/data/

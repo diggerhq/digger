@@ -1,0 +1,10 @@
+{
+  "id": "admin",
+  "name": "Admin Role",
+  "description": "Full administrative role with all permissions",
+  "permissions": ["admin"],
+  "created_at": "2024-01-01T00:00:00Z",
+  "created_by": "system",
+  "version": 1
+}
+
