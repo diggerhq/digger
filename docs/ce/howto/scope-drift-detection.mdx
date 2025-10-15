@@ -1,5 +1,5 @@
 ---
-title: "Scope Drift Detection to Specific Projects"
+title: "Drift on Specific Projects only"
 ---
 
 Use separate Digger config files and workflows to scope drift detection to only the projects you want. The drift config file is just a regular `digger.yml` that lists a subset of projects you want checked (e.g., only `devel` or only `prod`).
@@ -65,6 +65,3 @@ jobs:
 For `prod`, `pre`, `demo`, etc., create corresponding files (e.g., `digger-drift-prod.yml`) that list only those projects/blocks, and a matching workflow that uses the respective `digger-filename`.
 
 This approach limits drift runs to the intended subset while keeping your main `digger.yml` unchanged.
----
-title: "Limit Drift Detection to Specific Projects"
----
