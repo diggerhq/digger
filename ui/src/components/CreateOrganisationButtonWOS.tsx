@@ -18,14 +18,14 @@ export default function CreateOrganizationBtn({ userId }: { userId: string }) {
         const organization = await createOrganization({ data: { name: name, userId: userId } });
         toast({
           title: "Organization created",
-          description: "The page will now reload to refresh organisations list. To use this new organization, Select it from the list.",
+          description: "The page will now reload to refresh organisations list. To use this new organization, select it from the list.",
           duration: 5000,
           variant: "default"
         });
         setOpen(false);
         window.setTimeout(() => {
           window.location.reload();
-        }, 2000);
+        }, 5000);
       } catch (error) {
         console.error("Failed to create organization:", error);
       }
