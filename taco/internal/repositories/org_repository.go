@@ -142,3 +142,11 @@ func (r *orgRepository) Delete(ctx context.Context, orgID string) error {
 	return nil
 }
 
+func (r *orgRepository) WithTransaction(ctx context.Context, fn func(ctx context.Context, txRepo domain.OrganizationRepository) error) error {
+    return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+        // Create a new repository instance using the transaction
+        txRepo := &orgRepository{db: tx}
+        return fn(ctx, txRepo)
+    })
+}
+

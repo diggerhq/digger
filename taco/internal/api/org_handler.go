@@ -93,8 +93,45 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 		"createdBy", userIDStr,
 	)
 
-	// Create organization
-	org, err := h.orgRepo.Create(ctx, req.OrgID, req.Name, userIDStr)
+	// ========================================
+	//  Use transaction to create org + init RBAC atomically
+	// ========================================
+	var org *domain.Organization
+
+	err := h.orgRepo.WithTransaction(ctx, func(ctx context.Context, txRepo domain.OrganizationRepository) error {
+		// Create organization within transaction
+		createdOrg, err := txRepo.Create(ctx, req.OrgID, req.Name, userIDStr)
+		if err != nil {
+			return err
+		}
+		org = createdOrg
+
+		// Initialize RBAC within the same transaction
+		if h.rbacManager != nil {
+			slog.Info("Initializing RBAC for new organization",
+				"orgID", req.OrgID,
+				"adminUser", userIDStr,
+			)
+
+			if err := h.rbacManager.InitializeRBAC(ctx, userIDStr, emailStr); err != nil {
+				// IMPORTANT: Returning error here will rollback the entire transaction
+				slog.Error("Failed to initialize RBAC, rolling back org creation",
+					"orgID", req.OrgID,
+					"error", err,
+				)
+				return fmt.Errorf("failed to initialize RBAC: %w", err)
+			}
+
+			slog.Info("RBAC initialized successfully",
+				"orgID", req.OrgID,
+				"adminUser", userIDStr,
+			)
+		}
+
+		return nil
+	})
+
+	// Handle transaction errors
 	if err != nil {
 		if errors.Is(err, domain.ErrOrgExists) {
 			return c.JSON(http.StatusConflict, map[string]string{
@@ -106,38 +143,19 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 				"error": err.Error(),
 			})
 		}
-		slog.Error("Failed to create organization",
+
+		// Any other error (including RBAC init failure) returns 500
+		slog.Error("Failed to create organization with RBAC",
 			"orgID", req.OrgID,
 			"error", err,
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "failed to create organization",
+			"detail": err.Error(),
 		})
 	}
 
-	// Initialize RBAC for this org context
-	// This creates default roles/permissions and assigns the creator as admin
-	if h.rbacManager != nil {
-		slog.Info("Initializing RBAC for new organization",
-			"orgID", req.OrgID,
-			"adminUser", userIDStr,
-		)
-
-		if err := h.rbacManager.InitializeRBAC(ctx, userIDStr, emailStr); err != nil {
-			slog.Error("Failed to initialize RBAC for new org",
-				"orgID", req.OrgID,
-				"error", err,
-			)
-			// Don't fail the org creation, but log the error
-			// RBAC can be initialized manually later if needed
-		} else {
-			slog.Info("RBAC initialized successfully for new organization",
-				"orgID", req.OrgID,
-				"adminUser", userIDStr,
-			)
-		}
-	}
-
+	// Success - both org and RBAC were created
 	return c.JSON(http.StatusCreated, CreateOrgResponse{
 		OrgID:     org.OrgID,
 		Name:      org.Name,

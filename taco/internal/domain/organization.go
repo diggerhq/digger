@@ -43,6 +43,8 @@ type OrganizationRepository interface {
 	Get(ctx context.Context, orgID string) (*Organization, error)
 	List(ctx context.Context) ([]*Organization, error)
 	Delete(ctx context.Context, orgID string) error
+
+	WithTransaction(ctx context.Context, fn func(ctx context.Context, txRepo OrganizationRepository) error) error
 }
 
 // ============================================

@@ -11,7 +11,6 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/repositories"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 
@@ -24,36 +23,38 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 
 	log.Println("Registering internal routes with webhook authentication")
 
-	// Create internal group with webhook auth
+	// Create repositories first (needed for webhook middleware)
+	var orgRepo domain.OrganizationRepository
+	var userRepo domain.UserRepository
+	
+	if deps.QueryStore != nil {
+		orgRepo = repositories.NewOrgRepositoryFromQueryStore(deps.QueryStore)
+		userRepo = repositories.NewUserRepositoryFromQueryStore(deps.QueryStore)
+	}
+
+	// Create internal group with webhook auth (with orgRepo for existence check)
 	internal := e.Group("/internal")
-	internal.Use(middleware.WebhookAuth())
+	internal.Use(middleware.WebhookAuth(orgRepo))
 
 	// Organization and User management endpoints
-	// These require database access to manage org/user lifecycle
-	if deps.QueryStore != nil {
-		// Create repositories with GORM database (infrastructure layer)
-		orgRepo := repositories.NewOrgRepositoryFromQueryStore(deps.QueryStore)
-		userRepo := repositories.NewUserRepositoryFromQueryStore(deps.QueryStore)
+	if orgRepo != nil && userRepo != nil {
+		// Create handler with repository interfaces (domain layer)
+		orgHandler := NewOrgHandler(orgRepo, userRepo, deps.RBACManager)
 		
-		if orgRepo != nil && userRepo != nil {
-			// Create handler with repository interfaces (domain layer)
-			orgHandler := NewOrgHandler(orgRepo, userRepo, deps.RBACManager)
-			
-			// Organization endpoints
-			internal.POST("/orgs", orgHandler.CreateOrganization)
-			internal.GET("/orgs/:orgId", orgHandler.GetOrganization)
-			internal.GET("/orgs", orgHandler.ListOrganizations)
-			
-			// User endpoints
-			internal.POST("/users", orgHandler.CreateUser)
-			internal.GET("/users/:subject", orgHandler.GetUser)
-			internal.GET("/users", orgHandler.ListUsers)
-			
-			log.Println("Organization management endpoints registered at /internal/orgs")
-			log.Println("User management endpoints registered at /internal/users")
-		} else {
-			log.Println("Warning: Could not create org/user repositories, endpoints disabled")
-		}
+		// Organization endpoints
+		internal.POST("/orgs", orgHandler.CreateOrganization)
+		internal.GET("/orgs/:orgId", orgHandler.GetOrganization)
+		internal.GET("/orgs", orgHandler.ListOrganizations)
+		
+		// User endpoints
+		internal.POST("/users", orgHandler.CreateUser)
+		internal.GET("/users/:subject", orgHandler.GetUser)
+		internal.GET("/users", orgHandler.ListUsers)
+		
+		log.Println("Organization management endpoints registered at /internal/orgs")
+		log.Println("User management endpoints registered at /internal/users")
+	} else {
+		log.Println("Warning: Could not create org/user repositories, endpoints disabled")
 	}
 	
 	// Reuse existing RBAC handler with webhook auth (no duplication)
