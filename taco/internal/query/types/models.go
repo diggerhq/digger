@@ -70,15 +70,6 @@ func (RuleUnitTag) TableName() string { return "rule_unit_tags" }
 
 
 
-type Organization struct {
-	ID int64 `gorm:"primaryKey"`
-	OrgID string `gorm:"type:varchar(255);not null;uniqueIndex"` // e.g., "acme-corp"
-	Name string `gorm:"type:varchar(255);not null"` // e.g., "Acme Corporation"
-	CreatedBy string `gorm:"type:varchar(255);not null"` // Subject of creator
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
 type User struct {
 	ID int64	`gorm:"primaryKey"`
 	Subject string	`gorm:"type:varchar(255);not null;uniqueIndex"`
@@ -139,7 +130,6 @@ func (RolePermission) TableName() string { return "role_permissions" }
 
 // set the models that will be populated on startup for each DB type; add any new tables here:
 var DefaultModels = []any{
-	&Organization{},
 	&User{},
 	&Role{},
 	&UserRole{}, 
