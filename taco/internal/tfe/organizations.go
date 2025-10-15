@@ -1,9 +1,12 @@
 package tfe
 
 import (
-	"fmt"
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"github.com/google/jsonapi"
+)
+
+import (
+	"fmt"
 	"github.com/labstack/echo/v4"
 )
 
