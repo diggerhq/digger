@@ -55,10 +55,9 @@ type UnitManagement interface {
 // ============================================
 
 // TFEOperations defines what TFE handler needs.
-// TFE needs to auto-create workspaces but not list/delete/version operations.
+// TFE needs read/write/lock operations only
 type TFEOperations interface {
 	StateOperations
-	Create(ctx context.Context, id string) (*storage.UnitMetadata, error)
 }
 
 // ============================================

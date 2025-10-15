@@ -37,7 +37,7 @@ type Dependencies struct {
 // RegisterRoutes registers all API routes with interface-scoped dependencies.
 // - Backend: StateOperations (6 methods) - cannot create/list/delete/version
 // - S3-compat: StateOperations (6 methods) - cannot create/list/delete/version
-// - TFE: TFEOperations (7 methods) - can create but not list/delete/version
+// - TFE: TFEOperations (6 methods) - read/write/lock only
 // - Unit: UnitManagement (11 methods) - full access for management API
 // - RBAC: RBACManager + QueryStore - NO unit access at all
 func RegisterRoutes(e *echo.Echo, deps Dependencies) {

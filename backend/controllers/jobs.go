@@ -69,7 +69,7 @@ func GetJobsForRepoApi(c *gin.Context) {
 		"jobCount", len(jobsRes))
 
 	response := make(map[string]interface{})
-	response["repo"] = repo
+	response["repo"] = repo.MapToJsonStruct()
 	response["jobs"] = jobsRes
 
 	c.JSON(http.StatusOK, response)

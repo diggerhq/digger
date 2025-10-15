@@ -166,13 +166,14 @@ func (r *Repo) MapToJsonStruct() interface{} {
 		return r.Organisation.Name
 	}
 	return struct {
-		Id               uint   `json:"id"`
-		Name             string `json:"name"`
-		RepoFullName     string `json:"repo_full_name"`
-		RepoUrl          string `json:"repo_url"`
-		VCS              string `json:"vcs"`
-		OrganisationID   uint   `json:"organisation_id"`
-		OrganisationName string `json:"organisation_name"`
+		Id               uint      `json:"id"`
+		Name             string    `json:"name"`
+		RepoFullName     string    `json:"repo_full_name"`
+		RepoUrl          string    `json:"repo_url"`
+		VCS              string    `json:"vcs"`
+		OrganisationID   uint      `json:"organisation_id"`
+		OrganisationName string    `json:"organisation_name"`
+		CreatedAt        time.Time `json:"created_at"`
 	}{
 		Id:               r.ID,
 		Name:             r.RepoName,
@@ -181,6 +182,7 @@ func (r *Repo) MapToJsonStruct() interface{} {
 		VCS:              string(r.VCS),
 		OrganisationID:   r.OrganisationID,
 		OrganisationName: OrganisationName(),
+		CreatedAt:        r.CreatedAt,
 	}
 }
 

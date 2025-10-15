@@ -1,0 +1,67 @@
+---
+title: "Drift on Specific Projects only"
+---
+
+Use separate Digger config files and workflows to scope drift detection to only the projects you want. The drift config file is just a regular `digger.yml` that lists a subset of projects you want checked (e.g., only `devel` or only `prod`).
+
+<Note>
+This is a workaround: there is no explicit per-project drift filter yet. You scope by pointing the workflow to a dedicated Digger config file that contains only the desired projects/blocks.
+</Note>
+
+See also: [Drift Detection](/ce/features/drift-detection)
+
+## 1) Create a dedicated Digger config for the scope
+
+First, create a minimal `digger.yml` that lists only the projects you want to check for drift. This file is the same shape as your main config; it simply contains a subset.
+
+Plain Terraform example (explicit projects list):
+
+```yml
+# digger-drift-dev.yml
+projects:
+  - name: app-dev-a
+    dir: terraform/aws_devel/app-a
+    workflow: default
+  - name: app-dev-b
+    dir: terraform/aws_devel/app-b
+    workflow: default
+```
+
+Terragrunt example (generate blocks under a specific root):
+
+```yml
+# digger-drift-dev.yml
+generate_projects:
+  blocks:
+    - block_name: aws_devel
+      terragrunt: true
+      root_dir: terraform/aws_devel/
+      workflow: default
+```
+
+## 2) Reference that file from a drift workflow
+
+Create a dedicated workflow that sets `mode: drift-detection` and points to your file via `digger-filename`:
+
+```yml
+name: Drift (dev)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: diggerhq/digger@vLatest
+        with:
+          mode: drift-detection
+          digger-filename: digger-drift-dev.yml
+          # add any usual setup you need (e.g., setup-aws, credentials)
+```
+
+## 3) Repeat per environment
+
+For `prod`, `pre`, `demo`, etc., create corresponding files (e.g., `digger-drift-prod.yml`) that list only those projects/blocks, and a matching workflow that uses the respective `digger-filename`.
+
+This approach limits drift runs to the intended subset while keeping your main `digger.yml` unchanged.
