@@ -14,7 +14,7 @@ import (
 
 // OrgHandler handles organization and user management endpoints
 type OrgHandler struct {
-	orgRepo     domain.OrganizationRepository // ✅ Interface, not concrete implementation
+	orgRepo     domain.OrganizationRepository 
 	userRepo    domain.UserRepository
 	rbacManager *rbac.RBACManager
 }
