@@ -98,7 +98,7 @@ function RouteComponent() {
 const ConnectMoreRepositoriesButton = () => {
   return (
     <Button variant="ghost" asChild>
-      <Link to="/dashboard/repos/connect">
+      <Link to="/dashboard/onboarding">
         Connect More Repositories <PlusCircle className="ml-2 h-4 w-4" />
       </Link>
     </Button>

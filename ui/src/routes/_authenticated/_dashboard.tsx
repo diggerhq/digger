@@ -7,13 +7,13 @@ import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut } from 'lucide-
 export const Route = createFileRoute('/_authenticated/_dashboard')({
     component: DashboardComponent,
     loader: async ({ context }) => {
-        const { user } = context;
-        return { user };
+        const { user, organisationName } = context;
+        return { user, organisationName };
     },
 });
 
 function DashboardComponent() {
-    const { user } = Route.useLoaderData();
+    const { user, organisationName } = Route.useLoaderData();
     const location = useLocation(); 
     return (
         <SidebarProvider>
@@ -21,7 +21,7 @@ function DashboardComponent() {
           <Sidebar>
             <SidebarHeader>
               <h2 className="text-xl font-bold">OpenTACO</h2>
-              <h3><Link to="/dashboard/settings">{user?.firstName! + " " + user?.lastName!}</Link></h3>
+              <h3><Link to="/dashboard/settings">{organisationName}</Link></h3>
             </SidebarHeader>
             <SidebarContent>
               <SidebarGroup>
@@ -66,14 +66,6 @@ function DashboardComponent() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
 
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={location.pathname.startsWith('/dashboard/billing')}>
-                        <Link to="/dashboard/billing">
-                          <CreditCard className="mr-2 h-4 w-4" />
-                          <span>Billing</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
 
 
                   </SidebarMenu>
@@ -81,10 +73,10 @@ function DashboardComponent() {
               </SidebarGroup>
             </SidebarContent>
             <div className="mt-auto p-4">
-              <Link to="/logout">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
-                </Link>
+              <Link to="/logout" className="flex items-center">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </Link>
             </div>
           </Sidebar>
           <main className="flex-1 overflow-y-auto">

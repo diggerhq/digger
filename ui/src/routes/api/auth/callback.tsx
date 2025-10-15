@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { getConfig } from '../../../authkit/ssr/config';
 import { saveSession } from '../../../authkit/ssr/session';
 import { getWorkOS } from '../../../authkit/ssr/workos';
+import { redirectWithFallback, errorResponseWithFallback } from '../../../api/helpers';
 
 export const Route = createFileRoute('/api/auth/callback')({
   server: {
@@ -79,16 +80,3 @@ export const Route = createFileRoute('/api/auth/callback')({
   },
 });
 
-function redirectWithFallback(redirectUri: string, headers?: Headers) {
-  const newHeaders = headers ? new Headers(headers) : new Headers();
-  newHeaders.set('Location', redirectUri);
-
-  return new Response(null, { status: 307, headers: newHeaders });
-}
-
-function errorResponseWithFallback(errorBody: { error: { message: string; description: string } }) {
-  return new Response(JSON.stringify(errorBody), {
-    status: 500,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}

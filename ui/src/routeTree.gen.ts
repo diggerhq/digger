@@ -17,14 +17,14 @@ import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
 import { Route as AuthenticatedDashboardDashboardSettingsRouteImport } from './routes/_authenticated/_dashboard/dashboard/settings'
 import { Route as AuthenticatedDashboardDashboardReposRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos'
 import { Route as AuthenticatedDashboardDashboardProjectsRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects'
-import { Route as AuthenticatedDashboardDashboardDriftRouteImport } from './routes/_authenticated/_dashboard/dashboard.drift'
+import { Route as AuthenticatedDashboardDashboardOnboardingRouteImport } from './routes/_authenticated/_dashboard/dashboard/onboarding'
+import { Route as AuthenticatedDashboardDashboardDriftRouteImport } from './routes/_authenticated/_dashboard/dashboard/drift'
 import { Route as AuthenticatedDashboardDashboardConnectionsRouteImport } from './routes/_authenticated/_dashboard/dashboard/connections'
-import { Route as AuthenticatedDashboardDashboardBillingRouteImport } from './routes/_authenticated/_dashboard/dashboard.billing'
 import { Route as AuthenticatedDashboardDashboardReposIndexRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.index'
 import { Route as AuthenticatedDashboardDashboardProjectsIndexRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.index'
 import { Route as AuthenticatedDashboardDashboardReposConnectRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.connect'
 import { Route as AuthenticatedDashboardDashboardReposRepoIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.$repoId'
-import { Route as AuthenticatedDashboardDashboardProjectsProjectidRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.$projectid'
+import { Route as AuthenticatedDashboardDashboardProjectsProjectIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.$projectId'
 import { Route as AuthenticatedDashboardDashboardConnectionsConnectionIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/connections.$connectionId'
 
 const LogoutRoute = LogoutRouteImport.update({
@@ -68,6 +68,12 @@ const AuthenticatedDashboardDashboardProjectsRoute =
     path: '/dashboard/projects',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardDashboardOnboardingRoute =
+  AuthenticatedDashboardDashboardOnboardingRouteImport.update({
+    id: '/dashboard/onboarding',
+    path: '/dashboard/onboarding',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardDashboardDriftRoute =
   AuthenticatedDashboardDashboardDriftRouteImport.update({
     id: '/dashboard/drift',
@@ -78,12 +84,6 @@ const AuthenticatedDashboardDashboardConnectionsRoute =
   AuthenticatedDashboardDashboardConnectionsRouteImport.update({
     id: '/dashboard/connections',
     path: '/dashboard/connections',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
-const AuthenticatedDashboardDashboardBillingRoute =
-  AuthenticatedDashboardDashboardBillingRouteImport.update({
-    id: '/dashboard/billing',
-    path: '/dashboard/billing',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardDashboardReposIndexRoute =
@@ -110,10 +110,10 @@ const AuthenticatedDashboardDashboardReposRepoIdRoute =
     path: '/$repoId',
     getParentRoute: () => AuthenticatedDashboardDashboardReposRoute,
   } as any)
-const AuthenticatedDashboardDashboardProjectsProjectidRoute =
-  AuthenticatedDashboardDashboardProjectsProjectidRouteImport.update({
-    id: '/$projectid',
-    path: '/$projectid',
+const AuthenticatedDashboardDashboardProjectsProjectIdRoute =
+  AuthenticatedDashboardDashboardProjectsProjectIdRouteImport.update({
+    id: '/$projectId',
+    path: '/$projectId',
     getParentRoute: () => AuthenticatedDashboardDashboardProjectsRoute,
   } as any)
 const AuthenticatedDashboardDashboardConnectionsConnectionIdRoute =
@@ -127,14 +127,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
-  '/dashboard/billing': typeof AuthenticatedDashboardDashboardBillingRoute
   '/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
+  '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   '/dashboard/repos': typeof AuthenticatedDashboardDashboardReposRouteWithChildren
   '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
   '/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
-  '/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
+  '/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
   '/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
   '/dashboard/projects/': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
@@ -144,12 +144,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
-  '/dashboard/billing': typeof AuthenticatedDashboardDashboardBillingRoute
   '/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
+  '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
   '/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
-  '/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
+  '/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
   '/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
   '/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
@@ -162,14 +162,14 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/_authenticated/_dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/api/auth/callback': typeof ApiAuthCallbackRoute
-  '/_authenticated/_dashboard/dashboard/billing': typeof AuthenticatedDashboardDashboardBillingRoute
   '/_authenticated/_dashboard/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/_authenticated/_dashboard/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
+  '/_authenticated/_dashboard/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/_authenticated/_dashboard/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   '/_authenticated/_dashboard/dashboard/repos': typeof AuthenticatedDashboardDashboardReposRouteWithChildren
   '/_authenticated/_dashboard/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
   '/_authenticated/_dashboard/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
-  '/_authenticated/_dashboard/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
+  '/_authenticated/_dashboard/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
   '/_authenticated/_dashboard/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/_authenticated/_dashboard/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
   '/_authenticated/_dashboard/dashboard/projects/': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
@@ -181,14 +181,14 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/api/auth/callback'
-    | '/dashboard/billing'
     | '/dashboard/connections'
     | '/dashboard/drift'
+    | '/dashboard/onboarding'
     | '/dashboard/projects'
     | '/dashboard/repos'
     | '/dashboard/settings'
     | '/dashboard/connections/$connectionId'
-    | '/dashboard/projects/$projectid'
+    | '/dashboard/projects/$projectId'
     | '/dashboard/repos/$repoId'
     | '/dashboard/repos/connect'
     | '/dashboard/projects/'
@@ -198,12 +198,12 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/api/auth/callback'
-    | '/dashboard/billing'
     | '/dashboard/connections'
     | '/dashboard/drift'
+    | '/dashboard/onboarding'
     | '/dashboard/settings'
     | '/dashboard/connections/$connectionId'
-    | '/dashboard/projects/$projectid'
+    | '/dashboard/projects/$projectId'
     | '/dashboard/repos/$repoId'
     | '/dashboard/repos/connect'
     | '/dashboard/projects'
@@ -215,14 +215,14 @@ export interface FileRouteTypes {
     | '/logout'
     | '/_authenticated/_dashboard'
     | '/api/auth/callback'
-    | '/_authenticated/_dashboard/dashboard/billing'
     | '/_authenticated/_dashboard/dashboard/connections'
     | '/_authenticated/_dashboard/dashboard/drift'
+    | '/_authenticated/_dashboard/dashboard/onboarding'
     | '/_authenticated/_dashboard/dashboard/projects'
     | '/_authenticated/_dashboard/dashboard/repos'
     | '/_authenticated/_dashboard/dashboard/settings'
     | '/_authenticated/_dashboard/dashboard/connections/$connectionId'
-    | '/_authenticated/_dashboard/dashboard/projects/$projectid'
+    | '/_authenticated/_dashboard/dashboard/projects/$projectId'
     | '/_authenticated/_dashboard/dashboard/repos/$repoId'
     | '/_authenticated/_dashboard/dashboard/repos/connect'
     | '/_authenticated/_dashboard/dashboard/projects/'
@@ -294,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardDashboardProjectsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/_dashboard/dashboard/onboarding': {
+      id: '/_authenticated/_dashboard/dashboard/onboarding'
+      path: '/dashboard/onboarding'
+      fullPath: '/dashboard/onboarding'
+      preLoaderRoute: typeof AuthenticatedDashboardDashboardOnboardingRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/_dashboard/dashboard/drift': {
       id: '/_authenticated/_dashboard/dashboard/drift'
       path: '/dashboard/drift'
@@ -306,13 +313,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/connections'
       fullPath: '/dashboard/connections'
       preLoaderRoute: typeof AuthenticatedDashboardDashboardConnectionsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
-    '/_authenticated/_dashboard/dashboard/billing': {
-      id: '/_authenticated/_dashboard/dashboard/billing'
-      path: '/dashboard/billing'
-      fullPath: '/dashboard/billing'
-      preLoaderRoute: typeof AuthenticatedDashboardDashboardBillingRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/_dashboard/dashboard/repos/': {
@@ -343,11 +343,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardDashboardReposRepoIdRouteImport
       parentRoute: typeof AuthenticatedDashboardDashboardReposRoute
     }
-    '/_authenticated/_dashboard/dashboard/projects/$projectid': {
-      id: '/_authenticated/_dashboard/dashboard/projects/$projectid'
-      path: '/$projectid'
-      fullPath: '/dashboard/projects/$projectid'
-      preLoaderRoute: typeof AuthenticatedDashboardDashboardProjectsProjectidRouteImport
+    '/_authenticated/_dashboard/dashboard/projects/$projectId': {
+      id: '/_authenticated/_dashboard/dashboard/projects/$projectId'
+      path: '/$projectId'
+      fullPath: '/dashboard/projects/$projectId'
+      preLoaderRoute: typeof AuthenticatedDashboardDashboardProjectsProjectIdRouteImport
       parentRoute: typeof AuthenticatedDashboardDashboardProjectsRoute
     }
     '/_authenticated/_dashboard/dashboard/connections/$connectionId': {
@@ -376,14 +376,14 @@ const AuthenticatedDashboardDashboardConnectionsRouteWithChildren =
   )
 
 interface AuthenticatedDashboardDashboardProjectsRouteChildren {
-  AuthenticatedDashboardDashboardProjectsProjectidRoute: typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
+  AuthenticatedDashboardDashboardProjectsProjectIdRoute: typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
   AuthenticatedDashboardDashboardProjectsIndexRoute: typeof AuthenticatedDashboardDashboardProjectsIndexRoute
 }
 
 const AuthenticatedDashboardDashboardProjectsRouteChildren: AuthenticatedDashboardDashboardProjectsRouteChildren =
   {
-    AuthenticatedDashboardDashboardProjectsProjectidRoute:
-      AuthenticatedDashboardDashboardProjectsProjectidRoute,
+    AuthenticatedDashboardDashboardProjectsProjectIdRoute:
+      AuthenticatedDashboardDashboardProjectsProjectIdRoute,
     AuthenticatedDashboardDashboardProjectsIndexRoute:
       AuthenticatedDashboardDashboardProjectsIndexRoute,
   }
@@ -415,9 +415,9 @@ const AuthenticatedDashboardDashboardReposRouteWithChildren =
   )
 
 interface AuthenticatedDashboardRouteChildren {
-  AuthenticatedDashboardDashboardBillingRoute: typeof AuthenticatedDashboardDashboardBillingRoute
   AuthenticatedDashboardDashboardConnectionsRoute: typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   AuthenticatedDashboardDashboardDriftRoute: typeof AuthenticatedDashboardDashboardDriftRoute
+  AuthenticatedDashboardDashboardOnboardingRoute: typeof AuthenticatedDashboardDashboardOnboardingRoute
   AuthenticatedDashboardDashboardProjectsRoute: typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   AuthenticatedDashboardDashboardReposRoute: typeof AuthenticatedDashboardDashboardReposRouteWithChildren
   AuthenticatedDashboardDashboardSettingsRoute: typeof AuthenticatedDashboardDashboardSettingsRoute
@@ -425,12 +425,12 @@ interface AuthenticatedDashboardRouteChildren {
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
-    AuthenticatedDashboardDashboardBillingRoute:
-      AuthenticatedDashboardDashboardBillingRoute,
     AuthenticatedDashboardDashboardConnectionsRoute:
       AuthenticatedDashboardDashboardConnectionsRouteWithChildren,
     AuthenticatedDashboardDashboardDriftRoute:
       AuthenticatedDashboardDashboardDriftRoute,
+    AuthenticatedDashboardDashboardOnboardingRoute:
+      AuthenticatedDashboardDashboardOnboardingRoute,
     AuthenticatedDashboardDashboardProjectsRoute:
       AuthenticatedDashboardDashboardProjectsRouteWithChildren,
     AuthenticatedDashboardDashboardReposRoute:
