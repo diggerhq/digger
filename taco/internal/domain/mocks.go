@@ -65,17 +65,9 @@ func (m *MockStateOperations) Unlock(ctx context.Context, id string, lockID stri
 }
 
 // MockTFEOperations provides a mock for testing TFE handler.
-// 7 methods - adds Create to StateOperations.
+// 6 methods - just state operations
 type MockTFEOperations struct {
 	MockStateOperations
-	CreateFunc func(ctx context.Context, id string) (*storage.UnitMetadata, error)
-}
-
-func (m *MockTFEOperations) Create(ctx context.Context, id string) (*storage.UnitMetadata, error) {
-	if m.CreateFunc != nil {
-		return m.CreateFunc(ctx, id)
-	}
-	return &storage.UnitMetadata{ID: id, Size: 0, Updated: time.Now()}, nil
 }
 
 // MockUnitManagement provides a mock for testing unit handler.
