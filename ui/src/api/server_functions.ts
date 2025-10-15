@@ -98,6 +98,12 @@ export const getRepoDetailsFn = createServerFn({method: 'GET'})
       return { repo, allJobs }
     })
 
+export const switchToOrganizationFn = createServerFn({method: 'POST'})
+    .inputValidator((data : { organisationId: string, pathname: string}) => data)
+    .handler(async ({ data }) => {
+      return null
+    })
+
 
 
 export const testSlackWebhookFn = createServerFn({method: 'POST'})

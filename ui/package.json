@@ -46,6 +46,7 @@
     "@tanstack/react-router-devtools": "^1.132.51",
     "@tanstack/react-start": "^1.132.51",
     "@workos-inc/node": "^7.45.0",
+    "@workos-inc/widgets": "^1.4.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

@@ -20,7 +20,6 @@ import { Route as AuthenticatedDashboardDashboardProjectsRouteImport } from './r
 import { Route as AuthenticatedDashboardDashboardOnboardingRouteImport } from './routes/_authenticated/_dashboard/dashboard/onboarding'
 import { Route as AuthenticatedDashboardDashboardDriftRouteImport } from './routes/_authenticated/_dashboard/dashboard/drift'
 import { Route as AuthenticatedDashboardDashboardConnectionsRouteImport } from './routes/_authenticated/_dashboard/dashboard/connections'
-import { Route as AuthenticatedDashboardDashboardBillingRouteImport } from './routes/_authenticated/_dashboard/dashboard.billing'
 import { Route as AuthenticatedDashboardDashboardReposIndexRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.index'
 import { Route as AuthenticatedDashboardDashboardProjectsIndexRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.index'
 import { Route as AuthenticatedDashboardDashboardReposConnectRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.connect'
@@ -87,12 +86,6 @@ const AuthenticatedDashboardDashboardConnectionsRoute =
     path: '/dashboard/connections',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const AuthenticatedDashboardDashboardBillingRoute =
-  AuthenticatedDashboardDashboardBillingRouteImport.update({
-    id: '/dashboard/billing',
-    path: '/dashboard/billing',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
 const AuthenticatedDashboardDashboardReposIndexRoute =
   AuthenticatedDashboardDashboardReposIndexRouteImport.update({
     id: '/',
@@ -134,7 +127,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
-  '/dashboard/billing': typeof AuthenticatedDashboardDashboardBillingRoute
   '/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
@@ -152,7 +144,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
-  '/dashboard/billing': typeof AuthenticatedDashboardDashboardBillingRoute
   '/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
@@ -171,7 +162,6 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/_authenticated/_dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/api/auth/callback': typeof ApiAuthCallbackRoute
-  '/_authenticated/_dashboard/dashboard/billing': typeof AuthenticatedDashboardDashboardBillingRoute
   '/_authenticated/_dashboard/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/_authenticated/_dashboard/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
   '/_authenticated/_dashboard/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
@@ -191,7 +181,6 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/api/auth/callback'
-    | '/dashboard/billing'
     | '/dashboard/connections'
     | '/dashboard/drift'
     | '/dashboard/onboarding'
@@ -209,7 +198,6 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/api/auth/callback'
-    | '/dashboard/billing'
     | '/dashboard/connections'
     | '/dashboard/drift'
     | '/dashboard/onboarding'
@@ -227,7 +215,6 @@ export interface FileRouteTypes {
     | '/logout'
     | '/_authenticated/_dashboard'
     | '/api/auth/callback'
-    | '/_authenticated/_dashboard/dashboard/billing'
     | '/_authenticated/_dashboard/dashboard/connections'
     | '/_authenticated/_dashboard/dashboard/drift'
     | '/_authenticated/_dashboard/dashboard/onboarding'
@@ -326,13 +313,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/connections'
       fullPath: '/dashboard/connections'
       preLoaderRoute: typeof AuthenticatedDashboardDashboardConnectionsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
-    '/_authenticated/_dashboard/dashboard/billing': {
-      id: '/_authenticated/_dashboard/dashboard/billing'
-      path: '/dashboard/billing'
-      fullPath: '/dashboard/billing'
-      preLoaderRoute: typeof AuthenticatedDashboardDashboardBillingRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/_dashboard/dashboard/repos/': {
@@ -435,7 +415,6 @@ const AuthenticatedDashboardDashboardReposRouteWithChildren =
   )
 
 interface AuthenticatedDashboardRouteChildren {
-  AuthenticatedDashboardDashboardBillingRoute: typeof AuthenticatedDashboardDashboardBillingRoute
   AuthenticatedDashboardDashboardConnectionsRoute: typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   AuthenticatedDashboardDashboardDriftRoute: typeof AuthenticatedDashboardDashboardDriftRoute
   AuthenticatedDashboardDashboardOnboardingRoute: typeof AuthenticatedDashboardDashboardOnboardingRoute
@@ -446,8 +425,6 @@ interface AuthenticatedDashboardRouteChildren {
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
-    AuthenticatedDashboardDashboardBillingRoute:
-      AuthenticatedDashboardDashboardBillingRoute,
     AuthenticatedDashboardDashboardConnectionsRoute:
       AuthenticatedDashboardDashboardConnectionsRouteWithChildren,
     AuthenticatedDashboardDashboardDriftRoute:

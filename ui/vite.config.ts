@@ -5,6 +5,7 @@ import viteReact from '@vitejs/plugin-react';
 import netlify from '@netlify/vite-plugin-tanstack-start';
 
 export default defineConfig(({ mode }) => {
+  
   const env = loadEnv(mode, process.cwd(), '');
   const allowedHosts = (env.ALLOWED_HOSTS || '')
     .split(',')
@@ -12,6 +13,11 @@ export default defineConfig(({ mode }) => {
     .filter(Boolean);
 
   return {
+    ssr: {
+      // Force native Node resolution at runtime (no inlining)
+      external: ['@workos-inc/node'],
+      // Do NOT list it in noExternal (that would inline/transform it)
+    },   
     server: {
       port: 3030,
       allowedHosts,
