@@ -15,9 +15,9 @@ import (
 
 
 func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
-	webhookSecret := os.Getenv("OPENTACO_WEBHOOK_SECRET")
+	webhookSecret := os.Getenv("OPENTACO_ENABLE_INTERNAL_ENDPOINTS")
 	if webhookSecret == "" {
-		log.Println("OPENTACO_WEBHOOK_SECRET not configured, skipping internal routes")
+		log.Println("OPENTACO_ENABLE_INTERNAL_ENDPOINTS not configured, skipping internal routes")
 		return
 	}
 
