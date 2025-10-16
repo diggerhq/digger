@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"context"
-	"fmt"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
@@ -96,40 +95,17 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 	)
 
 	// ========================================
-	//  Use transaction to create org + init RBAC atomically
+	//  Create org first, then init RBAC (SQLite-friendly)
 	// ========================================
 	var org *domain.Organization
 
+	// Create organization in transaction
 	err := h.orgRepo.WithTransaction(ctx, func(ctx context.Context, txRepo domain.OrganizationRepository) error {
-		// Create organization within transaction
 		createdOrg, err := txRepo.Create(ctx, req.OrgID, req.Name, userIDStr)
 		if err != nil {
 			return err
 		}
 		org = createdOrg
-
-		// Initialize RBAC within the same transaction
-		if h.rbacManager != nil {
-			slog.Info("Initializing RBAC for new organization",
-				"orgID", req.OrgID,
-				"adminUser", userIDStr,
-			)
-
-			if err := h.rbacManager.InitializeRBAC(ctx, userIDStr, emailStr); err != nil {
-				// IMPORTANT: Returning error here will rollback the entire transaction
-				slog.Error("Failed to initialize RBAC, rolling back org creation",
-					"orgID", req.OrgID,
-					"error", err,
-				)
-				return fmt.Errorf("failed to initialize RBAC: %w", err)
-			}
-
-			slog.Info("RBAC initialized successfully",
-				"orgID", req.OrgID,
-				"adminUser", userIDStr,
-			)
-		}
-
 		return nil
 	})
 
@@ -146,8 +122,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 			})
 		}
 
-		// Any other error (including RBAC init failure) returns 500
-		slog.Error("Failed to create organization with RBAC",
+		slog.Error("Failed to create organization",
 			"orgID", req.OrgID,
 			"error", err,
 		)
@@ -157,7 +132,31 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 		})
 	}
 
-	// Success - both org and RBAC were created
+	// Initialize RBAC after org creation (outside transaction for SQLite compatibility)
+	if h.rbacManager != nil {
+		slog.Info("Initializing RBAC for new organization",
+			"orgID", req.OrgID,
+			"adminUser", userIDStr,
+		)
+
+		if err := h.rbacManager.InitializeRBAC(ctx, userIDStr, emailStr); err != nil {
+			// Org was created but RBAC failed - log warning but don't fail the request
+			// User can retry RBAC initialization or assign roles manually
+			slog.Warn("Organization created but RBAC initialization failed",
+				"orgID", req.OrgID,
+				"error", err,
+				"recommendation", "RBAC can be initialized later via /rbac/init endpoint",
+			)
+			// Continue with success response - org was created
+		} else {
+			slog.Info("RBAC initialized successfully",
+				"orgID", req.OrgID,
+				"adminUser", userIDStr,
+			)
+		}
+	}
+
+	// Success - org created (and RBAC initialized if available)
 	return c.JSON(http.StatusCreated, CreateOrgResponse{
 		OrgID:     org.OrgID,
 		Name:      org.Name,

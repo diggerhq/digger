@@ -38,7 +38,7 @@ func main() {
 
 	// Load configuration from environment variables into our struct.
 	var queryCfg query.Config
-	err := envconfig.Process("taco", &queryCfg) // The prefix "TACO" will be used for all vars.
+	err := envconfig.Process("opentaco", &queryCfg) // The prefix "TACO" will be used for all vars.
 	if err != nil {
 		log.Fatalf("Failed to process configuration: %v", err)
 	}
