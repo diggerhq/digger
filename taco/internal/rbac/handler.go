@@ -335,6 +335,12 @@ func (h *Handler) DeleteRole(c echo.Context) error {
 // Helper functions
 
 func (h *Handler) getPrincipalFromToken(c echo.Context) (Principal, error) {
+    // First check if principal is already in context (webhook auth sets this)
+    if principal, ok := PrincipalFromContext(c.Request().Context()); ok {
+        return principal, nil
+    }
+    
+    // Fall back to JWT token verification for public API routes
     authz := c.Request().Header.Get("Authorization")
     if !strings.HasPrefix(authz, "Bearer ") {
         return Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "missing bearer token")
@@ -345,19 +351,8 @@ func (h *Handler) getPrincipalFromToken(c echo.Context) (Principal, error) {
         return Principal{}, echo.NewHTTPError(http.StatusInternalServerError, "auth not configured")
     }
     
-    // Debug: check signer state  
-    fmt.Printf("[RBAC DEBUG] Signer nil? %t\n", h.signer == nil)
-    fmt.Printf("[RBAC DEBUG] Signer addr: %p\n", h.signer)
-    
     claims, err := h.signer.VerifyAccess(token)
     if err != nil {
-        // Debug: log the verification failure  
-        fmt.Printf("[RBAC DEBUG] Token verification failed: %v\n", err)
-        tokenPreview := token
-        if len(token) > 50 {
-            tokenPreview = token[:50] + "..."
-        }
-        fmt.Printf("[RBAC DEBUG] Token preview: %s\n", tokenPreview)
         return Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
     }
     

@@ -38,6 +38,14 @@ func NewSQLiteQueryStore(cfg query.SQLiteConfig) (query.Store, error) {
 		return nil, fmt.Errorf("apply busy_timeout: %w", err)
 	}
 
+	// Configure connection pool settings
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("get underlying sql.DB: %w", err)
+	}
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+
 	// Create the common SQLStore with our configured DB object, breaking the cycle.
 	return common.NewSQLStore(db)
 }
