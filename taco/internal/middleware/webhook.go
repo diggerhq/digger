@@ -62,6 +62,9 @@ func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
 			email := c.Request().Header.Get("X-Email")
 			orgID := c.Request().Header.Get("X-Org-ID")
 
+			// Skip org validation for create org endpoint
+			isCreateOrg := c.Request().Method == http.MethodPost && c.Path() == "/internal/api/orgs"
+
 			// Require user ID and org ID for org isolation
 			if userID == "" {
 				return c.JSON(http.StatusBadRequest, map[string]string{
@@ -69,7 +72,7 @@ func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
 				})
 			}
 			
-			if orgID == "" {
+			if !isCreateOrg && orgID == "" {
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"error": "X-Org-ID header required for org-based isolation",
 				})
@@ -77,7 +80,7 @@ func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
 
 			
 			// Validate org ID format (prevents injection/traversal attacks)
-			if !domain.OrgIDPattern.MatchString(orgID) {
+			if orgID != "" && !domain.OrgIDPattern.MatchString(orgID) {
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"error": "invalid org ID format",
 				})
@@ -86,7 +89,7 @@ func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
 			// ========================================
 			// Verify organization exists in database
 			// ========================================
-			if orgRepo != nil {
+			if !isCreateOrg && orgRepo != nil && orgID != "" {
 				ctx := c.Request().Context()
 				_, err := orgRepo.Get(ctx, orgID)
 				if err != nil {
