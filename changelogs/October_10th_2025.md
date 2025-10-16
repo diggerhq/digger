@@ -1,8 +1,6 @@
 ## Week ending 10/10
 
-Welcome to the weekly Digger changelog, where we share product updates, tool tips, and more. This week we're building on top of the v0.0 state manager piece for OpenTaco, improving the “getting started experience” and the laying the groundwork for v0.1, all this while shipping improvements/enhancements to the core product.
-
-Let’s dive right in
+Welcome to the weekly Digger changelog, where we share product updates, tool tips, and more. This week we're continuing our efforts towards the v0.1 launch of OpenTaco, below is a summary of what we worked on this week!
 
 Latest version: **v0.6.128**
 
