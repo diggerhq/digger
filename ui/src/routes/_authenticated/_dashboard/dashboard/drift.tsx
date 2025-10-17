@@ -9,7 +9,7 @@ import { CheckCircle, AlertCircle, Save, TestTube, Clock, ArrowLeft, Slack } fro
 import { OrgSettings } from '@/api/orchestrator_types'
 import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
-import { getOrgSettingsFn, updateOrgSettingsFn, testSlackWebhookFn } from '@/api/server_functions'
+import { getOrgSettingsFn, updateOrgSettingsFn, testSlackWebhookFn } from '@/api/serverFunctions'
 import { ToastAction } from '@/components/ui/toast'
 
 
