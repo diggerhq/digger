@@ -57,11 +57,3 @@ export interface Job {
     BranchName: string
   }
   
-
-  interface BillingInfo {
-    billing_plan: "free" | "pro" | "unlimited"
-    remaining_free_projects: number
-    monitored_projects_limit?: number
-    monitored_projects_count?: number
-    billable_projects_count?: number
-  }

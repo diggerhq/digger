@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/_dashboard'
 import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
+import { Route as ApiAuthWorkosWebhooksRouteImport } from './routes/api/auth/workos/webhooks'
 import { Route as AuthenticatedDashboardDashboardUnitsRouteImport } from './routes/_authenticated/_dashboard/dashboard/units'
 import { Route as AuthenticatedDashboardDashboardSettingsRouteImport } from './routes/_authenticated/_dashboard/dashboard/settings'
 import { Route as AuthenticatedDashboardDashboardReposRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos'
@@ -51,6 +52,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
   id: '/api/auth/callback',
   path: '/api/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthWorkosWebhooksRoute = ApiAuthWorkosWebhooksRouteImport.update({
+  id: '/api/auth/workos/webhooks',
+  path: '/api/auth/workos/webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardDashboardUnitsRoute =
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/repos': typeof AuthenticatedDashboardDashboardReposRouteWithChildren
   '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
   '/dashboard/units': typeof AuthenticatedDashboardDashboardUnitsRouteWithChildren
+  '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
   '/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
   '/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
+  '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
   '/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
   '/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/_dashboard/dashboard/repos': typeof AuthenticatedDashboardDashboardReposRouteWithChildren
   '/_authenticated/_dashboard/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
   '/_authenticated/_dashboard/dashboard/units': typeof AuthenticatedDashboardDashboardUnitsRouteWithChildren
+  '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/_authenticated/_dashboard/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
   '/_authenticated/_dashboard/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
   '/_authenticated/_dashboard/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/dashboard/repos'
     | '/dashboard/settings'
     | '/dashboard/units'
+    | '/api/auth/workos/webhooks'
     | '/dashboard/connections/$connectionId'
     | '/dashboard/projects/$projectId'
     | '/dashboard/repos/$repoId'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/dashboard/drift'
     | '/dashboard/onboarding'
     | '/dashboard/settings'
+    | '/api/auth/workos/webhooks'
     | '/dashboard/connections/$connectionId'
     | '/dashboard/projects/$projectId'
     | '/dashboard/repos/$repoId'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_dashboard/dashboard/repos'
     | '/_authenticated/_dashboard/dashboard/settings'
     | '/_authenticated/_dashboard/dashboard/units'
+    | '/api/auth/workos/webhooks'
     | '/_authenticated/_dashboard/dashboard/connections/$connectionId'
     | '/_authenticated/_dashboard/dashboard/projects/$projectId'
     | '/_authenticated/_dashboard/dashboard/repos/$repoId'
@@ -271,6 +283,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LogoutRoute: typeof LogoutRoute
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
+  ApiAuthWorkosWebhooksRoute: typeof ApiAuthWorkosWebhooksRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/callback'
       fullPath: '/api/auth/callback'
       preLoaderRoute: typeof ApiAuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/workos/webhooks': {
+      id: '/api/auth/workos/webhooks'
+      path: '/api/auth/workos/webhooks'
+      fullPath: '/api/auth/workos/webhooks'
+      preLoaderRoute: typeof ApiAuthWorkosWebhooksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/_dashboard/dashboard/units': {
@@ -540,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LogoutRoute: LogoutRoute,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,
+  ApiAuthWorkosWebhooksRoute: ApiAuthWorkosWebhooksRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

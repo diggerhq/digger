@@ -1,4 +1,4 @@
-import { fetchRepos } from '@/api/backend'
+import { fetchRepos } from '@/api/orchestrator_repos'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableCell, TableBody, TableRow, TableHeader, TableHead } from '@/components/ui/table'

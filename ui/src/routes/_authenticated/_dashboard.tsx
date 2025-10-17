@@ -19,9 +19,20 @@ function DashboardComponent() {
         <SidebarProvider>
         <div className="flex h-screen w-full">
           <Sidebar>
-            <SidebarHeader>
-              <h2 className="text-xl font-bold">OpenTACO</h2>
-              <h3><Link to="/dashboard/settings">{organisationName}</Link></h3>
+            <SidebarHeader className="text-center">
+              <h2 className="text-xl font-bold mb-2">🌮 OpenTACO</h2>
+              <div className="px-4">
+                <div className="h-[1px] bg-border mb-2" />
+                <h3>
+                  <Link 
+                    to="/dashboard/settings" 
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
+                  >
+                    {organisationName}
+                  </Link>
+                </h3>
+                <div className="h-[1px] bg-border mt-2" />
+              </div>
             </SidebarHeader>
             <SidebarContent>
               <SidebarGroup>

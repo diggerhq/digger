@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, Eye, Plus, Database } from 'lucide-react'
+import { ArrowLeft, Plus, Database, ExternalLink, Lock, Unlock } from 'lucide-react'
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -85,15 +85,19 @@ function RouteComponent() {
         </Button>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Units</h1>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Unit
-        </Button>
-      </div>
-
-      {units.length === 0 ? (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle>Units</CardTitle>
+            <CardDescription>List of terraform state units and their current status</CardDescription>
+          </div>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Create New Unit
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {units.length === 0 ? (
         <div className="text-center py-12">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
             <Database className="h-6 w-6 text-primary" />
@@ -109,28 +113,28 @@ function RouteComponent() {
         </div>
       ) : (
         <Table>
-        <TableCaption>Units are almost equivalent to individual terraform statefiles - but they also include version history by default and you can rollback to a previous version of a unit's state. </TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Name</TableHead>
             <TableHead>Size</TableHead>
-            <TableHead>Updated At</TableHead>
-            <TableHead>Locked</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Last Updated</TableHead>
+            <TableHead></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {units.map((unit) => (
             <TableRow key={unit.id}>
+              <TableCell>
+                {unit.locked ? <Lock className="h-5 w-5 text-destructive" /> : <Unlock className="h-5 w-5 text-muted-foreground" />}
+              </TableCell>
               <TableCell className="font-medium">{unit.id}</TableCell>
               <TableCell>{formatBytes(unit.size)}</TableCell>
               <TableCell>{formatDate(unit.updatedAt)}</TableCell>
-              <TableCell>{unit.locked ? "Yes" : "No"}</TableCell>
               <TableCell className="text-right">
-                <Button variant="ghost" size="sm" asChild className="ml-auto">
-                  <Link to={`/dashboard/units/${unit.id}`} className="flex items-center justify-end w-full">
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Details
+                <Button variant="ghost" asChild className="justify-end">
+                  <Link to={`/dashboard/units/${unit.id}`}>
+                    View Details <ExternalLink className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </TableCell>
@@ -139,6 +143,8 @@ function RouteComponent() {
         </TableBody>
       </Table>
       )}
+        </CardContent>
+      </Card>
     </div>
 </>)
 }
