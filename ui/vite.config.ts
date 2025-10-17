@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import tsConfigPaths from 'vite-tsconfig-paths';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
-import netlify from '@netlify/vite-plugin-tanstack-start';
+// import netlify from '@netlify/vite-plugin-tanstack-start';
 
 export default defineConfig(({ mode }) => {
   
@@ -26,8 +26,6 @@ export default defineConfig(({ mode }) => {
       tsConfigPaths({
         projects: ['./tsconfig.json'],
       }),
-      netlify(),
-      // cloudflare({ viteEnvironment: { name: 'ssr' } }),
       tanstackStart(),
       viteReact(),
     ],

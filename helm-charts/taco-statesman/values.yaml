@@ -2,9 +2,11 @@
 
 taco:
   # Image configuration
+  # NOTE: This image needs to be built first! See helm-charts/BUILD_IMAGES.md
+  # Build with: cd taco && docker build -t YOUR_REGISTRY/taco-statesman:v0.1.0 -f Dockerfile_statesman .
   image:
-    repository: ghcr.io/diggerhq/digger/taco-statesman
-    tag: "v0.1.0"
+    repository: us-central1-docker.pkg.dev/prod-415611/opentaco/taco-statesman
+    tag: "latest"
     pullPolicy: "IfNotPresent"
 
   # Number of replicas

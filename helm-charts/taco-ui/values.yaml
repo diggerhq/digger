@@ -1,0 +1,81 @@
+# values.yaml
+
+ui:
+  # Image configuration
+  # This is a standalone Node.js + TanStack Start SSR app (no Netlify!)
+  # The image includes:
+  #   - Production-optimized Node.js server with static asset serving
+  #   - Built for linux/amd64 platform (GCP/GKE compatible)
+  #
+  # To build and push:
+  #   ./build-all-images.sh YOUR_REGISTRY VERSION
+  #   docker push YOUR_REGISTRY/taco-ui:VERSION
+  image:
+    repository: us-central1-docker.pkg.dev/prod-415611/opentaco/taco-ui
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+
+  # Number of replicas
+  replicaCount: 1
+
+  # Service configuration  
+  service:
+    type: ClusterIP
+    port: 3030  # taco-ui Node.js server listens on port 3030
+
+  # Environment variables
+  env:
+    # Backend API URL
+    apiUrl: "http://taco-statesman:8080"
+    # Allowed hosts (comma-separated)
+    allowedHosts: ""
+    # WorkOS configuration (optional)
+    workos:
+      clientId: ""
+      # Use secretName for sensitive data
+      secretName: ""
+    # Stripe configuration (optional)
+    stripe:
+      publishableKey: ""
+      # Use secretName for sensitive data
+      secretName: ""
+    # PostHog configuration (optional)
+    posthog:
+      key: ""
+      host: ""
+
+  # Ingress configuration
+  ingress:
+    enabled: false
+    className: "nginx"
+    annotations: {}
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+      # kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: taco.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    #  - secretName: taco-ui-tls
+    #    hosts:
+    #      - taco.example.com
+
+  # Resource limits
+  resources: {}
+    # limits:
+    #   cpu: 500m
+    #   memory: 512Mi
+    # requests:
+    #   cpu: 250m
+    #   memory: 256Mi
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+

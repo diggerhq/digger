@@ -1,0 +1,133 @@
+# Production values for OpenTaco
+# Copy this file and customize for your environment
+
+global:
+  imageRegistry: us-central1-docker.pkg.dev/prod-415611/opentaco
+  imagePullPolicy: IfNotPresent
+
+# ============================================================================
+# Database - Use Cloud SQL for production
+# ============================================================================
+postgresql:
+  enabled: false
+
+cloudSql:
+  enabled: true
+  instanceConnectionName: "prod-415611:us-central1:opentaco-postgres"
+  credentialsSecret: "cloudsql-credentials"
+  serviceAccount: "cloudsql-sa"
+
+# ============================================================================
+# Digger Backend
+# ============================================================================
+digger-backend:
+  enabled: true
+  digger:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 2000m
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - host: api.opentaco.example.com  # CHANGE THIS
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: digger-backend-tls
+          hosts:
+            - api.opentaco.example.com  # CHANGE THIS
+
+# ============================================================================
+# Taco Statesman
+# ============================================================================
+taco-statesman:
+  enabled: true
+  taco:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 2000m
+    storage:
+      type: "s3"  # Use S3/GCS for production
+      s3:
+        bucket: "opentaco-state-bucket"  # CHANGE THIS
+        region: "us-central1"
+
+# ============================================================================
+# Drift Detection
+# ============================================================================
+drift:
+  enabled: true
+  drift:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 2000m
+
+# ============================================================================
+# Taco UI
+# ============================================================================
+taco-ui:
+  enabled: true
+  ui:
+    replicaCount: 3
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      hosts:
+        - host: app.opentaco.example.com  # CHANGE THIS
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: opentaco-ui-tls
+          hosts:
+            - app.opentaco.example.com  # CHANGE THIS
+    env:
+      allowedHosts: "app.opentaco.example.com"  # CHANGE THIS
+      workos:
+        clientId: "client_XXXXX"  # CHANGE THIS - your WorkOS client ID
+        secretName: "workos-secrets"
+      stripe:
+        publishableKey: "pk_live_XXXXX"  # CHANGE THIS if using Stripe
+        secretName: "stripe-secrets"
+      posthog:
+        key: ""  # Optional: Add PostHog key
+        host: "https://app.posthog.com"
+
+# ============================================================================
+# Optional Features
+# ============================================================================
+networkPolicies:
+  enabled: true
+
+serviceMonitor:
+  enabled: false  # Set to true if using Prometheus
+

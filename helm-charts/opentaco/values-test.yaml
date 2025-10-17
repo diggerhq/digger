@@ -1,0 +1,78 @@
+# Minimal Test Configuration for OpenTaco
+# This file has the minimum changes needed for a working test deployment
+
+# ============================================================================
+# Global Configuration
+# ============================================================================
+global:
+  imageRegistry: us-central1-docker.pkg.dev/prod-415611/opentaco
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: gcr-json-key
+
+# ============================================================================
+# Database - Use Cloud SQL
+# ============================================================================
+postgresql:
+  enabled: false  # Not using in-cluster PostgreSQL
+
+cloudSql:
+  enabled: false  # Only statesman uses Cloud SQL, configured per-service below
+  instanceConnectionName: "prod-415611:us-central1:taco-postgres"
+  credentialsSecret: "cloudsql-credentials"
+  serviceAccount: "cloudsql-sa"
+
+# ============================================================================
+# Components - All enabled with defaults
+# ============================================================================
+digger-backend:
+  enabled: true
+  global:
+    imagePullSecrets:
+      - name: gcr-json-key
+  digger:
+    replicaCount: 1
+    secret:
+      useExistingSecret: true
+      existingSecretName: "backend-secrets"
+
+statesman:
+  enabled: true
+  global:
+    imagePullSecrets:
+      - name: gcr-json-key
+  taco:
+    replicaCount: 1
+    existingSecretName: "statesman-secrets"
+    cloudSql:
+      enabled: true  # Only statesman uses Cloud SQL
+      instanceConnectionName: "prod-415611:us-central1:taco-postgres"
+      credentialsSecret: "cloudsql-credentials"
+    storage:
+      type: "s3" 
+
+drift:
+  enabled: true
+  global:
+    imagePullSecrets:
+      - name: gcr-json-key
+  drift:
+    replicaCount: 1
+    existingSecretName: "drift-secrets"
+
+ui:
+  enabled: true
+  imagePullSecrets:
+    - name: gcr-json-key
+  global:
+    imagePullSecrets:
+      - name: gcr-json-key
+  ui:
+    replicaCount: 1
+    existingSecretName: "ui-secrets"
+    env:
+      # Backend URLs point to in-cluster services (default is good)
+      allowedHosts: "localhost"  # ✅ CHANGED: Allow localhost for port-forward testing
+    ingress:
+      enabled: false  # Using port-forward for testing
+

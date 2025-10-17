@@ -1,0 +1,67 @@
+apiVersion: v2
+name: opentaco
+description: OpenTaco - Complete Infrastructure-as-Code platform deployment
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+# Umbrella chart that deploys all OpenTaco components
+# This chart orchestrates:
+#   - PostgreSQL database (optional - can use Cloud SQL instead)
+#   - Digger Backend (terraform orchestration backend)
+#   - Taco Statesman (IaC state management)
+#   - Drift Detection service
+#   - Taco UI (React frontend)
+
+dependencies:
+  # Optional PostgreSQL - disable if using Cloud SQL
+  - name: postgresql
+    version: "15.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+    tags:
+      - database
+
+  # Digger Backend - terraform orchestration
+  - name: digger-backend
+    version: "0.1.12"
+    repository: "file://../digger-backend"
+    condition: digger-backend.enabled
+    tags:
+      - backend
+
+  # Taco Statesman - IaC state management  
+  - name: statesman
+    version: "0.1.0"
+    repository: "file://../taco-statesman"
+    condition: taco-statesman.enabled
+    tags:
+      - backend
+
+  # Drift Detection
+  - name: drift
+    version: "0.1.0"
+    repository: "file://../digger-drift"
+    condition: drift.enabled
+    tags:
+      - backend
+
+  # Taco UI - React frontend
+  - name: ui
+    version: "0.1.0"
+    repository: "file://../taco-ui"
+    condition: taco-ui.enabled
+    tags:
+      - frontend
+
+maintainers:
+  - name: OpenTaco Team
+    email: team@opentaco.dev
+
+keywords:
+  - infrastructure
+  - terraform
+  - iac
+  - opentaco
+  - digger
+

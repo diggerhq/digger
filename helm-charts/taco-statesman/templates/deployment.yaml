@@ -14,7 +14,15 @@ spec:
       labels:
         {{- include "taco-statesman.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.taco.cloudSql.enabled }}
+      serviceAccountName: {{ .Values.taco.cloudSql.serviceAccount | default "default" }}
+      {{- end }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
+        - name: {{ .Chart.Name }}
           image: "{{ .Values.taco.image.repository }}:{{ .Values.taco.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.taco.image.pullPolicy | default "IfNotPresent" }}
           imagePullPolicy: {{ .Values.taco.image.pullPolicy | default "IfNotPresent" }}
@@ -22,9 +30,15 @@ spec:
             - name: http
               containerPort: {{ .Values.taco.service.port }}
               protocol: TCP
+          {{- if .Values.taco.existingSecretName }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.taco.existingSecretName }}
+          {{- end }}
           env:
             - name: OPENTACO_PORT
               value: "{{ .Values.taco.service.port }}"
+            {{- if not .Values.taco.existingSecretName }}
             - name: OPENTACO_STORAGE
               value: "{{ .Values.taco.storage.type }}"
             {{- if .Values.taco.auth.disable }}
@@ -51,6 +65,7 @@ spec:
                   name: {{ .Values.taco.storage.s3.secretName }}
                   key: secret-access-key
             {{- end }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz
@@ -63,3 +78,26 @@ spec:
               port: http
             initialDelaySeconds: 5
             periodSeconds: 5
+      {{- if .Values.taco.cloudSql.enabled }}
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.11.0
+          args:
+            - "--structured-logs"
+            - "--port=5432"
+            - "{{ .Values.taco.cloudSql.instanceConnectionName }}"
+          securityContext:
+            runAsNonRoot: true
+          {{- if .Values.taco.cloudSql.credentialsSecret }}
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secrets/cloudsql/credentials.json
+          volumeMounts:
+            - name: cloudsql-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+          {{- end }}
+      volumes:
+        - name: cloudsql-credentials
+          secret:
+            secretName: {{ .Values.taco.cloudSql.credentialsSecret }}
+      {{- end }}

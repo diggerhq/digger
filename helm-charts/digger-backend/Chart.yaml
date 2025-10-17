@@ -1,6 +1,6 @@
 apiVersion: v2
 name: digger-backend
-description: A Helm chart for Kubernetes
+description: Digger Backend - Terraform orchestration and IaC management service
 
 # A chart can be either an 'application' or a 'library' chart.
 #

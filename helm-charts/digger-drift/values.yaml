@@ -1,0 +1,121 @@
+# values.yaml
+
+drift:
+  # Image configuration
+  # NOTE: This image needs to be built first! See helm-charts/BUILD_IMAGES.md
+  # Build with: docker build -t YOUR_REGISTRY/drift:v0.1.0 -f Dockerfile_drift .
+  image:
+    repository: us-central1-docker.pkg.dev/prod-415611/opentaco/drift
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+
+  # Number of replicas
+  replicaCount: 1
+
+  # Custom environment variables
+  customEnv: []
+  #   - name: MY_CUSTOM_ENV
+  #     value: "my-value"
+
+  # Set the log level for the drift service
+  # DEBUG will enable the debug logs, any other value will set it to INFO
+  logLevel: "INFO"
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 3000
+
+  # Ingress configuration
+  ingress:
+    enabled: false
+    className: "nginx"
+    annotations: {}
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+    host: "drift.example.com"
+    path: /
+    tls:
+      secretName: "digger-drift-tls"
+
+  # Liveness and startup probe settings
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 3004
+    periodSeconds: 20
+
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 3004
+    failureThreshold: 30
+    periodSeconds: 10
+  
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 3004
+    periodSeconds: 10
+
+  # Resource limits
+  resources: {}
+  #  requests:
+  #    cpu: 100m
+  #    memory: 256Mi
+  #  limits:
+  #    cpu: 500m
+  #    memory: 512Mi
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+  # Drift service configuration
+  # hostname: The public hostname for this drift service
+  # webhookSecret: Secret for internal webhook authentication
+  # appUrl: URL for the Digger app UI (for notifications)
+  # driftReporterHostname: Hostname for the drift reporter (optional)
+  config:
+    hostname: ""
+    webhookSecret: ""
+    appUrl: ""
+    driftReporterHostname: ""
+
+  # Sentry configuration (optional)
+  sentry:
+    dsn: ""
+
+  # GitHub App configuration
+  # These are required for drift detection to work with GitHub
+  github:
+    # Use existingSecret to reference an existing secret
+    # or fill in the values below
+    existingSecretName: ""
+    
+    org: ""
+    appID: ""
+    appClientID: ""
+    appClientSecret: ""
+    appPrivateKey: ""  # base64 encoded private key
+    webhookSecret: ""
+
+  # PostgreSQL configuration
+  # The drift service uses the same database as the digger backend
+  postgres:
+    # Use existingSecret to pull password from an existing secret
+    existingSecretName: ""
+    existingSecretKey: "postgres-password"
+    
+    # Database connection details
+    sslmode: "disable"
+    user: "postgres"
+    database: "digger"
+    host: "postgresql.default.svc.cluster.local"
+    password: ""
+    port: "5432"
+

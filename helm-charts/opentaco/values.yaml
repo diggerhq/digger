@@ -1,0 +1,227 @@
+# OpenTaco Umbrella Chart - Default Values
+# 
+# This chart deploys the complete OpenTaco platform:
+#   - Database (PostgreSQL or Cloud SQL)
+#   - Digger Backend
+#   - Taco Statesman
+#   - Drift Detection
+#   - Taco UI
+
+# ============================================================================
+# Global Configuration
+# ============================================================================
+global:
+  # Image registry for all custom images
+  imageRegistry: us-central1-docker.pkg.dev/prod-415611/opentaco
+  
+  # Image pull policy
+  imagePullPolicy: IfNotPresent
+  
+  # Shared secrets (create these before deploying)
+  secrets:
+    # WorkOS authentication (required for UI)
+    workosSecretName: "workos-secrets"
+    # Stripe billing (optional)
+    stripeSecretName: "stripe-secrets"
+
+# ============================================================================
+# Database Configuration
+# ============================================================================
+
+# Option 1: Use in-cluster PostgreSQL (bitnami chart)
+# Set postgresql.enabled=true for development/testing
+postgresql:
+  enabled: false  # Set to true to deploy PostgreSQL in cluster
+  auth:
+    username: opentaco
+    password: changeme  # CHANGE THIS or use existingSecret
+    database: opentaco
+    existingSecret: ""  # Reference existing secret for password
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+
+# Option 2: Use Cloud SQL (recommended for production)
+# See helm-charts/scripts/setup-cloud-sql.sh to create Cloud SQL instance
+cloudSql:
+  enabled: true # Set to true to use Cloud SQL
+  # Connection details
+  instanceConnectionName: "prod-415611:us-central1:taco-postgres"
+  # Database credentials (create secret first)
+  credentialsSecret: "cloudsql-credentials"
+  # Service account for Workload Identity
+  serviceAccount: "cloudsql-sa"
+
+# ============================================================================
+# Digger Backend Configuration
+# ============================================================================
+digger-backend:
+  enabled: true
+  
+  digger:
+    image:
+      repository: us-central1-docker.pkg.dev/prod-415611/opentaco/digger-backend-ee
+      tag: "latest"
+    
+    replicaCount: 1
+    
+    # Database connection (auto-configured based on postgresql/cloudSql settings)
+    # Will be overridden by this umbrella chart
+    database:
+      host: ""  # Set via template
+      port: 5432
+      name: digger
+      user: digger
+      # Password from secret
+      existingSecret: "digger-db-secret"
+      existingSecretKey: "password"
+    
+    service:
+      type: ClusterIP
+      port: 3000
+    
+    ingress:
+      enabled: false
+      className: "nginx"
+      hosts:
+        - host: api.opentaco.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+
+# ============================================================================
+# Taco Statesman Configuration
+# ============================================================================
+taco-statesman:
+  enabled: true
+  
+  taco:
+    image:
+      repository: us-central1-docker.pkg.dev/prod-415611/opentaco/taco-statesman
+      tag: "latest"
+    
+    replicaCount: 1
+    
+    # Database connection (auto-configured)
+    database:
+      host: ""  # Set via template
+      port: 5432
+      name: taco
+      user: taco
+      existingSecret: "taco-db-secret"
+      existingSecretKey: "password"
+    
+    service:
+      type: ClusterIP
+      port: 8080
+    
+    # Storage configuration
+    storage:
+      type: "memory"  # or "s3"
+      s3:
+        bucket: ""
+        region: ""
+
+# ============================================================================
+# Drift Detection Configuration
+# ============================================================================
+drift:
+  enabled: true
+  
+  drift:
+    image:
+      repository: us-central1-docker.pkg.dev/prod-415611/opentaco/drift
+      tag: "latest"
+    
+    replicaCount: 1
+    
+    # Database connection (auto-configured)
+    database:
+      host: ""  # Set via template
+      port: 5432
+      name: drift
+      user: drift
+      existingSecret: "drift-db-secret"
+      existingSecretKey: "password"
+    
+    service:
+      type: ClusterIP
+      port: 3004
+
+# ============================================================================
+# Taco UI Configuration
+# ============================================================================
+taco-ui:
+  enabled: true
+  
+  ui:
+    image:
+      repository: us-central1-docker.pkg.dev/prod-415611/opentaco/taco-ui
+      tag: "latest"
+    
+    replicaCount: 1
+    
+    service:
+      type: ClusterIP
+      port: 3030
+    
+    # Environment configuration
+    env:
+      # Backend API URLs (auto-configured to point to services in cluster)
+      apiUrl: "http://taco-statesman:8080"
+      orchestratorBackendUrl: "http://digger-backend:3000"
+      driftReportingBackendUrl: "http://drift:3004"
+      
+      # Allowed hosts (customize for your domain)
+      allowedHosts: ""
+      
+      # WorkOS authentication
+      workos:
+        clientId: ""  # Set this
+        secretName: "workos-secrets"
+      
+      # Stripe billing (optional)
+      stripe:
+        publishableKey: ""
+        secretName: "stripe-secrets"
+      
+      # PostHog analytics (optional)
+      posthog:
+        key: ""
+        host: ""
+    
+    ingress:
+      enabled: false
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - host: app.opentaco.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: opentaco-ui-tls
+          hosts:
+            - app.opentaco.example.com
+
+# ============================================================================
+# Additional Configuration
+# ============================================================================
+
+# Create NetworkPolicies (optional)
+networkPolicies:
+  enabled: false
+
+# Service Monitor for Prometheus (optional)
+serviceMonitor:
+  enabled: false
+
