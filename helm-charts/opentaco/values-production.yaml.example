@@ -2,7 +2,7 @@
 # Copy this file and customize for your environment
 
 global:
-  imageRegistry: us-central1-docker.pkg.dev/prod-415611/opentaco
+  imageRegistry: us-central1-docker.pkg.dev/YOUR-PROJECT-ID/opentaco
   imagePullPolicy: IfNotPresent
 
 # ============================================================================
@@ -13,7 +13,7 @@ postgresql:
 
 cloudSql:
   enabled: true
-  instanceConnectionName: "prod-415611:us-central1:opentaco-postgres"
+  instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"
   credentialsSecret: "cloudsql-credentials"
   serviceAccount: "cloudsql-sa"
 

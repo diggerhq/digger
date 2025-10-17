@@ -5,7 +5,7 @@
 # Global Configuration
 # ============================================================================
 global:
-  imageRegistry: us-central1-docker.pkg.dev/prod-415611/opentaco
+  imageRegistry: us-central1-docker.pkg.dev/YOUR-PROJECT-ID/opentaco
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: gcr-json-key
@@ -18,7 +18,7 @@ postgresql:
 
 cloudSql:
   enabled: false  # Only statesman uses Cloud SQL, configured per-service below
-  instanceConnectionName: "prod-415611:us-central1:taco-postgres"
+  instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"
   credentialsSecret: "cloudsql-credentials"
   serviceAccount: "cloudsql-sa"
 
@@ -46,7 +46,7 @@ statesman:
     existingSecretName: "statesman-secrets"
     cloudSql:
       enabled: true  # Only statesman uses Cloud SQL
-      instanceConnectionName: "prod-415611:us-central1:taco-postgres"
+      instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"
       credentialsSecret: "cloudsql-credentials"
     storage:
       type: "s3" 
