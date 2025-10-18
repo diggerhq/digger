@@ -38,6 +38,10 @@ spec:
         - secretRef:
             name: {{ include "digger-backend.fullname" . }}-secret
         {{- end }}
+        {{- if .Values.digger.customEnv }}
+        env:
+        {{- toYaml .Values.digger.customEnv | nindent 10 }}
+        {{- end }}
         {{- if .Values.digger.livenessProbe }}
         livenessProbe:
           {{- toYaml .Values.digger.livenessProbe | nindent 10 }}
