@@ -10,11 +10,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useState } from "react"
+import { createUnitFn } from "@/api/statesman_serverFunctions"
+import { listUnitsFn } from '@/api/statesman_serverFunctions'
 
 export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/units/',
 )({
   component: RouteComponent,
+  loader: async ({ context }) => {
+    const { user, organisationId } = context;
+    const unitsData = await listUnitsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || ''}})
+    return { unitsData: unitsData, user, organisationId }
+  }
 })
 
 // Mock data - replace with actual data fetching
@@ -74,7 +93,87 @@ function formatDate(date: Date) {
   })
 }
 
+function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [unitName, setUnitName] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { user, organisationId } = Route.useLoaderData()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
+
+    const unitId = `org-${organisationId}/${unitName}`
+
+    try {
+      await createUnitFn({
+        data: {
+          userId: user?.id!,
+          organisationId,
+          email: user?.email || '',
+          unitId: unitId,
+        }
+      })
+      setOpen(false)
+      setUnitName("")
+      onUnitCreated()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create unit")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Create New Unit
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Create New Unit</DialogTitle>
+            <DialogDescription>
+              Enter a name for your new terraform state unit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="name" className="text-right">
+              Unit Name {unitName} {user.email} {user.id} {organisationId}
+            </Label>
+            <Input
+              id="name"
+              value={unitName}
+              onChange={(e) => setUnitName(e.target.value)}
+              placeholder="my-terraform-state"
+              className="mt-1"
+            />
+            {error && <p className="text-sm text-destructive mt-2">{error}</p>}
+          </div>
+          <DialogFooter>
+            <Button
+              type="submit"
+              disabled={!unitName.trim() || isLoading}
+            >
+              {isLoading ? "Creating..." : "Create Unit"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function RouteComponent() {
+  const {  unitsData } = Route.useLoaderData()
+  const units = unitsData?.units || []
+  const navigate = Route.useNavigate()
+
   return (<>
     <div className="container mx-auto p-4">
       <div className="mb-6">
@@ -91,10 +190,7 @@ function RouteComponent() {
             <CardTitle>Units</CardTitle>
             <CardDescription>List of terraform state units and their current status</CardDescription>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Unit
-          </Button>
+          <CreateUnitModal onUnitCreated={() => navigate({ to: '/dashboard/units' })} />
         </CardHeader>
         <CardContent>
           {units.length === 0 ? (
@@ -106,10 +202,7 @@ function RouteComponent() {
           <p className="text-muted-foreground max-w-sm mx-auto mb-6">
             Units are equivalent to individual terraform statefiles - but they also include version history by default and you can rollback to a previous version of a unit's state.
           </p>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Your First Unit
-          </Button>
+          <CreateUnitModal onUnitCreated={() => navigate({ to: '/dashboard/units' })} />
         </div>
       ) : (
         <Table>
@@ -130,7 +223,7 @@ function RouteComponent() {
               </TableCell>
               <TableCell className="font-medium">{unit.id}</TableCell>
               <TableCell>{formatBytes(unit.size)}</TableCell>
-              <TableCell>{formatDate(unit.updatedAt)}</TableCell>
+              <TableCell>{formatDate(unit.updatedAt || new Date())}</TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" asChild className="justify-end">
                   <Link to={`/dashboard/units/${unit.id}`}>

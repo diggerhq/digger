@@ -5,16 +5,16 @@ export async function syncUserToStatesman(userId: string, userEmail: string, org
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_SECRET}`,
+            'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-User-Email': userEmail,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             subject: userId,
             email: userEmail,
         })
-    })  
+    })
 
     if (!response.ok) {
         throw new Error(`Failed to sync user: ${response.statusText}`);

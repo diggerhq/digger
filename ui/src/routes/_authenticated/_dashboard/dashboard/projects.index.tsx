@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useLoaderData } from '@tanstack/react-router'
-import { getProjectsFn } from '@/api/serverFunctions'
-import { updateProjectFn } from '@/api/serverFunctions'
+import { getProjectsFn } from '@/api/orchestrator_serverFunctions'
+import { updateProjectFn } from '@/api/orchestrator_serverFunctions'
 import { trackProjectDriftToggled } from '@/lib/analytics'
 import { useToast } from "@/hooks/use-toast"
 import { useState } from 'react'

@@ -5,10 +5,10 @@ export async function syncOrgToStatesman(orgId: string, orgName: string, userId:
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_SECRET}`,
+            'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
             'X-Org-ID': orgId,
             'X-User-ID': userId,
-            'X-User-Email': adminEmail,
+            'X-Email': adminEmail,
         },
         body: JSON.stringify({ 
             "org_id": orgId,
@@ -17,8 +17,13 @@ export async function syncOrgToStatesman(orgId: string, orgName: string, userId:
         })
     })  
 
+    console.log(orgId)
+    console.log(orgName)
+    console.log(userId)
+    console.log(adminEmail)
+
     if (!response.ok) {
-        throw new Error(`Failed to sync user: ${response.statusText}`);
+        throw new Error(`Failed to sync organization to statesman: ${response.statusText}`);
     }
 
     return response.json();

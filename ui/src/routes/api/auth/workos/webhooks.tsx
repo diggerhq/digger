@@ -3,6 +3,8 @@ import { WorkOS , Event as WorkOsEvent } from '@workos-inc/node';
 import { syncOrgToBackend } from '@/api/orchestrator_orgs';
 import { syncUserToBackend } from '@/api/orchestrator_users';
 import { createOrgForUser, listUserOrganizationInvitations, getOrganisationDetails } from '@/authkit/ssr/workos_api';
+import { syncOrgToStatesman } from '@/api/statesman_orgs';
+import { syncUserToStatesman } from '@/api/statesman_users';
 
 type WorkosUserCreatedEvent = WorkOsEvent
 
@@ -31,11 +33,20 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
             try {
               console.log("Syncing organization to backend orgName", orgName, "orgId", orgId);
               await syncOrgToBackend(orgId, orgName, null);
+              await syncOrgToStatesman(orgId, orgName, event.data.id, event.data.email);
             } catch (error) {
               console.error(`Error syncing organization to backend:`, error);
               throw error;
             }
       
+            try {
+              await syncUserToBackend(event.data.id!, event.data.email, orgId);
+              await syncUserToStatesman(event.data.id!, event.data.email, orgId);
+            } catch (error) {
+              console.error(`Error syncing user to backend:`, error);
+              throw error;
+            }
+
             // == syncing invitations == 
             let userInvitations;
       
@@ -47,24 +58,16 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
             }
       
             if (userInvitations.length > 0) {
-              for (const invitation of userInvitations) {
-                let orgId = invitation.organizationId!;
                 const orgDetails = await getOrganisationDetails(orgId);
                 let orgName = orgDetails.name;
-                try {
-                  console.log("Syncing organization to backend orgName", orgName, "orgId", orgId);
-                  await syncOrgToBackend(orgId, orgName, event.data.email);
-                } catch (error) {
-                  console.error(`Error syncing organization to backend:`, error);
-                  throw error;
-                }
-          
-                try {
-                  await syncUserToBackend(event.data.id, event.data.email, orgId);
-                } catch (error) {
-                  console.error(`Error syncing user to backend:`, error);
-                  throw error;
-                }   
+                for (const invitation of userInvitations) {
+                  try {
+                      await syncUserToBackend(invitation.userId!, invitation.userEmail!, invitation.organizationId!);
+                      await syncUserToStatesman(invitation.userId!, invitation.userEmail!, invitation.organizationId!);
+                  } catch (error) {
+                    console.error(`Error syncing user to backend:`, error);
+                    throw error;
+                  }   
               }
             }      
           }

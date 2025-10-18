@@ -15,7 +15,7 @@ var (
 )
 
 // OrgIDPattern defines valid organization ID format: lowercase alphanumeric, hyphens, underscores
-var OrgIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*[a-z0-9]$`)
+var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]$`)
 
 // ============================================
 // Domain Models
@@ -69,13 +69,13 @@ var (
 type UserRepository interface {
 	// Create or get a user (idempotent)
 	EnsureUser(ctx context.Context, subject, email string) (*User, error)
-	
+
 	// Get user by subject
 	Get(ctx context.Context, subject string) (*User, error)
-	
+
 	// Get user by email
 	GetByEmail(ctx context.Context, email string) (*User, error)
-	
+
 	// List all users
 	List(ctx context.Context) ([]*User, error)
 }
@@ -94,9 +94,7 @@ func ValidateOrgID(orgID string) error {
 		return fmt.Errorf("%w: must be at most 50 characters", ErrInvalidOrgID)
 	}
 	if !OrgIDPattern.MatchString(orgID) {
-		return fmt.Errorf("%w: must contain only lowercase letters, numbers, hyphens, and underscores", ErrInvalidOrgID)
+		return fmt.Errorf("%w: must contain only letters, numbers, hyphens, and underscores", ErrInvalidOrgID)
 	}
 	return nil
 }
-
-
