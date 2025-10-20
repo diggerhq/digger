@@ -27,9 +27,9 @@ This document is intended to be a guide for people who want to contribute to Dig
 
 > [!IMPORTANT]
 >
-> We have aan AI assistance policy inspired by 
+> We have an AI assistance policy inspired by 
 > [ghostty](https://github.com/ghostty-org/ghostty/blob/main/CONTRIBUTING.md#ai-assistance-notice).
-> We copied the same policy with a few modifications bellow
+> We copied the same policy with a few modifications below
 > If you are using **any kind of AI assistance** to contribute to Digger,
 > it must be disclosed in the pull request.
 
