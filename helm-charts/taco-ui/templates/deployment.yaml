@@ -58,17 +58,6 @@ spec:
                   name: {{ .Values.ui.env.workos.secretName }}
                   key: cookie-password
             {{- end }}
-            {{- if .Values.ui.env.stripe.publishableKey }}
-            - name: VITE_STRIPE_PUBLISHABLE_KEY
-              value: "{{ .Values.ui.env.stripe.publishableKey }}"
-            {{- end }}
-            {{- if .Values.ui.env.stripe.secretName }}
-            - name: STRIPE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.ui.env.stripe.secretName }}
-                  key: secret-key
-            {{- end }}
             {{- if .Values.ui.env.posthog.key }}
             - name: VITE_POSTHOG_KEY
               value: "{{ .Values.ui.env.posthog.key }}"
