@@ -5,10 +5,14 @@ Production-ready Kubernetes deployment for the OpenTaco infrastructure managemen
 ## Quick Start
 
 ```bash
-# 1. Create namespace
+# 1. Configure values file (see Configuration Checklist below)
+cp opentaco/values-test.yaml.example opentaco/values-test.yaml
+# Edit values-test.yaml with your GCP project ID and settings
+
+# 2. Create namespace
 kubectl create namespace opentaco
 
-# 2. Create secrets (see Secret Management below)
+# 3. Create secrets (see Secret Management below)
 kubectl create secret generic ui-secrets \
   --from-env-file=.secrets/ui.env -n opentaco
 
@@ -21,7 +25,7 @@ kubectl create secret generic statesman-secrets \
 kubectl create secret generic drift-secrets \
   --from-env-file=.secrets/drift.env -n opentaco
 
-# 3. Deploy
+# 4. Deploy
 cd opentaco
 helm install opentaco . -f values-test.yaml -n opentaco
 ```
@@ -34,6 +38,92 @@ The umbrella chart deploys 4 services:
 - **drift** (port 3004) - Infrastructure drift detection  
 - **statesman** (port 8080) - IaC state management with Cloud SQL
 - **ui** (port 3030) - Web frontend
+
+## Configuration Checklist
+
+Before deploying, you need to configure placeholder values in your values file.
+
+### Required Placeholders in `values-test.yaml` or `values-production.yaml`
+
+#### 1. **Cloud SQL Configuration** (if using Cloud SQL for statesman)
+
+```yaml
+cloudSql:
+  enabled: true
+  instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"  # ❌ CHANGE THIS
+  credentialsSecret: "cloudsql-credentials"
+  serviceAccount: "cloudsql-sa"
+```
+
+**What to do:**
+- Replace `YOUR-PROJECT-ID` with your GCP project ID (e.g., `my-prod-project`)
+- Replace `YOUR-REGION` with your Cloud SQL region (e.g., `us-central1`)
+- Replace `YOUR-INSTANCE` with your Cloud SQL instance name (e.g., `opentaco-postgres`)
+
+Example: `my-prod-project:us-central1:opentaco-postgres`
+
+#### 2. **Image Registry** (optional - defaults to public GHCR)
+
+```yaml
+global:
+  imageRegistry: ghcr.io/diggerhq/digger  # ✅ Public registry (no auth needed)
+  # Or use your private registry:
+  # imageRegistry: us-central1-docker.pkg.dev/YOUR-PROJECT/YOUR-REPO
+```
+
+**What to do:**
+- Keep default for public images (recommended)
+- OR replace with your private registry path if using custom builds
+
+#### 3. **UI Ingress Configuration** (for production with custom domain)
+
+```yaml
+taco-ui:
+  ui:
+    ingress:
+      enabled: false  # Set to true for production
+      hosts:
+        - host: app.opentaco.example.com  # ❌ CHANGE THIS
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: opentaco-ui-tls
+          hosts:
+            - app.opentaco.example.com  # ❌ CHANGE THIS
+```
+
+**What to do:**
+- Replace `app.opentaco.example.com` with your actual domain
+- Set `enabled: true` when ready to expose publicly
+- Ensure you have an Ingress Controller installed (see Ingress Setup below)
+
+#### 4. **Service Replica Counts** (optional - defaults to 1)
+
+```yaml
+digger-backend:
+  digger:
+    replicaCount: 1  # Increase for high availability
+
+taco-statesman:
+  taco:
+    replicaCount: 1  # Increase for high availability
+```
+
+**What to do:**
+- Keep `1` for test/dev environments
+- Increase to `2+` for production high availability
+
+### Quick Validation
+
+Before deploying, check your values file for these patterns:
+
+```bash
+# In your values-test.yaml or values-production.yaml
+grep -E "YOUR-|example\.com|CHANGE THIS" opentaco/values-test.yaml
+```
+
+If this returns any results, you have placeholders that need to be filled in!
 
 ## Secret Management
 
@@ -297,16 +387,3 @@ helm-charts/
 | `values-production.yaml` | Production-ready settings |
 | `.secrets/*.env` | Environment-specific secrets (not committed) |
 
-## Security Notes
-
-- Never commit `.secrets/` directory to version control
-- Use strong random secrets (32-64 characters)
-- Rotate secrets regularly
-- Review service account permissions
-- Enable network policies for production
-
-## Support
-
-For issues and documentation:
-- GitHub: https://github.com/diggerhq/digger
-- Docs: https://docs.digger.dev
