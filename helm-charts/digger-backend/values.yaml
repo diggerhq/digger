@@ -7,7 +7,7 @@ digger:
 
   # Image configuration
   image:
-    repository: us-central1-docker.pkg.dev/prod-415611/opentaco/digger-backend-ee
+    repository: ghcr.io/diggerhq/digger/digger-backend-ee
     tag: "latest"
     pullPolicy: IfNotPresent
 

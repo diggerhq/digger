@@ -2,10 +2,9 @@
 
 drift:
   # Image configuration
-  # NOTE: This image needs to be built first! See helm-charts/BUILD_IMAGES.md
-  # Build with: docker build -t YOUR_REGISTRY/drift:v0.1.0 -f Dockerfile_drift .
+  # Public image available at ghcr.io/diggerhq/digger/drift
   image:
-    repository: us-central1-docker.pkg.dev/prod-415611/opentaco/drift
+    repository: ghcr.io/diggerhq/digger/drift
     tag: "latest"
     pullPolicy: "IfNotPresent"
 

@@ -12,7 +12,7 @@
 # ============================================================================
 global:
   # Image registry for all custom images
-  imageRegistry: us-central1-docker.pkg.dev/prod-415611/opentaco
+  imageRegistry: ghcr.io/diggerhq/digger
   
   # Image pull policy
   imagePullPolicy: IfNotPresent
@@ -68,7 +68,7 @@ digger-backend:
   
   digger:
     image:
-      repository: us-central1-docker.pkg.dev/prod-415611/opentaco/digger-backend-ee
+      repository: ghcr.io/diggerhq/digger/digger-backend-ee
       tag: "latest"
     
     replicaCount: 1
@@ -96,7 +96,7 @@ taco-statesman:
   
   taco:
     image:
-      repository: us-central1-docker.pkg.dev/prod-415611/opentaco/taco-statesman
+      repository: ghcr.io/diggerhq/digger/taco-statesman
       tag: "latest"
     
     replicaCount: 1
@@ -122,7 +122,7 @@ drift:
   
   drift:
     image:
-      repository: us-central1-docker.pkg.dev/prod-415611/opentaco/drift
+      repository: ghcr.io/diggerhq/digger/drift
       tag: "latest"
     
     replicaCount: 1
@@ -141,7 +141,7 @@ taco-ui:
   
   ui:
     image:
-      repository: us-central1-docker.pkg.dev/prod-415611/opentaco/taco-ui
+      repository: ghcr.io/diggerhq/digger/taco-ui
       tag: "latest"
     
     replicaCount: 1

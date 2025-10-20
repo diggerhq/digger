@@ -77,7 +77,7 @@ ui:
     existingSecretName: "ui-secrets"
     env:
       # Backend URLs point to in-cluster services (default is good)
-      allowedHosts: "localhost"  # ✅ CHANGED: Allow localhost for port-forward testing
+      allowedHosts: "localhost" 
     ingress:
       enabled: false  # Using port-forward for testing
 

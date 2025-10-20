@@ -2,16 +2,14 @@
 
 ui:
   # Image configuration
-  # This is a standalone Node.js + TanStack Start SSR app (no Netlify!)
+  # This is a standalone Node.js + TanStack Start SSR app
   # The image includes:
   #   - Production-optimized Node.js server with static asset serving
   #   - Built for linux/amd64 platform (GCP/GKE compatible)
   #
-  # To build and push:
-  #   ./build-all-images.sh YOUR_REGISTRY VERSION
-  #   docker push YOUR_REGISTRY/taco-ui:VERSION
+  # Public image available at ghcr.io/diggerhq/digger/taco-ui
   image:
-    repository: us-central1-docker.pkg.dev/prod-415611/opentaco/taco-ui
+    repository: ghcr.io/diggerhq/digger/taco-ui
     tag: "latest"
     pullPolicy: "IfNotPresent"
 
