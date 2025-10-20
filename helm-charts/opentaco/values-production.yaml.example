@@ -115,9 +115,6 @@ taco-ui:
       workos:
         clientId: "client_XXXXX"  # CHANGE THIS - your WorkOS client ID
         secretName: "workos-secrets"
-      stripe:
-        publishableKey: "pk_live_XXXXX"  # CHANGE THIS if using Stripe
-        secretName: "stripe-secrets"
       posthog:
         key: ""  # Optional: Add PostHog key
         host: "https://app.posthog.com"

@@ -21,8 +21,6 @@ global:
   secrets:
     # WorkOS authentication (required for UI)
     workosSecretName: "workos-secrets"
-    # Stripe billing (optional)
-    stripeSecretName: "stripe-secrets"
 
 # ============================================================================
 # Database Configuration
@@ -54,7 +52,7 @@ postgresql:
 cloudSql:
   enabled: true # Set to true to use Cloud SQL
   # Connection details
-  instanceConnectionName: "prod-415611:us-central1:taco-postgres"
+  instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"
   # Database credentials (create secret first)
   credentialsSecret: "cloudsql-credentials"
   # Service account for Workload Identity
@@ -164,11 +162,6 @@ taco-ui:
       workos:
         clientId: ""  # Set this
         secretName: "workos-secrets"
-      
-      # Stripe billing (optional)
-      stripe:
-        publishableKey: ""
-        secretName: "stripe-secrets"
       
       # PostHog analytics (optional)
       posthog:

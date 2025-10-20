@@ -32,11 +32,6 @@ ui:
       clientId: ""
       # Use secretName for sensitive data
       secretName: ""
-    # Stripe configuration (optional)
-    stripe:
-      publishableKey: ""
-      # Use secretName for sensitive data
-      secretName: ""
     # PostHog configuration (optional)
     posthog:
       key: ""
