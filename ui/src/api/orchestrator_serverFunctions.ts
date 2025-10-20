@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { Job, OrgSettings, Project, Repo } from './types'
-import { fetchRepos, testSlackWebhook } from "./backend";
-import { fetchProject, fetchProjects, getOrgSettings, updateOrgSettings, updateProject } from "./api";
+import { Job, OrgSettings, Project, Repo } from './orchestrator_types'
+import { fetchRepos, testSlackWebhook } from "./orchestrator_repos";
+import { fetchProject, fetchProjects, getOrgSettings, updateOrgSettings, updateProject } from "./orchestrator_orgs";
 
 export const getOrgSettingsFn = createServerFn({method: 'GET'})
   .inputValidator((data : {userId: string, organisationId: string}) => data)

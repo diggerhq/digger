@@ -4,7 +4,7 @@ import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import JobsTable from '@/components/dashboard/JobsTable'
-import { getRepoDetailsFn } from '@/api/server_functions'
+import { getRepoDetailsFn } from '@/api/orchestrator_serverFunctions'
 
 export const Route = createFileRoute('/_authenticated/_dashboard/dashboard/repos/$repoId')({
   component: RouteComponent,

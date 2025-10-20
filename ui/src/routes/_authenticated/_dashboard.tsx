@@ -2,7 +2,7 @@ import { redirect, createFileRoute, Outlet, useLocation } from '@tanstack/react-
 import { getSignInUrl } from '../../authkit/serverFunctions';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
 import { Link } from '@tanstack/react-router';
-import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut } from 'lucide-react';
+import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut, Cuboid} from 'lucide-react';
 
 export const Route = createFileRoute('/_authenticated/_dashboard')({
     component: DashboardComponent,
@@ -19,15 +19,35 @@ function DashboardComponent() {
         <SidebarProvider>
         <div className="flex h-screen w-full">
           <Sidebar>
-            <SidebarHeader>
-              <h2 className="text-xl font-bold">OpenTACO</h2>
-              <h3><Link to="/dashboard/settings">{organisationName}</Link></h3>
+            <SidebarHeader className="text-center">
+              <h2 className="text-xl font-bold mb-2">🌮 OpenTACO</h2>
+              <div className="px-4">
+                <div className="h-[1px] bg-border mb-2" />
+                <h3>
+                  <Link 
+                    to="/dashboard/settings" 
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
+                  >
+                    {organisationName}
+                  </Link>
+                </h3>
+                <div className="h-[1px] bg-border mt-2" />
+              </div>
             </SidebarHeader>
             <SidebarContent>
               <SidebarGroup>
                 <SidebarGroupLabel>Menu</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
+
+                  <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={location.pathname.startsWith('/dashboard/units')}>
+                        <Link to="/dashboard/units">
+                          <Cuboid className="mr-2 h-4 w-4" />
+                          <span>Units</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
 
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={location.pathname.startsWith('/dashboard/repos')}>
