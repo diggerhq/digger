@@ -5,10 +5,11 @@
 # Global Configuration
 # ============================================================================
 global:
-  imageRegistry: us-central1-docker.pkg.dev/YOUR-PROJECT-ID/opentaco
+  imageRegistry: ghcr.io/diggerhq/digger
   imagePullPolicy: IfNotPresent
-  imagePullSecrets:
-    - name: gcr-json-key
+  # Note: imagePullSecrets not needed for public GHCR images
+  # imagePullSecrets:
+  #   - name: gcr-json-key
 
 # ============================================================================
 # Database - Use Cloud SQL
@@ -27,9 +28,10 @@ cloudSql:
 # ============================================================================
 digger-backend:
   enabled: true
-  global:
-    imagePullSecrets:
-      - name: gcr-json-key
+  # Note: imagePullSecrets not needed for public images
+  # global:
+  #   imagePullSecrets:
+  #     - name: gcr-json-key
   digger:
     replicaCount: 1
     secret:
@@ -38,9 +40,10 @@ digger-backend:
 
 statesman:
   enabled: true
-  global:
-    imagePullSecrets:
-      - name: gcr-json-key
+  # Note: imagePullSecrets not needed for public images
+  # global:
+  #   imagePullSecrets:
+  #     - name: gcr-json-key
   taco:
     replicaCount: 1
     existingSecretName: "statesman-secrets"
@@ -53,20 +56,22 @@ statesman:
 
 drift:
   enabled: true
-  global:
-    imagePullSecrets:
-      - name: gcr-json-key
+  # Note: imagePullSecrets not needed for public images
+  # global:
+  #   imagePullSecrets:
+  #     - name: gcr-json-key
   drift:
     replicaCount: 1
     existingSecretName: "drift-secrets"
 
 ui:
   enabled: true
-  imagePullSecrets:
-    - name: gcr-json-key
-  global:
-    imagePullSecrets:
-      - name: gcr-json-key
+  # Note: imagePullSecrets not needed for public images
+  # imagePullSecrets:
+  #   - name: gcr-json-key
+  # global:
+  #   imagePullSecrets:
+  #     - name: gcr-json-key
   ui:
     replicaCount: 1
     existingSecretName: "ui-secrets"

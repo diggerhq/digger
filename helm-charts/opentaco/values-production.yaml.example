@@ -2,7 +2,7 @@
 # Copy this file and customize for your environment
 
 global:
-  imageRegistry: us-central1-docker.pkg.dev/YOUR-PROJECT-ID/opentaco
+  imageRegistry: ghcr.io/diggerhq/digger
   imagePullPolicy: IfNotPresent
 
 # ============================================================================
