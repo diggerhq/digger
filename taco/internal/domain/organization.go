@@ -14,7 +14,7 @@ var (
 	ErrInvalidOrgID = errors.New("invalid organization ID format")
 )
 
-// OrgIDPattern defines valid organization ID format: lowercase alphanumeric, hyphens, underscores
+// OrgIDPattern defines valid organization ID format: alphanumeric, hyphens, underscores
 var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]$`)
 
 // ============================================

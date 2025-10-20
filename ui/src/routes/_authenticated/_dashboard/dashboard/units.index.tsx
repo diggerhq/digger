@@ -36,45 +36,6 @@ export const Route = createFileRoute(
   }
 })
 
-// Mock data - replace with actual data fetching
-const units: Array<{
-  id: string;
-  size: number;
-  updatedAt: Date;
-  locked: boolean;
-}> = [
-  {
-    id: "prod-vpc-network",
-    size: 2457600, // ~2.4MB
-    updatedAt: new Date("2025-10-16T09:30:00"),
-    locked: true,
-  },
-  {
-    id: "staging-eks-cluster",
-    size: 5242880, // ~5MB
-    updatedAt: new Date("2025-10-15T16:45:00"),
-    locked: true,
-  },
-  {
-    id: "shared-s3-buckets",
-    size: 819200, // ~800KB
-    updatedAt: new Date("2025-10-15T14:20:00"),
-    locked: false,
-  },
-  {
-    id: "dev-rds-instances",
-    size: 1048576, // ~1MB
-    updatedAt: new Date("2025-10-14T11:15:00"),
-    locked: false,
-  },
-  {
-    id: "monitoring-stack",
-    size: 3145728, // ~3MB
-    updatedAt: new Date("2025-10-13T17:30:00"),
-    locked: true,
-  }
-]
-
 function formatBytes(bytes: number) {
   if (bytes === 0) return '0 Bytes'
   const k = 1024
