@@ -21,10 +21,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-
       - name: Derive version
         id: meta
         run: |
@@ -95,20 +91,6 @@ jobs:
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
             ```
             
-            ### Kubernetes Deployment
-            ```bash
-            helm repo add digger https://diggerhq.github.io/digger
-            helm install digger-backend digger/digger-backend \
-              --set digger.image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} \
-              --set digger.image.tag=${{ steps.meta.outputs.version }}
-            ```
-            
-            ### Enterprise Features
-            - Multi-VCS support (GitHub, GitLab, Bitbucket)
-            - Web UI for management
-            - Policy engine for governance
-            - Advanced CI/CD integrations
-            - Artefacts storage and management
           draft: false
           prerelease: false
 

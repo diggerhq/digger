@@ -91,20 +91,6 @@ jobs:
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
             ```
             
-            ### Kubernetes Deployment
-            ```bash
-            helm repo add digger https://diggerhq.github.io/digger
-            helm install taco-ui digger/taco-ui \
-              --set ui.image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} \
-              --set ui.image.tag=${{ steps.meta.outputs.version }}
-            ```
-            
-            ### Features
-            - Modern React-based interface
-            - Server-side rendering with TanStack Start
-            - WorkOS authentication
-            - Real-time project monitoring
-            - Infrastructure drift visualization
           draft: false
           prerelease: false
 

@@ -73,16 +73,7 @@ digger-backend:
     
     replicaCount: 1
     
-    # Database connection (auto-configured based on postgresql/cloudSql settings)
-    # Will be overridden by this umbrella chart
-    database:
-      host: ""  # Set via template
-      port: 5432
-      name: digger
-      user: digger
-      # Password from secret
-      existingSecret: "digger-db-secret"
-      existingSecretKey: "password"
+    # Database configuration managed via secrets (see backend-secrets in values-test.yaml.example)
     
     service:
       type: ClusterIP
@@ -110,14 +101,7 @@ taco-statesman:
     
     replicaCount: 1
     
-    # Database connection (auto-configured)
-    database:
-      host: ""  # Set via template
-      port: 5432
-      name: taco
-      user: taco
-      existingSecret: "taco-db-secret"
-      existingSecretKey: "password"
+    # Database configuration managed via secrets (see statesman-secrets in values-test.yaml.example)
     
     service:
       type: ClusterIP
@@ -143,14 +127,7 @@ drift:
     
     replicaCount: 1
     
-    # Database connection (auto-configured)
-    database:
-      host: ""  # Set via template
-      port: 5432
-      name: drift
-      user: drift
-      existingSecret: "drift-db-secret"
-      existingSecretKey: "password"
+    # Database configuration managed via secrets (see drift-secrets in values-test.yaml.example)
     
     service:
       type: ClusterIP
