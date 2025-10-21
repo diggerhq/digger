@@ -6,7 +6,8 @@ Production-ready Kubernetes deployment for the OpenTaco infrastructure managemen
 
 ```bash
 # 1. Configure values file (see Configuration Checklist below)
-cp opentaco/values-test.yaml.example opentaco/values-test.yaml
+curl -O https://raw.githubusercontent.com/diggerhq/digger/develop/helm-charts/opentaco/values-test.yaml.example
+mv values-test.yaml.example values-test.yaml
 # Edit values-test.yaml with your GCP project ID and settings
 
 # 2. Create namespace
@@ -25,9 +26,10 @@ kubectl create secret generic statesman-secrets \
 kubectl create secret generic drift-secrets \
   --from-env-file=.secrets/drift.env -n opentaco
 
-# 4. Deploy
-cd opentaco
-helm install opentaco . -f values-test.yaml -n opentaco
+# 4. Deploy from OCI registry
+helm install opentaco oci://ghcr.io/diggerhq/helm-charts/opentaco \
+  -f values-test.yaml \
+  -n opentaco
 ```
 
 ## Architecture
