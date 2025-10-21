@@ -53,3 +53,10 @@ Coming soon to CE, here is an example of how to configure it: https://github.com
 Digger supports drift detection and automatic creation of issues in your ticketing system, e.g. GitHub Issues:
 
 <img height="400" src="/images/drift-issues.png" />
+
+# Troubleshooting
+
+## 403 errors
+
+If you are seeing permission errors such as 403 in the action log while reporting drift status the backend that is almost always due to missing `no-backend: true`
+as an argument in the workflow file
