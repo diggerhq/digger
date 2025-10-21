@@ -14,6 +14,13 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart:
+          - digger-backend
+          - digger-drift
+          - taco-statesman
+          - taco-ui
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,8 +32,8 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Package and push chart
+      - name: Package and push ${{ matrix.chart }}
         run: |
-          cd helm-charts/digger-backend
+          cd helm-charts/${{ matrix.chart }}
           helm package .
-          helm push digger-backend-*.tgz oci://ghcr.io/diggerhq/helm-charts
+          helm push ${{ matrix.chart }}-*.tgz oci://ghcr.io/diggerhq/helm-charts

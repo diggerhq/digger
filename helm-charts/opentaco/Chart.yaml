@@ -15,9 +15,9 @@ appVersion: "0.1.0"
 
 dependencies:
   # Optional PostgreSQL - disable if using Cloud SQL
-  - name: postgresql
-    version: "15.x.x"
-    repository: https://charts.bitnami.com/bitnami
+  - name: cloudnative-pg
+    version: "~0.22.0"
+    repository: https://cloudnative-pg.github.io/charts
     condition: postgresql.enabled
     tags:
       - database
@@ -25,7 +25,7 @@ dependencies:
   # Digger Backend - terraform orchestration
   - name: digger-backend
     version: "0.1.12"
-    repository: "file://../digger-backend"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
     condition: digger-backend.enabled
     tags:
       - backend
@@ -33,7 +33,7 @@ dependencies:
   # Taco Statesman - IaC state management  
   - name: statesman
     version: "0.1.0"
-    repository: "file://../taco-statesman"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
     condition: taco-statesman.enabled
     tags:
       - backend
@@ -41,7 +41,7 @@ dependencies:
   # Drift Detection
   - name: drift
     version: "0.1.0"
-    repository: "file://../digger-drift"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
     condition: drift.enabled
     tags:
       - backend
@@ -49,14 +49,14 @@ dependencies:
   # Taco UI - React frontend
   - name: ui
     version: "0.1.0"
-    repository: "file://../taco-ui"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
     condition: taco-ui.enabled
     tags:
       - frontend
 
 maintainers:
   - name: OpenTaco Team
-    email: team@opentaco.dev
+    email: info@digger.dev
 
 keywords:
   - infrastructure
