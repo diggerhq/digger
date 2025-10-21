@@ -43,6 +43,11 @@ func RequireAuth(verify AccessTokenVerifier, signer *auth.Signer) echo.Middlewar
                 }
                 ctx := rbac.ContextWithPrincipal(c.Request().Context(), p)
                 c.SetRequest(c.Request().WithContext(ctx))
+                
+                // Store org from JWT for org context middleware
+                if claims.Org != "" {
+                    c.Set("jwt_org", claims.Org)
+                }
             } else {
                 // Fallback to generic verify function if no signer
                 if err := verify(token); err != nil {

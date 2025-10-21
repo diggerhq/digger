@@ -24,15 +24,37 @@ type Handler struct {
 	rbacManager *rbac.RBACManager
 	signer      *auth.Signer
 	queryStore  query.Store
+	resolver    *domain.ResourceResolver
 }
 
 func NewHandler(store domain.UnitManagement, rbacManager *rbac.RBACManager, signer *auth.Signer, queryStore query.Store) *Handler {
+	var resolver *domain.ResourceResolver
+	if queryStore != nil {
+		if dbGetter, ok := queryStore.(interface{ GetDB() interface{} }); ok {
+			resolver = domain.NewResourceResolver(dbGetter.GetDB())
+		}
+	}
+	
 	return &Handler{
 		store:       store,
 		rbacManager: rbacManager,
 		signer:      signer,
 		queryStore:  queryStore,
+		resolver:    resolver,
 	}
+}
+
+func (h *Handler) resolveUnitIdentifier(c echo.Context, identifier string) (string, error) {
+	if h.resolver == nil {
+		return domain.DecodeUnitID(identifier), nil
+	}
+	
+	orgID := c.Get("organization_id")
+	if orgID == nil {
+		orgID = "default"
+	}
+	
+	return h.resolver.ResolveUnit(c.Request().Context(), identifier, orgID.(string))
 }
 
 type CreateUnitRequest struct {
@@ -84,15 +106,21 @@ func (h *Handler) ListUnits(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list units"})
 	}
 
-	// The list is already filtered and secure. We just build the response.
 	domainUnits := make([]*domain.Unit, 0, len(unitsMetadata))
 	for _, u := range unitsMetadata {
+		absoluteName := u.Name
+		if u.OrgName != "" {
+			absoluteName = domain.BuildAbsoluteName(u.OrgName, u.Name)
+		}
+		
 		domainUnits = append(domainUnits, &domain.Unit{
-			ID:       u.ID,
-			Size:     u.Size,
-			Updated:  u.Updated,
-			Locked:   u.Locked,
-			LockInfo: convertLockInfo(u.LockInfo),
+			ID:           u.ID,
+			Name:         u.Name,
+			AbsoluteName: absoluteName,
+			Size:         u.Size,
+			Updated:      u.Updated,
+			Locked:       u.Locked,
+			LockInfo:     convertLockInfo(u.LockInfo),
 		})
 	}
 	domain.SortUnitsByID(domainUnits)
@@ -105,9 +133,13 @@ func (h *Handler) ListUnits(c echo.Context) error {
 
 func (h *Handler) GetUnit(c echo.Context) error {
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
-	if err := domain.ValidateUnitID(id); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	
+	id, err := h.resolveUnitIdentifier(c, encodedID)
+	if err != nil || id == "" {
+		id = domain.DecodeUnitID(encodedID)
+		if err := domain.ValidateUnitID(id); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
 	}
 
 	metadata, err := h.store.Get(c.Request().Context(), id)
@@ -120,7 +152,21 @@ func (h *Handler) GetUnit(c echo.Context) error {
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get unit"})
 	}
-	return c.JSON(http.StatusOK, &domain.Unit{ID: metadata.ID, Size: metadata.Size, Updated: metadata.Updated, Locked: metadata.Locked, LockInfo: convertLockInfo(metadata.LockInfo)})
+	
+	absoluteName := metadata.Name
+	if metadata.OrgName != "" {
+		absoluteName = domain.BuildAbsoluteName(metadata.OrgName, metadata.Name)
+	}
+	
+	return c.JSON(http.StatusOK, &domain.Unit{
+		ID:           metadata.ID,
+		Name:         metadata.Name,
+		AbsoluteName: absoluteName,
+		Size:         metadata.Size,
+		Updated:      metadata.Updated,
+		Locked:       metadata.Locked,
+		LockInfo:     convertLockInfo(metadata.LockInfo),
+	})
 }
 
 func (h *Handler) DeleteUnit(c echo.Context) error {

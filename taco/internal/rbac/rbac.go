@@ -37,12 +37,14 @@ type Principal struct {
 
 // Permission defines what actions are allowed on what resources
 type Permission struct {
-	ID          string           `json:"id"`
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
-	Rules       []PermissionRule `json:"rules"`
-	CreatedAt   time.Time        `json:"created_at"`
-	CreatedBy   string           `json:"created_by"`
+	ID           string           `json:"id"`
+	Name         string           `json:"name"`
+	AbsoluteName string           `json:"absolute_name"`
+	Description  string           `json:"description"`
+	Rules        []PermissionRule `json:"rules"`
+	CreatedAt    time.Time        `json:"created_at"`
+	CreatedBy    string           `json:"created_by"`
+	OrgID        string           `json:"org_id"`
 }
 
 // PermissionRule defines a single rule within a permission
@@ -88,13 +90,15 @@ func (r PermissionRule) matches(action Action, resource string) bool {
 
 // Role represents a collection of permissions
 type Role struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Permissions []string  `json:"permissions"` // Permission IDs
-	CreatedAt   time.Time `json:"created_at"`
-	CreatedBy   string    `json:"created_by"`
-	Version     int64     `json:"version"` // For optimistic locking
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	AbsoluteName string    `json:"absolute_name"`
+	Description  string    `json:"description"`
+	Permissions  []string  `json:"permissions"`
+	CreatedAt    time.Time `json:"created_at"`
+	CreatedBy    string    `json:"created_by"`
+	Version      int64     `json:"version"`
+	OrgID        string    `json:"org_id"`
 }
 
 // UserAssignment maps a user to their roles

@@ -81,11 +81,13 @@ type UnitRepository interface {
 
 // Unit represents a Terraform state unit in API responses
 type Unit struct {
-	ID       string `json:"id"`
-	Size     int64  `json:"size"`
-	Updated  time.Time `json:"updated"`
-	Locked   bool   `json:"locked"`
-	LockInfo *Lock  `json:"lock_info,omitempty"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	AbsoluteName string    `json:"absolute_name"`
+	Size         int64     `json:"size"`
+	Updated      time.Time `json:"updated"`
+	Locked       bool      `json:"locked"`
+	LockInfo     *Lock     `json:"lock_info,omitempty"`
 }
 
 // Lock represents a Terraform state lock in API responses

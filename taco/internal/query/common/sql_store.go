@@ -27,6 +27,11 @@ func NewSQLStore(db *gorm.DB) (*SQLStore, error) {
 	if err := store.migrate(); err != nil {
 		return nil, fmt.Errorf("failed to migrate common sql schema: %w", err)
 	}
+	
+	if err := CreateOrgScopedIndexes(db); err != nil {
+		return nil, fmt.Errorf("failed to create org-scoped indexes: %w", err)
+	}
+	
 	if err := store.createViews(); err != nil {
 		return nil, fmt.Errorf("failed to create common sql views: %w", err)
 	}

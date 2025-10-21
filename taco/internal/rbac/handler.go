@@ -18,6 +18,10 @@ type Handler struct {
     manager    *RBACManager
     signer     *auth.Signer
     queryStore query.Store
+    resolver   interface {
+        ResolveRole(ctx context.Context, identifier, orgID string) (string, error)
+        ResolvePermission(ctx context.Context, identifier, orgID string) (string, error)
+    }
 }
 
 // NewHandler creates a new RBAC handler
@@ -27,6 +31,32 @@ func NewHandler(manager *RBACManager, signer *auth.Signer, queryStore query.Stor
         signer:     signer,
         queryStore: queryStore,
     }
+}
+
+func (h *Handler) resolveRoleIdentifier(c echo.Context, identifier string) (string, error) {
+    if h.resolver == nil {
+        return identifier, nil
+    }
+    
+    orgID := c.Get("organization_id")
+    if orgID == nil {
+        orgID = "default"
+    }
+    
+    return h.resolver.ResolveRole(c.Request().Context(), identifier, orgID.(string))
+}
+
+func (h *Handler) resolvePermissionIdentifier(c echo.Context, identifier string) (string, error) {
+    if h.resolver == nil {
+        return identifier, nil
+    }
+    
+    orgID := c.Get("organization_id")
+    if orgID == nil {
+        orgID = "default"
+    }
+    
+    return h.resolver.ResolvePermission(c.Request().Context(), identifier, orgID.(string))
 }
 
 // Init handles POST /v1/rbac/init
@@ -310,9 +340,14 @@ func (h *Handler) DeleteRole(c echo.Context) error {
         return err
     }
     
-    roleID := c.Param("id")
-    if roleID == "" {
+    roleIDParam := c.Param("id")
+    if roleIDParam == "" {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "role id required"})
+    }
+    
+    roleID, err := h.resolveRoleIdentifier(c, roleIDParam)
+    if err != nil {
+        return c.JSON(http.StatusNotFound, map[string]string{"error": "role not found"})
     }
     
     if roleID == "admin" || roleID == "default" {
@@ -448,7 +483,15 @@ func (h *Handler) DeletePermission(c echo.Context) error {
         return err
     }
     
-    id := c.Param("id")
+    idParam := c.Param("id")
+    if idParam == "" {
+        return c.JSON(http.StatusBadRequest, map[string]string{"error": "permission id required"})
+    }
+    
+    id, err := h.resolvePermissionIdentifier(c, idParam)
+    if err != nil {
+        return c.JSON(http.StatusNotFound, map[string]string{"error": "permission not found"})
+    }
     
     if err := h.manager.DeletePermission(c.Request().Context(), id); err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete permission"})
