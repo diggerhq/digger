@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/opentaco/cmd/statesman
 
-go 1.24.6
+go 1.24.0
 
 require (
 	github.com/diggerhq/digger/opentaco/internal v0.0.0
@@ -9,7 +9,7 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.37.0 // indirect
+	ariga.io/atlas v0.36.1 // indirect
 	ariga.io/atlas-go-sdk v0.7.2 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
