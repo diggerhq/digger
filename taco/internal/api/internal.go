@@ -11,7 +11,6 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/repositories"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 
@@ -39,8 +38,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	
 	// Add org resolution middleware - resolves org name to UUID and adds to domain context
 	if deps.QueryStore != nil {
-		if dbGetter, ok := deps.QueryStore.(interface{ GetDB() *gorm.DB }); ok {
-			db := dbGetter.GetDB()
+		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
 			// Create identifier resolver (infrastructure layer)
 			identifierResolver := repositories.NewIdentifierResolver(db)
 			// Pass interface to middleware (clean architecture!)
@@ -95,8 +93,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	// Create identifier resolver for unit name→UUID resolution
 	var identifierResolver domain.IdentifierResolver
 	if deps.QueryStore != nil {
-		if dbGetter, ok := deps.QueryStore.(interface{ GetDB() *gorm.DB }); ok {
-			db := dbGetter.GetDB()
+		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
 			identifierResolver = repositories.NewIdentifierResolver(db)
 		}
 	}

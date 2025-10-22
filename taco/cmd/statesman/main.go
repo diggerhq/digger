@@ -22,7 +22,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
-	"gorm.io/gorm"
 )
 
 // change this random number to bump version of statesman: 421
@@ -113,22 +112,19 @@ func main() {
 	// create repository
 	// repository coordinates blob storage with query index internally
 	// Get the underlying *gorm.DB from the query store
-	type dbGetter interface {
-		GetDB() *gorm.DB
-	}
-	dbStore, ok := queryStore.(dbGetter)
-	if !ok {
+	db := repositories.GetDBFromQueryStore(queryStore)
+	if db == nil {
 		log.Fatalf("Query store does not provide GetDB method")
 	}
 	
 	// Ensure default organization exists
-	defaultOrgUUID, err := repositories.EnsureDefaultOrganization(context.Background(), dbStore.GetDB())
+	defaultOrgUUID, err := repositories.EnsureDefaultOrganization(context.Background(), db)
 	if err != nil {
 		log.Fatalf("Failed to ensure default organization: %v", err)
 	}
 	log.Printf("Default organization ensured: %s", defaultOrgUUID)
 	
-	repo := repositories.NewUnitRepository(dbStore.GetDB(), blobStore)
+	repo := repositories.NewUnitRepository(db, blobStore)
 	log.Println("Repository initialized (database-first with blob storage backend)")
 	
 	// Create RBAC Manager

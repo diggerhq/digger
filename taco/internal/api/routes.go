@@ -24,7 +24,6 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/sts"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 // Dependencies holds all the interface-based dependencies for routes.
@@ -140,8 +139,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	// Create identifier resolver for unit name→UUID resolution
 	var identifierResolver domain.IdentifierResolver
 	if deps.QueryStore != nil {
-		if dbGetter, ok := deps.QueryStore.(interface{ GetDB() *gorm.DB }); ok {
-			db := dbGetter.GetDB()
+		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
 			identifierResolver = repositories.NewIdentifierResolver(db)
 		}
 	}
