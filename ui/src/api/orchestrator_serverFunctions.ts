@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { Job, OrgSettings, Project, Repo } from './orchestrator_types'
-import { fetchRepos, testSlackWebhook } from "./orchestrator_repos";
-import { fetchProject, fetchProjects, getOrgSettings, updateOrgSettings, updateProject } from "./orchestrator_orgs";
+import { fetchRepos } from "./orchestrator_repos";
+import { getOrgSettings, updateOrgSettings } from "./orchestrator_orgs";
+import { testSlackWebhook } from "./drift_slack";
+import { fetchProjects, updateProject, fetchProject } from "./orchestrator_projects";
 
 export const getOrgSettingsFn = createServerFn({method: 'GET'})
   .inputValidator((data : {userId: string, organisationId: string}) => data)
@@ -104,12 +106,3 @@ export const switchToOrganizationFn = createServerFn({method: 'POST'})
       return null
     })
 
-
-
-export const testSlackWebhookFn = createServerFn({method: 'POST'})
-    .inputValidator((data : {notification_url: string}) => data)
-    .handler(async ({ data }) => {
-    const response : any = await testSlackWebhook(data.notification_url)
-    return response
-  })
-  

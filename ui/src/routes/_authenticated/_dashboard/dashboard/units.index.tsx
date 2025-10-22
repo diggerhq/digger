@@ -32,7 +32,7 @@ export const Route = createFileRoute(
   loader: async ({ context }) => {
     const { user, organisationId } = context;
     const unitsData = await listUnitsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || ''}})
-    return { unitsData: unitsData, user, organisationId }
+    return { unitsData: unitsData, user, organisationId } 
   }
 })
 
@@ -105,7 +105,7 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="name" className="text-right">
-              Unit Name {unitName} {user.email} {user.id} {organisationId}
+              Unit Name
             </Label>
             <Input
               id="name"
@@ -187,7 +187,7 @@ function RouteComponent() {
               <TableCell>{formatDate(unit.updatedAt || new Date())}</TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" asChild className="justify-end">
-                  <Link to={`/dashboard/units/${unit.id}`}>
+                  <Link to={`/dashboard/units/$unitId`} params={{ unitId: unit.id }}>
                     View Details <ExternalLink className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>

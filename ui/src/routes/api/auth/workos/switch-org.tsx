@@ -30,7 +30,7 @@ async function refreshSession({
   const session = await getSessionFromCookie();
   if (!session) {
     if (ensureSignedIn) {
-      await redirectToSignIn();
+      // await redirectToSignIn();
     }
     return { user: null };
   }
@@ -54,10 +54,10 @@ async function refreshSession({
     });
   }
 
-  const headersList = await headers();
+  const headersList = new Headers();
   const url = headersList.get('x-url');
 
-  await saveSession(refreshResult, url || WORKOS_REDIRECT_URI);
+  await saveSession(refreshResult);
 
   const { accessToken, user, impersonator } = refreshResult;
 
@@ -68,7 +68,6 @@ async function refreshSession({
     roles,
     permissions,
     entitlements,
-    feature_flags: featureFlags,
   } = decodeJwt<AccessToken>(accessToken);
 
   return {
@@ -76,10 +75,8 @@ async function refreshSession({
     user,
     organizationId,
     role,
-    roles,
     permissions,
     entitlements,
-    featureFlags,
     impersonator,
     accessToken,
   };

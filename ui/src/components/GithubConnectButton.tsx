@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { Github } from "lucide-react"
 
-import { trackConnectWithGithub } from "@/lib/analytics"
 
 interface GithubConnectButtonProps {
   source: 'onboarding' | 'add_connection_dialog'

@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { GitPullRequest } from "lucide-react"
 
-import { trackPRCreated } from "@/lib/analytics"
 
 interface PRCreatedButtonProps {
   onClick: () => void
