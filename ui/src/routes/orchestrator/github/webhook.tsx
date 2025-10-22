@@ -6,16 +6,16 @@ export const Route = createFileRoute('/orchestrator/github/webhook')({
     handlers: {
       POST: async ({ request }) => {
         try {
-          
-          const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/github/webhook`, {
+          const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/github-app-webhook`, {
             method: 'POST',
             headers: request.headers,
             body: request.body,
-          }).then(response => response.json())
-          return response
+          });
+
+          return response;
         } catch (error) {
           console.error('Error in POST handler:', error);
-          return { error: 'Internal server error' }
+          return new Response('Internal server error', { status: 500 });
         }
       },
     },

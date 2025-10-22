@@ -10,11 +10,11 @@ export const Route = createFileRoute('/_orchestrator/orgs/$orgId/plan_policy')({
           const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/orgs/${params.orgId}/plan_policy`, {
             method: 'GET',
             headers: request.headers,
-          }).then(response => response.json())
+          });
           return response
         } catch (error) {
           console.error('Error in PUT handler:', error);
-          return { error: 'Internal server error' }
+          return new Response('Internal server error', { status: 500 });
         }
       },
     },

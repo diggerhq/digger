@@ -12,13 +12,13 @@ export const Route = createFileRoute('/_orchestrator/repos/$namespace/report-pro
             method: 'POST',
             headers: request.headers,
             body: JSON.stringify(body)
-          }).then(response => response.json())
+          });
 
           return response
 
         } catch (error) {
           console.error('Error in POST handler:', error);
-          return { error: 'Internal server error' }
+          return new Response('Internal server error', { status: 500 });
         }
       },
     },
