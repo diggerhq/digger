@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/ee/drift/middleware"
+    "github.com/diggerhq/digger/backend/middleware"
 	"github.com/gin-gonic/gin"
 	"log"
 	"math/rand"
