@@ -11,12 +11,16 @@ COPY internal/ ./internal/
 COPY pkg/sdk/ ./pkg/sdk/
 
 # Download dependencies and build
+# Note: CGO is required for SQLite support
 RUN cd cmd/statesman && \
     go mod tidy && \
-    CGO_ENABLED=0 GOOS=linux go build \
+    CGO_ENABLED=1 GOOS=linux go build \
     -ldflags="-X 'main.Version=${COMMIT_SHA}' -s -w" \
-    -a -installsuffix cgo \
+    -a \
     -o statesman .
+
+# Install Atlas CLI for migrations
+RUN go install ariga.io/atlas/cmd/atlas@latest
 
 # Multi-stage build - use a minimal image for runtime
 FROM ubuntu:24.04 AS runner
@@ -30,6 +34,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN echo "commit sha: ${COMMIT_SHA}"
+
+# Copy Atlas CLI from builder
+COPY --from=builder /go/bin/atlas /usr/local/bin/atlas
 
 # Copy the binary from builder stage
 COPY --from=builder /go/src/github.com/diggerhq/digger/taco/cmd/statesman/statesman /app/statesman

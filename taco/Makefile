@@ -87,3 +87,51 @@ docker-clean: ## Clean Docker images and containers
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+# ============================================================================
+# Atlas Migration Targets
+# ============================================================================
+
+# Migration name variable (use with: make atlas-diff-all name=add_new_feature)
+NAME ?= $(shell date +%Y%m%d%H%M%S)
+
+.PHONY: atlas-install atlas-diff-all atlas-apply-all atlas-lint-all atlas-hash-all
+
+# Install Atlas CLI and GORM provider
+atlas-install: ## Install Atlas CLI and GORM provider
+	@echo "Installing Atlas CLI and GORM provider..."
+	@go install ariga.io/atlas/cmd/atlas@latest
+	@go install ariga.io/atlas-provider-gorm@latest
+	@echo "✅ Atlas tools installed successfully"
+
+# Generate migrations for all database dialects
+atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-all name=my_change)
+	@echo "Generating migrations for all databases..."
+	@if [ -z "$(filter-out $(NAME),$(shell date +%Y%m%d%H%M%S))" ]; then \
+		echo "⚠️  Using auto-generated name: $(NAME)"; \
+		echo "💡 Tip: Use 'make atlas-diff-all name=descriptive_name' for better naming"; \
+	fi
+	@mkdir -p migrations/postgres migrations/mysql migrations/sqlite migrations/sqlserver
+	@echo "\n📊 PostgreSQL..." && atlas migrate diff $(NAME) --env postgres
+	@echo "\n📊 MySQL..." && atlas migrate diff $(NAME) --env mysql
+	@echo "\n📊 SQLite..." && atlas migrate diff $(NAME) --env sqlite
+	@echo "\n📊 SQL Server..." && atlas migrate diff $(NAME) --env sqlserver
+	@$(MAKE) atlas-hash-all
+	@echo "\n✅ All migrations generated successfully!"
+
+
+# Validate and lint all migrations
+atlas-lint-all: ## Validate and lint all migration files
+	@echo "Validating and linting migrations..."
+	@echo "PostgreSQL..." && atlas migrate validate --env postgres
+	@echo "MySQL..." && atlas migrate validate --env mysql
+	@echo "SQLite..." && atlas migrate validate --env sqlite
+	@echo "SQL Server..." && atlas migrate validate --env sqlserver
+	@echo "✅ All migrations validated successfully"
+
+# Update migration directory hashes (called automatically by atlas-diff-all)
+atlas-hash-all:
+	@atlas migrate hash --dir file://migrations/postgres 2>/dev/null || true
+	@atlas migrate hash --dir file://migrations/mysql 2>/dev/null || true
+	@atlas migrate hash --dir file://migrations/sqlite 2>/dev/null || true
+	@atlas migrate hash --dir file://migrations/sqlserver 2>/dev/null || true
