@@ -26,7 +26,7 @@ func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (stri
 func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
 	params = append(params, []string{"-lock-timeout=3m"}...)
 	params = append(params, "--auto-approve")
-	params = append(params, "--terragrunt-non-interactive")
+	params = append(params, "--non-interactive")
 	if plan != nil {
 		params = append(params, *plan)
 	}
@@ -40,7 +40,7 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 
 func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
-	params = append(params, "--terragrunt-non-interactive")
+	params = append(params, "--non-interactive")
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("destroy", true, envs, nil, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
