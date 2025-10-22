@@ -1,4 +1,4 @@
-FROM golang:1.24.0 as builder
+FROM golang:1.24.0 AS builder
 ARG COMMIT_SHA
 RUN echo "commit sha: ${COMMIT_SHA}"
 
@@ -19,8 +19,8 @@ RUN go version
 RUN go build -ldflags="-X 'main.Version=${COMMIT_SHA}'" -o drift_exe ./drift/
 
 # Multi-stage build will just copy the binary to an alpine image.
-FROM ubuntu:24.04 as runner
-ENV ATLAS_VERSION v0.31.0
+FROM ubuntu:24.04 AS runner
+ENV ATLAS_VERSION=v0.31.0
 ARG COMMIT_SHA
 WORKDIR /app
 
