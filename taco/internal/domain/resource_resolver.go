@@ -1,11 +1,9 @@
 package domain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"regexp"
-	"gorm.io/gorm"
 )
 
 // Identifier parsing types and functions
@@ -73,106 +71,6 @@ func IsUUID(s string) bool {
 	return uuidPattern.MatchString(s)
 }
 
-// ResourceResolver resolves identifiers (UUID, name, or org-scoped name) to UUIDs for all resource types
-type ResourceResolver struct {
-	db *gorm.DB
-}
-
-func NewResourceResolver(db interface{}) *ResourceResolver {
-	gormDB, ok := db.(*gorm.DB)
-	if !ok {
-		return &ResourceResolver{}
-	}
-	return &ResourceResolver{db: gormDB}
-}
-
-// ResolveUnit resolves unit identifier to UUID
-func (r *ResourceResolver) ResolveUnit(ctx context.Context, identifier, orgID string) (string, error) {
-	return r.resolveResource(ctx, "units", identifier, orgID)
-}
-
-// ResolveRole resolves role identifier to UUID
-func (r *ResourceResolver) ResolveRole(ctx context.Context, identifier, orgID string) (string, error) {
-	return r.resolveResource(ctx, "roles", identifier, orgID)
-}
-
-// ResolvePermission resolves permission identifier to UUID
-func (r *ResourceResolver) ResolvePermission(ctx context.Context, identifier, orgID string) (string, error) {
-	return r.resolveResource(ctx, "permissions", identifier, orgID)
-}
-
-// ResolveTag resolves tag identifier to UUID
-func (r *ResourceResolver) ResolveTag(ctx context.Context, identifier, orgID string) (string, error) {
-	return r.resolveResource(ctx, "tags", identifier, orgID)
-}
-
-// ResolveOrganization resolves organization identifier to UUID
-func (r *ResourceResolver) ResolveOrganization(ctx context.Context, identifier string) (string, error) {
-	if r.db == nil {
-		return "", fmt.Errorf("database not available")
-	}
-	
-	parsed, err := ParseIdentifier(identifier)
-	if err != nil {
-		return "", err
-	}
-	
-	if parsed.Type == IdentifierTypeUUID {
-		return parsed.UUID, nil
-	}
-	
-	var result struct{ ID string }
-	err = r.db.WithContext(ctx).
-		Table("organizations").
-		Select("id").
-		Where("org_id = ?", parsed.Name).
-		First(&result).Error
-	
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return "", fmt.Errorf("organization not found: %s", parsed.Name)
-		}
-		return "", err
-	}
-	
-	return result.ID, nil
-}
-
-func (r *ResourceResolver) resolveResource(ctx context.Context, table, identifier, orgID string) (string, error) {
-	if r.db == nil {
-		return "", fmt.Errorf("database not available")
-	}
-	
-	parsed, err := ParseIdentifier(identifier)
-	if err != nil {
-		return "", err
-	}
-	
-	if parsed.Type == IdentifierTypeUUID {
-		return parsed.UUID, nil
-	}
-	
-	resourceOrgID := orgID
-	if parsed.Type == IdentifierTypeAbsoluteName {
-		resourceOrgID = parsed.OrgName
-	}
-	
-	var result struct{ ID string }
-	err = r.db.WithContext(ctx).
-		Table(table).
-		Select(table + ".id").
-		Joins("JOIN organizations ON organizations.id = " + table + ".org_id").
-		Where("organizations.org_id = ?", resourceOrgID).
-		Where(table + ".name = ?", parsed.Name).
-		First(&result).Error
-	
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return "", fmt.Errorf("%s not found: %s", table, parsed.Name)
-		}
-		return "", err
-	}
-	
-	return result.ID, nil
-}
-
+// Note: The ResourceResolver implementation has been moved to 
+// internal/repositories/identifier_resolver.go for clean architecture.
+// Use domain.IdentifierResolver interface instead.

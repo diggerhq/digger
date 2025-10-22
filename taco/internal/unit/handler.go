@@ -1,8 +1,8 @@
 package unit
 
 import (
+	"context"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -21,22 +21,17 @@ import (
 // Handler serves the management API (unit CRUD and locking).
 type Handler struct {
 	store       domain.UnitManagement
+	blobStore   storage.UnitStore      // For legacy deps like ComputeUnitStatus
 	rbacManager *rbac.RBACManager
 	signer      *auth.Signer
 	queryStore  query.Store
-	resolver    *domain.ResourceResolver
+	resolver    domain.IdentifierResolver // Resolves names/identifiers to UUIDs
 }
 
-func NewHandler(store domain.UnitManagement, rbacManager *rbac.RBACManager, signer *auth.Signer, queryStore query.Store) *Handler {
-	var resolver *domain.ResourceResolver
-	if queryStore != nil {
-		if dbGetter, ok := queryStore.(interface{ GetDB() interface{} }); ok {
-			resolver = domain.NewResourceResolver(dbGetter.GetDB())
-		}
-	}
-	
+func NewHandler(store domain.UnitManagement, blobStore storage.UnitStore, rbacManager *rbac.RBACManager, signer *auth.Signer, queryStore query.Store, resolver domain.IdentifierResolver) *Handler {
 	return &Handler{
 		store:       store,
+		blobStore:   blobStore,
 		rbacManager: rbacManager,
 		signer:      signer,
 		queryStore:  queryStore,
@@ -44,21 +39,46 @@ func NewHandler(store domain.UnitManagement, rbacManager *rbac.RBACManager, sign
 	}
 }
 
-func (h *Handler) resolveUnitIdentifier(c echo.Context, identifier string) (string, error) {
+// resolveUnitIdentifier resolves a unit identifier (name or UUID) to its UUID
+func (h *Handler) resolveUnitIdentifier(ctx context.Context, identifier string) (string, error) {
+	// URL-decode first (Echo params may be URL-encoded)
+	decoded, err := domain.DecodeURLPath(identifier)
+	if err != nil {
+		return "", err
+	}
+	
+	normalized := domain.DecodeUnitID(decoded)
+	
+	// If already a UUID, return as-is
+	if domain.IsUUID(normalized) {
+		return normalized, nil
+	}
+	
+	// If resolver is not available, return normalized name (will fail at repository layer)
 	if h.resolver == nil {
-		return domain.DecodeUnitID(identifier), nil
+		return normalized, nil
 	}
 	
-	orgID := c.Get("organization_id")
-	if orgID == nil {
-		orgID = "default"
+	// Get org from context for resolution
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		// No org context, return normalized name
+		return normalized, nil
 	}
 	
-	return h.resolver.ResolveUnit(c.Request().Context(), identifier, orgID.(string))
+	// Resolve name to UUID using the identifier resolver
+	// Note: ResolveUnit signature is (ctx, identifier, orgID)
+	uuid, err := h.resolver.ResolveUnit(ctx, normalized, orgCtx.OrgID)
+	if err != nil {
+		// If resolution fails, return error
+		return "", err
+	}
+	
+	return uuid, nil
 }
 
 type CreateUnitRequest struct {
-	ID string `json:"id"`
+	Name string `json:"name"`
 }
 
 type CreateUnitResponse struct {
@@ -73,20 +93,34 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 	}
 
-	if err := domain.ValidateUnitID(req.ID); err != nil {
-		analytics.SendEssential("unit_create_failed_invalid_id")
+	if err := domain.ValidateUnitID(req.Name); err != nil {
+		analytics.SendEssential("unit_create_failed_invalid_name")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	id := domain.NormalizeUnitID(req.ID)
+	name := domain.NormalizeUnitID(req.Name)
 
-	metadata, err := h.store.Create(c.Request().Context(), id)
+	// Get org UUID from domain context (set by middleware for both JWT and webhook routes)
+	ctx := c.Request().Context()
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		analytics.SendEssential("unit_create_failed_no_org_context")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
+	}
+
+	metadata, err := h.store.Create(ctx, orgCtx.OrgID, name)
 	if err != nil {
 		if err == storage.ErrAlreadyExists {
 			analytics.SendEssential("unit_create_failed_already_exists")
 			return c.JSON(http.StatusConflict, map[string]string{"error": "Unit already exists"})
 		}
+		// Log the actual error for debugging
+		c.Logger().Errorf("Failed to create unit '%s' in org '%s': %v", name, orgCtx.OrgID, err)
 		analytics.SendEssential("unit_create_failed_storage_error")
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create unit"})
+		// Surface the actual error message to help with debugging
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to create unit",
+			"detail": err.Error(),
+		})
 	}
 
 	analytics.SendEssential("unit_created")
@@ -97,13 +131,22 @@ func (h *Handler) ListUnits(c echo.Context) error {
 	ctx := c.Request().Context()
 	prefix := c.QueryParam("prefix")
 
-	unitsMetadata, err := h.store.List(ctx, prefix)
+	// Get org UUID from domain context (set by middleware for both JWT and webhook routes)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
+	}
+
+	unitsMetadata, err := h.store.List(ctx, orgCtx.OrgID, prefix)
 	if err != nil {
 		if err.Error() == "unauthorized" || err.Error() == "forbidden" {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
 		}
-		log.Printf("Error listing units: %v", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list units"})
+		c.Logger().Errorf("Failed to list units for org '%s' with prefix '%s': %v", orgCtx.OrgID, prefix, err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to list units",
+			"detail": err.Error(),
+		})
 	}
 
 	domainUnits := make([]*domain.Unit, 0, len(unitsMetadata))
@@ -132,17 +175,21 @@ func (h *Handler) ListUnits(c echo.Context) error {
 }
 
 func (h *Handler) GetUnit(c echo.Context) error {
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Unit not found",
+			"detail": err.Error(),
+		})
+	}
 	
-	id, err := h.resolveUnitIdentifier(c, encodedID)
-	if err != nil || id == "" {
-		id = domain.DecodeUnitID(encodedID)
-		if err := domain.ValidateUnitID(id); err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
-		}
+	if err := domain.ValidateUnitID(id); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	metadata, err := h.store.Get(c.Request().Context(), id)
+	metadata, err := h.store.Get(ctx, id)
 	if err != nil {
 		if err.Error() == "forbidden" {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "Forbidden"})
@@ -170,8 +217,15 @@ func (h *Handler) GetUnit(c echo.Context) error {
 }
 
 func (h *Handler) DeleteUnit(c echo.Context) error {
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Unit not found",
+			"detail": err.Error(),
+		})
+	}
 	if err := domain.ValidateUnitID(id); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -187,13 +241,21 @@ func (h *Handler) DeleteUnit(c echo.Context) error {
 func (h *Handler) DownloadUnit(c echo.Context) error {
 	analytics.SendEssential("taco_unit_pull_started")
 
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		analytics.SendEssential("taco_unit_pull_failed")
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Unit not found",
+			"detail": err.Error(),
+		})
+	}
 	if err := domain.ValidateUnitID(id); err != nil {
 		analytics.SendEssential("taco_unit_pull_failed")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	data, err := h.store.Download(c.Request().Context(), id)
+	data, err := h.store.Download(ctx, id)
 	if err != nil {
 		analytics.SendEssential("taco_unit_pull_failed")
 		if err == storage.ErrNotFound {
@@ -208,8 +270,16 @@ func (h *Handler) DownloadUnit(c echo.Context) error {
 func (h *Handler) UploadUnit(c echo.Context) error {
 	analytics.SendEssential("taco_unit_push_started")
 
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		analytics.SendEssential("taco_unit_push_failed")
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Unit not found",
+			"detail": err.Error(),
+		})
+	}
 	if err := domain.ValidateUnitID(id); err != nil {
 		analytics.SendEssential("taco_unit_push_failed")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -243,8 +313,13 @@ type LockRequest struct {
 }
 
 func (h *Handler) LockUnit(c echo.Context) error {
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
+	}
+	
 	if err := domain.ValidateUnitID(id); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -273,8 +348,13 @@ type UnlockRequest struct {
 }
 
 func (h *Handler) UnlockUnit(c echo.Context) error {
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
+	}
+	
 	if err := domain.ValidateUnitID(id); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -303,8 +383,15 @@ type ListVersionsResponse struct {
 }
 
 func (h *Handler) ListVersions(c echo.Context) error {
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Unit not found",
+			"detail": err.Error(),
+		})
+	}
 	if err := domain.ValidateUnitID(id); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -345,8 +432,15 @@ type RestoreVersionResponse struct {
 }
 
 func (h *Handler) RestoreVersion(c echo.Context) error {
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Unit not found",
+			"detail": err.Error(),
+		})
+	}
 	if err := domain.ValidateUnitID(id); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -371,13 +465,20 @@ func (h *Handler) RestoreVersion(c echo.Context) error {
 
 // GetUnitStatus computes and returns the dependency status for a given unit ID
 func (h *Handler) GetUnitStatus(c echo.Context) error {
+	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	id := domain.DecodeUnitID(encodedID)
+	id, err := h.resolveUnitIdentifier(ctx, encodedID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Unit not found",
+			"detail": err.Error(),
+		})
+	}
 	if err := domain.ValidateUnitID(id); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	st, err := deps.ComputeUnitStatus(c.Request().Context(), h.store, id)
+	st, err := deps.ComputeUnitStatus(c.Request().Context(), h.blobStore, id)
 	if err != nil {
 		// On errors, prefer a 200 with green/empty as per implementation notes
 		return c.JSON(http.StatusOK, st)

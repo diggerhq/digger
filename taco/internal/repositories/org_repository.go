@@ -5,11 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/query/types"
 	"gorm.io/gorm"
+)
+
+const (
+	queryOrgByName = "name = ?"
 )
 
 // orgRepository implements OrganizationRepository using GORM
@@ -36,6 +41,9 @@ func NewOrgRepositoryFromQueryStore(queryStore interface{}) domain.OrganizationR
 
 // Create creates a new organization
 func (r *orgRepository) Create(ctx context.Context, orgID, name, createdBy string) (*domain.Organization, error) {
+	// Normalize org ID to lowercase for case-insensitivity
+	orgID = strings.ToLower(strings.TrimSpace(orgID))
+	
 	// Validate org ID format (domain logic)
 	if err := domain.ValidateOrgID(orgID); err != nil {
 		return nil, err
@@ -43,7 +51,7 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, createdBy strin
 
 	// Check if org already exists (infrastructure logic)
 	var existing types.Organization
-	err := r.db.WithContext(ctx).Where("org_id = ?", orgID).First(&existing).Error
+	err := r.db.WithContext(ctx).Where(queryOrgByName, orgID).First(&existing).Error
 	if err == nil {
 		return nil, domain.ErrOrgExists
 	}
@@ -54,11 +62,11 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, createdBy strin
 	// Create new org entity
 	now := time.Now()
 	entity := &types.Organization{
-		OrgID:     orgID,
-		Name:      name,
-		CreatedBy: createdBy,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Name:        orgID,
+		DisplayName: name,
+		CreatedBy:   createdBy,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 
 	if err := r.db.WithContext(ctx).Create(entity).Error; err != nil {
@@ -73,19 +81,19 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, createdBy strin
 
 	// Convert entity to domain model
 	return &domain.Organization{
-		ID:        entity.ID,
-		OrgID:     entity.OrgID,
-		Name:      entity.Name,
-		CreatedBy: entity.CreatedBy,
-		CreatedAt: entity.CreatedAt,
-		UpdatedAt: entity.UpdatedAt,
+		ID:          entity.ID,
+		Name:        entity.Name,
+		DisplayName: entity.DisplayName,
+		CreatedBy:   entity.CreatedBy,
+		CreatedAt:   entity.CreatedAt,
+		UpdatedAt:   entity.UpdatedAt,
 	}, nil
 }
 
 // Get retrieves an organization by ID
 func (r *orgRepository) Get(ctx context.Context, orgID string) (*domain.Organization, error) {
 	var entity types.Organization
-	err := r.db.WithContext(ctx).Where("org_id = ?", orgID).First(&entity).Error
+	err := r.db.WithContext(ctx).Where(queryOrgByName, orgID).First(&entity).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrOrgNotFound
@@ -95,12 +103,12 @@ func (r *orgRepository) Get(ctx context.Context, orgID string) (*domain.Organiza
 
 	// Convert entity to domain model
 	return &domain.Organization{
-		ID:        entity.ID,
-		OrgID:     entity.OrgID,
-		Name:      entity.Name,
-		CreatedBy: entity.CreatedBy,
-		CreatedAt: entity.CreatedAt,
-		UpdatedAt: entity.UpdatedAt,
+		ID:          entity.ID,
+		Name:        entity.Name,
+		DisplayName: entity.DisplayName,
+		CreatedBy:   entity.CreatedBy,
+		CreatedAt:   entity.CreatedAt,
+		UpdatedAt:   entity.UpdatedAt,
 	}, nil
 }
 
@@ -116,12 +124,12 @@ func (r *orgRepository) List(ctx context.Context) ([]*domain.Organization, error
 	orgs := make([]*domain.Organization, len(entities))
 	for i, entity := range entities {
 		orgs[i] = &domain.Organization{
-			ID:        entity.ID,
-			OrgID:     entity.OrgID,
-			Name:      entity.Name,
-			CreatedBy: entity.CreatedBy,
-			CreatedAt: entity.CreatedAt,
-			UpdatedAt: entity.UpdatedAt,
+			ID:          entity.ID,
+			Name:        entity.Name,
+			DisplayName: entity.DisplayName,
+			CreatedBy:   entity.CreatedBy,
+			CreatedAt:   entity.CreatedAt,
+			UpdatedAt:   entity.UpdatedAt,
 		}
 	}
 
@@ -130,7 +138,7 @@ func (r *orgRepository) List(ctx context.Context) ([]*domain.Organization, error
 
 // Delete deletes an organization
 func (r *orgRepository) Delete(ctx context.Context, orgID string) error {
-	result := r.db.WithContext(ctx).Where("org_id = ?", orgID).Delete(&types.Organization{})
+	result := r.db.WithContext(ctx).Where(queryOrgByName, orgID).Delete(&types.Organization{})
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete organization: %w", result.Error)
 	}

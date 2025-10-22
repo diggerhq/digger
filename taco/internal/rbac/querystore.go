@@ -27,22 +27,29 @@ func NewQueryRBACStore(db *gorm.DB) RBACStore {
 
 func (s *queryRBACStore) CreatePermission(ctx context.Context, perm *Permission) error {
 	// Convert to GORM model
+	// Map: rbac.Permission.ID → types.Permission.Name (identifier like "unit-read")
+	//      rbac.Permission.Name → types.Permission.Description (friendly name like "Unit Read Permission")
+	description := perm.Name // Use friendly name as description
+	if perm.Description != "" {
+		description = perm.Description // Prefer explicit description if provided
+	}
+	
 	typePerm := types.Permission{
-		PermissionId: perm.ID,
-		Name:         perm.Name,
-		Description:  perm.Description,
-		CreatedBy:    perm.CreatedBy,
-		CreatedAt:    perm.CreatedAt,
-		Rules:        convertRbacRulesToTypes(perm.Rules),
+		OrgID:       perm.OrgID, // ✅ FIX: Set org_id for org-scoped RBAC
+		Name:        perm.ID, // "unit-read" (identifier, NOT UUID)
+		Description: description,
+		CreatedBy:   perm.CreatedBy,
+		CreatedAt:   perm.CreatedAt,
+		Rules:       convertRbacRulesToTypes(perm.Rules),
 	}
 
 	return s.db.WithContext(ctx).Create(&typePerm).Error
 }
 
-func (s *queryRBACStore) GetPermission(ctx context.Context, id string) (*Permission, error) {
+func (s *queryRBACStore) GetPermission(ctx context.Context, orgID, id string) (*Permission, error) {
 	var typePerm types.Permission
 	err := s.db.WithContext(ctx).
-		Where("permission_id = ?", id).
+		Where("org_id = ? AND name = ?", orgID, id).
 		Preload("Rules").
 		Preload("Rules.Actions").
 		First(&typePerm).Error
@@ -57,9 +64,10 @@ func (s *queryRBACStore) GetPermission(ctx context.Context, id string) (*Permiss
 	return convertTypesPermissionToRbac(&typePerm), nil
 }
 
-func (s *queryRBACStore) ListPermissions(ctx context.Context) ([]*Permission, error) {
+func (s *queryRBACStore) ListPermissions(ctx context.Context, orgID string) ([]*Permission, error) {
 	var typePerms []types.Permission
 	err := s.db.WithContext(ctx).
+		Where("org_id = ?", orgID).
 		Preload("Rules").
 		Preload("Rules.Actions").
 		Find(&typePerms).Error
@@ -75,9 +83,9 @@ func (s *queryRBACStore) ListPermissions(ctx context.Context) ([]*Permission, er
 	return perms, nil
 }
 
-func (s *queryRBACStore) DeletePermission(ctx context.Context, id string) error {
+func (s *queryRBACStore) DeletePermission(ctx context.Context, orgID, id string) error {
 	return s.db.WithContext(ctx).
-		Where("permission_id = ?", id).
+		Where("org_id = ? AND name = ?", orgID, id).
 		Delete(&types.Permission{}).Error
 }
 
@@ -86,10 +94,17 @@ func (s *queryRBACStore) DeletePermission(ctx context.Context, id string) error 
 // ============================================
 
 func (s *queryRBACStore) CreateRole(ctx context.Context, role *Role) error {
+	// Map: rbac.Role.ID → types.Role.Name (identifier like "admin")
+	//      rbac.Role.Name → types.Role.Description (friendly name like "Administrator")
+	description := role.Name // Use friendly name as description
+	if role.Description != "" {
+		description = role.Description // Prefer explicit description if provided
+	}
+	
 	typeRole := types.Role{
-		RoleId:      role.ID,
-		Name:        role.Name,
-		Description: role.Description,
+		OrgID:       role.OrgID, // ✅ FIX: Set org_id for org-scoped RBAC
+		Name:        role.ID, // "admin" (identifier, NOT UUID)
+		Description: description,
 		CreatedBy:   role.CreatedBy,
 		CreatedAt:   role.CreatedAt,
 	}
@@ -103,7 +118,7 @@ func (s *queryRBACStore) CreateRole(ctx context.Context, role *Role) error {
 	if len(role.Permissions) > 0 {
 		var typePerms []types.Permission
 		if err := s.db.WithContext(ctx).
-			Where("permission_id IN ?", role.Permissions).
+			Where("name IN ?", role.Permissions).
 			Find(&typePerms).Error; err != nil {
 			return err
 		}
@@ -116,10 +131,10 @@ func (s *queryRBACStore) CreateRole(ctx context.Context, role *Role) error {
 	return nil
 }
 
-func (s *queryRBACStore) GetRole(ctx context.Context, id string) (*Role, error) {
+func (s *queryRBACStore) GetRole(ctx context.Context, orgID, id string) (*Role, error) {
 	var typeRole types.Role
 	err := s.db.WithContext(ctx).
-		Where("role_id = ?", id).
+		Where("org_id = ? AND name = ?", orgID, id).
 		Preload("Permissions").
 		First(&typeRole).Error
 
@@ -133,9 +148,10 @@ func (s *queryRBACStore) GetRole(ctx context.Context, id string) (*Role, error) 
 	return convertTypesRoleToRbac(&typeRole), nil
 }
 
-func (s *queryRBACStore) ListRoles(ctx context.Context) ([]*Role, error) {
+func (s *queryRBACStore) ListRoles(ctx context.Context, orgID string) ([]*Role, error) {
 	var typeRoles []types.Role
 	err := s.db.WithContext(ctx).
+		Where("org_id = ?", orgID).
 		Preload("Permissions").
 		Find(&typeRoles).Error
 
@@ -150,9 +166,9 @@ func (s *queryRBACStore) ListRoles(ctx context.Context) ([]*Role, error) {
 	return roles, nil
 }
 
-func (s *queryRBACStore) DeleteRole(ctx context.Context, id string) error {
+func (s *queryRBACStore) DeleteRole(ctx context.Context, orgID, id string) error {
 	return s.db.WithContext(ctx).
-		Where("role_id = ?", id).
+		Where("org_id = ? AND name = ?", orgID, id).
 		Delete(&types.Role{}).Error
 }
 
@@ -160,7 +176,7 @@ func (s *queryRBACStore) DeleteRole(ctx context.Context, id string) error {
 // User Assignment Management
 // ============================================
 
-func (s *queryRBACStore) AssignRole(ctx context.Context, subject, email, roleID string) error {
+func (s *queryRBACStore) AssignRole(ctx context.Context, orgID, subject, email, roleID string) error {
 	// Get or create user
 	var user types.User
 	err := s.db.WithContext(ctx).
@@ -186,24 +202,35 @@ func (s *queryRBACStore) AssignRole(ctx context.Context, subject, email, roleID 
 		}
 	}
 
-	// Get the role to assign
+	// Get the role to assign (org-scoped)
 	var role types.Role
-	if err := s.db.WithContext(ctx).Where("role_id = ?", roleID).First(&role).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("org_id = ? AND name = ?", orgID, roleID).First(&role).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrNotFound
 		}
 		return err
 	}
 
-	// Check if already assigned
+	// Check if already assigned (within this org)
 	for _, r := range user.Roles {
-		if r.RoleId == roleID {
-			return nil // Already assigned
+		if r.Name == roleID && r.OrgID == orgID {
+			return nil // Already assigned in this org
 		}
 	}
 
-	// Assign role
-	if err := s.db.WithContext(ctx).Model(&user).Association("Roles").Append(&role); err != nil {
+	// Assign role - explicitly insert into user_roles junction table with org_id
+	// Note: Can't use Association API because it doesn't support custom junction table fields
+	userRole := struct {
+		UserID string `gorm:"column:user_id"`
+		RoleID string `gorm:"column:role_id"`
+		OrgID  string `gorm:"column:org_id"`
+	}{
+		UserID: user.ID,
+		RoleID: role.ID,
+		OrgID:  orgID,
+	}
+	
+	if err := s.db.WithContext(ctx).Table("user_roles").Create(&userRole).Error; err != nil {
 		return err
 	}
 
@@ -211,22 +238,22 @@ func (s *queryRBACStore) AssignRole(ctx context.Context, subject, email, roleID 
 	return s.db.WithContext(ctx).Model(&user).Update("version", user.Version+1).Error
 }
 
-func (s *queryRBACStore) AssignRoleByEmail(ctx context.Context, email, roleID string) error {
+func (s *queryRBACStore) AssignRoleByEmail(ctx context.Context, orgID, email, roleID string) error {
 	var user types.User
 	err := s.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Create user with email as subject (will be updated on first login)
-			return s.AssignRole(ctx, email, email, roleID)
+			return s.AssignRole(ctx, orgID, email, email, roleID)
 		}
 		return err
 	}
 
-	return s.AssignRole(ctx, user.Subject, email, roleID)
+	return s.AssignRole(ctx, orgID, user.Subject, email, roleID)
 }
 
-func (s *queryRBACStore) RevokeRole(ctx context.Context, subject, roleID string) error {
+func (s *queryRBACStore) RevokeRole(ctx context.Context, orgID, subject, roleID string) error {
 	var user types.User
 	err := s.db.WithContext(ctx).
 		Where("subject = ?", subject).
@@ -237,9 +264,9 @@ func (s *queryRBACStore) RevokeRole(ctx context.Context, subject, roleID string)
 		return err
 	}
 
-	// Find the role to revoke
+	// Find the role to revoke (org-scoped)
 	var role types.Role
-	if err := s.db.WithContext(ctx).Where("role_id = ?", roleID).First(&role).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("org_id = ? AND name = ?", orgID, roleID).First(&role).Error; err != nil {
 		return err
 	}
 
@@ -252,7 +279,7 @@ func (s *queryRBACStore) RevokeRole(ctx context.Context, subject, roleID string)
 	return s.db.WithContext(ctx).Model(&user).Update("version", user.Version+1).Error
 }
 
-func (s *queryRBACStore) RevokeRoleByEmail(ctx context.Context, email, roleID string) error {
+func (s *queryRBACStore) RevokeRoleByEmail(ctx context.Context, orgID, email, roleID string) error {
 	var user types.User
 	err := s.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
 
@@ -260,14 +287,14 @@ func (s *queryRBACStore) RevokeRoleByEmail(ctx context.Context, email, roleID st
 		return err
 	}
 
-	return s.RevokeRole(ctx, user.Subject, roleID)
+	return s.RevokeRole(ctx, orgID, user.Subject, roleID)
 }
 
-func (s *queryRBACStore) GetUserAssignment(ctx context.Context, subject string) (*UserAssignment, error) {
+func (s *queryRBACStore) GetUserAssignment(ctx context.Context, orgID, subject string) (*UserAssignment, error) {
 	var user types.User
 	err := s.db.WithContext(ctx).
 		Where("subject = ?", subject).
-		Preload("Roles").
+		Preload("Roles", "org_id = ?", orgID). // Filter roles by org
 		First(&user).Error
 
 	if err != nil {
@@ -280,11 +307,11 @@ func (s *queryRBACStore) GetUserAssignment(ctx context.Context, subject string) 
 	return convertTypesUserToAssignment(&user), nil
 }
 
-func (s *queryRBACStore) GetUserAssignmentByEmail(ctx context.Context, email string) (*UserAssignment, error) {
+func (s *queryRBACStore) GetUserAssignmentByEmail(ctx context.Context, orgID, email string) (*UserAssignment, error) {
 	var user types.User
 	err := s.db.WithContext(ctx).
 		Where("email = ?", email).
-		Preload("Roles").
+		Preload("Roles", "org_id = ?", orgID). // Filter roles by org
 		First(&user).Error
 
 	if err != nil {
@@ -297,10 +324,10 @@ func (s *queryRBACStore) GetUserAssignmentByEmail(ctx context.Context, email str
 	return convertTypesUserToAssignment(&user), nil
 }
 
-func (s *queryRBACStore) ListUserAssignments(ctx context.Context) ([]*UserAssignment, error) {
+func (s *queryRBACStore) ListUserAssignments(ctx context.Context, orgID string) ([]*UserAssignment, error) {
 	var users []types.User
 	err := s.db.WithContext(ctx).
-		Preload("Roles").
+		Preload("Roles", "org_id = ?", orgID). // Filter roles by org
 		Find(&users).Error
 
 	if err != nil {
@@ -341,8 +368,9 @@ func convertTypesPermissionToRbac(tp *types.Permission) *Permission {
 	}
 
 	return &Permission{
-		ID:          tp.PermissionId,
-		Name:        tp.Name,
+		ID:          tp.ID,   // UUID
+		OrgID:       tp.OrgID, // ✅ FIX: Copy org_id from database model
+		Name:        tp.Name, // Identifier like "unit-read"
 		Description: tp.Description,
 		Rules:       rules,
 		CreatedAt:   tp.CreatedAt,
@@ -353,12 +381,13 @@ func convertTypesPermissionToRbac(tp *types.Permission) *Permission {
 func convertTypesRoleToRbac(tr *types.Role) *Role {
 	permIDs := make([]string, len(tr.Permissions))
 	for i, p := range tr.Permissions {
-		permIDs[i] = p.PermissionId
+		permIDs[i] = p.Name // Permission identifiers like "unit-read"
 	}
 
 	return &Role{
-		ID:          tr.RoleId,
-		Name:        tr.Name,
+		ID:          tr.ID,   // UUID
+		OrgID:       tr.OrgID, // ✅ FIX: Copy org_id from database model
+		Name:        tr.Name, // Identifier like "admin"
 		Description: tr.Description,
 		Permissions: permIDs,
 		CreatedAt:   tr.CreatedAt,
@@ -370,13 +399,13 @@ func convertTypesRoleToRbac(tr *types.Role) *Role {
 func convertTypesUserToAssignment(tu *types.User) *UserAssignment {
 	roleIDs := make([]string, len(tu.Roles))
 	for i, r := range tu.Roles {
-		roleIDs[i] = r.RoleId
+		roleIDs[i] = r.Name // Role identifiers like "admin"
 	}
 
 	return &UserAssignment{
 		Subject:   tu.Subject,
 		Email:     tu.Email,
-		Roles:     roleIDs,
+		Roles:     roleIDs, // Role identifiers (not UUIDs)
 		CreatedAt: tu.CreatedAt,
 		UpdatedAt: tu.UpdatedAt,
 		Version:   tu.Version,

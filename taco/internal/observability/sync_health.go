@@ -45,7 +45,8 @@ func (h *SyncHealthChecker) CheckSyncHealth(ctx context.Context) *SyncHealthStat
 
 	// Get units from repository (uses query index)
 	// This also checks database connectivity
-	queryUnits, err := h.repo.List(ctx, "")
+	// Use default org for health check
+	queryUnits, err := h.repo.List(ctx, "default", "")
 	if err != nil {
 		status.Healthy = false
 		status.Message = "Database unavailable (critical for RBAC and fast listing): " + err.Error()

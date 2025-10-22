@@ -185,7 +185,9 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 	// TFE endpoints: verify opaque token only (for clear API boundaries)
 	var principal rbac.Principal
 	if h.apiTokens != nil {
-		if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), token); err == nil {
+		// Extract org from context or default to "default"
+		orgID := getOrgFromContext(c)
+		if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), orgID, token); err == nil {
 			principal = rbac.Principal{
 				Subject: tokenRecord.Subject,
 				Email:   tokenRecord.Email,
@@ -1048,4 +1050,24 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
 		},
 	}
 	return c.JSON(http.StatusOK, resp)
+}
+
+// getOrgFromContext extracts org ID from Echo context or defaults to "default"
+func getOrgFromContext(c echo.Context) string {
+	// Try jwt_org (from JWT auth)
+	if jwtOrg := c.Get("jwt_org"); jwtOrg != nil {
+		if orgStr, ok := jwtOrg.(string); ok && orgStr != "" {
+			return orgStr
+		}
+	}
+	
+	// Try organization_id (from webhook auth)
+	if orgID := c.Get("organization_id"); orgID != nil {
+		if orgStr, ok := orgID.(string); ok && orgStr != "" {
+			return orgStr
+		}
+	}
+	
+	// Default for self-hosted
+	return "default"
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/repositories"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 
@@ -32,9 +33,23 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 		userRepo = repositories.NewUserRepositoryFromQueryStore(deps.QueryStore)
 	}
 
-	// Create internal group with webhook auth (with orgRepo for existence check)
+	// Create internal group with webhook auth
 	internal := e.Group("/internal/api")
-	internal.Use(middleware.WebhookAuth(orgRepo))
+	internal.Use(middleware.WebhookAuth())
+	
+	// Add org resolution middleware - resolves org name to UUID and adds to domain context
+	if deps.QueryStore != nil {
+		if dbGetter, ok := deps.QueryStore.(interface{ GetDB() *gorm.DB }); ok {
+			db := dbGetter.GetDB()
+			// Create identifier resolver (infrastructure layer)
+			identifierResolver := repositories.NewIdentifierResolver(db)
+			// Pass interface to middleware (clean architecture!)
+			internal.Use(middleware.ResolveOrgContextMiddleware(identifierResolver))
+			log.Println("Org context resolution middleware enabled for internal routes")
+		} else {
+			log.Println("WARNING: QueryStore does not implement GetDB() *gorm.DB - org resolution disabled")
+		}
+	}
 
 	// Organization and User management endpoints
 	if orgRepo != nil && userRepo != nil {
@@ -70,50 +85,45 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 		log.Println("RBAC management endpoints registered at /internal/api/rbac")
 	}
 
-	orgService := domain.NewOrgService()
-	orgScopedRepo := repositories.NewOrgScopedRepository(deps.Repository, orgService)
+	// For internal routes, use RBAC-wrapped repository
+	// Architecture:
+	// - Webhook secret authenticates the SYSTEM (backend orchestrator) 
+	// - X-User-ID header identifies the END USER making the request
+	// - RBAC enforces what that USER can do (via repository layer)
+	// - Org scoping handled by middleware (ResolveOrgContextMiddleware) + database foreign keys
 	
-	// Create handler with org-scoped repository
-	// The repository will automatically:
-	// - Filter List() to org namespace
-	// - Validate all operations belong to user's org
+	// Create identifier resolver for unit name→UUID resolution
+	var identifierResolver domain.IdentifierResolver
+	if deps.QueryStore != nil {
+		if dbGetter, ok := deps.QueryStore.(interface{ GetDB() *gorm.DB }); ok {
+			db := dbGetter.GetDB()
+			identifierResolver = repositories.NewIdentifierResolver(db)
+		}
+	}
+	
+	// Create handler with org-scoped + RBAC-wrapped repository
 	unitHandler := unithandlers.NewHandler(
-		domain.UnitManagement(orgScopedRepo),
+		domain.UnitManagement(deps.Repository), // Use RBAC-wrapped repository directly
+		deps.BlobStore,
 		deps.RBACManager,
 		deps.Signer,
 		deps.QueryStore,
+		identifierResolver,
 	)
 
-
-
-
-	if deps.RBACManager != nil {
-		// With RBAC - apply RBAC permission checks
-		// Org scoping is automatic via orgScopedRepository
-		internal.POST("/units", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitWrite, "*")(unitHandler.CreateUnit))
-		internal.GET("/units", unitHandler.ListUnits) // Automatically filters by org
-		internal.GET("/units/:id", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnit))
-		internal.DELETE("/units/:id", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitDelete, "{id}")(unitHandler.DeleteUnit))
-		internal.GET("/units/:id/download", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitRead, "{id}")(unitHandler.DownloadUnit))
-		internal.POST("/units/:id/upload", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitWrite, "{id}")(unitHandler.UploadUnit))
-		internal.POST("/units/:id/lock", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitLock, "{id}")(unitHandler.LockUnit))
-		internal.DELETE("/units/:id/unlock", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitLock, "{id}")(unitHandler.UnlockUnit))
-		internal.GET("/units/:id/status", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnitStatus))
-		internal.GET("/units/:id/versions", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitRead, "{id}")(unitHandler.ListVersions))
-		internal.POST("/units/:id/restore", wrapWithWebhookRBAC(deps.RBACManager, rbac.ActionUnitWrite, "{id}")(unitHandler.RestoreVersion))
-	} else {
-		internal.POST("/units", unitHandler.CreateUnit)
-		internal.GET("/units", unitHandler.ListUnits)
-		internal.GET("/units/:id", unitHandler.GetUnit)
-		internal.DELETE("/units/:id", unitHandler.DeleteUnit)
-		internal.GET("/units/:id/download", unitHandler.DownloadUnit)
-		internal.POST("/units/:id/upload", unitHandler.UploadUnit)
-		internal.POST("/units/:id/lock", unitHandler.LockUnit)
-		internal.DELETE("/units/:id/unlock", unitHandler.UnlockUnit)
-		internal.GET("/units/:id/status", unitHandler.GetUnitStatus)
-		internal.GET("/units/:id/versions", unitHandler.ListVersions)
-		internal.POST("/units/:id/restore", unitHandler.RestoreVersion)
-	}
+	// Internal routes with RBAC enforcement
+	// Note: Users must have permissions assigned via /internal/api/rbac endpoints
+	internal.POST("/units", unitHandler.CreateUnit)
+	internal.GET("/units", unitHandler.ListUnits)
+	internal.GET("/units/:id", unitHandler.GetUnit)
+	internal.DELETE("/units/:id", unitHandler.DeleteUnit)
+	internal.GET("/units/:id/download", unitHandler.DownloadUnit)
+	internal.POST("/units/:id/upload", unitHandler.UploadUnit)
+	internal.POST("/units/:id/lock", unitHandler.LockUnit)
+	internal.DELETE("/units/:id/unlock", unitHandler.UnlockUnit)
+	internal.GET("/units/:id/status", unitHandler.GetUnitStatus)
+	internal.GET("/units/:id/versions", unitHandler.ListVersions)
+	internal.POST("/units/:id/restore", unitHandler.RestoreVersion)
 
 	// Health check for internal routes
 	internal.GET("/health", func(c echo.Context) error {
@@ -153,7 +163,6 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 
 	log.Printf("Internal routes registered at /internal/api/* with webhook authentication")
 }
-
 // wrapWithWebhookRBAC wraps a handler with RBAC permission checking
 func wrapWithWebhookRBAC(manager *rbac.RBACManager, action rbac.Action, resource string) func(echo.HandlerFunc) echo.HandlerFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -208,3 +217,4 @@ func wrapWithWebhookRBAC(manager *rbac.RBACManager, action rbac.Action, resource
 		}
 	}
 }
+

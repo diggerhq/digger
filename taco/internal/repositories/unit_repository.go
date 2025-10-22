@@ -2,208 +2,427 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
-	"github.com/diggerhq/digger/opentaco/internal/query"
+	"github.com/diggerhq/digger/opentaco/internal/query/types"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
+	"gorm.io/gorm"
 )
 
-// unitRepository implements UnitRepository by coordinating blob storage with query index.
-// This is where the coordination logic lives - hidden from handlers.
-//
-// DEPENDENCY: The query store (database) is REQUIRED for:
-// - Fast listing operations (query index)
-// - RBAC enforcement (permissions/roles stored in database)
-// If the database is unavailable, RBAC checks will fail closed (deny access).
-type unitRepository struct {
-	blob  storage.UnitStore  // Source of truth for state data
-	query query.Store        // Fast index for metadata/listing (REQUIRED for RBAC)
+const (
+	queryByID          = "id = ?"
+	errMsgOrgNotFound  = "failed to get organization: %w"
+	errMsgUnitNotFound = "failed to find unit: %w"
+)
+
+// UnitRepository provides database-first unit management with blob storage backend
+// This is the NEW architecture where database is source of truth
+type UnitRepository struct {
+	db          *gorm.DB
+	blobStore   storage.UnitStore
+	orgResolver domain.IdentifierResolver
 }
 
-// NewUnitRepository creates a repository that coordinates blob storage with query index.
-// Coordination happens internally:
-// - Write operations update both blob and query
-// - List operations use fast query index (with blob fallback)
-// - Read operations go directly to blob (no coordination overhead)
-//
-// IMPORTANT: The query store (database) is critical for RBAC enforcement.
-// If the database is unavailable, all RBAC-protected operations will fail.
-func NewUnitRepository(blob storage.UnitStore, query query.Store) domain.UnitRepository {
-	return &unitRepository{
-		blob:  blob,
-		query: query,
+// NewUnitRepository creates a repository with database as source of truth
+func NewUnitRepository(db *gorm.DB, blobStore storage.UnitStore) *UnitRepository {
+	return &UnitRepository{
+		db:          db,
+		blobStore:   blobStore,
+		orgResolver: NewIdentifierResolver(db), // Use infrastructure layer implementation
 	}
 }
 
-// ============================================
-// UnitReader Implementation
-// ============================================
-
-// Get retrieves metadata from blob storage (no coordination needed)
-func (r *unitRepository) Get(ctx context.Context, id string) (*storage.UnitMetadata, error) {
-	return r.blob.Get(ctx, id)
-}
-
-// Download retrieves state data from blob storage (no coordination needed)
-func (r *unitRepository) Download(ctx context.Context, id string) ([]byte, error) {
-	return r.blob.Download(ctx, id)
-}
-
-// List retrieves units from the query index with fallback to blob storage.
-// COORDINATION: Prefers query index (fast), falls back to blob if query fails.
-// NOTE: RBAC enforcement still requires the database, so if auth is enabled and
-// the database is unavailable, the request will fail even though blob storage works.
-func (r *unitRepository) List(ctx context.Context, prefix string) ([]*storage.UnitMetadata, error) {
-	// Try fast database index first
-	units, err := r.query.ListUnits(ctx, prefix)
-	if err != nil {
-		log.Printf("Warning: Query index failed for List, falling back to blob storage: %v", err)
-		// Fallback to blob storage (slower but works if DB is down)
-		return r.blob.List(ctx, prefix)
-	}
-
-	// Convert query types to storage types
-	metadata := make([]*storage.UnitMetadata, len(units))
-	for i, u := range units {
-		var lockInfo *storage.LockInfo
-		if u.Locked && u.LockCreated != nil {
-			lockInfo = &storage.LockInfo{
-				ID:      u.LockID,
-				Who:     u.LockWho,
-				Created: *u.LockCreated,
-			}
+// Create creates a new unit with UUID and org-scoped storage
+func (r *UnitRepository) Create(ctx context.Context, orgID, name string) (*storage.UnitMetadata, error) {
+	// Get organization to validate and get org name
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, orgID).First(&org).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("organization not found: %s", orgID)
 		}
-		metadata[i] = &storage.UnitMetadata{
-			ID:       u.Name,
-			Size:     u.Size,
-			Updated:  u.UpdatedAt,
-			Locked:   u.Locked,
-			LockInfo: lockInfo,
-		}
+		return nil, fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	return metadata, nil
-}
-
-// GetLock retrieves lock info from blob storage (no coordination needed)
-func (r *unitRepository) GetLock(ctx context.Context, id string) (*storage.LockInfo, error) {
-	return r.blob.GetLock(ctx, id)
-}
-
-// ListVersions retrieves version history from blob storage (no coordination needed)
-func (r *unitRepository) ListVersions(ctx context.Context, id string) ([]*storage.VersionInfo, error) {
-	return r.blob.ListVersions(ctx, id)
-}
-
-// ============================================
-// UnitWriter Implementation
-// ============================================
-
-// Create creates a unit in blob storage and syncs to query index
-// COORDINATION: Blob write + query sync
-func (r *unitRepository) Create(ctx context.Context, id string) (*storage.UnitMetadata, error) {
-	// Create in blob storage (source of truth)
-	meta, err := r.blob.Create(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	// Sync to query index with retry logic
-	err = RetrySync(ctx, func(ctx context.Context) error {
-		if err := r.query.SyncEnsureUnit(ctx, id); err != nil {
-			return err
-		}
-		return r.query.SyncUnitMetadata(ctx, id, meta.Size, meta.Updated)
-	}, fmt.Sprintf("create unit '%s'", id))
+	// Check if unit already exists
+	var existing types.Unit
+	err := r.db.WithContext(ctx).
+		Where("org_id = ? AND name = ?", orgID, name).
+		First(&existing).Error
 	
+	if err == nil {
+		return nil, storage.ErrAlreadyExists
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to check existing unit: %w", err)
+	}
+
+	// Create database record (UUID auto-generated by BeforeCreate hook)
+	now := time.Now()
+	unit := &types.Unit{
+		OrgID:     orgID,
+		Name:      name,
+		Size:      0,
+		UpdatedAt: now,
+		Locked:    false,
+	}
+
+	if err := r.db.WithContext(ctx).Create(unit).Error; err != nil {
+		return nil, fmt.Errorf("failed to create unit in database: %w", err)
+	}
+
+	// Construct org-scoped blob path: {orgId}/{name}
+	blobPath := fmt.Sprintf("%s/%s", org.Name, name)
+
+	// Create blob in storage
+	_, err = r.blobStore.Create(ctx, blobPath)
 	if err != nil {
-		log.Printf("CRITICAL: Created unit '%s' in blob but failed to sync to index after retries: %v", id, err)
-		// Continue anyway - blob is source of truth
+		// Rollback database record if blob creation fails
+		r.db.WithContext(ctx).Delete(unit)
+		return nil, fmt.Errorf("failed to create blob storage: %w", err)
+	}
+
+	log.Printf("Created unit: UUID=%s, Org=%s, Name=%s, BlobPath=%s", 
+		unit.ID, org.Name, name, blobPath)
+
+	return &storage.UnitMetadata{
+		ID:       unit.ID,      // UUID
+		Name:     name,         // Short name
+		OrgID:    orgID,        // Org UUID
+		OrgName:  org.Name,    // Org short name (e.g., "acme")
+		Size:     unit.Size,
+		Updated:  unit.UpdatedAt,
+		Locked:   unit.Locked,
+	}, nil
+}
+
+// Get retrieves a unit by UUID
+func (r *UnitRepository) Get(ctx context.Context, uuid string) (*storage.UnitMetadata, error) {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Preload("Tags").Where(queryByID, uuid).First(&unit).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, storage.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get unit: %w", err)
+	}
+
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, unit.OrgID).First(&org).Error; err != nil {
+		return nil, fmt.Errorf(errMsgOrgNotFound, err)
+	}
+
+	// Construct blob path
+	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+
+	// Get blob metadata (size, lock info)
+	blobMeta, err := r.blobStore.Get(ctx, blobPath)
+	if err != nil && err != storage.ErrNotFound {
+		return nil, fmt.Errorf("failed to get blob metadata: %w", err)
+	}
+
+	// Merge database and blob metadata
+	meta := &storage.UnitMetadata{
+		ID:       unit.ID,
+		Name:     unit.Name,
+		OrgID:    unit.OrgID,
+		OrgName:  org.Name,
+		Size:     unit.Size,
+		Updated:  unit.UpdatedAt,
+		Locked:   unit.Locked,
+	}
+
+	// Use blob lock info if available
+	if blobMeta != nil && blobMeta.LockInfo != nil {
+		meta.LockInfo = blobMeta.LockInfo
+		meta.Locked = true
 	}
 
 	return meta, nil
 }
 
-// Upload writes state data to blob storage and updates query index
-// COORDINATION: Blob write + metadata sync
-func (r *unitRepository) Upload(ctx context.Context, id string, data []byte, lockID string) error {
-	// Upload to blob storage (source of truth)
-	err := r.blob.Upload(ctx, id, data, lockID)
+// List lists units with optional prefix filtering
+func (r *UnitRepository) List(ctx context.Context, orgID, prefix string) ([]*storage.UnitMetadata, error) {
+	var units []types.Unit
+	query := r.db.WithContext(ctx).Where("org_id = ?", orgID)
+	
+	if prefix != "" {
+		query = query.Where("name LIKE ?", prefix+"%")
+	}
+	
+	if err := query.Find(&units).Error; err != nil {
+		return nil, fmt.Errorf("failed to list units: %w", err)
+	}
+
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, orgID).First(&org).Error; err != nil {
+		return nil, fmt.Errorf(errMsgOrgNotFound, err)
+	}
+
+	result := make([]*storage.UnitMetadata, len(units))
+	for i, unit := range units {
+		result[i] = &storage.UnitMetadata{
+			ID:       unit.ID,
+			Name:     unit.Name,
+			OrgID:    unit.OrgID,
+			OrgName:  org.Name,
+			Size:     unit.Size,
+			Updated:  unit.UpdatedAt,
+			Locked:   unit.Locked,
+		}
+	}
+
+	return result, nil
+}
+
+// Delete deletes a unit by UUID
+func (r *UnitRepository) Delete(ctx context.Context, uuid string) error {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Where(queryByID, uuid).First(&unit).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return storage.ErrNotFound
+		}
+		return fmt.Errorf(errMsgUnitNotFound, err)
+	}
+
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, unit.OrgID).First(&org).Error; err != nil {
+		return fmt.Errorf(errMsgOrgNotFound, err)
+	}
+
+	// Construct blob path
+	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+
+	// Delete from blob storage first
+	if err := r.blobStore.Delete(ctx, blobPath); err != nil && err != storage.ErrNotFound {
+		return fmt.Errorf("failed to delete blob: %w", err)
+	}
+
+	// Delete from database
+	if err := r.db.WithContext(ctx).Delete(&unit).Error; err != nil {
+		return fmt.Errorf("failed to delete unit from database: %w", err)
+	}
+
+	log.Printf("Deleted unit: UUID=%s, Org=%s, Name=%s", uuid, org.Name, unit.Name)
+	return nil
+}
+
+// Download downloads unit data by UUID
+func (r *UnitRepository) Download(ctx context.Context, uuid string) ([]byte, error) {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Where(queryByID, uuid).First(&unit).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, storage.ErrNotFound
+		}
+		return nil, fmt.Errorf(errMsgUnitNotFound, err)
+	}
+
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, unit.OrgID).First(&org).Error; err != nil {
+		return nil, fmt.Errorf(errMsgOrgNotFound, err)
+	}
+
+	// Construct blob path
+	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+
+	// Download from blob storage
+	return r.blobStore.Download(ctx, blobPath)
+}
+
+// GetLock retrieves lock information for a unit by UUID
+func (r *UnitRepository) GetLock(ctx context.Context, uuid string) (*storage.LockInfo, error) {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Where(queryByID, uuid).First(&unit).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, storage.ErrNotFound
+		}
+		return nil, fmt.Errorf(errMsgUnitNotFound, err)
+	}
+
+	// If not locked, return nil
+	if !unit.Locked {
+		return nil, nil
+	}
+
+	lockInfo := &storage.LockInfo{
+		ID:  unit.LockID,
+		Who: unit.LockWho,
+	}
+	if unit.LockCreated != nil {
+		lockInfo.Created = *unit.LockCreated
+	}
+	return lockInfo, nil
+}
+
+// Upload uploads unit data by UUID
+func (r *UnitRepository) Upload(ctx context.Context, uuid string, data []byte, lockID string) error {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Where(queryByID, uuid).First(&unit).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return storage.ErrNotFound
+		}
+		return fmt.Errorf(errMsgUnitNotFound, err)
+	}
+
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, unit.OrgID).First(&org).Error; err != nil {
+		return fmt.Errorf(errMsgOrgNotFound, err)
+	}
+
+	// Construct blob path
+	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+
+	// Upload to blob storage
+	if err := r.blobStore.Upload(ctx, blobPath, data, lockID); err != nil {
 		return err
 	}
 
-	// Sync metadata to query index with retry logic
-	meta, err := r.blob.Get(ctx, id)
-	if err == nil {
-		SyncWithFallback(ctx, func(ctx context.Context) error {
-			return r.query.SyncUnitMetadata(ctx, id, meta.Size, meta.Updated)
-		}, fmt.Sprintf("upload unit '%s' metadata", id))
+	// Update database metadata
+	if err := r.db.WithContext(ctx).Model(&unit).Updates(map[string]interface{}{
+		"size":       int64(len(data)),
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		return fmt.Errorf("failed to update unit metadata: %w", err)
 	}
 
 	return nil
 }
 
-// Delete removes a unit from blob storage and syncs deletion to query index
-// COORDINATION: Blob delete + query sync
-func (r *unitRepository) Delete(ctx context.Context, id string) error {
-	// Delete from blob storage (source of truth)
-	err := r.blob.Delete(ctx, id)
+// Lock locks a unit by UUID
+func (r *UnitRepository) Lock(ctx context.Context, uuid string, lockInfo *storage.LockInfo) error {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Where(queryByID, uuid).First(&unit).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return storage.ErrNotFound
+		}
+		return fmt.Errorf(errMsgUnitNotFound, err)
+	}
+
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, unit.OrgID).First(&org).Error; err != nil {
+		return fmt.Errorf(errMsgOrgNotFound, err)
+	}
+
+	// Construct blob path
+	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+
+	// Lock in blob storage
+	if err := r.blobStore.Lock(ctx, blobPath, lockInfo); err != nil {
 		return err
 	}
 
-	// Sync deletion to query index with retry logic
-	SyncWithFallback(ctx, func(ctx context.Context) error {
-		return r.query.SyncDeleteUnit(ctx, id)
-	}, fmt.Sprintf("delete unit '%s'", id))
+	// Update database
+	if err := r.db.WithContext(ctx).Model(&unit).Updates(map[string]interface{}{
+		"locked":       true,
+		"lock_id":      lockInfo.ID,
+		"lock_who":     lockInfo.Who,
+		"lock_created": lockInfo.Created,
+	}).Error; err != nil {
+		return fmt.Errorf("failed to update lock in database: %w", err)
+	}
 
 	return nil
 }
 
-// RestoreVersion restores a version in blob storage (no coordination needed for now)
-func (r *unitRepository) RestoreVersion(ctx context.Context, id string, versionTimestamp time.Time, lockID string) error {
-	return r.blob.RestoreVersion(ctx, id, versionTimestamp, lockID)
-}
-
-// ============================================
-// UnitLocker Implementation
-// ============================================
-
-// Lock locks in blob storage and syncs lock status to query index
-// COORDINATION: Blob lock + query sync
-func (r *unitRepository) Lock(ctx context.Context, id string, info *storage.LockInfo) error {
-	// Lock in blob storage (source of truth)
-	err := r.blob.Lock(ctx, id, info)
+// Unlock unlocks a unit by UUID
+func (r *UnitRepository) Unlock(ctx context.Context, uuid string, lockID string) error {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Where(queryByID, uuid).First(&unit).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return storage.ErrNotFound
+		}
+		return fmt.Errorf(errMsgUnitNotFound, err)
+	}
+
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, unit.OrgID).First(&org).Error; err != nil {
+		return fmt.Errorf(errMsgOrgNotFound, err)
+	}
+
+	// Construct blob path
+	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+
+	// Unlock in blob storage
+	if err := r.blobStore.Unlock(ctx, blobPath, lockID); err != nil {
 		return err
 	}
 
-	// Sync lock status to query index with retry logic
-	SyncWithFallback(ctx, func(ctx context.Context) error {
-		return r.query.SyncUnitLock(ctx, id, info.ID, info.Who, info.Created)
-	}, fmt.Sprintf("lock unit '%s'", id))
+	// Update database
+	if err := r.db.WithContext(ctx).Model(&unit).Updates(map[string]interface{}{
+		"locked":       false,
+		"lock_id":      "",
+		"lock_who":     "",
+		"lock_created": nil,
+	}).Error; err != nil {
+		return fmt.Errorf("failed to update unlock in database: %w", err)
+	}
 
 	return nil
 }
 
-// Unlock unlocks in blob storage and syncs unlock status to query index
-// COORDINATION: Blob unlock + query sync
-func (r *unitRepository) Unlock(ctx context.Context, id string, lockID string) error {
-	// Unlock in blob storage (source of truth)
-	err := r.blob.Unlock(ctx, id, lockID)
+// ListVersions lists versions for a unit by UUID
+func (r *UnitRepository) ListVersions(ctx context.Context, uuid string) ([]*storage.VersionInfo, error) {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Where(queryByID, uuid).First(&unit).Error
 	if err != nil {
-		return err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, storage.ErrNotFound
+		}
+		return nil, fmt.Errorf(errMsgUnitNotFound, err)
 	}
 
-	// Sync unlock status to query index with retry logic
-	SyncWithFallback(ctx, func(ctx context.Context) error {
-		return r.query.SyncUnitUnlock(ctx, id)
-	}, fmt.Sprintf("unlock unit '%s'", id))
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, unit.OrgID).First(&org).Error; err != nil {
+		return nil, fmt.Errorf(errMsgOrgNotFound, err)
+	}
 
-	return nil
+	// Construct blob path
+	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+
+	return r.blobStore.ListVersions(ctx, blobPath)
 }
 
+// RestoreVersion restores a version for a unit by UUID
+func (r *UnitRepository) RestoreVersion(ctx context.Context, uuid string, versionTimestamp time.Time, lockID string) error {
+	var unit types.Unit
+	err := r.db.WithContext(ctx).Where(queryByID, uuid).First(&unit).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return storage.ErrNotFound
+		}
+		return fmt.Errorf(errMsgUnitNotFound, err)
+	}
+
+	// Get organization info
+	var org types.Organization
+	if err := r.db.WithContext(ctx).Where(queryByID, unit.OrgID).First(&org).Error; err != nil {
+		return fmt.Errorf(errMsgOrgNotFound, err)
+	}
+
+	// Construct blob path
+	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+
+	return r.blobStore.RestoreVersion(ctx, blobPath, versionTimestamp, lockID)
+}
+
+// ResolveIdentifier resolves a unit identifier (UUID, name, or absolute name) to UUID
+func (r *UnitRepository) ResolveIdentifier(ctx context.Context, identifier, orgID string) (string, error) {
+	return r.orgResolver.ResolveUnit(ctx, identifier, orgID)
+}

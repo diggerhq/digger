@@ -9,6 +9,7 @@ import (
     "strings"
 
     "github.com/diggerhq/digger/opentaco/internal/auth"
+    "github.com/diggerhq/digger/opentaco/internal/domain"
     "github.com/diggerhq/digger/opentaco/internal/query"
     "github.com/labstack/echo/v4"
 )
@@ -75,7 +76,8 @@ func (h *Handler) Init(c echo.Context) error {
     }
     
     // Check if RBAC is already initialized
-    enabled, err := h.manager.IsEnabled(c.Request().Context())
+    ctx := c.Request().Context()
+    enabled, err := h.manager.IsEnabled(ctx)
     if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to check RBAC status"})
     }
@@ -84,8 +86,13 @@ func (h *Handler) Init(c echo.Context) error {
         return c.JSON(http.StatusConflict, map[string]string{"error": "RBAC already initialized"})
     }
     
-    // Initialize RBAC
-    if err := h.manager.InitializeRBAC(c.Request().Context(), req.Subject, req.Email); err != nil {
+    // Get org UUID from domain context for InitializeRBAC
+    orgCtx, ok := domain.OrgFromContext(ctx)
+    if !ok {
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
+    }
+    
+    if err := h.manager.InitializeRBAC(ctx, orgCtx.OrgID, req.Subject, req.Email); err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to initialize RBAC"})
     }
     
@@ -111,8 +118,11 @@ func (h *Handler) Me(c echo.Context) error {
         })
     }
     
+    // Get org UUID from domain context
+    ctx := c.Request().Context()
+    
     // Check if RBAC is enabled
-    enabled, err := h.manager.IsEnabled(c.Request().Context())
+    enabled, err := h.manager.IsEnabled(ctx)
     if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to check RBAC status"})
     }
@@ -128,7 +138,7 @@ func (h *Handler) Me(c echo.Context) error {
     }
     
     // Get user assignment
-    assignment, err := h.manager.GetUserInfo(c.Request().Context(), principal.Subject)
+    assignment, err := h.manager.GetUserInfo(ctx, principal.Subject)
     if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get user info"})
     }
@@ -174,27 +184,32 @@ func (h *Handler) AssignRole(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "email and role_id required"})
     }
     
+    ctx := c.Request().Context()
+    
     // Use email-based assignment if no subject provided
     if req.Subject == "" {
-        if err := h.manager.AssignRoleByEmail(c.Request().Context(), req.Email, req.RoleID); err != nil {
+        if err := h.manager.AssignRoleByEmail(ctx, req.Email, req.RoleID); err != nil {
             return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to assign role: " + err.Error()})
         }
     } else {
-        if err := h.manager.AssignRole(c.Request().Context(), req.Subject, req.Email, req.RoleID); err != nil {
+        if err := h.manager.AssignRole(ctx, req.Subject, req.Email, req.RoleID); err != nil {
             return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to assign role"})
         }
     }
     
     if h.queryStore != nil && h.queryStore.IsEnabled() {
+        // Sync is org-aware through context
         subject := req.Subject
         if subject == "" {
-            if assignment, _ := h.manager.store.GetUserAssignmentByEmail(c.Request().Context(), req.Email); assignment != nil {
+            orgCtx, _ := domain.OrgFromContext(ctx)
+            if assignment, _ := h.manager.store.GetUserAssignmentByEmail(ctx, orgCtx.OrgID, req.Email); assignment != nil {
                 subject = assignment.Subject
             }
         }
         if subject != "" {
-            if assignment, err := h.manager.store.GetUserAssignment(c.Request().Context(), subject); err == nil {
-                h.queryStore.SyncUser(c.Request().Context(), assignment)
+            orgCtx, _ := domain.OrgFromContext(ctx)
+            if assignment, err := h.manager.store.GetUserAssignment(ctx, orgCtx.OrgID, subject); err == nil {
+                h.queryStore.SyncUser(ctx, assignment)
             }
         }
     }
@@ -227,27 +242,32 @@ func (h *Handler) RevokeRole(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "either subject or email required"})
     }
     
+    ctx := c.Request().Context()
+    
     // Use email-based revocation if email provided, otherwise use subject
     if req.Email != "" {
-        if err := h.manager.RevokeRoleByEmail(c.Request().Context(), req.Email, req.RoleID); err != nil {
+        if err := h.manager.RevokeRoleByEmail(ctx, req.Email, req.RoleID); err != nil {
             return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to revoke role: " + err.Error()})
         }
     } else {
-        if err := h.manager.RevokeRole(c.Request().Context(), req.Subject, req.RoleID); err != nil {
+        if err := h.manager.RevokeRole(ctx, req.Subject, req.RoleID); err != nil {
             return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to revoke role"})
         }
     }
     
     if h.queryStore != nil && h.queryStore.IsEnabled() {
+        // Sync is org-aware through context
         subject := req.Subject
         if subject == "" && req.Email != "" {
-            if assignment, _ := h.manager.store.GetUserAssignmentByEmail(c.Request().Context(), req.Email); assignment != nil {
+            orgCtx, _ := domain.OrgFromContext(ctx)
+            if assignment, _ := h.manager.store.GetUserAssignmentByEmail(ctx, orgCtx.OrgID, req.Email); assignment != nil {
                 subject = assignment.Subject
             }
         }
         if subject != "" {
-            if assignment, err := h.manager.store.GetUserAssignment(c.Request().Context(), subject); err == nil {
-                h.queryStore.SyncUser(c.Request().Context(), assignment)
+            orgCtx, _ := domain.OrgFromContext(ctx)
+            if assignment, err := h.manager.store.GetUserAssignment(ctx, orgCtx.OrgID, subject); err == nil {
+                h.queryStore.SyncUser(ctx, assignment)
             }
         }
     }
@@ -262,7 +282,9 @@ func (h *Handler) ListUserAssignments(c echo.Context) error {
         return err
     }
     
-    assignments, err := h.manager.ListUserAssignments(c.Request().Context())
+    ctx := c.Request().Context()
+    
+    assignments, err := h.manager.ListUserAssignments(ctx)
     if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to list user assignments"})
     }
@@ -278,9 +300,8 @@ func (h *Handler) CreateRole(c echo.Context) error {
     }
     
     var req struct {
-        ID          string   `json:"id"`
-        Name        string   `json:"name"`
-        Description string   `json:"description"`
+        Name        string   `json:"name"`        // Identifier like "admin" (required)
+        Description string   `json:"description"` // Friendly name/description (optional)
         Permissions []string `json:"permissions"`
     }
     
@@ -288,8 +309,11 @@ func (h *Handler) CreateRole(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid_request"})
     }
     
-    if req.ID == "" || req.Name == "" {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "id and name required"})
+    // Normalize role name to lowercase for case-insensitivity
+    req.Name = strings.ToLower(strings.TrimSpace(req.Name))
+    
+    if req.Name == "" {
+        return c.JSON(http.StatusBadRequest, map[string]string{"error": "name required"})
     }
     
     // Get current user
@@ -299,8 +323,8 @@ func (h *Handler) CreateRole(c echo.Context) error {
     }
     
     role := &Role{
-        ID:          req.ID,
-        Name:        req.Name,
+        ID:          req.Name, // Use identifier as ID for storage (UUID generated by database)
+        Name:        req.Name, // Identifier like "admin"
         Description: req.Description,
         Permissions: req.Permissions,
         CreatedBy:   principal.Subject,
@@ -326,7 +350,9 @@ func (h *Handler) ListRoles(c echo.Context) error {
         return err
     }
     
-    roles, err := h.manager.ListRoles(c.Request().Context())
+    ctx := c.Request().Context()
+    
+    roles, err := h.manager.ListRoles(ctx)
     if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to list roles"})
     }
@@ -350,11 +376,18 @@ func (h *Handler) DeleteRole(c echo.Context) error {
         return c.JSON(http.StatusNotFound, map[string]string{"error": "role not found"})
     }
     
+    // Get org UUID from domain context
+    ctx := c.Request().Context()
+    orgCtx, ok := domain.OrgFromContext(ctx)
+    if !ok {
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
+    }
+    
     if roleID == "admin" || roleID == "default" {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "cannot delete default roles"})
     }
     
-    if err := h.manager.store.DeleteRole(c.Request().Context(), roleID); err != nil {
+    if err := h.manager.store.DeleteRole(ctx, orgCtx.OrgID, roleID); err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete role"})
     }
     
@@ -405,7 +438,9 @@ func (h *Handler) requireRBACPermission(c echo.Context, action Action, resource 
         return err
     }
     
-    can, err := h.manager.Can(c.Request().Context(), principal, action, resource)
+    ctx := c.Request().Context()
+    
+    can, err := h.manager.Can(ctx, principal, action, resource)
     if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to check permissions"})
     }
@@ -425,14 +460,20 @@ func (h *Handler) CreatePermission(c echo.Context) error {
     }
     
     var req struct {
-        ID          string           `json:"id"`
-        Name        string           `json:"name"`
-        Description string           `json:"description"`
+        Name        string           `json:"name"`        // Identifier like "unit-read" (required)
+        Description string           `json:"description"` // Friendly name/description (optional)
         Rules       []PermissionRule `json:"rules"`
     }
     
     if err := c.Bind(&req); err != nil {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+    }
+    
+    // Normalize permission name to lowercase for case-insensitivity
+    req.Name = strings.ToLower(strings.TrimSpace(req.Name))
+    
+    if req.Name == "" {
+        return c.JSON(http.StatusBadRequest, map[string]string{"error": "name required"})
     }
     
     principal, err := h.getPrincipalFromToken(c)
@@ -441,8 +482,8 @@ func (h *Handler) CreatePermission(c echo.Context) error {
     }
     
     permission := Permission{
-        ID:          req.ID,
-        Name:        req.Name,
+        ID:          req.Name, // Use identifier as ID for storage (UUID generated by database)
+        Name:        req.Name, // Identifier like "unit-read"
         Description: req.Description,
         Rules:       req.Rules,
         CreatedBy:   principal.Subject,
@@ -468,7 +509,9 @@ func (h *Handler) ListPermissions(c echo.Context) error {
         return err
     }
     
-    permissions, err := h.manager.ListPermissions(c.Request().Context())
+    ctx := c.Request().Context()
+    
+    permissions, err := h.manager.ListPermissions(ctx)
     if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to list permissions"})
     }
@@ -488,12 +531,14 @@ func (h *Handler) DeletePermission(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "permission id required"})
     }
     
+    ctx := c.Request().Context()
+    
     id, err := h.resolvePermissionIdentifier(c, idParam)
     if err != nil {
         return c.JSON(http.StatusNotFound, map[string]string{"error": "permission not found"})
     }
     
-    if err := h.manager.DeletePermission(c.Request().Context(), id); err != nil {
+    if err := h.manager.DeletePermission(ctx, id); err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete permission"})
     }
     
@@ -521,12 +566,19 @@ func (h *Handler) TestPermissions(c echo.Context) error {
     var userAssignment *UserAssignment
     var err error
     
+    // Get org UUID from domain context
+    ctx := c.Request().Context()
+    orgCtx, ok := domain.OrgFromContext(ctx)
+    if !ok {
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
+    }
+    
     if req.Email != "" {
         // Admin mode: test permissions for specified user (requires admin permission)
         if err := h.requireRBACPermission(c, ActionRBACManage, "*"); err != nil {
             return err
         }
-        userAssignment, err = h.manager.store.GetUserAssignmentByEmail(c.Request().Context(), req.Email)
+        userAssignment, err = h.manager.store.GetUserAssignmentByEmail(ctx, orgCtx.OrgID, req.Email)
         if err != nil {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
         }
@@ -537,7 +589,7 @@ func (h *Handler) TestPermissions(c echo.Context) error {
             return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
         }
         
-        userAssignment, err = h.manager.store.GetUserAssignment(c.Request().Context(), principal.Subject)
+        userAssignment, err = h.manager.store.GetUserAssignment(ctx, orgCtx.OrgID, principal.Subject)
         if err != nil {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
         }
@@ -559,14 +611,14 @@ func (h *Handler) TestPermissions(c echo.Context) error {
     allowed := false
     
     for _, roleID := range roles {
-        role, err := h.manager.store.GetRole(c.Request().Context(), roleID)
+        role, err := h.manager.store.GetRole(ctx, orgCtx.OrgID, roleID)
         if err != nil {
             continue // Skip invalid roles
         }
         
         // Check each permission in the role
         for _, permissionID := range role.Permissions {
-            permission, err := h.manager.store.GetPermission(c.Request().Context(), permissionID)
+            permission, err := h.manager.store.GetPermission(ctx, orgCtx.OrgID, permissionID)
             if err != nil {
                 continue // Skip invalid permissions
             }
@@ -627,17 +679,24 @@ func (h *Handler) AssignPermissionToRole(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
     }
     
+    // Get org UUID from domain context
+    ctx := c.Request().Context()
+    orgCtx, ok := domain.OrgFromContext(ctx)
+    if !ok {
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
+    }
+    
     const maxRetries = 3
     
     for attempt := 0; attempt < maxRetries; attempt++ {
         // Get the role
-        role, err := h.manager.store.GetRole(c.Request().Context(), roleID)
+        role, err := h.manager.store.GetRole(ctx, orgCtx.OrgID, roleID)
         if err != nil {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "role not found"})
         }
         
         // Check if permission exists
-        _, err = h.manager.store.GetPermission(c.Request().Context(), req.PermissionID)
+        _, err = h.manager.store.GetPermission(ctx, orgCtx.OrgID, req.PermissionID)
         if err != nil {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "permission not found"})
         }
@@ -684,11 +743,18 @@ func (h *Handler) RevokePermissionFromRole(c echo.Context) error {
     roleID := c.Param("id")
     permissionID := c.Param("permissionId")
     
+    // Get org UUID from domain context
+    ctx := c.Request().Context()
+    orgCtx, ok := domain.OrgFromContext(ctx)
+    if !ok {
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
+    }
+    
     const maxRetries = 3
     
     for attempt := 0; attempt < maxRetries; attempt++ {
         // Get the role
-        role, err := h.manager.store.GetRole(c.Request().Context(), roleID)
+        role, err := h.manager.store.GetRole(ctx, orgCtx.OrgID, roleID)
         if err != nil {
             return c.JSON(http.StatusNotFound, map[string]string{"error": "role not found"})
         }
@@ -738,6 +804,7 @@ func (h *Handler) syncAllRBACData(ctx context.Context) {
         return
     }
     
+    // List methods are org-aware via context
     if perms, err := h.manager.ListPermissions(ctx); err == nil {
         for _, perm := range perms {
             h.queryStore.SyncPermission(ctx, perm)

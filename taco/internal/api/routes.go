@@ -18,16 +18,20 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/oidc"
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
+	"github.com/diggerhq/digger/opentaco/internal/repositories"
 	"github.com/diggerhq/digger/opentaco/internal/s3compat"
+	"github.com/diggerhq/digger/opentaco/internal/storage"
 	"github.com/diggerhq/digger/opentaco/internal/sts"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 // Dependencies holds all the interface-based dependencies for routes.
 // This uses interface segregation - each handler gets ONLY what it needs.
 type Dependencies struct {
-	Repository  domain.UnitRepository  // Full unit access (backend, TFE, unit handlers)
+	Repository  domain.UnitRepository  // RBAC-wrapped repository (used by all routes)
+	BlobStore   storage.UnitStore      // Direct blob access (for legacy components like API tokens)
 	QueryStore  query.Store            // Direct query access (analytics, RBAC)
 	RBACManager *rbac.RBACManager      // RBAC management (RBAC routes only)
 	Signer      *authpkg.Signer        // JWT signing (auth, middleware)
@@ -81,8 +85,8 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 
 	// Auth routes (no auth required)
 	authHandler := authpkg.NewHandler(deps.Signer, stsi, ver)
-	// Opaque API tokens for TFE surface (uses repository for storage)
-	apiTokenMgr := authpkg.NewAPITokenManagerFromStore(deps.Repository)
+	// Opaque API tokens for TFE surface (uses blob store for storage)
+	apiTokenMgr := authpkg.NewAPITokenManagerFromStore(deps.BlobStore)
 	authHandler.SetAPITokenManager(apiTokenMgr)
 
 	e.POST("/v1/auth/exchange", authHandler.Exchange)
@@ -133,13 +137,30 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 
 	// API v1 protected group - JWT tokens only
 	v1 := e.Group("/v1")
+	// Create identifier resolver for unit name→UUID resolution
+	var identifierResolver domain.IdentifierResolver
+	if deps.QueryStore != nil {
+		if dbGetter, ok := deps.QueryStore.(interface{ GetDB() *gorm.DB }); ok {
+			db := dbGetter.GetDB()
+			identifierResolver = repositories.NewIdentifierResolver(db)
+		}
+	}
+	
 	if deps.AuthEnabled {
 		jwtVerifyFn := middleware.JWTOnlyVerifier(deps.Signer)
 		v1.Use(middleware.RequireAuth(jwtVerifyFn, deps.Signer))
+		
+		// Add JWT org resolution middleware (converts org name from JWT to UUID in domain context)
+		if identifierResolver != nil {
+			v1.Use(middleware.JWTOrgResolverMiddleware(identifierResolver))
+			log.Println("JWT org resolver middleware enabled for /v1 routes")
+		} else {
+			log.Println("WARNING: QueryStore does not implement GetDB() *gorm.DB - JWT org resolution disabled")
+		}
 	}
 
 	// Unit handlers (management API) - uses UnitManagement interface (11 methods)
-	unitHandler := unithandlers.NewHandler(unitMgmt, deps.RBACManager, deps.Signer, queryStore)
+	unitHandler := unithandlers.NewHandler(unitMgmt, deps.BlobStore, deps.RBACManager, deps.Signer, queryStore, identifierResolver)
 
 	// Management API (units) with JWT-only RBAC middleware
 	if deps.AuthEnabled {
@@ -225,9 +246,9 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	v1.DELETE("/rbac/permissions/:id", rbacHandler.DeletePermission)
 	v1.POST("/rbac/test", rbacHandler.TestPermissions)
 
-	// TFE api - inject auth handler, full repository, and RBAC dependencies
-	// TFE handler scopes to TFEOperations internally but needs full repo for API token storage
-	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.RBACManager)
+	// TFE api - inject auth handler, full repository, blob store for tokens, and RBAC dependencies
+	// TFE handler scopes to TFEOperations internally but needs blob store for API token storage
+	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.BlobStore, deps.RBACManager)
 
 	// Create protected TFE group - opaque tokens only
 	tfeGroup := e.Group("/tfe/api/v2")

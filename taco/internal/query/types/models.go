@@ -8,9 +8,8 @@ import (
 
 type Role struct {
 	ID          string        `gorm:"type:varchar(36);primaryKey"`
-	OrgID       string        `gorm:"type:varchar(36);index;not null"`
-	RoleId      string        `gorm:"type:varchar(255);not null;index"`
-	Name        string        `gorm:"type:varchar(255);not null"`
+	OrgID       string        `gorm:"type:varchar(36);index"` // Foreign key to organizations.id (UUID)
+	Name        string        `gorm:"type:varchar(255);not null;index"` // Unique identifier (e.g., "admin", "viewer")
 	Description string
 	Permissions []Permission  `gorm:"many2many:role_permissions;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
 	CreatedAt   time.Time
@@ -27,14 +26,13 @@ func (r *Role) BeforeCreate(tx *gorm.DB) error {
 func (Role) TableName() string { return "roles" }
 
 type Permission struct {
-	ID           string `gorm:"type:varchar(36);primaryKey"`
-	OrgID        string `gorm:"type:varchar(36);index;not null"`
-	PermissionId string `gorm:"type:varchar(255);not null;index"`
-	Name         string `gorm:"type:varchar(255);not null"`
-	Description  string
-	Rules        []Rule `gorm:"constraint:OnDelete:CASCADE"`
-	CreatedBy    string
-	CreatedAt    time.Time
+	ID          string `gorm:"type:varchar(36);primaryKey"`
+	OrgID       string `gorm:"type:varchar(36);index"` // Foreign key to organizations.id (UUID)
+	Name        string `gorm:"type:varchar(255);not null;index"` // Unique identifier (e.g., "unit-read", "unit-write")
+	Description string
+	Rules       []Rule `gorm:"constraint:OnDelete:CASCADE"`
+	CreatedBy   string
+	CreatedAt   time.Time
 }
 
 func (p *Permission) BeforeCreate(tx *gorm.DB) error {
@@ -72,12 +70,26 @@ type RuleAction struct {
 }
 func (RuleAction) TableName() string { return "rule_actions" }
 
+func (ra *RuleAction) BeforeCreate(tx *gorm.DB) error {
+	if ra.ID == "" {
+		ra.ID = uuid.New().String()
+	}
+	return nil
+}
+
 type RuleUnit struct {
 	ID     string `gorm:"type:varchar(36);primaryKey"`
 	RuleID string `gorm:"type:varchar(36);index;not null"`
 	UnitID string `gorm:"type:varchar(36);index;not null"`
 }
 func (RuleUnit) TableName() string { return "rule_units" }
+
+func (ru *RuleUnit) BeforeCreate(tx *gorm.DB) error {
+	if ru.ID == "" {
+		ru.ID = uuid.New().String()
+	}
+	return nil
+}
 
 type RuleUnitTag struct {
 	ID     string `gorm:"type:varchar(36);primaryKey"`
@@ -86,13 +98,20 @@ type RuleUnitTag struct {
 }
 func (RuleUnitTag) TableName() string { return "rule_unit_tags" }
 
+func (rut *RuleUnitTag) BeforeCreate(tx *gorm.DB) error {
+	if rut.ID == "" {
+		rut.ID = uuid.New().String()
+	}
+	return nil
+}
+
 type Organization struct {
-	ID        string `gorm:"type:varchar(36);primaryKey"`
-	OrgID     string `gorm:"type:varchar(255);not null;uniqueIndex"`
-	Name      string `gorm:"type:varchar(255);not null"`
-	CreatedBy string `gorm:"type:varchar(255);not null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID          string `gorm:"type:varchar(36);primaryKey"`
+	Name        string `gorm:"type:varchar(255);not null;uniqueIndex"` // Unique identifier (e.g., "acme") - used in CLI and paths
+	DisplayName string `gorm:"type:varchar(255);not null"`             // Friendly name (e.g., "Acme Corp") - shown in UI
+	CreatedBy   string `gorm:"type:varchar(255);not null"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (o *Organization) BeforeCreate(tx *gorm.DB) error {
@@ -121,7 +140,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 
 type Unit struct {
 	ID          string     `gorm:"type:varchar(36);primaryKey"`
-	OrgID       string     `gorm:"type:varchar(36);index;not null"`
+	OrgID       string     `gorm:"type:varchar(36);index"` // Foreign key to organizations.id (UUID)
 	Name        string     `gorm:"type:varchar(255);not null;index"`
 	Size        int64      `gorm:"default:0"`
 	UpdatedAt   time.Time  `gorm:"autoUpdateTime"`
@@ -143,7 +162,7 @@ func (Unit) TableName() string { return "units" }
 
 type Tag struct {
 	ID    string `gorm:"type:varchar(36);primaryKey"`
-	OrgID string `gorm:"type:varchar(36);index;not null"`
+	OrgID string `gorm:"type:varchar(36);index"` // Foreign key to organizations.id (UUID)
 	Name  string `gorm:"type:varchar(255);not null;index"`
 }
 

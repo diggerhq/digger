@@ -15,8 +15,8 @@ func CreateOrgScopedIndexes(db *gorm.DB) error {
 		columns string
 	}{
 		{"units", "idx_units_org_name", "org_id, name"},
-		{"roles", "idx_roles_org_role_id", "org_id, role_id"},
-		{"permissions", "idx_permissions_org_permission_id", "org_id, permission_id"},
+		{"roles", "idx_roles_org_name", "org_id, name"},
+		{"permissions", "idx_permissions_org_name", "org_id, name"},
 		{"tags", "idx_tags_org_name", "org_id, name"},
 	}
 	

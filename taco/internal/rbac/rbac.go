@@ -7,7 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	
+
+	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"gorm.io/gorm"
 )
 
@@ -115,26 +116,26 @@ type UserAssignment struct {
 // RBAC is considered "enabled" when permissions exist in the store.
 // No separate config/flag storage is needed.
 type RBACStore interface {
-	// Permission management
+	// Permission management (org-scoped)
 	CreatePermission(ctx context.Context, permission *Permission) error
-	GetPermission(ctx context.Context, id string) (*Permission, error)
-	ListPermissions(ctx context.Context) ([]*Permission, error)
-	DeletePermission(ctx context.Context, id string) error
+	GetPermission(ctx context.Context, orgID, id string) (*Permission, error)
+	ListPermissions(ctx context.Context, orgID string) ([]*Permission, error)
+	DeletePermission(ctx context.Context, orgID, id string) error
 
-	// Role management
+	// Role management (org-scoped)
 	CreateRole(ctx context.Context, role *Role) error
-	GetRole(ctx context.Context, id string) (*Role, error)
-	ListRoles(ctx context.Context) ([]*Role, error)
-	DeleteRole(ctx context.Context, id string) error
+	GetRole(ctx context.Context, orgID, id string) (*Role, error)
+	ListRoles(ctx context.Context, orgID string) ([]*Role, error)
+	DeleteRole(ctx context.Context, orgID, id string) error
 
-	// User assignment management
-	AssignRole(ctx context.Context, subject, email, roleID string) error
-	AssignRoleByEmail(ctx context.Context, email, roleID string) error
-	RevokeRole(ctx context.Context, subject, roleID string) error
-	RevokeRoleByEmail(ctx context.Context, email, roleID string) error
-	GetUserAssignment(ctx context.Context, subject string) (*UserAssignment, error)
-	GetUserAssignmentByEmail(ctx context.Context, email string) (*UserAssignment, error)
-	ListUserAssignments(ctx context.Context) ([]*UserAssignment, error)
+	// User assignment management (org-scoped)
+	AssignRole(ctx context.Context, orgID, subject, email, roleID string) error
+	AssignRoleByEmail(ctx context.Context, orgID, email, roleID string) error
+	RevokeRole(ctx context.Context, orgID, subject, roleID string) error
+	RevokeRoleByEmail(ctx context.Context, orgID, email, roleID string) error
+	GetUserAssignment(ctx context.Context, orgID, subject string) (*UserAssignment, error)
+	GetUserAssignmentByEmail(ctx context.Context, orgID, email string) (*UserAssignment, error)
+	ListUserAssignments(ctx context.Context, orgID string) ([]*UserAssignment, error)
 }
 
 // RBACManager provides high-level RBAC operations
@@ -168,27 +169,29 @@ func NewRBACManagerFromQueryStore(queryStore interface{}) (*RBACManager, error) 
 	return NewRBACManager(rbacStore), nil
 }
 
-// InitializeRBAC sets up RBAC for the first time by creating default permissions and roles.
+// InitializeRBAC sets up RBAC for the first time by creating default permissions and roles for an organization.
 // RBAC is considered "initialized" and "enabled" when permissions exist in the system.
 // This function is idempotent - it can be called multiple times safely.
-func (m *RBACManager) InitializeRBAC(ctx context.Context, initUser, initEmail string) error {
-	// Check if already initialized
-	enabled, err := m.IsEnabled(ctx)
+func (m *RBACManager) InitializeRBAC(ctx context.Context, orgID, initUser, initEmail string) error {
+	// For InitializeRBAC, we need explicit orgID since we're creating the org's RBAC structure
+	// Check if already initialized for this org
+	enabled, err := m.store.ListPermissions(ctx, orgID)
 	if err != nil {
 		return fmt.Errorf("failed to check if RBAC is enabled: %w", err)
 	}
-	if enabled {
+	if len(enabled) > 0 {
 		// Already initialized - just ensure the init user has admin role
-		if err := m.store.AssignRole(ctx, initUser, initEmail, "admin"); err != nil {
+		if err := m.store.AssignRole(ctx, orgID, initUser, initEmail, "admin"); err != nil {
 			// Ignore duplicate assignment errors
 			return nil
 		}
 		return nil
 	}
 
-	// Create default permissions
+	// Create default permissions (org-scoped)
 	defaultPermission := &Permission{
 		ID:          "default",
+		OrgID:       orgID, // ✅ Set org ID
 		Name:        "Default Permission",
 		Description: "Default permission allowing read access to all states",
 		Rules: []PermissionRule{
@@ -203,6 +206,7 @@ func (m *RBACManager) InitializeRBAC(ctx context.Context, initUser, initEmail st
 	}
 
 	adminPermission := &Permission{
+		OrgID:       orgID, // ✅ Set org ID
 		ID:          "admin",
 		Name:        "Admin Permission",
 		Description: "Admin permission allowing all actions on all resources",
@@ -225,9 +229,10 @@ func (m *RBACManager) InitializeRBAC(ctx context.Context, initUser, initEmail st
 		return fmt.Errorf("failed to create admin permission: %w", err)
 	}
 
-	// Create default roles
+	// Create default roles (org-scoped)
 	defaultRole := &Role{
 		ID:          "default",
+		OrgID:       orgID, // ✅ Set org ID
 		Name:        "Default Role",
 		Description: "Default role with read access",
 		Permissions: []string{"default"},
@@ -237,6 +242,7 @@ func (m *RBACManager) InitializeRBAC(ctx context.Context, initUser, initEmail st
 
 	adminRole := &Role{
 		ID:          "admin",
+		OrgID:       orgID, // ✅ Set org ID
 		Name:        "Admin Role",
 		Description: "Admin role with full access",
 		Permissions: []string{"admin"},
@@ -252,21 +258,28 @@ func (m *RBACManager) InitializeRBAC(ctx context.Context, initUser, initEmail st
 		return fmt.Errorf("failed to create admin role: %w", err)
 	}
 
-	// Assign admin role to init user
-	if err := m.store.AssignRole(ctx, initUser, initEmail, "admin"); err != nil {
+	// Assign admin role to init user (org-scoped)
+	if err := m.store.AssignRole(ctx, orgID, initUser, initEmail, "admin"); err != nil {
 		return fmt.Errorf("failed to assign admin role to init user: %w", err)
 	}
 
 	return nil
 }
 
-// IsEnabled checks if RBAC is enabled by checking if permissions exist.
-// RBAC is considered enabled if there are any permissions in the system.
+// IsEnabled checks if RBAC is enabled for an organization by checking if permissions exist.
+// RBAC is considered enabled if there are any permissions in the organization.
 // This derives the state from actual data rather than maintaining a separate flag.
 // NOTE: This requires database access. If the database is unavailable, this returns an error,
 // causing RBAC checks to fail closed (deny all access) rather than fail open.
+// The organization is extracted from the context.
 func (m *RBACManager) IsEnabled(ctx context.Context) (bool, error) {
-	perms, err := m.store.ListPermissions(ctx)
+	// Extract org from context
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return false, fmt.Errorf("organization context required for RBAC")
+	}
+	
+	perms, err := m.store.ListPermissions(ctx, orgCtx.OrgID)
 	if err != nil {
 		return false, fmt.Errorf("RBAC database unavailable: %w", err)
 	}
@@ -274,7 +287,14 @@ func (m *RBACManager) IsEnabled(ctx context.Context) (bool, error) {
 }
 
 // Can determines whether a principal is authorized to perform an action on a given unit key.
+// The organization is extracted from the context.
 func (m *RBACManager) Can(ctx context.Context, principal Principal, action Action, resource string) (bool, error) {
+	// Extract org from context
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return false, fmt.Errorf("organization context required for RBAC")
+	}
+	
 	enabled, err := m.IsEnabled(ctx)
 	if err != nil {
 		return false, err
@@ -283,8 +303,8 @@ func (m *RBACManager) Can(ctx context.Context, principal Principal, action Actio
 		return true, nil // RBAC disabled, allow all
 	}
 
-	// Get user's roles
-	assignment, err := m.store.GetUserAssignment(ctx, principal.Subject)
+	// Get user's roles (org-scoped)
+	assignment, err := m.store.GetUserAssignment(ctx, orgCtx.OrgID, principal.Subject)
 	if err != nil {
 		return false, err
 	}
@@ -292,15 +312,15 @@ func (m *RBACManager) Can(ctx context.Context, principal Principal, action Actio
 		return false, nil // No roles assigned
 	}
 
-	// Check each role's permissions
+	// Check each role's permissions (org-scoped)
 	for _, roleID := range assignment.Roles {
-		role, err := m.store.GetRole(ctx, roleID)
+		role, err := m.store.GetRole(ctx, orgCtx.OrgID, roleID)
 		if err != nil {
 			continue // Skip invalid roles
 		}
 
 		for _, permissionID := range role.Permissions {
-			permission, err := m.store.GetPermission(ctx, permissionID)
+			permission, err := m.store.GetPermission(ctx, orgCtx.OrgID, permissionID)
 			if err != nil {
 				continue // Skip invalid permissions
 			}
@@ -329,9 +349,14 @@ func (m *RBACManager) ruleMatches(rule PermissionRule, action Action, resource s
 	return rule.matches(action, resource)
 }
 
-// GetUserInfo returns user information including roles
+// GetUserInfo returns user information including roles for the current organization.
+// The organization is extracted from the context.
 func (m *RBACManager) GetUserInfo(ctx context.Context, subject string) (*UserAssignment, error) {
-	return m.store.GetUserAssignment(ctx, subject)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("organization context required")
+	}
+	return m.store.GetUserAssignment(ctx, orgCtx.OrgID, subject)
 }
 
 // CreateRole creates a new role
@@ -339,42 +364,71 @@ func (m *RBACManager) CreateRole(ctx context.Context, role *Role) error {
 	return m.store.CreateRole(ctx, role)
 }
 
-// AssignRole assigns a role to a user
+// AssignRole assigns a role to a user. The organization is extracted from context.
 func (m *RBACManager) AssignRole(ctx context.Context, subject, email, roleID string) error {
-	return m.store.AssignRole(ctx, subject, email, roleID)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("organization context required")
+	}
+	return m.store.AssignRole(ctx, orgCtx.OrgID, subject, email, roleID)
 }
 
-// AssignRoleByEmail assigns a role to a user by email (looks up subject)
+// AssignRoleByEmail assigns a role to a user by email. The organization is extracted from context.
 func (m *RBACManager) AssignRoleByEmail(ctx context.Context, email, roleID string) error {
-	return m.store.AssignRoleByEmail(ctx, email, roleID)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("organization context required")
+	}
+	return m.store.AssignRoleByEmail(ctx, orgCtx.OrgID, email, roleID)
 }
 
-// RevokeRole revokes a role from a user
+// RevokeRole revokes a role from a user. The organization is extracted from context.
 func (m *RBACManager) RevokeRole(ctx context.Context, subject, roleID string) error {
-	return m.store.RevokeRole(ctx, subject, roleID)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("organization context required")
+	}
+	return m.store.RevokeRole(ctx, orgCtx.OrgID, subject, roleID)
 }
 
-// RevokeRoleByEmail revokes a role from a user by email (looks up subject)
+// RevokeRoleByEmail revokes a role from a user by email. The organization is extracted from context.
 func (m *RBACManager) RevokeRoleByEmail(ctx context.Context, email, roleID string) error {
-	return m.store.RevokeRoleByEmail(ctx, email, roleID)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("organization context required")
+	}
+	return m.store.RevokeRoleByEmail(ctx, orgCtx.OrgID, email, roleID)
 }
 
-// ListRoles returns all roles
+// ListRoles returns all roles for the current organization (from context).
 func (m *RBACManager) ListRoles(ctx context.Context) ([]*Role, error) {
-	return m.store.ListRoles(ctx)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("organization context required")
+	}
+	return m.store.ListRoles(ctx, orgCtx.OrgID)
 }
 
-// ListPermissions returns all permissions
+// ListPermissions returns all permissions for the current organization (from context).
 func (m *RBACManager) ListPermissions(ctx context.Context) ([]*Permission, error) {
-	return m.store.ListPermissions(ctx)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("organization context required")
+	}
+	return m.store.ListPermissions(ctx, orgCtx.OrgID)
 }
 
-// ListUserAssignments returns all user assignments
+// ListUserAssignments returns all user assignments for the current organization (from context).
 func (m *RBACManager) ListUserAssignments(ctx context.Context) ([]*UserAssignment, error) {
-	return m.store.ListUserAssignments(ctx)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("organization context required")
+	}
+	return m.store.ListUserAssignments(ctx, orgCtx.OrgID)
 }
 
-// FilterUnitsByReadAccess filters a list of units based on read permissions
+// FilterUnitsByReadAccess filters a list of units based on read permissions.
+// The organization is extracted from the context.
 func (m *RBACManager) FilterUnitsByReadAccess(ctx context.Context, principal Principal, units []string) ([]string, error) {
 	enabled, err := m.IsEnabled(ctx)
 	if err != nil {
@@ -403,7 +457,20 @@ func (m *RBACManager) CreatePermission(ctx context.Context, permission *Permissi
 
 
 
-// DeletePermission deletes a permission
+// DeletePermission deletes a permission. The organization is extracted from context.
 func (m *RBACManager) DeletePermission(ctx context.Context, id string) error {
-	return m.store.DeletePermission(ctx, id)
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("organization context required")
+	}
+	return m.store.DeletePermission(ctx, orgCtx.OrgID, id)
+}
+
+// DeleteRole deletes a role. The organization is extracted from context.
+func (m *RBACManager) DeleteRole(ctx context.Context, id string) error {
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("organization context required")
+	}
+	return m.store.DeleteRole(ctx, orgCtx.OrgID, id)
 }
