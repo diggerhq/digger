@@ -18,9 +18,9 @@ cloudSql:
   serviceAccount: "cloudsql-sa"
 
 # ============================================================================
-# Digger Backend
+# Digger Managed
 # ============================================================================
-digger-backend:
+digger-managed:
   enabled: true
   digger:
     replicaCount: 2
@@ -36,15 +36,10 @@ digger-backend:
       className: "nginx"
       annotations:
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      hosts:
-        - host: api.opentaco.example.com  # CHANGE THIS
-          paths:
-            - path: /
-              pathType: Prefix
+      host: "api.opentaco.example.com"  # CHANGE THIS
+      path: /
       tls:
-        - secretName: digger-backend-tls
-          hosts:
-            - api.opentaco.example.com  # CHANGE THIS
+        secretName: digger-managed-tls
 
 # ============================================================================
 # Taco Statesman

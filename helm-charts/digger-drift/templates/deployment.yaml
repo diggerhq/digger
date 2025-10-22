@@ -28,11 +28,13 @@ spec:
             - name: http
               containerPort: {{ .Values.drift.service.port }}
               protocol: TCP
-          {{- if .Values.drift.existingSecretName }}
           envFrom:
             - secretRef:
-                name: {{ .Values.drift.existingSecretName }}
-          {{- end }}
+                {{- if .Values.drift.secret.useExistingSecret }}
+                name: {{ .Values.drift.secret.existingSecretName }}
+                {{- else }}
+                name: {{ include "digger-drift.fullname" . }}-secret
+                {{- end }}
           env:
             - name: DIGGER_PORT
               value: "{{ .Values.drift.service.port }}"
@@ -42,7 +44,6 @@ spec:
             - name: SENTRY_DSN
               value: "{{ .Values.drift.sentry.dsn }}"
             {{- end }}
-            {{- if not .Values.drift.existingSecretName }}
             # PostgreSQL configuration
             - name: POSTGRES_HOST
               value: "{{ .Values.drift.postgres.host }}"
@@ -60,124 +61,13 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.drift.postgres.existingSecretName }}
                   key: {{ .Values.drift.postgres.existingSecretKey }}
-            {{- else }}
+            {{- else if .Values.drift.postgres.password }}
             - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: POSTGRES_PASSWORD
+              value: "{{ .Values.drift.postgres.password }}"
             {{- end }}
-            # Configuration from secret
-            {{- if .Values.drift.github.existingSecretName }}
-            - name: DIGGER_HOSTNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: DIGGER_HOSTNAME
-            - name: DIGGER_WEBHOOK_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: DIGGER_WEBHOOK_SECRET
-            - name: DIGGER_APP_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: DIGGER_APP_URL
-                  optional: true
-            - name: DIGGER_DRIFT_REPORTER_HOSTNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: DIGGER_DRIFT_REPORTER_HOSTNAME
-                  optional: true
-            - name: GITHUB_ORG
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: GITHUB_ORG
-            - name: GITHUB_APP_ID
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: GITHUB_APP_ID
-            - name: GITHUB_APP_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: GITHUB_APP_CLIENT_ID
-            - name: GITHUB_APP_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: GITHUB_APP_CLIENT_SECRET
-            - name: GITHUB_APP_PRIVATE_KEY_BASE64
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: GITHUB_APP_PRIVATE_KEY_BASE64
-            - name: GITHUB_WEBHOOK_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.github.existingSecretName }}
-                  key: GITHUB_WEBHOOK_SECRET
-            {{- else }}
-            - name: DIGGER_HOSTNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: DIGGER_HOSTNAME
-            - name: DIGGER_WEBHOOK_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: DIGGER_WEBHOOK_SECRET
-            {{- if .Values.drift.config.appUrl }}
-            - name: DIGGER_APP_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: DIGGER_APP_URL
-            {{- end }}
-            {{- if .Values.drift.config.driftReporterHostname }}
-            - name: DIGGER_DRIFT_REPORTER_HOSTNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: DIGGER_DRIFT_REPORTER_HOSTNAME
-            {{- end }}
-            - name: GITHUB_ORG
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: GITHUB_ORG
-            - name: GITHUB_APP_ID
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: GITHUB_APP_ID
-            - name: GITHUB_APP_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: GITHUB_APP_CLIENT_ID
-            - name: GITHUB_APP_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: GITHUB_APP_CLIENT_SECRET
-            - name: GITHUB_APP_PRIVATE_KEY_BASE64
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: GITHUB_APP_PRIVATE_KEY_BASE64
-            - name: GITHUB_WEBHOOK_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "digger-drift.fullname" . }}
-                  key: GITHUB_WEBHOOK_SECRET
-            {{- end }}
-            {{- end }}
+            # Build DATABASE_URL from components
+            - name: DATABASE_URL
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)"
             # Custom environment variables
             {{- range .Values.drift.customEnv }}
             - name: {{ .name }}
@@ -189,6 +79,10 @@ spec:
           {{- end }}
           {{- with .Values.drift.startupProbe }}
           startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.drift.readinessProbe }}
+          readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.drift.resources }}
@@ -207,4 +101,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-

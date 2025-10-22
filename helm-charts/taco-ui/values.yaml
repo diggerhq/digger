@@ -1,4 +1,11 @@
 # values.yaml
+#
+# This chart creates environment variables from these values.
+# You can either:
+#   1. Set values here (chart creates secrets automatically)
+#   2. Use secret.useExistingSecret=true and create your own secret
+#
+# See secrets-example/ui.env for a complete example
 
 ui:
   # Image configuration
@@ -16,26 +23,66 @@ ui:
   # Number of replicas
   replicaCount: 1
 
-  # Service configuration  
+  # Service configuration
+  # Creates: PORT (set automatically from port)
   service:
     type: ClusterIP
-    port: 3030  # taco-ui Node.js server listens on port 3030
+    port: 3030             # PORT - taco-ui Node.js server listens on port 3030
 
-  # Environment variables
+  # Environment configuration
+  # Creates environment variables for the UI service
   env:
-    # Backend API URL
-    apiUrl: "http://taco-statesman:8080"
+    # Backend API URL (Statesman service)
+    # Creates: VITE_API_URL
+    apiUrl: "http://taco-statesman:8080"  # VITE_API_URL
+    
     # Allowed hosts (comma-separated)
-    allowedHosts: ""
-    # WorkOS configuration (optional)
+    # Creates: ALLOWED_HOSTS
+    allowedHosts: ""  # ALLOWED_HOSTS
+    
+    # WorkOS configuration (get from https://dashboard.workos.com/)
+    # Creates: WORKOS_REDIRECT_URI, WORKOS_API_KEY, WORKOS_CLIENT_ID,
+    #          WORKOS_COOKIE_PASSWORD, WORKOS_WEBHOOK_SECRET
     workos:
-      clientId: ""
-      # Use secretName for sensitive data
-      secretName: ""
+      redirectUri: ""         # WORKOS_REDIRECT_URI (e.g., https://your-domain.com/api/auth/callback)
+      apiKey: ""             # WORKOS_API_KEY
+      clientId: ""           # WORKOS_CLIENT_ID
+      cookiePassword: ""     # WORKOS_COOKIE_PASSWORD (32 char random string)
+      webhookSecret: ""      # WORKOS_WEBHOOK_SECRET
+    
     # PostHog configuration (optional)
+    # Creates: VITE_POSTHOG_KEY, VITE_POSTHOG_HOST
     posthog:
-      key: ""
-      host: ""
+      key: ""                # VITE_POSTHOG_KEY
+      host: ""               # VITE_POSTHOG_HOST
+    
+    # Backend service URLs (for in-cluster communication)
+    # Creates: ORCHESTRATOR_BACKEND_URL, ORCHESTRATOR_BACKEND_SECRET,
+    #          DRIFT_REPORTING_BACKEND_URL, DRIFT_REPORTING_BACKEND_WEBHOOK_SECRET,
+    #          STATESMAN_BACKEND_URL, STATESMAN_BACKEND_WEBHOOK_SECRET
+    backends:
+      # Orchestrator (Digger Backend)
+      orchestratorUrl: ""           # ORCHESTRATOR_BACKEND_URL (e.g., http://opentaco-digger-managed-web:3000)
+      orchestratorSecret: ""        # ORCHESTRATOR_BACKEND_SECRET
+      
+      # Drift Reporting
+      driftReportingUrl: ""         # DRIFT_REPORTING_BACKEND_URL (e.g., http://opentaco-drift:3004)
+      driftReportingWebhookSecret: ""  # DRIFT_REPORTING_BACKEND_WEBHOOK_SECRET
+      
+      # Statesman
+      statesmanUrl: ""              # STATESMAN_BACKEND_URL (e.g., http://opentaco-statesman:8080)
+      statesmanWebhookSecret: ""    # STATESMAN_BACKEND_WEBHOOK_SECRET
+
+  # Custom environment variables
+  customEnv: []
+  #   - name: MY_CUSTOM_ENV
+  #     value: "my-value"
+
+  # Secret configuration
+  # Use an existing secret or let the chart create one from values above
+  secret:
+    useExistingSecret: false
+    existingSecretName: ""
 
   # Ingress configuration
   ingress:
@@ -72,3 +119,6 @@ ui:
   # Affinity
   affinity: {}
 
+# Global configuration (optional)
+global:
+  imagePullSecrets: []

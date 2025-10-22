@@ -2,7 +2,7 @@
 # 
 # This chart deploys the complete OpenTaco platform:
 #   - Database (PostgreSQL or Cloud SQL)
-#   - Digger Backend
+#   - Digger Managed
 #   - Taco Statesman
 #   - Drift Detection
 #   - Taco UI
@@ -59,9 +59,9 @@ cloudSql:
   serviceAccount: "cloudsql-sa"
 
 # ============================================================================
-# Digger Backend Configuration
+# Digger Managed Configuration
 # ============================================================================
-digger-backend:
+digger-managed:
   enabled: true
   
   digger:
@@ -71,7 +71,42 @@ digger-backend:
     
     replicaCount: 1
     
-    # Database configuration managed via secrets (see backend-secrets in values-test.yaml.example)
+    # Secret configuration
+    secret:
+      useExistingSecret: false
+      existingSecretName: ""
+    
+    # Database configuration
+    postgres:
+      host: "postgresql.default.svc.cluster.local"
+      port: "5432"
+      user: "postgres"
+      database: "digger"
+      password: ""
+      sslmode: "disable"
+      allowDirty: false
+    
+    # Digger configuration
+    config:
+      enableApiEndpoints: true
+      enableInternalEndpoints: true
+      encryptionSecret: ""
+      generationApiToken: ""
+      generationEndpoint: ""
+      internalSecret: ""
+      licenseKey: ""
+      loadProjectsOnPush: false
+      maxProjectsPerChange: 100
+    
+    # GitHub App configuration
+    github:
+      appClientId: ""
+      appClientSecret: ""
+      appId: ""
+      appPrivateKeyBase64: ""
+      webhookSecret: ""
+    
+    hostname: ""
     
     service:
       type: ClusterIP
@@ -80,11 +115,8 @@ digger-backend:
     ingress:
       enabled: false
       className: "nginx"
-      hosts:
-        - host: api.opentaco.example.com
-          paths:
-            - path: /
-              pathType: Prefix
+      host: "api.opentaco.example.com"
+      path: /
 
 # ============================================================================
 # Taco Statesman Configuration
@@ -152,7 +184,7 @@ taco-ui:
     env:
       # Backend API URLs (auto-configured to point to services in cluster)
       apiUrl: "http://taco-statesman:8080"
-      orchestratorBackendUrl: "http://digger-backend:3000"
+      orchestratorBackendUrl: "http://digger-managed:3000"
       driftReportingBackendUrl: "http://drift:3004"
       
       # Allowed hosts (customize for your domain)

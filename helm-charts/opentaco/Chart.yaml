@@ -8,7 +8,7 @@ appVersion: "0.1.0"
 # Umbrella chart that deploys all OpenTaco components
 # This chart orchestrates:
 #   - PostgreSQL database (optional - can use Cloud SQL instead)
-#   - Digger Backend (terraform orchestration backend)
+#   - Digger Managed (terraform orchestration backend)
 #   - Taco Statesman (IaC state management)
 #   - Drift Detection service
 #   - Taco UI (React frontend)
@@ -22,11 +22,11 @@ dependencies:
     tags:
       - database
 
-  # Digger Backend - terraform orchestration
-  - name: digger-backend
-    version: "0.1.12"
-    repository: "oci://ghcr.io/diggerhq/helm-charts"
-    condition: digger-backend.enabled
+  # Digger Managed - terraform orchestration backend
+  - name: digger-managed
+    version: "0.1.0"
+    repository:  "oci://ghcr.io/diggerhq/helm-charts"
+    condition: digger-managed.enabled
     tags:
       - backend
 

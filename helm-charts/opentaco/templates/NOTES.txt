@@ -20,9 +20,9 @@ DEPLOYMENT STATUS:
   Please enable postgresql or cloudSql in values.yaml
 {{- end }}
 
-{{- if index .Values "digger-backend" "enabled" }}
-✓ Digger Backend: Enabled
-  Service: digger-backend:3000
+{{- if index .Values "digger-managed" "enabled" }}
+✓ Digger Managed: Enabled
+  Service: digger-managed:3000
 {{- end }}
 
 {{- if index .Values "taco-statesman" "enabled" }}

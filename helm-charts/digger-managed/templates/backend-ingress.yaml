@@ -1,0 +1,44 @@
+{{- if .Values.digger.ingress.enabled -}}
+{{- if and .Values.digger.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.digger.ingress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.digger.ingress.annotations "kubernetes.io/ingress.class" .Values.digger.ingress.className }}
+  {{- end }}
+{{- end }}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ include "digger-managed.fullname" . }}
+  annotations:
+  {{- range $key, $value := .Values.digger.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  labels:
+    {{- include "digger-managed.labels" . | nindent 4 }}
+spec:
+  {{- if and .Values.digger.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.digger.ingress.className }}
+  {{- end }}
+  {{- if .Values.digger.ingress.tls }}
+  tls:
+  - hosts:
+      - {{ .Values.digger.ingress.host }}
+    secretName: {{ .Values.digger.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+  - host: {{ .Values.digger.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.digger.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "digger-managed.fullname" . }}-web
+            port:
+              number: {{ .Values.digger.service.port }}
+{{- end }}
