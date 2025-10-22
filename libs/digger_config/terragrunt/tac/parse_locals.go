@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/zclconf/go-cty/cty"
 	"log/slog"
+	"regexp"
 
 	"path/filepath"
 )
@@ -39,6 +40,24 @@ type ResolvedLocals struct {
 
 	// If set to true, create Atlantis project
 	markedProject *bool
+}
+
+// detectReadTerragruntConfigDependencies scans HCL content for read_terragrunt_config calls
+// and extracts file paths from find_in_parent_folders() function calls
+func detectReadTerragruntConfigDependencies(hclContent string) []string {
+	var dependencies []string
+
+	// Pattern to match read_terragrunt_config(find_in_parent_folders("filename"))
+	readTerragruntConfigPattern := regexp.MustCompile(`read_terragrunt_config\s*\(\s*find_in_parent_folders\s*\(\s*["\']([^"\']+)["\']\s*\)\s*\)`)
+
+	matches := readTerragruntConfigPattern.FindAllStringSubmatch(hclContent, -1)
+	for _, match := range matches {
+		if len(match) > 1 {
+			dependencies = append(dependencies, match[1])
+		}
+	}
+
+	return dependencies
 }
 
 // parseHcl uses the HCL2 parser to parse the given string into an HCL file body.
@@ -123,6 +142,9 @@ func parseLocals(path string, terragruntOptions *options.TerragruntOptions, incl
 	localsAsCty := extensions.Locals
 	trackInclude := extensions.TrackInclude
 
+	// Detect read_terragrunt_config dependencies from raw HCL content
+	autoDetectedDependencies := detectReadTerragruntConfigDependencies(configString)
+
 	// Recurse on the parent to merge in the locals from that file
 	mergedParentLocals := ResolvedLocals{}
 	if trackInclude != nil && includeFromChild == nil {
@@ -131,12 +153,12 @@ func parseLocals(path string, terragruntOptions *options.TerragruntOptions, incl
 			mergedParentLocals = mergeResolvedLocals(mergedParentLocals, parentLocals)
 		}
 	}
-	childLocals := resolveLocals(*localsAsCty)
+	childLocals := resolveLocals(*localsAsCty, autoDetectedDependencies)
 
 	return mergeResolvedLocals(mergedParentLocals, childLocals), nil
 }
 
-func resolveLocals(localsAsCty cty.Value) ResolvedLocals {
+func resolveLocals(localsAsCty cty.Value, autoDetectedDependencies []string) ResolvedLocals {
 	resolved := ResolvedLocals{}
 
 	// Return an empty set of locals if no `locals` block was present
@@ -193,6 +215,14 @@ func resolveLocals(localsAsCty cty.Value) ResolvedLocals {
 				filepath.ToSlash(val.AsString()),
 			)
 		}
+	}
+
+	// Add auto-detected dependencies from read_terragrunt_config calls
+	for _, dep := range autoDetectedDependencies {
+		resolved.ExtraDiggerDependencies = append(
+			resolved.ExtraDiggerDependencies,
+			filepath.ToSlash(dep),
+		)
 	}
 
 	return resolved
