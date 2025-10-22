@@ -14,9 +14,10 @@ ui:
   #   - Production-optimized Node.js server with static asset serving
   #   - Built for linux/amd64 platform (GCP/GKE compatible)
   #
-  # Public image available at ghcr.io/diggerhq/digger/taco-ui
+  # Note: Full registry path comes from global.imageRegistry
+  # Public image: ghcr.io/diggerhq/digger/taco-ui
   image:
-    repository: ghcr.io/diggerhq/digger/taco-ui
+    repository: taco-ui
     tag: "latest"
     pullPolicy: "IfNotPresent"
 
@@ -32,10 +33,6 @@ ui:
   # Environment configuration
   # Creates environment variables for the UI service
   env:
-    # Backend API URL (Statesman service)
-    # Creates: VITE_API_URL
-    apiUrl: "http://taco-statesman:8080"  # VITE_API_URL
-    
     # Allowed hosts (comma-separated)
     # Creates: ALLOWED_HOSTS
     allowedHosts: ""  # ALLOWED_HOSTS
@@ -62,15 +59,15 @@ ui:
     #          STATESMAN_BACKEND_URL, STATESMAN_BACKEND_WEBHOOK_SECRET
     backends:
       # Orchestrator (Digger Backend)
-      orchestratorUrl: ""           # ORCHESTRATOR_BACKEND_URL (e.g., http://opentaco-digger-managed-web:3000)
+      orchestratorUrl: ""           # ORCHESTRATOR_BACKEND_URL (e.g., http://opentaco-digger-managed-web:3000) -> the orchestrator is the digger-managed service
       orchestratorSecret: ""        # ORCHESTRATOR_BACKEND_SECRET
       
       # Drift Reporting
-      driftReportingUrl: ""         # DRIFT_REPORTING_BACKEND_URL (e.g., http://opentaco-drift:3004)
+      driftReportingUrl: ""         # DRIFT_REPORTING_BACKEND_URL (e.g., http://opentaco-drift:3004) -> the drift service 
       driftReportingWebhookSecret: ""  # DRIFT_REPORTING_BACKEND_WEBHOOK_SECRET
       
       # Statesman
-      statesmanUrl: ""              # STATESMAN_BACKEND_URL (e.g., http://opentaco-statesman:8080)
+      statesmanUrl: ""              # STATESMAN_BACKEND_URL (e.g., http://opentaco-statesman:8080) -> the statesman service
       statesmanWebhookSecret: ""    # STATESMAN_BACKEND_WEBHOOK_SECRET
 
   # Custom environment variables
@@ -79,10 +76,11 @@ ui:
   #     value: "my-value"
 
   # Secret configuration
-  # Use an existing secret or let the chart create one from values above
+  # For production, create secret externally: kubectl create secret generic ui-secrets --from-env-file=.secrets/ui.env
+  # For development, set useExistingSecret=false and fill secret fields below
   secret:
-    useExistingSecret: false
-    existingSecretName: ""
+    useExistingSecret: true
+    existingSecretName: "ui-secrets"
 
   # Ingress configuration
   ingress:

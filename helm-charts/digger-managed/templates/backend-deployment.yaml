@@ -23,7 +23,7 @@ spec:
       {{- end }}
       containers:
       - name: web
-        image: "{{ .Values.digger.image.repository }}:{{ .Values.digger.image.tag }}"
+        image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ .Values.digger.image.repository }}:{{ .Values.digger.image.tag }}"
         imagePullPolicy: {{ .Values.digger.image.pullPolicy | default "IfNotPresent" }}
         ports:
         - name: http

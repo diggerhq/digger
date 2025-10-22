@@ -12,8 +12,10 @@ digger:
   replicaCount: 1
 
   # Image configuration
+  # Note: Full registry path comes from global.imageRegistry
+  # Public image: ghcr.io/diggerhq/digger/digger-backend-ee
   image:
-    repository: ghcr.io/diggerhq/digger/digger-backend-ee
+    repository: digger-backend-ee
     tag: "latest"
     pullPolicy: IfNotPresent
 
@@ -86,7 +88,7 @@ digger:
   # Creates: DIGGER_ENABLE_API_ENDPOINTS, DIGGER_ENABLE_INTERNAL_ENDPOINTS,
   #          DIGGER_ENCRYPTION_SECRET, DIGGER_GENERATION_API_TOKEN, DIGGER_GENERATION_ENDPOINT,
   #          DIGGER_INTERNAL_SECRET, DIGGER_LICENSE_KEY, DIGGER_LOAD_PROJECTS_ON_PUSH,
-  #          DIGGER_LOG_LEVEL, DIGGER_MAX_PROJECTS_PER_CHANGE, DIGGER_PROJECTS_SVC_APP_NAME
+  #          DIGGER_LOG_LEVEL, DIGGER_MAX_PROJECTS_PER_CHANGE, 
   config:
     enableApiEndpoints: true       # DIGGER_ENABLE_API_ENDPOINTS
     enableInternalEndpoints: true  # DIGGER_ENABLE_INTERNAL_ENDPOINTS
@@ -97,7 +99,7 @@ digger:
     licenseKey: ""                 # DIGGER_LICENSE_KEY
     loadProjectsOnPush: false      # DIGGER_LOAD_PROJECTS_ON_PUSH
     maxProjectsPerChange: 100      # DIGGER_MAX_PROJECTS_PER_CHANGE
-    projectsSvcAppName: "projects-refresh-service"  # DIGGER_PROJECTS_SVC_APP_NAME
+
 
   # GitHub App configuration (get from https://github.com/settings/apps)
   # Creates: GITHUB_APP_CLIENT_ID, GITHUB_APP_CLIENT_SECRET, GITHUB_APP_ID,
@@ -125,10 +127,11 @@ digger:
   gofips140: "off"            # GOFIPS140
 
   # Secret configuration
-  # Use an existing secret or let the chart create one from values above
+  # For production, create secret externally: kubectl create secret generic digger-managed-secrets --from-env-file=.secrets/digger-backend.env
+  # For development, set useExistingSecret=false and fill secret fields below
   secret:
-    useExistingSecret: false
-    existingSecretName: ""
+    useExistingSecret: true
+    existingSecretName: "digger-managed-secrets"
 
   # Node selector
   nodeSelector: {}

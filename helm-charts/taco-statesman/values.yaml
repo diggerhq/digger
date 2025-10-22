@@ -9,8 +9,10 @@
 
 taco:
   # Image configuration
+  # Note: Full registry path comes from global.imageRegistry
+  # Public image: ghcr.io/diggerhq/digger/taco-statesman
   image:
-    repository: ghcr.io/diggerhq/digger/taco-statesman
+    repository: taco-statesman
     tag: "latest"
     pullPolicy: "IfNotPresent"
 
@@ -56,13 +58,39 @@ taco:
 
   # Internal API endpoints
   # Creates: OPENTACO_ENABLE_INTERNAL_ENDPOINTS
-  # Set to true to enable internal endpoints (requires secret)
-  enableInternalEndpoints: false
-  internalSecret: ""        # OPENTACO_ENABLE_INTERNAL_ENDPOINTS (64 char secret)
+  # If set, enables internal endpoints with this secret (64 char secret)
+  internalSecret: ""        # OPENTACO_ENABLE_INTERNAL_ENDPOINTS
+  
 
-  # PostgreSQL configuration
+
+  # JWT Token Configuration
+  # Creates: OPENTACO_TOKENS_KID, OPENTACO_TOKENS_ACCESS_TTL, OPENTACO_TOKENS_REFRESH_TTL,
+  #          OPENTACO_TOKENS_PRIVATE_KEY_PEM_PATH
+  tokens:
+    kid: "k1"                    # OPENTACO_TOKENS_KID (Key ID for JWT signing)
+    accessTTL: "1h"              # OPENTACO_TOKENS_ACCESS_TTL (access token lifetime)
+    refreshTTL: "720h"           # OPENTACO_TOKENS_REFRESH_TTL (refresh token lifetime, 30 days)
+    privateKeyPemPath: ""        # OPENTACO_TOKENS_PRIVATE_KEY_PEM_PATH (optional, generates ephemeral key if empty)
+
+  # Public Base URL
+  # Creates: OPENTACO_PUBLIC_BASE_URL
+  # This is the public URL where OpenTaco is accessible (used as JWT issuer)
+  publicBaseUrl: "http://localhost:8080"  # OPENTACO_PUBLIC_BASE_URL
+
+  # OAuth Configuration
+  # Creates: OPENTACO_OAUTH_STATE_KEY
+  # IMPORTANT: Set this to a random 32-character string in production for security!
+  # Used to encrypt OAuth state parameters during PKCE flow
+  oauthStateKey: ""            # OPENTACO_OAUTH_STATE_KEY (32+ char random string, REQUIRED for production)
+
+  # Query Backend Configuration
+  # Creates: OPENTACO_QUERY_BACKEND
+  # Options: "postgres", "mssql", "sqlite", or other supported backends
+  queryBackend: "postgres"  # OPENTACO_QUERY_BACKEND
+
+  # PostgreSQL configuration (only used if queryBackend=postgres)
   # Creates: OPENTACO_POSTGRES_HOST, OPENTACO_POSTGRES_PORT, OPENTACO_POSTGRES_USER,
-  #          OPENTACO_POSTGRES_PASSWORD, OPENTACO_POSTGRES_DBNAME, OPENTACO_QUERY_BACKEND
+  #          OPENTACO_POSTGRES_PASSWORD, OPENTACO_POSTGRES_DBNAME, OPENTACO_POSTGRES_SSLMODE
   postgres:
     # Use existingSecret to pull password from an existing secret
     existingSecretName: ""
@@ -75,8 +103,7 @@ taco:
     user: "taco"           # OPENTACO_POSTGRES_USER
     password: ""           # OPENTACO_POSTGRES_PASSWORD
     database: "taco"       # OPENTACO_POSTGRES_DBNAME
-    # Query backend: "postgres" or other supported types
-    queryBackend: "postgres"  # OPENTACO_QUERY_BACKEND
+    sslmode: "disable"     # OPENTACO_POSTGRES_SSLMODE (disable, require, verify-ca, verify-full)
 
   # Custom environment variables
   customEnv: []
@@ -84,10 +111,11 @@ taco:
   #     value: "my-value"
 
   # Secret configuration
-  # Use an existing secret or let the chart create one from values above
+  # For production, create secret externally: kubectl create secret generic statesman-secrets --from-env-file=.secrets/statesman.env
+  # For development, set useExistingSecret=false and fill secret fields below
   secret:
-    useExistingSecret: false
-    existingSecretName: ""
+    useExistingSecret: true
+    existingSecretName: "statesman-secrets"
 
   # Resource limits
   resources: {}

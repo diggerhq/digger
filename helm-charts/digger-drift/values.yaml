@@ -9,9 +9,10 @@
 
 drift:
   # Image configuration
-  # Public image available at ghcr.io/diggerhq/digger/drift
+  # Note: Full registry path comes from global.imageRegistry
+  # Public image: ghcr.io/diggerhq/digger/drift
   image:
-    repository: ghcr.io/diggerhq/digger/drift
+    repository: drift
     tag: "latest"
     pullPolicy: "IfNotPresent"
 
@@ -32,7 +33,7 @@ drift:
   # Creates: DIGGER_PORT (set automatically from port)
   service:
     type: ClusterIP
-    port: 3000             # DIGGER_PORT
+    port: 3004             # DIGGER_PORT
 
   # Ingress configuration
   ingress:
@@ -83,54 +84,20 @@ drift:
   # Affinity
   affinity: {}
 
-  # Drift service configuration
-  # Creates: DIGGER_HOSTNAME, DIGGER_WEBHOOK_SECRET, DIGGER_APP_URL,
-  #          DIGGER_DRIFT_REPORTER_HOSTNAME
-  config:
-    hostname: ""              # DIGGER_HOSTNAME (public URL for this drift service)
-    webhookSecret: ""         # DIGGER_WEBHOOK_SECRET (32 char secret for webhook auth)
-    appUrl: ""                # DIGGER_APP_URL (URL for Digger app UI)
-    driftReporterHostname: "" # DIGGER_DRIFT_REPORTER_HOSTNAME (optional)
-
-  # Sentry configuration (optional)
-  # Creates: SENTRY_DSN
-  sentry:
-    dsn: ""                   # SENTRY_DSN
-
-  # GitHub App configuration (get from https://github.com/settings/apps)
-  # Creates: GITHUB_ORG, GITHUB_APP_ID, GITHUB_APP_CLIENT_ID,
-  #          GITHUB_APP_CLIENT_SECRET, GITHUB_APP_PRIVATE_KEY_BASE64, GITHUB_WEBHOOK_SECRET
-  # These are required for drift detection to work with GitHub
-  github:
-    org: ""                   # GITHUB_ORG (GitHub organization name)
-    appID: ""                 # GITHUB_APP_ID
-    appClientID: ""           # GITHUB_APP_CLIENT_ID
-    appClientSecret: ""       # GITHUB_APP_CLIENT_SECRET
-    appPrivateKey: ""         # GITHUB_APP_PRIVATE_KEY_BASE64 (base64 encoded private key)
-    webhookSecret: ""         # GITHUB_WEBHOOK_SECRET
-
-  # PostgreSQL configuration
-  # Creates: POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_DB,
-  #          POSTGRES_SSLMODE, POSTGRES_PASSWORD (if not using existingSecret)
-  # The drift service uses the same database as the digger backend
-  postgres:
-    # Use existingSecret to pull password from an existing secret
-    existingSecretName: ""
-    existingSecretKey: "postgres-password"
-    
-    # Database connection details
-    sslmode: "disable"        # POSTGRES_SSLMODE
-    user: "postgres"          # POSTGRES_USER
-    database: "digger"        # POSTGRES_DB
-    host: "postgresql.default.svc.cluster.local"  # POSTGRES_HOST
-    password: ""              # POSTGRES_PASSWORD
-    port: "5432"              # POSTGRES_PORT
-
   # Secret configuration
-  # Use an existing secret or let the chart create one from values above
+  # For production, create secret externally: kubectl create secret generic drift-secrets --from-env-file=.secrets/drift.env
+  # For development, set useExistingSecret=false and fill secret fields below
   secret:
-    useExistingSecret: false
-    existingSecretName: ""
+    useExistingSecret: true
+    existingSecretName: "drift-secrets"
+    # Required secret fields (only used if useExistingSecret=false):
+    databaseUrl: ""                    # DATABASE_URL - PostgreSQL connection string
+    diggerAppUrl: ""                   # DIGGER_APP_URL
+    diggerDriftReporterHostname: ""    # DIGGER_DRIFT_REPORTER_HOSTNAME
+    diggerHostname: ""                 # DIGGER_HOSTNAME
+    diggerWebhookSecret: ""            # DIGGER_WEBHOOK_SECRET
+    githubAppPrivateKeyBase64: ""      # GITHUB_APP_PRIVATE_KEY_BASE64
+    sentryDsn: ""                      # SENTRY_DSN (optional)
 
 # Global configuration (optional)
 global:

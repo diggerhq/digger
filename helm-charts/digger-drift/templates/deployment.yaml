@@ -22,7 +22,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.drift.image.repository }}:{{ .Values.drift.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ .Values.drift.image.repository }}:{{ .Values.drift.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.drift.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - name: http
@@ -40,34 +40,6 @@ spec:
               value: "{{ .Values.drift.service.port }}"
             - name: DIGGER_LOG_LEVEL
               value: "{{ .Values.drift.logLevel }}"
-            {{- if .Values.drift.sentry.dsn }}
-            - name: SENTRY_DSN
-              value: "{{ .Values.drift.sentry.dsn }}"
-            {{- end }}
-            # PostgreSQL configuration
-            - name: POSTGRES_HOST
-              value: "{{ .Values.drift.postgres.host }}"
-            - name: POSTGRES_PORT
-              value: "{{ .Values.drift.postgres.port }}"
-            - name: POSTGRES_USER
-              value: "{{ .Values.drift.postgres.user }}"
-            - name: POSTGRES_DB
-              value: "{{ .Values.drift.postgres.database }}"
-            - name: POSTGRES_SSLMODE
-              value: "{{ .Values.drift.postgres.sslmode }}"
-            {{- if .Values.drift.postgres.existingSecretName }}
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.drift.postgres.existingSecretName }}
-                  key: {{ .Values.drift.postgres.existingSecretKey }}
-            {{- else if .Values.drift.postgres.password }}
-            - name: POSTGRES_PASSWORD
-              value: "{{ .Values.drift.postgres.password }}"
-            {{- end }}
-            # Build DATABASE_URL from components
-            - name: DATABASE_URL
-              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)"
             # Custom environment variables
             {{- range .Values.drift.customEnv }}
             - name: {{ .name }}

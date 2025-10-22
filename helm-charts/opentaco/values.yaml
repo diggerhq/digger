@@ -66,57 +66,34 @@ digger-managed:
   
   digger:
     image:
-      repository: ghcr.io/diggerhq/digger/digger-backend-ee
+      repository: digger-backend-ee
       tag: "latest"
     
     replicaCount: 1
     
-    # Secret configuration
+    # Secret management
     secret:
-      useExistingSecret: false
-      existingSecretName: ""
+      useExistingSecret: true
+      existingSecretName: "digger-managed-secrets"
     
-    # Database configuration
-    postgres:
-      host: "postgresql.default.svc.cluster.local"
-      port: "5432"
-      user: "postgres"
-      database: "digger"
-      password: ""
-      sslmode: "disable"
-      allowDirty: false
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 512Mi
+    #    cpu: 500m
+    #  limits:
+    #    memory: 2Gi
+    #    cpu: 2000m
     
-    # Digger configuration
-    config:
-      enableApiEndpoints: true
-      enableInternalEndpoints: true
-      encryptionSecret: ""
-      generationApiToken: ""
-      generationEndpoint: ""
-      internalSecret: ""
-      licenseKey: ""
-      loadProjectsOnPush: false
-      maxProjectsPerChange: 100
-    
-    # GitHub App configuration
-    github:
-      appClientId: ""
-      appClientSecret: ""
-      appId: ""
-      appPrivateKeyBase64: ""
-      webhookSecret: ""
-    
-    hostname: ""
-    
-    service:
-      type: ClusterIP
-      port: 3000
-    
+    # Ingress configuration
     ingress:
       enabled: false
       className: "nginx"
       host: "api.opentaco.example.com"
       path: /
+    
+    # For detailed configuration (database, GitHub App, secrets, etc.),
+    # see helm-charts/digger-managed/values.yaml or use existingSecret above
 
 # ============================================================================
 # Taco Statesman Configuration
@@ -126,23 +103,41 @@ taco-statesman:
   
   taco:
     image:
-      repository: ghcr.io/diggerhq/digger/taco-statesman
+      repository: taco-statesman
       tag: "latest"
     
     replicaCount: 1
     
-    # Database configuration managed via secrets (see statesman-secrets in values-test.yaml.example)
+    # Secret management
+    secret:
+      useExistingSecret: true
+      existingSecretName: "statesman-secrets"
     
-    service:
-      type: ClusterIP
-      port: 8080
-    
-    # Storage configuration
+    # Storage configuration (critical: choose memory or s3)
     storage:
-      type: "memory"  # or "s3"
+      type: "memory"  # "memory" for dev, "s3" for production
       s3:
-        bucket: ""
-        region: ""
+        bucket: ""    # S3 bucket name (required if type=s3)
+        region: "us-east-1"
+    
+    # Cloud SQL configuration (for GCP)
+    cloudSql:
+      enabled: false
+      instanceConnectionName: ""
+      serviceAccount: "default"
+      credentialsSecret: ""
+    
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 250m
+    #  limits:
+    #    memory: 1Gi
+    #    cpu: 1000m
+    
+    # For detailed configuration (auth, JWT, postgres, OAuth, etc.),
+    # see helm-charts/taco-statesman/values.yaml or use existingSecret above
 
 # ============================================================================
 # Drift Detection Configuration
@@ -152,16 +147,34 @@ drift:
   
   drift:
     image:
-      repository: ghcr.io/diggerhq/digger/drift
+      repository: drift
       tag: "latest"
     
     replicaCount: 1
     
-    # Database configuration managed via secrets (see drift-secrets in values-test.yaml.example)
+    # Secret management
+    secret:
+      useExistingSecret: true
+      existingSecretName: "drift-secrets"
     
-    service:
-      type: ClusterIP
-      port: 3004
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 250m
+    #  limits:
+    #    memory: 1Gi
+    #    cpu: 1000m
+    
+    # Ingress configuration
+    ingress:
+      enabled: false
+      className: "nginx"
+      host: "drift.opentaco.example.com"
+      path: /
+    
+    # For detailed configuration (GitHub App, database, webhook secrets, etc.),
+    # see helm-charts/digger-drift/values.yaml or use existingSecret above
 
 # ============================================================================
 # Taco UI Configuration
@@ -171,34 +184,26 @@ taco-ui:
   
   ui:
     image:
-      repository: ghcr.io/diggerhq/digger/taco-ui
+      repository: taco-ui
       tag: "latest"
     
     replicaCount: 1
     
-    service:
-      type: ClusterIP
-      port: 3030
+    # Secret management
+    secret:
+      useExistingSecret: true
+      existingSecretName: "ui-secrets"
     
-    # Environment configuration
+    # Environment configuration (cross-service URLs)
     env:
-      # Backend API URLs (auto-configured to point to services in cluster)
-      apiUrl: "http://taco-statesman:8080"
-      orchestratorBackendUrl: "http://digger-managed:3000"
-      driftReportingBackendUrl: "http://drift:3004"
-      
       # Allowed hosts (customize for your domain)
       allowedHosts: ""
       
-      # WorkOS authentication
-      workos:
-        clientId: ""  # Set this
-        secretName: "workos-secrets"
-      
-      # PostHog analytics (optional)
-      posthog:
-        key: ""
-        host: ""
+      # Backend service URLs (for server-side API calls)
+      backends:
+        orchestratorUrl: "http://digger-managed:3000"
+        driftReportingUrl: "http://drift:3004"
+        statesmanUrl: "http://taco-statesman:8080"
     
     ingress:
       enabled: false
@@ -214,6 +219,18 @@ taco-ui:
         - secretName: opentaco-ui-tls
           hosts:
             - app.opentaco.example.com
+    
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 250m
+    #  limits:
+    #    memory: 1Gi
+    #    cpu: 1000m
+    
+    # For detailed configuration (WorkOS, PostHog, webhook secrets, etc.),
+    # see helm-charts/taco-ui/values.yaml or use existingSecret above
 
 # ============================================================================
 # Additional Configuration

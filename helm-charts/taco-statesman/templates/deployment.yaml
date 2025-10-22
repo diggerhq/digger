@@ -25,7 +25,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.taco.image.repository }}:{{ .Values.taco.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ .Values.taco.image.repository }}:{{ .Values.taco.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.taco.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - name: http
