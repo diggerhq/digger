@@ -87,3 +87,20 @@ Make drift functionality available in Community Edition by moving the existing E
 - Build touched modules: `go build ./drift`, `go build ./backend`, `go build ./ee/backend`, `go build ./ee/drift` (after step 5).
 - Smoke tests for drift endpoints via curl with proper auth headers.
 - CI passes for modules affected in each commit.
+
+## Implementation Notes
+
+Q: Functionality-wise, how is drift middleware different from backend middleware? Should we prefer using CE drift middleware (copy of EE) for safety?
+
+A:
+- Constants parity: Both expose the same context keys (`ORGANISATION_ID_KEY="organisation_ID"`, `ACCESS_LEVEL_KEY="access_level"`). EE backend only needed these keys, so switching to `backend/middleware` is safe.
+- Webhook auth:
+  - Drift’s `WebhookAuth()` validates `DIGGER_WEBHOOK_SECRET` and reads optional `X-Digger-Org-ID`.
+  - Backend’s `InternalApiAuth()` validates `DIGGER_INTERNAL_SECRET` and also supports `X-Digger-Org-ID`.
+  - EE backend wasn’t using drift’s webhook auth; only constants, so no behavior change.
+- Job token auth:
+  - Drift’s `JobTokenAuth()` accepts `cli:` tokens and sets org/access level.
+  - Backend’s `JWTBearerTokenAuth()` and `NoopApiAuth()` already handle `cli:` tokens (and also API `t:` tokens and JWTs) with the same org/access-level semantics.
+  - EE backend doesn’t depend on drift’s job token middleware.
+- Integration boundary: Backend and drift integrate via shared DB (`backend/models`) and external calls; backend doesn’t call drift endpoints today.
+- If closer drift parity is desired later, import CE drift middleware in relevant services or add a backend wrapper that accepts both `DIGGER_WEBHOOK_SECRET` and `DIGGER_INTERNAL_SECRET`.
