@@ -104,3 +104,9 @@ A:
   - EE backend doesn’t depend on drift’s job token middleware.
 - Integration boundary: Backend and drift integrate via shared DB (`backend/models`) and external calls; backend doesn’t call drift endpoints today.
 - If closer drift parity is desired later, import CE drift middleware in relevant services or add a backend wrapper that accepts both `DIGGER_WEBHOOK_SECRET` and `DIGGER_INTERNAL_SECRET`.
+
+New finding: EE CLI required for GitHub Issues notifications
+- Observation: The GitHub Issues notification path for drift currently lives in the EE CLI (`ee/cli/pkg/drift/provider.go` and related), selected via `INPUT_DRIFT_GITHUB_ISSUES`. Our Action also toggles EE CLI usage via `ee: 'true'`.
+- Impact: Although drift detection is now CE, using GitHub Issues notifications imposes an EE dependency (the example workflow requires `ee: 'true'`). Slack notifications remain CE-only and do not require EE.
+- Proposed fix (upcoming commit): Promote the GitHub Issues drift notification provider to CE by adding a CE implementation (e.g., `cli/pkg/drift/github_issue.go`) and extending the CE provider to honor `INPUT_DRIFT_GITHUB_ISSUES`. Update docs to remove the `ee: 'true'` requirement for Issues after the change.
+- Interim docs: Until the provider is promoted to CE, users need `ee: 'true'` in the workflow to enable GitHub Issues notifications for drift.

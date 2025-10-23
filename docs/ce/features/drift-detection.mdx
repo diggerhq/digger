@@ -3,6 +3,10 @@ title: "Drift Detection"
 ---
 
 
+<Note>
+Drift detection has been promoted from EE to CE and is now available to all Community Edition users. The examples below show how to configure scheduled drift checks and notifications.
+</Note>
+
 # Drift alerts via Slack
 
 ## Create a separate workflow file for drift
@@ -47,10 +51,42 @@ Note the `DRIFT_DETECTION_SLACK_NOTIFICATION` env var that the workflow above is
 Follow the [official Slack guide](https://api.slack.com/messaging/webhooks) to get the Incoming Webhook URL; then add it as an Action secret named `DRIFT_DETECTION_SLACK_NOTIFICATION`
 
 
-# Drift alerts via Github Issues
+# Drift alerts via GitHub Issues
 
-Coming soon to CE, here is an example of how to configure it: https://github.com/diggerhq/demo-ee-features/edit/main/.github/workflows/drift.yml.
-Digger supports drift detection and automatic creation of issues in your ticketing system, e.g. GitHub Issues:
+Digger supports drift detection and automatic creation of issues in your ticketing system, e.g. GitHub Issues. Configure a scheduled workflow that enables GitHub Issues notifications:
+
+```
+name: Drift Detection
+
+on:  
+  workflow_dispatch:
+  #schedule: ## Schedule the job to run at 12.am daily.
+  #  - cron: '0 0 * * *'
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    steps:
+    - name: digger drift detection
+      uses: diggerhq/digger@vLatest
+      with:
+        ee: 'true'
+        mode: drift-detection
+        setup-aws: true
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        no-backend: true
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        DIGGER_GITHUB_TOKEN: ${{ secrets.DIGGER_GITHUB_TOKEN }}
+        INPUT_DRIFT_GITHUB_ISSUES: 'true'
+        # DIGGER_MANAGEMENT_REPO: "https://github.com/your-org/your-mgmt-repo"
+```
+
+<Note>
+The example above creates GitHub Issues when drift is detected. Ensure `${{ secrets.GITHUB_TOKEN }}` (or a PAT) has permission to create issues in the repository.
+</Note>
 
 <img height="400" src="/images/drift-issues.png" />
 
