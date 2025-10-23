@@ -12,7 +12,6 @@ import (
 
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/query/migration/atlas"
-	gormmigration "github.com/diggerhq/digger/opentaco/internal/query/migration/gorm"
 	"github.com/diggerhq/digger/opentaco/internal/query/mssql"
 	"github.com/diggerhq/digger/opentaco/internal/query/mysql"
 	"github.com/diggerhq/digger/opentaco/internal/query/postgres"
@@ -60,24 +59,16 @@ func connectDatabase(backend string, cfg query.Config) (*gorm.DB, string, error)
 	}
 }
 
-// runMigrations applies schema migrations with fallback strategy
+// runMigrations applies schema migrations using Atlas
 func runMigrations(db *gorm.DB, dialect string, cfg query.Config) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// Try Atlas migrations first
 	atlasMigrator := atlas.NewMigrator(dialect, cfg)
 	
-	log.Printf("Attempting Atlas migrations for %s...", dialect)
+	log.Printf("Applying Atlas migrations for %s...", dialect)
 	if err := atlasMigrator.Migrate(ctx, db); err != nil {
-		log.Printf("⚠️  Atlas migration failed: %v", err)
-		log.Printf("Falling back to AutoMigrate for %s...", dialect)
-		
-		// Fallback to GORM AutoMigrate
-		gormMigrator := gormmigration.NewMigrator(dialect)
-		if err := gormMigrator.Migrate(ctx, db); err != nil {
-			return fmt.Errorf("both Atlas and AutoMigrate failed: %w", err)
-		}
+		return fmt.Errorf("atlas migration failed: %w", err)
 	}
 
 	return nil
