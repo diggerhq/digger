@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { WorkOS , Event as WorkOsEvent } from '@workos-inc/node';
 import { syncOrgToBackend } from '@/api/orchestrator_orgs';
 import { syncUserToBackend } from '@/api/orchestrator_users';
-import { createOrgForUser, listUserOrganizationInvitations, getOrganisationDetails } from '@/authkit/ssr/workos_api';
+import { createOrgForUser, listUserOrganizationInvitations, getOrganisationDetails, getOranizationsForUser } from '@/authkit/ssr/workos_api';
 import { syncOrgToStatesman } from '@/api/statesman_orgs';
 import { syncUserToStatesman } from '@/api/statesman_users';
 
@@ -25,15 +25,31 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
           
           if (event.event === "user.created") {
             console.log("Creating personal organization for the user", event.data.email)
-            const orgDetails = await createOrgForUser(event.data.id, "Personal");
-            let orgName = orgDetails.name;
-            let orgId = orgDetails.id;
-            console.log(`User ${event.data.email} is not invited to an organization, creating a new one`);
+
+            const uuid = crypto.randomUUID();
+            const personalOrgDisplayName = "Personal"
+            const personalOrgName = `${personalOrgDisplayName}_${uuid}`;
+            const userOrganizations = await getOranizationsForUser(event.data.id);
+            const personalOrg  = userOrganizations.filter(membership => 
+              membership.organizationName === personalOrgDisplayName
+            );
+            const personalOrgExists = personalOrg.length > 0;
+
+            let orgName, orgId;
+            if (personalOrgExists) {
+              orgName = personalOrg[0].organizationName;
+              orgId = personalOrg[0].organizationId;
+            } else {
+              console.log(`User ${event.data.email} is not invited to an organization, creating a new one`);
+              const orgDetails = await createOrgForUser(event.data.id, personalOrgDisplayName);
+              orgName = orgDetails.name;
+              orgId = orgDetails.id;  
+            }
       
             try {
               console.log("Syncing organization to backend orgName", orgName, "orgId", orgId);
               await syncOrgToBackend(orgId, orgName, null);
-              await syncOrgToStatesman(orgId, orgName, event.data.id, event.data.email);
+              await syncOrgToStatesman(orgId, personalOrgName, personalOrgDisplayName, event.data.id, event.data.email);
             } catch (error) {
               console.error(`Error syncing organization to backend:`, error);
               throw error;
@@ -62,18 +78,18 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
                 let orgName = orgDetails.name;
                 for (const invitation of userInvitations) {
                   try {
-                      await syncUserToBackend(invitation.userId!, invitation.userEmail!, invitation.organizationId!);
-                      await syncUserToStatesman(invitation.userId!, invitation.userEmail!, invitation.organizationId!);
+                      await syncOrgToBackend(invitation.organizationId!, orgName, null);
+                      await syncOrgToStatesman(invitation.organizationId!, orgName, personalOrgDisplayName, invitation.userId!, invitation.userEmail!);
                   } catch (error) {
-                    console.error(`Error syncing user to backend:`, error);
-                    throw error;
-                  }   
+                      console.error(`Error syncing user to backend:`, error);
+                      throw error;
+                  }
               }
-            }      
+            }
           }
-      
-          return new Response('Webhook received', { status: 200 });          
+          return new Response('Webhook received', { status: 200 });
         },
       },
     },
-});
+  });
+

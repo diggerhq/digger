@@ -16,6 +16,6 @@ function RouteComponent() {
   const { user, role, organisationId } = Route.useLoaderData()
 
   return (
-    <WorkosSettings userId={user?.id || ''} role={role || ''} organisationId={organisationId || ''} />
+    <WorkosSettings userId={user?.id || ''} email={user?.email || ''} role={role || ''} organisationId={organisationId || ''} />
   )
 }

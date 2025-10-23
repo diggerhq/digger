@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TfeSplatRouteImport } from './routes/tfe/$'
+import { Route as WellKnownTerraform_jsonRouteImport } from './routes/_well-known.terraform_json'
 import { Route as OrchestratorJob_artefactsRouteImport } from './routes/_orchestrator/job_artefacts'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/_dashboard'
 import { Route as OrchestratorGithubWebhookRouteImport } from './routes/orchestrator/github/webhook'
@@ -52,6 +54,16 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TfeSplatRoute = TfeSplatRouteImport.update({
+  id: '/tfe/$',
+  path: '/tfe/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WellKnownTerraform_jsonRoute = WellKnownTerraform_jsonRouteImport.update({
+  id: '/_well-known/terraform_json',
+  path: '/terraform_json',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrchestratorJob_artefactsRoute =
@@ -218,6 +230,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/terraform_json': typeof WellKnownTerraform_jsonRoute
+  '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
@@ -248,6 +262,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/terraform_json': typeof WellKnownTerraform_jsonRoute
+  '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
@@ -279,6 +295,8 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/_authenticated/_dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_orchestrator/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/_well-known/terraform_json': typeof WellKnownTerraform_jsonRoute
+  '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
@@ -311,6 +329,8 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/job_artefacts'
+    | '/terraform_json'
+    | '/tfe/$'
     | '/api/auth/callback'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
@@ -341,6 +361,8 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/job_artefacts'
+    | '/terraform_json'
+    | '/tfe/$'
     | '/api/auth/callback'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
@@ -371,6 +393,8 @@ export interface FileRouteTypes {
     | '/logout'
     | '/_authenticated/_dashboard'
     | '/_orchestrator/job_artefacts'
+    | '/_well-known/terraform_json'
+    | '/tfe/$'
     | '/api/auth/callback'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
@@ -403,6 +427,8 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LogoutRoute: typeof LogoutRoute
   OrchestratorJob_artefactsRoute: typeof OrchestratorJob_artefactsRoute
+  WellKnownTerraform_jsonRoute: typeof WellKnownTerraform_jsonRoute
+  TfeSplatRoute: typeof TfeSplatRoute
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
   OrchestratorGithubCallbackRoute: typeof OrchestratorGithubCallbackRoute
   OrchestratorGithubWebhookRoute: typeof OrchestratorGithubWebhookRoute
@@ -437,6 +463,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tfe/$': {
+      id: '/tfe/$'
+      path: '/tfe/$'
+      fullPath: '/tfe/$'
+      preLoaderRoute: typeof TfeSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_well-known/terraform_json': {
+      id: '/_well-known/terraform_json'
+      path: '/terraform_json'
+      fullPath: '/terraform_json'
+      preLoaderRoute: typeof WellKnownTerraform_jsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_orchestrator/job_artefacts': {
@@ -738,6 +778,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LogoutRoute: LogoutRoute,
   OrchestratorJob_artefactsRoute: OrchestratorJob_artefactsRoute,
+  WellKnownTerraform_jsonRoute: WellKnownTerraform_jsonRoute,
+  TfeSplatRoute: TfeSplatRoute,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,
   OrchestratorGithubCallbackRoute: OrchestratorGithubCallbackRoute,
   OrchestratorGithubWebhookRoute: OrchestratorGithubWebhookRoute,

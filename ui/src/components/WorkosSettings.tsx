@@ -26,11 +26,12 @@ type LoaderData = {
 
 type WorkosSettingsProps = {
   userId: string;
+  email: string;
   organisationId: string;
   role: 'admin' | 'member' | string;
 };
 
-export function WorkosSettings({ userId, organisationId, role }: WorkosSettingsProps) {
+export function WorkosSettings({ userId, email, organisationId, role }: WorkosSettingsProps) {
   const [authToken, setAuthToken] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -65,7 +66,7 @@ export function WorkosSettings({ userId, organisationId, role }: WorkosSettingsP
         />
         <div className="h-4" />
         {/* Add your org creation UI here */}
-        <CreateOrganizationBtn userId={userId} />
+        <CreateOrganizationBtn userId={userId} email={email} />
         <div className="h-4" />
         <UserProfile authToken={authToken} />
         <div className="h-4" />
