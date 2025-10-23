@@ -56,6 +56,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 		
 		// Organization endpoints
 		internal.POST("/orgs", orgHandler.CreateOrganization)
+		internal.POST("/orgs/sync", orgHandler.SyncExternalOrg)
 		internal.GET("/orgs/:orgId", orgHandler.GetOrganization)
 		internal.GET("/orgs", orgHandler.ListOrganizations)
 		

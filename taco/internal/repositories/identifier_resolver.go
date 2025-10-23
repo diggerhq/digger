@@ -36,7 +36,7 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		return parsed.UUID, nil
 	}
 	
-	// Query by name (organizations.name is the short identifier like "default")
+	// Try to resolve by internal name first
 	var result struct{ ID string }
 	err = r.db.WithContext(ctx).
 		Table("organizations").
@@ -44,14 +44,23 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		Where("name = ?", parsed.Name).
 		First(&result).Error
 	
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return "", fmt.Errorf("organization not found: %s", parsed.Name)
-		}
-		return "", err
+	if err == nil {
+		return result.ID, nil
 	}
 	
-	return result.ID, nil
+	// If not found by name, try external org ID
+	// This handles cases where someone passes an external ID directly
+	err = r.db.WithContext(ctx).
+		Table("organizations").
+		Select("id").
+		Where("external_org_id = ?", parsed.Name).
+		First(&result).Error
+	
+	if err == nil {
+		return result.ID, nil
+	}
+	
+	return "", fmt.Errorf("organization not found: %s", parsed.Name)
 }
 
 // ResolveUnit resolves unit identifier to UUID within an organization
