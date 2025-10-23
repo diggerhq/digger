@@ -70,7 +70,6 @@ jobs:
     - name: digger drift detection
       uses: diggerhq/digger@vLatest
       with:
-        ee: 'true'
         mode: drift-detection
         setup-aws: true
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}

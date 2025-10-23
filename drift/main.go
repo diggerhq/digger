@@ -10,8 +10,8 @@ import (
 	"os"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
-    "github.com/diggerhq/digger/drift/controllers"
-    "github.com/diggerhq/digger/drift/middleware"
+	"github.com/diggerhq/digger/drift/controllers"
+	"github.com/diggerhq/digger/drift/middleware"
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
