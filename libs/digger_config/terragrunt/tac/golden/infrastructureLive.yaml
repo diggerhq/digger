@@ -12,6 +12,9 @@ projects:
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
+    - account.hcl
+    - region.hcl
+    - env.hcl
   dir: non-prod/us-east-1/qa/mysql
 - autoplan:
     enabled: false
@@ -23,6 +26,9 @@ projects:
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
+    - account.hcl
+    - region.hcl
+    - env.hcl
   dir: non-prod/us-east-1/qa/webserver-cluster
 - autoplan:
     enabled: false
@@ -34,6 +40,9 @@ projects:
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
+    - account.hcl
+    - region.hcl
+    - env.hcl
   dir: non-prod/us-east-1/stage/mysql
 - autoplan:
     enabled: false
@@ -45,6 +54,9 @@ projects:
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
+    - account.hcl
+    - region.hcl
+    - env.hcl
   dir: non-prod/us-east-1/stage/webserver-cluster
 - autoplan:
     enabled: false
@@ -56,6 +68,9 @@ projects:
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
+    - account.hcl
+    - region.hcl
+    - env.hcl
   dir: prod/us-east-1/prod/mysql
 - autoplan:
     enabled: false
@@ -67,5 +82,8 @@ projects:
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
+    - account.hcl
+    - region.hcl
+    - env.hcl
   dir: prod/us-east-1/prod/webserver-cluster
 version: 3

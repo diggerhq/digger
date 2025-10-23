@@ -8,5 +8,8 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - ../../terragrunt.hcl
+    - account.hcl
+    - region.hcl
+    - env.hcl
   dir: child/deep
 version: 3

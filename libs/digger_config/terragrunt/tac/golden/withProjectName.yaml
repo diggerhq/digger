@@ -8,6 +8,9 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - ../../terragrunt.hcl
+    - account.hcl
+    - region.hcl
+    - env.hcl
   dir: child/deep
   name: child_deep
   alias: child_deep

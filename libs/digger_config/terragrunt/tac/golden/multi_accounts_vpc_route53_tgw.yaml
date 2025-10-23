@@ -8,6 +8,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - ../../../../terragrunt.hcl
+    - env.hcl
   dir: network-account/eu-west-1/network/transit-gateway
 - autoplan:
     enabled: false
@@ -15,8 +16,11 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - ../../../../../terragrunt.hcl
+    - env.hcl
     - ../../../env-a/network/vpc/terragrunt.hcl
+    - ../../../env-a/network/vpc/env.hcl
     - ../../../../../network-account/eu-west-1/network/transit-gateway/terragrunt.hcl
+    - ../../../../../network-account/eu-west-1/network/transit-gateway/env.hcl
   dir: prod/eu-west-1/_global/route53/test-zone
 - autoplan:
     enabled: false
@@ -24,6 +28,8 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - ../../../../../terragrunt.hcl
+    - env.hcl
     - ../../../../../network-account/eu-west-1/network/transit-gateway/terragrunt.hcl
+    - ../../../../../network-account/eu-west-1/network/transit-gateway/env.hcl
   dir: prod/eu-west-1/env-a/network/vpc
 version: 3
