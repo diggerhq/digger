@@ -117,12 +117,17 @@ func (s *Signer) MintAccess(sub string, roles, groups, scopes []string) (string,
 }
 
 func (s *Signer) MintAccessWithEmail(sub, email string, roles, groups, scopes []string) (string, time.Time, error) {
+	return s.MintAccessWithOrg(sub, email, roles, groups, scopes, "")
+}
+
+func (s *Signer) MintAccessWithOrg(sub, email string, roles, groups, scopes []string, org string) (string, time.Time, error) {
 	now := time.Now()
 	exp := now.Add(s.accessTTL)
 	claims := accessClaims{
 		Roles:  roles,
 		Groups: groups,
 		Scopes: scopes,
+		Org:    org,
 		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
@@ -140,12 +145,17 @@ func (s *Signer) MintAccessWithEmail(sub, email string, roles, groups, scopes []
 
 // MintAccessWithEmailAndTTL creates an access token with a custom TTL
 func (s *Signer) MintAccessWithEmailAndTTL(sub, email string, roles, groups, scopes []string, ttl time.Duration) (string, time.Time, error) {
+    return s.MintAccessWithOrgAndTTL(sub, email, roles, groups, scopes, "", ttl)
+}
+
+func (s *Signer) MintAccessWithOrgAndTTL(sub, email string, roles, groups, scopes []string, org string, ttl time.Duration) (string, time.Time, error) {
     now := time.Now()
     exp := now.Add(ttl)
     claims := accessClaims{
         Roles:  roles,
         Groups: groups,
         Scopes: scopes,
+        Org:    org,
         Email:  email,
         RegisteredClaims: jwt.RegisteredClaims{
             Issuer:    s.issuer,

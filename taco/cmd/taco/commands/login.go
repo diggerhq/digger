@@ -231,9 +231,24 @@ func exchangeCodeForTokens(tokenURL, clientID, redirectURI, code, verifier strin
     resp, err := http.DefaultClient.Do(req)
     if err != nil { return nil, err }
     defer resp.Body.Close()
-    if resp.StatusCode != 200 { return nil, fmt.Errorf("token http %d", resp.StatusCode) }
+    
+    // Read response body for error details
+    body, _ := io.ReadAll(resp.Body)
+    
+    if resp.StatusCode != 200 {
+        // Try to parse Auth0/OIDC error response
+        var errResp struct {
+            Error            string `json:"error"`
+            ErrorDescription string `json:"error_description"`
+        }
+        if json.Unmarshal(body, &errResp) == nil && errResp.Error != "" {
+            return nil, fmt.Errorf("token exchange failed (HTTP %d): %s - %s", resp.StatusCode, errResp.Error, errResp.ErrorDescription)
+        }
+        return nil, fmt.Errorf("token http %d: %s", resp.StatusCode, string(body))
+    }
+    
     var out struct{ IDToken string `json:"id_token"` }
-    if err := json.NewDecoder(resp.Body).Decode(&out); err != nil { return nil, err }
+    if err := json.Unmarshal(body, &out); err != nil { return nil, err }
     return &out, nil
 }
 

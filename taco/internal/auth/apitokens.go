@@ -3,10 +3,8 @@ package auth
 import (
     "context"
     "crypto/rand"
-    "encoding/json"
     "fmt"
     "log"
-    "strings"
     "time"
 
     "github.com/diggerhq/digger/opentaco/internal/storage"
@@ -16,6 +14,7 @@ import (
 // APIToken represents an opaque API token record stored as a unit
 type APIToken struct {
     Token      string     `json:"token"`
+    OrgID      string     `json:"org_id"`               // Organization UUID
     Subject    string     `json:"sub"`
     Email      string     `json:"email,omitempty"`
     Groups     []string   `json:"groups,omitempty"`
@@ -27,26 +26,33 @@ type APIToken struct {
 }
 
 // APITokenManager issues and verifies opaque tokens for the TFE API surface.
-// Tokens are stored as units with IDs like "_tfe_tokens/TOKEN_VALUE" for persistence.
+// Tokens are stored via a TokenStore abstraction for flexibility.
 type APITokenManager struct {
-    store storage.UnitStore // Required - tokens stored as units in blob storage
+    store TokenStore // Required - tokens stored via abstraction (blob, db, or external service)
 }
 
-func NewAPITokenManagerFromStore(store storage.UnitStore) *APITokenManager {
+// NewAPITokenManager creates a token manager with the given store.
+func NewAPITokenManager(store TokenStore) *APITokenManager {
     return &APITokenManager{
         store: store,
     }
 }
 
+// Deprecated: Use NewAPITokenManager with NewBlobTokenStore instead.
+// Kept for backward compatibility during migration.
+func NewAPITokenManagerFromStore(store storage.UnitStore) *APITokenManager {
+    return NewAPITokenManager(NewBlobTokenStore(store))
+}
+
 // Issue creates a new opaque API token and persists it, or returns existing active token
-func (m *APITokenManager) Issue(ctx context.Context, subject, email string, groups []string) (string, error) {
+func (m *APITokenManager) Issue(ctx context.Context, orgID string, subject, email string, groups []string) (string, error) {
 	// Check for existing active token for this user first
-	existingToken, err := m.findActiveTokenForUser(ctx, subject, email)
+	existingToken, err := m.findActiveTokenForUser(ctx, orgID, subject, email)
 	if err != nil {
 		return "", fmt.Errorf("failed to check for existing token: %w", err)
 	}
 	if existingToken != "" {
-		log.Printf("Reusing existing opaque token for user: %s", subject)
+		log.Printf("Reusing existing opaque token for user: %s in org: %s", subject, orgID)
 		return existingToken, nil
 	}
 
@@ -70,6 +76,7 @@ func (m *APITokenManager) Issue(ctx context.Context, subject, email string, grou
 	
 	rec := &APIToken{
 		Token:     token,
+		OrgID:     orgID,
 		Subject:   subject,
 		Email:     email,
 		Groups:    groups,
@@ -78,16 +85,16 @@ func (m *APITokenManager) Issue(ctx context.Context, subject, email string, grou
 		ExpiresAt: expiresAt,
 		Status:    "active",
 	}
-	if err := m.save(ctx, rec); err != nil {
+	if err := m.save(ctx, orgID, rec); err != nil {
 		return "", err
 	}
-	log.Printf("Created new opaque token for user: %s", subject)
+	log.Printf("Created new opaque token for user: %s in org: %s", subject, orgID)
 	return token, nil
 }
 
 // Verify checks an opaque token and returns its record if valid
-func (m *APITokenManager) Verify(ctx context.Context, token string) (*APIToken, error) {
-    rec, err := m.load(ctx, token)
+func (m *APITokenManager) Verify(ctx context.Context, orgID string, token string) (*APIToken, error) {
+    rec, err := m.load(ctx, orgID, token)
     if err != nil { return nil, err }
     if rec == nil { return nil, fmt.Errorf("not found") }
     if rec.Status != "active" { return nil, fmt.Errorf("revoked") }
@@ -102,56 +109,38 @@ func (m *APITokenManager) Verify(ctx context.Context, token string) (*APIToken, 
     now := time.Now().UTC()
     go func() {
         rec.LastUsedAt = now
-        _ = m.save(context.Background(), rec)
+        _ = m.save(context.Background(), orgID, rec)
     }()
     return rec, nil
 }
 
 // Revoke sets the token status to revoked
-func (m *APITokenManager) Revoke(ctx context.Context, token string) error {
-    rec, err := m.load(ctx, token)
+func (m *APITokenManager) Revoke(ctx context.Context, orgID string, token string) error {
+    rec, err := m.load(ctx, orgID, token)
     if err != nil { return err }
     if rec == nil { return storage.ErrNotFound }
     rec.Status = "revoked"
-    return m.save(ctx, rec)
+    return m.save(ctx, orgID, rec)
 }
 
-func (m *APITokenManager) save(ctx context.Context, rec *APIToken) error {
-    // Store token as a unit with ID: _tfe_tokens/TOKEN
-    unitID := "_tfe_tokens/" + rec.Token
-    b, _ := json.Marshal(rec)
-    return m.store.Upload(ctx, unitID, b, "")
+func (m *APITokenManager) save(ctx context.Context, orgID string, rec *APIToken) error {
+    return m.store.Save(ctx, orgID, rec)
 }
 
-func (m *APITokenManager) load(ctx context.Context, token string) (*APIToken, error) {
-    // Load token from unit ID: _tfe_tokens/TOKEN
-    unitID := "_tfe_tokens/" + token
-    b, err := m.store.Download(ctx, unitID)
-    if err != nil { return nil, err }
-    var rec APIToken
-    if err := json.Unmarshal(b, &rec); err != nil { return nil, err }
-    return &rec, nil
+func (m *APITokenManager) load(ctx context.Context, orgID string, token string) (*APIToken, error) {
+    return m.store.Load(ctx, orgID, token)
 }
 
 // findActiveTokenForUser searches for an existing active token for the given user
-func (m *APITokenManager) findActiveTokenForUser(ctx context.Context, subject, email string) (string, error) {
-	// List all tokens and check each one
-	units, err := m.store.List(ctx, "_tfe_tokens/")
+func (m *APITokenManager) findActiveTokenForUser(ctx context.Context, orgID, subject, email string) (string, error) {
+	// List all tokens for this org
+	tokens, err := m.store.List(ctx, orgID, "")
 	if err != nil {
 		return "", fmt.Errorf("failed to list tokens: %w", err)
 	}
 	
 	now := time.Now().UTC()
-	for _, unit := range units {
-		// Extract token from unit ID: _tfe_tokens/TOKEN
-		token := strings.TrimPrefix(unit.ID, "_tfe_tokens/")
-		
-		// Load the token record
-		rec, err := m.load(ctx, token)
-		if err != nil {
-			continue // Skip tokens we can't load
-		}
-		
+	for _, rec := range tokens {
 		// Check if this token matches the user and is active and not expired
 		if rec != nil && rec.Subject == subject && rec.Email == email && rec.Status == "active" {
 			// Check if token has expired

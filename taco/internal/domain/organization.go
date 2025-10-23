@@ -24,12 +24,12 @@ var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]$`)
 // Organization represents an organization in the domain layer
 // This is the domain model, separate from database entities
 type Organization struct {
-	ID        int64
-	OrgID     string
-	Name      string
-	CreatedBy string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID          string // UUID (primary key, for API)
+	Name        string // Unique identifier (e.g., "acme") - used in CLI and paths
+	DisplayName string // Friendly name (e.g., "Acme Corp") - shown in UI
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // ============================================
@@ -53,7 +53,7 @@ type OrganizationRepository interface {
 
 // User represents a user in the domain layer
 type User struct {
-	ID        int64
+	ID        string // UUID
 	Subject   string // Unique identifier (email, auth0 ID, etc.)
 	Email     string
 	CreatedAt time.Time
@@ -97,4 +97,29 @@ func ValidateOrgID(orgID string) error {
 		return fmt.Errorf("%w: must contain only letters, numbers, hyphens, and underscores", ErrInvalidOrgID)
 	}
 	return nil
+}
+
+// ============================================
+// Context Management
+// ============================================
+
+// OrgContext carries organization information through the request lifecycle
+type OrgContext struct {
+	OrgID string // UUID of the organization
+}
+
+// orgContextKey is used to store OrgContext in context.Context
+type orgContextKey struct{}
+
+// ContextWithOrg adds organization context to a context.Context
+// This allows passing org information through the call stack without coupling to HTTP
+func ContextWithOrg(ctx context.Context, orgID string) context.Context {
+	return context.WithValue(ctx, orgContextKey{}, &OrgContext{OrgID: orgID})
+}
+
+// OrgFromContext retrieves organization context from context.Context
+// Returns the OrgContext and a boolean indicating if it was found
+func OrgFromContext(ctx context.Context) (*OrgContext, bool) {
+	org, ok := ctx.Value(orgContextKey{}).(*OrgContext)
+	return org, ok
 }
