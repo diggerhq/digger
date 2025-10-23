@@ -3,7 +3,7 @@ data "external_schema" "gorm_sqlite" {
   program = [
     "sh",
     "-c",
-    "cd internal && go run ./atlas_loader.go",
+    "cd internal && go run ./atlas_loader.go sqlite",
   ]
 }
 
@@ -23,10 +23,9 @@ env "sqlite" {
 # PostgreSQL configuration
 data "external_schema" "gorm_postgres" {
   program = [
-    "atlas-provider-gorm",
-    "load",
-    "--path", "./internal/query/types",
-    "--dialect", "postgres",
+    "sh",
+    "-c",
+    "cd internal && go run ./atlas_loader.go postgres",
   ]
 }
 
@@ -46,10 +45,9 @@ env "postgres" {
 # MySQL configuration
 data "external_schema" "gorm_mysql" {
   program = [
-    "atlas-provider-gorm",
-    "load",
-    "--path", "./internal/query/types",
-    "--dialect", "mysql",
+    "sh",
+    "-c",
+    "cd internal && go run ./atlas_loader.go mysql",
   ]
 }
 
@@ -69,10 +67,9 @@ env "mysql" {
 # SQL Server configuration
 data "external_schema" "gorm_sqlserver" {
   program = [
-    "atlas-provider-gorm",
-    "load",
-    "--path", "./internal/query/types",
-    "--dialect", "sqlserver",
+    "sh",
+    "-c",
+    "cd internal && go run ./atlas_loader.go sqlserver",
   ]
 }
 

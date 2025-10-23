@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -11,9 +12,15 @@ import (
 )
 
 func main() {
-	stmts, err := gormschema.New("sqlite").Load(types.DefaultModels...)
+	// Default to sqlite if no argument provided
+	dialect := "sqlite"
+	if len(os.Args) > 1 {
+		dialect = os.Args[1]
+	}
+
+	stmts, err := gormschema.New(dialect).Load(types.DefaultModels...)
 	if err != nil {
-		os.Stderr.WriteString(err.Error())
+		fmt.Fprintf(os.Stderr, "Error loading schema for %s: %v\n", dialect, err)
 		os.Exit(1)
 	}
 	io.WriteString(os.Stdout, stmts)

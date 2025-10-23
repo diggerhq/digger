@@ -3,7 +3,9 @@ module github.com/diggerhq/digger/opentaco/internal
 go 1.24.0
 
 require (
+	ariga.io/atlas v0.36.1
 	ariga.io/atlas-go-sdk v0.7.2
+	ariga.io/atlas-provider-gorm v0.5.4
 	github.com/aws/aws-sdk-go-v2 v1.38.1
 	github.com/aws/aws-sdk-go-v2/config v1.31.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.87.1
@@ -23,7 +25,6 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.36.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0 // indirect
