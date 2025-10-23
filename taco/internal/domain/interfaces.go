@@ -37,15 +37,16 @@ type StateOperations interface {
 
 // UnitManagement extends StateOperations with admin/management operations.
 // This is for the unit management API that needs full CRUD + versioning.
+// All operations are org-scoped in the new architecture.
 type UnitManagement interface {
 	StateOperations
 	
-	// Admin operations
-	Create(ctx context.Context, id string) (*storage.UnitMetadata, error)
-	List(ctx context.Context, prefix string) ([]*storage.UnitMetadata, error)
-	Delete(ctx context.Context, id string) error
+	// Admin operations (org-scoped)
+	Create(ctx context.Context, orgID string, name string) (*storage.UnitMetadata, error)
+	List(ctx context.Context, orgID string, prefix string) ([]*storage.UnitMetadata, error)
+	Delete(ctx context.Context, id string) error // Uses UUID
 	
-	// Version operations
+	// Version operations (UUID-based)
 	ListVersions(ctx context.Context, id string) ([]*storage.VersionInfo, error)
 	RestoreVersion(ctx context.Context, id string, versionTimestamp time.Time, lockID string) error
 }
@@ -81,11 +82,13 @@ type UnitRepository interface {
 
 // Unit represents a Terraform state unit in API responses
 type Unit struct {
-	ID       string `json:"id"`
-	Size     int64  `json:"size"`
-	Updated  time.Time `json:"updated"`
-	Locked   bool   `json:"locked"`
-	LockInfo *Lock  `json:"lock_info,omitempty"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	AbsoluteName string    `json:"absolute_name"`
+	Size         int64     `json:"size"`
+	Updated      time.Time `json:"updated"`
+	Locked       bool      `json:"locked"`
+	LockInfo     *Lock     `json:"lock_info,omitempty"`
 }
 
 // Lock represents a Terraform state lock in API responses
@@ -129,6 +132,7 @@ func ValidateUnitID(id string) error {
 // NormalizeUnitID normalizes a unit ID by removing leading/trailing slashes and collapsing multiple slashes
 func NormalizeUnitID(id string) string {
 	s := strings.TrimSpace(id)
+	s = strings.ToLower(s) // Normalize to lowercase for case-insensitivity
 	s = strings.Trim(s, "/")
 	
 	// Collapse multiple slashes
@@ -137,6 +141,14 @@ func NormalizeUnitID(id string) string {
 	}
 	
 	return s
+}
+
+// DecodeURLPath decodes a URL-encoded path parameter
+func DecodeURLPath(encoded string) (string, error) {
+	// URL-decode the path (handles %2F -> /)
+	decoded := strings.ReplaceAll(encoded, "%2F", "/")
+	decoded = strings.ReplaceAll(decoded, "%2f", "/")
+	return decoded, nil
 }
 
 // DecodeUnitID decodes a URL-encoded unit ID (currently just normalizes)

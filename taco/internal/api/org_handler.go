@@ -29,16 +29,17 @@ func NewOrgHandler(orgRepo domain.OrganizationRepository, userRepo domain.UserRe
 
 // CreateOrgRequest is the request body for creating an organization
 type CreateOrgRequest struct {
-	OrgID string `json:"org_id" validate:"required"`
-	Name  string `json:"name" validate:"required"`
+	Name        string `json:"name" validate:"required"`         // Unique identifier (e.g., "acme")
+	DisplayName string `json:"display_name" validate:"required"` // Friendly name (e.g., "Acme Corp")
 }
 
 // CreateOrgResponse is the response for creating an organization
 type CreateOrgResponse struct {
-	OrgID     string `json:"org_id"`
-	Name      string `json:"name"`
-	CreatedBy string `json:"created_by"`
-	CreatedAt string `json:"created_at"`
+	ID          string `json:"id"`           // UUID
+	Name        string `json:"name"`         // Unique identifier
+	DisplayName string `json:"display_name"` // Friendly name
+	CreatedBy   string `json:"created_by"`
+	CreatedAt   string `json:"created_at"`
 }
 
 // CreateOrganization handles POST /internal/orgs
@@ -82,15 +83,15 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 		})
 	}
 
-	if req.OrgID == "" || req.Name == "" {
+	if req.Name == "" || req.DisplayName == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "org_id and name are required",
+			"error": "name and display_name are required",
 		})
 	}
 
 	slog.Info("Creating organization",
-		"orgID", req.OrgID,
 		"name", req.Name,
+		"displayName", req.DisplayName,
 		"createdBy", userIDStr,
 	)
 
@@ -101,7 +102,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 
 	// Create organization in transaction
 	err := h.orgRepo.WithTransaction(ctx, func(ctx context.Context, txRepo domain.OrganizationRepository) error {
-		createdOrg, err := txRepo.Create(ctx, req.OrgID, req.Name, userIDStr)
+		createdOrg, err := txRepo.Create(ctx, req.Name, req.DisplayName, userIDStr)
 		if err != nil {
 			return err
 		}
@@ -123,7 +124,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 		}
 
 		slog.Error("Failed to create organization",
-			"orgID", req.OrgID,
+			"name", req.Name,
 			"error", err,
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -135,22 +136,25 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 	// Initialize RBAC after org creation (outside transaction for SQLite compatibility)
 	if h.rbacManager != nil {
 		slog.Info("Initializing RBAC for new organization",
-			"orgID", req.OrgID,
+			"orgName", req.Name,
+			"orgID", org.ID,
 			"adminUser", userIDStr,
 		)
 
-		if err := h.rbacManager.InitializeRBAC(ctx, userIDStr, emailStr); err != nil {
+		if err := h.rbacManager.InitializeRBAC(ctx, org.ID, userIDStr, emailStr); err != nil {
 			// Org was created but RBAC failed - log warning but don't fail the request
 			// User can retry RBAC initialization or assign roles manually
 			slog.Warn("Organization created but RBAC initialization failed",
-				"orgID", req.OrgID,
+				"orgName", req.Name,
+				"orgID", org.ID,
 				"error", err,
 				"recommendation", "RBAC can be initialized later via /rbac/init endpoint",
 			)
 			// Continue with success response - org was created
 		} else {
 			slog.Info("RBAC initialized successfully",
-				"orgID", req.OrgID,
+				"orgName", req.Name,
+				"orgID", org.ID,
 				"adminUser", userIDStr,
 			)
 		}
@@ -158,10 +162,11 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 
 	// Success - org created (and RBAC initialized if available)
 	return c.JSON(http.StatusCreated, CreateOrgResponse{
-		OrgID:     org.OrgID,
-		Name:      org.Name,
-		CreatedBy: org.CreatedBy,
-		CreatedAt: org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:          org.ID,
+		Name:        org.Name,
+		DisplayName: org.DisplayName,
+		CreatedBy:   org.CreatedBy,
+		CreatedAt:   org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	})
 }
 
@@ -193,11 +198,12 @@ func (h *OrgHandler) GetOrganization(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"org_id":     org.OrgID,
-		"name":       org.Name,
-		"created_by": org.CreatedBy,
-		"created_at": org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		"updated_at": org.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"id":           org.ID,
+		"name":         org.Name,
+		"display_name": org.DisplayName,
+		"created_by":   org.CreatedBy,
+		"created_at":   org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"updated_at":   org.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	})
 }
 
@@ -216,11 +222,12 @@ func (h *OrgHandler) ListOrganizations(c echo.Context) error {
 	response := make([]map[string]interface{}, len(orgs))
 	for i, org := range orgs {
 		response[i] = map[string]interface{}{
-			"org_id":     org.OrgID,
-			"name":       org.Name,
-			"created_by": org.CreatedBy,
-			"created_at": org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			"updated_at": org.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"id":           org.ID,
+			"name":         org.Name,
+			"display_name": org.DisplayName,
+			"created_by":   org.CreatedBy,
+			"created_at":   org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"updated_at":   org.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
 

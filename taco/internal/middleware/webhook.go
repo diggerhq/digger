@@ -6,7 +6,6 @@ import (
 	"strings"
 	"log/slog"
 	"crypto/subtle"
-	"errors"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
@@ -19,8 +18,9 @@ import (
 //   - Authorization: Bearer <webhook_secret>
 //   - X-User-ID: user identifier (subject)
 //   - X-Email: user email
-//   - X-Org-ID: organization identifier (REQUIRED for org isolation)
-func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
+//   - X-Org-ID: organization identifier (defaults to "default" for self-hosted)
+// Note: Org validation and UUID resolution happens in ResolveOrgContextMiddleware
+func WebhookAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			webhookSecret := os.Getenv("OPENTACO_ENABLE_INTERNAL_ENDPOINTS")
@@ -57,74 +57,39 @@ func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
 				})
 			}
 
-			// Extract user context from headers
-			userID := c.Request().Header.Get("X-User-ID")
-			email := c.Request().Header.Get("X-Email")
-			orgID := c.Request().Header.Get("X-Org-ID")
+		// Extract user context from headers
+		userID := c.Request().Header.Get("X-User-ID")
+		email := c.Request().Header.Get("X-Email")
+		orgID := c.Request().Header.Get("X-Org-ID")
 
-			// Skip org validation for create org endpoint
-			isCreateOrg := c.Request().Method == http.MethodPost && c.Path() == "/internal/api/orgs"
+		// Skip org validation for create org endpoint
+		isCreateOrg := c.Request().Method == http.MethodPost && c.Path() == "/internal/api/orgs"
 
-			// Require user ID and org ID for org isolation
-			if userID == "" {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"error": "X-User-ID header required",
-				})
-			}
-			
-			if !isCreateOrg && orgID == "" {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"error": "X-Org-ID header required for org-based isolation",
-				})
-			}
+		// Require user ID
+		if userID == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "X-User-ID header required",
+			})
+		}
+		
+		// Default to "default" org if not provided (except for create org endpoint)
+		if !isCreateOrg && orgID == "" {
+			orgID = "default"
+			slog.Debug("No X-Org-ID header provided, defaulting to 'default' org")
+		}
+		
+		// Validate org ID format (prevents injection/traversal attacks)
+		if orgID != "" && !domain.OrgIDPattern.MatchString(orgID) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "invalid org ID format",
+			})
+		}
 
-			
-			// Validate org ID format (prevents injection/traversal attacks)
-			if orgID != "" && !domain.OrgIDPattern.MatchString(orgID) {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"error": "invalid org ID format",
-				})
-			}
+		// Note: Org existence validation and resolution to UUID happens in 
+		// ResolveOrgContextMiddleware which runs after this middleware.
+		// This middleware just extracts the org name from headers.
 
-			// ========================================
-			// Verify organization exists in database
-			// ========================================
-			if !isCreateOrg && orgRepo != nil && orgID != "" {
-				ctx := c.Request().Context()
-				_, err := orgRepo.Get(ctx, orgID)
-				if err != nil {
-					if errors.Is(err, domain.ErrOrgNotFound) {
-						slog.Warn("Webhook request for non-existent organization",
-							"orgID", orgID,
-							"userID", userID,
-						)
-						return c.JSON(http.StatusNotFound, map[string]string{
-							"error": "organization not found",
-							"org_id": orgID,
-						})
-					}
-					
-					// Database error
-					slog.Error("Failed to verify organization existence",
-						"orgID", orgID,
-						"error", err,
-					)
-					return c.JSON(http.StatusInternalServerError, map[string]string{
-						"error": "failed to verify organization",
-					})
-				}
-				
-				slog.Debug("Organization verified for webhook request",
-					"orgID", orgID,
-					"userID", userID,
-				)
-			} else {
-				// This should never happen if properly configured
-				slog.Warn("Webhook middleware configured without org repository - skipping org existence check")
-			}
-
-
-			// Build Principal from headers (for RBAC layer)
+		// Build Principal from headers (for RBAC layer)
 			// Note: RBAC IS applied if enabled - it looks up roles from database using Subject
 			principal := rbac.Principal{
 				Subject: userID,
@@ -133,23 +98,22 @@ func WebhookAuth(orgRepo domain.OrganizationRepository) echo.MiddlewareFunc {
 				Groups:  []string{"org:" + orgID}, // Org group for permission matching
 			}
 
-			// Store in echo context for handlers that need it
-			c.Set("organization_id", orgID)
-			c.Set("user_id", userID)
-			c.Set("email", email)
+		// Store in echo context for downstream middleware
+		c.Set("organization_id", orgID)  // ResolveOrgContextMiddleware will resolve this to UUID
+		c.Set("user_id", userID)
+		c.Set("email", email)
 
-			// Add contexts to request context (domain layer contracts)
-			ctx := c.Request().Context()
-			
-			// Add org context (for orgScopedRepository)
-			ctx = domain.ContextWithOrg(ctx, orgID)
-			
-			// Add principal context (for authorizingRepository/RBAC)
-			ctx = rbac.ContextWithPrincipal(ctx, principal)
-			
-			c.SetRequest(c.Request().WithContext(ctx))
+		// Add principal context (for authorizingRepository/RBAC)
+		ctx := c.Request().Context()
+		ctx = rbac.ContextWithPrincipal(ctx, principal)
+		c.SetRequest(c.Request().WithContext(ctx))
 
-			return next(c)
+		// NOTE: Org context is NOT set here - ResolveOrgContextMiddleware will:
+		// 1. Read orgID from c.Get("organization_id") 
+		// 2. Resolve org name "default" to its UUID
+		// 3. Add UUID to domain context via domain.ContextWithOrg()
+
+		return next(c)
 		}
 	}
 }
