@@ -1,7 +1,6 @@
 package middleware
 
 import (
-    "context"
     "net/http"
     "strings"
 
@@ -44,9 +43,8 @@ func RequireAuth(verify AccessTokenVerifier, signer *auth.Signer) echo.Middlewar
                 ctx := rbac.ContextWithPrincipal(c.Request().Context(), p)
                 c.SetRequest(c.Request().WithContext(ctx))
                 
-                // Store org from JWT for org context middleware
-                // Always set jwt_org (even if empty) so downstream middleware can default consistently
-                c.Set("jwt_org", claims.Org)
+                // Store org UUID from JWT for org context middleware
+                c.Set("jwt_org_uuid", claims.Org)
             } else {
                 // Fallback to generic verify function if no signer
                 if err := verify(token); err != nil {
@@ -119,15 +117,17 @@ func getPrincipalFromToken(c echo.Context, signer *auth.Signer, apiTokenMgr *aut
     
     // Fallback to opaque token
     if apiTokenMgr != nil {
-        // Extract org from context or default to "default"
-        orgID := getOrgIDFromContext(c, "default")
-        if tokenRecord, err := apiTokenMgr.Verify(c.Request().Context(), orgID, token); err == nil {
-            return rbac.Principal{
-                Subject: tokenRecord.Subject,
-                Email:   tokenRecord.Email,
-                Roles:   []string{}, // Opaque tokens don't have roles directly
-                Groups:  tokenRecord.Groups,
-            }, nil
+        // Extract org UUID from context
+        orgID := getOrgIDFromContext(c, "")
+        if orgID != "" {
+            if tokenRecord, err := apiTokenMgr.Verify(c.Request().Context(), orgID, token); err == nil {
+                return rbac.Principal{
+                    Subject: tokenRecord.Subject,
+                    Email:   tokenRecord.Email,
+                    Roles:   []string{},
+                    Groups:  tokenRecord.Groups,
+                }, nil
+            }
         }
     }
     
@@ -199,12 +199,10 @@ func OpaqueOnlyVerifier(apiTokenMgr *auth.APITokenManager) AccessTokenVerifier {
             return echo.NewHTTPError(http.StatusInternalServerError, "API token manager not configured")
         }
         
-        // Default to "default" org (no context available in this verifier)
-        if _, err := apiTokenMgr.Verify(context.Background(), "default", token); err != nil {
-            return echo.ErrUnauthorized
-        }
-        
-        return nil
+        // Note: Opaque token verification without org context
+        // This is a limitation - opaque tokens should include org info
+        // For now, return unauthorized if we can't verify
+        return echo.ErrUnauthorized
     }
 }
 
@@ -321,8 +319,12 @@ func getPrincipalFromOpaque(c echo.Context, apiTokenMgr *auth.APITokenManager) (
         return rbac.Principal{}, echo.NewHTTPError(http.StatusInternalServerError, "API token manager not configured")
     }
     
-    // Extract org from context or default to "default"
-    orgID := getOrgIDFromContext(c, "default")
+    // Extract org UUID from context
+    orgID := getOrgIDFromContext(c, "")
+    if orgID == "" {
+        return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "org context required for opaque token")
+    }
+    
     tokenRecord, err := apiTokenMgr.Verify(c.Request().Context(), orgID, token)
     if err != nil {
         return rbac.Principal{}, echo.NewHTTPError(http.StatusUnauthorized, "invalid opaque token")
@@ -336,10 +338,10 @@ func getPrincipalFromOpaque(c echo.Context, apiTokenMgr *auth.APITokenManager) (
     }, nil
 }
 
-// getOrgIDFromContext extracts org ID from Echo context or returns a default value
+// getOrgIDFromContext extracts org UUID from Echo context or returns a default value
 func getOrgIDFromContext(c echo.Context, defaultOrg string) string {
-    // Try to get from jwt_org (set by RequireAuth middleware)
-    if jwtOrg := c.Get("jwt_org"); jwtOrg != nil {
+    // Try to get from jwt_org_uuid (set by RequireAuth middleware)
+    if jwtOrg := c.Get("jwt_org_uuid"); jwtOrg != nil {
         if orgStr, ok := jwtOrg.(string); ok && orgStr != "" {
             return orgStr
         }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -173,6 +174,7 @@ func NewRBACManagerFromQueryStore(queryStore interface{}) (*RBACManager, error) 
 // RBAC is considered "initialized" and "enabled" when permissions exist in the system.
 // This function is idempotent - it can be called multiple times safely.
 func (m *RBACManager) InitializeRBAC(ctx context.Context, orgID, initUser, initEmail string) error {
+	log.Printf("[RBAC Init] Starting for org=%s user=%s", orgID, initUser)
 	// For InitializeRBAC, we need explicit orgID since we're creating the org's RBAC structure
 	// Check if already initialized for this org
 	enabled, err := m.store.ListPermissions(ctx, orgID)
@@ -180,6 +182,7 @@ func (m *RBACManager) InitializeRBAC(ctx context.Context, orgID, initUser, initE
 		return fmt.Errorf("failed to check if RBAC is enabled: %w", err)
 	}
 	if len(enabled) > 0 {
+		log.Printf("[RBAC Init] Already initialized for org=%s, skipping", orgID)
 		// Already initialized - just ensure the init user has admin role
 		if err := m.store.AssignRole(ctx, orgID, initUser, initEmail, "admin"); err != nil {
 			// Ignore duplicate assignment errors
@@ -187,6 +190,7 @@ func (m *RBACManager) InitializeRBAC(ctx context.Context, orgID, initUser, initE
 		}
 		return nil
 	}
+	log.Printf("[RBAC Init] Creating permissions and roles for org=%s", orgID)
 
 	// Create default permissions (org-scoped)
 	defaultPermission := &Permission{

@@ -150,48 +150,33 @@ func (s *SQLStore) GetUnit(ctx context.Context, id string) (*types.Unit, error) 
 	return &unit, nil
 }
 
-// parseBlobPath parses a blob path into org and unit name
-// Supports: "org/name" or "name" (defaults to "default" org)
+// parseBlobPath parses a blob path into org UUID and unit name
+// Format: "orgUUID/name" (org UUID is required)
 func (s *SQLStore) parseBlobPath(ctx context.Context, blobPath string) (orgUUID, name string, err error) {
 	parts := strings.SplitN(strings.Trim(blobPath, "/"), "/", 2)
 	
-	var orgName string
-	if len(parts) == 2 {
-		// Format: "org/name"
-		orgName = parts[0]
-		name = parts[1]
-	} else {
-		// Format: "name" - use default org
-		orgName = "default"
-		name = parts[0]
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("blob path must be in format 'orgUUID/name', got: %s", blobPath)
 	}
 	
-	// Ensure org exists
+	orgUUID = parts[0]
+	name = parts[1]
+	
+	// Validate org UUID exists
 	var org types.Organization
-	err = s.db.WithContext(ctx).Where("name = ?", orgName).First(&org).Error
+	err = s.db.WithContext(ctx).Where("id = ?", orgUUID).First(&org).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Create org if it doesn't exist (for migration)
-			org = types.Organization{
-				Name:        orgName,
-				DisplayName: fmt.Sprintf("Auto-created: %s", orgName),
-				CreatedBy:   "system-sync",
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
-			}
-			if err := s.db.WithContext(ctx).Create(&org).Error; err != nil {
-				return "", "", fmt.Errorf("failed to create org: %w", err)
-			}
-		} else {
-			return "", "", fmt.Errorf("failed to lookup org: %w", err)
+			return "", "", fmt.Errorf("organization not found: %s", orgUUID)
 		}
+		return "", "", fmt.Errorf("failed to lookup org: %w", err)
 	}
 	
-	return org.ID, name, nil
+	return orgUUID, name, nil
 }
 
 // SyncEnsureUnit creates or updates a unit from blob storage
-// Supports blob paths: "org/name" or "name" (defaults to default org)
+// Blob path format: "orgUUID/name"
 // UUIDs are auto-generated via BeforeCreate hook
 func (s *SQLStore) SyncEnsureUnit(ctx context.Context, unitName string) error {
 	orgUUID, name, err := s.parseBlobPath(ctx, unitName)

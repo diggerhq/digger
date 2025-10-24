@@ -1,6 +1,7 @@
 package auth
 
 import (
+    "context"
     "crypto/rand"
     "crypto/sha256"
     "encoding/base64"
@@ -40,6 +41,7 @@ type AuthCode struct {
     Email         string   `json:"email"`
     Groups        []string `json:"groups"`
     CodeChallenge string   `json:"code_challenge"`
+    Org           string   `json:"org"`
 }
 
 // OAuthSession represents OAuth session data encoded in encrypted state
@@ -49,6 +51,7 @@ type OAuthSession struct {
     State               string `json:"state"`
     CodeChallenge       string `json:"code_challenge"`        // Terraform's original challenge
     ServerCodeVerifier  string `json:"server_code_verifier"`  // OpenTaco's code verifier for Okta
+    Org                 string `json:"org"`                    // Organization UUID from CLI
 }
 
 // TerraformServiceDiscovery handles /.well-known/terraform.json
@@ -174,23 +177,25 @@ func (h *Handler) OAuthToken(c echo.Context) error {
     var exp time.Time
     if ttlStr := getenv("OPENTACO_TERRAFORM_TOKEN_TTL", ""); ttlStr != "" {
         if ttl, err := time.ParseDuration(ttlStr); err == nil {
-            accessToken, exp, err = h.signer.MintAccessWithEmailAndTTL(
+            accessToken, exp, err = h.signer.MintAccessWithOrgAndTTL(
                 authCode.Subject,
                 authCode.Email,
                 nil,
                 authCode.Groups,
                 []string{"api", "s3"},
+                authCode.Org,
                 ttl,
             )
         }
     }
     if accessToken == "" {
-        accessToken, exp, err = h.signer.MintAccessWithEmail(
+        accessToken, exp, err = h.signer.MintAccessWithOrg(
             authCode.Subject,
             authCode.Email,
             nil,
             authCode.Groups,
             []string{"api", "s3"},
+            authCode.Org,
         )
     }
     if err != nil {
@@ -201,9 +206,12 @@ func (h *Handler) OAuthToken(c echo.Context) error {
     
     // Issue an opaque API token for TFE compatibility (like real Terraform Cloud)
     if h.apiTokens != nil {
-        // Default to "default" org for self-hosted (TODO: extract from JWT org claim for multi-tenant)
-        orgID := "default"
-        if opaque, err2 := h.apiTokens.Issue(c.Request().Context(), orgID, authCode.Subject, authCode.Email, authCode.Groups); err2 == nil {
+        org := authCode.Org
+        if org == "" {
+            return echo.NewHTTPError(http.StatusBadRequest, "org_uuid required in token claims")
+        }
+        
+        if opaque, err2 := h.apiTokens.Issue(c.Request().Context(), org, authCode.Subject, authCode.Email, authCode.Groups); err2 == nil {
             // Return opaque token as access_token (matching TFE behavior)
             // Calculate expiration based on TERRAFORM_TOKEN_TTL or default to very long
             var expiresIn int
@@ -244,7 +252,8 @@ func (h *Handler) OAuthLoginRedirect(c echo.Context) error {
     clientID := c.QueryParam("client_id")
     redirectURI := c.QueryParam("redirect_uri") 
     state := c.QueryParam("state")
-    terraformCodeChallenge := c.QueryParam("code_challenge") // Terraform's original challenge
+    terraformCodeChallenge := c.QueryParam("code_challenge")
+    org := c.QueryParam("org")
     
     // Get OIDC configuration  
     serverConfig, err := h.getServerAuthConfig()
@@ -264,13 +273,14 @@ func (h *Handler) OAuthLoginRedirect(c echo.Context) error {
     serverCodeVerifier := generateCodeVerifier()
     serverCodeChallenge := generateCodeChallenge(serverCodeVerifier)
     
-    // Create OAuth session data (store both Terraform's and server PKCE data)
+    // Create OAuth session data
     sessionData := &OAuthSession{
         ClientID:            clientID,
         RedirectURI:         redirectURI,
         State:               state,
-        CodeChallenge:       terraformCodeChallenge, // Store Terraform's original challenge for final verification
-        ServerCodeVerifier:  serverCodeVerifier,     // Store server code verifier for Okta token exchange
+        CodeChallenge:       terraformCodeChallenge,
+        ServerCodeVerifier:  serverCodeVerifier,
+        Org:                 org,
     }
     
     // Encrypt the session data into the state parameter
@@ -357,6 +367,15 @@ func (h *Handler) OAuthOIDCCallback(c echo.Context) error {
     
     email := extractEmailFromIDToken(tokenResp.IDToken)
     
+    // Ensure user has an org
+    log.Printf("[OAuth] About to ensure org for user: %s", subject)
+    org, err := h.ensureUserHasOrg(c.Request().Context(), subject, email)
+    if err != nil {
+        log.Printf("[OAuth] Failed to ensure user org: %v", err)
+        return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to ensure user org: %v", err))
+    }
+    log.Printf("[OAuth] User org ensured: %s", org)
+    
     // Create authorization code for Terraform
     authCodeData := &AuthCode{
         ClientID:      sessionData.ClientID,
@@ -365,7 +384,10 @@ func (h *Handler) OAuthOIDCCallback(c echo.Context) error {
         Email:         email,
         Groups:        groups,
         CodeChallenge: sessionData.CodeChallenge,
+        Org:           org,
     }
+    
+    log.Printf("[OAuth] Creating auth code with org: %s", org)
     
     authCode, err := h.createAuthCode(authCodeData)
     if err != nil {
@@ -621,6 +643,7 @@ func (h *Handler) createAuthCode(data *AuthCode) (string, error) {
         data.ClientID,
         data.RedirectURI,
         data.CodeChallenge,
+        data.Org,
         data.Groups,
     )
     if err != nil {
@@ -650,6 +673,7 @@ func (h *Handler) verifyAuthCode(code string) (*AuthCode, error) {
         Email:         claims.Email,
         Groups:        claims.Groups,
         CodeChallenge: claims.CodeChallenge,
+        Org:           claims.Org,
     }
     
     return authCode, nil
@@ -766,4 +790,59 @@ func (h *Handler) exchangeOIDCCode(config *serverAuthConfig, code, redirectURI, 
     }
     
     return &tokenResp, nil
+}
+
+// ensureUserHasOrg ensures a user exists and has an org, auto-creating both if needed
+func (h *Handler) ensureUserHasOrg(ctx context.Context, subject, email string) (string, error) {
+    if h.db == nil || h.orgRepo == nil {
+        return "", fmt.Errorf("db or org repository not configured")
+    }
+
+    orgs, err := h.getUserOrganizations(ctx, subject)
+    if err != nil {
+        return "", fmt.Errorf("failed to get user orgs: %w", err)
+    }
+
+    if len(orgs) > 0 {
+        return orgs[0], nil
+    }
+
+    // If user has no RBAC membership yet, reuse any org they previously created
+    // This avoids creating multiple orgs before membership is assigned
+    var existing struct{ ID string }
+    if err := h.db.WithContext(ctx).
+        Table("organizations").
+        Select("id").
+        Where("created_by = ?", subject).
+        Order("created_at DESC").
+        First(&existing).Error; err == nil && existing.ID != "" {
+        return existing.ID, nil
+    }
+
+    orgName := fmt.Sprintf("user-%s", subject[:min(8, len(subject))])
+    orgDisplayName := fmt.Sprintf("%s's Organization", email)
+
+    org, err := h.orgRepo.Create(ctx, orgName, orgDisplayName, subject)
+    if err != nil {
+        return "", fmt.Errorf("failed to create org: %w", err)
+    }
+
+    return org.ID, nil
+}
+
+func (h *Handler) getUserOrganizations(ctx context.Context, subject string) ([]string, error) {
+    var userID string
+    if err := h.db.WithContext(ctx).Table("users").Where("subject = ?", subject).Pluck("id", &userID).Error; err != nil {
+        return nil, err
+    }
+    if userID == "" {
+        return []string{}, nil
+    }
+
+    var orgIDs []string
+    if err := h.db.WithContext(ctx).Table("user_roles").Where("user_id = ?", userID).Pluck("DISTINCT org_id", &orgIDs).Error; err != nil {
+        return nil, err
+    }
+
+    return orgIDs, nil
 }

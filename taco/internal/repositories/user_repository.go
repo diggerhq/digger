@@ -33,13 +33,10 @@ func NewUserRepositoryFromQueryStore(queryStore interface{}) domain.UserReposito
 
 // EnsureUser creates a user if it doesn't exist, or returns existing user (idempotent)
 func (r *userRepository) EnsureUser(ctx context.Context, subject, email string) (*domain.User, error) {
-	// Try to get existing user by subject
 	var entity types.User
 	err := r.db.WithContext(ctx).Where("subject = ?", subject).First(&entity).Error
 	
 	if err == nil {
-		// User exists, return it
-		slog.Debug("User already exists", "subject", subject)
 		return &domain.User{
 			ID:        entity.ID,
 			Subject:   entity.Subject,
@@ -53,7 +50,6 @@ func (r *userRepository) EnsureUser(ctx context.Context, subject, email string) 
 		return nil, fmt.Errorf("failed to check existing user: %w", err)
 	}
 	
-	// User doesn't exist, create it
 	now := time.Now()
 	entity = types.User{
 		Subject:   subject,
@@ -67,10 +63,7 @@ func (r *userRepository) EnsureUser(ctx context.Context, subject, email string) 
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 	
-	slog.Info("User created successfully",
-		"subject", subject,
-		"email", email,
-	)
+	slog.Info("User created", "subject", subject, "email", email)
 	
 	return &domain.User{
 		ID:        entity.ID,

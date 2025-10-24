@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"gorm.io/gorm"
@@ -21,37 +22,57 @@ func NewIdentifierResolver(db *gorm.DB) domain.IdentifierResolver {
 }
 
 // ResolveOrganization resolves organization identifier to UUID
+// Accepts: UUID or external ID (format: "ext:provider:id")
+// Does NOT accept names (names are not unique)
 func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identifier string) (string, error) {
 	if r.db == nil {
 		return "", fmt.Errorf("database not available")
 	}
 	
-	parsed, err := domain.ParseIdentifier(identifier)
-	if err != nil {
-		return "", err
-	}
-	
-	// If already a UUID, return it
-	if parsed.Type == domain.IdentifierTypeUUID {
-		return parsed.UUID, nil
-	}
-	
-	// Query by name (organizations.name is the short identifier like "default")
-	var result struct{ ID string }
-	err = r.db.WithContext(ctx).
-		Table("organizations").
-		Select("id").
-		Where("name = ?", parsed.Name).
-		First(&result).Error
-	
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return "", fmt.Errorf("organization not found: %s", parsed.Name)
+	// Check if it's a UUID
+	if domain.IsUUID(identifier) {
+		var org struct{ ID string }
+		err := r.db.WithContext(ctx).
+			Table("organizations").
+			Select("id").
+			Where("id = ?", identifier).
+			First(&org).Error
+		
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return "", fmt.Errorf("organization not found: %s", identifier)
+			}
+			return "", err
 		}
-		return "", err
+		
+		return identifier, nil
 	}
 	
-	return result.ID, nil
+	// Check if it's an external ID (format: "ext:provider:id")
+	if strings.HasPrefix(identifier, "ext:") {
+		parts := strings.SplitN(identifier, ":", 3)
+		if len(parts) != 3 {
+			return "", fmt.Errorf("invalid external ID format, expected 'ext:provider:id', got: %s", identifier)
+		}
+		
+		var org struct{ ID string }
+		err := r.db.WithContext(ctx).
+			Table("organizations").
+			Select("id").
+			Where("external_id = ?", identifier).
+			First(&org).Error
+		
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return "", fmt.Errorf("organization not found with external ID: %s", identifier)
+			}
+			return "", err
+		}
+		
+		return org.ID, nil
+	}
+	
+	return "", fmt.Errorf("organization identifier must be UUID or external ID (ext:provider:id), got: %s", identifier)
 }
 
 // ResolveUnit resolves unit identifier to UUID within an organization

@@ -46,6 +46,31 @@ func init() {
     unitCmd.AddCommand(unitStatusCmd)
 }
 
+// mustResolveUnitID resolves a unit name to its ID within the current org using the API.
+// If the argument already looks like an ID (UUID or contains '/'), it is returned as-is.
+func mustResolveUnitID(ctx context.Context, client *sdk.Client, arg string) string {
+    // Pass through hierarchical names like prefix/name
+    if strings.Contains(arg, "/") {
+        return arg
+    }
+    // Fast path: if this looks like a UUID, treat as ID
+    if _, err := uuid.Parse(arg); err == nil {
+        return arg
+    }
+    // Resolve by listing with prefix and exact match on Name
+    resp, err := client.ListUnits(ctx, "")
+    if err != nil || len(resp.Units) == 0 {
+        return arg // fallback to original arg
+    }
+    for _, u := range resp.Units {
+        if u.Name == arg || u.ID == arg {
+            if u.ID != "" { return u.ID }
+            return arg
+        }
+    }
+    return arg
+}
+
 var unitCreateCmd = &cobra.Command{
     Use:   "create <unit-id>",
     Short: "Create a new unit",
@@ -173,11 +198,13 @@ var unitListCmd = &cobra.Command{
         }
 
         w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-        fmt.Fprintln(w, "ID\tSIZE\tUPDATED\tLOCKED")
+        fmt.Fprintln(w, "NAME\tSIZE\tUPDATED\tLOCKED")
         for _, u := range filtered {
             locked := ""
             if u.Locked { locked = "yes" }
-            fmt.Fprintf(w, "%s\t%d\t%s\t%s\n", u.ID, u.Size, u.Updated.Format("2006-01-02 15:04:05"), locked)
+            name := u.Name
+            if name == "" { name = u.ID }
+            fmt.Fprintf(w, "%s\t%d\t%s\t%s\n", name, u.Size, u.Updated.Format("2006-01-02 15:04:05"), locked)
         }
         w.Flush()
         fmt.Printf("\nTotal: %d units (showing %d with read access)\n", resp.Count, len(filtered))
@@ -192,7 +219,7 @@ var unitInfoCmd = &cobra.Command{
     Args:    cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
         client := newAuthedClient()
-        unitID := args[0]
+        unitID := mustResolveUnitID(context.Background(), client, args[0])
         printVerbose("Getting unit metadata: %s", unitID)
         unit, err := client.GetUnit(context.Background(), unitID)
         if err != nil { return fmt.Errorf("failed to get unit info: %w", err) }
@@ -209,7 +236,7 @@ var unitDeleteCmd = &cobra.Command{
     Args:    cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
         client := newAuthedClient()
-        unitID := args[0]
+        unitID := mustResolveUnitID(context.Background(), client, args[0])
         printVerbose("Deleting unit: %s", unitID)
         if err := client.DeleteUnit(context.Background(), unitID); err != nil {
             return fmt.Errorf("failed to delete unit: %w", err)
@@ -227,7 +254,7 @@ var unitPullCmd = &cobra.Command{
         analytics.SendEssential("taco_unit_pull_started")
         
         client := newAuthedClient()
-        unitID := args[0]
+        unitID := mustResolveUnitID(context.Background(), client, args[0])
         printVerbose("Downloading unit: %s", unitID)
         data, err := client.DownloadUnit(context.Background(), unitID)
         if err != nil { 
@@ -257,7 +284,7 @@ var unitPushCmd = &cobra.Command{
         analytics.SendEssential("taco_unit_push_started")
         
         client := newAuthedClient()
-        unitID := args[0]
+        unitID := mustResolveUnitID(context.Background(), client, args[0])
         inputFile := args[1]
         printVerbose("Uploading unit: %s from %s", unitID, inputFile)
         data, err := os.ReadFile(inputFile)
@@ -282,7 +309,7 @@ var unitLockCmd = &cobra.Command{
     Args:  cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
         client := newAuthedClient()
-        unitID := args[0]
+        unitID := mustResolveUnitID(context.Background(), client, args[0])
         printVerbose("Locking unit: %s", unitID)
         lockInfo := &sdk.LockInfo{ID: uuid.New().String(), Who: fmt.Sprintf("taco@%s", getHostname()), Version: "1.0.0", Created: time.Now()}
         result, err := client.LockUnit(context.Background(), unitID, lockInfo)
@@ -299,7 +326,7 @@ var unitUnlockCmd = &cobra.Command{
     Args:  cobra.RangeArgs(1, 2),
     RunE: func(cmd *cobra.Command, args []string) error {
         client := newAuthedClient()
-        unitID := args[0]
+        unitID := mustResolveUnitID(context.Background(), client, args[0])
         lockID := ""
         if len(args) > 1 { lockID = args[1] } else { lockID = getLockID(unitID); if lockID == "" { return fmt.Errorf("no lock ID provided and none found for %s", unitID) } }
         printVerbose("Unlocking unit: %s with lock ID: %s", unitID, lockID)
@@ -316,7 +343,7 @@ var unitAcquireCmd = &cobra.Command{
     Args:  cobra.RangeArgs(1, 2),
     RunE: func(cmd *cobra.Command, args []string) error {
         client := sdk.NewClient(serverURL)
-        unitID := args[0]
+        unitID := mustResolveUnitID(context.Background(), client, args[0])
         printVerbose("Acquiring unit: %s", unitID)
         lockInfo := &sdk.LockInfo{ID: uuid.New().String(), Who: fmt.Sprintf("taco@%s", getHostname()), Version: "1.0.0", Created: time.Now()}
         result, err := client.LockUnit(context.Background(), unitID, lockInfo)
@@ -346,7 +373,7 @@ var unitReleaseCmd = &cobra.Command{
     Args:  cobra.ExactArgs(2),
     RunE: func(cmd *cobra.Command, args []string) error {
         client := sdk.NewClient(serverURL)
-        unitID := args[0]
+        unitID := mustResolveUnitID(context.Background(), client, args[0])
         inputFile := args[1]
         printVerbose("Releasing unit: %s", unitID)
         lockID := getLockID(unitID)

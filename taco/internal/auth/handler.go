@@ -10,17 +10,21 @@ import (
     "strings"
     "time"
 
+	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/oidc"
 	"github.com/diggerhq/digger/opentaco/internal/sts"
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 // Handler provides auth-related HTTP handlers.
 type Handler struct{
-    signer *Signer
-    sts    sts.Issuer
-    oidcV  oidc.Verifier
-    apiTokens *APITokenManager
+    signer      *Signer
+    sts         sts.Issuer
+    oidcV       oidc.Verifier
+    apiTokens   *APITokenManager
+    db          *gorm.DB
+    orgRepo     domain.OrganizationRepository
 }
 
 func NewHandlerFromEnv() *Handler {
@@ -44,6 +48,14 @@ func (h *Handler) SetAPITokenManager(m *APITokenManager) {
     h.apiTokens = m
 }
 
+func (h *Handler) SetDB(db *gorm.DB) {
+	h.db = db
+}
+
+func (h *Handler) SetOrgRepo(orgRepo domain.OrganizationRepository) {
+	h.orgRepo = orgRepo
+}
+
 // Exchange handles POST /v1/auth/exchange
 // Request: {"id_token":"..."}
 // Response: {"access_token":"...","refresh_token":"...","expires_in":3600,"token_type":"Bearer"}
@@ -65,7 +77,21 @@ func (h *Handler) Exchange(c echo.Context) error {
     // Extract email from ID token if available
     email := extractEmailFromIDToken(req.IDToken)
     
-    access, exp, err := h.signer.MintAccessWithEmail(sub, email, nil, groups, []string{"api","s3"})
+    // Ensure user has an organization (auto-create if none) and include it in the JWT
+    var orgID string
+    if h.db != nil && h.orgRepo != nil {
+        if o, errOrg := h.ensureUserHasOrg(c.Request().Context(), sub, email); errOrg == nil {
+            orgID = o
+        }
+    }
+
+    var access string
+    var exp time.Time
+    if orgID != "" {
+        access, exp, err = h.signer.MintAccessWithOrg(sub, email, nil, groups, []string{"api","s3"}, orgID)
+    } else {
+        access, exp, err = h.signer.MintAccessWithEmail(sub, email, nil, groups, []string{"api","s3"})
+    }
     if err != nil { return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"}) }
     rid := randomRID()
     refresh, _, err := h.signer.MintRefresh(sub, rid)

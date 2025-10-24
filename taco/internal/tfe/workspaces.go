@@ -1052,10 +1052,10 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-// getOrgFromContext extracts org ID from Echo context or defaults to "default"
+// getOrgFromContext extracts org UUID from Echo context
 func getOrgFromContext(c echo.Context) string {
-	// Try jwt_org (from JWT auth)
-	if jwtOrg := c.Get("jwt_org"); jwtOrg != nil {
+	// Try jwt_org_uuid (from JWT auth)
+	if jwtOrg := c.Get("jwt_org_uuid"); jwtOrg != nil {
 		if orgStr, ok := jwtOrg.(string); ok && orgStr != "" {
 			return orgStr
 		}
@@ -1068,6 +1068,5 @@ func getOrgFromContext(c echo.Context) string {
 		}
 	}
 	
-	// Default for self-hosted
-	return "default"
+	return ""
 }
