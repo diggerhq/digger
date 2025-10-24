@@ -122,3 +122,18 @@ New finding: EE CLI required for GitHub Issues notifications (new step 7)
 - Impact: Although drift detection is now CE, using GitHub Issues notifications imposes an EE dependency (the example workflow requires `ee: 'true'`). Slack notifications remain CE-only and do not require EE.
 - Proposed fix (upcoming commit): Promote the GitHub Issues drift notification provider to CE by adding a CE implementation (e.g., `cli/pkg/drift/github_issue.go`) and extending the CE provider to honor `INPUT_DRIFT_GITHUB_ISSUES`. Update docs to remove the `ee: 'true'` requirement for Issues after the change.
 - Interim docs: Until the provider is promoted to CE, users need `ee: 'true'` in the workflow to enable GitHub Issues notifications for drift.
+
+## Final Notes
+
+- CE Issues notifier: Promoted to CE and wired into the CE provider (`INPUT_DRIFT_GITHUB_ISSUES`). Docs updated to remove `ee: 'true'` for Issues workflows.
+- Terraform setup in examples: In drift-detection workflows, include `setup-terraform: true` so Terraform is installed in the runner.
+- EE CLI dedupe: EE now instantiates CE notifiers (basic Slack + GitHub Issues); removed the duplicate EE Issues notifier file.
+- CI parity tip: To reproduce EE backend test failures locally, run with the workspace off: `cd ee/backend && GOWORK=off go test ./...`.
+- Middleware constants: Using `backend/middleware` is safe; it defines `ORGANISATION_ID_KEY` and related keys with identical values to the drift middleware.
+- Workspace modules: Keep both `./drift` and `./ee/drift` in `go.work` (EE wrapper remains buildable alongside CE).
+- Secrets split: Drift service uses `DIGGER_WEBHOOK_SECRET`, backend uses `DIGGER_INTERNAL_SECRET`. Current behavior unchanged; unification can be a follow-up.
+- Dockerfile hygiene: Addressed build warnings (FROM … AS casing; `ENV key=value`).
+
+Optional next cleanups (follow-ups)
+- Confirm whether `ee/drift/scripts/cron/notifications.sql` is still required; move it to `drift/scripts/cron/` or remove if obsolete.
+- Update reference docs to explicitly list `INPUT_DRIFT_GITHUB_ISSUES` under CE drift-detection inputs.
