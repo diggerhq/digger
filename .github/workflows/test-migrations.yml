@@ -74,8 +74,17 @@ jobs:
           OPENTACO_AUTH_DISABLE: true
           OPENTACO_JWT_SECRET: test-secret-key-for-ci
         run: |
-          # Run binary in background (it will apply migrations on startup)
-          timeout 30s ./statesman --port 8080 --auth-disable --storage memory || true
+          # Check Atlas is available
+          echo "Checking for Atlas CLI..."
+          which atlas || echo "Atlas not in PATH!"
+          atlas version || echo "Atlas command failed!"
+          
+          # Run binary and capture output
+          echo "Starting statesman binary..."
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory > statesman.log 2>&1 || true
+          
+          echo "Binary output:"
+          cat statesman.log
           
           # Give it time to apply migrations
           sleep 5
@@ -147,8 +156,17 @@ jobs:
           OPENTACO_AUTH_DISABLE: true
           OPENTACO_JWT_SECRET: test-secret-key-for-ci
         run: |
-          # Run binary in background (it will apply migrations on startup)
-          timeout 30s ./statesman --port 8080 --auth-disable --storage memory || true
+          # Check Atlas is available
+          echo "Checking for Atlas CLI..."
+          which atlas || echo "Atlas not in PATH!"
+          atlas version || echo "Atlas command failed!"
+          
+          # Run binary and capture output
+          echo "Starting statesman binary..."
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory > statesman.log 2>&1 || true
+          
+          echo "Binary output:"
+          cat statesman.log
           
           # Give it time to apply migrations
           sleep 5
@@ -198,8 +216,12 @@ jobs:
           OPENTACO_AUTH_DISABLE: true
           OPENTACO_JWT_SECRET: test-secret-key-for-ci
         run: |
-          # Run binary in background (it will apply migrations on startup)
-          timeout 30s ./statesman --port 8080 --auth-disable --storage memory || true
+          # Run binary and capture output
+          echo "Starting statesman binary..."
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory > statesman.log 2>&1 || true
+          
+          echo "Binary output:"
+          cat statesman.log
           
           # Give it time to apply migrations
           sleep 5
