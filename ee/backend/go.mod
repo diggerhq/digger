@@ -11,7 +11,7 @@ require (
 	github.com/buildkite/go-buildkite/v3 v3.11.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/diggerhq/digger/backend v0.0.0-20241111113338-9a40639ab83c
-	github.com/diggerhq/digger/ee/drift v0.0.0-20241227171610-34d1db1e4299
+	github.com/diggerhq/digger/ee/drift v0.0.0-20251024175115-4e9676ac6b21
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/go-github/v61 v61.0.0
