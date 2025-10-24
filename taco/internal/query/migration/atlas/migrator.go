@@ -15,7 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
-//go:embed ../../../../../migrations
+//go:embed migrations
 var migrationsFS embed.FS
 
 // Migration directory paths (embedded in binary)
