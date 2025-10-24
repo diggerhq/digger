@@ -90,14 +90,24 @@ jobs:
           sleep 5
 
       - name: Verify migrations applied
+        working-directory: taco
         env:
           PGPASSWORD: postgres
         run: |
-          echo "Checking if atlas_schema_revisions table exists..."
-          psql -h localhost -U postgres -d opentaco_test -c "\dt" | grep atlas_schema_revisions
+          # Check if migrations applied successfully from binary output
+          if grep -q "migrations applied successfully" statesman.log; then
+            echo "✅ Migrations applied successfully"
+          else
+            echo "❌ Migration success message not found in binary output"
+            exit 1
+          fi
+          
+          # Verify golang-migrate tracking table exists
+          echo "Checking if schema_migrations table exists..."
+          psql -h localhost -U postgres -d opentaco_test -c "\dt" | grep schema_migrations
           
           echo "Checking applied migrations..."
-          psql -h localhost -U postgres -d opentaco_test -c "SELECT version FROM atlas_schema_revisions ORDER BY version;"
+          psql -h localhost -U postgres -d opentaco_test -c "SELECT version, dirty FROM schema_migrations;"
           
           echo "Checking if key tables exist..."
           psql -h localhost -U postgres -d opentaco_test -c "\dt" | grep -E "units|organizations|users|rules"
@@ -172,12 +182,22 @@ jobs:
           sleep 5
 
       - name: Verify migrations applied
+        working-directory: taco
         run: |
-          echo "Checking if atlas_schema_revisions table exists..."
-          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SHOW TABLES;" | grep atlas_schema_revisions
+          # Check if migrations applied successfully from binary output
+          if grep -q "migrations applied successfully" statesman.log; then
+            echo "✅ Migrations applied successfully"
+          else
+            echo "❌ Migration success message not found in binary output"
+            exit 1
+          fi
+          
+          # Verify golang-migrate tracking table exists
+          echo "Checking if schema_migrations table exists..."
+          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SHOW TABLES;" | grep schema_migrations
           
           echo "Checking applied migrations..."
-          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SELECT version FROM atlas_schema_revisions ORDER BY version;"
+          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SELECT version, dirty FROM schema_migrations;"
           
           echo "Checking if key tables exist..."
           mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SHOW TABLES;" | grep -E "units|organizations|users|rules"
@@ -229,11 +249,20 @@ jobs:
       - name: Verify migrations applied
         working-directory: taco
         run: |
-          echo "Checking if atlas_schema_revisions table exists..."
-          sqlite3 test.db ".tables" | grep atlas_schema_revisions
+          # Check if migrations applied successfully from binary output
+          if grep -q "migrations applied successfully" statesman.log; then
+            echo "✅ Migrations applied successfully"
+          else
+            echo "❌ Migration success message not found in binary output"
+            exit 1
+          fi
+          
+          # Verify golang-migrate tracking table exists
+          echo "Checking if schema_migrations table exists..."
+          sqlite3 test.db ".tables" | grep schema_migrations
           
           echo "Checking applied migrations..."
-          sqlite3 test.db "SELECT version FROM atlas_schema_revisions ORDER BY version;"
+          sqlite3 test.db "SELECT version, dirty FROM schema_migrations;"
           
           echo "Checking if key tables exist..."
           sqlite3 test.db ".tables" | grep -E "units|organizations|users|rules"
