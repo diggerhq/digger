@@ -13,7 +13,7 @@ import (
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/drift/middleware"
+	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/gin-gonic/gin"
 )
 
