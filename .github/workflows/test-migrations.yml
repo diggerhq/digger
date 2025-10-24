@@ -56,7 +56,12 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
-      - name: Build statesman binary
+      - name: Download Atlas binary for embedding
+        working-directory: taco
+        run: |
+          make atlas-download-binary
+
+      - name: Build statesman binary (with embedded Atlas)
         working-directory: taco
         run: |
           go build -o statesman ./cmd/statesman
@@ -138,7 +143,12 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
-      - name: Build statesman binary
+      - name: Download Atlas binary for embedding
+        working-directory: taco
+        run: |
+          make atlas-download-binary
+
+      - name: Build statesman binary (with embedded Atlas)
         working-directory: taco
         run: |
           go build -o statesman ./cmd/statesman
@@ -203,7 +213,12 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
-      - name: Build statesman binary
+      - name: Download Atlas binary for embedding
+        working-directory: taco
+        run: |
+          make atlas-download-binary
+
+      - name: Build statesman binary (with embedded Atlas)
         working-directory: taco
         run: |
           go build -o statesman ./cmd/statesman
