@@ -27,24 +27,47 @@ func JWTOrgUUIDMiddleware() echo.MiddlewareFunc {
 	}
 }
 
-// WebhookOrgUUIDMiddleware extracts org UUID from webhook header and adds to domain context
-// For internal routes (/internal/api/*) - expects UUID in X-Org-ID header
-func WebhookOrgUUIDMiddleware() echo.MiddlewareFunc {
+// ResolveOrgContextMiddleware resolves org identifier to UUID and adds to domain context
+// For internal routes (/internal/api/*) - resolves X-Org-ID header (UUID or external org ID)
+// Skips validation for endpoints that don't require an existing org (like creating/listing orgs)
+func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			orgUUID, ok := c.Get("organization_id").(string)
-			if !ok || orgUUID == "" {
-				log.Printf("[WebhookOrgUUID] organization_id not found in context")
+			// Skip org resolution for endpoints that create/list orgs
+			path := c.Request().URL.Path
+			method := c.Request().Method
+			
+			// These endpoints don't require an existing org context
+			skipOrgResolution := (method == "POST" && path == "/internal/api/orgs") ||
+				(method == "POST" && path == "/internal/api/orgs/sync") ||
+				(method == "GET" && path == "/internal/api/orgs") ||
+				(method == "GET" && path == "/internal/api/orgs/user")
+			
+			if skipOrgResolution {
+				log.Printf("[ResolveOrgContext] Skipping org resolution for %s %s", method, path)
+				return next(c)
+			}
+			
+			// Get org identifier from webhook auth middleware
+			orgIdentifier, ok := c.Get("organization_id").(string)
+			if !ok || orgIdentifier == "" {
+				log.Printf("[ResolveOrgContext] organization_id not found in context")
 				return echo.NewHTTPError(400, "X-Org-ID header is required")
 			}
 			
-			if !domain.IsUUID(orgUUID) {
-				log.Printf("[WebhookOrgUUID] organization_id is not a UUID: %s", orgUUID)
-				return echo.NewHTTPError(400, "X-Org-ID must be a UUID")
+			// Resolve identifier to UUID (accepts UUID or external org ID, NOT names)
+			orgUUID, err := resolver.ResolveOrganization(c.Request().Context(), orgIdentifier)
+			if err != nil {
+				log.Printf("[ResolveOrgContext] Failed to resolve org identifier %q: %v", orgIdentifier, err)
+				return echo.NewHTTPError(400, map[string]string{
+					"error": "Invalid organization identifier",
+					"details": err.Error(),
+				})
 			}
 			
-			log.Printf("[WebhookOrgUUID] Found org UUID: %s", orgUUID)
+			log.Printf("[ResolveOrgContext] Resolved %q to UUID: %s", orgIdentifier, orgUUID)
 			
+			// Add org UUID to domain context
 			ctx := domain.ContextWithOrg(c.Request().Context(), orgUUID)
 			c.SetRequest(c.Request().WithContext(ctx))
 			

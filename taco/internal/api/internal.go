@@ -36,9 +36,18 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	internal := e.Group("/internal/api")
 	internal.Use(middleware.WebhookAuth())
 	
-	// Validate org UUID from webhook header and add to domain context
-	internal.Use(middleware.WebhookOrgUUIDMiddleware())
-	log.Println("Org UUID validation middleware enabled for internal routes")
+	// Add org resolution middleware - resolves org UUID or external ID to UUID and adds to domain context
+	if deps.QueryStore != nil {
+		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
+			// Create identifier resolver (infrastructure layer)
+			identifierResolver := repositories.NewIdentifierResolver(db)
+			// Pass interface to middleware (clean architecture!)
+			internal.Use(middleware.ResolveOrgContextMiddleware(identifierResolver))
+			log.Println("Org context resolution middleware enabled for internal routes (UUID and external org ID)")
+		} else {
+			log.Println("WARNING: QueryStore does not implement GetDB() *gorm.DB - org resolution disabled")
+		}
+	}
 
 	// Organization and User management endpoints
 	if orgRepo != nil && userRepo != nil {
@@ -48,6 +57,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 		// Organization endpoints
 		internal.POST("/orgs", orgHandler.CreateOrganization)
 		internal.POST("/orgs/sync", orgHandler.SyncExternalOrg)
+		internal.GET("/orgs/user", orgHandler.GetMyOrganizations) // Get orgs for user - no org context required
 		internal.GET("/orgs/:orgId", orgHandler.GetOrganization)
 		internal.GET("/orgs", orgHandler.ListOrganizations)
 		

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
@@ -18,6 +19,10 @@ import (
 type orgRepository struct {
 	db *gorm.DB
 }
+
+const (
+	queryOrgByName = "name = ?"
+)
 
 // Helper function to safely get string value from pointer
 func getStringValue(ptr *string) string {

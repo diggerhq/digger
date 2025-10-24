@@ -54,27 +54,32 @@ func WebhookAuth() echo.MiddlewareFunc {
 				})
 			}
 
-		userID := c.Request().Header.Get("X-User-ID")
-		email := c.Request().Header.Get("X-Email")
-		orgID := c.Request().Header.Get("X-Org-ID")
+	userID := c.Request().Header.Get("X-User-ID")
+	email := c.Request().Header.Get("X-Email")
+	orgID := c.Request().Header.Get("X-Org-ID")
 
-		// Skip org validation for create org endpoint
-		isCreateOrg := c.Request().Method == http.MethodPost && c.Path() == "/internal/api/orgs"
+	// Skip org validation for endpoints that don't require existing org
+	path := c.Request().URL.Path
+	method := c.Request().Method
+	skipOrgHeader := (method == http.MethodPost && path == "/internal/api/orgs") ||
+		(method == http.MethodPost && path == "/internal/api/orgs/sync") ||
+		(method == http.MethodGet && path == "/internal/api/orgs") ||
+		(method == http.MethodGet && path == "/internal/api/orgs/user")
 
-		if userID == "" {
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "X-User-ID header required",
+		})
+	}
+	
+	// Require org ID for all requests except org creation/listing
+	if !skipOrgHeader {
+		if orgID == "" {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "X-User-ID header required",
+				"error": "X-Org-ID header required",
 			})
 		}
-		
-		// Require org UUID for all requests except create org
-		if !isCreateOrg {
-			if orgID == "" {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"error": "X-Org-ID header required",
-				})
-			}
-		}
+	}
 
 		principal := rbac.Principal{
 			Subject: userID,

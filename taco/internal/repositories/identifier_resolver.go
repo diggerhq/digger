@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"gorm.io/gorm"
@@ -39,9 +38,9 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		return parsed.UUID, nil
 	}
 	
-	
-	// If not found by name, try external org ID
-	// This handles cases where someone passes an external ID directly
+	// Try to resolve by external org ID
+	// Names are NOT unique, so we only support UUID or external org ID
+	var result struct{ ID string }
 	err = r.db.WithContext(ctx).
 		Table("organizations").
 		Select("id").
@@ -52,7 +51,11 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		return result.ID, nil
 	}
 	
-	return "", fmt.Errorf("organization not found: %s", parsed.Name)
+	if err == gorm.ErrRecordNotFound {
+		return "", fmt.Errorf("organization not found with external ID: %s (names are not unique and cannot be resolved)", parsed.Name)
+	}
+	
+	return "", fmt.Errorf("failed to resolve organization: %w", err)
 }
 
 // ResolveUnit resolves unit identifier to UUID within an organization

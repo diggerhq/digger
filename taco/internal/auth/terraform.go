@@ -822,7 +822,9 @@ func (h *Handler) ensureUserHasOrg(ctx context.Context, subject, email string) (
     orgName := fmt.Sprintf("user-%s", subject[:min(8, len(subject))])
     orgDisplayName := fmt.Sprintf("%s's Organization", email)
 
-    org, err := h.orgRepo.Create(ctx, orgName, orgDisplayName, subject)
+    // Create org with orgID=orgName (the unique identifier)
+    // name=orgName (stored in DB), displayName (friendly name), no externalOrgID, createdBy=subject
+    org, err := h.orgRepo.Create(ctx, orgName, orgName, orgDisplayName, "", subject)
     if err != nil {
         return "", fmt.Errorf("failed to create org: %w", err)
     }
