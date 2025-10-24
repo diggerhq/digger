@@ -1,26 +1,23 @@
-# SQLite configuration
-data "external_schema" "gorm_sqlite" {
-  program = [
-    "sh",
-    "-c",
-    "cd internal && go run ./atlas_loader.go sqlite",
-  ]
+variable "DB_URL" {
+  type    = string
+  default = "postgres://postgres:postgres@localhost:5432/devdb?sslmode=disable"
 }
 
-env "sqlite" {
-  src = data.external_schema.gorm_sqlite.url
-  dev = "sqlite://file?mode=memory"
-  migration {
-    dir = "file://internal/query/migration/atlas/migrations/sqlite"
-  }
-  format {
-    migrate {
-      diff = "{{ sql . \"  \" }}"
-    }
-  }
+variable "POSTGRES_MIGRATIONS_DIR" {
+  type    = string
+  default = "file://migrations/postgres"
 }
 
-# PostgreSQL configuration
+variable "MYSQL_MIGRATIONS_DIR" {
+  type    = string
+  default = "file://migrations/mysql"
+}
+
+variable "SQLITE_MIGRATIONS_DIR" {
+  type    = string
+  default = "file://migrations/sqlite"
+}
+
 data "external_schema" "gorm_postgres" {
   program = [
     "sh",
@@ -31,10 +28,23 @@ data "external_schema" "gorm_postgres" {
 
 env "postgres" {
   src = data.external_schema.gorm_postgres.url
-  dev = "docker://postgres/16.1"
+  url = var.DB_URL
+
+  # IMPORTANT: no env=… params here; keep 5m timeout.
+  # If your build wants fully-qualified, use docker://docker.io/library/postgres/16
+  dev = "docker://postgres/16?timeout=5m"
+
+  schemas = ["public"]
+
   migration {
-    dir = "file://internal/query/migration/atlas/migrations/postgres"
+    dir    = var.POSTGRES_MIGRATIONS_DIR
+    format = "atlas"
   }
+
+  lint {
+    destructive { error = true }
+  }
+
   format {
     migrate {
       diff = "{{ sql . \"  \" }}"
@@ -53,10 +63,18 @@ data "external_schema" "gorm_mysql" {
 
 env "mysql" {
   src = data.external_schema.gorm_mysql.url
-  dev = "docker://mysql/8"
+  
+  dev = "docker://mysql/8/devdb?timeout=5m"
+  
   migration {
-    dir = "file://internal/query/migration/atlas/migrations/mysql"
+    dir    = var.MYSQL_MIGRATIONS_DIR
+    format = "atlas"
   }
+  
+  lint {
+    destructive { error = true }
+  }
+  
   format {
     migrate {
       diff = "{{ sql . \"  \" }}"
@@ -64,21 +82,30 @@ env "mysql" {
   }
 }
 
-# SQL Server configuration
-data "external_schema" "gorm_sqlserver" {
+# SQLite configuration
+data "external_schema" "gorm_sqlite" {
   program = [
     "sh",
     "-c",
-    "cd internal && go run ./atlas_loader.go sqlserver",
+    "cd internal && go run ./atlas_loader.go sqlite",
   ]
 }
 
-env "sqlserver" {
-  src = data.external_schema.gorm_sqlserver.url
-  dev = "docker://sqlserver/2022-latest"
+env "sqlite" {
+  src = data.external_schema.gorm_sqlite.url
+  
+  # SQLite uses in-memory dev database, no Docker needed
+  dev = "sqlite://file?mode=memory"
+  
   migration {
-    dir = "file://internal/query/migration/atlas/migrations/sqlserver"
+    dir    = var.SQLITE_MIGRATIONS_DIR
+    format = "atlas"
   }
+  
+  lint {
+    destructive { error = true }
+  }
+  
   format {
     migrate {
       diff = "{{ sql . \"  \" }}"

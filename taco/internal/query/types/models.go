@@ -50,7 +50,7 @@ type Rule struct {
 	Effect           string `gorm:"size:8;not null;default:allow"`
 	WildcardAction   bool   `gorm:"not null;default:false"`
 	WildcardResource bool   `gorm:"not null;default:false"`
-	ResourcePatterns string `gorm:"type:text;default:''"`
+	ResourcePatterns string `gorm:"type:text;"`
 	Actions          []RuleAction  `gorm:"constraint:OnDelete:CASCADE"`
 	UnitTargets      []RuleUnit    `gorm:"constraint:OnDelete:CASCADE"`
 	TagTargets       []RuleUnitTag `gorm:"constraint:OnDelete:CASCADE"`

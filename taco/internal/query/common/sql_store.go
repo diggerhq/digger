@@ -23,17 +23,16 @@ type SQLStore struct {
 }
 
 // NewSQLStore creates a new SQLStore.
+// Note: Schema migrations are now handled by Atlas in queryfactory.NewQueryStore()
 func NewSQLStore(db *gorm.DB) (*SQLStore, error) {
 	store := &SQLStore{db: db}
-
-	if err := store.migrate(); err != nil {
-		return nil, fmt.Errorf("failed to migrate common sql schema: %w", err)
-	}
 	
+	// Create org-scoped indexes (not handled by Atlas migrations)
 	if err := CreateOrgScopedIndexes(db); err != nil {
 		return nil, fmt.Errorf("failed to create org-scoped indexes: %w", err)
 	}
 	
+	// Create database views (not handled by Atlas migrations)
 	if err := store.createViews(); err != nil {
 		return nil, fmt.Errorf("failed to create views: %w", err)
 	}
