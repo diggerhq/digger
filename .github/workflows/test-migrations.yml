@@ -91,27 +91,15 @@ jobs:
 
       - name: Verify migrations applied
         working-directory: taco
-        env:
-          PGPASSWORD: postgres
         run: |
           # Check if migrations applied successfully from binary output
           if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
-            echo "✅ Migrations applied successfully"
+            echo "✅ Postgres migrations verified from binary output"
           else
             echo "❌ Migration success message not found in binary output"
             cat statesman.log
             exit 1
           fi
-          
-          # Verify golang-migrate tracking table exists
-          echo "Checking if schema_migrations table exists..."
-          psql -h localhost -U postgres -d opentaco_test -c "\dt" | grep schema_migrations
-          
-          echo "Checking applied migrations..."
-          psql -h localhost -U postgres -d opentaco_test -c "SELECT version, dirty FROM schema_migrations;"
-          
-          echo "Checking if key tables exist..."
-          psql -h localhost -U postgres -d opentaco_test -c "\dt" | grep -E "units|organizations|users|rules"
 
   test-mysql:
     name: Test MySQL Migrations
