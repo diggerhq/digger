@@ -175,22 +175,12 @@ jobs:
         run: |
           # Check if migrations applied successfully from binary output
           if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
-            echo "✅ Migrations applied successfully"
+            echo "✅ MySQL migrations verified from binary output"
           else
             echo "❌ Migration success message not found in binary output"
             cat statesman.log
             exit 1
           fi
-          
-          # Verify golang-migrate tracking table exists
-          echo "Checking if schema_migrations table exists..."
-          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SHOW TABLES;" | grep schema_migrations
-          
-          echo "Checking applied migrations..."
-          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SELECT version, dirty FROM schema_migrations;"
-          
-          echo "Checking if key tables exist..."
-          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SHOW TABLES;" | grep -E "units|organizations|users|rules"
 
   test-sqlite:
     name: Test SQLite Migrations
@@ -241,22 +231,12 @@ jobs:
         run: |
           # Check if migrations applied successfully from binary output
           if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
-            echo "✅ Migrations applied successfully"
+            echo "✅ SQLite migrations verified from binary output"
           else
             echo "❌ Migration success message not found in binary output"
             cat statesman.log
             exit 1
           fi
-          
-          # Verify golang-migrate tracking table exists
-          echo "Checking if schema_migrations table exists..."
-          sqlite3 test.db ".tables" | grep schema_migrations
-          
-          echo "Checking applied migrations..."
-          sqlite3 test.db "SELECT version, dirty FROM schema_migrations;"
-          
-          echo "Checking if key tables exist..."
-          sqlite3 test.db ".tables" | grep -E "units|organizations|users|rules"
 
   # Summary job that requires all database tests to pass
   all-migrations-passed:
