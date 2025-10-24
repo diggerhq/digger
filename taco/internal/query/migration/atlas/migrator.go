@@ -4,23 +4,22 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"io/fs"
 	"log"
+	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/query/migration"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/mysql"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
-	_ "github.com/golang-migrate/migrate/v4/database/sqlserver"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
+	atlas "ariga.io/atlas-go-sdk/atlasexec"
 	"gorm.io/gorm"
 )
 
 //go:embed migrations
 var migrationsFS embed.FS
+
+//go:embed bin/atlas
+var atlasBinary []byte
 
 // Migration directory paths (embedded in binary)
 const (
@@ -56,43 +55,136 @@ func (m *Migrator) Migrate(ctx context.Context, db *gorm.DB) error {
 
 	log.Printf("Applying %s migrations from %s...", m.dialect, migrationDir)
 
+	// Extract embedded migrations to temp directory
+	tmpDir, err := m.extractMigrations(migrationDir)
+	if err != nil {
+		return fmt.Errorf("failed to extract migrations: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
 	// Get database URL from config
 	dbURL, err := m.getDatabaseURL()
 	if err != nil {
 		return fmt.Errorf("failed to construct database URL: %w", err)
 	}
 
-	// Get the migration subdirectory from embedded FS
-	migrationFS, err := fs.Sub(migrationsFS, migrationDir)
+	// Get atlas binary path (embedded or system)
+	atlasPath, err := m.getAtlasBinary()
 	if err != nil {
-		return fmt.Errorf("failed to access migration directory %s: %w", migrationDir, err)
+		return fmt.Errorf("failed to get atlas binary: %w", err)
 	}
 
-	// Create source instance from embedded filesystem
-	sourceDriver, err := iofs.New(migrationFS, ".")
+	// Apply migrations using Atlas SDK
+	client, err := atlas.NewClient(".", atlasPath)
 	if err != nil {
-		return fmt.Errorf("failed to create migration source: %w", err)
+		return fmt.Errorf("failed to create atlas client: %w", err)
 	}
 
-	// Create migrate instance
-	migrator, err := migrate.NewWithSourceInstance("iofs", sourceDriver, dbURL)
+	result, err := client.MigrateApply(ctx, &atlas.MigrateApplyParams{
+		URL:    dbURL,
+		DirURL: fmt.Sprintf("file://%s", tmpDir),
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create migrator: %w", err)
-	}
-	defer migrator.Close()
-
-	// Apply all pending migrations
-	if err := migrator.Up(); err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("migration failed: %w", err)
+		return fmt.Errorf("atlas migration failed: %w", err)
 	}
 
-	if err == migrate.ErrNoChange {
-		log.Printf("✅ %s migrations already up to date", m.dialect)
+	// Log result based on what was applied
+	if result != nil && result.Target != "" {
+		log.Printf("✅ %s migrations applied successfully (target: %s)", m.dialect, result.Target)
 	} else {
-		log.Printf("✅ %s migrations applied successfully", m.dialect)
+		log.Printf("✅ %s migrations already up to date", m.dialect)
 	}
-	
 	return nil
+}
+
+// getAtlasBinary extracts the embedded atlas binary or uses system atlas
+func (m *Migrator) getAtlasBinary() (string, error) {
+	// First try to use embedded atlas binary
+	if len(atlasBinary) > 0 {
+		tmpFile, err := os.CreateTemp("", "atlas-*")
+		if err != nil {
+			return "", fmt.Errorf("failed to create temp file for atlas: %w", err)
+		}
+		
+		if _, err := tmpFile.Write(atlasBinary); err != nil {
+			tmpFile.Close()
+			os.Remove(tmpFile.Name())
+			return "", fmt.Errorf("failed to write atlas binary: %w", err)
+		}
+		
+		tmpFile.Close()
+		
+		// Make executable
+		if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
+			os.Remove(tmpFile.Name())
+			return "", fmt.Errorf("failed to make atlas executable: %w", err)
+		}
+		
+		log.Printf("Using embedded Atlas CLI")
+		return tmpFile.Name(), nil
+	}
+
+	// Fallback to system atlas
+	log.Printf("No embedded Atlas CLI, looking for system atlas...")
+	return m.findSystemAtlasBinary()
+}
+
+// findSystemAtlasBinary looks for atlas in common system locations
+func (m *Migrator) findSystemAtlasBinary() (string, error) {
+	// Check if ATLAS_PATH is set
+	if path := os.Getenv("ATLAS_PATH"); path != "" {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	// Try common locations
+	locations := []string{
+		"atlas",                                           // In PATH
+		"/usr/local/bin/atlas",                            // System install
+		filepath.Join(os.Getenv("HOME"), "go/bin/atlas"),  // Go install (dev)
+		"/go/bin/atlas",                                   // Docker container
+	}
+
+	for _, loc := range locations {
+		if _, err := exec.LookPath(loc); err == nil {
+			return loc, nil
+		}
+		if _, err := os.Stat(loc); err == nil {
+			return loc, nil
+		}
+	}
+
+	return "", fmt.Errorf("atlas CLI not found - please install Atlas or set ATLAS_PATH environment variable")
+}
+
+func (m *Migrator) extractMigrations(dirPath string) (string, error) {
+	tmpDir, err := os.MkdirTemp("", "atlas-migrations-*")
+	if err != nil {
+		return "", err
+	}
+
+	entries, err := migrationsFS.ReadDir(dirPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read embedded migrations: %w", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		content, err := migrationsFS.ReadFile(filepath.Join(dirPath, entry.Name()))
+		if err != nil {
+			return "", err
+		}
+
+		if err := os.WriteFile(filepath.Join(tmpDir, entry.Name()), content, 0644); err != nil {
+			return "", err
+		}
+	}
+
+	return tmpDir, nil
 }
 
 func (m *Migrator) getDatabaseURL() (string, error) {
@@ -117,8 +209,7 @@ func (m *Migrator) getDatabaseURL() (string, error) {
 				absPath = cfg.Path
 			}
 		}
-		// golang-migrate uses sqlite3:// scheme
-		return fmt.Sprintf("sqlite3://%s", absPath), nil
+		return fmt.Sprintf("sqlite://%s", absPath), nil
 
 	case "sqlserver":
 		cfg := m.config.MSSQL

@@ -104,6 +104,14 @@ atlas-install: ## Install Atlas CLI and GORM provider
 	@go install ariga.io/atlas-provider-gorm@latest
 	@echo "✅ Atlas tools installed successfully"
 
+# Download Atlas amd64 binary for packaging
+atlas-download-binary: ## Download Atlas amd64 Linux binary for embedding
+	@echo "Downloading Atlas amd64 binary..."
+	@mkdir -p internal/query/migration/atlas/bin
+	@curl -sSfL https://release.ariga.io/atlas/atlas-linux-amd64-latest -o internal/query/migration/atlas/bin/atlas
+	@chmod +x internal/query/migration/atlas/bin/atlas
+	@echo "✅ Atlas binary downloaded to internal/query/migration/atlas/bin/atlas"
+
 # Generate migrations for all database dialects (Postgres, MySQL, SQLite)
 atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-all name=my_change)
 	@echo "Generating migrations for all databases..."
@@ -117,10 +125,6 @@ atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-a
 	@echo "\n📊 PostgreSQL..." && atlas migrate diff $(NAME) --env postgres
 	@echo "\n📊 MySQL..." && atlas migrate diff $(NAME) --env mysql
 	@echo "\n📊 SQLite..." && atlas migrate diff $(NAME) --env sqlite
-	@echo "\n🔄 Renaming migration files for golang-migrate compatibility..."
-	@find internal/query/migration/atlas/migrations -name "*.sql" ! -name "*.up.sql" ! -name "*.down.sql" -type f | while read f; do mv "$$f" "$${f%.sql}.up.sql"; done
-	@echo "\n🔐 Updating Atlas checksums after rename..."
-	@$(MAKE) atlas-hash-all
 	@echo "\n✅ All migrations generated successfully!"
 
 
