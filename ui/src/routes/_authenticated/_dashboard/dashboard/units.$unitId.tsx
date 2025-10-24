@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams } from '@tanstack/react-router'
+import { createFileRoute, Link, useParams, useRouter } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -24,7 +24,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Lock, Unlock, MoreVertical, History, Trash2, Download, Upload, RefreshCcw, Copy, Check, ArrowUpRight } from 'lucide-react'
 import { useState } from 'react'
-import { getUnitFn } from '@/api/statesman_serverFunctions'
+import { getUnitFn, getUnitVersionsFn, lockUnitFn, unlockUnitFn, getUnitStatusFn, deleteUnitFn } from '@/api/statesman_serverFunctions'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 function CopyButton({ content }: { content: string }) {
   const [copied, setCopied] = useState(false)
@@ -58,30 +59,20 @@ export const Route = createFileRoute(
   loader: async ({ context, params: {unitId} }) => {
     const { user, organisationId } = context;
     const unitData = await getUnitFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
-    console.log(unitData)
-    return { unitData: unitData, user, organisationId }
+    const unitVersionsData = await getUnitVersionsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
+    const unitStatusData = await getUnitStatusFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
+    const publicUrl = process.env.PUBLIC_URL || '<hostname>'
+    return { 
+      unitData: unitData, 
+      unitStatus: unitStatusData,
+      unitVersions: unitVersionsData.versions, 
+      user, 
+      organisationId, 
+      publicUrl 
+    }
   }
 })
 
-// Mock data - replace with actual data fetching
-const mockUnit = {
-  id: "prod-vpc-network",
-  size: 2457600,
-  updatedAt: new Date("2025-10-16T09:30:00"),
-  locked: true,
-  lockedBy: "john.doe@company.com",
-  status: "up-to-date", // Can be "up-to-date" or "needs re-apply"
-  version: "v12",
-  versions: [
-    { version: "v12", timestamp: new Date("2025-10-16T09:30:00"), author: "john.doe@company.com", isLatest: true },
-    { version: "v11", timestamp: new Date("2025-10-15T16:45:00"), author: "jane.smith@company.com", isLatest: false },
-    { version: "v10", timestamp: new Date("2025-10-14T14:20:00"), author: "john.doe@company.com", isLatest: false },
-  ],
-  dependencies: [
-    { name: "shared-networking", status: "up-to-date" },
-    { name: "security-groups", status: "needs re-apply" },
-  ]
-}
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return '0 Bytes'
@@ -91,28 +82,76 @@ function formatBytes(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-function formatDate(date: Date) {
-  return date
-  return date.toLocaleDateString('en-US', {
+function formatDate(input: Date | string | number) {
+  const date = input instanceof Date ? input : new Date(input)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
-    day: 'numeric',
+    day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    second: '2-digit'
   })
 }
 
 function RouteComponent() {
   const data = Route.useLoaderData()
-  const { unitData, organisationId } = data
-  console.log(unitData)
+  const { unitData, unitVersions, unitStatus, organisationId, publicUrl, user } = data
   const unit = unitData
-  if (!unit.versions) {
-    unit.versions = []
+  const router = useRouter()
+
+  const handleUnlock = async () => {
+    try {
+      await unlockUnitFn({
+        data: {
+          userId: user?.id || '',
+          organisationId: organisationId || '',
+          email: user?.email || '',
+          unitId: unit.id,
+        },
+      })
+      router.invalidate()
+    } catch (error) {
+      console.error('Failed to unlock unit', error)
+    }
   }
-  if (!unit.dependencies) {
-    unit.dependencies = []
+
+  const handleLock = async () => {
+    alert('Locking unit')
+    try {
+      await lockUnitFn({
+        data: {
+          userId: user?.id || '',
+          organisationId: organisationId || '',
+          email: user?.email || '',
+          unitId: unit.id,
+        },
+      })
+      router.invalidate()
+    } catch (error) {
+      console.error('Failed to lock unit', error)
+    }
   }
+
+
+  const handleDelete = async () => {
+    try {
+      await deleteUnitFn({
+        data: {
+          userId: user?.id || '',
+          organisationId: organisationId || '',
+          email: user?.email || '',
+          unitId: unit.id,
+        },
+      })
+      router.invalidate()
+    } catch (error) {
+      console.error('Failed to delete unit', error)
+    }
+    router.navigate({ to: '/dashboard/units' })
+  }
+  
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6 flex items-center justify-between">
@@ -123,13 +162,13 @@ function RouteComponent() {
             </Link>
           </Button>
           <div className="flex gap-2">
-              <Badge variant={unit.status === "up-to-date" ? "secondary" : "destructive"}>
-                {unit.status === "up-to-date" ? (
+              <Badge variant={unitStatus.status === "green" ? "secondary" : "destructive"}>
+                {unitStatus.status === "green" ? (
                   <Check className="mr-2 h-3 w-3" />
                 ) : (
                   <RefreshCcw className="mr-2 h-3 w-3" />
                 )}
-                {unit.status === "up-to-date" ? "Up-to-date" : "Needs re-apply"}
+                {unitStatus.status === "green" ? "Up-to-date" : "Needs re-apply"}
               </Badge>
             <Badge variant={unit.locked ? "destructive" : "secondary"}>
               {unit.locked ? <Lock className="mr-2 h-3 w-3" /> : <Unlock className="mr-2 h-3 w-3" />}
@@ -143,10 +182,14 @@ function RouteComponent() {
             <Download className="h-4 w-4" />
             Download Latest State
           </Button>
-          <Button variant="outline" className="gap-2">
+          {unit.locked && <Button variant="outline" className="gap-2" onClick={handleUnlock}>
             <Unlock className="h-4 w-4" />
             Unlock
-          </Button>
+          </Button>}
+          {!unit.locked && <Button variant="outline" className="gap-2" onClick={handleLock}>
+            <Lock className="h-4 w-4" />
+            Lock
+          </Button>}
 
         </div>
       </div>
@@ -168,7 +211,6 @@ function RouteComponent() {
           <TabsList>
             <TabsTrigger value="setup">Setup</TabsTrigger>
             <TabsTrigger value="versions">State versions</TabsTrigger>
-            <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -187,7 +229,7 @@ function RouteComponent() {
                     <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">
 {`terraform {
   cloud {
-    hostname = "mo-opentaco-test.ngrok.app"
+    hostname = "${publicUrl}"
     organization = "${organisationId}"    
     workspaces {
       name = "${unit.id}"
@@ -198,10 +240,10 @@ function RouteComponent() {
                     <CopyButton 
                       content={`terraform {
   cloud {
-    hostname = "mo-opentaco-test.ngrok.app"
-    organization = "opentaco"    
+    hostname = "${publicUrl}"
+    organization = "${organisationId}"    
     workspaces {
-      name = "momo"
+      name = "${unit.id}"
     }
   }
 }`} 
@@ -272,73 +314,49 @@ function RouteComponent() {
                 <CardDescription>Previous versions of this unit</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {unit.versions.map((version) => (
-                    <div key={version.version} className="flex items-center justify-between border-b pb-4 last:border-0">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{version.version}</span>
-                          {version.isLatest && (
-                            <Badge variant="secondary" className="text-xs">
-                              Latest
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatDate(version.timestamp)} by {version.author}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!version.isLatest && (
-                          <Button variant="outline" size="sm">
-                            <History className="mr-2 h-4 w-4" />
-                            Restore
-                          </Button>
-                        )}
-                        <Button variant="outline" size="sm">
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Hash</TableHead>
+                      <TableHead className="w-[120px]">Size</TableHead>
+                      <TableHead className="w-[230px]">Date</TableHead>
+                      <TableHead className="w-[220px] text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {unitVersions.map((version: any) => {
+                      const shortHash = String(version.hash).slice(0, 8)
+                      return (
+                        <TableRow key={version.hash}>
+                          <TableCell>
+                            <code className="text-xs">{shortHash}</code>
+                          </TableCell>
+                          <TableCell>{formatBytes(Number(version.size) || 0)}</TableCell>
+                          <TableCell>{formatDate(version.timestamp)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {!version.isLatest && (
+                                <Button variant="outline" size="sm">
+                                  <History className="mr-2 h-4 w-4" />
+                                  Restore
+                                </Button>
+                              )}
+                              <Button variant="outline" size="sm">
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="dependencies" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Dependencies</CardTitle>
-                <CardDescription>Units this unit depends on</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {unit.dependencies.map((dep) => (
-                    <div key={dep.name} className="flex items-center justify-between border-b pb-4 last:border-0">
-                      <div>
-                        <Link 
-                          to="/dashboard/units/$unitId"
-                          params={{ unitId: dep.name }}
-                          className="font-medium hover:underline inline-flex items-center gap-1"
-                        >
-                          {dep.name}
-                          <ArrowUpRight className="h-4 w-4" />
-                        </Link>
-                        <div className="text-sm text-muted-foreground">
-                          Status: {dep.status}
-                        </div>
-                      </div>
-                      <Badge variant={dep.status === "up-to-date" ? "secondary" : "destructive"}>
-                        {dep.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
 
           <TabsContent value="settings" className="mt-6">
             <Card>
@@ -366,7 +384,7 @@ function RouteComponent() {
                       This will permanently delete this unit and all of its version history. 
                       This action cannot be undone. Make sure to back up any important state before proceeding.
                     </p>
-                    <Button variant="destructive" className="gap-2">
+                    <Button variant="destructive" className="gap-2" onClick={handleDelete}>
                       <Trash2 className="h-4 w-4" />
                       Delete Unit
                     </Button>
