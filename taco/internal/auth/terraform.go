@@ -201,7 +201,9 @@ func (h *Handler) OAuthToken(c echo.Context) error {
     
     // Issue an opaque API token for TFE compatibility (like real Terraform Cloud)
     if h.apiTokens != nil {
-        if opaque, err2 := h.apiTokens.Issue(c.Request().Context(), authCode.Subject, authCode.Email, authCode.Groups); err2 == nil {
+        // Default to "default" org for self-hosted (TODO: extract from JWT org claim for multi-tenant)
+        orgID := "default"
+        if opaque, err2 := h.apiTokens.Issue(c.Request().Context(), orgID, authCode.Subject, authCode.Email, authCode.Groups); err2 == nil {
             // Return opaque token as access_token (matching TFE behavior)
             // Calculate expiration based on TERRAFORM_TOKEN_TTL or default to very long
             var expiresIn int

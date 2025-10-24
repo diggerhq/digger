@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
@@ -140,31 +141,48 @@ func (a *authorizingRepository) Unlock(ctx context.Context, id string, lockID st
 // UnitManagement additional methods (5 methods)
 // ============================================
 
-func (a *authorizingRepository) Create(ctx context.Context, id string) (*storage.UnitMetadata, error) {
+func (a *authorizingRepository) Create(ctx context.Context, orgID string, name string) (*storage.UnitMetadata, error) {
 	principal, ok := rbac.PrincipalFromContext(ctx)
 	if !ok {
 		return nil, storage.ErrUnauthorized
 	}
 
-	allowed, err := a.rbac.Can(ctx, principal, rbac.ActionUnitWrite, id)
+	allowed, err := a.rbac.Can(ctx, principal, rbac.ActionUnitWrite, name)
 	if err != nil {
+		slog.Error("RBAC check error",
+			"operation", "Create",
+			"principal", principal.Subject,
+			"action", "unit:write",
+			"resource", name,
+			"error", err)
 		return nil, err
 	}
 	if !allowed {
+		slog.Warn("RBAC check denied",
+			"operation", "Create",
+			"principal", principal.Subject,
+			"action", "unit:write",
+			"resource", name)
 		return nil, storage.ErrForbidden
 	}
+	
+	slog.Debug("RBAC check allowed",
+		"operation", "Create",
+		"principal", principal.Subject,
+		"action", "unit:write",
+		"resource", name)
 
-	return a.underlying.Create(ctx, id)
+	return a.underlying.Create(ctx, orgID, name)
 }
 
-func (a *authorizingRepository) List(ctx context.Context, prefix string) ([]*storage.UnitMetadata, error) {
+func (a *authorizingRepository) List(ctx context.Context, orgID string, prefix string) ([]*storage.UnitMetadata, error) {
 	principal, ok := rbac.PrincipalFromContext(ctx)
 	if !ok {
 		return nil, storage.ErrUnauthorized
 	}
 
 	// Get all units
-	allUnits, err := a.underlying.List(ctx, prefix)
+	allUnits, err := a.underlying.List(ctx, orgID, prefix)
 	if err != nil {
 		return nil, err
 	}

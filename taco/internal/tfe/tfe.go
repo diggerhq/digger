@@ -4,6 +4,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/auth"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
+	"github.com/diggerhq/digger/opentaco/internal/storage"
 )
 
 // TfeHandler implements Terraform Cloud/Enterprise API.
@@ -16,8 +17,8 @@ type TfeHandler struct {
 }
 
 // NewTFETokenHandler creates a new TFE handler.
-// Accepts full repository (not scoped interface) because API tokens need storage.
-func NewTFETokenHandler(authHandler *auth.Handler, fullRepo domain.UnitRepository, rbacManager *rbac.RBACManager) *TfeHandler {
+// Accepts full repository for state ops and blob store for API token storage.
+func NewTFETokenHandler(authHandler *auth.Handler, fullRepo domain.UnitRepository, blobStore storage.UnitStore, rbacManager *rbac.RBACManager) *TfeHandler {
 	// Scope to TFE operations for state management (handler only uses Get, Upload, Lock methods)
 	stateStore := domain.TFEOperations(fullRepo)
 	
@@ -25,6 +26,6 @@ func NewTFETokenHandler(authHandler *auth.Handler, fullRepo domain.UnitRepositor
 		authHandler: authHandler,
 		stateStore:  stateStore,
 		rbacManager: rbacManager,
-        apiTokens:   auth.NewAPITokenManagerFromStore(fullRepo),  // Full repo for token storage
+        apiTokens:   auth.NewAPITokenManagerFromStore(blobStore),  // Use blob store for token storage
 	}
 }

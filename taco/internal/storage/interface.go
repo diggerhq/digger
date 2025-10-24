@@ -16,6 +16,9 @@ var (
 
 type UnitMetadata struct {
     ID       string    `json:"id"`
+    Name     string    `json:"name"`
+    OrgID    string    `json:"org_id"`
+    OrgName  string    `json:"org_name"`
     Size     int64     `json:"size"`
     Updated  time.Time `json:"updated"`
     Locked   bool      `json:"locked"`

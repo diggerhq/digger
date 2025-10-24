@@ -1,10 +1,11 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
-	"context"
+	"strings"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
@@ -29,16 +30,19 @@ func NewOrgHandler(orgRepo domain.OrganizationRepository, userRepo domain.UserRe
 
 // CreateOrgRequest is the request body for creating an organization
 type CreateOrgRequest struct {
-	OrgID string `json:"org_id" validate:"required"`
-	Name  string `json:"name" validate:"required"`
+	Name          string `json:"name" validate:"required"`         // Unique identifier (e.g., "acme")
+	DisplayName   string `json:"display_name" validate:"required"` // Friendly name (e.g., "Acme Corp")
+	ExternalOrgID string `json:"external_org_id"`                  // External org identifier (optional)
 }
 
 // CreateOrgResponse is the response for creating an organization
 type CreateOrgResponse struct {
-	OrgID     string `json:"org_id"`
-	Name      string `json:"name"`
-	CreatedBy string `json:"created_by"`
-	CreatedAt string `json:"created_at"`
+	ID            string `json:"id"`             // UUID
+	Name          string `json:"name"`           // Unique identifier
+	DisplayName   string `json:"display_name"`    // Friendly name
+	ExternalOrgID string `json:"external_org_id"` // External org identifier
+	CreatedBy     string `json:"created_by"`
+	CreatedAt     string `json:"created_at"`
 }
 
 // CreateOrganization handles POST /internal/orgs
@@ -82,15 +86,15 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 		})
 	}
 
-	if req.OrgID == "" || req.Name == "" {
+	if req.Name == "" || req.DisplayName == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "org_id and name are required",
+			"error": "name and display_name are required",
 		})
 	}
 
 	slog.Info("Creating organization",
-		"orgID", req.OrgID,
 		"name", req.Name,
+		"displayName", req.DisplayName,
 		"createdBy", userIDStr,
 	)
 
@@ -101,7 +105,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 
 	// Create organization in transaction
 	err := h.orgRepo.WithTransaction(ctx, func(ctx context.Context, txRepo domain.OrganizationRepository) error {
-		createdOrg, err := txRepo.Create(ctx, req.OrgID, req.Name, userIDStr)
+		createdOrg, err := txRepo.Create(ctx, req.Name, req.Name, req.DisplayName, req.ExternalOrgID, userIDStr)
 		if err != nil {
 			return err
 		}
@@ -121,9 +125,17 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 				"error": err.Error(),
 			})
 		}
+		
+		// Check for external org ID conflict
+		if strings.Contains(err.Error(), "external org ID already exists") {
+			return c.JSON(http.StatusConflict, map[string]string{
+				"error": err.Error(),
+			})
+		}
 
 		slog.Error("Failed to create organization",
-			"orgID", req.OrgID,
+			"name", req.Name,
+			"externalOrgID", req.ExternalOrgID,
 			"error", err,
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -135,22 +147,25 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 	// Initialize RBAC after org creation (outside transaction for SQLite compatibility)
 	if h.rbacManager != nil {
 		slog.Info("Initializing RBAC for new organization",
-			"orgID", req.OrgID,
+			"orgName", req.Name,
+			"orgID", org.ID,
 			"adminUser", userIDStr,
 		)
 
-		if err := h.rbacManager.InitializeRBAC(ctx, userIDStr, emailStr); err != nil {
+		if err := h.rbacManager.InitializeRBAC(ctx, org.ID, userIDStr, emailStr); err != nil {
 			// Org was created but RBAC failed - log warning but don't fail the request
 			// User can retry RBAC initialization or assign roles manually
 			slog.Warn("Organization created but RBAC initialization failed",
-				"orgID", req.OrgID,
+				"orgName", req.Name,
+				"orgID", org.ID,
 				"error", err,
 				"recommendation", "RBAC can be initialized later via /rbac/init endpoint",
 			)
 			// Continue with success response - org was created
 		} else {
 			slog.Info("RBAC initialized successfully",
-				"orgID", req.OrgID,
+				"orgName", req.Name,
+				"orgID", org.ID,
 				"adminUser", userIDStr,
 			)
 		}
@@ -158,10 +173,148 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 
 	// Success - org created (and RBAC initialized if available)
 	return c.JSON(http.StatusCreated, CreateOrgResponse{
-		OrgID:     org.OrgID,
-		Name:      org.Name,
-		CreatedBy: org.CreatedBy,
-		CreatedAt: org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:            org.ID,
+		Name:          org.Name,
+		DisplayName:   org.DisplayName,
+		ExternalOrgID: org.ExternalOrgID,
+		CreatedBy:     org.CreatedBy,
+		CreatedAt:     org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	})
+}
+
+// SyncExternalOrgRequest is the request body for syncing an external organization
+type SyncExternalOrgRequest struct {
+	Name          string `json:"name" validate:"required"`           // Internal name (e.g., "acme")
+	DisplayName   string `json:"display_name" validate:"required"` // Friendly name (e.g., "Acme Corp")
+	ExternalOrgID string `json:"external_org_id" validate:"required"` // External org identifier
+}
+
+// SyncExternalOrgResponse is the response for syncing an external organization
+type SyncExternalOrgResponse struct {
+	Status       string `json:"status"`        // "created" or "existing"
+	Organization *domain.Organization `json:"organization"`
+}
+
+// SyncExternalOrg handles POST /internal/orgs/sync
+// Creates a new organization with external mapping or returns existing one
+func (h *OrgHandler) SyncExternalOrg(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// Get user context from webhook middleware
+	userID := c.Get("user_id")
+	email := c.Get("email")
+
+	if userID == nil || email == nil {
+		slog.Error("Missing user context in sync org request")
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "user context required",
+		})
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		slog.Error("Invalid user_id type in context")
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "invalid user context - webhook middleware misconfigured",
+		})
+	}
+
+	// Parse request
+	var req SyncExternalOrgRequest
+	if err := c.Bind(&req); err != nil {
+		slog.Error("Failed to bind sync org request", "error", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "invalid request body",
+		})
+	}
+
+	if req.Name == "" || req.DisplayName == "" || req.ExternalOrgID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "name, display_name, and external_org_id are required",
+		})
+	}
+
+	slog.Info("Syncing external organization",
+		"name", req.Name,
+		"displayName", req.DisplayName,
+		"externalOrgID", req.ExternalOrgID,
+		"createdBy", userIDStr,
+	)
+
+	// Check if external org ID already exists
+	existingOrg, err := h.orgRepo.GetByExternalID(ctx, req.ExternalOrgID)
+	if err == nil {
+		// External org ID exists, return existing org
+		slog.Info("External organization already exists",
+			"externalOrgID", req.ExternalOrgID,
+			"orgID", existingOrg.ID,
+		)
+		return c.JSON(http.StatusOK, SyncExternalOrgResponse{
+			Status:       "existing",
+			Organization: existingOrg,
+		})
+	}
+
+	if err != domain.ErrOrgNotFound {
+		slog.Error("Failed to check existing external org ID",
+			"externalOrgID", req.ExternalOrgID,
+			"error", err,
+		)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "failed to check existing external organization",
+		})
+	}
+
+	// Create new organization with external mapping
+	var org *domain.Organization
+	err = h.orgRepo.WithTransaction(ctx, func(ctx context.Context, txRepo domain.OrganizationRepository) error {
+		createdOrg, err := txRepo.Create(ctx, req.Name, req.Name, req.DisplayName, req.ExternalOrgID, userIDStr)
+		if err != nil {
+			return err
+		}
+		org = createdOrg
+		return nil
+	})
+
+	if err != nil {
+		if errors.Is(err, domain.ErrOrgExists) {
+			return c.JSON(http.StatusConflict, map[string]string{
+				"error": "organization name already exists",
+			})
+		}
+		if errors.Is(err, domain.ErrInvalidOrgID) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": err.Error(),
+			})
+		}
+		
+		// Check for external org ID conflict
+		if strings.Contains(err.Error(), "external org ID already exists") {
+			return c.JSON(http.StatusConflict, map[string]string{
+				"error": err.Error(),
+			})
+		}
+
+		slog.Error("Failed to create organization during sync",
+			"name", req.Name,
+			"externalOrgID", req.ExternalOrgID,
+			"error", err,
+		)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "failed to create organization",
+			"detail": err.Error(),
+		})
+	}
+
+	slog.Info("External organization synced successfully",
+		"name", req.Name,
+		"externalOrgID", req.ExternalOrgID,
+		"orgID", org.ID,
+	)
+
+	return c.JSON(http.StatusCreated, SyncExternalOrgResponse{
+		Status:       "created",
+		Organization: org,
 	})
 }
 
@@ -193,11 +346,12 @@ func (h *OrgHandler) GetOrganization(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"org_id":     org.OrgID,
-		"name":       org.Name,
-		"created_by": org.CreatedBy,
-		"created_at": org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		"updated_at": org.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"id":           org.ID,
+		"name":         org.Name,
+		"display_name": org.DisplayName,
+		"created_by":   org.CreatedBy,
+		"created_at":   org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"updated_at":   org.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	})
 }
 
@@ -216,11 +370,12 @@ func (h *OrgHandler) ListOrganizations(c echo.Context) error {
 	response := make([]map[string]interface{}, len(orgs))
 	for i, org := range orgs {
 		response[i] = map[string]interface{}{
-			"org_id":     org.OrgID,
-			"name":       org.Name,
-			"created_by": org.CreatedBy,
-			"created_at": org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			"updated_at": org.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"id":           org.ID,
+			"name":         org.Name,
+			"display_name": org.DisplayName,
+			"created_by":   org.CreatedBy,
+			"created_at":   org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"updated_at":   org.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
 

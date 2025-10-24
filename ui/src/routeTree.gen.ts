@@ -12,11 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrchestratorJob_artefactsRouteImport } from './routes/_orchestrator/job_artefacts'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/_dashboard'
+import { Route as OrchestratorGithubWebhookRouteImport } from './routes/orchestrator/github/webhook'
+import { Route as OrchestratorGithubCallbackRouteImport } from './routes/orchestrator/github/callback'
 import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
 import { Route as ApiAuthWorkosWebhooksRouteImport } from './routes/api/auth/workos/webhooks'
 import { Route as ApiAuthWorkosSwitchOrgRouteImport } from './routes/api/auth/workos/switch-org'
-import { Route as AuthenticatedDashboardDashboardUnitsRouteImport } from './routes/_authenticated/_dashboard/dashboard/units'
+import { Route as OrchestratorReposNamespaceReportProjectsRouteImport } from './routes/_orchestrator/repos/$namespace/report-projects'
+import { Route as OrchestratorOrgsOrgIdPlan_policyRouteImport } from './routes/_orchestrator/orgs/$orgId.plan_policy'
+import { Route as OrchestratorOrgsOrgIdAccess_policyRouteImport } from './routes/_orchestrator/orgs/$orgId.access_policy'
 import { Route as AuthenticatedDashboardDashboardSettingsRouteImport } from './routes/_authenticated/_dashboard/dashboard/settings'
 import { Route as AuthenticatedDashboardDashboardReposRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos'
 import { Route as AuthenticatedDashboardDashboardProjectsRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects'
@@ -31,6 +36,9 @@ import { Route as AuthenticatedDashboardDashboardReposConnectRouteImport } from 
 import { Route as AuthenticatedDashboardDashboardReposRepoIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.$repoId'
 import { Route as AuthenticatedDashboardDashboardProjectsProjectIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.$projectId'
 import { Route as AuthenticatedDashboardDashboardConnectionsConnectionIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/connections.$connectionId'
+import { Route as OrchestratorReposNamespaceProjectsProjectNamePlan_policyRouteImport } from './routes/_orchestrator/repos/$namespace/projects/$projectName/plan_policy'
+import { Route as OrchestratorReposNamespaceProjectsProjectNameAccess_policyRouteImport } from './routes/_orchestrator/repos/$namespace/projects/$projectName/access_policy'
+import { Route as OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRouteImport } from './routes/_orchestrator/repos/$namespace/projects/$projectName/jobs.$jobId.set-status'
 
 const LogoutRoute = LogoutRouteImport.update({
   id: '/logout',
@@ -46,10 +54,28 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrchestratorJob_artefactsRoute =
+  OrchestratorJob_artefactsRouteImport.update({
+    id: '/_orchestrator/job_artefacts',
+    path: '/job_artefacts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/_dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const OrchestratorGithubWebhookRoute =
+  OrchestratorGithubWebhookRouteImport.update({
+    id: '/orchestrator/github/webhook',
+    path: '/orchestrator/github/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrchestratorGithubCallbackRoute =
+  OrchestratorGithubCallbackRouteImport.update({
+    id: '/orchestrator/github/callback',
+    path: '/orchestrator/github/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
   id: '/api/auth/callback',
   path: '/api/auth/callback',
@@ -65,11 +91,23 @@ const ApiAuthWorkosSwitchOrgRoute = ApiAuthWorkosSwitchOrgRouteImport.update({
   path: '/api/auth/workos/switch-org',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedDashboardDashboardUnitsRoute =
-  AuthenticatedDashboardDashboardUnitsRouteImport.update({
-    id: '/dashboard/units',
-    path: '/dashboard/units',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+const OrchestratorReposNamespaceReportProjectsRoute =
+  OrchestratorReposNamespaceReportProjectsRouteImport.update({
+    id: '/_orchestrator/repos/$namespace/report-projects',
+    path: '/repos/$namespace/report-projects',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrchestratorOrgsOrgIdPlan_policyRoute =
+  OrchestratorOrgsOrgIdPlan_policyRouteImport.update({
+    id: '/_orchestrator/orgs/$orgId/plan_policy',
+    path: '/orgs/$orgId/plan_policy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrchestratorOrgsOrgIdAccess_policyRoute =
+  OrchestratorOrgsOrgIdAccess_policyRouteImport.update({
+    id: '/_orchestrator/orgs/$orgId/access_policy',
+    path: '/orgs/$orgId/access_policy',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedDashboardDashboardSettingsRoute =
   AuthenticatedDashboardDashboardSettingsRouteImport.update({
@@ -109,9 +147,9 @@ const AuthenticatedDashboardDashboardConnectionsRoute =
   } as any)
 const AuthenticatedDashboardDashboardUnitsIndexRoute =
   AuthenticatedDashboardDashboardUnitsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedDashboardDashboardUnitsRoute,
+    id: '/dashboard/units/',
+    path: '/dashboard/units/',
+    getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardDashboardReposIndexRoute =
   AuthenticatedDashboardDashboardReposIndexRouteImport.update({
@@ -127,9 +165,9 @@ const AuthenticatedDashboardDashboardProjectsIndexRoute =
   } as any)
 const AuthenticatedDashboardDashboardUnitsUnitIdRoute =
   AuthenticatedDashboardDashboardUnitsUnitIdRouteImport.update({
-    id: '/$unitId',
-    path: '/$unitId',
-    getParentRoute: () => AuthenticatedDashboardDashboardUnitsRoute,
+    id: '/dashboard/units/$unitId',
+    path: '/dashboard/units/$unitId',
+    getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardDashboardReposConnectRoute =
   AuthenticatedDashboardDashboardReposConnectRouteImport.update({
@@ -155,18 +193,43 @@ const AuthenticatedDashboardDashboardConnectionsConnectionIdRoute =
     path: '/$connectionId',
     getParentRoute: () => AuthenticatedDashboardDashboardConnectionsRoute,
   } as any)
+const OrchestratorReposNamespaceProjectsProjectNamePlan_policyRoute =
+  OrchestratorReposNamespaceProjectsProjectNamePlan_policyRouteImport.update({
+    id: '/_orchestrator/repos/$namespace/projects/$projectName/plan_policy',
+    path: '/repos/$namespace/projects/$projectName/plan_policy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrchestratorReposNamespaceProjectsProjectNameAccess_policyRoute =
+  OrchestratorReposNamespaceProjectsProjectNameAccess_policyRouteImport.update({
+    id: '/_orchestrator/repos/$namespace/projects/$projectName/access_policy',
+    path: '/repos/$namespace/projects/$projectName/access_policy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRoute =
+  OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRouteImport.update(
+    {
+      id: '/_orchestrator/repos/$namespace/projects/$projectName/jobs/$jobId/set-status',
+      path: '/repos/$namespace/projects/$projectName/jobs/$jobId/set-status',
+      getParentRoute: () => rootRouteImport,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
+  '/job_artefacts': typeof OrchestratorJob_artefactsRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
+  '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
   '/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   '/dashboard/repos': typeof AuthenticatedDashboardDashboardReposRouteWithChildren
   '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
-  '/dashboard/units': typeof AuthenticatedDashboardDashboardUnitsRouteWithChildren
+  '/orgs/$orgId/access_policy': typeof OrchestratorOrgsOrgIdAccess_policyRoute
+  '/orgs/$orgId/plan_policy': typeof OrchestratorOrgsOrgIdPlan_policyRoute
+  '/repos/$namespace/report-projects': typeof OrchestratorReposNamespaceReportProjectsRoute
   '/api/auth/workos/switch-org': typeof ApiAuthWorkosSwitchOrgRoute
   '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
@@ -176,16 +239,25 @@ export interface FileRoutesByFullPath {
   '/dashboard/units/$unitId': typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
   '/dashboard/projects/': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
   '/dashboard/repos/': typeof AuthenticatedDashboardDashboardReposIndexRoute
-  '/dashboard/units/': typeof AuthenticatedDashboardDashboardUnitsIndexRoute
+  '/dashboard/units': typeof AuthenticatedDashboardDashboardUnitsIndexRoute
+  '/repos/$namespace/projects/$projectName/access_policy': typeof OrchestratorReposNamespaceProjectsProjectNameAccess_policyRoute
+  '/repos/$namespace/projects/$projectName/plan_policy': typeof OrchestratorReposNamespaceProjectsProjectNamePlan_policyRoute
+  '/repos/$namespace/projects/$projectName/jobs/$jobId/set-status': typeof OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
+  '/job_artefacts': typeof OrchestratorJob_artefactsRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
+  '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
   '/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
+  '/orgs/$orgId/access_policy': typeof OrchestratorOrgsOrgIdAccess_policyRoute
+  '/orgs/$orgId/plan_policy': typeof OrchestratorOrgsOrgIdPlan_policyRoute
+  '/repos/$namespace/report-projects': typeof OrchestratorReposNamespaceReportProjectsRoute
   '/api/auth/workos/switch-org': typeof ApiAuthWorkosSwitchOrgRoute
   '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
@@ -196,6 +268,9 @@ export interface FileRoutesByTo {
   '/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
   '/dashboard/repos': typeof AuthenticatedDashboardDashboardReposIndexRoute
   '/dashboard/units': typeof AuthenticatedDashboardDashboardUnitsIndexRoute
+  '/repos/$namespace/projects/$projectName/access_policy': typeof OrchestratorReposNamespaceProjectsProjectNameAccess_policyRoute
+  '/repos/$namespace/projects/$projectName/plan_policy': typeof OrchestratorReposNamespaceProjectsProjectNamePlan_policyRoute
+  '/repos/$namespace/projects/$projectName/jobs/$jobId/set-status': typeof OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -203,14 +278,19 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/logout': typeof LogoutRoute
   '/_authenticated/_dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_orchestrator/job_artefacts': typeof OrchestratorJob_artefactsRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
+  '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
   '/_authenticated/_dashboard/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/_authenticated/_dashboard/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
   '/_authenticated/_dashboard/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/_authenticated/_dashboard/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   '/_authenticated/_dashboard/dashboard/repos': typeof AuthenticatedDashboardDashboardReposRouteWithChildren
   '/_authenticated/_dashboard/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
-  '/_authenticated/_dashboard/dashboard/units': typeof AuthenticatedDashboardDashboardUnitsRouteWithChildren
+  '/_orchestrator/orgs/$orgId/access_policy': typeof OrchestratorOrgsOrgIdAccess_policyRoute
+  '/_orchestrator/orgs/$orgId/plan_policy': typeof OrchestratorOrgsOrgIdPlan_policyRoute
+  '/_orchestrator/repos/$namespace/report-projects': typeof OrchestratorReposNamespaceReportProjectsRoute
   '/api/auth/workos/switch-org': typeof ApiAuthWorkosSwitchOrgRoute
   '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/_authenticated/_dashboard/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
@@ -221,20 +301,28 @@ export interface FileRoutesById {
   '/_authenticated/_dashboard/dashboard/projects/': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
   '/_authenticated/_dashboard/dashboard/repos/': typeof AuthenticatedDashboardDashboardReposIndexRoute
   '/_authenticated/_dashboard/dashboard/units/': typeof AuthenticatedDashboardDashboardUnitsIndexRoute
+  '/_orchestrator/repos/$namespace/projects/$projectName/access_policy': typeof OrchestratorReposNamespaceProjectsProjectNameAccess_policyRoute
+  '/_orchestrator/repos/$namespace/projects/$projectName/plan_policy': typeof OrchestratorReposNamespaceProjectsProjectNamePlan_policyRoute
+  '/_orchestrator/repos/$namespace/projects/$projectName/jobs/$jobId/set-status': typeof OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/logout'
+    | '/job_artefacts'
     | '/api/auth/callback'
+    | '/orchestrator/github/callback'
+    | '/orchestrator/github/webhook'
     | '/dashboard/connections'
     | '/dashboard/drift'
     | '/dashboard/onboarding'
     | '/dashboard/projects'
     | '/dashboard/repos'
     | '/dashboard/settings'
-    | '/dashboard/units'
+    | '/orgs/$orgId/access_policy'
+    | '/orgs/$orgId/plan_policy'
+    | '/repos/$namespace/report-projects'
     | '/api/auth/workos/switch-org'
     | '/api/auth/workos/webhooks'
     | '/dashboard/connections/$connectionId'
@@ -244,16 +332,25 @@ export interface FileRouteTypes {
     | '/dashboard/units/$unitId'
     | '/dashboard/projects/'
     | '/dashboard/repos/'
-    | '/dashboard/units/'
+    | '/dashboard/units'
+    | '/repos/$namespace/projects/$projectName/access_policy'
+    | '/repos/$namespace/projects/$projectName/plan_policy'
+    | '/repos/$namespace/projects/$projectName/jobs/$jobId/set-status'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/logout'
+    | '/job_artefacts'
     | '/api/auth/callback'
+    | '/orchestrator/github/callback'
+    | '/orchestrator/github/webhook'
     | '/dashboard/connections'
     | '/dashboard/drift'
     | '/dashboard/onboarding'
     | '/dashboard/settings'
+    | '/orgs/$orgId/access_policy'
+    | '/orgs/$orgId/plan_policy'
+    | '/repos/$namespace/report-projects'
     | '/api/auth/workos/switch-org'
     | '/api/auth/workos/webhooks'
     | '/dashboard/connections/$connectionId'
@@ -264,20 +361,28 @@ export interface FileRouteTypes {
     | '/dashboard/projects'
     | '/dashboard/repos'
     | '/dashboard/units'
+    | '/repos/$namespace/projects/$projectName/access_policy'
+    | '/repos/$namespace/projects/$projectName/plan_policy'
+    | '/repos/$namespace/projects/$projectName/jobs/$jobId/set-status'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/logout'
     | '/_authenticated/_dashboard'
+    | '/_orchestrator/job_artefacts'
     | '/api/auth/callback'
+    | '/orchestrator/github/callback'
+    | '/orchestrator/github/webhook'
     | '/_authenticated/_dashboard/dashboard/connections'
     | '/_authenticated/_dashboard/dashboard/drift'
     | '/_authenticated/_dashboard/dashboard/onboarding'
     | '/_authenticated/_dashboard/dashboard/projects'
     | '/_authenticated/_dashboard/dashboard/repos'
     | '/_authenticated/_dashboard/dashboard/settings'
-    | '/_authenticated/_dashboard/dashboard/units'
+    | '/_orchestrator/orgs/$orgId/access_policy'
+    | '/_orchestrator/orgs/$orgId/plan_policy'
+    | '/_orchestrator/repos/$namespace/report-projects'
     | '/api/auth/workos/switch-org'
     | '/api/auth/workos/webhooks'
     | '/_authenticated/_dashboard/dashboard/connections/$connectionId'
@@ -288,15 +393,27 @@ export interface FileRouteTypes {
     | '/_authenticated/_dashboard/dashboard/projects/'
     | '/_authenticated/_dashboard/dashboard/repos/'
     | '/_authenticated/_dashboard/dashboard/units/'
+    | '/_orchestrator/repos/$namespace/projects/$projectName/access_policy'
+    | '/_orchestrator/repos/$namespace/projects/$projectName/plan_policy'
+    | '/_orchestrator/repos/$namespace/projects/$projectName/jobs/$jobId/set-status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LogoutRoute: typeof LogoutRoute
+  OrchestratorJob_artefactsRoute: typeof OrchestratorJob_artefactsRoute
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
+  OrchestratorGithubCallbackRoute: typeof OrchestratorGithubCallbackRoute
+  OrchestratorGithubWebhookRoute: typeof OrchestratorGithubWebhookRoute
+  OrchestratorOrgsOrgIdAccess_policyRoute: typeof OrchestratorOrgsOrgIdAccess_policyRoute
+  OrchestratorOrgsOrgIdPlan_policyRoute: typeof OrchestratorOrgsOrgIdPlan_policyRoute
+  OrchestratorReposNamespaceReportProjectsRoute: typeof OrchestratorReposNamespaceReportProjectsRoute
   ApiAuthWorkosSwitchOrgRoute: typeof ApiAuthWorkosSwitchOrgRoute
   ApiAuthWorkosWebhooksRoute: typeof ApiAuthWorkosWebhooksRoute
+  OrchestratorReposNamespaceProjectsProjectNameAccess_policyRoute: typeof OrchestratorReposNamespaceProjectsProjectNameAccess_policyRoute
+  OrchestratorReposNamespaceProjectsProjectNamePlan_policyRoute: typeof OrchestratorReposNamespaceProjectsProjectNamePlan_policyRoute
+  OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRoute: typeof OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -322,12 +439,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_orchestrator/job_artefacts': {
+      id: '/_orchestrator/job_artefacts'
+      path: '/job_artefacts'
+      fullPath: '/job_artefacts'
+      preLoaderRoute: typeof OrchestratorJob_artefactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/_dashboard': {
       id: '/_authenticated/_dashboard'
       path: ''
       fullPath: ''
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/orchestrator/github/webhook': {
+      id: '/orchestrator/github/webhook'
+      path: '/orchestrator/github/webhook'
+      fullPath: '/orchestrator/github/webhook'
+      preLoaderRoute: typeof OrchestratorGithubWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orchestrator/github/callback': {
+      id: '/orchestrator/github/callback'
+      path: '/orchestrator/github/callback'
+      fullPath: '/orchestrator/github/callback'
+      preLoaderRoute: typeof OrchestratorGithubCallbackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/callback': {
       id: '/api/auth/callback'
@@ -350,12 +488,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthWorkosSwitchOrgRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/_dashboard/dashboard/units': {
-      id: '/_authenticated/_dashboard/dashboard/units'
-      path: '/dashboard/units'
-      fullPath: '/dashboard/units'
-      preLoaderRoute: typeof AuthenticatedDashboardDashboardUnitsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+    '/_orchestrator/repos/$namespace/report-projects': {
+      id: '/_orchestrator/repos/$namespace/report-projects'
+      path: '/repos/$namespace/report-projects'
+      fullPath: '/repos/$namespace/report-projects'
+      preLoaderRoute: typeof OrchestratorReposNamespaceReportProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_orchestrator/orgs/$orgId/plan_policy': {
+      id: '/_orchestrator/orgs/$orgId/plan_policy'
+      path: '/orgs/$orgId/plan_policy'
+      fullPath: '/orgs/$orgId/plan_policy'
+      preLoaderRoute: typeof OrchestratorOrgsOrgIdPlan_policyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_orchestrator/orgs/$orgId/access_policy': {
+      id: '/_orchestrator/orgs/$orgId/access_policy'
+      path: '/orgs/$orgId/access_policy'
+      fullPath: '/orgs/$orgId/access_policy'
+      preLoaderRoute: typeof OrchestratorOrgsOrgIdAccess_policyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/_dashboard/dashboard/settings': {
       id: '/_authenticated/_dashboard/dashboard/settings'
@@ -401,10 +553,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/_dashboard/dashboard/units/': {
       id: '/_authenticated/_dashboard/dashboard/units/'
-      path: '/'
-      fullPath: '/dashboard/units/'
+      path: '/dashboard/units'
+      fullPath: '/dashboard/units'
       preLoaderRoute: typeof AuthenticatedDashboardDashboardUnitsIndexRouteImport
-      parentRoute: typeof AuthenticatedDashboardDashboardUnitsRoute
+      parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/_dashboard/dashboard/repos/': {
       id: '/_authenticated/_dashboard/dashboard/repos/'
@@ -422,10 +574,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/_dashboard/dashboard/units/$unitId': {
       id: '/_authenticated/_dashboard/dashboard/units/$unitId'
-      path: '/$unitId'
+      path: '/dashboard/units/$unitId'
       fullPath: '/dashboard/units/$unitId'
       preLoaderRoute: typeof AuthenticatedDashboardDashboardUnitsUnitIdRouteImport
-      parentRoute: typeof AuthenticatedDashboardDashboardUnitsRoute
+      parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/_dashboard/dashboard/repos/connect': {
       id: '/_authenticated/_dashboard/dashboard/repos/connect'
@@ -454,6 +606,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/connections/$connectionId'
       preLoaderRoute: typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRouteImport
       parentRoute: typeof AuthenticatedDashboardDashboardConnectionsRoute
+    }
+    '/_orchestrator/repos/$namespace/projects/$projectName/plan_policy': {
+      id: '/_orchestrator/repos/$namespace/projects/$projectName/plan_policy'
+      path: '/repos/$namespace/projects/$projectName/plan_policy'
+      fullPath: '/repos/$namespace/projects/$projectName/plan_policy'
+      preLoaderRoute: typeof OrchestratorReposNamespaceProjectsProjectNamePlan_policyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_orchestrator/repos/$namespace/projects/$projectName/access_policy': {
+      id: '/_orchestrator/repos/$namespace/projects/$projectName/access_policy'
+      path: '/repos/$namespace/projects/$projectName/access_policy'
+      fullPath: '/repos/$namespace/projects/$projectName/access_policy'
+      preLoaderRoute: typeof OrchestratorReposNamespaceProjectsProjectNameAccess_policyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_orchestrator/repos/$namespace/projects/$projectName/jobs/$jobId/set-status': {
+      id: '/_orchestrator/repos/$namespace/projects/$projectName/jobs/$jobId/set-status'
+      path: '/repos/$namespace/projects/$projectName/jobs/$jobId/set-status'
+      fullPath: '/repos/$namespace/projects/$projectName/jobs/$jobId/set-status'
+      preLoaderRoute: typeof OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -512,24 +685,6 @@ const AuthenticatedDashboardDashboardReposRouteWithChildren =
     AuthenticatedDashboardDashboardReposRouteChildren,
   )
 
-interface AuthenticatedDashboardDashboardUnitsRouteChildren {
-  AuthenticatedDashboardDashboardUnitsUnitIdRoute: typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
-  AuthenticatedDashboardDashboardUnitsIndexRoute: typeof AuthenticatedDashboardDashboardUnitsIndexRoute
-}
-
-const AuthenticatedDashboardDashboardUnitsRouteChildren: AuthenticatedDashboardDashboardUnitsRouteChildren =
-  {
-    AuthenticatedDashboardDashboardUnitsUnitIdRoute:
-      AuthenticatedDashboardDashboardUnitsUnitIdRoute,
-    AuthenticatedDashboardDashboardUnitsIndexRoute:
-      AuthenticatedDashboardDashboardUnitsIndexRoute,
-  }
-
-const AuthenticatedDashboardDashboardUnitsRouteWithChildren =
-  AuthenticatedDashboardDashboardUnitsRoute._addFileChildren(
-    AuthenticatedDashboardDashboardUnitsRouteChildren,
-  )
-
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardDashboardConnectionsRoute: typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   AuthenticatedDashboardDashboardDriftRoute: typeof AuthenticatedDashboardDashboardDriftRoute
@@ -537,7 +692,8 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardDashboardProjectsRoute: typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   AuthenticatedDashboardDashboardReposRoute: typeof AuthenticatedDashboardDashboardReposRouteWithChildren
   AuthenticatedDashboardDashboardSettingsRoute: typeof AuthenticatedDashboardDashboardSettingsRoute
-  AuthenticatedDashboardDashboardUnitsRoute: typeof AuthenticatedDashboardDashboardUnitsRouteWithChildren
+  AuthenticatedDashboardDashboardUnitsUnitIdRoute: typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
+  AuthenticatedDashboardDashboardUnitsIndexRoute: typeof AuthenticatedDashboardDashboardUnitsIndexRoute
 }
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
@@ -554,8 +710,10 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
       AuthenticatedDashboardDashboardReposRouteWithChildren,
     AuthenticatedDashboardDashboardSettingsRoute:
       AuthenticatedDashboardDashboardSettingsRoute,
-    AuthenticatedDashboardDashboardUnitsRoute:
-      AuthenticatedDashboardDashboardUnitsRouteWithChildren,
+    AuthenticatedDashboardDashboardUnitsUnitIdRoute:
+      AuthenticatedDashboardDashboardUnitsUnitIdRoute,
+    AuthenticatedDashboardDashboardUnitsIndexRoute:
+      AuthenticatedDashboardDashboardUnitsIndexRoute,
   }
 
 const AuthenticatedDashboardRouteWithChildren =
@@ -579,9 +737,23 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LogoutRoute: LogoutRoute,
+  OrchestratorJob_artefactsRoute: OrchestratorJob_artefactsRoute,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,
+  OrchestratorGithubCallbackRoute: OrchestratorGithubCallbackRoute,
+  OrchestratorGithubWebhookRoute: OrchestratorGithubWebhookRoute,
+  OrchestratorOrgsOrgIdAccess_policyRoute:
+    OrchestratorOrgsOrgIdAccess_policyRoute,
+  OrchestratorOrgsOrgIdPlan_policyRoute: OrchestratorOrgsOrgIdPlan_policyRoute,
+  OrchestratorReposNamespaceReportProjectsRoute:
+    OrchestratorReposNamespaceReportProjectsRoute,
   ApiAuthWorkosSwitchOrgRoute: ApiAuthWorkosSwitchOrgRoute,
   ApiAuthWorkosWebhooksRoute: ApiAuthWorkosWebhooksRoute,
+  OrchestratorReposNamespaceProjectsProjectNameAccess_policyRoute:
+    OrchestratorReposNamespaceProjectsProjectNameAccess_policyRoute,
+  OrchestratorReposNamespaceProjectsProjectNamePlan_policyRoute:
+    OrchestratorReposNamespaceProjectsProjectNamePlan_policyRoute,
+  OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRoute:
+    OrchestratorReposNamespaceProjectsProjectNameJobsJobIdSetStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

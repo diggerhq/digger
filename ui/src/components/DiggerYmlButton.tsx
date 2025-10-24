@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { FileText } from "lucide-react"
-import { trackDiggerYmlAdded } from "@/lib/analytics"
 
 interface DiggerYmlButtonProps {
   onClick: () => void
